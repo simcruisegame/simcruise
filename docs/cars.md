@@ -4,6 +4,10 @@ Every car in SimCruise is a JSON file in [`game/cars/`](../game/cars/). Powertra
 
 ## The garage
 
+![The five generated cars rendered in Blender, and the Kestrel S in the game on Capitol Avenue, Cheyenne](images/garage.jpg)
+
+*Kestrel S, Tora RS, Volta, Meridian Z and Bison XL as generated, and the Kestrel S in the game.*
+
 | File | Name | Layout | Reference car | 0–60 mph | 70–0 mph | Skidpad |
 |---|---|---|---|---|---|---|
 | `nb1999.json` | 1999 Roadster Sport | front engine, rear drive, 5-speed manual | 1999 Mazda MX-5 Miata Sport | 7.95 s (7.97) | 172.9 ft (173) | 0.884 g (0.89) |
