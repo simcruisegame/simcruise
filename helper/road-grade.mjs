@@ -104,7 +104,7 @@ function tileLines(tile,widths,ox,oy,scale,clipToOwn){
   for(const line of feature.loadGeometry()){
    let piece=[];
    const bridge=protectedRoad&&p.brunnel!=='tunnel'&&(PAVED.has(p.class)||['service','track'].includes(p.class))&&(p.brunnel==='bridge'||Number(p.layer??0)>0);
-   const flush=()=>{if(piece.length>=2)out.push({pts:piece,width,protectedRoad,elevatedRoad,bridge,layer:Number(p.layer??0),cls:p.class,name:p.name??''});piece=[]};
+   const flush=()=>{if(piece.length>=2)out.push({pts:piece,width,protectedRoad,elevatedRoad,bridge,layer:Number(p.layer??0),oneway:Number(p.oneway??0),cls:p.class,name:p.name??''});piece=[]};
    for(let j=1;j<line.length;j++){
     const ax=ox+line[j-1].x*f,ay=oy+line[j-1].y*f,bx=ox+line[j].x*f,by=oy+line[j].y*f;
     const c=clipToOwn?clipSegment(ax,ay,bx,by,ox,oy,ox+size,oy+size):[ax,ay,bx,by];
@@ -544,7 +544,7 @@ async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,w
   const z=s.map(l=>za+(zb-za)*l/length);
   // Clip to this tile, interpolating the deck height at the cut.
   const out=[],heights=[],x1=tx0+scale,y1=ty0+scale;
-  const flush=()=>{if(out.length>=2){const p=parts[0].piece;rows.push([p.cls,p.name,out.slice(),p.width,heights.slice(),p.layer])}out.length=0;heights.length=0};
+  const flush=()=>{if(out.length>=2){const p=parts[0].piece;rows.push([p.cls,p.name,out.slice(),p.width,heights.slice(),p.layer,p.oneway?1:0])}out.length=0;heights.length=0};
   for(let k=1;k<pts.length;k++){
    const c=clipSegment(pts[k-1][0],pts[k-1][1],pts[k][0],pts[k][1],tx0,ty0,x1,y1);
    if(!c){flush();continue}

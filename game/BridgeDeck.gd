@@ -38,7 +38,7 @@ static func build(tile)->int:
    if path.size()>0 and Vector2(p.x-path[-1].x,p.z-path[-1].z).length()<.3:continue
    path.append(p)
   if path.size()<2:continue
-  deck(tile,path,float(row[3]),str(row[0]))
+  deck(tile,path,float(row[3]),str(row[0]),row.size()>6 and int(row[6])!=0)
   built+=1
  return built
 
@@ -46,8 +46,10 @@ static func ensure_materials(materials:Dictionary)->void:
  if _asphalt==null:
   _asphalt=StandardMaterial3D.new()
   _asphalt.albedo_texture=preload("res://art/asphalt.jpg")
-  _asphalt.albedo_color=Color(.82,.82,.80)
-  _asphalt.roughness=.92
+  # The shared asphalt photograph is pale; this tint matches the terrain shader's
+  # road grey (#484a49 under the same grit texture).
+  _asphalt.albedo_color=Color(.40,.41,.41)
+  _asphalt.roughness=.9
   _asphalt.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
  if _concrete==null:
   # Cast-in-place concrete: a pale warm grey with a soft procedural normal map
@@ -81,7 +83,7 @@ static func normals(path:PackedVector3Array)->PackedVector2Array:
 static func at(p:Vector3,n:Vector2,offset:float,lift:float)->Vector3:
  return Vector3(p.x+n.x*offset,p.y+lift,p.z+n.y*offset)
 
-static func deck(tile,path:PackedVector3Array,width:float,cls:String)->void:
+static func deck(tile,path:PackedVector3Array,width:float,cls:String,oneway:bool)->void:
  var n=normals(path)
  var half=width*.5+SHOULDER_M
  var outer=half+PARAPET_W
@@ -101,7 +103,7 @@ static func deck(tile,path:PackedVector3Array,width:float,cls:String)->void:
    surface(tile,"bridge_concrete",at(a,na,s*outer,PARAPET_H),at(b,nb,s*outer,PARAPET_H),at(b,nb,s*outer,-SLAB_M),at(a,na,s*outer,-SLAB_M),Vector2(1,1),false)
   # Soffit.
   surface(tile,"bridge_concrete",at(a,na,outer,-SLAB_M),at(b,nb,outer,-SLAB_M),at(b,nb,-outer,-SLAB_M),at(a,na,-outer,-SLAB_M),Vector2(1,1),false)
-  paint(tile,a,b,na,nb,width,cls,station,length)
+  paint(tile,a,b,na,nb,width,cls,oneway,station,length)
   piers(tile,a,b,na,nb,half,station,length)
   station+=length
 
@@ -112,13 +114,34 @@ static func surface(tile,key:String,p0:Vector3,p1:Vector3,p2:Vector3,p3:Vector3,
  tile.quad(key,p0,p1,p2,p3,normal,tiles)
  if collide:tile.collision_faces.append_array(PackedVector3Array([p0,p1,p2,p0,p2,p3]))
 
-# Edge lines, and a centre line: double yellow on two-way rural roads.
-static func paint(tile,a:Vector3,b:Vector3,na:Vector2,nb:Vector2,width:float,cls:String,station:float,length:float)->void:
+# MUTCD-style markings: white edge lines; two-way decks get a double yellow
+# centre line; lanes in the same direction are split by 10 ft dashes on a
+# 40 ft cycle (3.05 m paint, 12.2 m period), anchored to the deck's station.
+const DASH_M=3.05
+const DASH_PERIOD_M=12.2
+const LANE_M=3.65
+static func paint(tile,a:Vector3,b:Vector3,na:Vector2,nb:Vector2,width:float,cls:String,oneway:bool,station:float,length:float)->void:
  var edge=width*.5-.25
  for s in [1.,-1.]:
   stripe(tile,"whitepaint",a,b,na,nb,s*edge,.15)
- if cls in ["motorway","trunk"]:return
+ var lanes=maxi(1,roundi(width/LANE_M))
+ if oneway:
+  for k in range(1,lanes):dashes(tile,a,b,na,nb,-width*.5+width*k/lanes,station,length)
+  return
  for off in [-.12,.12]:stripe(tile,"yellowpaint",a,b,na,nb,off,.11)
+ # Wide two-way decks: dashed lanes on each side of the centre line.
+ var per_side=maxi(1,lanes/2)
+ for k in range(1,per_side):
+  for s in [1.,-1.]:dashes(tile,a,b,na,nb,s*width*.5*k/per_side,station,length)
+
+static func dashes(tile,a:Vector3,b:Vector3,na:Vector2,nb:Vector2,offset:float,station:float,length:float)->void:
+ var start=floorf(station/DASH_PERIOD_M)*DASH_PERIOD_M
+ var s=start
+ while s<station+length:
+  var f0=clampf((s-station)/length,0.,1.);var f1=clampf((s+DASH_M-station)/length,0.,1.)
+  if f1>f0:
+   stripe(tile,"whitepaint",a.lerp(b,f0),a.lerp(b,f1),na.lerp(nb,f0).normalized(),na.lerp(nb,f1).normalized(),offset,.12)
+  s+=DASH_PERIOD_M
 
 static func stripe(tile,key:String,a:Vector3,b:Vector3,na:Vector2,nb:Vector2,offset:float,w:float)->void:
  var p0=at(a,na,offset-w*.5,PAINT_LIFT);var p1=at(b,nb,offset-w*.5,PAINT_LIFT);var p2=at(b,nb,offset+w*.5,PAINT_LIFT);var p3=at(a,na,offset+w*.5,PAINT_LIFT)
