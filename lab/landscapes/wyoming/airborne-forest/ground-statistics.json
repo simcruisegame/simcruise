@@ -1,0 +1,110 @@
+[
+  {
+    "tile": [
+      12626,
+      23891
+    ],
+    "vertices": 1862,
+    "triangles": 3528,
+    "water": 0
+  },
+  {
+    "tile": [
+      12626,
+      23892
+    ],
+    "vertices": 4659,
+    "triangles": 8918,
+    "water": 652
+  },
+  {
+    "tile": [
+      12626,
+      23893
+    ],
+    "vertices": 1587,
+    "triangles": 2992,
+    "water": 0
+  },
+  {
+    "tile": [
+      12627,
+      23891
+    ],
+    "vertices": 1863,
+    "triangles": 3536,
+    "water": 0
+  },
+  {
+    "tile": [
+      12627,
+      23892
+    ],
+    "vertices": 4656,
+    "triangles": 8790,
+    "water": 858
+  },
+  {
+    "tile": [
+      12627,
+      23893
+    ],
+    "vertices": 1587,
+    "triangles": 2988,
+    "water": 0
+  },
+  {
+    "tile": [
+      12628,
+      23891
+    ],
+    "vertices": 1816,
+    "triangles": 3390,
+    "water": 333
+  },
+  {
+    "tile": [
+      12628,
+      23892
+    ],
+    "vertices": 4628,
+    "triangles": 8640,
+    "water": 921
+  },
+  {
+    "tile": [
+      12628,
+      23893
+    ],
+    "vertices": 1492,
+    "triangles": 2696,
+    "water": 0
+  },
+  {
+    "tile": [
+      12629,
+      23891
+    ],
+    "vertices": 1059,
+    "triangles": 1936,
+    "water": 0
+  },
+  {
+    "tile": [
+      12629,
+      23892
+    ],
+    "vertices": 2798,
+    "triangles": 5234,
+    "water": 2
+  },
+  {
+    "tile": [
+      12629,
+      23893
+    ],
+    "vertices": 911,
+    "triangles": 1624,
+    "water": 0
+  }
+]

@@ -1,0 +1,51 @@
+# Line endings: store text as LF, check out as-is on macOS and Linux.
+* text=auto
+*.sh text eol=lf
+*.gd text
+*.gdshader text
+*.gdshaderinc text
+*.gdinc text
+*.tscn text
+*.import text
+*.uid text
+*.cfg text
+*.godot text
+*.md text
+*.mjs text
+*.js text
+*.py text
+*.json text
+*.jsonl text
+*.geojson text
+*.csv text
+*.txt text
+# One upstream notice keeps its CRLF bytes as published.
+licenses/lerc-NOTICE.txt -text
+
+# Binary assets: no line-ending conversion, no text diff.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.hdr binary
+*.glb binary
+*.meshdata binary
+*.res binary
+*.npz binary
+*.bin binary
+*.br binary
+*.gz binary
+*.zip binary
+*.mp3 binary
+*.ttf binary
+*.wasm binary
+*.pck binary
+*.dmg binary
+
+# GitHub: hide vendored code and bulky data tiles from language statistics and collapsed diffs.
+helper/vendor/** linguist-vendored
+licenses/** linguist-documentation
+game/data/*.json linguist-generated
+helper/coast-atlas.json linguist-generated
+helper/lidar-projects.json linguist-generated
+helper/photo-weather-stations.json linguist-generated

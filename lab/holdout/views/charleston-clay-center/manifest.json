@@ -1,0 +1,31 @@
+{
+  "summary": "Charleston’s Clay Center roof and planetarium dome were reconstructed from two airborne laser flight lines. Both photographs below were withheld from the surface-color and camera-registration fits.",
+  "measurement": "At the same fixed Godot camera pose, the left-side skyline error fell from 43.5 to 24.9 pixels in frame 2860 and from 52.8 to 19.6 in frame 2861. Each test uses 254 columns in a 640 × 480 image. The new roof still rises above parts of the photographed skyline. These measurements are separate from the original full-view Charleston result.",
+  "images": [
+    {
+      "file": "frame-2860.webp",
+      "caption": "Frame 2860. Mean skyline error over 254 columns fell from 43.5 to 24.9 pixels. Photograph by wolfgang8741, © Grab and KartaView contributors, CC BY-SA 4.0."
+    },
+    {
+      "file": "frame-2861.webp",
+      "caption": "Frame 2861. Mean skyline error over 254 columns fell from 52.8 to 19.6 pixels. Photograph by wolfgang8741, © Grab and KartaView contributors, CC BY-SA 4.0."
+    }
+  ],
+  "source_url": "https://kartaview.org/details/3485953/2860",
+  "title": "Clay Center roof and dome",
+  "credit": "Photographs by wolfgang8741, © Grab and KartaView contributors. Both photographs were resized and arranged beside Godot renders. The comparison sheets are shared under CC BY-SA 4.0.",
+  "links": [
+    [
+      "Frame 2860",
+      "https://kartaview.org/details/3485953/2860"
+    ],
+    [
+      "Frame 2861",
+      "https://kartaview.org/details/3485953/2861"
+    ],
+    [
+      "CC BY-SA 4.0",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ]
+  ]
+}

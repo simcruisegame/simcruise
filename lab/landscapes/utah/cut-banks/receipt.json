@@ -1,0 +1,191 @@
+{
+  "source": {
+    "Utah": "UT_WestEast_B22 (90818), 2022 acquisition, NAVD88 / GEOID18, EPSG:26912",
+    "West Virginia": "WV_FEMA_R3_East_2016 (24494), NAVD88 / GEOID12B, EPSG:26917",
+    "cold_UT_requests": 2,
+    "cold_UT_bytes": 59124,
+    "warm_requests": 0,
+    "scan_limit": "16 KiB catalog + 100 KiB F32 export, 14 s HTTP timeout each, 1 Hz per host, shared provider cooldown",
+    "default_behavior": "Optional ahead-of-travel prefetch. Only a completed locked source is consumed on ordinary construction. A currently loaded tile and collider never change."
+  },
+  "registration": "1 m original COG and the separately decoded explicitly selected service view share an acquisition, not an independent survey. At 2887 WV common nodes, the default mosaic differed by 0.53 m median / 1.17 m p90. Lock to the exact source reduced these to 0.024 m / 0.089 m. Dense mapped structures in the WV control suppress most bank nodes.",
+  "profile": "Production solver at 191 changed native-covered grid points in the camera tile. Fine imagery alone cannot supply road grades. First 50 m of reference route remains mostly unmodified. At station 50 m/right 20 m, surveyed ground is +2.17 m, old and new at this location are both −0.20 m.",
+  "pavement_checks": {
+    "UT_samples": 5810,
+    "WV_samples": 21210,
+    "max_shift_m": 0,
+    "max_edge_shift_m": 0
+  },
+  "frozen_render": {
+    "pixels": 691200,
+    "changed": 5852,
+    "channel_shift_over_4": 3045,
+    "before_repeat_max_difference": 0
+  },
+  "drive": {
+    "banks": {
+      "(12741, 25487)": {},
+      "(12742, 25486)": {
+        "datum": "NAVD88",
+        "source": "UT_WestEast_B22",
+        "vertices": 28.0
+      },
+      "(12742, 25487)": {
+        "datum": "NAVD88",
+        "source": "UT_WestEast_B22",
+        "vertices": 685.0
+      },
+      "(12743, 25486)": {
+        "datum": "NAVD88",
+        "source": "UT_WestEast_B22",
+        "vertices": 913.0
+      },
+      "(12744, 25485)": {
+        "datum": "NAVD88",
+        "source": "UT_WestEast_B22",
+        "vertices": 408.0
+      },
+      "(12744, 25486)": {
+        "datum": "NAVD88",
+        "source": "UT_WestEast_B22",
+        "vertices": 47.0
+      }
+    },
+    "boundary_events": [
+      {
+        "at_m": 495.671380381973,
+        "camera_visible": true,
+        "contacts": 4,
+        "from": [
+          1593,
+          3185
+        ],
+        "speed_mps": 14.0350980758667,
+        "to": [
+          1592,
+          3185
+        ]
+      }
+    ],
+    "cockpit_images": [
+      {
+        "at_m": 32.0091243348434,
+        "bearing_deg": 230.361844711063,
+        "camera_far_m": 56000.0,
+        "cockpit": true,
+        "eye_above_road_m": 1.00854804786104,
+        "file": "approach.jpg"
+      },
+      {
+        "at_m": 600.020438965352,
+        "bearing_deg": 229.924990666797,
+        "camera_far_m": 56000.0,
+        "cockpit": true,
+        "eye_above_road_m": 1.00966425895695,
+        "file": "after-boundary.jpg"
+      }
+    ],
+    "distance_m": 1775.1223588548,
+    "end_lat_lon": [
+      37.0912246704102,
+      -110.006164550781
+    ],
+    "frame_ms_p50_p95_p99": [
+      8.397,
+      18.868,
+      199.761
+    ],
+    "frozen_ticks": 0,
+    "hidden_relief_ticks": 0,
+    "max_lane_error_m": 0.0645009130239487,
+    "max_speed_mps": 14.712818145752,
+    "max_vertical_step_m": 0.0286865234375,
+    "near_tiles": [
+      [
+        12744,
+        25485
+      ],
+      [
+        12744,
+        25486
+      ],
+      [
+        12743,
+        25486
+      ],
+      [
+        12742,
+        25486
+      ],
+      [
+        12742,
+        25487
+      ],
+      [
+        12741,
+        25487
+      ]
+    ],
+    "pass": true,
+    "pending_ticks": 24,
+    "pending_visible_ticks": 24,
+    "reason": "landscape boundary and handling",
+    "regions": [
+      {
+        "aerial": true,
+        "at_m": 0.0,
+        "coarse": 16.0,
+        "detail": 4.0,
+        "detail_images": 4,
+        "middle": true,
+        "region": [
+          1593,
+          3185
+        ],
+        "requests": 0.0,
+        "road_segments": 19.0,
+        "tolerance_m": 20.25,
+        "triangles": 110279,
+        "visible": true
+      },
+      {
+        "aerial": true,
+        "at_m": 501.284718047769,
+        "coarse": 16.0,
+        "detail": 4.0,
+        "detail_images": 4,
+        "middle": true,
+        "region": [
+          1592,
+          3185
+        ],
+        "requests": 0.0,
+        "road_segments": 19.0,
+        "tolerance_m": 20.25,
+        "triangles": 116222,
+        "visible": true
+      }
+    ],
+    "renderer": "macOS",
+    "sim_s": 128.466666666661,
+    "spawn_error_m": 2.68025398254395,
+    "start_actual_lat_lon": [
+      37.1014595031738,
+      -109.990837097168
+    ],
+    "start_lat_lon": [
+      37.101444,
+      -109.990814
+    ],
+    "ticks": 7708,
+    "wall_s": 233.36,
+    "wheel_contacts_0_to_4": [
+      0,
+      0,
+      0,
+      0,
+      7708
+    ]
+  },
+  "limits": "US contiguous lower 48 bounds only, qualifying NAVD88 ≤1 m bare earth, major paved non-elevated roads, background-only requests. Relief within 74 m of eligible roads. Existing grid ~7.6 m in Utah. Narrow gutters and survey boundary strips, mapped water, adjacent structures and roads lack fine reconstruction. Status failures use original collision. Timing from shared Mac included a Metal fence warning during competing GPU load."
+}

@@ -1,0 +1,37 @@
+func capture_forest():
+ await forest_cost("after")
+ print("FOREST INSTANCES AFTER ",game.grove.rings.map(func(r):return r.visible_instance_count))
+ get_viewport().get_texture().get_image().save_png(destination.get_basename()+"-after.png")
+ var forest_meshes=[]
+ for child in game.grove.get_children():
+  if child is MultiMeshInstance3D and child.visible:forest_meshes.append(child);child.hide()
+ for i in 5:
+  await get_tree().process_frame
+  await RenderingServer.frame_post_draw
+ get_viewport().get_texture().get_image().save_png(destination.get_basename()+"-after-empty.png")
+ for child in forest_meshes:child.show()
+ game.grove.observed_forest.disabled=true;game.grove.last_revision=-1;game.grove.refresh(game)
+ for i in 5:
+  await get_tree().process_frame
+  await RenderingServer.frame_post_draw
+ await forest_cost("before")
+ print("FOREST INSTANCES BEFORE ",game.grove.rings.map(func(r):return r.visible_instance_count))
+ get_viewport().get_texture().get_image().save_png(destination.get_basename()+"-before.png")
+ game.grove.hide()
+ for i in 5:
+  await get_tree().process_frame
+  await RenderingServer.frame_post_draw
+ get_viewport().get_texture().get_image().save_png(destination.get_basename()+"-empty.png")
+ game.request_game_close(0);return
+
+func forest_cost(label):
+ var times=[]
+ var prev=Time.get_ticks_usec()
+ for i in 37:
+  await get_tree().process_frame
+  await RenderingServer.frame_post_draw
+  var t=Time.get_ticks_usec()
+  if i>3:times.append((t-prev)*.001)
+  prev=t
+ times.sort()
+ print("FOREST COST ",label," median_ms=",times[times.size()/2]," p95=",times[int(times.size()*.95)]," triangles=",RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME))

@@ -1,0 +1,20 @@
+.DS_Store
+**/.godot/
+**/__pycache__/
+node_modules/
+build/
+tools/atlas
+*.bun-build
+
+# local caches and logs
+*.log
+.ruff_cache/
+tools/
+build/
+
+# added for the public GitHub repository (append-only)
+.cache/
+*.pyc
+.venv/
+*.dmg
+.claude/

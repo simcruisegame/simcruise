@@ -1,0 +1,65 @@
+{
+  "tile": [
+    13686,
+    24537
+  ],
+  "gpu": "Apple A18 Pro / Metal / Godot 4.7.2",
+  "approach": "CAPITOL DRIVE PASS northbound approach road=Capitol Avenue travel_m=42.2601203918457 peak_mps=13.2685852050781 min_wheels=4 measured_faces=1672",
+  "render_layers": {
+    "applied_epoch": 1792960080,
+    "applied_weight": 1.0,
+    "camera_heading": 333.72646,
+    "capturedAt": null,
+    "crowns": 175,
+    "distance_m": null,
+    "heights": 0,
+    "horizontal_fov": 72.24724,
+    "id": null,
+    "kartaview": "no_coverage",
+    "panoramax": {
+      "status": "empty",
+      "via": "cache"
+    },
+    "player_shade_layers": 0,
+    "player_visible": false,
+    "ready": true,
+    "references": 0,
+    "source": null,
+    "sun_azimuth": 210.482018123573,
+    "sun_elevation": 31.6590011938629,
+    "tile": [
+      13686,
+      24537
+    ]
+  },
+  "scores": {
+    "baseline": {
+      "silhouette_median_pixels": 148.0,
+      "silhouette_mean_pixels": 185.82448979591837,
+      "silhouette_P90_pixels": 308.2,
+      "central_fixed_luma_MAE": 72.14316283569595,
+      "central_fixed_pattern_corr": 0.023587870169429054
+    },
+    "survey": {
+      "silhouette_median_pixels": 10.0,
+      "silhouette_mean_pixels": 14.730612244897959,
+      "silhouette_P90_pixels": 30.0,
+      "central_fixed_luma_MAE": 68.55190907257213,
+      "central_fixed_pattern_corr": 0.28155399148941207
+    }
+  },
+  "payload": {
+    "lidar-roofs-13686-24537.json": {
+      "bytes": 103194,
+      "sha256": "ca664c656d199a84d66bc217ce337bee8dbd08b32f2ca62ab11511fa699adc79"
+    },
+    "survey-depth-13686-24537.png": {
+      "bytes": 25363,
+      "sha256": "e672ce159f9bdc70bf3dffcabd1d162bab4f9a7df43fe5e0936d1505a97f3325"
+    },
+    "survey-front-13686-24537.png": {
+      "bytes": 429101,
+      "sha256": "fcf154cd9f4b84810196839324d7288dc94a71f07e10065302c0f863f84dbc7b"
+    }
+  }
+}

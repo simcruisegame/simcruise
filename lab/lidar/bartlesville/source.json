@@ -1,0 +1,87 @@
+{
+  "id": "OK_Statewide_1_D22",
+  "ept": "https://usgs-lidar-public.s3.amazonaws.com/OK_Statewide_1_D22/ept.json",
+  "acquisition": [
+    "2022-12-14",
+    "2023-01-18"
+  ],
+  "leaf": "https://usgs-lidar-public.s3.amazonaws.com/OK_Statewide_1_D22/ept-data/11-1298-1358-1021.laz",
+  "size": 257925,
+  "sha256": "752d22709a850cb70448b23b7ee1be0e392e0d3fa2fb84527d3211277d065b9f",
+  "local_origin": {
+    "latitude": 36.7329697,
+    "longitude": -95.9353957
+  },
+  "candidate_indices": [
+    2,
+    4
+  ],
+  "hip_color_samples": [
+    {
+      "row": 3,
+      "n": 42,
+      "fraction": 1.0,
+      "srgb": [
+        189,
+        149,
+        147
+      ]
+    },
+    {
+      "row": 0,
+      "n": 34,
+      "fraction": 0.81,
+      "srgb": [
+        130,
+        101,
+        98
+      ]
+    },
+    {
+      "row": 2,
+      "n": 42,
+      "fraction": 1.0,
+      "srgb": [
+        144,
+        112,
+        110
+      ]
+    }
+  ],
+  "roof_srgb": [
+    144,
+    112,
+    110
+  ],
+  "wall_srgb": [
+    174,
+    161,
+    143
+  ],
+  "captures": [
+    {
+      "id": "facd96a4-bae2-4230-9793-8a3a60a851be",
+      "captured": "2024-06-07T15:40:22.050900+00:00",
+      "lat": 36.7329697,
+      "lon": -95.9353957,
+      "license": "CC-BY-SA-4.0",
+      "url": "https://panoramax.openstreetmap.fr/derivates/fa/cd/96/a4/bae2-4230-9793-8a3a60a851be/sd.jpg"
+    },
+    {
+      "id": "37d05f23-c4c9-428d-90b0-0a47b4e6be13",
+      "captured": "2026-02-12T19:27:37.096200+00:00",
+      "lat": 36.7329947,
+      "lon": -95.9354536,
+      "license": "CC-BY-SA-4.0",
+      "url": "https://images.panoramax.basi.re/derivates/37/d0/5f/23/c4c9-428d-90b0-0a47b4e6be13/sd.jpg"
+    },
+    {
+      "id": "b8a59ba7-0269-44b8-9b3b-f356b09dc102",
+      "captured": "2026-02-12T19:27:34.096200+00:00",
+      "lat": 36.7330016,
+      "lon": -95.9352951,
+      "license": "CC-BY-SA-4.0",
+      "url": "https://images.panoramax.basi.re/derivates/b8/a5/9b/a7/0269-44b8-9b3b-f356b09dc102/sd.jpg"
+    }
+  ]
+}

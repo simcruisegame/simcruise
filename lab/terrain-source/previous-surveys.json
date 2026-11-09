@@ -1,0 +1,417 @@
+{
+  "needles": {
+    "native_zref": 1933.66650390625,
+    "absolute_stock_USGS_at_origin": [
+      1932.5677,
+      1932.7242
+    ],
+    "anchor_shift_m": 0.15650519333257762,
+    "before_after_vs_native_zref_m": [
+      -1.0988,
+      -0.9423
+    ],
+    "photos": {
+      "149021303": {
+        "road_change_m": 0.06799952828646383,
+        "granite_vs_camera_shift_m": 0.08850566504611379
+      },
+      "149021324": {
+        "road_change_m": 0.061946584558427276,
+        "granite_vs_camera_shift_m": 0.09455860877415034
+      },
+      "149021330": {
+        "road_change_m": 0.07111450925981444,
+        "granite_vs_camera_shift_m": 0.08539068407276318
+      },
+      "149021335": {
+        "road_change_m": 0.18136136280600113,
+        "granite_vs_camera_shift_m": -0.024856169473423506
+      },
+      "149021336": {
+        "road_change_m": 0.15444209553174915,
+        "granite_vs_camera_shift_m": 0.002063097800828473
+      },
+      "149021337": {
+        "road_change_m": 0.156505256696164,
+        "granite_vs_camera_shift_m": -6.336358637781814e-08
+      }
+    },
+    "local_surface": [
+      {
+        "tile": [
+          13918,
+          23870
+        ],
+        "native_old_offset": -1.1051025390625,
+        "strong": [
+          {
+            "n": 738,
+            "median": -1.105,
+            "median_abs": 1.105,
+            "p90_abs": 1.11,
+            "min": -1.706,
+            "max": -0.923
+          },
+          {
+            "n": 738,
+            "median": -1.105,
+            "median_abs": 1.105,
+            "p90_abs": 1.105,
+            "min": -1.574,
+            "max": -0.797
+          }
+        ],
+        "partial_surface_shift": {
+          "n": 1917,
+          "median": 0.672,
+          "median_abs": 1.352,
+          "p90_abs": 3.606,
+          "min": -8.904,
+          "max": 4.336
+        },
+        "relative_rock_to_full_surface_change": 0.15650519333257762
+      },
+      {
+        "tile": [
+          13919,
+          23870
+        ],
+        "native_old_offset": -1.1051025390625,
+        "strong": [
+          {
+            "n": 5832,
+            "median": -1.105,
+            "median_abs": 1.105,
+            "p90_abs": 1.105,
+            "min": -1.571,
+            "max": -0.807
+          },
+          {
+            "n": 5832,
+            "median": -1.105,
+            "median_abs": 1.105,
+            "p90_abs": 1.105,
+            "min": -1.743,
+            "max": -0.959
+          }
+        ],
+        "partial_surface_shift": {
+          "n": 4092,
+          "median": 0.076,
+          "median_abs": 0.591,
+          "p90_abs": 2.705,
+          "min": -9.87,
+          "max": 5.488
+        },
+        "relative_rock_to_full_surface_change": 0.15650519333257762
+      }
+    ],
+    "confirmed_registered_fixed_AMSL_views": {
+      "335": {
+        "floor": [
+          1932.1897,
+          1931.9556
+        ],
+        "lens_above_old_new_road": [
+          1.6375,
+          1.8717
+        ],
+        "rock_rise_relative_to_fixed_eye": 0.1565,
+        "rock_change_relative_to_ground_following_camera": 0.3906
+      },
+      "337": {
+        "floor": [
+          1932.2244,
+          1932.0003
+        ],
+        "lens_above_old_new_road": [
+          1.7353,
+          1.9594
+        ],
+        "rock_rise_relative_to_fixed_eye": 0.1565,
+        "rock_change_relative_to_ground_following_camera": 0.3806
+      }
+    }
+  },
+  "snake": {
+    "stem_minus_terrain_sign": "positive means floor above fixed root",
+    "error_at_all_crowns_m": [
+      {
+        "n": 2453,
+        "median": -0.124,
+        "median_abs": 0.321,
+        "p90_abs": 1.269,
+        "min": -4.368,
+        "max": 4.791
+      },
+      {
+        "n": 2453,
+        "median": -0.086,
+        "median_abs": 0.219,
+        "p90_abs": 1.203,
+        "min": -3.961,
+        "max": 3.698
+      }
+    ],
+    "above_root_by_2m": [
+      63,
+      11
+    ],
+    "floating_by_2m": [
+      24,
+      45
+    ],
+    "photo_floor": [
+      2103.436,
+      2102.3652
+    ],
+    "active_3x3": {
+      "stats": [
+        {
+          "n": 946,
+          "median": -0.065,
+          "median_abs": 0.37,
+          "p90_abs": 1.652,
+          "min": -3.922,
+          "max": 4.791
+        },
+        {
+          "n": 946,
+          "median": -0.12,
+          "median_abs": 0.298,
+          "p90_abs": 1.513,
+          "min": -3.961,
+          "max": 3.698
+        }
+      ],
+      "buried_gt_2m": [
+        41,
+        6
+      ],
+      "floating_gt_2m": [
+        17,
+        33
+      ]
+    },
+    "active_within_500m": {
+      "stats": [
+        {
+          "n": 686,
+          "median": -0.051,
+          "median_abs": 0.354,
+          "p90_abs": 1.679,
+          "min": -3.922,
+          "max": 4.791
+        },
+        {
+          "n": 686,
+          "median": -0.182,
+          "median_abs": 0.311,
+          "p90_abs": 1.661,
+          "min": -3.961,
+          "max": 2.459
+        }
+      ],
+      "buried_gt_2m": [
+        32,
+        2
+      ],
+      "floating_gt_2m": [
+        15,
+        31
+      ]
+    },
+    "active_500_1000m": {
+      "stats": [
+        {
+          "n": 260,
+          "median": -0.101,
+          "median_abs": 0.413,
+          "p90_abs": 1.316,
+          "min": -2.286,
+          "max": 4.487
+        },
+        {
+          "n": 260,
+          "median": 0.007,
+          "median_abs": 0.259,
+          "p90_abs": 0.907,
+          "min": -2.127,
+          "max": 3.698
+        }
+      ],
+      "buried_gt_2m": [
+        9,
+        4
+      ],
+      "floating_gt_2m": [
+        2,
+        2
+      ]
+    },
+    "all_survey_ground_vertices": 28918,
+    "active_floor_minus_class2_or_water": [
+      {
+        "n": 12821,
+        "median": -0.043,
+        "median_abs": 0.24,
+        "p90_abs": 1.325,
+        "min": -4.574,
+        "max": 9.741
+      },
+      {
+        "n": 12821,
+        "median": -0.038,
+        "median_abs": 0.131,
+        "p90_abs": 1.267,
+        "min": -4.953,
+        "max": 9.754
+      }
+    ],
+    "surfaces_hidden_by_near_3x3": [
+      [
+        12628,
+        23891
+      ],
+      [
+        12628,
+        23892
+      ],
+      [
+        12628,
+        23893
+      ],
+      [
+        12629,
+        23891
+      ],
+      [
+        12629,
+        23892
+      ],
+      [
+        12629,
+        23893
+      ]
+    ],
+    "subject_crowns_in_unloaded_tiles": 1507
+  },
+  "medford": {
+    "paint_corners": 252,
+    "paint_base_shift": {
+      "n": 252,
+      "median": -0.835,
+      "median_abs": 0.835,
+      "p90_abs": 1.042,
+      "min": -1.094,
+      "max": -0.549
+    },
+    "camera": "1906176569",
+    "camera_floor": [
+      3.6575,
+      2.7799
+    ],
+    "paint_minus_camera_relative_shift_m": {
+      "n": 252,
+      "median": 0.042,
+      "median_abs": 0.135,
+      "p90_abs": 0.288,
+      "min": -0.217,
+      "max": 0.329
+    },
+    "max_change_painted_3d_width_mm": 0.010573527877283384,
+    "nominal_lift_m": 0.048
+  },
+  "cheyenne": {
+    "ground_plane_inliers": 2376,
+    "mount_uv": [
+      0.0587,
+      0.2765
+    ],
+    "ground_plane_z_at_mount": 1857.1709,
+    "mount_old_new": [
+      1855.6675,
+      1856.2241
+    ],
+    "mount_old_new_minus_measured": [
+      -1.5034,
+      -0.9468
+    ],
+    "camera_floor": [
+      1855.2271,
+      1855.714
+    ],
+    "roof_vs_fixed_ground_camera_shift_m": 0.06968129347069407,
+    "ring_floor_minus_class2_plane": [
+      {
+        "n": 41,
+        "median": -1.554,
+        "median_abs": 1.554,
+        "p90_abs": 1.727,
+        "min": -1.85,
+        "max": -1.127
+      },
+      {
+        "n": 41,
+        "median": -1.214,
+        "median_abs": 1.214,
+        "p90_abs": 1.427,
+        "min": -1.569,
+        "max": 0.623
+      }
+    ]
+  },
+  "bank": {
+    "source": "UT_WestEast_B22",
+    "applied_vertices": [
+      3552,
+      3240
+    ],
+    "both_applied": 3192,
+    "either_applied": 3600,
+    "on_common_vertices_mesh_minus_survey_m": [
+      {
+        "n": 3192,
+        "median": -2.14,
+        "median_abs": 2.185,
+        "p90_abs": 3.072,
+        "min": -4.242,
+        "max": 4.503
+      },
+      {
+        "n": 3192,
+        "median": 0.071,
+        "median_abs": 0.133,
+        "p90_abs": 0.43,
+        "min": -1.694,
+        "max": 2.009
+      }
+    ],
+    "on_union_mesh_minus_survey_m": [
+      {
+        "n": 3600,
+        "median": -2.066,
+        "median_abs": 2.117,
+        "p90_abs": 3.095,
+        "min": -4.494,
+        "max": 4.736
+      },
+      {
+        "n": 3600,
+        "median": 0.091,
+        "median_abs": 0.138,
+        "p90_abs": 0.434,
+        "min": -1.694,
+        "max": 2.009
+      }
+    ],
+    "on_common_vertices_mesh_change_m": {
+      "n": 3192,
+      "median": 2.284,
+      "median_abs": 2.293,
+      "p90_abs": 3.005,
+      "min": -3.801,
+      "max": 4.225
+    }
+  }
+}

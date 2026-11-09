@@ -1,0 +1,7 @@
+numpy==2.5.4
+scipy==1.18.1
+shapely==2.2.0
+pyproj==3.8.0
+Pillow==13.0.0
+laspy==2.7.0
+lazrs==0.8.2

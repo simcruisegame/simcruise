@@ -1,0 +1,32 @@
+[
+  {
+    "path": "dc-width-source-block.json",
+    "url": "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Transportation_WebMercator/MapServer/163/query?geometryType=esriGeometryEnvelope&geometry=-8574778.19212738%2C4708756.143381118%2C-8574456.906437743%2C4709077.429070753&inSR=3857&outSR=3857&outFields=TOTALTRAVELLANES%2CTOTALPARKINGLANES%2CTOTALTRAVELLANEWIDTH%2CTOTALCROSSSECTIONWIDTH%2CTOTALPARKINGLANEWIDTH%2CSTREETNAME%2CSTREETTYPE%2CBLOCK_NAME%2CTOTALBIKELANES%2CTOTALBIKELANEWIDTH%2CFROMSTREET%2CTOSTREET%2COBJECTID&f=json&returnGeometry=true&resultRecordCount=600&maxAllowableOffset=0.15&geometryPrecision=2",
+    "bytes": 9693,
+    "sha256": "f90d13bfe82f38c99d912d4ff44264f6b2a4a6f0889ad9f471f56f0d708a34f4"
+  },
+  {
+    "path": "dc-curb-2023-block.json",
+    "url": "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Planimetrics_2023/MapServer/3/query?geometryType=esriGeometryEnvelope&geometry=-8574778.19212738%2C4708756.143381118%2C-8574456.906437743%2C4709077.429070753&inSR=3857&outSR=3857&outFields=OBJECTID%2CFEATURECODE&f=json&returnGeometry=true&resultRecordCount=600&maxAllowableOffset=0.15&geometryPrecision=2",
+    "bytes": 16251,
+    "sha256": "7298d8d2dc5d2af900f12e7f43f034335803905e5d2d70f11fbf793942a613d5"
+  },
+  {
+    "path": "dc-curb-2021-block.json",
+    "url": "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Planimetrics_2021/MapServer/3/query?geometryType=esriGeometryEnvelope&geometry=-8574778.19212738%2C4708756.143381118%2C-8574456.906437743%2C4709077.429070753&inSR=3857&outSR=3857&outFields=OBJECTID%2CFEATURECODE&f=json&returnGeometry=true&resultRecordCount=600&maxAllowableOffset=0.15&geometryPrecision=2",
+    "bytes": 16276,
+    "sha256": "26524b9ea201eb336420c32d6397682fdff4f410e99795dae4ac51d6906895a3"
+  },
+  {
+    "path": "dc-aerial.jpg",
+    "url": "https://imagery.dcgis.dc.gov/dcgis/rest/services/Ortho/Ortho_2025/ImageServer/exportImage?bboxSR=3857&bbox=-8574765.340699794%2C4708768.994808703%2C-8574469.75786533%2C4709064.577643168&imageSR=3857&size=1800%2C1800&format=jpg&f=image",
+    "bytes": 590848,
+    "sha256": "523fe6018df6c6c40051becfa98653514325421b413c94774dc59b17220bdffd"
+  },
+  {
+    "path": "dc2023.jpg",
+    "url": "https://imagery.dcgis.dc.gov/dcgis/rest/services/Ortho/Ortho_2023/ImageServer/exportImage?bboxSR=3857&bbox=-8574738.636603747%2C4708925.525343007%2C-8574599.841185823%2C4708976.931053349&imageSR=3857&size=1080%2C400&format=jpg&f=image",
+    "bytes": 73223,
+    "sha256": "a35532a41f90cd73640f92de9bba20a3dd83cfdf09244113bfd0d417d1fe3dfa"
+  }
+]

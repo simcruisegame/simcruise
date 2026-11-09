@@ -1,0 +1,369 @@
+{
+  "source": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/WY_GrandTetonNP_1_D22/",
+  "center": [
+    43.753821,
+    -110.62409
+  ],
+  "near": [
+    -190,
+    -110,
+    45,
+    75
+  ],
+  "swath": [
+    -1550,
+    -430,
+    40,
+    330
+  ],
+  "nodes": [
+    {
+      "key": "10-585-368-500",
+      "depth": 10,
+      "bytes": 120304,
+      "hash": "2f9523b60d82b456e0a0e857abfef99943f1ca3e3b608da8cbc3529dfac9c51b"
+    },
+    {
+      "key": "10-585-369-500",
+      "depth": 10,
+      "bytes": 127791,
+      "hash": "205669becb28c01ec81e95cb445b1eae96fc53dacb6f3e6be0ca3531d8cc5d49"
+    },
+    {
+      "key": "10-585-371-499",
+      "depth": 10,
+      "bytes": 196339,
+      "hash": "cde7677447006b4d5186f9e31d03ea1b1436b5f20d589be8c9112d323b0bd7c0"
+    },
+    {
+      "key": "10-586-368-500",
+      "depth": 10,
+      "bytes": 104109,
+      "hash": "aa5c0306b9481eb4050e279e4ca89ddbb6978285394918880f98f84474b0bf2c"
+    },
+    {
+      "key": "10-586-369-500",
+      "depth": 10,
+      "bytes": 124258,
+      "hash": "7b6994d447724e96b8aa253cb8bbc150c7a7042cfe45280b13f52062d9d2c701"
+    },
+    {
+      "key": "10-586-370-500",
+      "depth": 10,
+      "bytes": 126971,
+      "hash": "145750577ac2d42466f9742a8d51824b9105058d66d1e7a963e4b0cfb959da0d"
+    },
+    {
+      "key": "10-587-369-500",
+      "depth": 10,
+      "bytes": 108616,
+      "hash": "65472af71bc6cc96aa2e0afe6a498f2b46611bd1508930a970bad87f4d54b763"
+    },
+    {
+      "key": "10-587-370-500",
+      "depth": 10,
+      "bytes": 129427,
+      "hash": "c8efef02a34954f1f19c64ea7cb14fe19109e1488f35f6edffc06ae20c43f83a"
+    },
+    {
+      "key": "10-588-368-500",
+      "depth": 10,
+      "bytes": 99437,
+      "hash": "c5f2cd661ae0aa1002ffdaf179c295fab8757b0496ad60d51b63c04d280aa39e"
+    },
+    {
+      "key": "10-588-369-500",
+      "depth": 10,
+      "bytes": 101320,
+      "hash": "3af34bc3c33b7fd708eeb6c5dff82e97af0edeb82deaf558f9b064e5177ed652"
+    },
+    {
+      "key": "10-588-370-500",
+      "depth": 10,
+      "bytes": 116194,
+      "hash": "7e9ff3fe02e980a3c2242f0708a0b708fb41606d9fb8180b95274662c7f32ddd"
+    },
+    {
+      "key": "10-588-371-500",
+      "depth": 10,
+      "bytes": 124864,
+      "hash": "2ab2655067f07b4c344f21860ae81e99158d0ac12d42f8a2352c1e605b0e9b1d"
+    },
+    {
+      "key": "10-589-369-500",
+      "depth": 10,
+      "bytes": 97090,
+      "hash": "911011f8c8b3e84984dc7b348122045fd501534f37ef9546a004027b98f36ea6"
+    },
+    {
+      "key": "10-589-371-500",
+      "depth": 10,
+      "bytes": 112332,
+      "hash": "d2327e090e9ee186029b6fbe168068214239efa1269bea50402d159ec379e2cb"
+    },
+    {
+      "key": "7-70-45-62",
+      "depth": 7,
+      "bytes": 397530,
+      "hash": "d1b6cbb1bbc68c3db0625b70a3b2b5c7e669b43d55d20098baeefb1cb8e3b886"
+    },
+    {
+      "key": "7-70-46-62",
+      "depth": 7,
+      "bytes": 218159,
+      "hash": "5f03a37416314eab1aacea54bcf57977c222d73b8fb086b8592e1fc3e84f4885"
+    },
+    {
+      "key": "7-71-45-62",
+      "depth": 7,
+      "bytes": 371895,
+      "hash": "dde0d52166df1dce96b93b093048d6439fda0d6c6e1b8dea8b8daf782121161a"
+    },
+    {
+      "key": "7-71-46-62",
+      "depth": 7,
+      "bytes": 443720,
+      "hash": "ada8a2077dbde8eb7c5c30ed27a02c5d79f67d335b0ded0f8fe6ef548db71101"
+    },
+    {
+      "key": "7-72-45-62",
+      "depth": 7,
+      "bytes": 218896,
+      "hash": "625559a8e742aba5c7aed0bd73ad5c726b1c6aeb2d780427f354ae7b352f7f68"
+    },
+    {
+      "key": "7-72-46-62",
+      "depth": 7,
+      "bytes": 387424,
+      "hash": "6ca528798a4d2f925a72b19542cf5300845dc21b566d3302f5e354d799e6e2d3"
+    },
+    {
+      "key": "7-73-45-62",
+      "depth": 7,
+      "bytes": 153022,
+      "hash": "a294064647af618ee0e74dbf411d47b121d943341c7e9136488ff8233c342e90"
+    },
+    {
+      "key": "7-73-46-62",
+      "depth": 7,
+      "bytes": 409671,
+      "hash": "0546fbed0ffbb7d04a3cf389573e10c3bf1a9734f721c66c34a4f5b8f5a50cc8"
+    },
+    {
+      "key": "8-141-91-124",
+      "depth": 8,
+      "bytes": 446900,
+      "hash": "b3027c5afa06f9aa71ed80b9f178e3135bad4656938404959cf58fbf4668c5a1"
+    },
+    {
+      "key": "8-141-92-124",
+      "depth": 8,
+      "bytes": 247784,
+      "hash": "f3cc5b4a9ff1a4003c9bd752bb6ea332842fd8c8a440584e611655c8a8a887d0"
+    },
+    {
+      "key": "8-141-93-124",
+      "depth": 8,
+      "bytes": 302160,
+      "hash": "da41fb954053388a6e9b022b462f0b2d64f7fc73df12e8df5698940fa3acce1f"
+    },
+    {
+      "key": "8-141-93-125",
+      "depth": 8,
+      "bytes": 54262,
+      "hash": "2a45d330ed9edef9269db3af71aff1f7887841f16878501b545de87fe8f108d0"
+    },
+    {
+      "key": "8-142-91-124",
+      "depth": 8,
+      "bytes": 435955,
+      "hash": "5b9a08b6a86e569d9e6f0341fa36cfaafb7c344fb1acc6c39e4e7653b56fbf63"
+    },
+    {
+      "key": "8-142-91-125",
+      "depth": 8,
+      "bytes": 203746,
+      "hash": "74d44f33570c6a886ae68c11a62499758e1eeda1ac4ec91b2a6fa1266c399184"
+    },
+    {
+      "key": "8-142-92-124",
+      "depth": 8,
+      "bytes": 308562,
+      "hash": "446b460c95a50936ae23066954665385e5cea42f9d7a2747c2f5636dc3a2f54d"
+    },
+    {
+      "key": "8-142-93-124",
+      "depth": 8,
+      "bytes": 332738,
+      "hash": "966e91782d9eec7795f593af9965cf5c27af0e3cf7235c5f8122d12d0b1cf2d2"
+    },
+    {
+      "key": "8-143-91-124",
+      "depth": 8,
+      "bytes": 285097,
+      "hash": "0ef75658f186fbecbc5a535ea381b89dac13ff635285ff5d39235829cb9ad3cb"
+    },
+    {
+      "key": "8-143-91-125",
+      "depth": 8,
+      "bytes": 250652,
+      "hash": "a0cb23f58ac3c6c50458df1dd29ef9cda135b785aec5121d94094ce262059347"
+    },
+    {
+      "key": "8-143-92-124",
+      "depth": 8,
+      "bytes": 260405,
+      "hash": "dea6ce76ad4ddeddd6b37a4e484b2e36f8550638bf3be0508d63891e6582f2ba"
+    },
+    {
+      "key": "8-143-93-124",
+      "depth": 8,
+      "bytes": 295595,
+      "hash": "82dfe188b7aa6375997d03575ccfc345a11ffe37d47dca7b419c3d5cf701178a"
+    },
+    {
+      "key": "8-144-91-124",
+      "depth": 8,
+      "bytes": 353783,
+      "hash": "07f44fc1e8d9b96b4114618f999ebc8accf942c6e1efd2703e371a143ac28a77"
+    },
+    {
+      "key": "8-144-91-125",
+      "depth": 8,
+      "bytes": 212279,
+      "hash": "f9fcfbe2fec41f32b08608de41ba19c10690179d335c614ce49683e8d0831b17"
+    },
+    {
+      "key": "8-144-92-124",
+      "depth": 8,
+      "bytes": 330352,
+      "hash": "ab9958b38044a3a4563f918c35d5b00d8f149dec43f7f686b5d205cb28c56ecf"
+    },
+    {
+      "key": "8-144-93-124",
+      "depth": 8,
+      "bytes": 221797,
+      "hash": "bada902a0d96c526657f9345ef4a3bd8d9fd198d787ae53811baa7ed1c71e799"
+    },
+    {
+      "key": "8-145-91-124",
+      "depth": 8,
+      "bytes": 76152,
+      "hash": "1f34971b6b7f8c63cb29a0cbf484ed6c4bd62931212b613a1804015873adbe8b"
+    },
+    {
+      "key": "8-145-91-125",
+      "depth": 8,
+      "bytes": 245507,
+      "hash": "ceffc2d0e136af2114751560a1670835191244a9b538dfd93eb46d186f5d3104"
+    },
+    {
+      "key": "8-145-92-124",
+      "depth": 8,
+      "bytes": 330668,
+      "hash": "9a50323a2f97a2c3e507eb7dcb5507eb3217ef9df1655763eeae7c9fba8ce22a"
+    },
+    {
+      "key": "8-145-92-125",
+      "depth": 8,
+      "bytes": 375130,
+      "hash": "66b2caf971819e4050b9682c36e63c5ec20aab824a6fea8bbc2ba8671d0feae1"
+    },
+    {
+      "key": "8-145-93-124",
+      "depth": 8,
+      "bytes": 311567,
+      "hash": "c8aa4bbb85a7701888da4f49ceee6490ef60409310c37adeddf367b3ffc60ff1"
+    },
+    {
+      "key": "8-146-91-125",
+      "depth": 8,
+      "bytes": 140113,
+      "hash": "c424805a1ed15fbf476d92a8deb78ba6d3956165fe8132585612411a810825a5"
+    },
+    {
+      "key": "8-146-92-124",
+      "depth": 8,
+      "bytes": 354554,
+      "hash": "e4d2dd1b3885850ee29b41c6484409d26357cf8c868c1d4455b360fe0ccd9886"
+    },
+    {
+      "key": "8-146-92-125",
+      "depth": 8,
+      "bytes": 331646,
+      "hash": "07ab780551256085c871a50bd2be62d023acbd1c7903e8db7c3c24e01d259cf8"
+    },
+    {
+      "key": "8-146-93-124",
+      "depth": 8,
+      "bytes": 354087,
+      "hash": "6d5ac444d2414199e47b56baf0427c51c32e491c4a8dd0910ef77f63839b8980"
+    },
+    {
+      "key": "8-147-91-125",
+      "depth": 8,
+      "bytes": 124345,
+      "hash": "b959f61bec928dff7cf6d1d34f2488b975c89851d81fc678ccae80599ad6dc18"
+    },
+    {
+      "key": "8-147-92-125",
+      "depth": 8,
+      "bytes": 200578,
+      "hash": "a6a125ad33b0e73008d94fc4dba97aa2d1f85c52d2fb7b1939b29d412a4daee8"
+    },
+    {
+      "key": "8-147-93-124",
+      "depth": 8,
+      "bytes": 307742,
+      "hash": "77494a9924059cdc2cb1f12c57e82daaca6dbee38dfee87e9a576174b68d325b"
+    },
+    {
+      "key": "8-147-93-125",
+      "depth": 8,
+      "bytes": 313379,
+      "hash": "4785b89576dff7b46feec43bf37cc12d1e3715584188b5d061a97f66f707b9e0"
+    },
+    {
+      "key": "9-292-184-249",
+      "depth": 9,
+      "bytes": 172639,
+      "hash": "bcffa5ab5bc04cab23684e2e02dd9d0018099a0748533c4c6bd59c970e039168"
+    },
+    {
+      "key": "9-292-184-250",
+      "depth": 9,
+      "bytes": 316922,
+      "hash": "a27652574862c3e460013890d571b59661db4c4b5da46a9213cde16a67c84258"
+    },
+    {
+      "key": "9-292-185-249",
+      "depth": 9,
+      "bytes": 369920,
+      "hash": "d8dcacb0c0e20a5b238bada09d76cf61bd815848c10e410f42966a5632560fe4"
+    },
+    {
+      "key": "9-293-184-250",
+      "depth": 9,
+      "bytes": 251151,
+      "hash": "00a920ab6fd3e4a0c662e2c719acfbb3a63973308ff01e4b360fbb40f4fcb87b"
+    },
+    {
+      "key": "9-293-185-250",
+      "depth": 9,
+      "bytes": 320481,
+      "hash": "a07e12423d768730823c59bb5fc27a9a18846798cf087e70e3b4cbdf4dfede55"
+    },
+    {
+      "key": "9-294-184-250",
+      "depth": 9,
+      "bytes": 188541,
+      "hash": "5ebd329bec2d2edc1e125cf090791b05deca839269957f2a80b06a5f6996132b"
+    },
+    {
+      "key": "9-294-185-250",
+      "depth": 9,
+      "bytes": 266601,
+      "hash": "675cb0ba08002357794554cf43cba9b92aac28dfcd96fa8bf8922c054c15bbd8"
+    }
+  ]
+}

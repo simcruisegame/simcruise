@@ -1,0 +1,38 @@
+{
+  "title": "Compare the surveyed Snake River foreground",
+  "summary": "Airborne laser returns recover the height and width of the forest between the overlook and the river. The measured banks extend under the trees where the driving tiles end. The laser data were collected in 2022–23. Tree species and individual branch shapes remain estimates.",
+  "measurement": "Across 18 visible foreground crown edges in the 960 × 640 photograph, the median vertical error fell from 138.5 to 20 pixels. Twelve of the edges fall within 30 pixels, compared with zero before. The near-left crown still falls 112 pixels below the photographed tip.",
+  "images": [
+    {
+      "file": "comparison.webp",
+      "caption": "The May 2025 photograph followed by two full-resolution Godot Metal frames. Each frame uses the same location, lens and orientation. The photograph was held out of the tree and terrain reconstruction."
+    }
+  ],
+  "credit": "Photograph by Hansueli Krapf, May 30, 2025, CC BY-SA 4.0. The resized, labeled photo comparison is shared under the same license. Geometry and color evidence from USGS 3DEP, The National Map, WRI and Meta, LANDFIRE, MRLC and © OpenStreetMap contributors.",
+  "links": [
+    [
+      "Original photograph",
+      "https://commons.wikimedia.org/wiki/File:2025-05-30-194735_USA_Wyoming_Moose_2092.6.jpg"
+    ],
+    [
+      "CC BY-SA 4.0",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    [
+      "USGS lidar work unit",
+      "https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/WY_GrandTetonNP_D22/WY_GrandTetonNP_1_D22"
+    ],
+    [
+      "USGS aerial mosaic",
+      "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer"
+    ],
+    [
+      "WRI/Meta canopy height",
+      "https://registry.opendata.aws/dataforgood-fb-forestsv2/"
+    ],
+    [
+      "OpenStreetMap credits",
+      "https://www.openstreetmap.org/copyright"
+    ]
+  ]
+}

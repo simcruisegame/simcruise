@@ -1,0 +1,83 @@
+{
+  "NV": {
+    "lat": 39.16442513486998,
+    "lon": -119.76697412513383,
+    "tile": [
+      10965,
+      25007
+    ],
+    "road": "North Carson Street",
+    "distance_to_road_m": 7.933645919218003,
+    "road_bearing": 0.22298469242764685,
+    "road_width_parameter": 12.0,
+    "heading": 349.2494821187699,
+    "pitch": 6.115906477151243,
+    "fov": 61.65587350853944,
+    "supporting_lines": 33,
+    "vanishing_point_680": [
+      450.4696263544547,
+      317.1828524101701
+    ],
+    "aspect": 1.3333333333333333,
+    "raw_lat": 39.164306,
+    "raw_lon": -119.766906,
+    "control_pixel_680": [
+      390,
+      371
+    ],
+    "control": "estimated intersection midpoint between photographed cross-street curb lines",
+    "assumed_eye_height_m": 1.65,
+    "source_osm": "n140690065@9"
+  },
+  "IN": {
+    "lat": 39.768667,
+    "lon": -86.161984,
+    "tile": [
+      17082,
+      24865
+    ],
+    "road": "West Market Street",
+    "distance_to_road_m": 27.588811347206512,
+    "road_bearing": 91.56790305310778,
+    "road_width_parameter": 10.0,
+    "heading": 81.5341445912275,
+    "pitch": 7.546486094081451,
+    "fov": 38.91259663252055,
+    "supporting_lines": 25,
+    "vanishing_point_680": [
+      510.2929253204913,
+      355.485573805076
+    ],
+    "aspect": 1.5044247787610618
+  },
+  "NJ": {
+    "lat": 40.22052999435104,
+    "lon": -74.76832785801105,
+    "tile": [
+      19156,
+      24758
+    ],
+    "road": "West State Street",
+    "distance_to_road_m": 14.147550338350797,
+    "road_bearing": 97.22772530188661,
+    "road_width_parameter": 10.0,
+    "heading": 94.67419367790716,
+    "pitch": 7.735616842248983,
+    "fov": 55.448743757387184,
+    "supporting_lines": 31,
+    "vanishing_point_680": [
+      368.85143779900403,
+      341.46603956047363
+    ],
+    "aspect": 1.3412228796844181,
+    "raw_lat": 40.220667,
+    "raw_lon": -74.768167,
+    "control_pixel_680": [
+      329,
+      398
+    ],
+    "control": "estimated intersection midpoint between photographed cross-street curb lines",
+    "assumed_eye_height_m": 1.65,
+    "source_osm": "n3812492240@2"
+  }
+}

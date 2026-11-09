@@ -1,0 +1,141 @@
+{
+  "sites": {
+    "lewisburg": {
+      "title": "Lewisburg, West Virginia",
+      "method": "Seeded small-town sample · post office",
+      "pose": "37.800861, −80.444100 · 64.60° true northeast · 61.66° horizontal field of view",
+      "seen": "The model places the post office’s projecting corner and the double yellow centerline in view. Its near corner appears about one-sixth of a frame too far right. Its pale facade, even row of square windows and dry pavement differ from the photograph’s red brick, tall windows and rain-darkened street.",
+      "measurement": "The closest-in-time Greenbrier Valley Airport report (KLWB), 7.5 km away and 4 min 34 sec after the photograph, recorded broken cloud and light rain. The offline replay uses its cloud cover and the shutter-time sun. At 640 × 480, mean absolute RGB error across the upper fifth fell from 78.6 in the game to 31.5 in the replay on a 0–255 scale. Across the full frame it fell from 59.7 to 37.8. On the foreground road it rose from 11.4 to 17.3. The replay changes illumination only.",
+      "author": "Antony-22 · “Lewisburg, West Virginia post office 2016” · July 8, 2016, 22:50:26 UTC (GPS)",
+      "link": "https://commons.wikimedia.org/wiki/File:Lewisburg,_West_Virginia_post_office_2016.jpg",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "camera": "The iPhone 6 recorded true-north direction and a 29 mm equivalent lens. Horizontal field of view uses the photograph’s 4:3 aspect ratio. The camera was 213 m from the original sample point. Height, pitch, roll and position accuracy were unreported. Both towns use a 1.65 m level camera.",
+      "frames": [
+        [
+          "photo",
+          "Roadside photograph"
+        ],
+        [
+          "default",
+          "Game · reference daylight"
+        ],
+        [
+          "archive",
+          "Offline · historical weather replay"
+        ]
+      ],
+      "archive": {
+        "station": "KLWB",
+        "utc": "2016-07-08T22:55:00Z",
+        "cloud": "BKN",
+        "game_cloud_fraction": 0.78,
+        "station_km": 7.49,
+        "source_url": "https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py?station=LWB&data=metar&sts=2016-07-08T21%3A00Z&ets=2016-07-08T23%3A10Z&tz=Etc%2FUTC&format=onlycomma&latlon=yes&direct=no",
+        "solar_frame": "sun-only",
+        "solar_caption": "Offline control · shutter-time sun and default clouds",
+        "control_note": "With the same shutter-time sun in both renders, changing only the cloud input reduced the upper-fifth error from 89.4 to 31.5. The airport also recorded light rain before the shutter. The station cannot establish conditions at the photographer’s precise position.",
+        "rgb_mae_640x480": {
+          "upper_fifth": {
+            "box": [
+              0,
+              0,
+              640,
+              96
+            ],
+            "pixels": 61440,
+            "default-final": 78.61,
+            "scene-final": 89.43,
+            "station-final": 31.52
+          },
+          "full_frame": {
+            "box": [
+              0,
+              0,
+              640,
+              480
+            ],
+            "pixels": 307200,
+            "default-final": 59.67,
+            "scene-final": 61.9,
+            "station-final": 37.79
+          },
+          "foreground_pavement": {
+            "box": [
+              40,
+              420,
+              600,
+              479
+            ],
+            "pixels": 33040,
+            "default-final": 11.41,
+            "scene-final": 9.63,
+            "station-final": 17.27
+          }
+        }
+      },
+      "camera_metadata": {
+        "latitude": 37.80086111111111,
+        "longitude": -80.4441,
+        "true_direction_fraction": "234950/3637",
+        "exif_35mm_equivalent_mm": 29,
+        "focal_length_mm_fraction": "83/20",
+        "utc": "2016-07-08T22:50:26Z",
+        "camera": "Apple iPhone 6",
+        "camera_height_m_assumed": 1.65,
+        "pitch_deg_assumed": 0,
+        "roll_deg_assumed": 0
+      }
+    },
+    "bethel": {
+      "title": "Bethel, Maine",
+      "method": "Seeded small-town sample · campus roadside",
+      "pose": "44.408000, −70.793333 · 25.65° true northeast · approx. 61° horizontal field of view",
+      "seen": "The two wings of Gould Academy’s Davidson Hall meet at a recess in both views. The reference has warm red brick, shaded grass, footpaths and a tree on the left. The game puts a tree on the right and blends most of the lawn and paths into one blurred surface.",
+      "measurement": "This comparison checks the building plan and grounds visually. The phone supplied its position, true-north compass direction and 3.85 mm focal length. The horizontal field of view is estimated from the iPhone 4 sensor width. The shutter date is June 2012, and the game uses its standard reference afternoon. The camera was about 447 m from the original sample point, 2.7 m from the mapped Church Street centerline. Pitch, roll, height and GPS accuracy were unreported.",
+      "author": "User:Nickline4 · “Gould Academy Davidson Hall” · June 29, 2012, 18:44:36 UTC (GPS)",
+      "link": "https://commons.wikimedia.org/wiki/File:Gould_Academy_Davidson_Hall.JPG",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "camera": "",
+      "frames": [
+        [
+          "photo",
+          "Campus roadside photograph"
+        ],
+        [
+          "default",
+          "Game · reference daylight"
+        ]
+      ],
+      "camera_metadata": {
+        "latitude": 44.408,
+        "longitude": -70.79333333333334,
+        "true_direction_fraction": "7054/275",
+        "exif_35mm_equivalent_mm": null,
+        "focal_length_mm_fraction": "77/20",
+        "utc": "2012-06-29T18:44:36Z",
+        "camera": "Apple iPhone 4",
+        "camera_height_m_assumed": 1.65,
+        "pitch_deg_assumed": 0,
+        "roll_deg_assumed": 0
+      }
+    }
+  },
+  "commons_queries": {
+    "Lewisburg": {
+      "returned": 23,
+      "selected": 1
+    },
+    "Bethel": {
+      "returned": 24,
+      "selected": 1
+    },
+    "Choteau": {
+      "returned": 6,
+      "selected": 0
+    }
+  },
+  "search_radius_m": 1200,
+  "page_limit": 24
+}

@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest something that would make SimCruise more real or more fun.
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: Describe the feature and the situation where you missed it.
+    validations:
+      required: true
+  - type: textarea
+    id: real
+    attributes:
+      label: How would we know it is right?
+      description: SimCruise measures its changes. A photo, a published number, a dataset or a place where the difference is visible helps a lot.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or references
+      description: Other games, papers or tools that do this well.

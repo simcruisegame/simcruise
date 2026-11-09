@@ -1,0 +1,47 @@
+{
+  "timestepHz": 60,
+  "rows": 900,
+  "events": [
+    {
+      "tick": 337,
+      "rpm": 6701,
+      "gearIndex": 1,
+      "stalled": false
+    },
+    {
+      "tick": 662,
+      "rpm": 2453,
+      "gearIndex": 4,
+      "stalled": false
+    },
+    {
+      "tick": 703,
+      "rpm": 311,
+      "gearIndex": 4,
+      "stalled": true
+    },
+    {
+      "tick": 817,
+      "rpm": 856,
+      "gearIndex": 0,
+      "stalled": false
+    }
+  ],
+  "physicsFingerprintThreeRuns": "bbebad257afe731ac690794ed7c97c0a3bec6117ef0c5fe3fc35aa749ab93904",
+  "comparison": "Entire tick, RPM, gear, stalled, XYZ position, forward velocity, wheel contacts, shift timer trajectory for 900 ticks matched original code plus the new observer muted and audible.",
+  "fourTireContactsAfterSettle": 790,
+  "distanceAfterSettleM": 139.3957099132245,
+  "maximumRpm": 6705.72288967911,
+  "normalSceneToggle": {
+    "defaultMuted": true,
+    "startsPlayer": true,
+    "advancesOutputBuffer": true,
+    "returnsToMute": true
+  },
+  "negativeClosedThrottle": {
+    "rpm": 5927,
+    "pedal": 0.0,
+    "normalizedCombustion": 0.0,
+    "normalizedSignedShaft": -0.103400498574476
+  }
+}

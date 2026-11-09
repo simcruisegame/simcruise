@@ -1,0 +1,109 @@
+{
+  "epoch": 1792960080,
+  "modes": {
+    "after": {
+      "epoch": 1792960080,
+      "frame_interval_ms_median": 8.526,
+      "frame_interval_ms_p95": 9.351,
+      "kind": 0,
+      "label": "Reference daylight",
+      "result": 0,
+      "weight": 0.0
+    },
+    "before": {
+      "epoch": 1792960080,
+      "frame_interval_ms_median": 8.099,
+      "frame_interval_ms_p95": 9.381,
+      "kind": 0,
+      "label": "Reference daylight",
+      "result": 0,
+      "weight": 0.0
+    },
+    "repeat": {
+      "epoch": 1792960080,
+      "frame_interval_ms_median": 8.396,
+      "frame_interval_ms_p95": 10.476,
+      "kind": 0,
+      "label": "Reference daylight",
+      "result": 0,
+      "weight": 0.0
+    }
+  },
+  "observation": {
+    "bytes": 1550.0,
+    "key": "metar-archive1-CYS-FEW-1792951200.csv",
+    "km": 1.93,
+    "provider": "IEM ASOS/METAR",
+    "reason": "reported_cloud_outside_clear_satellite_patch",
+    "reports": [
+      {
+        "change": 0.1875,
+        "cloud": 0.078125,
+        "layers": [
+          "FEW",
+          "CLR"
+        ],
+        "station": "CYS",
+        "stationKm": 1.93,
+        "utc": [
+          "2026-10-25T19:53:00.000Z",
+          "2026-10-25T20:53:00.000Z"
+        ],
+        "visMiles": [
+          10.0,
+          10.0
+        ],
+        "visibilityAtLeast10SM": true,
+        "visibility_m": 16093.0
+      },
+      {
+        "change": 0.0,
+        "cloud": 0.4375,
+        "layers": [
+          "SCT",
+          "SCT"
+        ],
+        "station": "FEW",
+        "stationKm": 4.03,
+        "utc": [
+          "2026-10-25T19:55:00.000Z",
+          "2026-10-25T20:55:00.000Z"
+        ],
+        "visMiles": [
+          8.0,
+          10.0
+        ],
+        "visibilityAtLeast10SM": false,
+        "visibility_m": 14645.0
+      }
+    ],
+    "requests": 0.0,
+    "satellite": {
+      "available": true,
+      "bytes": 163840.0,
+      "clear": 49.0,
+      "cloudy": 0.0,
+      "delta_seconds": -23.1,
+      "good": 49.0,
+      "histogram": [
+        49.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "pixel": [
+        335.0,
+        693.0
+      ],
+      "platform": "GOES-19",
+      "ranges": 5.0,
+      "url": "https://noaa-goes19.s3.amazonaws.com/ABI-L2-ACMC/2026/298/20/OR_ABI-L2-ACMC-M6_G19_s20262982026183_e20262982028556_c20262982029309.nc",
+      "viewZenith": 56.4
+    },
+    "source": "https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py?station=CYS&station=FEW&data=skyc1&data=skyc2&data=skyc3&data=skyc4&data=skyl1&data=skyl2&data=skyl3&data=skyl4&data=vsby&data=wxcodes&data=metar&sts=2026-10-25T17%3A00Z&ets=2026-10-25T22%3A00Z&tz=Etc%2FUTC&format=onlycomma&latlon=yes&direct=no&report_type=3&report_type=4",
+    "station": "CYS",
+    "status": "insufficient",
+    "visibilityAtLeast10SM": true,
+    "visibility_m": 16093.0
+  }
+}

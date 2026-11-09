@@ -1,0 +1,120 @@
+[
+  {
+    "site": "Lincoln",
+    "run": 1,
+    "status": "available",
+    "project": {
+      "name": "USGS_LPC_NE_Eastern_UA_2016_LAS_2018",
+      "start": "2016-12-08",
+      "end": "2017-02-03",
+      "quality": "QL 2"
+    },
+    "requests": 5,
+    "compressed_node_bytes": 666852,
+    "profiles": 8,
+    "seconds": 4.602,
+    "cache": false
+  },
+  {
+    "site": "Lincoln",
+    "run": 2,
+    "status": "available",
+    "project": {
+      "name": "USGS_LPC_NE_Eastern_UA_2016_LAS_2018",
+      "start": "2016-12-08",
+      "end": "2017-02-03",
+      "quality": "QL 2"
+    },
+    "requests": 0,
+    "compressed_node_bytes": 666852,
+    "profiles": 8,
+    "seconds": 0.038,
+    "cache": true
+  },
+  {
+    "site": "Anchorage",
+    "run": 1,
+    "status": "available",
+    "project": {
+      "name": "USGS_LPC_AK_Anchorage_2015_LAS_2017",
+      "start": "2015-05-10",
+      "end": "2016-09-29",
+      "quality": "QL 2"
+    },
+    "requests": 5,
+    "compressed_node_bytes": 1850054,
+    "profiles": 1,
+    "seconds": 4.079,
+    "cache": false
+  },
+  {
+    "site": "Anchorage",
+    "run": 2,
+    "status": "available",
+    "project": {
+      "name": "USGS_LPC_AK_Anchorage_2015_LAS_2017",
+      "start": "2015-05-10",
+      "end": "2016-09-29",
+      "quality": "QL 2"
+    },
+    "requests": 0,
+    "compressed_node_bytes": 1850054,
+    "profiles": 1,
+    "seconds": 0.032,
+    "cache": true
+  },
+  {
+    "site": "JeffersonCity",
+    "run": 1,
+    "status": "available",
+    "project": {
+      "name": "MO_FEMANRCS_2_2020",
+      "start": "2020-04-08",
+      "end": "2020-11-28",
+      "quality": "QL 2"
+    },
+    "requests": 6,
+    "compressed_node_bytes": 874436,
+    "profiles": 16,
+    "seconds": 5.144,
+    "cache": false
+  },
+  {
+    "site": "JeffersonCity",
+    "run": 2,
+    "status": "available",
+    "project": {
+      "name": "MO_FEMANRCS_2_2020",
+      "start": "2020-04-08",
+      "end": "2020-11-28",
+      "quality": "QL 2"
+    },
+    "requests": 0,
+    "compressed_node_bytes": 874436,
+    "profiles": 16,
+    "seconds": 0.031,
+    "cache": true
+  },
+  {
+    "site": "Bismarck",
+    "run": 1,
+    "status": "no-public-project",
+    "project": null,
+    "requests": 1,
+    "compressed_node_bytes": 0,
+    "profiles": 0,
+    "seconds": 0.338,
+    "cache": false
+  },
+  {
+    "site": "Bismarck",
+    "run": 2,
+    "status": "no-public-project",
+    "project": null,
+    "requests": 0,
+    "compressed_node_bytes": 0,
+    "profiles": 0,
+    "seconds": 0.081,
+    "cache": true
+  }
+]

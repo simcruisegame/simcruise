@@ -1,0 +1,206 @@
+{
+  "renderer": "Apple A18 Pro (Apple9)",
+  "dimensions": {
+    "wheelbase_m": 2.266,
+    "tyre_nominal_width_m": 0.195,
+    "tyre_outside_diameter_m": 0.576,
+    "rim_bead_seat_in": 15,
+    "simulated_front_track_m": 1.414,
+    "simulated_rear_track_m": 1.44
+  },
+  "control": {
+    "brake_light_on": true,
+    "brake_light_released": true,
+    "chassis_lamp_drift_m": 0.0,
+    "chassis_lamp_rotation_rad": 0.0,
+    "fixed_lamps": 3,
+    "peak_rpm": 2667.2493551776,
+    "peak_speed_mps": 5.62650489807129,
+    "renderer": "Apple A18 Pro (Apple9)",
+    "speed_sweep_degrees": 22.6550339674478,
+    "steering_rad": 0.102206478712295,
+    "tach_sweep_degrees": 60.9828863817845,
+    "tyre_radius_m": 0.288,
+    "tyre_revolutions": 4.51371974340097,
+    "wheel_contacts_end": 4,
+    "wheelbase_m": 2.266
+  },
+  "candidate": {
+    "brake_light_on": true,
+    "brake_light_released": true,
+    "chassis_lamp_drift_m": 0.0,
+    "chassis_lamp_rotation_rad": 0.0,
+    "fixed_lamps": 3,
+    "peak_rpm": 2667.70960120865,
+    "peak_speed_mps": 5.62748527526855,
+    "renderer": "Apple A18 Pro (Apple9)",
+    "speed_sweep_degrees": 21.8197633036578,
+    "steering_rad": 0.102206478712295,
+    "tach_sweep_degrees": 58.7392170507595,
+    "tyre_radius_m": 0.288,
+    "tyre_revolutions": 4.51577184642982,
+    "wheel_contacts_end": 4,
+    "wheelbase_m": 2.266
+  },
+  "visible_width_manual": {
+    "reference_34": {
+      "preview_px": 465,
+      "aperture_x": [
+        138,
+        322
+      ],
+      "bumper_x": [
+        75,
+        383
+      ]
+    },
+    "baseline": {
+      "preview_px": 550,
+      "insert_x": [
+        225,
+        325
+      ],
+      "bumper_x": [
+        180,
+        369
+      ]
+    },
+    "candidate": {
+      "crop_preview_px": 620,
+      "aperture_x": [
+        185,
+        436
+      ],
+      "bumper_x": [
+        107,
+        513
+      ]
+    }
+  },
+  "credits": {
+    "nose_lens": "https://commons.wikimedia.org/wiki/File:1999_Mazda_MX-5_Miata_Leather_Package_in_Highlight_Silver_Metallic,_Front_Right,_06-29-2023.jpg",
+    "rear_lens": "https://commons.wikimedia.org/wiki/File:1999_Mazda_MX-5_Miata_rear_4.28.18.jpg",
+    "adapted_lenses_license": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "sport_reference": "https://www.pcarmarket.com/results/1999-mazda-mx-5-miata",
+    "brochure": "https://importarchive.com/brochure/mazdamiata1999_02",
+    "workshop_manual": "https://www.mellens.net/mazda/Mazda-Miata-1999-2001.pdf"
+  },
+  "packaged_candidate": {
+    "brake_light_on": true,
+    "brake_light_released": true,
+    "chassis_lamp_drift_m": 0.0,
+    "chassis_lamp_rotation_rad": 0.0,
+    "fixed_lamps": 3,
+    "peak_rpm": 2667.70960120865,
+    "peak_speed_mps": 5.62748527526855,
+    "renderer": "Apple A18 Pro (Apple9)",
+    "speed_sweep_degrees": 21.8197633036578,
+    "steering_rad": 0.102206478712295,
+    "tach_sweep_degrees": 58.7392170507595,
+    "trip_mile_threshold": true,
+    "tyre_radius_m": 0.288,
+    "tyre_revolutions": 4.51577184642982,
+    "wheel_contacts_end": 4,
+    "wheelbase_m": 2.266
+  },
+  "frozen_exterior_sha256": "aef60de47e3f1bd1c2b88261169caf6f42177995447048287e6c7f8650aa69ae",
+  "exterior_sha256": "3034424be2cb70f7459ba0b44281a69abf4aa6b446b72d384c5f06cc3f5b31ee",
+  "instrument_sha256": "6a51d15fd777d882831420e6d88990d2fdbd2d6f995c29a9d7d50edd990c0580",
+  "powertrain_sha256": "585d111def80ba240d25a7699991d06d9a93eedc7a80fd4bcde8ab00e81a63e3",
+  "signature": "The isolated ad-hoc signed macOS app and its embedded atlas executable passed codesign --verify --deep --strict. The frozen 1.0.3 app independently passed the same check.",
+  "wheels": {
+    "photo_72_fit_and_65_holdout": {
+      "72": [
+        65.92,
+        45.08,
+        34.44,
+        54.75,
+        65.69
+      ],
+      "65": [
+        62.36,
+        43.14,
+        33.94,
+        49.58,
+        62.47
+      ],
+      "base": [
+        39.92,
+        31.53,
+        25.67,
+        21.0,
+        17.83
+      ],
+      "satin": [
+        67.0,
+        45.53,
+        35.75,
+        54.53,
+        65.5
+      ],
+      "base_heldout_mae": 23.11,
+      "satin_heldout_mae": 3.36
+    },
+    "radii_as_fraction_of_flange": [
+      0.45,
+      0.52,
+      0.6,
+      0.68,
+      0.75
+    ],
+    "inputs": "Five outlined wheel openings per photograph on opposite rear sides of the same 1999 U.S. car. All photo rights retained by original rights-holders. No seller pixels or textures are redistributed.",
+    "size": "15 x 6 inches, 4 lugs on 100-mm circle, 195/50R15 tires",
+    "casting_source": "https://i1parts.com/products/mazda-mx-5-miatta-1999-2000-15-factory-original-wheel-rim",
+    "controls": {
+      "brake_light_on": true,
+      "brake_light_released": true,
+      "chassis_lamp_drift_m": 0.0,
+      "chassis_lamp_rotation_rad": 0.0,
+      "fixed_lamps": 3,
+      "peak_rpm": 2667.89095495782,
+      "peak_speed_mps": 5.62792682647705,
+      "renderer": "Apple A18 Pro (Apple9)",
+      "speed_sweep_degrees": 21.8214776811394,
+      "steering_rad": 0.102206478712295,
+      "tach_sweep_degrees": 58.7451115040132,
+      "tyre_radius_m": 0.288,
+      "tyre_revolutions": 4.51677030438523,
+      "wheel_contacts_end": 4,
+      "wheelbase_m": 2.266
+    },
+    "triangles": 13200,
+    "surfaces": 4,
+    "bytes": 193414,
+    "shared_mesh_decode_ms_one_run": 1.703,
+    "source_mesh_build_ms_range": [
+      96.1,
+      111.6
+    ],
+    "normal_source_check": {
+      "brake_light_on": true,
+      "brake_light_released": true,
+      "chassis_lamp_drift_m": 0.0,
+      "chassis_lamp_rotation_rad": 0.0,
+      "fixed_lamps": 3,
+      "four_wheel_mounts": true,
+      "peak_rpm": 2667.2493551776,
+      "peak_speed_mps": 5.62650489807129,
+      "renderer": "Apple A18 Pro (Apple9)",
+      "speed_sweep_degrees": 21.8159657184792,
+      "steering_rad": 0.102206478712295,
+      "tach_sweep_degrees": 58.7242589364771,
+      "trip_mile_threshold": true,
+      "tyre_radius_m": 0.288,
+      "tyre_revolutions": 4.51371974340097,
+      "wheel_contacts_end": 4,
+      "wheelbase_m": 2.266
+    },
+    "crash_test": {
+      "speed_mph": 70,
+      "wall_thickness_m": 0.15,
+      "contact": true,
+      "crossed": false,
+      "closest_chassis_z_m": -13.11995
+    }
+  }
+}

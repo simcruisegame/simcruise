@@ -1,0 +1,66 @@
+{
+  "title": "Granite spires beside Needles Highway, South Dakota",
+  "summary": "In Find a place, enter 43.84018, -103.53945 and drive west at approximately 270°. The measured rock appears on the left as the road approaches its northward bend. Two photographic stations, two laser flight lines and a 0.25 m bare-earth survey constrain this local outcrop. The authoring images are shown separately from the held-out photograph.",
+  "measurement": "Across 27 marked rock–sky boundaries in the withheld 960 × 720 photograph, mean vertical error fell from 141.26 to 6.89 pixels. The median fell from 116 to 3 pixels. The simulated summit matched the marked height at x=390. Both actual drives covered 38.1365 m with four tire contacts throughout. Trees masking the original rock, the unseen rear faces, distant forest and clouds remain approximate.",
+  "images": [
+    {
+      "file": "matched-observers.webp",
+      "caption": "Photograph, normal terrain and surveyed granite. The upper photo registered the camera and supplied a grain sample. The lower photo was withheld from geometry and material reconstruction."
+    },
+    {
+      "file": "driver.webp",
+      "caption": "Stock cockpit, about 28 m along Needles Highway. Same route, input and camera. The approach retains the ordinary road grade."
+    },
+    {
+      "file": "authoring-stations.webp",
+      "caption": "Two separately captured reconstruction stations. Green in the third image marks source pixels covered by independently matched stereo surfaces before filling hidden rock."
+    }
+  ],
+  "credit": "Photographs and adaptations © w_lemay, July 28, 2023, CC BY-SA 2.0. The source-derived mesh, masked texture pair, mineral grain and photographic comparison sheets use the same license. Ground, lidar and aerial imagery from USGS, the South Dakota Geological Survey and USDA NAIP. Road geometry © OpenStreetMap contributors.",
+  "links": [
+    [
+      "Camera 149021303",
+      "https://commons.wikimedia.org/?curid=149021303"
+    ],
+    [
+      "Camera 149021324",
+      "https://commons.wikimedia.org/?curid=149021324"
+    ],
+    [
+      "Camera 149021330",
+      "https://commons.wikimedia.org/?curid=149021330"
+    ],
+    [
+      "Camera 149021335",
+      "https://commons.wikimedia.org/?curid=149021335"
+    ],
+    [
+      "Camera 149021336",
+      "https://commons.wikimedia.org/?curid=149021336"
+    ],
+    [
+      "Camera 149021337",
+      "https://commons.wikimedia.org/?curid=149021337"
+    ],
+    [
+      "CC BY-SA 2.0",
+      "https://creativecommons.org/licenses/by-sa/2.0/"
+    ],
+    [
+      "South Dakota Geological Survey",
+      "https://www.sdgs.usd.edu/digitaldata/LiDAR.aspx"
+    ],
+    [
+      "USGS 3DEP",
+      "https://www.usgs.gov/3d-elevation-program"
+    ],
+    [
+      "USDA NAIP imagery",
+      "https://imagery.geoplatform.gov/iipp/rest/services/NAIP/NAIP_plus/ImageServer"
+    ],
+    [
+      "OpenStreetMap contributors",
+      "https://www.openstreetmap.org/copyright"
+    ]
+  ]
+}

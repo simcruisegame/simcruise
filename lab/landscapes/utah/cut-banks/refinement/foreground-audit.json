@@ -1,0 +1,76 @@
+{
+  "referenceImageSize": [
+    960,
+    720
+  ],
+  "method": "A physics ray from the reference camera tested driving tiles. A separate debug material colored near-road versus ordinary ground, preserved regional shader vertex and distance discards, and made rendered regional terrain black for identification. The displayed Godot viewport was converted to the correct 960 x 720 reference coordinates.",
+  "regionalTerrainPixelFractionByRow": {
+    "380": 0.3802,
+    "390": 1.0,
+    "400": 1.0,
+    "405": 1.0,
+    "410": 0.7812,
+    "415": 0.2635,
+    "420": 0.0,
+    "430": 0.0,
+    "440": 0.0
+  },
+  "examplePixel": {
+    "edge": [
+      0.619607865810394,
+      0.717647075653076
+    ],
+    "meters": 113.139762878418,
+    "offset_m": 0.038809013441223,
+    "px": [
+      175,
+      413
+    ],
+    "road": "service",
+    "shader": {
+      "has_edges": true,
+      "has_low_cover": null,
+      "has_section": null,
+      "has_soil": true,
+      "imagery": true
+    },
+    "surface": 1.0,
+    "tile": [
+      12744,
+      25485
+    ],
+    "uv": [
+      0.669167885136754,
+      0.6446678603492
+    ],
+    "width": 4.6
+  },
+  "roadSurface": {
+    "osmSource": "https://www.openstreetmap.org/changeset/181605117",
+    "mainWay": "https://www.openstreetmap.org/way/1015981528",
+    "sideLoop": "mapped 4.6 m service road, paving unspecified; render defaults to paved, an inference",
+    "localOrthoCenterSRGB": [
+      212,
+      177,
+      135
+    ],
+    "medianRgbDifferenceToFlankingSand": [
+      5,
+      6,
+      6
+    ],
+    "highwayMedianRgbDifferenceToFlanks": [
+      37,
+      20,
+      9
+    ],
+    "note": "The OSM change date describes the edit, not the date of a physical change. An experimental rule blended optically continuous warm dirt across the unknown access road when independent bare-soil evidence agreed. The left stripe faded but area color error increased; the rule was excluded."
+  },
+  "foregroundVegetation": {
+    "instancedPlantsNearCamera": 2604,
+    "forwardFrustumPlantsWithin50m": 0,
+    "nearestForwardFrustumPlantM": 78.4,
+    "independentSource": "USDA NAIP infrared and red bands, 0.6 m, acquisition 2021-08-22, m_3710957_nw_12_060_20210822_20220202",
+    "finding": "Low 30 m cover near the traveled corridor yields no drivable-view shrub placement at the photograph\u2019s foreground. Nearby tufts in the photo do not establish their current positions or species. No near-camera plants passed the independent strong NIR threshold in the covered barren area. The USGS 1 m bare-earth elevation does not measure shrubs."
+  }
+}

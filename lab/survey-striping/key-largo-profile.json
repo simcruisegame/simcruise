@@ -1,0 +1,13 @@
+{
+  "state": "FL",
+  "route": "90060001",
+  "offsetM": 4.66,
+  "axis": 225.18,
+  "mile": 0.656,
+  "lanes": 2,
+  "hpmsYear": 2024,
+  "hpmsId": 586224,
+  "laneWidthM": 3.3528,
+  "rightShoulderM": 4.8768,
+  "shoulderType": 5
+}

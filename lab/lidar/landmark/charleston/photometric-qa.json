@@ -1,0 +1,70 @@
+{
+  "2858": {
+    "building_px": 7581,
+    "raw_rgb_mae_building": [
+      89.63,
+      60.82
+    ],
+    "sky_px": 19486,
+    "sky_mae": [
+      18.04,
+      24.07
+    ],
+    "roi_pixels": 32266,
+    "all_roi_mae": [
+      43.33,
+      37.47
+    ]
+  },
+  "2860": {
+    "building_px": 7933,
+    "raw_rgb_mae_building": [
+      91.6,
+      63.82
+    ],
+    "sky_px": 18136,
+    "sky_mae": [
+      18.74,
+      26.37
+    ],
+    "roi_pixels": 32266,
+    "all_roi_mae": [
+      47.11,
+      41.39
+    ]
+  },
+  "2863": {
+    "building_px": 7209,
+    "raw_rgb_mae_building": [
+      72.56,
+      56.25
+    ],
+    "sky_px": 14461,
+    "sky_mae": [
+      18.63,
+      28.19
+    ],
+    "roi_pixels": 32266,
+    "all_roi_mae": [
+      47.58,
+      41.56
+    ]
+  },
+  "2861": {
+    "building_px": 4737,
+    "raw_rgb_mae_building": [
+      91.26,
+      74.89
+    ],
+    "sky_px": 16060,
+    "sky_mae": [
+      19.15,
+      27.29
+    ],
+    "roi_pixels": 32266,
+    "all_roi_mae": [
+      49.13,
+      41.93
+    ]
+  }
+}

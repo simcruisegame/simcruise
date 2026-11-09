@@ -1,0 +1,34 @@
+{
+  "title": "Compare the measured soil and roadside shrub cover",
+  "summary": "The same fixed camera shows the location photograph and the effect of enabling satellite soil color and two rangeland vegetation surveys. The plants are individual 3D meshes with inferred positions. The photo was taken in April 2023 and the Sentinel-2 scene in November 2026.",
+  "measurement": "On the left soil patch the mean RGB channel error fell from 56.0 to 46.5 on a 0–255 scale. On the right it fell from 31.9 to 7.8. The asphalt control stayed at 5.5. Terrain shading, road placement and season still differ.",
+  "credit": "Photograph by Awinda, resized and arranged with game renders under CC BY-SA 4.0. Contains modified Copernicus Sentinel data 2026. Soil detail by Dario Barresi, CC0.",
+  "images": [
+    {
+      "file": "ground-comparison.webp",
+      "caption": "US 163 photograph, same-camera control, and measured ground with open shrub stands"
+    }
+  ],
+  "links": [
+    [
+      "Original image",
+      "https://commons.wikimedia.org/wiki/File:Forrest_Gump_Highway_Monument_Valley.jpg"
+    ],
+    [
+      "CC BY-SA 4.0",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    [
+      "Shrub cover",
+      "https://rangelands.app/support/71-api-documentation"
+    ],
+    [
+      "Mean shrub height",
+      "https://www.mrlc.gov/data/rcmap-shrub-height"
+    ],
+    [
+      "Ground scan",
+      "https://polyhaven.com/a/sandy_gravel_02"
+    ]
+  ]
+}

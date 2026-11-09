@@ -1,0 +1,74 @@
+{
+  "location": "Key Largo, Florida",
+  "source": {
+    "id": "37107903",
+    "sequenceId": "332471",
+    "sequenceIndex": 21,
+    "lat": 25.08706,
+    "lon": -80.449145,
+    "heading": 223.2,
+    "capturedAt": "2017-05-17T15:37:12.000",
+    "cameraType": "PLANE",
+    "author": "cowdog",
+    "sourceUrl": "https://kartaview.org/details/332471/21",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "imageSHA256": "45174be1a63aa6b01672b5187ec249238a8c4b07de33bab36180bbb674c5dbd8"
+  },
+  "sampling": {
+    "seed": 19991107,
+    "selection": "Exclude already-rendered Miami and Cambridge and empty entries from the existing cache of *-samples.json. Sort the remaining labels by SHA-256 of UTF-8 seed, slash, label. Use the first label and its middle frame. This pool conditions on coverage.",
+    "eligible": [
+      "Key-Largo",
+      "Palo-Alto",
+      "Mountain-View",
+      "Salt-Lake",
+      "Fort-Collins"
+    ]
+  },
+  "camera": {
+    "headingSource": "KartaView metadata",
+    "horizontalFovDegrees": 80,
+    "pitchDownDegrees": -12.5,
+    "rollDegrees": 0,
+    "heightAboveGroundM": 1.65,
+    "aspect": "4:3",
+    "lensNote": "EXIF contained no camera intrinsics. FOV and camera height are assumed. Pitch was estimated from the source vanishing point before rendering."
+  },
+  "validation": {
+    "renderer": "Metal Forward Mobile, Godot 4.7.2, Apple A18 Pro",
+    "completeReferenceLayers": true,
+    "landscapeTile": [
+      18122,
+      28047
+    ],
+    "reportedCrowns": 819,
+    "enrichedHeights": 0,
+    "streetAppearanceResult": "rejected: possible_wet_or_glare",
+    "medianForegroundRoadROI": {
+      "normalizedRect": [
+        0.42,
+        0.82,
+        0.57,
+        0.88
+      ],
+      "sourceSRGB8": [
+        148,
+        161,
+        138
+      ],
+      "renderSRGB8": [
+        83,
+        83,
+        83
+      ],
+      "interpretation": "Same-frame displayed pixel values. Lighting, exposure and date differ. Physical reflectance is unknown."
+    },
+    "observations": [
+      "Both images show the straight multilane road and vegetation along the right side.",
+      "The 2017 photograph shows a white right edge stripe, pavement arrows, overhead utilities, gravel access and a boat display. These details are absent in this render.",
+      "The photographed roadside has a dense low vegetation band and variable crown heights. The render has separated crowns, exposed trunks and wide gaps at eye height.",
+      "The 2017 survey date limits claims about the current street."
+    ]
+  },
+  "reproduce": "Use a separate test project with a 960x720 viewport. Run godot --resolution 960x720 --path game -- --reference 25.08706 -80.449145 223.2 80 /absolute/path/output.jpg -12.5 0 --complete-reference. External map layers may update."
+}

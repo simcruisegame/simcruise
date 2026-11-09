@@ -1,0 +1,72 @@
+{
+  "id": "miata-nb-1999",
+  "mesh": "game/art/miata.glb",
+  "convention": "meters, +Y up, -Z forward; chassis-relative hinge centers",
+  "wheel_radius_m": 0.305,
+  "wheel_centers": {
+    "front_l": [
+      -0.779,
+      0.305,
+      -1.13
+    ],
+    "front_r": [
+      0.779,
+      0.305,
+      -1.13
+    ],
+    "rear_l": [
+      -0.779,
+      0.305,
+      1.13
+    ],
+    "rear_r": [
+      0.779,
+      0.305,
+      1.13
+    ]
+  },
+  "close_cockpit": {
+    "mesh": "game/data/nb-cockpit.meshdata",
+    "generator": "authoring/build_cockpit.py",
+    "layout_reference": "https://bringatrailer.com/listing/1999-mazda-mx-5-miata-205/",
+    "eye_m": [
+      -0.347,
+      1.009,
+      0.503
+    ],
+    "vertical_fov_deg": 67,
+    "instruments": "U.S. dual mph/km/h speedometer, tachometer, ivory pointers, central trip LCD showing miles since arrival. Auxiliary gauges are illustrative.",
+    "rear_view": "Center and left mirrors sample different portions of one rear camera."
+  },
+  "rotating_parts": [
+    "rubber",
+    "alloy",
+    "dark"
+  ],
+  "fixed_stop_lights": [
+    "rear_light_-1",
+    "rear_light_1",
+    "body_red"
+  ],
+  "brake_mask": "game/art/stop_mask.png",
+  "model_credit": "Original approximate NB body/cabin and wheels. Rear lamp photography by Kevauto and front lamp photography by Elise240SX, CC BY-SA 4.0. See Credits.txt.",
+  "acceptance": "Playable prototype. Not a Mazda CAD model; no production-level visual validation.",
+  "driving_dimensions_m": {
+    "wheelbase": 2.266,
+    "front_track": 1.414,
+    "rear_track": 1.44,
+    "nominal_tire_diameter": 0.576,
+    "nominal_tire_width": 0.195
+  },
+  "legacy_mesh_note": "wheel_radius_m and wheel_centers describe the hidden pre-Sport source pieces audited below. The normal player wheel uses SportWheel.gd on the physical hubs.",
+  "driving_wheel": {
+    "resource": "game/art/nb_sport_alloy.res",
+    "generator": "authoring/build_sport_wheel.gd",
+    "shared_instances": 4,
+    "lug_circle_m": 0.1,
+    "rim_width_in": 6,
+    "rim_diameter_in": 15,
+    "wheel_tire": "195/50R15",
+    "comparison": "lab/miata/appearance/wheel-pair.webp"
+  }
+}

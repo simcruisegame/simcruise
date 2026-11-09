@@ -1,0 +1,52 @@
+{
+  "title": "Upper fa\u00e7ades from two street panoramas",
+  "summary": "At two ordinary addresses, two panoramic photographs agree on a small portion of a mapped wall. The game draws the observed brickwork and windows on the solid building. A third camera at each site supplied the comparison photographs.",
+  "measurement": "Two of seven address searches yielded accepted wall detail. The native 900 \u00d7 600 control rendered identically before and after each test. Existing building dimensions and the surrounding street remain approximate.",
+  "images": [
+    {
+      "file": "iowa.webp",
+      "caption": "Iowa City, Iowa. 33,611 visible wall pixels. Mean RGB error fell from 34.32 to 22.32 on a 0\u2013255 scale. The brick color is closer. The pixel test did not establish better alignment of individual windows. Photographs by slinky309 via Panoramax, CC BY-SA 4.0."
+    },
+    {
+      "file": "minneapolis.webp",
+      "caption": "Minneapolis, Minnesota. 11,575 visible wall pixels. Mean RGB error fell from 38.11 to 29.56 on a 0\u2013255 scale. Correlation of local light/dark detail rose from 0.024 to 0.434 in the tall, narrow strip. Photographs by slinky309 via Panoramax, CC BY-SA 4.0."
+    }
+  ],
+  "credit": "All six source photographs by slinky309 via Panoramax, CC BY-SA 4.0. The two derived textures and both comparison sheets carry the same license. OpenStreetMap contributors supply the mapped footprints via OpenFreeMap.",
+  "links": [
+    [
+      "Iowa City, Iowa \u00b7 source 1",
+      "https://panoramax.fr/#pic=82816433-82f0-4259-b2df-4272e0c65e1a"
+    ],
+    [
+      "Iowa City, Iowa \u00b7 source 2",
+      "https://panoramax.fr/#pic=06a10eab-a48d-4a84-873c-6abc76e8dbd9"
+    ],
+    [
+      "Iowa City, Iowa \u00b7 withheld view",
+      "https://panoramax.fr/#pic=8c36b8bc-d61d-462e-becd-714544b24d13"
+    ],
+    [
+      "Minneapolis, Minnesota \u00b7 source 1",
+      "https://panoramax.fr/#pic=4a4c2737-88a8-4594-b288-acae4e0999aa"
+    ],
+    [
+      "Minneapolis, Minnesota \u00b7 source 2",
+      "https://panoramax.fr/#pic=dabf07be-5abe-4aed-aca3-a434234395b9"
+    ],
+    [
+      "Minneapolis, Minnesota \u00b7 withheld view",
+      "https://panoramax.fr/#pic=28c7e419-93a5-43ec-b3d1-f477a7bbd80c"
+    ],
+    [
+      "CC BY-SA 4.0",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    [
+      "OpenStreetMap attribution",
+      "https://www.openstreetmap.org/copyright"
+    ]
+  ],
+  "source_url": "https://panoramax.fr/#pic=8c36b8bc-d61d-462e-becd-714544b24d13",
+  "license_url": "https://creativecommons.org/licenses/by-sa/4.0/"
+}

@@ -1,0 +1,36 @@
+{
+  "provider": "IEM ASOS/METAR",
+  "key": "metar-archive1-LNK-1755604800.csv",
+  "source": "https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py?station=LNK&data=skyc1&data=skyc2&data=skyc3&data=skyc4&data=skyl1&data=skyl2&data=skyl3&data=skyl4&data=vsby&data=wxcodes&data=metar&sts=2025-08-19T11%3A00Z&ets=2025-08-19T16%3A00Z&tz=Etc%2FUTC&format=onlycomma&latlon=yes&direct=no&report_type=3&report_type=4",
+  "reports": [
+    {
+      "station": "LNK",
+      "stationKm": 7.86,
+      "utc": [
+        "2025-08-19T12:54:00.000Z",
+        "2025-08-19T13:54:00.000Z"
+      ],
+      "layers": [
+        "CLR",
+        "CLR"
+      ],
+      "cloud": 0,
+      "change": 0,
+      "visMiles": [
+        5,
+        9
+      ],
+      "visibilityAtLeast10SM": false,
+      "visibility_m": 13089
+    }
+  ],
+  "bytes": 1187,
+  "status": "available",
+  "station": "LNK",
+  "km": 7.86,
+  "kind": "mostly_clear",
+  "cloud": 0,
+  "confidence": 0.709,
+  "visibility_m": 13089,
+  "visibilityAtLeast10SM": false
+}

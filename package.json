@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "@mapbox/martini": "0.2.0",
+    "@mapbox/vector-tile": "2.0.4",
+    "earcut": "3.2.4",
+    "fast-png": "8.0.0",
+    "geotiff": "^3.0.5",
+    "laz-perf": "0.0.7",
+    "pbf": "4.0.1",
+    "proj4": "^2.22.0"
+  }
+}

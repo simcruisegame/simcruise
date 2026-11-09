@@ -1,0 +1,38 @@
+{
+  "title": "Drive north on Capitol Avenue",
+  "summary": "The stock Miata approaches the Capitol using the same input and street colliders as normal play. This is one prepared landmark. The neighboring streets retain their ordinary coverage.",
+  "measurement": "The laser-derived ordinary roof has 0.09 m median vertical error across 1,110 withheld returns from the original survey. The tower envelope has 0.38 m median radial error across 68 withheld returns. The normal northbound drive traveled 42.26 m, reached 13.27 m/s and maintained four wheel contacts.",
+  "images": [
+    {
+      "file": "approach.webp",
+      "caption": "The normal driving camera on the northbound approach"
+    }
+  ],
+  "credit": "Gates Frontiers Fund Wyoming Collection within the Carol M. Highsmith Archive, Library of Congress, Prints and Photographs Division. Additional photographs by Bradlyons and GRALISTAIR. Masked, exposure-matched, projected and adapted under CC BY-SA 4.0.",
+  "links": [
+    [
+      "State dome investigation",
+      "https://www.wyomingcapitolsquare.com/s/2014-Level-I-II-Vol-3-pgs-1-32.pdf"
+    ],
+    [
+      "Federal laser survey",
+      "https://usgs-lidar-public.s3.amazonaws.com/WY_Laramie_1_2021/ept.json"
+    ],
+    [
+      "Highsmith photograph",
+      "https://www.loc.gov/item/2017884408/"
+    ],
+    [
+      "Bradlyons photograph",
+      "https://commons.wikimedia.org/wiki/File:Wyoming_State_Capitol.jpg"
+    ],
+    [
+      "GRALISTAIR photograph",
+      "https://commons.wikimedia.org/wiki/File:Cheyenne_WY_Capitol_Building.jpg"
+    ],
+    [
+      "License",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ]
+  ]
+}

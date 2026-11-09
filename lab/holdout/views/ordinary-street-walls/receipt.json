@@ -1,0 +1,368 @@
+{
+  "schema": 1,
+  "sites": {
+    "iowa": {
+      "bi": 74,
+      "ei": 1,
+      "source_plane_offset": -1.6624673501644622,
+      "mask_area_m2": 196.7,
+      "corrections": [
+        [
+          0.11112214337837056,
+          1.442351653440266,
+          2.074042451113949
+        ],
+        [
+          -0.1613456707623368,
+          1.536505601114543,
+          -6.413142960000259
+        ],
+        [
+          0.07087180419767716,
+          1.0976206557267352,
+          0.8928825574143113
+        ]
+      ],
+      "yaw_flip": 0,
+      "train_epi": 0.13422763599563334,
+      "test_epi": 0.14463324113120374,
+      "station_baseline": 13.22540599698111,
+      "features": 19,
+      "hull_area": 65.9,
+      "heldout_pose_matches": 96,
+      "outside_angle": 52,
+      "dense": {
+        "in_hull": 13141,
+        "dense_pixels": 28353,
+        "feather_texels": 29.0
+      },
+      "heading": 231.76898566866427,
+      "pitch": 20.83441147521125,
+      "fov": 55,
+      "dimensions": [
+        900,
+        600
+      ],
+      "tile": [
+        16104,
+        24411
+      ],
+      "normal_approach": {
+        "search": "220 E Washington St, Iowa City, IA",
+        "travel_direction": "westbound"
+      },
+      "photo_station": {
+        "lat": 41.6601497,
+        "lon": -91.5328997,
+        "id": "8c36b8bc-d61d-462e-becd-714544b24d13",
+        "date": "2025-12-22T21:08:04+00:00"
+      },
+      "coverage": {
+        "control_repeat_mean": 0.0,
+        "control_repeat_changed": 0,
+        "changed": 52809,
+        "rendered_mask": 49092,
+        "heldout_static_pixels": 33611,
+        "control": {
+          "rgb_mae": 34.32,
+          "gray_correlation": 0.2,
+          "detail_correlation": 0.02
+        },
+        "survey": {
+          "rgb_mae": 22.32,
+          "gray_correlation": 0.073,
+          "detail_correlation": 0.011
+        }
+      },
+      "photo_credit": "slinky309",
+      "photos": [
+        {
+          "id": "82816433-82f0-4259-b2df-4272e0c65e1a",
+          "seq": "6b96dfdf-3821-45b3-b7b6-0631c2220265",
+          "lat": 41.6601499,
+          "lon": -91.5328232,
+          "azimuth": 269,
+          "interior": {
+            "camera_model": "Max",
+            "focal_length": 3.0,
+            "field_of_view": 360,
+            "camera_manufacturer": "GoPro",
+            "sensor_array_dimensions": [
+              5760,
+              2880
+            ]
+          },
+          "date": "2025-12-22T21:08:02+00:00",
+          "role": "authoring",
+          "author": "slinky309",
+          "source": "https://panoramax.openstreetmap.fr/derivates/82/81/64/33/82f0-4259-b2df-4272e0c65e1a/sd.jpg",
+          "credit_url": "https://panoramax.fr/#pic=82816433-82f0-4259-b2df-4272e0c65e1a",
+          "license": "CC BY-SA 4.0",
+          "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+          "file": "iowa-82816433.jpg",
+          "size": 247768,
+          "pixels": [
+            2048,
+            1024
+          ]
+        },
+        {
+          "id": "06a10eab-a48d-4a84-873c-6abc76e8dbd9",
+          "seq": "6b96dfdf-3821-45b3-b7b6-0631c2220265",
+          "lat": 41.6601479,
+          "lon": -91.5329822,
+          "azimuth": 276,
+          "interior": {
+            "camera_model": "Max",
+            "focal_length": 3.0,
+            "field_of_view": 360,
+            "camera_manufacturer": "GoPro",
+            "sensor_array_dimensions": [
+              5760,
+              2880
+            ]
+          },
+          "date": "2025-12-22T21:08:16+00:00",
+          "role": "authoring",
+          "author": "slinky309",
+          "source": "https://panoramax.openstreetmap.fr/derivates/06/a1/0e/ab/a48d-4a84-873c-6abc76e8dbd9/sd.jpg",
+          "credit_url": "https://panoramax.fr/#pic=06a10eab-a48d-4a84-873c-6abc76e8dbd9",
+          "license": "CC BY-SA 4.0",
+          "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+          "file": "iowa-06a10eab.jpg",
+          "size": 250051,
+          "pixels": [
+            2048,
+            1024
+          ]
+        },
+        {
+          "id": "8c36b8bc-d61d-462e-becd-714544b24d13",
+          "seq": "6b96dfdf-3821-45b3-b7b6-0631c2220265",
+          "lat": 41.6601497,
+          "lon": -91.5328997,
+          "azimuth": 269,
+          "interior": {
+            "camera_model": "Max",
+            "focal_length": 3.0,
+            "field_of_view": 360,
+            "camera_manufacturer": "GoPro",
+            "sensor_array_dimensions": [
+              5760,
+              2880
+            ]
+          },
+          "date": "2025-12-22T21:08:04+00:00",
+          "role": "held_out",
+          "author": "slinky309",
+          "source": "https://panoramax.openstreetmap.fr/derivates/8c/36/b8/bc/d61d-462e-becd-714544b24d13/sd.jpg",
+          "credit_url": "https://panoramax.fr/#pic=8c36b8bc-d61d-462e-becd-714544b24d13",
+          "license": "CC BY-SA 4.0",
+          "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+          "file": "iowa-8c36b8bc.jpg",
+          "size": 253553,
+          "pixels": [
+            2048,
+            1024
+          ]
+        }
+      ],
+      "cold_bytes": {
+        "catalog": 215644,
+        "train": 497819,
+        "evaluation": 253553
+      },
+      "subject": "upper masonry and ornament"
+    },
+    "minneapolis": {
+      "bi": 80,
+      "ei": 4,
+      "source_plane_offset": -0.5655707141643875,
+      "mask_area_m2": 183.7,
+      "corrections": [
+        [
+          0.15818091362512599,
+          -1.0007576649644117,
+          14.233865308862068
+        ],
+        [
+          0.47913122897897853,
+          -0.4377281156731599,
+          1.5587377636878408
+        ],
+        [
+          0.7481532235475146,
+          -0.5649025477245703,
+          8.01822798908278
+        ]
+      ],
+      "yaw_flip": 180,
+      "train_epi": 0.05341577313434008,
+      "test_epi": 0.15307432452570816,
+      "station_baseline": 12.927633204481717,
+      "features": 13,
+      "hull_area": 65.7,
+      "heldout_pose_matches": 160,
+      "outside_angle": 52,
+      "dense": {
+        "in_hull": 17908,
+        "dense_pixels": 26319,
+        "feather_texels": 26.194133758544922
+      },
+      "heading": 320.799002143863,
+      "pitch": 18.696651970665396,
+      "fov": 55,
+      "dimensions": [
+        900,
+        600
+      ],
+      "tile": [
+        15788,
+        23579
+      ],
+      "normal_approach": {
+        "search": "310 Hennepin Ave, Minneapolis, MN",
+        "travel_direction": "northwestbound"
+      },
+      "photo_station": {
+        "lat": 44.9810576,
+        "lon": -93.2697017,
+        "id": "28c7e419-93a5-43ec-b3d1-f477a7bbd80c",
+        "date": "2025-04-19T18:28:13+00:00"
+      },
+      "coverage": {
+        "control_repeat_mean": 0.0,
+        "control_repeat_changed": 0,
+        "changed": 20486,
+        "rendered_mask": 11575,
+        "heldout_static_pixels": 11575,
+        "control": {
+          "rgb_mae": 38.11,
+          "gray_correlation": 0.069,
+          "detail_correlation": 0.024
+        },
+        "survey": {
+          "rgb_mae": 29.56,
+          "gray_correlation": 0.365,
+          "detail_correlation": 0.434
+        }
+      },
+      "photo_credit": "slinky309",
+      "photos": [
+        {
+          "id": "4a4c2737-88a8-4594-b288-acae4e0999aa",
+          "seq": "3c0d6c92-6af0-46a0-9476-86ca75545418",
+          "lat": 44.981028,
+          "lon": -93.269635,
+          "azimuth": 293,
+          "interior": {
+            "camera_model": "Max",
+            "focal_length": 3.0,
+            "field_of_view": 360,
+            "camera_manufacturer": "GoPro",
+            "sensor_array_dimensions": [
+              5760,
+              2880
+            ]
+          },
+          "date": "2025-04-19T18:28:11+00:00",
+          "role": "authoring",
+          "author": "slinky309",
+          "source": "https://panoramax.openstreetmap.fr/derivates/4a/4c/27/37/88a8-4594-b288-acae4e0999aa/sd.jpg",
+          "credit_url": "https://panoramax.fr/#pic=4a4c2737-88a8-4594-b288-acae4e0999aa",
+          "license": "CC BY-SA 4.0",
+          "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+          "file": "minneapolis-4a4c2737.jpg",
+          "size": 314662,
+          "pixels": [
+            2048,
+            1024
+          ]
+        },
+        {
+          "id": "dabf07be-5abe-4aed-aca3-a434234395b9",
+          "seq": "3c0d6c92-6af0-46a0-9476-86ca75545418",
+          "lat": 44.9810952,
+          "lon": -93.2697689,
+          "azimuth": 306,
+          "interior": {
+            "camera_model": "Max",
+            "focal_length": 3.0,
+            "field_of_view": 360,
+            "camera_manufacturer": "GoPro",
+            "sensor_array_dimensions": [
+              5760,
+              2880
+            ]
+          },
+          "date": "2025-04-19T18:28:15+00:00",
+          "role": "authoring",
+          "author": "slinky309",
+          "source": "https://panoramax.openstreetmap.fr/derivates/da/bf/07/be/5abe-4aed-aca3-a434234395b9/sd.jpg",
+          "credit_url": "https://panoramax.fr/#pic=dabf07be-5abe-4aed-aca3-a434234395b9",
+          "license": "CC BY-SA 4.0",
+          "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+          "file": "minneapolis-dabf07be.jpg",
+          "size": 325711,
+          "pixels": [
+            2048,
+            1024
+          ]
+        },
+        {
+          "id": "28c7e419-93a5-43ec-b3d1-f477a7bbd80c",
+          "seq": "3c0d6c92-6af0-46a0-9476-86ca75545418",
+          "lat": 44.9810576,
+          "lon": -93.2697017,
+          "azimuth": 299,
+          "interior": {
+            "camera_model": "Max",
+            "focal_length": 3.0,
+            "field_of_view": 360,
+            "camera_manufacturer": "GoPro",
+            "sensor_array_dimensions": [
+              5760,
+              2880
+            ]
+          },
+          "date": "2025-04-19T18:28:13+00:00",
+          "role": "held_out",
+          "author": "slinky309",
+          "source": "https://panoramax.openstreetmap.fr/derivates/28/c7/e4/19/93a5-43ec-b3d1-f477a7bbd80c/sd.jpg",
+          "credit_url": "https://panoramax.fr/#pic=28c7e419-93a5-43ec-b3d1-f477a7bbd80c",
+          "license": "CC BY-SA 4.0",
+          "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+          "file": "minneapolis-28c7e419.jpg",
+          "size": 322405,
+          "pixels": [
+            2048,
+            1024
+          ]
+        }
+      ],
+      "cold_bytes": {
+        "catalog": 181642,
+        "train": 640373,
+        "evaluation": 322405
+      },
+      "subject": "vertical window bay"
+    }
+  },
+  "rejections": {
+    "400 State St, Madison, WI": "Two panoramic training cameras had 35 mutually matched static features, with one distinct inlier at most on each visible candidate. No patch.",
+    "500 Congress St, Portland, ME": "The two permitted planar authoring views show different storefronts. No patch.",
+    "88 Main St, Burlington, VT; 500 Market St, Pittsburgh, PA; 1178 Valencia St, San Francisco, CA": "No Panoramax frames in a \u00b1105 metre address search at the recorded catalog visit.",
+    "KartaView": "The tested legacy nearby-photos route returned HTTP 404 for the initial four addresses. This does not establish absence of images."
+  },
+  "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "changed": "Rectified to wall planes, mutually corroborated static pixels masked, color averaged, area feathered, photographed frames reframed for comparison.",
+  "roof_check": {
+    "source": "https://ortho.gis.iastate.edu/arcgis/rest/services/ortho/lidar_2020_dsm/ImageServer",
+    "ground": "https://ortho.gis.iastate.edu/arcgis/rest/services/ortho/lidar_2020_dem/ImageServer",
+    "interior_pixels": 384,
+    "roof_minus_ground_median_m": 28.16,
+    "reported_height_m": 34.6,
+    "photo_eave_approx_m": 23.0,
+    "changed_geometry": false
+  }
+}

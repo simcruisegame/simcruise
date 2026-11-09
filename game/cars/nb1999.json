@@ -1,0 +1,247 @@
+{
+ "_comment": "1999 Mazda MX-5 Miata Sport (NB), US five-speed. These values are the defaults in CarSpec.gd; loading this file must reproduce checks/Track.gd exactly.",
+ "id": "nb1999",
+ "name": "1999 Roadster Sport",
+ "make": "",
+ "body": "roadster",
+ "seats": 2,
+ "mass_kg": 1043.0,
+ "front_weight": 0.515,
+ "cg_height_m": 0.435,
+ "inertia": [
+  1130,
+  1260,
+  370
+ ],
+ "collision_box": [
+  1.56,
+  0.49,
+  3.65
+ ],
+ "collision_box_y": 0.46,
+ "angular_damp": 0.02,
+ "wheelbase_m": 2.266,
+ "track_front_m": 1.414,
+ "track_rear_m": 1.44,
+ "mount_height_m": 0.51,
+ "hub_drop_m": 0.205,
+ "tire_width_m": 0.195,
+ "tire_aspect_ratio": 0.5,
+ "rim_in": 15.0,
+ "static_mu": 0.963,
+ "lateral_grip_scale": 1.105,
+ "load_sensitivity": 0.095,
+ "reference_corner_load_n": 2557.0,
+ "mu_min": 0.7,
+ "mu_max": 1.16,
+ "slip_stiffness": 10.8,
+ "slip_falloff": 0.13,
+ "slip_falloff_from": 0.18,
+ "slip_falloff_to": 0.65,
+ "camber_thrust": 0.48,
+ "longitudinal_stiffness": 12.0,
+ "relaxation_m": 0.35,
+ "wheel_inertia": 1.05,
+ "rolling_resistance": 0.012,
+ "parking_rack_deg": 36.6,
+ "road_reference_deg": 35.5,
+ "ackermann_blend": 0.49,
+ "assist_lateral_g": 0.95,
+ "limit_slip_surplus_deg": 5.0,
+ "brake_front_nm": 1150.0,
+ "brake_rear_nm": 650.0,
+ "parking_brake_nm": 900.0,
+ "drag_area_m2": 0.65,
+ "engine": "combustion",
+ "torque_curve": [
+  [
+   800,
+   94
+  ],
+  [
+   1750,
+   127
+  ],
+  [
+   3000,
+   146
+  ],
+  [
+   4150,
+   151
+  ],
+  [
+   5000,
+   161
+  ],
+  [
+   5900,
+   156
+  ],
+  [
+   6500,
+   153
+  ],
+  [
+   7000,
+   137
+  ]
+ ],
+ "torque_past_curve_nm": 120.0,
+ "idle_rpm": 850.0,
+ "idle_omega": 89.0,
+ "governor_rpm": 875.0,
+ "fuel_cut_rpm": 7040.0,
+ "max_gear_rpm": 7200.0,
+ "engine_inertia": 0.18,
+ "engine_friction_nm": 10.0,
+ "engine_friction_per_rpm": 0.002,
+ "min_omega_auto": 78.0,
+ "max_omega": 750.0,
+ "stall_omega": 35.0,
+ "gears": [
+  3.136,
+  1.888,
+  1.33,
+  1.0,
+  0.814
+ ],
+ "reverse_ratio": 3.758,
+ "final_drive": 4.3,
+ "driveline_efficiency": 0.895,
+ "shift_seconds": 0.21,
+ "upshift_rpm": 6700.0,
+ "upshift_min_omega": 590.0,
+ "downshift_rpm": 2100.0,
+ "clutch_stiffness": 12.0,
+ "clutch_capacity_nm": 210.0,
+ "clutch_back_nm": 200.0,
+ "launch_rpm": 1000.0,
+ "launch_rpm_per_throttle": 2250.0,
+ "manual_clutch_stiffness": 10.0,
+ "transmission": "manual",
+ "layout": "rwd",
+ "rear_diff_bias": 2.0,
+ "front_diff_bias": 1.0,
+ "coil_lb_in": [
+  168.0,
+  130.0
+ ],
+ "lever_ratio": [
+  0.68,
+  0.77
+ ],
+ "bar_diameter_m": [
+  0.022,
+  0.011
+ ],
+ "bar_torsion_length_m": [
+  0.822,
+  0.813
+ ],
+ "bar_arm_m": [
+  0.216,
+  0.122
+ ],
+ "bar_lever_ratio": [
+  0.548,
+  0.586
+ ],
+ "static_length_m": 0.217,
+ "min_travel_m": 0.074,
+ "max_travel_m": 0.315,
+ "bump_gap_m": 0.054,
+ "bump_stiffness": 800000.0,
+ "max_contact_load_n": 14200.0,
+ "static_camber_deg": [
+  -0.53,
+  -1.1
+ ],
+ "camber_per_m": [
+  23.0,
+  25.0
+ ],
+ "caster_deg": 6.0,
+ "toe_per_wheel_deg": 0.15,
+ "unsprung_corner_kg": 23.0,
+ "damper": [
+  "ratio",
+  "dyno"
+ ],
+ "damper_ratio_rebound": [
+  0.56,
+  0.56
+ ],
+ "damper_ratio_compression": [
+  0.33,
+  0.33
+ ],
+ "damper_knee_mps": [
+  0.12,
+  0.12
+ ],
+ "damper_knee_slope": [
+  0.48,
+  0.48
+ ],
+ "damper_dyno": [
+  [],
+  [
+   [
+    0.0,
+    0,
+    0
+   ],
+   [
+    1.0,
+    42,
+    73
+   ],
+   [
+    1.1,
+    45,
+    80
+   ],
+   [
+    2.0,
+    56,
+    127
+   ],
+   [
+    3.0,
+    66,
+    146
+   ],
+   [
+    4.0,
+    72,
+    160
+   ],
+   [
+    6.0,
+    87,
+    183
+   ],
+   [
+    8.0,
+    100,
+    206
+   ],
+   [
+    9.98,
+    112,
+    224
+   ]
+  ]
+ ],
+ "target_0_60_s": 7.97,
+ "target_70_0_ft": 173.0,
+ "target_skidpad_g": 0.89,
+ "sources": {
+  "calibration": "Car and Driver 1999 road test: 0-60 mph 7.97 s, 70-0 mph 173 ft, 300 ft skidpad 0.89 g (README).",
+  "springs_bars": "Fat Cat Motorsports NB Ride Harmonizer, NB Sport row.",
+  "rear_damper": "Fat Cat Motorsports Bilstein Hard S rear dyno trace (NB1999Sport.gd).",
+  "gearing": "Mazda specification: 3.136/1.888/1.330/1.000/0.814, 4.30 final drive.",
+  "estimates": "Front damping, tyre curve, camber gain, inertia and differential bias are development estimates (see Powertrain.gd and NB1999Sport.gd comments)."
+ }
+}

@@ -1,0 +1,63 @@
+{
+  "project": "WV_FEMAR3_Southcentral_B3_2018",
+  "survey_catalog": "https://prd-tnm.s3.amazonaws.com/index.html?prefix=StagedProducts/Elevation/metadata/WV_FEMAR3_Southcentral_2018_D19/WV_FEMAR3_Southcentral_B3_2018",
+  "survey_dates": "2018-11-17/2019-04-16",
+  "metric_crs": "EPSG:26917",
+  "tile": [
+    17907,
+    25198
+  ],
+  "anchor": [
+    -81.629389,
+    38.348102
+  ],
+  "vertical_origin_m": 183,
+  "footprints": "footprints.geojson",
+  "nodes": "point-tiles.json",
+  "source_tile": [
+    14,
+    4476,
+    6299
+  ],
+  "camera_fit": [
+    88.31232918657908,
+    -0.18407862591193203,
+    -1.6770588809931497,
+    -2.466344825898922,
+    -0.1395483510576756
+  ],
+  "segmentation": {
+    "model": "https://www.kaggle.com/models/spsayakpaul/deeplabv3-mobilenetv2/TfLite/ade20k/2",
+    "modelSHA256": "0acdf37d5db38e681646ce79557c2af516650ecca5377b15c9cb171f751556cb",
+    "modelLicense": "Apache-2.0"
+  },
+  "training": [
+    {
+      "id": "1265448273",
+      "sequenceId": "3485953",
+      "sequenceIndex": 2858,
+      "lat": 38.348544,
+      "lon": -81.630774,
+      "heading": 136.54,
+      "author": "wolfgang8741",
+      "sourceUrl": "https://kartaview.org/details/3485953/2858",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "rgb": "2858-rgb.png",
+      "mask": "2858-labels.png"
+    },
+    {
+      "id": "1265448289",
+      "sequenceId": "3485953",
+      "sequenceIndex": 2863,
+      "lat": 38.348355,
+      "lon": -81.630545,
+      "heading": 137.46,
+      "author": "wolfgang8741",
+      "sourceUrl": "https://kartaview.org/details/3485953/2863",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "rgb": "2863-rgb.png",
+      "mask": "2863-labels.png"
+    }
+  ],
+  "source_label": "USGS 3DEP / FEMA; two flight lines"
+}

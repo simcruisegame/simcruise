@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "sources": {
+    "miami-dade-2021": {
+      "label": "Miami-Dade County ITD 2021, NOAA Office for Coastal Management",
+      "acquisition": "2021-04-07/2021-06-10",
+      "url": "https://www.fisheries.noaa.gov/inport/item/76028",
+      "ept": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/entwine/geoid18/10338/ept.json",
+      "license": "CC0-1.0",
+      "zMeters": 1
+    },
+    "ma-central-eastern-2021": {
+      "label": "USGS and MassGIS, Central and Eastern Massachusetts",
+      "acquisition": "spring 2021",
+      "url": "https://www.mass.gov/info-details/massgis-data-lidar-terrain-data",
+      "ept": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/MA_CentralEastern_1_2021/ept.json",
+      "license": "USGS public domain",
+      "zMeters": 1
+    }
+  },
+  "tiles": {
+    "18166-27914": {
+      "cad38762-afd2-444f-9895-1c5919ef4e26": {
+        "outlineHash": "05f7bc9ee74eacb68410d0b1ae6a2571a4bea6a1ba5c61f16d7ee1355552518c",
+        "geometrySource": "Microsoft ML Buildings",
+        "release": "2026-10-21.0",
+        "survey": "miami-dade-2021",
+        "heightM": 5.91,
+        "roofReturns": 272,
+        "groundReturns": 109,
+        "coveredCells": 10,
+        "eligibleCells": 10
+      }
+    },
+    "19818-24238": {
+      "544b5e70-b520-467b-8b2b-7a6d265341d7": {
+        "outlineHash": "424e5af5c01e2e3f749d08129f86a9a3b58c4b1b96632a1a845f619532dcca04",
+        "geometrySource": "Microsoft ML Buildings",
+        "release": "2026-10-21.0",
+        "survey": "ma-central-eastern-2021",
+        "heightM": 4.39,
+        "roofReturns": 791,
+        "groundReturns": 1450,
+        "coveredCells": 8,
+        "eligibleCells": 8
+      }
+    }
+  }
+}

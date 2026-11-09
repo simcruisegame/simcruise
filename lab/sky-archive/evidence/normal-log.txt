@@ -1,0 +1,4 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ARCHIVE NORMAL {"appliedEpoch":1755610860,"camera_override":false,"captureUnix":1755610860.0,"frame_id":"8889f6fa-34ff-4959-adb9-7d162c46b68c","label":"Photo daylight · LNK · 8 km · GOES clear","place":"(40.808, -96.675)","reference_filter":"","satellite":{"available":true,"bytes":196608.0,"clear":49.0,"cloudy":0.0,"delta_seconds":95.7,"good":49.0,"histogram":[47.0,2.0,0.0,0.0],"pixel":[332.0,969.0],"platform":"GOES-19","ranges":6.0,"url":"https://noaa-goes19.s3.amazonaws.com/ABI-L2-ACMC/2025/231/13/OR_ABI-L2-ACMC-M6_G19_s20252311341170_e20252311343543_c20252311345148.nc","viewZenith":52.1},"station":"LNK","wheel_contacts":4}
+ARCHIVE fallback live/undated true

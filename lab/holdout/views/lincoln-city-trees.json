@@ -1,0 +1,30 @@
+{
+  "title": "City street-tree survey",
+  "summary": "Each row compares a street photograph with two renders from the same frozen scene. The middle uses the canopy-height model. The right adds city tree-trunk positions, measured diameters and species when available.",
+  "measurement": "In the September drive, withheld when developing the tree-matching method, mean error in the left roadside canopy boundary fell from 26.0 to 14.7 percentage points of frame height across ten columns. Tree sizes without a matching canopy peak were estimated from similar local trees. The inventory covers few private-yard trees.",
+  "images": [
+    {
+      "file": "lincoln-city-trees.jpg",
+      "caption": "August 19 and September 9, 2025. Photographs at left, canopy model in the middle, surveyed street trees at right."
+    }
+  ],
+  "credit": "Photographs by slinky309 via Panoramax. Photographs resized and arranged with renders. Comparison sheet shared under CC BY-SA 4.0. Street-tree data © City of Lincoln / Lancaster County Geospatial Services, Lincoln Parks and Recreation.",
+  "links": [
+    [
+      "August photograph",
+      "https://panoramax.xyz/#focus=pic&pic=8889f6fa-34ff-4959-adb9-7d162c46b68c"
+    ],
+    [
+      "September photograph",
+      "https://panoramax.xyz/#focus=pic&pic=e018d3fd-228a-4026-90f4-661ca53b6729"
+    ],
+    [
+      "CC BY-SA 4.0",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    [
+      "City tree layer",
+      "https://gis.lincoln.ne.gov/public/rest/services/Parks/Trees/MapServer/0"
+    ]
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "title": "Traffic signals on three independently selected streets",
+  "summary": "A hash of the recorded seed selected Carson City, Indianapolis and Trenton from the 50-state road probe. The ordinary street-photo providers yielded usable photographs at 0 of 3 sites. A separate 400 m Wikimedia Commons search found one georeferenced street photograph at each of the same three sites.",
+  "measurement": "The game reads a mapped signal at each named crossing. Road names, approach directions, nearby geometry and a two-road intersection gate select which signals appear. Lamp corners, heads and dimensions are inferred. All lamps are unlit because phase is unknown. The photographed buildings, weather, vegetation and street furniture vary considerably from the game. At the photographed crossing the renderer accepted four approach heads in Carson City, two in Indianapolis and one in Trenton. In the Trenton view the change occupies only 236 pixels; no fixture is inferred on a paved lane.",
+  "images": [
+    {
+      "file": "nv.webp",
+      "caption": "North along Carson Street. The crossing gained roadside signal heads. Carson City later rebuilt this portion of the street. The original long arms, cars and trees differ."
+    },
+    {
+      "file": "in.webp",
+      "caption": "East from the Statehouse. The original Morton statue and the surrounding frontage dominate this view. The camera has no measured height at the steps, and several signals are partly hidden in the photograph. This is a junction presence check."
+    },
+    {
+      "file": "nj.webp",
+      "caption": "East on West State Street. A signalized junction appears on the correct road. Stock corner placement, foliage, building fronts and lamp support differ."
+    }
+  ],
+  "credit": "Photographs by Famartin (Nevada and New Jersey, CC BY-SA 4.0) and vxla (Indiana, CC BY 2.0). Comparison sheets are adapted with labels, resizing and native Godot renders. Nevada and New Jersey sheets CC BY-SA 4.0. Indiana sheet CC BY 2.0. Signal data \u00a9 OpenStreetMap contributors, Overture Maps Foundation (ODbL 1.0).",
+  "links": [
+    [
+      "Carson Street at Musser Street, Carson City \u00b7 original photograph",
+      "https://commons.wikimedia.org/wiki/File:2015-11-01_11_45_10_View_north_along_Carson_Street_(U.S._Route_395_Business)_at_Musser_Street_in_downtown_Carson_City,_Nevada.jpg"
+    ],
+    [
+      "West Market Street, Indianapolis \u00b7 original photograph",
+      "https://commons.wikimedia.org/wiki/File:Morton_Looks_at_West_Market_Street.jpg"
+    ],
+    [
+      "West State Street at Barrack Street, Trenton \u00b7 original photograph",
+      "https://commons.wikimedia.org/wiki/File:2014-08-30_10_48_14_View_east_along_West_State_Street_at_Barrack_Street_in_Trenton,_New_Jersey.JPG"
+    ],
+    [
+      "CC BY-SA 4.0",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    [
+      "CC BY 2.0",
+      "https://creativecommons.org/licenses/by/2.0/"
+    ],
+    [
+      "Overture attribution",
+      "https://docs.overturemaps.org/attribution/"
+    ],
+    [
+      "OpenStreetMap copyright",
+      "https://www.openstreetmap.org/copyright"
+    ],
+    [
+      "Carson City downtown reconstruction",
+      "https://www.carsoncity.gov/home/showpublisheddocument/77173/637660970700400000"
+    ],
+    [
+      "Indiana Historic Bureau \u00b7 Morton monument",
+      "https://www.in.gov/history/about-indiana-history-and-trivia/explore-indiana-history-by-topic/the-great-war-governor-oliver-p-morton-and-the-war-of-the-rebellion-in-indiana/"
+    ],
+    [
+      "2016 Trenton bicycle and pedestrian plan",
+      "https://www.trentonnj.org/DocumentCenter/View/261/Downtown-Trenton-Bicycle-and-Pedestrian-Plan---2016-PDF"
+    ]
+  ]
+}

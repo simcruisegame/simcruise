@@ -1,0 +1,46 @@
+{
+  "title": "Cambridge surveyed tree wells and crowns",
+  "summary": "Columbia Street has two honeylocusts in individual wells beside the west curb. Both disappeared in the old road mask. Cambridge’s pavement and sidewalk surveys, its trunk inventory and the 2024 LiDAR crowns now place them above their mapped wells.",
+  "measurement": "At 960 pixels wide the first photograph puts the observed left trunk near x=300. Its game projection is x=306. In the next photograph, held out of alignment, it appears near x=90 and projects to x=129. The earlier game had no visible left trunk in the corresponding foreground depth range. The foliage remains too dense for November.",
+  "credit": "Street photographs by morganwahl, © Grab and KartaView contributors, CC BY-SA 4.0. Photographs resized and combined with game renders for this study. Cambridge GIS, Cambridge Public Works, WSP and the University of Vermont Spatial Analysis Laboratory supplied the PDDL 1.0 survey layers.",
+  "images": [
+    {
+      "file": "columbia-street.webp",
+      "caption": "Columbia Street facing northeast. The two frames are 14 metres apart. The first camera was registered from pavement geometry and painted centerlines. The second used the same correction."
+    }
+  ],
+  "links": [
+    [
+      "First photograph",
+      "https://kartaview.org/details/8536633/291"
+    ],
+    [
+      "Held photograph",
+      "https://kartaview.org/details/8536633/292"
+    ],
+    [
+      "Photograph license",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    [
+      "Cambridge tree survey",
+      "https://www.cambridgema.gov/gis/gisdatadictionary/environmental/environmental_streettrees"
+    ],
+    [
+      "LiDAR crowns",
+      "https://www.cambridgema.gov/gis/gisdatadictionary/environmental/environmental_treecanopy2024"
+    ],
+    [
+      "Road polygons",
+      "https://www.cambridgema.gov/gis/gisdatadictionary/basemap/basemap_roads"
+    ],
+    [
+      "Sidewalk tree wells",
+      "https://www.cambridgema.gov/gis/gisdatadictionary/basemap/basemap_sidewalks"
+    ],
+    [
+      "Survey license",
+      "https://opendatacommons.org/licenses/pddl/1.0/"
+    ]
+  ]
+}

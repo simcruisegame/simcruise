@@ -1,0 +1,164 @@
+{
+  "baseline": {
+    "locked_60kph": [
+      {
+        "contacts": 4,
+        "front_braking_N": 5056.56021484375,
+        "front_fx_N": 0.0,
+        "front_locked_observations": 50,
+        "front_observations": 50,
+        "rack_deg": 0.0,
+        "side_force_angle_deg": 0.0
+      },
+      {
+        "contacts": 4,
+        "front_braking_N": 5042.54821289063,
+        "front_fx_N": 459.581212158203,
+        "front_locked_observations": 50,
+        "front_observations": 50,
+        "rack_deg": 12.288357617168,
+        "side_force_angle_deg": 5.20758826102432
+      },
+      {
+        "contacts": 4,
+        "front_braking_N": 5042.54821289063,
+        "front_fx_N": -459.581212158203,
+        "front_locked_observations": 50,
+        "front_observations": 50,
+        "rack_deg": -12.288357617168,
+        "side_force_angle_deg": -5.20758826102432
+      },
+      {
+        "contacts": 4,
+        "front_braking_N": 4922.72493164063,
+        "front_fx_N": 1182.28818115234,
+        "front_locked_observations": 50,
+        "front_observations": 50,
+        "rack_deg": 20.4805960286133,
+        "side_force_angle_deg": 13.5049133896575
+      },
+      {
+        "contacts": 4,
+        "front_braking_N": 4922.72493164063,
+        "front_fx_N": -1182.28818115234,
+        "front_locked_observations": 50,
+        "front_observations": 50,
+        "rack_deg": -20.4805960286133,
+        "side_force_angle_deg": -13.5049133896575
+      }
+    ],
+    "panic_50mph": [
+      {
+        "command": 0.0,
+        "contacts": 4,
+        "lateral_m": 1.33070982497041e-08,
+        "lock_frames": 102,
+        "onset": 119,
+        "peak_heading_deviation_deg": 4.49195386328207e-07,
+        "stopping_m": 27.6651342138648,
+        "yaw_rate_locked_deg_s": 5.95825012919788e-07
+      },
+      {
+        "command": 1.0,
+        "contacts": 4,
+        "lateral_m": 0.105776846331954,
+        "lock_frames": 105,
+        "onset": 119,
+        "peak_heading_deviation_deg": 71.7416364378485,
+        "stopping_m": 28.0752760544419,
+        "yaw_rate_locked_deg_s": 64.738424915781
+      },
+      {
+        "command": -1.0,
+        "contacts": 4,
+        "lateral_m": -0.10577705510199,
+        "lock_frames": 105,
+        "onset": 119,
+        "peak_heading_deviation_deg": 71.7416364378485,
+        "stopping_m": 28.0752760544419,
+        "yaw_rate_locked_deg_s": 64.738424915781
+      }
+    ]
+  },
+  "candidate": {
+    "locked_60kph": [
+      {
+        "contacts": 4,
+        "front_braking_N": 5056.560703125,
+        "front_fx_N": 0.0,
+        "front_locked_observations": 50,
+        "front_observations": 50,
+        "rack_deg": 0.0,
+        "side_force_angle_deg": 0.0
+      },
+      {
+        "contacts": 4,
+        "front_braking_N": 5077.43706054687,
+        "front_fx_N": -7.32421875e-06,
+        "front_locked_observations": 50,
+        "front_observations": 50,
+        "rack_deg": 12.288357617168,
+        "side_force_angle_deg": -8.26493401299562e-08
+      },
+      {
+        "contacts": 4,
+        "front_braking_N": 5077.43706054687,
+        "front_fx_N": 7.32421875e-06,
+        "front_locked_observations": 50,
+        "front_observations": 50,
+        "rack_deg": -12.288357617168,
+        "side_force_angle_deg": 8.26493401299562e-08
+      },
+      {
+        "contacts": 4,
+        "front_braking_N": 5114.16155273437,
+        "front_fx_N": 2.197265625e-05,
+        "front_locked_observations": 50,
+        "front_observations": 50,
+        "rack_deg": 20.4805960286133,
+        "side_force_angle_deg": 2.46167520293456e-07
+      },
+      {
+        "contacts": 4,
+        "front_braking_N": 5114.16155273437,
+        "front_fx_N": -2.197265625e-05,
+        "front_locked_observations": 50,
+        "front_observations": 50,
+        "rack_deg": -20.4805960286133,
+        "side_force_angle_deg": -2.46167520293456e-07
+      }
+    ],
+    "panic_50mph": [
+      {
+        "command": 0.0,
+        "contacts": 4,
+        "lateral_m": -4.07529594098621e-09,
+        "lock_frames": 102,
+        "onset": 119,
+        "peak_heading_deviation_deg": 1.14720510738743e-06,
+        "stopping_m": 27.6650331243873,
+        "yaw_rate_locked_deg_s": 7.92505985311626e-07
+      },
+      {
+        "command": 1.0,
+        "contacts": 4,
+        "lateral_m": 0.00616347968339965,
+        "lock_frames": 101,
+        "onset": 119,
+        "peak_heading_deviation_deg": 0.326268851863106,
+        "stopping_m": 27.4971968308091,
+        "yaw_rate_locked_deg_s": 0.351055741763215
+      },
+      {
+        "command": -1.0,
+        "contacts": 4,
+        "lateral_m": -0.00616348775342062,
+        "lock_frames": 101,
+        "onset": 119,
+        "peak_heading_deviation_deg": 0.326267437800505,
+        "stopping_m": 27.4971968308091,
+        "yaw_rate_locked_deg_s": 0.351054007535496
+      }
+    ]
+  }
+}

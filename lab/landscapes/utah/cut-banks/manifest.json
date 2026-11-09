@@ -1,0 +1,46 @@
+{
+  "title": "The right bank of US 163",
+  "summary": "USGS bare-earth elevations now shape the nearer highway banks at construction time when a qualified survey is cached. The ordinary driving mesh and its physics collider share the measured shoulder. A protected strip preserves road grades and intersections, and independent site surveys have priority.",
+  "measurement": "Against 1,502 off-grid locations from the original 1 m Utah DEM, mean road-relative height error fell from 1.33 m without the survey and 1.08 m with the former bank solver to 0.48 m. A 120 m stock Miata run kept all four wheel contacts for 662 physics ticks. A West Virginia holdout improved from 0.39 to 0.36 m. In the matched view the right bank gets closer to the reference, but the left turnout gets farther away in color.",
+  "credit": "Photograph by Awinda, April 30, 2023. The cropped comparison is licensed CC BY-SA 4.0. The reference camera uses the published GPS and a landmark-aligned 233.2° view; the iPhone recorded 242.1°. The earlier comparison uses fixed afternoon light. The new comparison uses the reference-date lighting. The measured terrain uses public-domain USGS 3DEP data and OpenStreetMap road geometry.",
+  "images": [
+    {
+      "file": "monument-valley.webp",
+      "caption": "Location photograph, baseline Metal terrain and measured right bank. The camera, materials and light match between renders. The new shape appears chiefly in the middle distance."
+    },
+    {
+      "file": "bank-profiles.webp",
+      "caption": "Enlarged engine crops and a cross section 150 m up the highway. The lines show height relative to the center of the mapped road. The safety margin preserves the closest shoulder."
+    },
+    {
+      "file": "refinement/comparison.webp",
+      "caption": "Same camera and historical daylight. The new survey mesh lifts both cut banks into the driver’s view. The foreground still lacks the source rock cover and individual plants."
+    }
+  ],
+  "links": [
+    [
+      "Original photograph",
+      "https://commons.wikimedia.org/wiki/File:Forrest_Gump_Highway_Monument_Valley.jpg"
+    ],
+    [
+      "CC BY-SA 4.0",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    [
+      "USGS Utah survey",
+      "https://www.sciencebase.gov/catalog/item/67243ab7d34e4f57573ea1c5"
+    ],
+    [
+      "USGS West Virginia survey",
+      "https://www.sciencebase.gov/catalog/item/5eacfa6f82cefae35a25016a"
+    ],
+    [
+      "USGS 3DEP",
+      "https://www.usgs.gov/3d-elevation-program"
+    ],
+    [
+      "OpenStreetMap contributors",
+      "https://www.openstreetmap.org/copyright"
+    ]
+  ]
+}

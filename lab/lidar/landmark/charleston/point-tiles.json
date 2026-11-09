@@ -1,0 +1,134 @@
+{
+  "source": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/WV_FEMAR3_Southcentral_B3_2018/",
+  "depth": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "crs": "EPSG:3857",
+  "bounds": [
+    -9087072.840538882,
+    4628586.972072696,
+    -9086811.197237499,
+    4628849.699931353
+  ],
+  "nodes": [
+    {
+      "path": "ept-data/6-24-22-31.laz",
+      "sha256": "7a74c2d703dcad1c6e60f8b1f88859b527e65b2c3ce0ab3abf2b375cdc431ec1",
+      "n": 23713,
+      "bytes": 293372
+    },
+    {
+      "path": "ept-data/7-49-44-63.laz",
+      "sha256": "4c1986a41ed2b9465493dee738ff8f0727c7dfaf64235af330aad16e6ef54a86",
+      "n": 28617,
+      "bytes": 335418
+    },
+    {
+      "path": "ept-data/10-395-354-509.laz",
+      "sha256": "2014ede29a8a7d1ebce2a6f735ab52d2a4d44031085ba8414e0a539dae5fd92c",
+      "n": 26443,
+      "bytes": 211311
+    },
+    {
+      "path": "ept-data/10-395-355-509.laz",
+      "sha256": "76126748f6efd28eaa9041d17f6268745e8ad7c9e904a685bf9ae5f4065076a9",
+      "n": 23263,
+      "bytes": 183820
+    },
+    {
+      "path": "ept-data/11-791-709-1018.laz",
+      "sha256": "d28dcc42e92511b76e3a4daa6b033c0b9e52452b39714bba9d26dd9850356f5d",
+      "n": 42600,
+      "bytes": 212941
+    },
+    {
+      "path": "ept-data/11-791-710-1018.laz",
+      "sha256": "409a803483c9c5c3e2e5ea3b0ea74ae9309a9bf1bf90858e8a8f16f817e2ba30",
+      "n": 45714,
+      "bytes": 219153
+    },
+    {
+      "path": "ept-data/11-791-711-1018.laz",
+      "sha256": "113e8178682fc780d84a7442c82852a7bc0cfc3dac32ac51fafeaad16adff1d1",
+      "n": 46137,
+      "bytes": 209066
+    },
+    {
+      "path": "ept-data/8-98-88-127.laz",
+      "sha256": "3629293399b41e03fefe3f72328f896b6ec71cc025dfdd58fbbd19479b3459cd",
+      "n": 25810,
+      "bytes": 281269
+    },
+    {
+      "path": "ept-data/9-197-177-254.laz",
+      "sha256": "019e5de5c82a2e3cbc98ca0460b1b243c2aac6b2c83e7e9830d59972895b15ca",
+      "n": 30798,
+      "bytes": 291480
+    },
+    {
+      "path": "ept-data/10-396-354-509.laz",
+      "sha256": "6444d88ebedf02533cb032abdb358e8d1513f1b8a8b052404c5bbe6db3847c51",
+      "n": 50325,
+      "bytes": 303819
+    },
+    {
+      "path": "ept-data/10-396-355-509.laz",
+      "sha256": "5dfc672ca578f4c3d65225f29ca6c81b5de50e8c5c7dc58c2610001561837528",
+      "n": 25055,
+      "bytes": 196929
+    },
+    {
+      "path": "ept-data/11-792-709-1018.laz",
+      "sha256": "84b074e96d0d9f85372dd41e396de1b74513dab1f28f1707b34917321c9ca55e",
+      "n": 43093,
+      "bytes": 218665
+    },
+    {
+      "path": "ept-data/11-792-710-1018.laz",
+      "sha256": "ada94f3b475c71a81c3549ff17f90fb0893610b380c31cd0f82bf65eb7bb79cc",
+      "n": 43967,
+      "bytes": 215231
+    },
+    {
+      "path": "ept-data/11-792-711-1018.laz",
+      "sha256": "a5d3b2e6448e6148e0cbc36fe40f3231f97615a263b31b11e009700308287889",
+      "n": 46493,
+      "bytes": 217494
+    },
+    {
+      "path": "ept-data/11-793-709-1018.laz",
+      "sha256": "75d9a1679cf47c39a1be5f3508dd361e056c0f0e9ed8c416b38f4e6f3c0d492f",
+      "n": 25698,
+      "bytes": 129194
+    },
+    {
+      "path": "ept-data/11-793-710-1018.laz",
+      "sha256": "17a74a30d6fc6a0df4a20f4dc3865e789d86c0656a260fac6e8a95e11c65a992",
+      "n": 41336,
+      "bytes": 195757
+    },
+    {
+      "path": "ept-data/11-793-711-1018.laz",
+      "sha256": "ee201c3ad248c408d6aacbd1a711896d0266d27dd14907bc981edc5b2ce9a210",
+      "n": 43373,
+      "bytes": 213823
+    },
+    {
+      "path": "ept-data/8-99-88-127.laz",
+      "sha256": "fe64c443647da9c47475332291a4cf4502db2d28f8911cd2b2f4a9e4ab2bb290",
+      "n": 26583,
+      "bytes": 268385
+    },
+    {
+      "path": "ept-data/9-198-177-254.laz",
+      "sha256": "f6fe80770220575e75831b0481c58e4d8cd5ab247412ffd7f6e4b6ee4e1b8b1b",
+      "n": 28059,
+      "bytes": 251883
+    }
+  ]
+}

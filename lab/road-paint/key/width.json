@@ -1,0 +1,24 @@
+{
+  "site": "key",
+  "aerial_lane_spacing_m": 3.318142448596853,
+  "independent_photo_estimates": [
+    {
+      "frame": 0,
+      "used_rows": 40,
+      "dash_m": 0.156,
+      "edge_m": 0.139
+    },
+    {
+      "frame": 1,
+      "used_rows": 14,
+      "dash_m": 0.142,
+      "edge_m": 0.14
+    },
+    {
+      "frame": 2,
+      "used_rows": 14,
+      "dash_m": 0.139,
+      "edge_m": 0.145
+    }
+  ]
+}

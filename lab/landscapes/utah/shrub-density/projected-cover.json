@@ -1,0 +1,38 @@
+{
+  "ut": {
+    "baseline": {
+      "count": 503,
+      "grid_m": 0.05,
+      "field_area_m2": 23235.1,
+      "crown_area_m2": 93.6,
+      "crown_percent": 0.4,
+      "mean_model_percent": 6.82
+    },
+    "revision": {
+      "count": 1886,
+      "grid_m": 0.05,
+      "field_area_m2": 23235.1,
+      "crown_area_m2": 1518.2,
+      "crown_percent": 6.53,
+      "mean_model_percent": 6.82
+    }
+  },
+  "la": {
+    "baseline": {
+      "count": 458,
+      "grid_m": 0.05,
+      "field_area_m2": 23235.1,
+      "crown_area_m2": 122.0,
+      "crown_percent": 0.53,
+      "mean_model_percent": 9.3
+    },
+    "revision": {
+      "count": 2053,
+      "grid_m": 0.05,
+      "field_area_m2": 23235.1,
+      "crown_area_m2": 2142.6,
+      "crown_percent": 9.22,
+      "mean_model_percent": 9.3
+    }
+  }
+}

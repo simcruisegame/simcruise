@@ -1,0 +1,39 @@
+{
+  "photograph": {
+    "file": "davidson-original.jpg",
+    "title": "Gould Academy Davidson Hall",
+    "author": "Nick Kline (User:Nickline4)",
+    "capture_utc": "2012-06-29T18:44:36Z",
+    "page": "https://commons.wikimedia.org/wiki/File:Gould_Academy_Davidson_Hall.JPG",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/1/11/Gould_Academy_Davidson_Hall.JPG",
+    "sha256": "697c5949f2eb62ae61c970e569c58be25eefdda509ecb251eb071698ebf68868",
+    "license": "CC BY-SA 3.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+  },
+  "lidar": {
+    "file": "2016.laz",
+    "provider": "United States Geological Survey, 3D Elevation Program",
+    "product": "USGS Lidar Point Cloud ME_Western_ME_LiDAR_2016_B16 19TCK357918",
+    "page": "https://www.sciencebase.gov/catalog/item/644b2bc8d34e45f6ddcd3d94",
+    "url": "https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/ME_Western_ME_LiDAR_2016_B16/ME_Western_2016/LAZ/USGS_LPC_ME_Western_ME_LiDAR_2016_B16_19TCK357918.laz",
+    "sha256": "2b8802003b3c2a4b5d1853d4ada539f8873bc4f07f67cef37fbb41072acd8437",
+    "license": "United States public domain",
+    "CRS": "EPSG:6348 horizontal, NAVD88 metres vertical"
+  },
+  "map": {
+    "provider": "OpenStreetMap contributors via OpenFreeMap",
+    "license": "ODbL 1.0",
+    "page": "https://www.openstreetmap.org/copyright",
+    "tile": [
+      16,
+      19880,
+      23726
+    ],
+    "terrain": "Mapzen Terrain Tiles, available on AWS Open Data",
+    "terrain_url": "https://registry.opendata.aws/terrain-tiles/"
+  },
+  "derivatives": {
+    "photos_masks_atlases_composites": "CC BY-SA 3.0",
+    "change": "Lens registration, semantic and manual occlusion masking, perspective projection, neutralized glazing, illumination normalization, extracted masonry grain, mapped photographic coordinates, screenshots and comparison layouts. The source photographer did not endorse the adaptation."
+  }
+}

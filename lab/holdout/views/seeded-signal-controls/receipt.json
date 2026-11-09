@@ -1,0 +1,508 @@
+{
+  "selection": {
+    "seed": "Sunday Driver / ground-photo holdout / 2026-11-08 / 01",
+    "rank": "minimum SHA-256 of UTF-8 seed vertical bar plus state postal code in each eligible longitude stratum",
+    "source_sha256": "428539bbb23c6c35edf46b72b1fa854a78c8a6976ac41474e7e9bd980d494655",
+    "excluded_prior_locations": [
+      "Anchorage",
+      "Bismarck",
+      "Cambridge",
+      "Charleston",
+      "Cheyenne",
+      "Hartford",
+      "Honolulu",
+      "Jefferson City",
+      "Lincoln",
+      "Miami",
+      "Seattle"
+    ],
+    "denominator": 3,
+    "selected": [
+      {
+        "stratum": "west",
+        "rank": "0a4bc3f01d007d3ec304f8e62bcdffd9ff761608f754c5a8f351e48b07549225",
+        "state": "NV",
+        "town": "Carson City",
+        "lat": 39.164,
+        "lon": -119.767,
+        "tile": [
+          10965,
+          25008
+        ],
+        "roads": 53,
+        "terrain_samples": 4225,
+        "terrain_min_m": 1420.39,
+        "terrain_max_m": 1426.98,
+        "first_requests": 3,
+        "repeat_requests": 0,
+        "passed": true
+      },
+      {
+        "stratum": "central",
+        "rank": "03edf5a03177300c3ec3b41c6ec28beeb056357e8fb94caaa76dd4aa94779824",
+        "state": "IN",
+        "town": "Indianapolis",
+        "lat": 39.769,
+        "lon": -86.162,
+        "tile": [
+          17082,
+          24865
+        ],
+        "roads": 70,
+        "terrain_samples": 4225,
+        "terrain_min_m": 212.16,
+        "terrain_max_m": 218.54,
+        "first_requests": 2,
+        "repeat_requests": 0,
+        "passed": true
+      },
+      {
+        "stratum": "east",
+        "rank": "0a0e8b866b3d42bbfed320b92787379ccfd95dd92b74a1362033bf199f5c48b3",
+        "state": "NJ",
+        "town": "Trenton",
+        "lat": 40.22,
+        "lon": -74.768,
+        "tile": [
+          19156,
+          24758
+        ],
+        "roads": 64,
+        "terrain_samples": 4225,
+        "terrain_min_m": 0.85,
+        "terrain_max_m": 16.51,
+        "first_requests": 2,
+        "repeat_requests": 0,
+        "passed": true
+      }
+    ]
+  },
+  "provider_coverage": "KartaView/Panoramax 0/3 frames accepted, Wikimedia 3/3 within 400 m. In New Jersey KartaView returned metadata but thumbnails were unavailable.",
+  "source_release": "2026-10-21.0",
+  "sites": {
+    "NV": {
+      "source": "https://commons.wikimedia.org/wiki/File:2015-11-01_11_45_10_View_north_along_Carson_Street_(U.S._Route_395_Business)_at_Musser_Street_in_downtown_Carson_City,_Nevada.jpg",
+      "author": "Famartin",
+      "license": "CC BY-SA 4.0",
+      "capture_local": "2015:11:01 11:45:10",
+      "geotag": [
+        39.164306,
+        -119.766906
+      ],
+      "eye_height_m": 1.65,
+      "pose": {
+        "lat": 39.16442513486998,
+        "lon": -119.76697412513383,
+        "tile": [
+          10965,
+          25007
+        ],
+        "road": "North Carson Street",
+        "distance_to_road_m": 7.933645919218003,
+        "road_bearing": 0.22298469242764685,
+        "road_width_parameter": 12.0,
+        "heading": 349.2494821187699,
+        "pitch": 6.115906477151243,
+        "fov": 61.65587350853944,
+        "supporting_lines": 33,
+        "vanishing_point_680": [
+          450.4696263544547,
+          317.1828524101701
+        ],
+        "aspect": 1.3333333333333333,
+        "raw_lat": 39.164306,
+        "raw_lon": -119.766906,
+        "control_pixel_680": [
+          390,
+          371
+        ],
+        "control": "estimated intersection midpoint between photographed cross-street curb lines",
+        "assumed_eye_height_m": 1.65,
+        "source_osm": "n140690065@9"
+      },
+      "game_environment": {
+        "applied_epoch": 1446407110,
+        "applied_weight": 1.0,
+        "archived_weather": "",
+        "camera_heading": 349.24948211877,
+        "capturedAt": null,
+        "crowns": 237,
+        "distance_m": null,
+        "heights": 0,
+        "horizontal_fov": 61.6558735085394,
+        "id": null,
+        "kartaview": "unavailable",
+        "panoramax": {},
+        "player_shade_layers": 0,
+        "player_visible": false,
+        "ready": true,
+        "references": 0,
+        "sky_kind": 0,
+        "source": null,
+        "sun_azimuth": 180.747571881907,
+        "sun_elevation": 36.5386003733934,
+        "tile": [
+          10965,
+          25007
+        ]
+      },
+      "native_counts": {
+        "approaches": 11,
+        "crossings": 3,
+        "observed_nodes": {
+          "n140690065@9": 4,
+          "n140693956@9": 3,
+          "n140701556@4": 4
+        },
+        "records": 4,
+        "release": "2026-10-21.0",
+        "status": "available"
+      },
+      "source_node": "n140690065@9",
+      "projection_pixels_changed_over_6": 9526,
+      "control_repeat_pixels_over_6": 0,
+      "projection_width_height": [
+        552,
+        414
+      ],
+      "wheel_contact": 4,
+      "native_off_hash": "e972c332c752be0c3d1f6c0e2afac6c4b5b063eb90c83bcfe87ed5ce05444692",
+      "native_on_hash": "c61dbd9f4f806194e519a46b7b04afc2790fadec932293c6162752307287e280",
+      "approaches_at_photographed_crossing": 4
+    },
+    "IN": {
+      "source": "https://commons.wikimedia.org/wiki/File:Morton_Looks_at_West_Market_Street.jpg",
+      "author": "vxla from US",
+      "license": "CC BY 2.0",
+      "capture_local": "2009:11:13 16:32:30",
+      "geotag": [
+        39.768667,
+        -86.161984
+      ],
+      "eye_height_m": 1.65,
+      "pose": {
+        "lat": 39.768667,
+        "lon": -86.161984,
+        "tile": [
+          17082,
+          24865
+        ],
+        "road": "West Market Street",
+        "distance_to_road_m": 27.588811347206512,
+        "road_bearing": 91.56790305310778,
+        "road_width_parameter": 10.0,
+        "heading": 81.5341445912275,
+        "pitch": 7.546486094081451,
+        "fov": 38.91259663252055,
+        "supporting_lines": 25,
+        "vanishing_point_680": [
+          510.2929253204913,
+          355.485573805076
+        ],
+        "aspect": 1.5044247787610618
+      },
+      "game_environment": {
+        "applied_epoch": 1258147950,
+        "applied_weight": 1.0,
+        "archived_weather": "",
+        "camera_heading": 81.5341445912275,
+        "capturedAt": null,
+        "crowns": 152,
+        "distance_m": null,
+        "heights": 0,
+        "horizontal_fov": 38.9125966325205,
+        "id": null,
+        "kartaview": "no_coverage",
+        "panoramax": {
+          "status": "empty",
+          "via": "provider"
+        },
+        "player_shade_layers": 0,
+        "player_visible": false,
+        "ready": true,
+        "references": 0,
+        "sky_kind": 0,
+        "source": null,
+        "sun_azimuth": 237.328802423288,
+        "sun_elevation": 9.22296047038975,
+        "tile": [
+          17082,
+          24865
+        ]
+      },
+      "native_counts": {
+        "approaches": 10,
+        "crossings": 4,
+        "observed_nodes": {
+          "n180550033@6": 2,
+          "n180550086@4": 4,
+          "n180559263@6": 2,
+          "n180744035@6": 2
+        },
+        "records": 4,
+        "release": "2026-10-21.0",
+        "status": "available"
+      },
+      "source_node": "n180559263@6",
+      "projection_pixels_changed_over_6": 5218,
+      "control_repeat_pixels_over_6": 0,
+      "projection_width_height": [
+        560,
+        372
+      ],
+      "wheel_contact": 4,
+      "native_off_hash": "8ad37ded44d00c3757524c89e0bd67749c66d1634825ca5ace20fb745c10ef13",
+      "native_on_hash": "b7ab8264297905489ccf16ca151a9f92f92dcc8cb14827e9fca8cf448fab7a42",
+      "approaches_at_photographed_crossing": 2
+    },
+    "NJ": {
+      "source": "https://commons.wikimedia.org/wiki/File:2014-08-30_10_48_14_View_east_along_West_State_Street_at_Barrack_Street_in_Trenton,_New_Jersey.JPG",
+      "author": "Famartin",
+      "license": "CC BY-SA 4.0",
+      "capture_local": "2014:08:30 10:48:14",
+      "geotag": [
+        40.220667,
+        -74.768167
+      ],
+      "eye_height_m": 1.65,
+      "pose": {
+        "lat": 40.22052999435104,
+        "lon": -74.76832785801105,
+        "tile": [
+          19156,
+          24758
+        ],
+        "road": "West State Street",
+        "distance_to_road_m": 14.147550338350797,
+        "road_bearing": 97.22772530188661,
+        "road_width_parameter": 10.0,
+        "heading": 94.67419367790716,
+        "pitch": 7.735616842248983,
+        "fov": 55.448743757387184,
+        "supporting_lines": 31,
+        "vanishing_point_680": [
+          368.85143779900403,
+          341.46603956047363
+        ],
+        "aspect": 1.3412228796844181,
+        "raw_lat": 40.220667,
+        "raw_lon": -74.768167,
+        "control_pixel_680": [
+          329,
+          398
+        ],
+        "control": "estimated intersection midpoint between photographed cross-street curb lines",
+        "assumed_eye_height_m": 1.65,
+        "source_osm": "n3812492240@2"
+      },
+      "game_environment": {
+        "applied_epoch": 1409410094,
+        "applied_weight": 1.0,
+        "archived_weather": "",
+        "camera_heading": 94.6741936779072,
+        "capturedAt": null,
+        "crowns": 160,
+        "distance_m": null,
+        "heights": 15,
+        "horizontal_fov": 55.4487437573872,
+        "id": null,
+        "kartaview": "unavailable",
+        "panoramax": {
+          "status": "empty",
+          "via": "provider"
+        },
+        "player_shade_layers": 0,
+        "player_visible": false,
+        "ready": true,
+        "references": 0,
+        "sky_kind": 0,
+        "source": null,
+        "sun_azimuth": 127.50776555622,
+        "sun_elevation": 47.4028414939204,
+        "tile": [
+          19156,
+          24758
+        ]
+      },
+      "native_counts": {
+        "approaches": 2,
+        "crossings": 2,
+        "observed_nodes": {
+          "n3812492220@2": 1,
+          "n3812492240@2": 1
+        },
+        "records": 3,
+        "release": "2026-10-21.0",
+        "status": "available"
+      },
+      "source_node": "n3812492240@2",
+      "projection_pixels_changed_over_6": 236,
+      "control_repeat_pixels_over_6": 0,
+      "projection_width_height": [
+        555,
+        414
+      ],
+      "wheel_contact": 4,
+      "native_off_hash": "3dcda11aeca80b614694ed285198964f0aeb0704dfbb4e76baa0df7cd13de491",
+      "native_on_hash": "c50d6602f894b6af1e85d4f0d38adcb42b0a1b52843f4d858bfc20fd7312e18c",
+      "approaches_at_photographed_crossing": 1
+    }
+  },
+  "warm_cache": [
+    {
+      "xy": [
+        "10965",
+        "25006"
+      ],
+      "attempt": 0,
+      "requests_total": 3,
+      "status": "available",
+      "records": 4,
+      "release": "2026-10-21.0",
+      "seconds": 1.506
+    },
+    {
+      "xy": [
+        "10965",
+        "25006"
+      ],
+      "attempt": 1,
+      "requests_total": 0,
+      "status": "available",
+      "records": 4,
+      "release": "2026-10-21.0",
+      "seconds": 0.055
+    },
+    {
+      "xy": [
+        "10965",
+        "25007"
+      ],
+      "attempt": 0,
+      "requests_total": 0,
+      "status": "available",
+      "records": 4,
+      "release": "2026-10-21.0",
+      "seconds": 0.039
+    },
+    {
+      "xy": [
+        "10965",
+        "25007"
+      ],
+      "attempt": 1,
+      "requests_total": 0,
+      "status": "available",
+      "records": 4,
+      "release": "2026-10-21.0",
+      "seconds": 0.037
+    },
+    {
+      "xy": [
+        "17082",
+        "24865"
+      ],
+      "attempt": 0,
+      "requests_total": 2,
+      "status": "available",
+      "records": 4,
+      "release": "2026-10-21.0",
+      "seconds": 0.875
+    },
+    {
+      "xy": [
+        "17082",
+        "24865"
+      ],
+      "attempt": 1,
+      "requests_total": 0,
+      "status": "available",
+      "records": 4,
+      "release": "2026-10-21.0",
+      "seconds": 0.05
+    },
+    {
+      "xy": [
+        "17083",
+        "24865"
+      ],
+      "attempt": 0,
+      "requests_total": 0,
+      "status": "available",
+      "records": 4,
+      "release": "2026-10-21.0",
+      "seconds": 0.039
+    },
+    {
+      "xy": [
+        "17083",
+        "24865"
+      ],
+      "attempt": 1,
+      "requests_total": 0,
+      "status": "available",
+      "records": 4,
+      "release": "2026-10-21.0",
+      "seconds": 0.038
+    },
+    {
+      "xy": [
+        "19156",
+        "24758"
+      ],
+      "attempt": 0,
+      "requests_total": 2,
+      "status": "available",
+      "records": 3,
+      "release": "2026-10-21.0",
+      "seconds": 0.724
+    },
+    {
+      "xy": [
+        "19156",
+        "24758"
+      ],
+      "attempt": 1,
+      "requests_total": 0,
+      "status": "available",
+      "records": 3,
+      "release": "2026-10-21.0",
+      "seconds": 0.054
+    },
+    {
+      "xy": [
+        "19157",
+        "24758"
+      ],
+      "attempt": 0,
+      "requests_total": 0,
+      "status": "available",
+      "records": 7,
+      "release": "2026-10-21.0",
+      "seconds": 0.04
+    },
+    {
+      "xy": [
+        "19157",
+        "24758"
+      ],
+      "attempt": 1,
+      "requests_total": 0,
+      "status": "available",
+      "records": 7,
+      "release": "2026-10-21.0",
+      "seconds": 0.037
+    }
+  ],
+  "ordinary_drive": {
+    "input": "normal coordinate search and 0.48 accelerator",
+    "road": "North Carson Street",
+    "crossing": "n140690065@9",
+    "spawn_m_before_crossing": 27.7921,
+    "finish_m_beyond_crossing": 15.2577,
+    "travel_m": 43.0507,
+    "minimum_wheel_contacts": 4,
+    "peak_mps": 11.9615,
+    "signal_collision_objects": 0
+  }
+}

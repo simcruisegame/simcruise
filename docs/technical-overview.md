@@ -1,0 +1,34 @@
+# Technical overview
+
+SimCruise is two programs and a cache:
+
+```
+Godot 4.7.2 client (game/)                 atlas helper (Bun, helper/*.mjs)          public data services
+Drive.gd, WorldTile.gd, Powertrain.gd …    one process per job, no server            OSM/OpenFreeMap, USGS, USDA,
+ worker thread ── OS.execute("atlas tile X Y") ──▶ fetch · decode · convert ── HTTPS ─▶ NOAA, NASA, Copernicus,
+                ◀── one JSON object on stdout ───  write PNG/JSON into the cache        Overture, KartaView, cities …
+                                           user://map-cache, ≤ 96 MiB, LRU eviction
+```
+
+**The client** is a Godot 4.7.2 project using the Mobile renderer on Metal and Jolt physics at a fixed 60 Hz. `Drive.gd` owns the scene: it decides which tiles are needed, runs helper jobs on worker threads, builds the tiles it gets back, places the car, drives the camera, HUD and weather. `WorldTile.gd` turns one tile's data into terrain, road ribbons with curbs and markings, sidewalks, building walls and roofs, land cover and tree placements. `Grove.gd` instances three detail levels of a street-oak mesh for canopies; nothing is a sprite. `Powertrain.gd` with `NB1999Sport.gd` is the car.
+
+**The helper** (`helper/atlas.mjs` and the modules beside it) is JavaScript compiled by Bun into a single native executable, `atlas`, shipped inside the app bundle. Godot never opens a network socket. For every job (`tile`, `aerial`, `canopy`, `buildings`, `roofs`, `landscape`, `conditions`, `recent`, `search`, and a dozen more) a worker thread runs the helper once with the cache directory and tile coordinates; the helper fetches whatever that job needs, converts it into plain JSON or PNG files inside the cache and prints one JSON object. Every upstream request goes through one rate-limited, retry-aware fetcher (`atlas-cache.mjs`) that honours `Retry-After`, keeps per-host pauses and stores responses with time-to-live. The cache is bounded: `cache-eviction.mjs` trims it to about 96 MiB, least recently used first, so a warm area replays from disk with zero requests and a long trip never fills your disk.
+
+**Tiles.** The world is Web Mercator zoom-16 tiles, roughly 400 to 550 m across in the lower 48. For each one the helper reads the OpenFreeMap vector tile (roads, buildings, land use, water, points of interest), samples elevation into a 32 × 32 height grid (Terrarium tiles, replaced by USGS 3DEP 1/3-arc-second blocks where they exist, with paved-road grades fitted to the samples), estimates road widths and surfaces from tags, fetches a 1024-pixel aerial per 4 × 4 block of tiles where USGS, NAIP or Forest Service imagery covers the spot, and places tree crowns from the WRI/Meta canopy height map. The occupied tile and the ring around it stream in as you drive. Later passes refine what is already drivable: verified building heights and extra footprints from Overture and Esri's OSM replica, building use from the National Structure Inventory, roof shapes and road camber from USGS lidar point clouds, municipal tree inventories, traffic signals and other street objects, and colour hints from licensed street photographs. A separate regional terrain worker fills the horizon with a 45 km mesh simplified by Martini and draped with aerial imagery, snow observations and Sentinel-2 colour on distant ridges.
+
+**The car.** The Miata is a Jolt rigid body of 1,043 kg with a 51.5 % front weight split, a custom centre of mass and inertia tensor, and four suspension contacts. Coil rates (168 / 130 lb/in), lever ratios and anti-roll-bar dimensions are the NB Sport row of a published suspension calculator; the rear damper interpolates a published Bilstein Hard S dynamometer trace and the front damper is an estimate. Tyres are 195/50R15: lateral force builds over a 0.35 m relaxation length, cornering and braking share one grip budget, and the surface class from the map changes the friction. The 1.8 L engine uses a tabulated torque curve to a 7,000 rpm cut, the real gear ratios (3.136, 1.888, 1.330, 1.000, 0.814) with a 4.30 final drive, a clutch that can stall, separate front and rear brakes and a Torsen-style limited-slip model. Keyboard and pad steering run through an Assisted map whose rack travel is capped by the grip the tyres can actually use at that speed, so a half-second tap at 45 mph is a lane correction rather than a spin (`checks/KeyboardTap.gd` measures it); a Direct map keeps the full 35.5° rack for a future wheel.
+
+Calibration is a headless test, `game/checks/Track.gd`, run at a fixed 60 Hz on a flat pad. Its targets follow the numbers Car and Driver's 1999 road test and Mazda's specifications give for this car:
+
+| Measure | Target | SimCruise (commit 2f1d1cf) | Band that must hold |
+|---|---|---|---|
+| 0–60 mph | 7.97 s | 7.95 s | ± 0.10 s |
+| 70–0 mph braking | 173 ft | 173.0 ft | ± 3 ft |
+| 300 ft skidpad | 0.89 g | 0.885 g | ± 0.01 g |
+| Turning circle (`TurningCircle.gd`, outer front tyre) | 30.2 ft | 30.4–30.6 ft | ≤ 0.20 m error |
+
+Three magazine numbers and the suspension spec are what "feels like a Miata" rests on; there is no public tyre, dyno or damper data for this exact car, and the roadmap says so.
+
+**Rendering.** Godot's Mobile renderer on Metal with 2× MSAA at 0.9 render scale, a filmic tonemap, one `DirectionalLight3D` sun with a 2048-pixel shadow map reaching 85 m, and a Poly Haven HDR panorama sky. With Weather on, the METAR cloud cover swaps in a procedural overcast sky and sets fog density from reported visibility; a dated street photograph can also reconstruct an archived sky from NOAA satellite cloud masks. The sun is currently fixed to a June afternoon everywhere; real-time sun, longer shadows and a single sun (the sky panorama's own sun still adds unshadowed light, which is the washed-out look) are the first items on the visual roadmap. The Mobile renderer has no SSAO, SSR, global illumination or volumetric fog, so everything is lit directly.
+
+**Privacy.** No telemetry, analytics, accounts, keys or crash reporting. The only network traffic is the helper's requests to the data services in the table below, sent with the User-Agent `SimCruise/1.1`. Nothing about you leaves the machine; the services see the tile coordinates you drive through, as any map viewer would. "Source photo ↗" and "Compare Street View ↗" open your browser only when you click them. The cache is a plain folder you can delete.

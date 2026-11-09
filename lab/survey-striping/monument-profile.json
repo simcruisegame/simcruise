@@ -1,0 +1,20 @@
+{
+  "state": "UT",
+  "route": "0163PM",
+  "offsetM": 4.27,
+  "axis": 50.01,
+  "mile": 13.05029,
+  "lanes": 2,
+  "hpmsYear": 2024,
+  "hpmsId": 217453,
+  "paint": {
+    "center": "broken-yellow",
+    "twoSolidWhiteEdges": true,
+    "inventoryDate": "8/1/2023",
+    "sourceTravel": "+",
+    "yellowSolidFeet": 0,
+    "yellowBrokenFeet": 523,
+    "whiteSolidFeet": 1046,
+    "id": 82131
+  }
+}

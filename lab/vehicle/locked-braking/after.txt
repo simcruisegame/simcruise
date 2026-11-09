@@ -1,0 +1,5 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+FREE PANIC {"command":0.0,"contacts":4,"lateral_m":-0.00000000407529594098621,"lock_frames":102,"onset":119,"peak_heading_deviation_deg":0.00000114720510738743,"stopping_m":27.6650331243873,"yaw_rate_locked_deg_s":0.000000792505985311626}
+FREE PANIC {"command":1.0,"contacts":4,"lateral_m":0.00616347968339965,"lock_frames":101,"onset":119,"peak_heading_deviation_deg":0.326268851863106,"stopping_m":27.4971968308091,"yaw_rate_locked_deg_s":0.351055741763215}
+FREE PANIC {"command":-1.0,"contacts":4,"lateral_m":-0.00616348775342062,"lock_frames":101,"onset":119,"peak_heading_deviation_deg":0.326267437800505,"stopping_m":27.4971968308091,"yaw_rate_locked_deg_s":0.351054007535496}

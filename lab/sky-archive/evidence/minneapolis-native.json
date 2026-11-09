@@ -1,0 +1,112 @@
+{
+  "epoch": 1745087249,
+  "modes": {
+    "after": {
+      "epoch": 1745087249,
+      "frame_interval_ms_median": 8.198,
+      "frame_interval_ms_p95": 9.608,
+      "kind": 0,
+      "label": "Reference daylight",
+      "result": 0,
+      "weight": 0.0
+    },
+    "before": {
+      "epoch": 1745087249,
+      "frame_interval_ms_median": 8.127,
+      "frame_interval_ms_p95": 9.286,
+      "kind": 0,
+      "label": "Reference daylight",
+      "result": 0,
+      "weight": 0.0
+    },
+    "repeat": {
+      "epoch": 1745087249,
+      "frame_interval_ms_median": 8.324,
+      "frame_interval_ms_p95": 9.483,
+      "kind": 0,
+      "label": "Reference daylight",
+      "result": 0,
+      "weight": 0.0
+    }
+  },
+  "observation": {
+    "bytes": 1655.0,
+    "cloud": 0.188,
+    "confidence": 0.843,
+    "key": "metar-archive1-MIC-MSP-1745085600.csv",
+    "kind": "mostly_clear",
+    "km": 10.82,
+    "provider": "IEM ASOS/METAR",
+    "reason": "reported_cloud_outside_clear_satellite_patch",
+    "reports": [
+      {
+        "change": 0.0,
+        "cloud": 0.1875,
+        "layers": [
+          "FEW",
+          "FEW"
+        ],
+        "station": "MSP",
+        "stationKm": 10.82,
+        "utc": [
+          "2025-04-19T17:53:00.000Z",
+          "2025-04-19T18:53:00.000Z"
+        ],
+        "visMiles": [
+          10.0,
+          10.0
+        ],
+        "visibilityAtLeast10SM": true,
+        "visibility_m": 16093.0
+      },
+      {
+        "change": 0.1875,
+        "cloud": 0.0797395833333333,
+        "layers": [
+          "FEW",
+          "CLR"
+        ],
+        "station": "MIC",
+        "stationKm": 11.36,
+        "utc": [
+          "2025-04-19T17:53:00.000Z",
+          "2025-04-19T18:53:00.000Z"
+        ],
+        "visMiles": [
+          10.0,
+          10.0
+        ],
+        "visibilityAtLeast10SM": true,
+        "visibility_m": 16093.0
+      }
+    ],
+    "requests": 0.0,
+    "satellite": {
+      "available": true,
+      "bytes": 196608.0,
+      "clear": 49.0,
+      "cloudy": 0.0,
+      "delta_seconds": 7.1,
+      "good": 49.0,
+      "histogram": [
+        49.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "pixel": [
+        184.0,
+        1147.0
+      ],
+      "platform": "GOES-19",
+      "ranges": 6.0,
+      "url": "https://noaa-goes19.s3.amazonaws.com/ABI-L2-ACMC/2025/109/18/OR_ABI-L2-ACMC-M6_G19_s20251091826174_e20251091828547_c20251091830121.nc",
+      "viewZenith": 54.9
+    },
+    "source": "https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py?station=MSP&station=MIC&data=skyc1&data=skyc2&data=skyc3&data=skyc4&data=skyl1&data=skyl2&data=skyl3&data=skyl4&data=vsby&data=wxcodes&data=metar&sts=2025-04-19T17%3A00Z&ets=2025-04-19T22%3A00Z&tz=Etc%2FUTC&format=onlycomma&latlon=yes&direct=no&report_type=3&report_type=4",
+    "station": "MSP",
+    "status": "insufficient",
+    "visibilityAtLeast10SM": true,
+    "visibility_m": 16093.0
+  }
+}

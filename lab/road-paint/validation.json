@@ -1,0 +1,88 @@
+{
+  "key": {
+    "features": {
+      "symbol": {
+        "count": 2,
+        "median_coverage": 0.984,
+        "min_coverage": 0.969
+      },
+      "dash": {
+        "count": 9,
+        "median_coverage": 1.0,
+        "min_coverage": 0.948
+      },
+      "right_edge": {
+        "count": 3,
+        "median_coverage": 0.994,
+        "min_coverage": 0.972
+      }
+    },
+    "crossview": {
+      "method": "Take the raw middle GPS downtrack station. Center it laterally between the repeated actual divider and right stripe. Shared optics and eye height come only from the outer camera images.",
+      "middle_paint_used_to_fit": false,
+      "middle_image_used_to_fit": false,
+      "right_lane_width_m": 3.318142448596853,
+      "assumed_camera_params": [
+        6.233414827351663,
+        -9.100150972159991,
+        59.10678063430901,
+        -2.4430669818980726,
+        0.0,
+        1.0660637221881166
+      ],
+      "nearest_dash_mean_endpoint_error_px": 13.477109247755017,
+      "predicted_arrow_centroids": [
+        [
+          152.9280716627664,
+          488.7172552039203
+        ],
+        [
+          358.0040091224702,
+          487.0329663428316
+        ]
+      ],
+      "mean_arrow_centroid_error_px": 9.77651267260191
+    },
+    "width_m_two_outer_street_photos": {
+      "right_edge": 0.14200000000000002,
+      "dash": 0.14750000000000002
+    },
+    "withheld_epoch": "fdot2018",
+    "accepted": true
+  },
+  "cambridge": {
+    "features": {
+      "dash": {
+        "count": 10,
+        "median_coverage": 0.752,
+        "min_coverage": 0.114
+      },
+      "right_edge": {
+        "count": 6,
+        "median_coverage": 0.924,
+        "min_coverage": 0.57
+      }
+    },
+    "crossview": {
+      "method": "Take the raw middle GPS downtrack station. Center it laterally between the repeated actual divider and right stripe. Shared optics and eye height come only from the outer camera images.",
+      "middle_paint_used_to_fit": false,
+      "middle_image_used_to_fit": false,
+      "right_lane_width_m": 3.583735327825691,
+      "assumed_camera_params": [
+        8.255691575192234,
+        -20.758364335087013,
+        101.25965311391045,
+        0.8044946582226005,
+        0.0,
+        1.0809364415639546
+      ],
+      "nearest_dash_mean_endpoint_error_px": 39.460437496753784
+    },
+    "width_m_two_outer_street_photos": {
+      "right_edge": 0.08199999999999999,
+      "dash": 0.08349999999999999
+    },
+    "withheld_epoch": "mass2019",
+    "accepted": false
+  }
+}

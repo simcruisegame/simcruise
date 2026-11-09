@@ -1,0 +1,14 @@
+{
+  "sourceNodeCount": 58,
+  "checksumsVerified": [
+    "als-far-crown-leaf-2.meshdata",
+    "als-far-forest-conifer-2.meshdata",
+    "als-forest-1578-2986.json",
+    "als-forest-index.json",
+    "als-ground-1578-2986.meshdata"
+  ],
+  "flightReportReplicated": true,
+  "allCoveredInputsMatched": true,
+  "surveySourceBytes": 14183159,
+  "totalRuntimeDataBytes": 854371
+}

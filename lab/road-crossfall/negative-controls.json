@@ -1,0 +1,78 @@
+{
+  "bridge": {
+    "acceptedInsideProtectedArea": 0,
+    "rejections": {
+      "boundary": 14,
+      "fewIndependentStrips": 196,
+      "intersectionOrParallelWay": 22,
+      "crossingOrTrafficControl": 55,
+      "bridgeUnderpassOrRoundabout": 15,
+      "stripDisagreement": 9,
+      "noUniqueRoad": 31,
+      "acceptedSections": 5
+    }
+  },
+  "tunnel": {
+    "acceptedInsideProtectedArea": 0,
+    "rejections": {
+      "boundary": 14,
+      "fewIndependentStrips": 196,
+      "intersectionOrParallelWay": 22,
+      "crossingOrTrafficControl": 55,
+      "bridgeUnderpassOrRoundabout": 15,
+      "stripDisagreement": 9,
+      "noUniqueRoad": 31,
+      "acceptedSections": 5
+    }
+  },
+  "crosswalkPoint": {
+    "acceptedInsideProtectedArea": 0,
+    "rejections": {
+      "boundary": 14,
+      "fewIndependentStrips": 202,
+      "intersectionOrParallelWay": 23,
+      "crossingOrTrafficControl": 63,
+      "stripDisagreement": 9,
+      "noUniqueRoad": 31,
+      "acceptedSections": 5
+    }
+  },
+  "crossingFootway": {
+    "acceptedInsideProtectedArea": 0,
+    "rejections": {
+      "boundary": 14,
+      "fewIndependentStrips": 202,
+      "intersectionOrParallelWay": 23,
+      "crossingOrTrafficControl": 58,
+      "stripDisagreement": 9,
+      "noUniqueRoad": 31,
+      "crosswalk": 5,
+      "acceptedSections": 5
+    }
+  },
+  "intersectingDriveway": {
+    "acceptedInsideProtectedArea": 0,
+    "rejections": {
+      "boundary": 14,
+      "fewIndependentStrips": 203,
+      "intersectionOrParallelWay": 27,
+      "crossingOrTrafficControl": 58,
+      "stripDisagreement": 9,
+      "noUniqueRoad": 31,
+      "acceptedSections": 5
+    }
+  },
+  "inconsistentLayer": {
+    "acceptedInsideProtectedArea": 0,
+    "rejections": {
+      "boundary": 14,
+      "fewIndependentStrips": 196,
+      "intersectionOrParallelWay": 22,
+      "crossingOrTrafficControl": 55,
+      "bridgeUnderpassOrRoundabout": 15,
+      "stripDisagreement": 9,
+      "noUniqueRoad": 31,
+      "acceptedSections": 5
+    }
+  }
+}

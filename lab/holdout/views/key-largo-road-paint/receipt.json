@@ -1,0 +1,264 @@
+{
+  "version": 1,
+  "project": "Sunday Driver 1.0.3 development",
+  "authoring": "Repeated neutral road features in two registered independent aerial surveys, separate aerial accuracy control, ground-photo width check, eligible to render only on matching mapped one-way pavement.",
+  "inputCredits": [
+    [
+      "KartaView, frame 21",
+      "https://kartaview.org/details/332471/21"
+    ],
+    [
+      "CC BY-SA 4.0",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    [
+      "Monroe County 2015 aerial",
+      "https://mcgis4.monroecounty-fl.gov/public/rest/services/Images/Orthos2015/ImageServer"
+    ],
+    [
+      "Monroe County 2024 aerial",
+      "https://mcgis4.monroecounty-fl.gov/public/rest/services/Images/Orthos2024/ImageServer"
+    ],
+    [
+      "FDOT 2018 aerial",
+      "https://ca.dep.state.fl.us/image/rest/services/FDOT_Yearly_Aerials/Aerial_Imagery_2018/ImageServer"
+    ]
+  ],
+  "asset": {
+    "name": "observed-paint-18122-28047.json",
+    "bytes": 16131,
+    "pieces": 129,
+    "sha256": "199f5c76fb5d99936225a6edbc87dc7c06e4ef3e58726a3271748cd26cd96d6e",
+    "rebuiltFromImagesSHA256": "199f5c76fb5d99936225a6edbc87dc7c06e4ef3e58726a3271748cd26cd96d6e"
+  },
+  "checks": {
+    "key": {
+      "features": {
+        "symbol": {
+          "count": 2,
+          "median_coverage": 0.984,
+          "min_coverage": 0.969
+        },
+        "dash": {
+          "count": 9,
+          "median_coverage": 1.0,
+          "min_coverage": 0.948
+        },
+        "right_edge": {
+          "count": 3,
+          "median_coverage": 0.994,
+          "min_coverage": 0.972
+        }
+      },
+      "crossview": {
+        "method": "Take the raw middle GPS downtrack station. Center it laterally between the repeated actual divider and right stripe. Shared optics and eye height come only from the outer camera images.",
+        "middle_paint_used_to_fit": false,
+        "middle_image_used_to_fit": false,
+        "right_lane_width_m": 3.318142448596853,
+        "assumed_camera_params": [
+          6.233414827351663,
+          -9.100150972159991,
+          59.10678063430901,
+          -2.4430669818980726,
+          0.0,
+          1.0660637221881166
+        ],
+        "nearest_dash_mean_endpoint_error_px": 13.477109247755017,
+        "predicted_arrow_centroids": [
+          [
+            152.9280716627664,
+            488.7172552039203
+          ],
+          [
+            358.0040091224702,
+            487.0329663428316
+          ]
+        ],
+        "mean_arrow_centroid_error_px": 9.77651267260191
+      },
+      "width_m_two_outer_street_photos": {
+        "right_edge": 0.14200000000000002,
+        "dash": 0.14750000000000002
+      },
+      "withheld_epoch": "fdot2018",
+      "accepted": true
+    },
+    "cambridge": {
+      "features": {
+        "dash": {
+          "count": 10,
+          "median_coverage": 0.752,
+          "min_coverage": 0.114
+        },
+        "right_edge": {
+          "count": 6,
+          "median_coverage": 0.924,
+          "min_coverage": 0.57
+        }
+      },
+      "crossview": {
+        "method": "Take the raw middle GPS downtrack station. Center it laterally between the repeated actual divider and right stripe. Shared optics and eye height come only from the outer camera images.",
+        "middle_paint_used_to_fit": false,
+        "middle_image_used_to_fit": false,
+        "right_lane_width_m": 3.583735327825691,
+        "assumed_camera_params": [
+          8.255691575192234,
+          -20.758364335087013,
+          101.25965311391045,
+          0.8044946582226005,
+          0.0,
+          1.0809364415639546
+        ],
+        "nearest_dash_mean_endpoint_error_px": 39.460437496753784
+      },
+      "width_m_two_outer_street_photos": {
+        "right_edge": 0.08199999999999999,
+        "dash": 0.08349999999999999
+      },
+      "withheld_epoch": "mass2019",
+      "accepted": false
+    }
+  },
+  "render": {
+    "engine": "Godot 4.7.2 stable, Metal 4.0 Forward Mobile, Apple A18 Pro",
+    "photo": {
+      "author": "cowdog",
+      "license": "CC BY-SA 4.0",
+      "url": "https://kartaview.org/details/332471/21",
+      "gps_lat_lon": [
+        25.08706,
+        -80.449145
+      ],
+      "capture_date": "2017-05-17",
+      "original_assumed_eye_height_m": 1.65,
+      "original_assumed_pitch_down_deg": -12.5,
+      "original_mean_arrow_centroid_error_at_820px": 32.575,
+      "alternate_linearly_interpolated_camera_mean_arrow_error_at_820px": 50.84,
+      "calibrated_lane_center_hypothesis_mean_arrow_error_at_820px": 9.777
+    },
+    "reference": {
+      "before": {
+        "applied_epoch": 0,
+        "applied_weight": 0.0,
+        "camera_heading": 223.2,
+        "capturedAt": null,
+        "crowns": 820,
+        "distance_m": null,
+        "heights": 0,
+        "horizontal_fov": 80.0,
+        "id": null,
+        "kartaview": "available",
+        "panoramax": {
+          "status": "not_requested"
+        },
+        "player_shade_layers": 0,
+        "player_visible": false,
+        "ready": true,
+        "references": 0,
+        "source": null,
+        "sun_azimuth": 283.310817532076,
+        "sun_elevation": 30.2995849871768,
+        "tile": [
+          18122,
+          28047
+        ]
+      },
+      "after": {
+        "applied_epoch": 0,
+        "applied_weight": 0.0,
+        "camera_heading": 223.2,
+        "capturedAt": null,
+        "crowns": 820,
+        "distance_m": null,
+        "heights": 0,
+        "horizontal_fov": 80.0,
+        "id": null,
+        "kartaview": "available",
+        "panoramax": {
+          "status": "not_requested"
+        },
+        "player_shade_layers": 0,
+        "player_visible": false,
+        "ready": true,
+        "references": 0,
+        "source": null,
+        "sun_azimuth": 283.310817532076,
+        "sun_elevation": 30.2995849871768,
+        "tile": [
+          18122,
+          28047
+        ]
+      }
+    },
+    "cockpit": {
+      "before": {
+        "captured": true,
+        "distance_m": 43.0647385126686,
+        "heading": 225.520024861444,
+        "max_heading_error": 1.55315169155415,
+        "max_speed": 8.27847003936768,
+        "min_contacts": 4,
+        "road": "Overseas Highway",
+        "time_s": 7.84999999999998,
+        "view": 1
+      },
+      "after": {
+        "captured": true,
+        "distance_m": 43.0647385126686,
+        "heading": 225.520024861444,
+        "max_heading_error": 1.55315169155415,
+        "max_speed": 8.27847003936768,
+        "min_contacts": 4,
+        "road": "Overseas Highway",
+        "time_s": 7.84999999999998,
+        "view": 1
+      }
+    },
+    "cockpit_trigger_m": 16,
+    "vehicle": "1999 Miata, stock player cockpit, semiautomatic QA throttle, no camera overrides or physics change",
+    "gallery": {
+      "cockpit.webp": {
+        "pixels": [
+          1280,
+          512
+        ],
+        "sha256": "5eef8c3c6e9862ee9c258033dee475b2e1d2a3941d81a84dafc44770eb9737d4"
+      },
+      "street-and-renders.webp": {
+        "pixels": [
+          820,
+          669
+        ],
+        "sha256": "91e46acae0a1a0c091ac669aed040046945787a49eba313955b4e85453c2e116"
+      },
+      "camera-registration.webp": {
+        "pixels": [
+          820,
+          372
+        ],
+        "sha256": "29880e9bab9783c8ec2e625db9ab41012e12a45406828355436a231329230ea3"
+      }
+    },
+    "lane_registered_diagnostic": {
+      "image_size": [
+        820,
+        615
+      ],
+      "actual_Metal_arrow_centroids_px": [
+        [
+          150.134670487106,
+          488.4269340974212
+        ],
+        [
+          358.071186440678,
+          485.62033898305083
+        ]
+      ],
+      "actual_Metal_mean_error_against_unused_photo_px": 10.949984307565273,
+      "predicted_flat_ground_mean_error_px": 9.77651267260191,
+      "median_observation_method": "connected bright paint within separate, geometry-predicted symbol windows at the independently modeled diagnostic camera pose"
+    }
+  },
+  "headless": "OBSERVED PAINT PASS (matching road, dash suppression, neighboring road, rename, opposing, unpaved, realignment, missing control)",
+  "caveat": "Conditional optical agreement at one site. GPS and intrinsics uncertain. The focal/pose adjustments were diagnostic and are excluded from the released game camera. The Boston proposal was rejected."
+}

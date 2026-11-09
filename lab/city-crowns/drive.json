@@ -1,0 +1,61 @@
+{
+  "route": {
+    "id": [
+      19825,
+      24237
+    ],
+    "dir": [
+      0.3869095167433055,
+      -0.9221176854683256
+    ],
+    "start": [
+      71.52942778637531,
+      273.0037994894291
+    ],
+    "length": 36,
+    "lat": 42.36827,
+    "lon": -71.09716,
+    "way": "",
+    "name": "Columbia Street"
+  },
+  "runs": {
+    "without": {
+      "histogram": [
+        0,
+        0,
+        0,
+        0,
+        930
+      ],
+      "maxLaneOffsetErrorM": 0.0140731811523438,
+      "maxSpeedMps": 4.61990213394165,
+      "active_city_mesh": 0,
+      "tree_wells": 0,
+      "terrain": "USGS 3DEP 1/3 arc-second",
+      "status": "complete",
+      "simTicks": 929,
+      "passed": true,
+      "sampled_progress_m": 64.9669599533081
+    },
+    "with": {
+      "histogram": [
+        0,
+        0,
+        0,
+        0,
+        930
+      ],
+      "maxLaneOffsetErrorM": 0.0140731811523438,
+      "maxSpeedMps": 4.61990213394165,
+      "active_city_mesh": 4,
+      "tree_wells": 2,
+      "terrain": "USGS 3DEP 1/3 arc-second",
+      "status": "complete",
+      "simTicks": 929,
+      "passed": true,
+      "sampled_progress_m": 64.9669599533081
+    }
+  },
+  "identical_kinematic_series": true,
+  "kinematic_samples": 233
+}

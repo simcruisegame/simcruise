@@ -1,0 +1,28 @@
+{
+  "from_strip": 154,
+  "heldout_strip": 155,
+  "fit_return_count": 26,
+  "test_all_first_returns_inside": 24,
+  "within_25_cm": 17,
+  "median_absolute_residual_m": 0.078,
+  "median_roof_154_m_NAVD88": 215.875,
+  "median_roof_155_m_NAVD88": 215.825,
+  "length_m": 6.03,
+  "projection_m": 3.18,
+  "centers_wall_xy": [
+    [
+      12.77,
+      0.21
+    ],
+    [
+      15.8,
+      1.22
+    ]
+  ],
+  "slope_fit": [
+    -0.029064994989922474,
+    0.033782873604475495,
+    216.22161269718487
+  ],
+  "limits": "Source photo supplies the exposed front corner, color and fascia. Visible masonry pier widths and thickness are approximate; the surveyed plane validates roof position. Upper roof separated from the recess according to the mapped wing."
+}

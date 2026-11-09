@@ -1,0 +1,7 @@
+# Mapped storefronts
+
+The live tile helper keeps the POI category from its existing OpenMapTiles vector read. The renderer admits an explicit retail footprint or a named customer-facing place inside a modest footprint, excludes inner courtyard holes, and selects the nearest road-facing wall. Large generic footprints with an interior POI stay unassigned. The building material uses cropped unbranded entrance photographs from the existing CC0 texture set. Separately registered real walls keep their place-specific materials.
+
+The seed study of two bundled central tiles (240 matched place records, 35 of 449 and 7 of 434 footprints with retail evidence) was made on an earlier bundled start; the bundled Miami Beach tiles carry the POI attribute directly from the helper. In the three independently selected downtown locations the counts were 11 of 98 in Carson City, 2 of 50 in Indianapolis and 2 of 25 in Trenton. Actual businesses can occupy other buildings. [OpenMapTiles POI schema](https://openmaptiles.org/schema/#poi)
+
+The Indianapolis paired native render freezes one viewport, swaps the structure layers, then restores the original layers. The restoration matches every original pixel. Four wheel contacts remain. See the [image and attribution](manifest.json) and [receipt](receipt.json). Run the geometry controls with Godot 4.7.2 using `--headless --path game --script res://checks/StorefrontCheck.gd`.

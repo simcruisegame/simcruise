@@ -1,0 +1,11 @@
+Shrub cover · Rangeland Analysis Platform, USDA Agricultural Research Service.
+https://rangelands.app/support/71-api-documentation
+Average shrub height · USGS RCMAP, Multi-Resolution Land Characteristics Consortium.
+https://www.mrlc.gov/data/rcmap-shrub-height
+Contains modified Copernicus Sentinel data 2026. Data layer dates are displayed in the game.
+https://dataspace.copernicus.eu/terms-and-conditions
+Sandy Gravel 02 · Dario Barresi · CC0 1.0. Diffuse, displacement and roughness maps resampled and packed.
+https://polyhaven.com/a/sandy_gravel_02
+https://creativecommons.org/publicdomain/zero/1.0/
+The procedural plant mesh and streaming code were authored for SimCruise. See the project MIT license.
+The dated roadside photographs in the offline comparison gallery retain their individual credits and licenses.

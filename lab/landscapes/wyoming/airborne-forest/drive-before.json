@@ -1,0 +1,23 @@
+{
+ "BundledExit": {
+  "activeFarGroups": 0,
+  "activeSurveyMaterials": 0,
+  "activeSurveyTiles": 0,
+  "newSurveyReads": 0
+ },
+ "activeTrunksAtToggle": 0,
+ "beforeDepartureReads": 0,
+ "geographicNegativeLocations": 4,
+ "groundTiles": 0,
+ "minWheelContacts": 4,
+ "mode": "before",
+ "normalCamera": 1,
+ "physicsFrames": 430,
+ "route": "North Highway 89",
+ "speedMPS": 17.7229309082031,
+ "surveyTiles": 0,
+ "tiles": 9,
+ "travelM": 65.2171859741211,
+ "unchangedTrunkColliders": false,
+ "visibleGroundTiles": 0
+}

@@ -1,0 +1,26 @@
+{
+  "method": "Take the raw middle GPS downtrack station. Center it laterally between the repeated actual divider and right stripe. Shared optics and eye height come only from the outer camera images.",
+  "middle_paint_used_to_fit": false,
+  "middle_image_used_to_fit": false,
+  "right_lane_width_m": 3.318142448596853,
+  "assumed_camera_params": [
+    6.233414827351663,
+    -9.100150972159991,
+    59.10678063430901,
+    -2.4430669818980726,
+    0.0,
+    1.0660637221881166
+  ],
+  "nearest_dash_mean_endpoint_error_px": 13.477109247755017,
+  "predicted_arrow_centroids": [
+    [
+      152.9280716627664,
+      488.7172552039203
+    ],
+    [
+      358.0040091224702,
+      487.0329663428316
+    ]
+  ],
+  "mean_arrow_centroid_error_px": 9.77651267260191
+}

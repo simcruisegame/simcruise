@@ -1,0 +1,40 @@
+{
+  "14": {
+    "train_points": 1297,
+    "test_points": 602,
+    "ground_counts": [
+      1561,
+      770
+    ],
+    "train_flight": 110,
+    "test_flight": 111,
+    "levels_m": [
+      32.91,
+      37.6
+    ],
+    "heldout_first_return_within_1m": 0.96,
+    "heldout_cells": 158,
+    "heldout_median_m": 0.073,
+    "heldout_p90_m": 0.215,
+    "heldout_grid_within_1m": 0.994
+  },
+  "18": {
+    "train_points": 1502,
+    "test_points": 1030,
+    "ground_counts": [
+      1951,
+      1040
+    ],
+    "train_flight": 110,
+    "test_flight": 111,
+    "levels_m": [
+      39.2,
+      43.84
+    ],
+    "heldout_first_return_within_1m": 0.926,
+    "heldout_cells": 213,
+    "heldout_median_m": 0.039,
+    "heldout_p90_m": 0.103,
+    "heldout_grid_within_1m": 0.953
+  }
+}

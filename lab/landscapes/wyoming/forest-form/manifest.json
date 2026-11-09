@@ -1,0 +1,42 @@
+{
+  "title": "Compare the conifer crowns at Snake River Overlook",
+  "summary": "Two federal vegetation maps agree on lodgepole, Douglas-fir and spruce-fir stands around the overlook. The game gives most canopy peaks inside those stands tapered, three-dimensional needle-bearing branches. The forest maps describe 30 m areas. Individual species and branch shapes remain inferred.",
+  "measurement": "Five visible crowns in the 2020 and 2025 photographs had a median crown width of 0.83 pixels per pixel of drop below the tip. At the same two sampling depths, 16 representative game crowns measured 5.41 before and 1.08 after. The forest in the photographs still fills more of the foreground. Pink marks show the width readings.",
+  "credit": "Hansueli Krapf, May 30, 2025 (CC BY-SA 4.0), and Pedro Szekely, August 31, 2020 (CC BY-SA 2.0). The shared adaptations resize the photos and annotate the second view. The scene uses USGS LANDFIRE, MRLC NLCD and existing Meta/WRI canopy peaks.",
+  "images": [
+    {
+      "file": "wyoming-photo-before-after.webp",
+      "caption": "Location photograph, existing crowns and the same Metal camera with classified conifer stands."
+    },
+    {
+      "file": "reference-widths-2020.webp",
+      "caption": "Independent 2020 view from the overlook. Two exposed crown tips were measured against the open plain."
+    }
+  ],
+  "links": [
+    [
+      "2025 original",
+      "https://commons.wikimedia.org/wiki/File:2025-05-30-194735_USA_Wyoming_Moose_2092.6.jpg"
+    ],
+    [
+      "CC BY-SA 4.0",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    [
+      "2020 original",
+      "https://commons.wikimedia.org/wiki/File:Snake_River_Overlook_(50498053986).jpg"
+    ],
+    [
+      "CC BY-SA 2.0",
+      "https://creativecommons.org/licenses/by-sa/2.0/"
+    ],
+    [
+      "LANDFIRE vegetation type",
+      "https://landfire.gov/vegetation/evt"
+    ],
+    [
+      "NLCD legend",
+      "https://www.mrlc.gov/data/legends/national-land-cover-database-class-legend-and-description"
+    ]
+  ]
+}

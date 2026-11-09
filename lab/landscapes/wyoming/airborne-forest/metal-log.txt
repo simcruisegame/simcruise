@@ -1,0 +1,11 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Metal 4.0 - Forward Mobile - Using Device #0: Apple - Apple A18 Pro (Apple9)
+
+SUMMIT SNOW { "x": 393.0, "y": 746.0, "date": "2025-05-30", "valid": 143077.0, "positives": 115171.0, "scenes": [{ "id": "S2B_T12TVP_20250531T181718_L2A", "date": "2025-05-31", "spacing": 40.0, "pixels": 32871.0 }, { "id": "S2A_T12TWP_20250531T182815_L2A", "date": "2025-05-31", "spacing": 40.0, "pixels": 110206.0 }], "rangeBytes": 152232.0, "rangeReads": 9.0, "reflectance": [{ "id": "S2A_T12TWP_20250531T182815_L2A", "spacing": 159.825327510917, "pixels": 91320.0 }, { "id": "S2B_T12TVP_20250531T181718_L2A", "spacing": 40.0, "pixels": 23851.0 }], "opticalBytes": 509722.0, "opticalReads": 4.0, "status": "available", "file": "summit-snow-v2-393-746-2025-05-30.png", "requests": 0.0 }
+SATELLITE SNOW { "region": [1578.0, 2986.0], "date": "2025-05-30", "tiles": 4.0, "expected": 4.0, "positive": 10399.0, "status": "available", "requests": 0.0 }
+VIEW RIDGES { "region": (1578, 2986), "sector": 12, "expected": 2.0, "requests": 0.0, "images": [{ "name": "ridge-aerial-v1-11-393-746.jpg", "cell": [393.0, 746.0], "uv": [0.24480464242509, 0.40184793939427, 0.15704329696917, 0.15704329696917] }, { "name": "ridge-aerial-v1-11-393-747.jpg", "cell": [393.0, 747.0], "uv": [0.24480464242509, 0.55889123636344, 0.15704329696917, 0.15704329696917] }] }
+REFERENCE LAYERS {"applied_epoch":1748627255,"applied_weight":1.0,"archived_weather":"May 30 2025 · regionally clear","camera_heading":263.046,"capturedAt":null,"crowns":348,"distance_m":null,"heights":0,"horizontal_fov":36.2437,"id":null,"kartaview":"available","panoramax":{"status":"not_requested"},"player_shade_layers":0,"player_visible":false,"ready":false,"references":0,"sky_kind":1,"source":null,"sun_azimuth":131.757094969665,"sun_elevation":60.8458541780917,"tile":[12629,23892]}
+FOREST COST after median_ms=9.368 p95=12.056 triangles=4963485
+FOREST INSTANCES AFTER [5, 9, 520, 2, 4, 204, 2, 4, 42, 0, 0, 0, 0, 70, 59, 843, 0, 0, 2, 2, 36, 17, 385, 97, 90, 148, 51, 80, 299, 184, 103, 13, 99, 24, 161, 242, 62, 16, 18, 49]
+FOREST COST before median_ms=8.251 p95=9.812 triangles=1673179
+FOREST INSTANCES BEFORE [0, 2, 605, 0, 1, 247, 0, 0, 66, 0, 0, 0, 0, 0, 0, 884]

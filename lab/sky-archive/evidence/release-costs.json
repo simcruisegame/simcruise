@@ -1,0 +1,14 @@
+{
+  "base": {
+    "executable": 72232946,
+    "zlib6_bytes": 31549282
+  },
+  "test": {
+    "executable": 81397106,
+    "zlib6_bytes": 32883429
+  },
+  "split_reader": {
+    "executable": 73273202,
+    "zlib6_bytes": 32423603
+  }
+}

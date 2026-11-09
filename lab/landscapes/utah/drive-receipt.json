@@ -1,0 +1,372 @@
+{
+  "initial-fast-diagnostic": {
+    "mode": "initial-fast-diagnostic",
+    "drive": {
+      "boundary_events": [
+        {
+          "at_m": 203.61244558543,
+          "camera_visible": true,
+          "contacts": 4,
+          "from": [
+            1593,
+            3185
+          ],
+          "speed_mps": 14.0341663360596,
+          "to": [
+            1592,
+            3185
+          ]
+        }
+      ],
+      "cockpit_images": [],
+      "distance_m": 1250.06667553633,
+      "end_lat_lon": [
+        37.0925636291504,
+        -110.004150390625
+      ],
+      "frame_ms_p50_p95_p99": [
+        0.281,
+        0.789,
+        3.826
+      ],
+      "frozen_ticks": 0,
+      "hidden_relief_ticks": 0,
+      "max_lane_error_m": 0.92919248342514,
+      "max_speed_mps": 14.7017793655396,
+      "max_vertical_step_m": 0.018310546875,
+      "near_tiles": [
+        [
+          12744,
+          25485
+        ],
+        [
+          12744,
+          25486
+        ],
+        [
+          12743,
+          25486
+        ],
+        [
+          12742,
+          25486
+        ],
+        [
+          12742,
+          25487
+        ]
+      ],
+      "pass": false,
+      "pending_ticks": 4477,
+      "pending_visible_ticks": 4477,
+      "reason": "regional replacement did not arrive",
+      "regions": [
+        {
+          "aerial": true,
+          "at_m": 0.0,
+          "coarse": 16.0,
+          "detail": 4.0,
+          "detail_images": 4,
+          "middle": true,
+          "region": [
+            1593,
+            3185
+          ],
+          "requests": 0.0,
+          "road_segments": 10.0,
+          "tolerance_m": 20.25,
+          "triangles": 110279,
+          "visible": true
+        }
+      ],
+      "renderer": "headless",
+      "sim_s": 90.0333333333295,
+      "start_lat_lon": [
+        37.101444,
+        -109.990814
+      ],
+      "ticks": 5402,
+      "wall_s": 4.768,
+      "wheel_contacts_0_to_4": [
+        0,
+        0,
+        0,
+        0,
+        5402
+      ]
+    },
+    "source_requests": 10,
+    "regional_requests": 2,
+    "content_bytes": 789169,
+    "hosts": {
+      "dataforgood-fb-data.s3.amazonaws.com": 6,
+      "basemap.nationalmap.gov": 3,
+      "tiles.openfreemap.org": 1
+    },
+    "helper_calls": {
+      "tile": 17,
+      "canopy": 16,
+      "landscape": 2,
+      "aerial": 1
+    }
+  },
+  "result-metal": {
+    "mode": "result-metal",
+    "drive": {
+      "boundary_events": [
+        {
+          "at_m": 495.626253813971,
+          "camera_visible": true,
+          "contacts": 4,
+          "from": [
+            1593,
+            3185
+          ],
+          "speed_mps": 14.0350303649902,
+          "to": [
+            1592,
+            3185
+          ]
+        }
+      ],
+      "cockpit_images": [
+        {
+          "at_m": 32.1888963435777,
+          "bearing_deg": 230.367417577572,
+          "camera_far_m": 56000.0,
+          "cockpit": true,
+          "eye_above_road_m": 1.00804444605956,
+          "file": "approach.jpg"
+        },
+        {
+          "at_m": 600.220130667556,
+          "bearing_deg": 229.932521087264,
+          "camera_far_m": 56000.0,
+          "cockpit": true,
+          "eye_above_road_m": 1.00974836349474,
+          "file": "after-boundary.jpg"
+        }
+      ],
+      "distance_m": 640.136631519068,
+      "end_lat_lon": [
+        37.0977745056152,
+        -109.996368408203
+      ],
+      "frame_ms_p50_p95_p99": [
+        16.695,
+        19.824,
+        31.052
+      ],
+      "frozen_ticks": 0,
+      "hidden_relief_ticks": 0,
+      "max_lane_error_m": 0.0567625164985657,
+      "max_speed_mps": 14.7130527496338,
+      "max_vertical_step_m": 0.0286865234375,
+      "near_tiles": [
+        [
+          12744,
+          25485
+        ],
+        [
+          12744,
+          25486
+        ],
+        [
+          12743,
+          25486
+        ]
+      ],
+      "pass": true,
+      "pending_ticks": 188,
+      "pending_visible_ticks": 188,
+      "reason": "landscape boundary and handling",
+      "regions": [
+        {
+          "aerial": true,
+          "at_m": 0.0,
+          "coarse": 16.0,
+          "detail": 4.0,
+          "detail_images": 4,
+          "middle": true,
+          "region": [
+            1593,
+            3185
+          ],
+          "requests": 0.0,
+          "road_segments": 19.0,
+          "tolerance_m": 20.25,
+          "triangles": 110279,
+          "visible": true
+        },
+        {
+          "aerial": true,
+          "at_m": 539.723014757503,
+          "coarse": 16.0,
+          "detail": 4.0,
+          "detail_images": 4,
+          "middle": true,
+          "region": [
+            1592,
+            3185
+          ],
+          "requests": 2.0,
+          "road_segments": 19.0,
+          "tolerance_m": 20.25,
+          "triangles": 116222,
+          "visible": true
+        }
+      ],
+      "renderer": "macOS",
+      "sim_s": 47.0666666666653,
+      "spawn_error_m": 2.68025398254395,
+      "start_actual_lat_lon": [
+        37.1014595031738,
+        -109.990837097168
+      ],
+      "start_lat_lon": [
+        37.101444,
+        -109.990814
+      ],
+      "ticks": 2824,
+      "wall_s": 50.674,
+      "wheel_contacts_0_to_4": [
+        0,
+        0,
+        0,
+        0,
+        2824
+      ]
+    },
+    "source_requests": 2,
+    "regional_requests": 2,
+    "content_bytes": 481679,
+    "hosts": {
+      "basemap.nationalmap.gov": 2
+    },
+    "helper_calls": {
+      "tile": 11,
+      "canopy": 11,
+      "landscape": 2
+    }
+  },
+  "result-headless": {
+    "mode": "result-headless",
+    "drive": {
+      "boundary_events": [
+        {
+          "at_m": 494.033877750073,
+          "camera_visible": true,
+          "contacts": 4,
+          "from": [
+            1593,
+            3185
+          ],
+          "speed_mps": 14.034592628479,
+          "to": [
+            1592,
+            3185
+          ]
+        }
+      ],
+      "cockpit_images": [],
+      "distance_m": 655.255609606538,
+      "end_lat_lon": [
+        37.0976753234863,
+        -109.996513366699
+      ],
+      "frame_ms_p50_p95_p99": [
+        0.227,
+        0.485,
+        2.59
+      ],
+      "frozen_ticks": 0,
+      "hidden_relief_ticks": 0,
+      "max_lane_error_m": 0.443217992782593,
+      "max_speed_mps": 14.7149868011475,
+      "max_vertical_step_m": 0.0286865234375,
+      "near_tiles": [
+        [
+          12744,
+          25485
+        ],
+        [
+          12744,
+          25486
+        ],
+        [
+          12743,
+          25486
+        ]
+      ],
+      "pass": true,
+      "pending_ticks": 674,
+      "pending_visible_ticks": 674,
+      "reason": "landscape boundary and handling",
+      "regions": [
+        {
+          "aerial": true,
+          "at_m": 0.0,
+          "coarse": 16.0,
+          "detail": 4.0,
+          "detail_images": 4,
+          "middle": true,
+          "region": [
+            1593,
+            3185
+          ],
+          "requests": 0.0,
+          "road_segments": 19.0,
+          "tolerance_m": 20.25,
+          "triangles": 110279,
+          "visible": true
+        },
+        {
+          "aerial": true,
+          "at_m": 655.255609606538,
+          "coarse": 16.0,
+          "detail": 4.0,
+          "detail_images": 4,
+          "middle": true,
+          "region": [
+            1592,
+            3185
+          ],
+          "requests": 0.0,
+          "road_segments": 19.0,
+          "tolerance_m": 20.25,
+          "triangles": 116222,
+          "visible": true
+        }
+      ],
+      "renderer": "headless",
+      "sim_s": 48.1333333333319,
+      "spawn_error_m": 2.76523637771606,
+      "start_actual_lat_lon": [
+        37.101448059082,
+        -109.990844726562
+      ],
+      "start_lat_lon": [
+        37.101444,
+        -109.990814
+      ],
+      "ticks": 2888,
+      "wall_s": 2.277,
+      "wheel_contacts_0_to_4": [
+        0,
+        0,
+        0,
+        0,
+        2888
+      ]
+    },
+    "source_requests": 0,
+    "regional_requests": 0,
+    "content_bytes": 0,
+    "hosts": {},
+    "helper_calls": {
+      "tile": 11,
+      "canopy": 10,
+      "landscape": 2
+    }
+  }
+}

@@ -1,0 +1,178 @@
+{
+  "method": "Paired Godot GPU renders at the same recorded GPS position and heading, 85-degree horizontal field of view, height 1.65 m above game terrain, zero pitch and roll. Thresholded render skyline versus ADE sky labels, x=12..265 inclusive, valid source-sky lower boundary y=40..310. Inputs were resized to 640 × 480 for scoring. RGB MAE uses eight-bit channel values.",
+  "license": "Photo adaptations in the two WebP comparisons are shared under CC BY-SA 4.0.",
+  "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "training_frames": [
+    2858,
+    2863
+  ],
+  "frames": [
+    {
+      "sequenceIndex": 2860,
+      "creator": "wolfgang8741",
+      "original": "https://kartaview.org/details/3485953/2860",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "adaptation": "Resized and arranged alongside two Godot captures.",
+      "file": "frame-2860.webp",
+      "inputs_sha256": [
+        "e245fa97a12c80ece08c8b3112c2389debc5a2a8c440f6cc09d95c0b0a39376d",
+        "11665f94d2b777b778018c27c09871d760a5258feb38aa0c3483a59991718d72",
+        "005efee3880f017a9957a3e9fb5a21bad61c7b195ef1b7bafd3701ca8a314001"
+      ],
+      "photo_metadata": {
+        "id": "1265448261",
+        "sequenceId": "3485953",
+        "lat": 38.348449,
+        "lon": -81.630658,
+        "heading": 136.44
+      },
+      "skyline": {
+        "view": "https://kartaview.org/details/3485953/2860",
+        "columns": 254,
+        "control": {
+          "mae_px": 43.503937007874015,
+          "p90_px": 58.0,
+          "bias_px": 40.74803149606299
+        },
+        "candidate": {
+          "mae_px": 24.921259842519685,
+          "p90_px": 66.0,
+          "bias_px": -23.47244094488189
+        }
+      },
+      "photometry": {
+        "building_px": 7933,
+        "raw_rgb_mae_building": [
+          91.6,
+          63.82
+        ],
+        "sky_px": 18136,
+        "sky_mae": [
+          18.74,
+          26.37
+        ],
+        "roi_pixels": 32266,
+        "all_roi_mae": [
+          47.11,
+          41.39
+        ]
+      }
+    },
+    {
+      "sequenceIndex": 2861,
+      "creator": "wolfgang8741",
+      "original": "https://kartaview.org/details/3485953/2861",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "adaptation": "Resized and arranged alongside two Godot captures.",
+      "file": "frame-2861.webp",
+      "inputs_sha256": [
+        "627580a590906217091edecc605b456167b1f138775747c40efe53a4d3c638a6",
+        "2b91407d5eb2fbe3c25f61537378a40bf9881fd10bddee9cfded3d1758aa5aff",
+        "770e539c3201d87a743d14e5a367039dd22ead3022e63a40e17ea63e7b73105d"
+      ],
+      "photo_metadata": {
+        "id": "1265448277",
+        "sequenceId": "3485953",
+        "lat": 38.348402,
+        "lon": -81.630601,
+        "heading": 137.2
+      },
+      "skyline": {
+        "view": "https://kartaview.org/details/3485953/2861",
+        "columns": 254,
+        "control": {
+          "mae_px": 52.84251968503937,
+          "p90_px": 88.70000000000002,
+          "bias_px": 52.84251968503937
+        },
+        "candidate": {
+          "mae_px": 19.62204724409449,
+          "p90_px": 34.0,
+          "bias_px": -13.874015748031496
+        }
+      },
+      "photometry": {
+        "building_px": 4737,
+        "raw_rgb_mae_building": [
+          91.26,
+          74.89
+        ],
+        "sky_px": 16060,
+        "sky_mae": [
+          19.15,
+          27.29
+        ],
+        "roi_pixels": 32266,
+        "all_roi_mae": [
+          49.13,
+          41.93
+        ]
+      }
+    }
+  ],
+  "reserved_point_cloud_test": {
+    "reserved_returns_in_footprint": 4925,
+    "all_first_returns": {
+      "n": 4925,
+      "mae_m": 1.463,
+      "median_m": 0.071,
+      "p90_m": 4.454
+    },
+    "all_first_returns_flat": {
+      "n": 4925,
+      "mae_m": 13.63,
+      "median_m": 11.687,
+      "p90_m": 23.113
+    },
+    "coherent_cells_reserved_returns": {
+      "n": 2108,
+      "mae_m": 0.264,
+      "median_m": 0.025,
+      "p90_m": 0.531
+    },
+    "coherent_cells_flat": {
+      "n": 2108,
+      "mae_m": 14.74,
+      "median_m": 11.727,
+      "p90_m": 23.117
+    },
+    "sphere_smoothed_vertices": 96,
+    "sphere": {
+      "id": "47269570:766",
+      "center_metric": [
+        444964.11587247474,
+        4244621.277846581,
+        190.73491987996408
+      ],
+      "radius": 13.072591591761014,
+      "mapped_radius": 12.1161636540652,
+      "supported_r_by_16_sectors": [
+        11.887260734833157,
+        11.862429367420692,
+        11.902051514427258,
+        11.976288988148715,
+        11.848205933728952,
+        7.076498224956855,
+        7.228576533571984,
+        8.251894759049357,
+        8.574390861793646,
+        9.966923565974453,
+        11.357270342088531,
+        12.3745203962963,
+        12.113098124396817,
+        11.896183055727382,
+        11.951560562035485,
+        12.023730251092536
+      ],
+      "independent_n": 926,
+      "plane_mae": 0.1148077428691949,
+      "p90": 0.21384599192235498
+    },
+    "sphere_inner_half_reserved_all_first_returns": {
+      "n": 83,
+      "mae_m": 0.06,
+      "median_m": 0.058,
+      "p90_m": 0.106
+    }
+  }
+}

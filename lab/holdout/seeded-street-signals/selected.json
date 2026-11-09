@@ -1,0 +1,78 @@
+{
+  "seed": "Sunday Driver / ground-photo holdout / 2026-11-08 / 01",
+  "rank": "minimum SHA-256 of UTF-8 seed vertical bar plus state postal code in each eligible longitude stratum",
+  "source_sha256": "428539bbb23c6c35edf46b72b1fa854a78c8a6976ac41474e7e9bd980d494655",
+  "excluded_prior_locations": [
+    "Anchorage",
+    "Bismarck",
+    "Cambridge",
+    "Charleston",
+    "Cheyenne",
+    "Hartford",
+    "Honolulu",
+    "Jefferson City",
+    "Lincoln",
+    "Miami",
+    "Seattle"
+  ],
+  "denominator": 3,
+  "selected": [
+    {
+      "stratum": "west",
+      "rank": "0a4bc3f01d007d3ec304f8e62bcdffd9ff761608f754c5a8f351e48b07549225",
+      "state": "NV",
+      "town": "Carson City",
+      "lat": 39.164,
+      "lon": -119.767,
+      "tile": [
+        10965,
+        25008
+      ],
+      "roads": 53,
+      "terrain_samples": 4225,
+      "terrain_min_m": 1420.39,
+      "terrain_max_m": 1426.98,
+      "first_requests": 3,
+      "repeat_requests": 0,
+      "passed": true
+    },
+    {
+      "stratum": "central",
+      "rank": "03edf5a03177300c3ec3b41c6ec28beeb056357e8fb94caaa76dd4aa94779824",
+      "state": "IN",
+      "town": "Indianapolis",
+      "lat": 39.769,
+      "lon": -86.162,
+      "tile": [
+        17082,
+        24865
+      ],
+      "roads": 70,
+      "terrain_samples": 4225,
+      "terrain_min_m": 212.16,
+      "terrain_max_m": 218.54,
+      "first_requests": 2,
+      "repeat_requests": 0,
+      "passed": true
+    },
+    {
+      "stratum": "east",
+      "rank": "0a0e8b866b3d42bbfed320b92787379ccfd95dd92b74a1362033bf199f5c48b3",
+      "state": "NJ",
+      "town": "Trenton",
+      "lat": 40.22,
+      "lon": -74.768,
+      "tile": [
+        19156,
+        24758
+      ],
+      "roads": 64,
+      "terrain_samples": 4225,
+      "terrain_min_m": 0.85,
+      "terrain_max_m": 16.51,
+      "first_requests": 2,
+      "repeat_requests": 0,
+      "passed": true
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+{
+  "date": "2026-11-08",
+  "cover": {
+    "productYear": 2025,
+    "matchingFractionPerVerifiedPaletteColor": 1,
+    "checks": [
+      "Utah",
+      "Wyoming",
+      "Nebraska"
+    ],
+    "valueRangePercent": [
+      0,
+      40
+    ],
+    "cog": "https://rangeland.ntsg.umt.edu/data/rap/rap-vegetation-cover/v3/vegetation-cover-v3-2025.tif"
+  },
+  "arizonaColdAndWarm": {
+    "district": [
+      776,
+      1609
+    ],
+    "trace": [
+      {
+        "id": "shrub-rap-2025-776-1609",
+        "length": 40484
+      },
+      {
+        "id": "shrub-rcmap-2025-776-1609",
+        "length": 524702
+      }
+    ],
+    "supported": 64455,
+    "warmReads": 0
+  },
+  "aerialNearInfraredCheck": {
+    "nativeSamplingMetres": 0.6,
+    "year": 2021,
+    "controls": "same district, displaced ~5 m at deterministic random bearing, strongest local 5x5 near-infrared to red contrast",
+    "LaSal": {
+      "n": 492,
+      "meanAtSelectedSite": 0.07116,
+      "meanAtControl": 0.05709,
+      "abovePoint1Selected": 0.27033,
+      "abovePoint1Controls": 0.19512
+    },
+    "Utah": {
+      "n": 503,
+      "meanAtSelectedSite": -0.00392,
+      "meanAtControl": -0.00924,
+      "abovePoint1Selected": 0,
+      "abovePoint1Controls": 0
+    }
+  },
+  "opticalChecks": [
+    {
+      "site": "Monument Valley",
+      "imageSize": [
+        960,
+        720
+      ],
+      "rectangles": [
+        [
+          20,
+          435,
+          135,
+          486
+        ],
+        [
+          750,
+          405,
+          930,
+          430
+        ],
+        [
+          430,
+          540,
+          530,
+          620
+        ]
+      ],
+      "control": [
+        56.0,
+        31.88,
+        5.46
+      ],
+      "after": [
+        46.5,
+        7.81,
+        5.46
+      ]
+    },
+    {
+      "site": "US 191",
+      "imageSize": [
+        960,
+        446
+      ],
+      "rectangles": [
+        [
+          60,
+          385,
+          440,
+          435
+        ],
+        [
+          450,
+          385,
+          900,
+          435
+        ]
+      ],
+      "control": [
+        102.96,
+        118.89
+      ],
+      "after": [
+        61.58,
+        77.71
+      ]
+    }
+  ],
+  "randomCorridors": {
+    "seed": 19990515,
+    "tested": [
+      "AZ 64",
+      "US 191 Utah",
+      "US 50 Nevada"
+    ],
+    "source": "Wikimedia Commons camera search within 4 km, 30 results per location",
+    "outcome": [
+      "Ground photograph found, camera registration unresolved",
+      "Usable road photograph",
+      "Only aerial and orbital records returned"
+    ]
+  }
+}

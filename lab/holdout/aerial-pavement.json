@@ -1,0 +1,269 @@
+{
+  "boxes": {
+    "road": [
+      0.42,
+      0.82,
+      0.57,
+      0.88
+    ],
+    "sky": [
+      0.08,
+      0.03,
+      0.32,
+      0.13
+    ],
+    "right_crown": [
+      0.83,
+      0.47,
+      0.94,
+      0.54
+    ],
+    "left_wall": [
+      0.005,
+      0.65,
+      0.04,
+      0.685
+    ]
+  },
+  "rows": [
+    {
+      "place": "Key-Largo",
+      "source": "https://kartaview.org/details/332471/21",
+      "before": [
+        83,
+        81,
+        81
+      ],
+      "after": [
+        141,
+        139,
+        140
+      ],
+      "photo": [
+        148,
+        161,
+        138
+      ],
+      "controls": {
+        "sky": {
+          "before": [
+            132,
+            150,
+            185
+          ],
+          "after": [
+            132,
+            150,
+            185
+          ]
+        },
+        "right_crown": {
+          "before": [
+            26,
+            33,
+            21
+          ],
+          "after": [
+            26,
+            33,
+            21
+          ]
+        },
+        "left_wall": {
+          "before": [
+            96,
+            80,
+            72
+          ],
+          "after": [
+            96,
+            80,
+            72
+          ]
+        }
+      },
+      "road_patch_mean_absolute_channel_error_before": 67.3,
+      "road_patch_mean_absolute_channel_error_after": 10.3
+    },
+    {
+      "place": "Mountain-View",
+      "source": "https://kartaview.org/details/3931045/66",
+      "before": [
+        76,
+        76,
+        76
+      ],
+      "after": [
+        129,
+        129,
+        131
+      ],
+      "photo": [
+        159,
+        139,
+        110
+      ],
+      "controls": {
+        "sky": {
+          "before": [
+            150,
+            171,
+            205
+          ],
+          "after": [
+            150,
+            171,
+            205
+          ]
+        },
+        "right_crown": {
+          "before": [
+            197,
+            198,
+            207
+          ],
+          "after": [
+            197,
+            198,
+            207
+          ]
+        },
+        "left_wall": {
+          "before": [
+            54,
+            68,
+            40
+          ],
+          "after": [
+            55,
+            68,
+            41
+          ]
+        }
+      },
+      "road_patch_mean_absolute_channel_error_before": 60.0,
+      "road_patch_mean_absolute_channel_error_after": 20.3
+    },
+    {
+      "place": "Palo-Alto",
+      "source": "https://kartaview.org/details/1137147/405",
+      "before": [
+        127,
+        122,
+        116
+      ],
+      "after": [
+        127,
+        122,
+        116
+      ],
+      "photo": [
+        88,
+        86,
+        84
+      ],
+      "controls": {
+        "sky": {
+          "before": [
+            165,
+            191,
+            228
+          ],
+          "after": [
+            165,
+            191,
+            228
+          ]
+        },
+        "right_crown": {
+          "before": [
+            230,
+            236,
+            247
+          ],
+          "after": [
+            230,
+            236,
+            247
+          ]
+        },
+        "left_wall": {
+          "before": [
+            19,
+            22,
+            18
+          ],
+          "after": [
+            19,
+            22,
+            18
+          ]
+        }
+      },
+      "road_patch_mean_absolute_channel_error_before": 35.7,
+      "road_patch_mean_absolute_channel_error_after": 35.7
+    },
+    {
+      "place": "Fort-Collins",
+      "source": "https://kartaview.org/details/5237321/1205",
+      "before": [
+        95,
+        94,
+        92
+      ],
+      "after": [
+        96,
+        96,
+        96
+      ],
+      "photo": [
+        86,
+        85,
+        83
+      ],
+      "controls": {
+        "sky": {
+          "before": [
+            148,
+            170,
+            207
+          ],
+          "after": [
+            148,
+            170,
+            207
+          ]
+        },
+        "right_crown": {
+          "before": [
+            187,
+            188,
+            193
+          ],
+          "after": [
+            177,
+            180,
+            189
+          ]
+        },
+        "left_wall": {
+          "before": [
+            113,
+            112,
+            108
+          ],
+          "after": [
+            115,
+            113,
+            112
+          ]
+        }
+      },
+      "road_patch_mean_absolute_channel_error_before": 9.0,
+      "road_patch_mean_absolute_channel_error_after": 11.3
+    }
+  ],
+  "method": "Compared fixed GPS, recorded heading, a fixed lens and exposure setting per site, the same source snapshot and a center-foreground ROI. These are rendered and recorded display RGB values. Atmospheric light, exposure, camera pose uncertainty, and capture years differ. Only the Key Largo site shares its reference fixture as a separate JSON. Each control is the same fixed image region before/after. For Mountain View, Palo Alto and Fort Collins those coordinates may contain other objects; the names describe the Key Largo frame.",
+  "controls": "The two locations with accepted street-level observations retain their near-field street appearance. Fort Collins rerenders had up to 10 levels of drift in an off-road patch as adjacent scene detail streamed; quoted numbers are direct measurements including that variability.",
+  "renderer": "Apple A18 Pro, Godot 4.7.2, Metal Forward Mobile"
+}

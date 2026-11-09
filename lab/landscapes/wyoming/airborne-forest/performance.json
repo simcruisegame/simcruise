@@ -1,0 +1,46 @@
+{
+  "engine": "Godot 4.7.2 stable, Mobile Metal",
+  "device": "Apple A18 Pro",
+  "pixels": [
+    960,
+    640
+  ],
+  "timedFrames": 33,
+  "before": {
+    "medianMs": 8.251,
+    "p95Ms": 9.812,
+    "displayedPrimitives": 1673179
+  },
+  "after": {
+    "medianMs": 9.368,
+    "p95Ms": 12.056,
+    "displayedPrimitives": 4963485
+  },
+  "nearDrivingTerrainExtraTriangles": 0,
+  "surveySurfaceTriangles": 54272,
+  "runtimeSurveyNetworkBytes": 0,
+  "sourceLAZBytes": 14183159,
+  "newCHMRangeBytes": 276662,
+  "files": {
+    "als-far-crown-leaf-2.meshdata": {
+      "bytes": 61348,
+      "sha256": "0f140c4d72f84a3a08b07dff7ef698e37763dfbe78777fd005dc8150adb939cc"
+    },
+    "als-far-forest-conifer-2.meshdata": {
+      "bytes": 75516,
+      "sha256": "88bd3fb960ce7167e59b14192e07bd6e736e232c5c847efb02ac23a9069b236b"
+    },
+    "als-forest-1578-2986.json": {
+      "bytes": 102581,
+      "sha256": "02c3fee82b109fb684f4ab47b7b16ce80ee29195925a30fceaf42e36412347ed"
+    },
+    "als-forest-index.json": {
+      "bytes": 114,
+      "sha256": "a867e8dc20b8afa95ec8ef604b02b367723b6acc361bc489a5a2eead37910ef8"
+    },
+    "als-ground-1578-2986.meshdata": {
+      "bytes": 614812,
+      "sha256": "8c0d200e0fbc3008f16b455158c8cc082ed342e2b2d9792e6fc6b4ccd07143ea"
+    }
+  }
+}

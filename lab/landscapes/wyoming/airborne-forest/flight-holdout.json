@@ -1,0 +1,11 @@
+{
+  "heldGroundFlight": 100,
+  "groundTrainFlight": 99,
+  "groundTestPoints": 637,
+  "groundAbsMedianM": 0.07847322353700292,
+  "groundAbsP90M": 0.31578748946776614,
+  "crownComparisonWindowM": 10,
+  "crownCellsBothFlights": 10160,
+  "crownTopDeltaMedianM": 1.2099609375,
+  "crownTopDeltaP90M": 3.600964307785034
+}

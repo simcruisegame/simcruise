@@ -1,0 +1,477 @@
+{
+  "schema": 1,
+  "tiles": {
+    "11200-24767": {
+      "release": "2026-10-21.0",
+      "registration": {
+        "pass": true,
+        "training": 13,
+        "blind": 11,
+        "kind": "tile-rigid-offset",
+        "shiftMeters": [
+          -1.715,
+          -1.369
+        ],
+        "beforeIoU": 0.668,
+        "afterIoU": 0.798,
+        "medianResidualMeters": 1.061
+      },
+      "features": {
+        "5f8fda1d-e426-43e4-9971-edf32555150a": {
+          "outlineHash": "2bacbf20127e99a2518c6f5b0c3d7133b45a4edfaaa475aae5eb00519d4461e8",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2022-11-13",
+          "iou": 0.827,
+          "centroidM": 0.96,
+          "images": [
+            {
+              "item": "nv_m_4011853_sw_11_060_20220621",
+              "date": "2022-06-21",
+              "edges": 4,
+              "edgeFraction": 1.0
+            },
+            {
+              "item": "nv_m_4011853_sw_11_060_20190831_20191003",
+              "date": "2019-08-31",
+              "edges": 4,
+              "edgeFraction": 1.0
+            }
+          ]
+        },
+        "8c305006-6c2f-4ff8-8f65-934a8e7fa58f": {
+          "outlineHash": "6173d1ac3ffe7b7aa3376ae6d73ae17da21516112b2d34b38945819b4b3d8227",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2022-11-13",
+          "iou": 0.881,
+          "centroidM": 0.57,
+          "images": [
+            {
+              "item": "nv_m_4011853_sw_11_060_20220621",
+              "date": "2022-06-21",
+              "edges": 10,
+              "edgeFraction": 1.0
+            },
+            {
+              "item": "nv_m_4011853_sw_11_060_20190831_20191003",
+              "date": "2019-08-31",
+              "edges": 10,
+              "edgeFraction": 1.0
+            }
+          ]
+        },
+        "319fc4c7-13e8-4e12-a87d-36872b1b20c4": {
+          "outlineHash": "8600c8b11e1de8fa8b0a17bf8a1edc1104753e2c11e88ca365c0713acc6faaa7",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2022-11-13",
+          "iou": 0.867,
+          "centroidM": 0.57,
+          "images": [
+            {
+              "item": "nv_m_4011853_sw_11_060_20220621",
+              "date": "2022-06-21",
+              "edges": 4,
+              "edgeFraction": 1.0
+            },
+            {
+              "item": "nv_m_4011853_sw_11_060_20190831_20191003",
+              "date": "2019-08-31",
+              "edges": 4,
+              "edgeFraction": 1.0
+            }
+          ]
+        },
+        "ba86110f-bc00-4822-a8c4-e063d0c6e001": {
+          "outlineHash": "9df3b264ac0ac612e440a2a6dd62e302750950611665228a0d959f0488a286a1",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2022-11-13",
+          "iou": 0.791,
+          "centroidM": 1.07,
+          "images": [
+            {
+              "item": "nv_m_4011853_sw_11_060_20220621",
+              "date": "2022-06-21",
+              "edges": 4,
+              "edgeFraction": 1.0
+            },
+            {
+              "item": "nv_m_4011853_sw_11_060_20190831_20191003",
+              "date": "2019-08-31",
+              "edges": 4,
+              "edgeFraction": 1.0
+            }
+          ]
+        },
+        "0ccc7346-54d0-4da0-aa29-9fc25a7b3c5c": {
+          "outlineHash": "7722708139627e8172b160e0d71fc59ce5cb762cb9317740aa206b88c266394e",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2022-11-13",
+          "iou": 0.888,
+          "centroidM": 0.52,
+          "images": [
+            {
+              "item": "nv_m_4011853_sw_11_060_20220621",
+              "date": "2022-06-21",
+              "edges": 3,
+              "edgeFraction": 0.782
+            },
+            {
+              "item": "nv_m_4011853_sw_11_060_20190831_20191003",
+              "date": "2019-08-31",
+              "edges": 4,
+              "edgeFraction": 1.0
+            }
+          ]
+        },
+        "6c639552-5cf0-4d83-9349-253ebe7f4c09": {
+          "outlineHash": "0c9dfb416e3687e217a238c99488d0fb1c3e5fd8e1b7b08ae8b32202a7f8c056",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2022-11-13",
+          "iou": 0.875,
+          "centroidM": 0.55,
+          "images": [
+            {
+              "item": "nv_m_4011853_sw_11_060_20220621",
+              "date": "2022-06-21",
+              "edges": 4,
+              "edgeFraction": 1.0
+            },
+            {
+              "item": "nv_m_4011853_sw_11_060_20190831_20191003",
+              "date": "2019-08-31",
+              "edges": 3,
+              "edgeFraction": 0.807
+            }
+          ]
+        },
+        "a4ed4a7e-0aaa-42e3-9f0d-935e9664f822": {
+          "outlineHash": "83fbb77b51e80ba252b6b88a2e43424c226e4492d424a76218d67368df8a3b67",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2022-11-13",
+          "iou": 0.88,
+          "centroidM": 0.6,
+          "images": [
+            {
+              "item": "nv_m_4011853_sw_11_060_20220621",
+              "date": "2022-06-21",
+              "edges": 9,
+              "edgeFraction": 0.83
+            },
+            {
+              "item": "nv_m_4011853_sw_11_060_20190831_20191003",
+              "date": "2019-08-31",
+              "edges": 7,
+              "edgeFraction": 0.753
+            }
+          ]
+        },
+        "54779d17-bd59-485d-9296-d5d1d85810ae": {
+          "outlineHash": "d36ffe3fa4a7bc83fa6a669a84e0c805d171a6a567c6e3ab58f77420e4b75b72",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2022-11-13",
+          "iou": 0.842,
+          "centroidM": 0.61,
+          "images": [
+            {
+              "item": "nv_m_4011853_sw_11_060_20220621",
+              "date": "2022-06-21",
+              "edges": 4,
+              "edgeFraction": 1.0
+            },
+            {
+              "item": "nv_m_4011853_sw_11_060_20190831_20191003",
+              "date": "2019-08-31",
+              "edges": 4,
+              "edgeFraction": 1.0
+            }
+          ]
+        },
+        "109dfffc-44b7-4aaa-b762-5f956e7ca05d": {
+          "outlineHash": "e2c155e7ba92ddf20b9755920be1343663113b7364e6ee2e0dc0cafc7b873835",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2022-11-13",
+          "iou": 0.75,
+          "centroidM": 0.59,
+          "images": [
+            {
+              "item": "nv_m_4011853_sw_11_060_20220621",
+              "date": "2022-06-21",
+              "edges": 4,
+              "edgeFraction": 1.0
+            },
+            {
+              "item": "nv_m_4011853_sw_11_060_20190831_20191003",
+              "date": "2019-08-31",
+              "edges": 4,
+              "edgeFraction": 1.0
+            }
+          ]
+        },
+        "50c40b99-8573-425c-ac95-6072eb1685f3": {
+          "outlineHash": "98a07e87e81a6271ce15685aef6f1ba9608f5c16514c4892ce79ec333289cc22",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2022-11-13",
+          "iou": 0.879,
+          "centroidM": 1.15,
+          "images": [
+            {
+              "item": "nv_m_4011853_sw_11_060_20220621",
+              "date": "2022-06-21",
+              "edges": 7,
+              "edgeFraction": 0.856
+            },
+            {
+              "item": "nv_m_4011853_sw_11_060_20190831_20191003",
+              "date": "2019-08-31",
+              "edges": 10,
+              "edgeFraction": 1.0
+            }
+          ]
+        },
+        "38c0d535-9498-42ec-96b5-ead21db78f63": {
+          "outlineHash": "9c10abf7deecac68121006142665ab94de27577dd3821323db8f6143bac41713",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2022-11-13",
+          "iou": 0.785,
+          "centroidM": 0.28,
+          "images": [
+            {
+              "item": "nv_m_4011853_sw_11_060_20220621",
+              "date": "2022-06-21",
+              "edges": 3,
+              "edgeFraction": 0.789
+            },
+            {
+              "item": "nv_m_4011853_sw_11_060_20190831_20191003",
+              "date": "2019-08-31",
+              "edges": 4,
+              "edgeFraction": 1.0
+            }
+          ]
+        },
+        "e7462585-924c-4fc4-aaf4-95fd154b1ad9": {
+          "outlineHash": "2a5b4ca7fcd47a9a6c8aa2d7acc397b76560a0b85181d1e0d338ca1c35082397",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2022-11-13",
+          "iou": 0.93,
+          "centroidM": 0.63,
+          "images": [
+            {
+              "item": "nv_m_4011853_sw_11_060_20220621",
+              "date": "2022-06-21",
+              "edges": 3,
+              "edgeFraction": 0.661
+            },
+            {
+              "item": "nv_m_4011853_sw_11_060_20190831_20191003",
+              "date": "2019-08-31",
+              "edges": 3,
+              "edgeFraction": 0.836
+            }
+          ]
+        },
+        "2f9ac0a4-0f4a-47df-a3dc-91617dbd8ca2": {
+          "outlineHash": "e19eac39aadf7553bc800264d0c11f263bf234b90aebb81ae84fc1b6d63a23fa",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2022-11-13",
+          "iou": 0.792,
+          "centroidM": 1.13,
+          "images": [
+            {
+              "item": "nv_m_4011853_sw_11_060_20220621",
+              "date": "2022-06-21",
+              "edges": 5,
+              "edgeFraction": 1.0
+            },
+            {
+              "item": "nv_m_4011853_sw_11_060_20190831_20191003",
+              "date": "2019-08-31",
+              "edges": 3,
+              "edgeFraction": 0.67
+            }
+          ]
+        },
+        "4759dd61-ebea-44d5-9a4d-e6fd3e2ab345": {
+          "outlineHash": "abd05128cb2156f63a718918a404d594c5f49fd1887772392b595629b81248fd",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2022-11-13",
+          "iou": 0.798,
+          "centroidM": 0.65,
+          "images": [
+            {
+              "item": "nv_m_4011853_sw_11_060_20220621",
+              "date": "2022-06-21",
+              "edges": 3,
+              "edgeFraction": 0.727
+            },
+            {
+              "item": "nv_m_4011853_sw_11_060_20190831_20191003",
+              "date": "2019-08-31",
+              "edges": 4,
+              "edgeFraction": 1.0
+            }
+          ]
+        },
+        "f80d95b8-08a4-4935-bb87-b809ed2b9fc1": {
+          "outlineHash": "d3466f04cc1f1bd8078f910aad78213545eaf4bfd6e256301e29fd8258726cc7",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2022-11-13",
+          "iou": 0.86,
+          "centroidM": 0.29,
+          "images": [
+            {
+              "item": "nv_m_4011853_sw_11_060_20220621",
+              "date": "2022-06-21",
+              "edges": 3,
+              "edgeFraction": 0.747
+            },
+            {
+              "item": "nv_m_4011853_sw_11_060_20190831_20191003",
+              "date": "2019-08-31",
+              "edges": 3,
+              "edgeFraction": 0.747
+            }
+          ]
+        },
+        "201aae7d-cc96-4589-99c7-e545068d6923": {
+          "outlineHash": "a7fc7145fc938ccf687267275e07a4745c4af986af5eb60f977f89c39b6f72cb",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2022-11-13",
+          "iou": 0.829,
+          "centroidM": 0.63,
+          "images": [
+            {
+              "item": "nv_m_4011853_sw_11_060_20220621",
+              "date": "2022-06-21",
+              "edges": 4,
+              "edgeFraction": 0.847
+            },
+            {
+              "item": "nv_m_4011853_sw_11_060_20190831_20191003",
+              "date": "2019-08-31",
+              "edges": 5,
+              "edgeFraction": 1.0
+            }
+          ]
+        },
+        "19756a40-110c-4381-85c0-79de1a410f72": {
+          "outlineHash": "a3dece2488665cf8b0f0f224d8c677438c19af5720ba6a7dc4c93aeb7944cd78",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2022-11-13",
+          "iou": 0.759,
+          "centroidM": 2.48,
+          "images": [
+            {
+              "item": "nv_m_4011853_sw_11_060_20220621",
+              "date": "2022-06-21",
+              "edges": 3,
+              "edgeFraction": 0.833
+            },
+            {
+              "item": "nv_m_4011853_sw_11_060_20190831_20191003",
+              "date": "2019-08-31",
+              "edges": 3,
+              "edgeFraction": 0.662
+            }
+          ]
+        },
+        "61c2fa1c-8ec4-4c04-918c-da533087a820": {
+          "outlineHash": "dec76e9f4284f260f31acff706676ca034e26af5748b96caacefd8b186948c84",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2022-11-13",
+          "iou": 0.732,
+          "centroidM": 1.48,
+          "images": [
+            {
+              "item": "nv_m_4011853_sw_11_060_20220621",
+              "date": "2022-06-21",
+              "edges": 4,
+              "edgeFraction": 1.0
+            },
+            {
+              "item": "nv_m_4011853_sw_11_060_20190831_20191003",
+              "date": "2019-08-31",
+              "edges": 3,
+              "edgeFraction": 0.697
+            }
+          ]
+        },
+        "23b919fa-3ce5-4ea3-8835-efc574eb43de": {
+          "outlineHash": "09d8494ae256a40f672019b22d6c728f2809ebb82938c60176456e92952db147",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2022-11-13",
+          "iou": 0.846,
+          "centroidM": 0.48,
+          "images": [
+            {
+              "item": "nv_m_4011853_sw_11_060_20220621",
+              "date": "2022-06-21",
+              "edges": 5,
+              "edgeFraction": 0.939
+            },
+            {
+              "item": "nv_m_4011853_sw_11_060_20190831_20191003",
+              "date": "2019-08-31",
+              "edges": 6,
+              "edgeFraction": 1.0
+            }
+          ]
+        }
+      }
+    },
+    "14370-24954": {
+      "release": "2026-10-21.0",
+      "registration": {
+        "pass": true,
+        "training": 9,
+        "blind": 8,
+        "kind": "native-checked",
+        "beforeIoU": 0.864,
+        "originMedianM": 0.771,
+        "originQ75M": 1.261
+      },
+      "features": {
+        "beed1f14-82df-4f64-9c65-90c3a9a3fc39": {
+          "outlineHash": "cfa8d8eba6b9804f3119c2c2268ca6173ffca8044632e538ce243de86f44a893",
+          "source": "ORNL",
+          "validationMethod": "Spatial Intersect",
+          "sourceDate": "2024-07-25",
+          "iou": 0.722,
+          "centroidM": 1.28,
+          "images": [
+            {
+              "item": "ks_m_3910140_sw_14_030_20230819_20231113",
+              "date": "2023-08-19",
+              "edges": 4,
+              "edgeFraction": 1.0
+            },
+            {
+              "item": "ks_m_3910140_se_14_060_20210712",
+              "date": "2021-07-12",
+              "edges": 3,
+              "edgeFraction": 0.759
+            }
+          ]
+        }
+      }
+    }
+  }
+}

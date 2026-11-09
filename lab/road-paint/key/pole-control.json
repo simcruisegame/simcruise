@@ -1,0 +1,39 @@
+{
+  "project": "FL_TopobathyFLKeysNOAA_Hydroflattened_2019",
+  "crs": "EPSG:3857 planar, local metres for fitting",
+  "center_plan_m": [
+    -46.608982238999324,
+    -34.105522481259385
+  ],
+  "top_plan_m": [
+    -46.48218919733079,
+    -34.150805710486964
+  ],
+  "base_z_m": 3.035,
+  "top_z_m": 24.13,
+  "non_ground_returns": 13,
+  "return_heights_m": [
+    2.5,
+    3.94,
+    5.46,
+    5.8,
+    7.79,
+    9.56,
+    11.52,
+    13.5,
+    15.28,
+    17.28,
+    19.1,
+    19.72,
+    21.1
+  ],
+  "lon_lat": [
+    -80.44960730759234,
+    25.086753624495337
+  ],
+  "road_elevations_at_three_geotags_m": [
+    3.3550000000000004,
+    3.41,
+    3.460000000000001
+  ]
+}

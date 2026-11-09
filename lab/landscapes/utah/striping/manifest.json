@@ -1,0 +1,34 @@
+{
+  "title": "Compare the surveyed passing zone on US 163",
+  "summary": "Utah’s striping inventory records one broken yellow centerline and two solid white edge lines along this part of US 163. USDA aerial photographs locate the markings on the road. Eight accepted survey segments cover about 1.3 km across Monument Valley and Logan Canyon.",
+  "measurement": "A bright white edge appears on 23 of 23 sampled foreground rows in the road photograph, 0 before and 23 afterward. The new line lies a median of 24 pixels from the photographed line at 960 × 720. The two camera viewpoints are approximate. The US 163 dash cycle measured 12.20 m at the camera.",
+  "credit": "Photograph by Awinda, April 30, 2023, CC BY-SA 4.0. The comparison crops, resizes and labels the photograph and pairs it with two fixed-camera Metal renders. Survey data from Utah Department of Transportation, FHWA HPMS and USDA NAIP. Map geometry © OpenStreetMap contributors.",
+  "images": [
+    {
+      "file": "road-comparison.webp",
+      "caption": "Same foreground crop in all three panels. The reference camera was near the road shoulder."
+    }
+  ],
+  "links": [
+    [
+      "Original road photograph",
+      "https://commons.wikimedia.org/wiki/File:Forrest_Gump_Highway_Monument_Valley.jpg"
+    ],
+    [
+      "CC BY-SA 4.0",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    [
+      "UDOT inventory and terms",
+      "https://www.arcgis.com/home/item.html?id=65478779f74d4fcbb6f7dd3411aaaec2"
+    ],
+    [
+      "FHWA highway data",
+      "https://geo.dot.gov/server/rest/services/Hosted/HPMS_FULL_UT_2024/FeatureServer/0"
+    ],
+    [
+      "USDA NAIP imagery",
+      "https://imagery.geoplatform.gov/iipp/rest/services/NAIP/NAIP_plus/ImageServer"
+    ]
+  ]
+}

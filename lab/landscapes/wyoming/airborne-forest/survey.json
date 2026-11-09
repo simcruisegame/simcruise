@@ -1,0 +1,45 @@
+{
+  "origin": [
+    43.753821,
+    -110.62409
+  ],
+  "ept": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/WY_GrandTetonNP_1_D22/",
+  "workunit": "WY_GrandTetonNP_1_D22",
+  "collected": [
+    "2022-09-19",
+    "2023-10-20"
+  ],
+  "swath": [
+    -1550,
+    -430,
+    40,
+    330
+  ],
+  "detail": [
+    -190,
+    -110,
+    45,
+    75
+  ],
+  "absoluteElevationWindow": [
+    2000,
+    2170
+  ],
+  "regionalZoom": 13,
+  "heightGridM": 2,
+  "cubeDepths": {
+    "broad": [
+      7,
+      8
+    ],
+    "detail": [
+      9,
+      10
+    ]
+  },
+  "tileZoom": 16,
+  "groundFlightPair": [
+    99,
+    100
+  ]
+}
