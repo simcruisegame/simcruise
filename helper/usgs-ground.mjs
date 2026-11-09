@@ -81,7 +81,8 @@ async function patch(file,bounds,cache,read,budget){
  return sample;
 }
 export async function measuredGround(X,Y,cache,read){
- const side=611.4962263*Math.cos(latitude(Y+.5)*Math.PI/180),apron=74/side;
+ // Road benches (road-grade.mjs) sample up to 110 m outside the tile.
+ const side=611.4962263*Math.cos(latitude(Y+.5)*Math.PI/180),apron=160/side;
  const left=longitude(X-apron),right=longitude(X+1+apron),top=latitude(Y-apron),bottom=latitude(Y+1+apron);
  // 3DEP coverage includes US territories. A cached per-degree negative avoids
  // querying a missing island or a neighboring country's file on every tile.

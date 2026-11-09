@@ -47,7 +47,10 @@ function triangleHeight(h,n,u,v){
  return fx+fy<=1?a+(b-a)*fx+(c-a)*fy:d+(c-d)*(1-fx)+(b-d)*(1-fy);
 }
 export function applyRoadBanks(x,y,tile,widths,terrain,surface){
- if(terrain.grid!==64||!surface)return;
+ // The bank detail grid is 128; a 64 terrain grid is refined onto it in the game,
+ // a 128 grid (road benches) takes the deltas directly.
+ if(![64,128].includes(terrain.grid)||!surface)return;
+ const g=terrain.grid;
  const n=128,side=40075016.68557849/65536/Math.cosh(Math.PI*(1-2*(y+.5)/65536));
  const cell=side/n,guard=Math.SQRT2*cell+.75,original=terrain.h;
  const {roads,exclusions}=geometry(tile,x,y,side,widths);
@@ -76,8 +79,8 @@ export function applyRoadBanks(x,y,tile,widths,terrain,surface){
   const weight=smooth(guard,guard+3,clear)*smooth(cell,cell*3.0,edge)*smooth(0,8,qedge)*(1-smooth(43,74,nearest));
   if(weight<=0)continue;
   const roadH=bilinear(surface.z,128,qx/side,qy/side);
-  const sample=surface.z[j*129+i],roadBase=triangleHeight(original,64,qx/side,qy/side);
-  const k=j*(n+1)+i,residual=(sample-roadH)-(triangleHeight(original,64,u,v)-roadBase);
+  const sample=surface.z[j*129+i],roadBase=triangleHeight(original,g,qx/side,qy/side);
+  const k=j*(n+1)+i,residual=(sample-roadH)-(triangleHeight(original,g,u,v)-roadBase);
   if(!Number.isFinite(residual)||Math.abs(residual)>=6)continue;
   const delta=weight*residual;
   if(Math.abs(delta)<.025)continue;

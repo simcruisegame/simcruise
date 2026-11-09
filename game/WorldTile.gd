@@ -87,6 +87,8 @@ func smooth_road_corridors()->void:
  var roads:Array=info.get("roads",[])
  var n=grid_steps;var count=(n+1)*(n+1);var h=info.h
  if roads.is_empty() or h.size()!=count or info.get("survey_ground_nodes",0)>0 or "--without-road-smoothing" in OS.get_cmdline_user_args():return
+ # The helper already built road benches from world-anchored data (road-grade.mjs v2).
+ if int(info.get("road_grade",{}).get("version",0))>=2:return
  var started=Time.get_ticks_usec()
  var fixed={}
  var roadbed:Array=info.get("roadbed",[])
@@ -396,6 +398,13 @@ func street_image()->Image:
  var paved_strokes=""
  for road in info.roads:
   var route=road[3];var w=float(road[4]);var path=svg_path(route);var main=road[0] in ["primary","secondary","trunk","motorway","tertiary"]
+  # A bridge's pavement and paint are on its deck (BridgeDeck.gd), not on the ground below.
+  var on_deck=road.size()>6 and road[6]=="bridge" and not info.get("bridges",[]).is_empty()
+  if on_deck:
+   for j in range(1,route.size()):
+    var a=point(route[j-1]);var b=point(route[j])
+    if a.distance_to(b)>=.1:segments.append([a,b,road[2],w,road[1],road[0]])
+   continue
   var loose_surface=road.size()>5 and road[5]=="unpaved"
   if not loose_surface and not info.get("live_canopy",false) and road[0] not in ["track","service"]:
    pavements+=stroke(path,"#a7a39a",w+5.0,'stroke-linecap="round"');curbs+=stroke(path,"#c9c4ae",w+.65,'stroke-linecap="round"')
@@ -499,7 +508,10 @@ func ground_mesh(mat):
  terrain_material=mat
  preload("res://GroundFinish.gd").bind(mat,materials,info.id,side)
  mat.set_shader_parameter("recent_quadrant",Vector2(int(info.id[0])%4,int(info.id[1])%4))
- if info.get("bank_detail_active",false):
+ # A 128 grid is drawn adaptively: cells split only where the detail differs
+ # from the coarse surface (road benches, surveyed banks), so flat or untouched
+ # ground costs what a 64 grid did.
+ if info.get("bank_detail_active",false) or (grid_steps==128 and info.h.size()==129*129):
   var fine=preload("res://RoadBankMesh.gd").make(info.h,side,mat)
   if surveyed_outcrop:
    make_outcrop_ground(fine.surface_get_arrays(0),mat)
@@ -833,6 +845,8 @@ func build(data:Dictionary,size_m:float,mats:Dictionary):
  paint_evidence=preload("res://PaintEvidence.gd").for_tile(self)
  road_layout=preload("res://RoadLayout.gd").for_tile(self)
  make_ground();road_index()
+ # Decks for mapped bridges; the ground under them stays the valley or road below.
+ preload("res://BridgeDeck.gd").build(self)
  if not info.get("field",false):
   paint_lane_marks()
   if info.get("live_canopy",false):install_lane_meshes(take_lane_meshes())
