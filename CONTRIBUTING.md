@@ -1,6 +1,6 @@
 # Contributing to SimCruise
 
-Thanks for looking. SimCruise is a small project with a large ambition, and the way it stays honest is by measuring. This page is the short version of how we work; the [README](README.md) explains what the game is and the [roadmap](docs/roadmap.md) explains what is wanted next.
+Thanks for looking. Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md). SimCruise is a small project with a large ambition, and the way it stays honest is by measuring. This page is the short version of how we work; the [README](README.md) explains what the game is and the [roadmap](docs/roadmap.md) explains what is wanted next.
 
 ## Ground rules
 
@@ -20,7 +20,7 @@ Thanks for looking. SimCruise is a small project with a large ambition, and the 
 
 ## Running the headless checks
 
-The quickest way: `sh scripts/check.sh` runs every standalone check with a 600 s cap per run and output to `build/check-logs/`, then prints a pass/fail table (and fails if the car leaves its calibration bands). `sh scripts/check.sh Track Wall` runs only the named checks. Set `GODOT_BIN` if Godot 4.7.2 is not on your PATH.
+The quickest way: `sh scripts/check.sh` runs every standalone Godot check with a 600 s cap per run and output to `build/check-logs/`, then prints a pass/fail table (and fails if the car leaves its calibration bands). `sh scripts/check.sh Track Wall` runs only the named checks. Set `GODOT_BIN` if Godot 4.7.2 is not on your PATH. `sh scripts/check-helper.sh` runs the map helper's offline tests. Run both before opening a pull request; they also run on Linux, since the headless checks need no GPU.
 
 Checks are GDScript files under `game/checks/` run by the Godot executable with `--headless`. They print `RESULT` lines and exit. The four calibration checks and their expected values on the current baseline:
 
@@ -66,8 +66,25 @@ A runaway print loop once filled a disk with a multi-gigabyte log, so these are 
 | `authoring/` | Asset validation and model-building tools (`check_assets.py`, `car-assets.json`). |
 | `lab/` | Measurement studies behind individual features, with their own READMEs, data and reproduction scripts. Older ones say "Sunday Driver". |
 | `licenses/`, `Credits.txt` | Per-source terms and attribution; `licenses/` ships inside the app. |
-| `scripts/` | `build-macos.sh` (editor, app and dmg modes) and `make-dmg.sh`. |
-| `docs/` | Roadmap, history and architecture notes; `docs/images/` holds README screenshots. |
+| `scripts/` | `build-macos.sh` (editor, app and dmg modes), `make-dmg.sh`, `check.sh` (Godot checks) and `check-helper.sh` (helper tests). |
+| `.github/` | Issue and pull-request templates. |
+| `docs/` | Player and developer documentation (install, controls, technical overview, data sources, building), the roadmap, history and architecture notes; `docs/images/` holds README images. |
+
+## Versions and releases
+
+SimCruise uses [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`. A patch release fixes bugs; a minor release adds features, cars, places or data layers; a major release breaks saved preferences, the cache format or the helper's command line. The version lives in one place, `config/version` in `game/project.godot`, and the build scripts read it from there.
+
+`CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/): every change a player would notice gets a line in the top, unreleased section in the same pull request.
+
+To release, a maintainer:
+
+1. Moves the unreleased changelog section under `## SimCruise X.Y.Z (YYYY-MM-DD)` and sets `config/version="X.Y.Z"`.
+2. Merges that to `main`, runs `sh scripts/check.sh` and `sh scripts/check-helper.sh` on it, then tags it: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+3. Builds the disk image on an Apple Silicon Mac with `sh scripts/build-macos.sh dmg X.Y.Z`, writes its checksum with `shasum -a 256 build/SimCruise-X.Y.Z.dmg > build/SimCruise-X.Y.Z.dmg.sha256`, and attaches both to a new GitHub Release for the tag, with the changelog section as its notes.
+
+## Security
+
+Never commit keys, tokens, passwords, personal paths or personal information; the game needs none of them. GitHub secret scanning blocks known token formats on push. Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
 ## Pull requests and issues
 

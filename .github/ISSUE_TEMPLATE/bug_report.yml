@@ -1,0 +1,56 @@
+name: Bug report
+description: Something crashes, misbehaves, or a place looks or drives wrong.
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. A location and the F3 readout make most bugs reproducible, because the ground there can be streamed again.
+        **Security problems:** please report them privately instead, see SECURITY.md.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: place
+    attributes:
+      label: Where were you driving?
+      description: The search text or `latitude, longitude`, and your heading if it matters.
+      placeholder: "Capitol Avenue · Cheyenne, WY  or  40.808017, -96.675328"
+  - type: input
+    id: version
+    attributes:
+      label: SimCruise version or commit
+      placeholder: "1.1.0, or commit a2f38c9"
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Mac model and macOS version
+      placeholder: "MacBook Air M2, macOS 15.3"
+    validations:
+      required: true
+  - type: textarea
+    id: f3
+    attributes:
+      label: F3 readout
+      description: Frame rate, active tiles and map requests from the F3 overlay, if you can.
+  - type: checkboxes
+    id: layers
+    attributes:
+      label: Optional layers that were on
+      options:
+        - label: Weather
+        - label: Imagery
+        - label: Street photos
+        - label: USDA ground cover
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: The last 50 lines of the newest file in `~/Library/Application Support/Godot/app_userdata/SimCruise/logs/`.
+      render: text
