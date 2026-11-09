@@ -174,5 +174,11 @@
  "awd_front_share": 0.4,
  "center_bias": 3.0,
  "front_diff_bias": 1.0,
- "traction_control": false
+ "traction_control": false,
+ "model_scene": "res://art/cars/bison_xl.glb",
+ "driver_eye": [
+  -0.406,
+  1.66,
+  -0.167
+ ]
 }
