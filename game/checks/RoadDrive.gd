@@ -84,7 +84,10 @@ func _initialize():
  plan_speed()
  if OS.has_environment("ROADDRIVE_PLAN"):
   for i in range(0,mini(route.size(),400),6):print("PLAN %d %.1f %.1f want %.1f"%[i,route[i].x,route[i].z,plan[i]])
- car=load("res://Powertrain.gd").new();car.setup();root.add_child(car)
+ car=load("res://Powertrain.gd").new()
+ for a in OS.get_cmdline_user_args():
+  if a.begins_with("--car="):car.use_spec(preload("res://CarSpec.gd").load_id(a.trim_prefix("--car=")))
+ car.setup();root.add_child(car)
  # Start 15 m in: a route often begins exactly at the edge of the loaded tiles.
  station=15.
  var p=Vector2(route[15].x,route[15].z);var q=Vector2(route[23].x,route[23].z);var dir=(q-p).normalized()

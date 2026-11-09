@@ -91,6 +91,8 @@ var park_clock=1.0
 var wheel_angle=[0.,0.,0.,0.]
 var lamp_materials=[]
 var lamp_nodes=[]
+var steering_wheel=[]   # [node, rest basis] on generated cars (CarBody.gd)
+const STEERING_RATIO:=14.5
 var lamp_on=false
 var shadow_plane=PlaneMesh.new()
 func material(tex=null,color=Color.WHITE):
@@ -227,6 +229,7 @@ func _ready():
  if "--preference-check" in OS.get_cmdline_user_args():add_child(preload("res://checks/PreferenceCheck.gd").new())
  if "--road-test" in OS.get_cmdline_user_args():add_child(preload("res://checks/DriveCheck.gd").new())
  if "--screenshots" in OS.get_cmdline_user_args():add_child(preload("res://checks/Screenshots.gd").new())
+ if "--car-showcase" in OS.get_cmdline_user_args():add_child(preload("res://checks/CarShowcase.gd").new())
 # Tile workers create mesh/material resources. Joining one while the engine
 # is shutting down can deadlock against the rendering/main thread. Keep the
 # frame loop alive until pending work has returned; no new jobs are launched.
@@ -565,6 +568,8 @@ func _physics_process(dt):
  for i in wheels.size():
   var w=wheels[i];var phys=vehicle.connected_wheels[i];w[0].position=phys.position
   w[0].rotation.y=vehicle.wheel_heading[i];w[0].rotation.z=vehicle.wheel_camber[i];wheel_angle[i]=fmod(wheel_angle[i]-vehicle.omega[i]*dt,TAU);w[1].rotation.x=wheel_angle[i]
+ if steering_wheel.size():
+  steering_wheel[0].transform.basis=steering_wheel[1]*Basis(Vector3(0,0,1),(vehicle.wheel_heading[0]+vehicle.wheel_heading[1])*.5*STEERING_RATIO)
  # Roof down or stranded (Powertrain keeps the timers): prompt once when the
  # timer starts, then put the car back on a road at each 8 s mark until it is.
  # Deferred so the teleport lands after this tick's forces are consumed.
