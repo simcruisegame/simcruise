@@ -66,8 +66,9 @@ A runaway print loop once filled a disk with a multi-gigabyte log, so these are 
 | `authoring/` | Asset validation and model-building tools (`check_assets.py`, `car-assets.json`). |
 | `lab/` | Measurement studies behind individual features, with their own READMEs, data and reproduction scripts. Older ones say "Sunday Driver". |
 | `licenses/`, `Credits.txt` | Per-source terms and attribution; `licenses/` ships inside the app. |
-| `scripts/` | `play.sh` (update and play), `build-macos.sh` (editor, app and dmg modes), `make-dmg.sh`, `check.sh` (Godot checks) and `check-helper.sh` (helper tests). |
+| `scripts/` | `play.sh` (update and play), `build-macos.sh` (editor, app and dmg modes), `build-windows.sh` (installer and zip), `make-dmg.sh`, `check.sh` (Godot checks) and `check-helper.sh` (helper tests). |
 | `.github/` | Issue and pull-request templates. |
+| `packaging/` | Platform packaging: the Windows NSIS installer script and icon. |
 | `docs/` | Player and developer documentation (install, controls, technical overview, data sources, building), the roadmap, history and architecture notes; `docs/images/` holds README images. |
 
 ## Versions and releases
@@ -80,7 +81,9 @@ To release, a maintainer:
 
 1. Moves the unreleased changelog section under `## SimCruise X.Y.Z (YYYY-MM-DD)` and sets `config/version="X.Y.Z"`.
 2. Merges that to `main`, runs `sh scripts/check.sh` and `sh scripts/check-helper.sh` on it, then tags it: `git tag vX.Y.Z && git push origin vX.Y.Z`.
-3. Builds the disk image on an Apple Silicon Mac with `sh scripts/build-macos.sh dmg X.Y.Z`, writes its checksum with `shasum -a 256 build/SimCruise-X.Y.Z.dmg > build/SimCruise-X.Y.Z.dmg.sha256`, and attaches both to a new GitHub Release for the tag, with the changelog section as its notes.
+3. Builds the macOS disk image on an Apple Silicon Mac with `sh scripts/build-macos.sh dmg X.Y.Z` and its checksum with `shasum -a 256 build/SimCruise-X.Y.Z.dmg > build/SimCruise-X.Y.Z.dmg.sha256`.
+4. Builds the Windows installer and portable zip on any system with Godot 4.7.2, its export templates, Bun and NSIS: `sh scripts/build-windows.sh X.Y.Z` (it writes `build/SHA256SUMS-windows.txt`).
+5. Starts each build once on its system, then attaches the disk image, the installer, the zip and the checksum files to a new GitHub Release for the tag, with the changelog section as its notes.
 
 ## Security
 

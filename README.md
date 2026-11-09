@@ -52,9 +52,12 @@ No account, no API keys, no subscription, no telemetry. The game talks directly 
 
 ## Download
 
-Get the latest `SimCruise-<version>.dmg` from the [Releases](https://github.com/simcruisegame/simcruise/releases) page.
+Get the latest release from the [Releases](https://github.com/simcruisegame/simcruise/releases) page:
 
-**Requirements:** a Mac with Apple Silicon running macOS 13 or newer, and an internet connection for places outside the bundled starter area. The app is not notarized, so macOS warns on first launch. See [docs/install.md](docs/install.md) for how to open it and where it stores its cache.
+- **macOS** (Apple Silicon, macOS 13 or newer): `SimCruise-<version>.dmg`, drag to Applications.
+- **Windows** (64-bit Windows 10 or 11): `SimCruise-<version>-windows-x64-setup.exe`, or the portable `.zip`.
+
+You need an internet connection for places outside the bundled starter area. The builds are not code-signed, so macOS and Windows warn on first launch; [docs/install.md](docs/install.md) shows how to open them and where the game stores its cache.
 
 ## How to play
 
