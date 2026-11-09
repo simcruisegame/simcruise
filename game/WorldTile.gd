@@ -398,6 +398,13 @@ func street_image()->Image:
  var paved_strokes=""
  for road in info.roads:
   var route=road[3];var w=float(road[4]);var path=svg_path(route);var main=road[0] in ["primary","secondary","trunk","motorway","tertiary"]
+  # A bridge's pavement and paint are on its deck (BridgeDeck.gd), not on the ground below.
+  var on_deck=road.size()>6 and road[6]=="bridge" and not info.get("bridges",[]).is_empty()
+  if on_deck:
+   for j in range(1,route.size()):
+    var a=point(route[j-1]);var b=point(route[j])
+    if a.distance_to(b)>=.1:segments.append([a,b,road[2],w,road[1],road[0]])
+   continue
   var loose_surface=road.size()>5 and road[5]=="unpaved"
   if not loose_surface and not info.get("live_canopy",false) and road[0] not in ["track","service"]:
    pavements+=stroke(path,"#a7a39a",w+5.0,'stroke-linecap="round"');curbs+=stroke(path,"#c9c4ae",w+.65,'stroke-linecap="round"')
@@ -838,6 +845,8 @@ func build(data:Dictionary,size_m:float,mats:Dictionary):
  paint_evidence=preload("res://PaintEvidence.gd").for_tile(self)
  road_layout=preload("res://RoadLayout.gd").for_tile(self)
  make_ground();road_index()
+ # Decks for mapped bridges; the ground under them stays the valley or road below.
+ preload("res://BridgeDeck.gd").build(self)
  if not info.get("field",false):
   paint_lane_marks()
   if info.get("live_canopy",false):install_lane_meshes(take_lane_meshes())

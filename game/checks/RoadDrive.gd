@@ -35,9 +35,10 @@ var side=0.
 var origin=Vector2i.ZERO
 var tick=0
 var station=0.
-var stats={"air_ticks":0,"air_events":0,"launch":0,"jolt_05":0,"jolt_10":0,"bump_stop":0,"max_vert_g":0.,"max_up_mps":0.,"off_road":0,"roof":0,"max_cross_m":0.,"seconds":0.}
+var stats={"air_ticks":0,"air_events":0,"launch":0,"jolt_05":0,"jolt_10":0,"bump_stop":0,"max_vert_g":0.,"max_up_mps":0.,"off_road":0,"roof":0,"impacts":0,"max_cross_m":0.,"seconds":0.}
 var air_run=0
 var last_vy=0.
+var last_speed=0.
 var off_run=0
 var done=false
 var settle=0
@@ -173,6 +174,9 @@ func _physics_process(dt):
  var gas=0.;var brake=0.
  if speed<want:speed_i=clampf(speed_i+(want-speed)*dt*.1,0.,.5);gas=clampf((want-speed)*.5+speed_i,0.,1.)
  else:speed_i=maxf(0.,speed_i-dt*.2);brake=clampf((speed-want)*.35,0.,1.)
+ # Like a person: lift off when the car slides sideways, never add power mid-slide.
+ var slide=absf(v.dot(b.x))
+ if slide>1.:gas*=clampf(1.-(slide-1.)/1.5,0.,1.);speed_i=0.
  car.drive(dt,gas,brake,turn,false)
  if OS.has_environment("ROADDRIVE_TRACE") and tick%6==0 and station>=int(OS.get_environment("ROADDRIVE_TRACE").split("-")[0]) and station<=int(OS.get_environment("ROADDRIVE_TRACE").split("-")[1]):print("TRACE st %d want %.1f v %.1f gas %.2f brk %.2f turn %.2f yawrate %.2f lat %.2f cross %.1f contacts %d"%[station,want,speed,gas,brake,turn,car.angular_velocity.y,v.dot(b.x),cross,car.wheel_contact])
  if OS.has_environment("ROADDRIVE_DEBUG") and tick%60==0 and tick<=600:print("DBG drive station %d want %.1f speed %.2f gas %.2f brake %.2f turn %.2f gear %s rpm %d"%[station,want,speed,gas,brake,turn,car.gear_text(),car.rpm])
@@ -186,6 +190,9 @@ func _physics_process(dt):
  else:air_run=0
  if moving and car.wheel_contact==0 and air_run==3:stats.launch+=1
  var vert_g=absf(v.y-last_vy)/dt/9.80665;last_vy=v.y
+ # A collision: forward speed falls by more than 3 m/s in one tick.
+ if last_speed-speed>3. and absf(last_speed)>3.:stats.impacts+=1;event("impact %.1f -> %.1f m/s"%[last_speed,speed])
+ last_speed=speed
  if moving and tick>settle+5:
   stats.max_vert_g=maxf(stats.max_vert_g,vert_g)
   if vert_g>.5:stats.jolt_05+=1
@@ -207,14 +214,21 @@ func event(what:String):
  var id=origin+Vector2i(floori(p.x/side),floori(p.y/side))
  var local=p-Vector2(id-origin)*side
  print("EVENT %s at station %d m, tile %d_%d (%.0f, %.0f), speed %.1f m/s"%[what,station,id.x,id.y,local.x,local.y,-car.linear_velocity.dot(car.global_transform.basis.z)])
+ if what.begins_with("impact") and OS.has_environment("ROADDRIVE_DEBUG"):
+  var q=PhysicsShapeQueryParameters3D.new();var box=BoxShape3D.new();box.size=Vector3(2.,1.,4.4);q.shape=box
+  q.transform=car.global_transform.translated_local(Vector3(0,.55,0));q.exclude=[car.get_rid()]
+  for h in root.get_world_3d().direct_space_state.intersect_shape(q,8):
+   var owner=h.collider.get_parent();var tid="?"
+   for k in tiles:if tiles[k]==owner or tiles[k]==owner.get_parent():tid=str(k)
+   print("  touching ",tid," ",h.collider.name," ",h.collider.get_child(0).shape.get_class()," car y %.2f"%car.global_position.y)
 
 func finish(reason:String):
  done=true
  var km=station/1000.
  print("ROADDRIVE %s · %.2f of %.2f km in %.0f s (avg %.1f m/s)"%[reason,km,route[-1].y/1000.,stats.seconds,station/maxf(stats.seconds,.01)])
- print("RESULT ride: air_events=%d air_seconds=%.2f launches=%d jolts>0.5g=%d jolts>1g=%d max_vertical_g=%.2f max_up_mps=%.2f bump_stop_ticks=%d off_road=%d roof_ticks=%d max_cross_m=%.1f"%[
-  stats.air_events,stats.air_ticks/60.,stats.launch,stats.jolt_05,stats.jolt_10,stats.max_vert_g,stats.max_up_mps,stats.bump_stop,stats.off_road,stats.roof,stats.max_cross_m])
- var ok=reason=="finished" and stats.launch==0 and stats.roof==0
+ print("RESULT ride: air_events=%d air_seconds=%.2f launches=%d jolts>0.5g=%d jolts>1g=%d max_vertical_g=%.2f max_up_mps=%.2f bump_stop_ticks=%d off_road=%d impacts=%d roof_ticks=%d max_cross_m=%.1f"%[
+  stats.air_events,stats.air_ticks/60.,stats.launch,stats.jolt_05,stats.jolt_10,stats.max_vert_g,stats.max_up_mps,stats.bump_stop,stats.off_road,stats.impacts,stats.roof,stats.max_cross_m])
+ var ok=reason=="finished" and stats.launch==0 and stats.roof==0 and stats.impacts==0
  quit(0 if ok else 1)
 
 func materials()->Dictionary:

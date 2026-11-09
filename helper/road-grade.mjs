@@ -103,7 +103,8 @@ function tileLines(tile,widths,ox,oy,scale,clipToOwn){
   const width=widths[p.class]??8,f=size/feature.extent;
   for(const line of feature.loadGeometry()){
    let piece=[];
-   const flush=()=>{if(piece.length>=2)out.push({pts:piece,width,protectedRoad,elevatedRoad,cls:p.class,name:p.name??''});piece=[]};
+   const bridge=protectedRoad&&p.brunnel!=='tunnel'&&(PAVED.has(p.class)||['service','track'].includes(p.class))&&(p.brunnel==='bridge'||Number(p.layer??0)>0);
+   const flush=()=>{if(piece.length>=2)out.push({pts:piece,width,protectedRoad,elevatedRoad,bridge,layer:Number(p.layer??0),cls:p.class,name:p.name??''});piece=[]};
    for(let j=1;j<line.length;j++){
     const ax=ox+line[j-1].x*f,ay=oy+line[j-1].y*f,bx=ox+line[j].x*f,by=oy+line[j].y*f;
     const c=clipToOwn?clipSegment(ax,ay,bx,by,ox,oy,ox+size,oy+size):[ax,ay,bx,by];
@@ -198,7 +199,7 @@ function gaussianLinear(S,Z,W,s){
 }
 
 // Samples, robust weights, profile and superelevation for one chain.
-function chainProfile(parts,sample,inside,designSpeed){
+function chainProfile(parts,sample,inside,designSpeed,bridgeAt=[false,false]){
  const rows=[];
  for(const part of parts){
   const {piece,s,length,reversed,offset}=part;
@@ -241,20 +242,47 @@ function chainProfile(parts,sample,inside,designSpeed){
  // banking stay continuous around the sharp corners of simplified map lines.
  const TX=new Float64Array(rows.length),TY=new Float64Array(rows.length);
  for(let i=0;i<rows.length;i++){TX[i]=Math.cos(H[i]);TY[i]=Math.sin(H[i])}
- return {S,Z,W:R,E:smoothE,TX,TY,ONES};
+ const profile={S,Z,W:R,E:smoothE,TX,TY,ONES,fix:[]};
+ // An approach that ends at a bridge usually climbs an embankment, and a
+ // one-sided wide fit undershoots that curve. Measure the end with a short
+ // uniform fit over the last 25 m and blend the profile onto it over 30 m, so
+ // the bench meets the deck (bridgeDecks reads the same corrected value).
+ const total=S.length?S[S.length-1]:0;
+ for(const [atEnd,end] of [[bridgeAt[0],0],[bridgeAt[1],total]]){
+  if(!atEnd||S.length<8)continue;
+  let n=0,sx=0,sy=0,sxx=0,sxy=0;
+  for(let i=0;i<S.length;i++){
+   const d=Math.abs(S[i]-end);
+   if(d>25||!(W[i]>0))continue;
+   const x=S[i]-end;n++;sx+=x;sy+=Z[i];sxx+=x*x;sxy+=x*Z[i];
+  }
+  if(n<5)continue;
+  const det=n*sxx-sx*sx;
+  const short=Math.abs(det)>1e-9?(sy*sxx-sx*sxy)/det:sy/n;
+  const wide=gaussianLinear(S,Z,R,end);
+  if(Number.isFinite(short)&&Number.isFinite(wide))profile.fix.push({end,delta:short-wide});
+ }
+ return profile;
+}
+const FIX_SPAN=30;
+function fixAt(profile,s){
+ let d=0;
+ for(const f of profile.fix){const t=1-Math.min(Math.abs(s-f.end)/FIX_SPAN,1);d+=f.delta*t*t*(3-2*t)}
+ return d;
 }
 
 // Height, superelevation and unit tangent of a chain's profile at station s.
 function profileAt(profile,s){
+ const fix=fixAt(profile,s);
  const tx=gaussianLinear(profile.S,profile.TX,profile.ONES,s),ty=gaussianLinear(profile.S,profile.TY,profile.ONES,s),l=Math.hypot(tx,ty)||1;
- return [gaussianLinear(profile.S,profile.Z,profile.W,s),gaussianLinear(profile.S,profile.E,profile.ONES,s),tx/l,ty/l];
+ return [gaussianLinear(profile.S,profile.Z,profile.W,s)+fix,gaussianLinear(profile.S,profile.E,profile.ONES,s),tx/l,ty/l];
 }
 
 // Design speed for superelevation, km/h. Low-speed streets keep a normal crown
 // (AASHTO Green Book: superelevation is optional on low-speed urban streets), so 0.
 function designSpeed(cls){return ['motorway','trunk'].includes(cls)?90:['primary','secondary'].includes(cls)?60:0}
 
-export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured=null,readVector=null){
+export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured=null,readVector=null,memo=null){
  const legacy=await mosaic(X,Y,centerDEM,readDEM);
  const mx=Math.floor(X/4),my=Math.floor(Y/4),parent=2**VECTOR_ZOOM;
  const lat=Math.atan(Math.sinh(Math.PI*(1-2*(my+.5)/parent)));
@@ -278,6 +306,7 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
  const tx0=(X-4*mx)*scale,ty0=(Y-4*my)*scale,tx1=tx0+scale,ty1=ty0+scale;
  const inside=(x,y)=>x>=tx0-SAMPLE_APRON&&x<=tx1+SAMPLE_APRON&&y>=ty0-SAMPLE_APRON&&y<=ty1+SAMPLE_APRON;
 
+ const near=(pts,margin)=>pts.some(([x,y])=>x>=tx0-margin&&x<=tx1+margin&&y>=ty0-margin&&y<=ty1+margin);
  // Road pieces: this parent clipped to itself; a neighbour parent is read only
  // when a road of this parent runs into it near this tile (its buffer shows it).
  const own=tileLines(tile,widths,0,0,scale,true);
@@ -290,27 +319,51 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
   // Region of the neighbour that this tile's samples can reach.
   const rx0=Math.max(nx0,tx0-need),ry0=Math.max(ny0,ty0-need),rx1=Math.min(nx1,tx1+need),ry1=Math.min(ny1,ty1+need);
   if(rx0>=rx1||ry0>=ry1)continue;
-  const crosses=unclipped.some(l=>!l.protectedRoad&&l.pts.some(([x,y])=>x>=rx0&&x<=rx1&&y>=ry0&&y<=ry1));
+  const crosses=unclipped.some(l=>(!l.protectedRoad||l.bridge)&&l.pts.some(([x,y])=>x>=rx0&&x<=rx1&&y>=ry0&&y<=ry1));
   if(crosses)neighbours.push([dx,dy]);
  }
  let pieces=own;
- if(readVector&&neighbours.length){
-  for(const [dx,dy] of neighbours){
-   const nx=mx+dx,ny=my+dy;
-   if(ny<0||ny>=parent)continue;
-   try{
-    const other=await readVector((nx+parent)%parent,ny);
-    pieces=pieces.concat(tileLines(other,widths,dx*size,dy*size,scale,true));
-    summary.bench.neighbours++;
-   }catch{}
+ const loaded=new Set(['0,0']);
+ const load=async(dx,dy)=>{
+  const key=dx+','+dy,nx=mx+dx,ny=my+dy;
+  if(loaded.has(key)||!readVector||ny<0||ny>=parent)return;
+  loaded.add(key);
+  try{
+   const other=await readVector((nx+parent)%parent,ny);
+   pieces=pieces.concat(tileLines(other,widths,dx*size,dy*size,scale,true));
+   summary.bench.neighbours++;
+  }catch{}
+ };
+ for(const [dx,dy] of neighbours)await load(dx,dy);
+ // Follow bridges across z14 edges until both ends of every nearby bridge are
+ // inside loaded tiles, so every tile sees the whole deck it shares.
+ for(let round=0;round<3;round++){
+  let added=false;
+  for(const parts of chainPieces(pieces.filter(p=>p.bridge))){
+   if(!parts.some(p=>near(p.piece.pts,SAMPLE_APRON)))continue;
+   for(const part of [parts[0],parts[parts.length-1]])for(const e of [part.piece.pts[0],part.piece.pts[part.piece.pts.length-1]]){
+    const gx=e[0]/size,gy=e[1]/size;
+    for(const [ddx,ddy] of [[-1,0],[1,0],[0,-1],[0,1]]){
+     const onEdge=ddx?Math.abs(gx-Math.round(gx))*size<.5:Math.abs(gy-Math.round(gy))*size<.5;
+     if(!onEdge)continue;
+     const cx=Math.floor(gx+ddx*.01),cy=Math.floor(gy+ddy*.01);
+     if(!loaded.has(cx+','+cy)){await load(cx,cy);added=true}
+    }
+   }
   }
+  if(!added)break;
  }
  const benchPieces=pieces.filter(p=>!p.protectedRoad);
  const structures=pieces.filter(p=>p.protectedRoad);
 
- // Chains near this tile and their profiles.
- const near=(pts,margin)=>pts.some(([x,y])=>x>=tx0-margin&&x<=tx1+margin&&y>=ty0-margin&&y<=ty1+margin);
- const chains=chainPieces(benchPieces).filter(parts=>parts.some(p=>near(p.piece.pts,BATTER_REACH+40)));
+ // Chains near this tile, or ending at a bridge near it, and their profiles.
+ const bridgeEnds=[];
+ for(const parts of chainPieces(structures.filter(p=>p.bridge))){
+  if(!parts.some(p=>near(p.piece.pts,SAMPLE_APRON)))continue;
+  for(const part of [parts[0],parts[parts.length-1]])bridgeEnds.push(part.piece.pts[0],part.piece.pts[part.piece.pts.length-1]);
+ }
+ const touchesBridge=parts=>parts.some(p=>[p.piece.pts[0],p.piece.pts[p.piece.pts.length-1]].some(a=>bridgeEnds.some(b=>Math.hypot(a[0]-b[0],a[1]-b[1])<=3)));
+ const chains=chainPieces(benchPieces).filter(parts=>parts.some(p=>near(p.piece.pts,BATTER_REACH+40))||touchesBridge(parts));
  const roads=new Map(); // bin -> [segment]
  const addSegment=(seg)=>{
   const r=seg.reach;
@@ -319,18 +372,29 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
     const k=x+','+y;if(!roads.has(k))roads.set(k,[]);roads.get(k).push(seg);
    }
  };
- const cell=scale/FINE;
+ const cell=scale/FINE,terminals=[];
  chains.forEach((parts,id)=>{
   const cls=parts[0].piece.cls,width=Math.max(...parts.map(p=>p.piece.width));
-  const profile=chainProfile(parts,sample,inside,designSpeed(cls));
+  const ends=[parts[0].reversed?parts[0].piece.pts[parts[0].piece.pts.length-1]:parts[0].piece.pts[0],
+   parts[parts.length-1].reversed?parts[parts.length-1].piece.pts[0]:parts[parts.length-1].piece.pts[parts[parts.length-1].piece.pts.length-1]];
+  const bridgeAt=ends.map(a=>bridgeEnds.some(b=>Math.hypot(a[0]-b[0],a[1]-b[1])<=3));
+  const profile=chainProfile(parts,sample,inside,designSpeed(cls),bridgeAt);
   const half=width/2,bench=half+Math.max(1.5,1.2*cell);
+  const total=parts.reduce((sum,p)=>sum+p.length,0);
+  // Chain ends: a bridge deck starts at the bench height where its approach ends.
+  for(const [part,atStart] of [[parts[0],true],[parts[parts.length-1],false]]){
+   const pts=part.piece.pts;
+   // Station 0 lies at the start of parts[0] in chain order, the total at the end of the last part.
+   const end=atStart?(part.reversed?pts[pts.length-1]:pts[0]):(part.reversed?pts[0]:pts[pts.length-1]);
+   terminals.push({x:end[0],y:end[1],profile,station:atStart?0:total,cls,name:part.piece.name});
+  }
   for(const part of parts){
    const {piece,s,length,reversed,offset}=part;
    for(let k=1;k<piece.pts.length;k++){
     const a=piece.pts[k-1],b=piece.pts[k],l=s[k]-s[k-1];
     if(l<.01)continue;
     const sa=offset+(reversed?length-s[k-1]:s[k-1]),sb=offset+(reversed?length-s[k]:s[k]);
-    addSegment({chain:id,profile,ax:a[0],ay:a[1],bx:b[0],by:b[1],l,sa,sb,bench,reach:bench+BATTER_REACH});
+    addSegment({chain:id,profile,ax:a[0],ay:a[1],bx:b[0],by:b[1],l,sa,sb,total,bench,reach:bench+BATTER_REACH});
    }
   }
  });
@@ -343,25 +407,25 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
  }
  summary.bench.roads=chains.length;
 
- // Coarse ground: the source surface, with bridge decks kept from the legacy
- // DSM-like Terrarium surface under mapped elevated structures.
+ // Coarse ground: the source surface.
  const coarse=[];
  for(let j=0;j<=GRID;j++){
   for(let i=0;i<=GRID;i++){
    const wx=X+i/GRID,wy=Y+j/GRID,x=(wx-4*mx)*scale,y=(wy-4*my)*scale;
    const original=raw(wx,wy,true);
-   let deck=1,protection=1;
+   let protection=1;
    for(const sgm of roads.get(Math.floor(x/BIN)+','+Math.floor(y/BIN))??[]){
     if(!sgm.structure)continue;
     const d=segmentDistance(sgm,x,y).d;
     if(d>=sgm.reach)continue;
     const f=fade(sgm.half+10,sgm.reach,d);
     protection=Math.min(protection,f);
-    if(sgm.elevated)deck=Math.min(deck,f);
    }
    if(protection<1)summary.structureProtected++;
-   const base=measured&&deck<1?original+(legacy(wx,wy)-original)*(1-deck):original;
-   coarse.push(Math.round(base*100)/100);
+   // Bridges are built as decks (bridgeDecks, BridgeDeck.gd), so the ground under
+   // them is the bare earth: the creek, valley, road or rail yard below. (Before
+   // decks existed, the legacy surface was kept here as a stand-in deck.)
+   coarse.push(Math.round(original*100)/100);
   }
  }
  // Fine grid: exact midpoints of the coarse triangles (Godot PlaneMesh uses the
@@ -385,11 +449,26 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
     const prior=best.get(sgm.chain);
     if(!prior||q.d<prior.q.d)best.set(sgm.chain,{sgm,q});
    }
+   // A point that projects onto a road's interior within its bench is road,
+   // even beside or under a structure (an approach up to its abutment, a road
+   // passing under an overpass). Only ground past a road's end is protected.
+   let onBench=false;
+   for(const entry of best.values()){
+    const {sgm,q}=entry;
+    const station=sgm.sa+(sgm.sb-sgm.sa)*q.t;
+    const pastEnd=(q.raw<0&&Math.min(station,sgm.total-station)<.01&&q.t===0)||(q.raw>1&&Math.min(station,sgm.total-station)<.01&&q.t===1);
+    // The bench continues 5 m under a bridge's first metres, 5 cm below the
+    // deck, so the last ground triangles before the deck are not half valley.
+    entry.underDeck=pastEnd&&q.d<=5&&sgm.profile.fix.some(f=>Math.abs(f.end-station)<.01);
+    if((!pastEnd||entry.underDeck)&&q.d<=sgm.bench)onBench=true;
+   }
+   if(onBench)protection=1;
    if(!best.size||protection<=0)continue;
    let flatW=0,flatZ=0,lo=-Infinity,hi=Infinity,nearest=null,fadeOut=1;
-   for(const {sgm,q} of best.values()){
+   for(const {sgm,q,underDeck} of best.values()){
     const station=sgm.sa+(sgm.sb-sgm.sa)*q.t;
-    const [z,e,tx,ty]=profileAt(sgm.profile,station);
+    let [z,e,tx,ty]=profileAt(sgm.profile,station);
+    if(underDeck)z-=.05;
     if(!Number.isFinite(z))continue;
     // Lateral offset from the centreline, positive on the side the chain turns
     // toward when e > 0; superelevation lowers the inside of the curve.
@@ -420,13 +499,75 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
   }
  }
  summary.conditioned=summary.bench.vertices;
- return {h,grid:FINE,road_grade:summary};
+ const worldKey=(x,y)=>{const [wx,wy]=toWorld(x,y);return Math.round(wx*2e4)+'-'+Math.round(wy*2e4)};
+ const bridges=await bridgeDecks(structures.filter(p=>p.bridge),terminals,sample,inside,{tx0,ty0,scale},memo,worldKey);
+ summary.bench.bridges=bridges.length;
+ return {h,grid:FINE,road_grade:summary,bridges};
 }
+
+// Bridge decks. Each bridge chain runs straight in profile between the bench
+// heights of the approaches it meets (a bare-earth DEM has no deck). An end
+// without an approach in reach takes the ground there; a bridge with neither
+// end known is left out. Rows: [class, name, points in tile units clipped to
+// the tile, width, deck height per point, layer].
+async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,worldKey){
+ const rows=[];
+ for(const parts of chainPieces(pieces)){
+  const pts=[];
+  for(const part of parts){
+   const p=part.reversed?part.piece.pts.slice().reverse():part.piece.pts;
+   // Pieces clipped at a z14 edge by each side end a few centimetres apart; a
+   // joint closer than 0.5 m is one point, or the deck gets a sideways sliver.
+   for(const q of p)if(!pts.length||Math.hypot(q[0]-pts[pts.length-1][0],q[1]-pts[pts.length-1][1])>.5)pts.push(q);
+  }
+  if(pts.length<2)continue;
+  const s=arcLength(pts),length=s[s.length-1];
+  if(length<2)continue;
+  // An end measured here (its approach profile has data) is remembered in the
+  // cache, so a tile too far from that end to measure it uses the same height.
+  const endHeight=async(p)=>{
+   let best=null;
+   for(const t of terminals){const d=Math.hypot(t.x-p[0],t.y-p[1]);if(d<=3&&(!best||d<best.d))best={d,t}}
+   const key=worldKey(p[0],p[1]);
+   if(best){
+    const z=Math.round(profileAtHeight(best.t.profile,best.t.station)*100)/100;
+    if(Number.isFinite(z)&&inside(p[0],p[1])){memo?.set(key,z);return z}
+   }
+   const known=memo?.get(key);
+   if(Number.isFinite(known))return known;
+   return inside(p[0],p[1])?sample(p[0],p[1]):NaN;
+  };
+  let za=await endHeight(pts[0]),zb=await endHeight(pts[pts.length-1]);
+  if(!Number.isFinite(za)&&!Number.isFinite(zb))continue;
+  if(!Number.isFinite(za))za=zb;
+  if(!Number.isFinite(zb))zb=za;
+  const z=s.map(l=>za+(zb-za)*l/length);
+  // Clip to this tile, interpolating the deck height at the cut.
+  const out=[],heights=[],x1=tx0+scale,y1=ty0+scale;
+  const flush=()=>{if(out.length>=2){const p=parts[0].piece;rows.push([p.cls,p.name,out.slice(),p.width,heights.slice(),p.layer])}out.length=0;heights.length=0};
+  for(let k=1;k<pts.length;k++){
+   const c=clipSegment(pts[k-1][0],pts[k-1][1],pts[k][0],pts[k][1],tx0,ty0,x1,y1);
+   if(!c){flush();continue}
+   const L=Math.hypot(pts[k][0]-pts[k-1][0],pts[k][1]-pts[k-1][1])||1;
+   const fa=Math.hypot(c[0]-pts[k-1][0],c[1]-pts[k-1][1])/L,fb=Math.hypot(c[2]-pts[k-1][0],c[3]-pts[k-1][1])/L;
+   const za2=z[k-1]+(z[k]-z[k-1])*fa,zb2=z[k-1]+(z[k]-z[k-1])*fb;
+   const u=v=>Math.round(v*1e5)/1e5;
+   const a=[u((c[0]-tx0)/scale),u((c[1]-ty0)/scale)],b=[u((c[2]-tx0)/scale),u((c[3]-ty0)/scale)];
+   const last=out[out.length-1];
+   if(!last||last[0]!==a[0]||last[1]!==a[1]){flush();out.push(a);heights.push(Math.round(za2*100)/100)}
+   out.push(b);heights.push(Math.round(zb2*100)/100);
+   if(fb<.999999)flush();
+  }
+  flush();
+ }
+ return rows;
+}
+function profileAtHeight(profile,s){return gaussianLinear(profile.S,profile.Z,profile.W,s)+fixAt(profile,s)}
 
 // Distance from (x,y) to a segment, its parameter, and which side it lies on.
 function segmentDistance(sgm,x,y){
  const dx=sgm.bx-sgm.ax,dy=sgm.by-sgm.ay,l2=dx*dx+dy*dy;
  const t=limit(((x-sgm.ax)*dx+(y-sgm.ay)*dy)/l2,0,1);
  const qx=sgm.ax+t*dx,qy=sgm.ay+t*dy;
- return {d:Math.hypot(x-qx,y-qy),t,x:qx,y:qy};
+ return {d:Math.hypot(x-qx,y-qy),t,raw:((x-sgm.ax)*dx+(y-sgm.ay)*dy)/l2,x:qx,y:qy};
 }
