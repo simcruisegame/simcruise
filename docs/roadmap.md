@@ -4,6 +4,33 @@ This is the design-panel report written on 8 November 2026 against the 1.0.8 cod
 
 Each item carries an estimate in brackets: `[days · impact 1-5 · data/licence]`. **today** marks work meant for the first day on the current build; **[unverified]** marks claims the panel did not confirm in-engine. The report was written when the game was briefly called "Around Town"; that name has been replaced with SimCruise below and nothing else was changed. Items the 1.1 streams have started are tracked in the [changelog](../CHANGELOG.md); the calibration that must not regress while doing any of this is the headless `checks/Track.gd` run described in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
+## Next: the plan after the November 2026 work
+
+What landed in 1.1 is in the [changelog](../CHANGELOG.md): road benches and bridge decks, the real-road test drive, five new cars with calibrated physics and generated models, a Windows build and steep-slope ground. This is the ordered list that follows, with what each item is measured by.
+
+**Driving**
+1. **Slip-dependent tyre curve** (Pacejka-style peak and fall-off, load-dependent relaxation). Unlocks working traction control, more honest launches (the Meridian's open 0–60 item) and crisper breakaway. Gate: `Track.gd` and `CarTrack.gd` stay in band; `KeyboardTap` and `SteerTransient` do not regress.
+2. **Volumetric tyres**: replace the single ray per wheel with a shape cast so kerbs, potholes and bridge joints are felt over the contact patch. Gate: `RoadDrive` jolt counts on the Dragon and I-180 do not rise.
+3. **Engine voices per car**: a V6, a V8 and an electric motor whine next to the four-cylinder; the electric car is silent today.
+4. **Tunnels**: carve the terrain along mapped tunnels instead of dropping them; roads currently end at portals.
+5. **Floating origin check**: confirm long drives do not jitter far from the session origin, and rebase the world if they do.
+
+**Places that look like the real place**
+1. **Forest floor under canopy**: aerial photographs show treetops, often leaf-off, so forest floors render pale blue-grey (seen at Deals Gap). Use the WRI/Meta canopy height already downloaded: where canopy stands over 3 m, draw litter and shade instead of the photograph. Gate: before/after captures at the same place and pinned sun.
+2. **Earthwork from the road bench**: the helper knows where it cut into or filled a hillside; pass that to the ground so cuts read as rock and fills as grass (the shader's steep-slope rock already covers the steepest faces).
+3. **Sharper state imagery**: statewide 6-inch (15 cm) orthophotos where states publish them free (North Carolina's NC OneMap first, then others), four times sharper than the national 60 cm imagery; one source and licence at a time.
+4. **Buildings with character**: occupancy from FEMA USA Structures, facade and roof colour, material and shape from Overture building parts, year built from county parcels (or Census median year built per block group) choosing an era; a procedural facade "recipe" from era, use, region and material, built from one small CC0 texture atlas.
+5. **Lot detail from parcels**: driveways, fences, garages, mailboxes with house numbers.
+6. **Real lane counts, shoulders and road roughness** from FHWA HPMS and OpenStreetMap lanes, so a two-lane interstate is two lanes and old pavement feels old.
+7. **A realism score**: render the exact spot of a licensed Panoramax street photograph and measure how close the game comes, so visual changes get numbers like the physics does.
+
+**Runs everywhere**
+1. **Quality presets** (Low, Medium, High, Ultra) with Low chosen automatically on 8 GB, small-GPU machines such as the MacBook Neo: render scale, shadow distance, canopy density, tile ring. Gate: `RenderCost` frame times on each preset.
+2. **Level of detail** for the generated cars and distant buildings; impostors past 700 m.
+3. **The Windows build tested on real Windows** before the first release that ships it (under Wine only the installer and the helper could be verified).
+
+**Ideas collected from contributors** (not yet scheduled): speed-based camera field of view and subtle lean, wet and dirt maps from live weather, in-editor authoring tools in place of the Python scripts, quadtree terrain level of detail.
+
 ---
 
 ## The panel report: SimCruise — how we get to real (8 November 2026)
