@@ -1,5 +1,8 @@
 extends SceneTree
-## godot --headless --path game --script res://checks/RoadProfile.gd -- [--tiles=18585_25423,…] [--step=1] [--all] [--without-road-smoothing]
+## godot --headless --path game --script res://checks/RoadProfile.gd -- [--tiles=18585_25423,…] [--step=1] [--all] [--dir=/abs/path] [--without-road-smoothing]
+## --dir= reads streamed tiles (`atlas tile CACHE X Y` output saved as X_Y.json) from any folder,
+## so a rough road reported anywhere can be measured; with no --tiles it takes every tile there.
+## --classes=primary,secondary limits the table to those OSM road classes.
 ## Builds bundled tiles through WorldTile.build exactly as the streamer does, then walks
 ## every road centreline at fixed steps over the generated ground collider (what the tyres
 ## touch) and over height_at() (what the camera and props use). It reports slope changes per
@@ -22,12 +25,20 @@ func _initialize():
   if arg.begins_with("--tiles="):tiles=Array(arg.trim_prefix("--tiles=").split(",",false))
   elif arg.begins_with("--step="):step_m=maxf(.25,float(arg.trim_prefix("--step=")))
  if "--all" in args:tiles=bundled_tiles()
+ var folder="res://data"
+ var classes=[]
+ for arg in args:
+  if arg.begins_with("--classes="):classes=Array(arg.trim_prefix("--classes=").split(",",false))
+ for arg in args:
+  if arg.begins_with("--dir="):
+   folder=arg.trim_prefix("--dir=")
+   if not "--tiles=" in " ".join(args):tiles=bundled_tiles(folder)
  var mats=materials()
  var collider_rows={};var surface_rows={};var tile_lines=[];var failed=0
  # Drive.gd gives every tile of a session the metre scale of the chosen place; use the first tile's row.
  var side=0.
  for id in tiles:
-  var path="res://data/%s.json"%id
+  var path=folder.path_join("%s.json"%id)
   if not FileAccess.file_exists(path):tile_lines.append("%s missing"%id);failed+=1;continue
   var data=JSON.parse_string(FileAccess.get_file_as_string(path))
   if not data is Dictionary or not data.has("roads") or not data.has("h"):tile_lines.append("%s unreadable"%id);failed+=1;continue
@@ -42,7 +53,8 @@ func _initialize():
   var index=index_faces(faces,bin)
   var tile_max=0.;var tile_creases=0;var tile_km=0.;var gap=0.
   for road in data.roads:
-   var name=str(road[2]) if str(road[2])!="" else "(unnamed)"
+   if not classes.is_empty() and not str(road[0]) in classes:continue
+   var name=str(road[2]) if str(road[2])!="" else "(unnamed %s)"%road[0]
    var stations=walk(road[3],side)
    if stations.size()<3:continue
    var on_collider=PackedFloat64Array();var on_surface=PackedFloat64Array()
@@ -106,9 +118,9 @@ func seams()->Dictionary:
  for line in offenders.slice(0,12):print("  seam mismatch "+line)
  return {"count":count,"raw":raw,"introduced":introduced}
 
-func bundled_tiles()->Array:
+func bundled_tiles(folder:="res://data")->Array:
  var out=[]
- for file in DirAccess.get_files_at("res://data"):
+ for file in DirAccess.get_files_at(folder):
   if file.get_extension()=="json" and file.get_basename().is_valid_int()==false and file.count("_")==1:
    var parts=file.get_basename().split("_")
    if parts.size()==2 and parts[0].is_valid_int() and parts[1].is_valid_int():out.append(file.get_basename())

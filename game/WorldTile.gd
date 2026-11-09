@@ -87,6 +87,8 @@ func smooth_road_corridors()->void:
  var roads:Array=info.get("roads",[])
  var n=grid_steps;var count=(n+1)*(n+1);var h=info.h
  if roads.is_empty() or h.size()!=count or info.get("survey_ground_nodes",0)>0 or "--without-road-smoothing" in OS.get_cmdline_user_args():return
+ # The helper already built road benches from world-anchored data (road-grade.mjs v2).
+ if int(info.get("road_grade",{}).get("version",0))>=2:return
  var started=Time.get_ticks_usec()
  var fixed={}
  var roadbed:Array=info.get("roadbed",[])
@@ -499,7 +501,10 @@ func ground_mesh(mat):
  terrain_material=mat
  preload("res://GroundFinish.gd").bind(mat,materials,info.id,side)
  mat.set_shader_parameter("recent_quadrant",Vector2(int(info.id[0])%4,int(info.id[1])%4))
- if info.get("bank_detail_active",false):
+ # A 128 grid is drawn adaptively: cells split only where the detail differs
+ # from the coarse surface (road benches, surveyed banks), so flat or untouched
+ # ground costs what a 64 grid did.
+ if info.get("bank_detail_active",false) or (grid_steps==128 and info.h.size()==129*129):
   var fine=preload("res://RoadBankMesh.gd").make(info.h,side,mat)
   if surveyed_outcrop:
    make_outcrop_ground(fine.surface_get_arrays(0),mat)

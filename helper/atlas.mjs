@@ -81,7 +81,10 @@ async function chunk(X,Y){
  const [buf,elev,street_objects,ground]=await Promise.all([data('v-'+mx+'-'+my,url),data('h-'+ex+'-'+ey,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+ex+'/'+ey+'.png'),fetchObjects(X,Y,cache,readCached),measuredGround(X,Y,cache,readCached)]);
  const vector=buf[0]===31?gunzipSync(buf):buf;
  const tile=vectorTile(vector),dem=decode(elev);
- const terrain=await streamedTerrain(X,Y,tile,dem,widths,(x,y)=>data('h-'+x+'-'+y,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+x+'/'+y+'.png'),ground);
+ // A neighbouring z14 vector tile is read only when a road crosses into it near
+ // this tile; the 3 × 3 ring would request it moments later anyway.
+ const readVector=async(nx,ny)=>{const raw=await data('v-'+nx+'-'+ny,meta.tiles[0].replace('{z}','14').replace('{x}',nx).replace('{y}',ny));return vectorTile(raw[0]===31?gunzipSync(raw):raw)};
+ const terrain=await streamedTerrain(X,Y,tile,dem,widths,(x,y)=>data('h-'+x+'-'+y,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+x+'/'+y+'.png'),ground,readVector);
  if(!args.includes('--without-road-banks'))applyRoadBanks(X,Y,tile,widths,terrain,cachedBankSurface(X,Y,cache));
  const roads=[],buildings=buildingRows(tile.layers.building,X,Y),land=[],pois=[];
  const each=(name,fn)=>{const layer=tile.layers[name];if(!layer)return;for(let i=0;i<layer.length;i++){const f=layer.feature(i);const box=f.bbox(),t=f.extent/4,sx=(X%4)*t,sy=(Y%4)*t;if(box[2]<sx||box[0]>sx+t||box[3]<sy||box[1]>sy+t)continue;fn(f,p=>[rounded((p.x-sx)/t),rounded((p.y-sy)/t)])}};

@@ -7,14 +7,18 @@ const COUNT:=W*W
 
 static func apply(data:Dictionary)->void:
  var record=data.get("road_banks",{})
- if record.get("detailGrid",0)!=N or record.get("datum","")!="NAVD88" or data.get("grid",0)!=64:return
+ if record.get("detailGrid",0)!=N or record.get("datum","")!="NAVD88" or not int(data.get("grid",0)) in [64,N]:return
  var changes=record.get("deltas",[])
  # A site-specific surveyed grade and an explicitly authored roadbed have priority.
  if data.get("survey_ground_nodes",0)>0 or not data.get("roadbed",[]).is_empty() or data.get("field",false):
   record.erase("deltas")
   return
  var coarse=data.get("h",[])
- if coarse.size()!=65*65 or changes.is_empty() or changes.size()%2!=0 or changes.size()>2*COUNT:return
+ if changes.is_empty() or changes.size()%2!=0 or changes.size()>2*COUNT:return
+ if int(data.grid)==N:
+  # Road-bench tiles already arrive on the detail grid.
+  if coarse.size()!=COUNT:return
+ elif coarse.size()!=65*65:return
  var last=-1
  for i in range(0,changes.size(),2):
   var index=int(changes[i])
@@ -22,14 +26,8 @@ static func apply(data:Dictionary)->void:
   last=index
  var fine=PackedFloat64Array()
  fine.resize(COUNT)
- for j in W:
-  for i in W:
-   var k=(j>>1)*65+(i>>1)
-   # Under Godot PlaneMesh the center lies on the NE/SW diagonal.
-   if i%2 and j%2:fine[j*W+i]=(coarse[k+1]+coarse[k+65])*.5
-   elif i%2:fine[j*W+i]=(coarse[k]+coarse[k+1])*.5
-   elif j%2:fine[j*W+i]=(coarse[k]+coarse[k+65])*.5
-   else:fine[j*W+i]=coarse[k]
+ if int(data.grid)==N:fine=PackedFloat64Array(coarse)
+ else:upsample(coarse,fine)
  var surveyed=PackedInt32Array()
  for i in range(0,changes.size(),2):
   fine[int(changes[i])]+=float(changes[i+1])*.001
@@ -40,6 +38,17 @@ static func apply(data:Dictionary)->void:
  data["bank_detail_active"]=true
  # Measured bank posts keep their height through the road-corridor smoothing.
  data["bank_detail_nodes"]=surveyed
+
+# Exact midpoints of the coarse 64 grid's triangles on the 128 detail grid.
+static func upsample(coarse:Array,fine:PackedFloat64Array)->void:
+ for j in W:
+  for i in W:
+   var k=(j>>1)*65+(i>>1)
+   # Under Godot PlaneMesh the center lies on the NE/SW diagonal.
+   if i%2 and j%2:fine[j*W+i]=(coarse[k+1]+coarse[k+65])*.5
+   elif i%2:fine[j*W+i]=(coarse[k]+coarse[k+1])*.5
+   elif j%2:fine[j*W+i]=(coarse[k]+coarse[k+65])*.5
+   else:fine[j*W+i]=coarse[k]
 
 static func mark(splits:PackedByteArray,h:PackedFloat64Array,a:int,b:int,c:int)->void:
  var ab=(a+b)>>1;var bc=(b+c)>>1;var ca=(c+a)>>1
