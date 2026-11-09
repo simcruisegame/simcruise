@@ -1,0 +1,168 @@
+{
+ "inertia": [
+  2302,
+  2567,
+  640
+ ],
+ "collision_box": [
+  1.71,
+  0.62,
+  4.37
+ ],
+ "collision_box_y": 0.67,
+ "mount_height_m": 0.5436,
+ "static_length_m": 0.217,
+ "unsprung_corner_kg": 35.0,
+ "wheel_rate_n_m": [
+  48033,
+  38337
+ ],
+ "reference_corner_load_n": 3726.5,
+ "max_contact_load_n": 20694,
+ "coil_lb_in": [
+  0.0,
+  0.0
+ ],
+ "lever_ratio": [
+  1.0,
+  1.0
+ ],
+ "bar_diameter_m": [
+  0.0,
+  0.0
+ ],
+ "damper": [
+  "ratio",
+  "ratio"
+ ],
+ "damper_dyno": [
+  [],
+  []
+ ],
+ "_comment": "All-wheel-drive sports sedan, turbo flat four, six-speed manual. Reference: 2022 Subaru WRX (fictional name and body).",
+ "id": "tora_rs",
+ "name": "Tora RS",
+ "make": "Hayate",
+ "body": "sedan",
+ "seats": 5,
+ "mass_kg": 1520.0,
+ "front_weight": 0.6,
+ "cg_height_m": 0.52,
+ "wheelbase_m": 2.677,
+ "track_front_m": 1.565,
+ "track_rear_m": 1.58,
+ "tire_width_m": 0.245,
+ "tire_aspect_ratio": 0.4,
+ "rim_in": 18.0,
+ "static_mu": 1.1051,
+ "lateral_grip_scale": 1.0055,
+ "drag_area_m2": 0.73,
+ "parking_rack_deg": 35.0,
+ "road_reference_deg": 33.0,
+ "brake_front_nm": 2200.0,
+ "brake_rear_nm": 1200.0,
+ "parking_brake_nm": 1100.0,
+ "engine": "combustion",
+ "torque_curve": [
+  [
+   800,
+   170
+  ],
+  [
+   1600,
+   280
+  ],
+  [
+   2000,
+   350
+  ],
+  [
+   5200,
+   350
+  ],
+  [
+   5600,
+   344
+  ],
+  [
+   6000,
+   310
+  ],
+  [
+   6200,
+   290
+  ]
+ ],
+ "torque_past_curve_nm": 260.0,
+ "idle_rpm": 750.0,
+ "idle_omega": 79.0,
+ "governor_rpm": 775.0,
+ "fuel_cut_rpm": 6300.0,
+ "max_gear_rpm": 6500.0,
+ "engine_inertia": 0.2,
+ "gears": [
+  3.454,
+  1.947,
+  1.296,
+  0.972,
+  0.78,
+  0.666
+ ],
+ "reverse_ratio": 3.636,
+ "final_drive": 4.111,
+ "driveline_efficiency": 0.86,
+ "shift_seconds": 0.17,
+ "upshift_rpm": 6250.0,
+ "upshift_min_omega": 540.0,
+ "downshift_rpm": 2000.0,
+ "clutch_capacity_nm": 450.0,
+ "clutch_back_nm": 430.0,
+ "launch_rpm": 2000.0,
+ "launch_rpm_per_throttle": 2500.0,
+ "layout": "awd",
+ "awd_front_share": 0.5,
+ "center_bias": 2.0,
+ "front_diff_bias": 1.0,
+ "rear_diff_bias": 2.0,
+ "transmission": "manual",
+ "bar_rate_n_m": [
+  28000.0,
+  18000.0
+ ],
+ "damper_ratio_rebound": [
+  0.5,
+  0.5
+ ],
+ "damper_ratio_compression": [
+  0.3,
+  0.3
+ ],
+ "damper_knee_mps": [
+  0.12,
+  0.12
+ ],
+ "damper_knee_slope": [
+  0.45,
+  0.45
+ ],
+ "static_camber_deg": [
+  -0.8,
+  -1.3
+ ],
+ "camber_per_m": [
+  20.0,
+  22.0
+ ],
+ "caster_deg": 6.0,
+ "toe_per_wheel_deg": 0.05,
+ "target_0_60_s": 5.5,
+ "target_70_0_ft": 153.0,
+ "target_skidpad_g": 0.95,
+ "sources": {
+  "calibration": "2022 WRX as reported from Car and Driver: 0-60 mph 5.5 s, 70-0 mph 153 ft, 0.95 g; about 3350 lb.",
+  "engine": "271 hp, 258 lb-ft from 2000-5200 rpm (Subaru); curve shape estimated.",
+  "gearing": "Six-speed ratios and 4.111 final drive: unverified.",
+  "estimates": "Weight split, centre of gravity, inertia (scaled), spring and bar rates (1.7/1.9 Hz), dampers, centre coupling, brakes, tyre grip (calibrated)."
+ },
+ "traction_control": false
+}
