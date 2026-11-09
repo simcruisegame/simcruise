@@ -1,0 +1,13 @@
+{
+  "ground_controls": 2376,
+  "roof_holdout": 1110,
+  "roof_error_m": [
+    0.09078738001780096,
+    0.6422494155579564
+  ],
+  "tower_holdout": 68,
+  "tower_radial_error_m": [
+    0.3838215909662839,
+    0.9445057242588342
+  ]
+}

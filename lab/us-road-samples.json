@@ -1,0 +1,852 @@
+[
+  {
+    "state": "AL",
+    "town": "Montgomery",
+    "lat": 32.377,
+    "lon": -86.3,
+    "tile": [
+      17057,
+      26532
+    ],
+    "roads": 76,
+    "terrain_samples": 4225,
+    "terrain_min_m": 63.18,
+    "terrain_max_m": 91.52,
+    "first_requests": 4,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "AK",
+    "town": "Anchorage",
+    "lat": 61.2174,
+    "lon": -149.8938,
+    "tile": [
+      5480,
+      18579
+    ],
+    "roads": 25,
+    "terrain_samples": 4225,
+    "terrain_min_m": 31.72,
+    "terrain_max_m": 65.16,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "AZ",
+    "town": "Phoenix",
+    "lat": 33.4485,
+    "lon": -112.0741,
+    "tile": [
+      12365,
+      26300
+    ],
+    "roads": 93,
+    "terrain_samples": 4225,
+    "terrain_min_m": 329.9,
+    "terrain_max_m": 331.27,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "AR",
+    "town": "Little Rock",
+    "lat": 34.7465,
+    "lon": -92.2896,
+    "tile": [
+      15967,
+      26014
+    ],
+    "roads": 86,
+    "terrain_samples": 4225,
+    "terrain_min_m": 74.9,
+    "terrain_max_m": 102.49,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "CA",
+    "town": "Sacramento",
+    "lat": 38.5794,
+    "lon": -121.49,
+    "tile": [
+      10651,
+      25144
+    ],
+    "roads": 94,
+    "terrain_samples": 4225,
+    "terrain_min_m": 6.05,
+    "terrain_max_m": 8.76,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "CO",
+    "town": "Denver",
+    "lat": 39.7394,
+    "lon": -104.9846,
+    "tile": [
+      13656,
+      24872
+    ],
+    "roads": 145,
+    "terrain_samples": 4225,
+    "terrain_min_m": 1603.35,
+    "terrain_max_m": 1614.81,
+    "first_requests": 5,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "CT",
+    "town": "Hartford",
+    "lat": 41.764,
+    "lon": -72.683,
+    "tile": [
+      19536,
+      24385
+    ],
+    "roads": 37,
+    "terrain_samples": 4225,
+    "terrain_min_m": 7.15,
+    "terrain_max_m": 25.94,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "DE",
+    "town": "Dover",
+    "lat": 39.157,
+    "lon": -75.521,
+    "tile": [
+      19019,
+      25009
+    ],
+    "roads": 82,
+    "terrain_samples": 4225,
+    "terrain_min_m": 0.75,
+    "terrain_max_m": 10.7,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "FL",
+    "town": "Miami",
+    "lat": 25.7484,
+    "lon": -80.2089,
+    "tile": [
+      18166,
+      27914
+    ],
+    "roads": 69,
+    "terrain_samples": 4225,
+    "terrain_min_m": -0.4,
+    "terrain_max_m": 14,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "GA",
+    "town": "Atlanta",
+    "lat": 33.749,
+    "lon": -84.389,
+    "tile": [
+      17405,
+      26234
+    ],
+    "roads": 97,
+    "terrain_samples": 4225,
+    "terrain_min_m": 301.31,
+    "terrain_max_m": 320.49,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "HI",
+    "town": "Honolulu",
+    "lat": 21.3089,
+    "lon": -157.861,
+    "tile": [
+      4030,
+      28796
+    ],
+    "roads": 62,
+    "terrain_samples": 4225,
+    "terrain_min_m": 0.79,
+    "terrain_max_m": 7.27,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "ID",
+    "town": "Boise",
+    "lat": 43.617,
+    "lon": -116.2,
+    "tile": [
+      11614,
+      23926
+    ],
+    "roads": 77,
+    "terrain_samples": 4225,
+    "terrain_min_m": 823.9,
+    "terrain_max_m": 828.07,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "IL",
+    "town": "Springfield",
+    "lat": 39.799,
+    "lon": -89.654,
+    "tile": [
+      16446,
+      24858
+    ],
+    "roads": 97,
+    "terrain_samples": 4225,
+    "terrain_min_m": 177.27,
+    "terrain_max_m": 183.14,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "IN",
+    "town": "Indianapolis",
+    "lat": 39.769,
+    "lon": -86.162,
+    "tile": [
+      17082,
+      24865
+    ],
+    "roads": 70,
+    "terrain_samples": 4225,
+    "terrain_min_m": 212.16,
+    "terrain_max_m": 218.54,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "IA",
+    "town": "Des Moines",
+    "lat": 41.59,
+    "lon": -93.605,
+    "tile": [
+      15727,
+      24428
+    ],
+    "roads": 74,
+    "terrain_samples": 4225,
+    "terrain_min_m": 241.89,
+    "terrain_max_m": 272.96,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "KS",
+    "town": "Topeka",
+    "lat": 39.048,
+    "lon": -95.678,
+    "tile": [
+      15350,
+      25035
+    ],
+    "roads": 46,
+    "terrain_samples": 4225,
+    "terrain_min_m": 284.75,
+    "terrain_max_m": 291.72,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "KY",
+    "town": "Frankfort",
+    "lat": 38.2,
+    "lon": -84.877,
+    "tile": [
+      17316,
+      25232
+    ],
+    "roads": 50,
+    "terrain_samples": 4225,
+    "terrain_min_m": 143.64,
+    "terrain_max_m": 191.91,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "LA",
+    "town": "Baton Rouge",
+    "lat": 30.455,
+    "lon": -91.188,
+    "tile": [
+      16167,
+      26942
+    ],
+    "roads": 45,
+    "terrain_samples": 4225,
+    "terrain_min_m": 4.53,
+    "terrain_max_m": 19.97,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "ME",
+    "town": "Augusta",
+    "lat": 44.31,
+    "lon": -69.781,
+    "tile": [
+      20064,
+      23751
+    ],
+    "roads": 103,
+    "terrain_samples": 4225,
+    "terrain_min_m": 32.18,
+    "terrain_max_m": 54.16,
+    "first_requests": 5,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "MD",
+    "town": "Annapolis",
+    "lat": 38.978,
+    "lon": -76.491,
+    "tile": [
+      18843,
+      25051
+    ],
+    "roads": 76,
+    "terrain_samples": 4225,
+    "terrain_min_m": 0.43,
+    "terrain_max_m": 17.21,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "MA",
+    "town": "Cambridge",
+    "lat": 42.365183,
+    "lon": -71.134311,
+    "tile": [
+      19818,
+      24238
+    ],
+    "roads": 60,
+    "terrain_samples": 4225,
+    "terrain_min_m": 2.41,
+    "terrain_max_m": 5.83,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "MI",
+    "town": "Lansing",
+    "lat": 42.734,
+    "lon": -84.555,
+    "tile": [
+      17375,
+      24147
+    ],
+    "roads": 62,
+    "terrain_samples": 4225,
+    "terrain_min_m": 253.58,
+    "terrain_max_m": 262.54,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "MN",
+    "town": "Saint Paul",
+    "lat": 44.953,
+    "lon": -93.09,
+    "tile": [
+      15821,
+      23587
+    ],
+    "roads": 93,
+    "terrain_samples": 4225,
+    "terrain_min_m": 225.81,
+    "terrain_max_m": 237.54,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "MS",
+    "town": "Jackson",
+    "lat": 32.299,
+    "lon": -90.184,
+    "tile": [
+      16350,
+      26549
+    ],
+    "roads": 75,
+    "terrain_samples": 4225,
+    "terrain_min_m": 78.63,
+    "terrain_max_m": 91.35,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "MO",
+    "town": "Jefferson City",
+    "lat": 38.577,
+    "lon": -92.173,
+    "tile": [
+      15988,
+      25145
+    ],
+    "roads": 51,
+    "terrain_samples": 4225,
+    "terrain_min_m": 169.81,
+    "terrain_max_m": 195.57,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "MT",
+    "town": "Helena",
+    "lat": 46.588,
+    "lon": -112.024,
+    "tile": [
+      12374,
+      23160
+    ],
+    "roads": 16,
+    "terrain_samples": 4225,
+    "terrain_min_m": 1240.77,
+    "terrain_max_m": 1264.37,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "NE",
+    "town": "Lincoln",
+    "lat": 40.809,
+    "lon": -96.675,
+    "tile": [
+      15168,
+      24617
+    ],
+    "roads": 20,
+    "terrain_samples": 4225,
+    "terrain_min_m": 357.83,
+    "terrain_max_m": 376.5,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "NV",
+    "town": "Carson City",
+    "lat": 39.164,
+    "lon": -119.767,
+    "tile": [
+      10965,
+      25008
+    ],
+    "roads": 53,
+    "terrain_samples": 4225,
+    "terrain_min_m": 1420.39,
+    "terrain_max_m": 1426.98,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "NH",
+    "town": "Concord",
+    "lat": 43.206,
+    "lon": -71.538,
+    "tile": [
+      19744,
+      24029
+    ],
+    "roads": 43,
+    "terrain_samples": 4225,
+    "terrain_min_m": 79.46,
+    "terrain_max_m": 98.02,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "NJ",
+    "town": "Trenton",
+    "lat": 40.22,
+    "lon": -74.768,
+    "tile": [
+      19156,
+      24758
+    ],
+    "roads": 64,
+    "terrain_samples": 4225,
+    "terrain_min_m": 0.85,
+    "terrain_max_m": 16.51,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "NM",
+    "town": "Santa Fe",
+    "lat": 35.682,
+    "lon": -105.94,
+    "tile": [
+      13482,
+      25806
+    ],
+    "roads": 107,
+    "terrain_samples": 4225,
+    "terrain_min_m": 2130.14,
+    "terrain_max_m": 2146.06,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "NY",
+    "town": "Albany",
+    "lat": 42.652,
+    "lon": -73.757,
+    "tile": [
+      19340,
+      24167
+    ],
+    "roads": 59,
+    "terrain_samples": 4225,
+    "terrain_min_m": 32.17,
+    "terrain_max_m": 58.55,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "NC",
+    "town": "Raleigh",
+    "lat": 35.78,
+    "lon": -78.639,
+    "tile": [
+      18452,
+      25784
+    ],
+    "roads": 114,
+    "terrain_samples": 4225,
+    "terrain_min_m": 97.87,
+    "terrain_max_m": 110.33,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "ND",
+    "town": "Bismarck",
+    "lat": 46.808,
+    "lon": -100.783,
+    "tile": [
+      14421,
+      23101
+    ],
+    "roads": 62,
+    "terrain_samples": 4225,
+    "terrain_min_m": 510.68,
+    "terrain_max_m": 523.3,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "OH",
+    "town": "Columbus",
+    "lat": 39.961,
+    "lon": -82.999,
+    "tile": [
+      17658,
+      24819
+    ],
+    "roads": 73,
+    "terrain_samples": 4225,
+    "terrain_min_m": 226.9,
+    "terrain_max_m": 237.96,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "OK",
+    "town": "Oklahoma City",
+    "lat": 35.468,
+    "lon": -97.517,
+    "tile": [
+      15015,
+      25854
+    ],
+    "roads": 67,
+    "terrain_samples": 4225,
+    "terrain_min_m": 356.85,
+    "terrain_max_m": 367.8,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "OR",
+    "town": "Salem",
+    "lat": 44.939,
+    "lon": -123.031,
+    "tile": [
+      10370,
+      23590
+    ],
+    "roads": 83,
+    "terrain_samples": 4225,
+    "terrain_min_m": 45.2,
+    "terrain_max_m": 52.68,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "PA",
+    "town": "Harrisburg",
+    "lat": 40.264,
+    "lon": -76.884,
+    "tile": [
+      18771,
+      24747
+    ],
+    "roads": 58,
+    "terrain_samples": 4225,
+    "terrain_min_m": 100.08,
+    "terrain_max_m": 110.29,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "RI",
+    "town": "Providence",
+    "lat": 41.825,
+    "lon": -71.412,
+    "tile": [
+      19767,
+      24370
+    ],
+    "roads": 72,
+    "terrain_samples": 4225,
+    "terrain_min_m": 0.52,
+    "terrain_max_m": 12.65,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "SC",
+    "town": "Columbia",
+    "lat": 34.001,
+    "lon": -81.034,
+    "tile": [
+      18016,
+      26179
+    ],
+    "roads": 103,
+    "terrain_samples": 4225,
+    "terrain_min_m": 81.8,
+    "terrain_max_m": 97.71,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "SD",
+    "town": "Pierre",
+    "lat": 44.368,
+    "lon": -100.351,
+    "tile": [
+      14499,
+      23736
+    ],
+    "roads": 34,
+    "terrain_samples": 4225,
+    "terrain_min_m": 438.29,
+    "terrain_max_m": 471.05,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "TN",
+    "town": "Nashville",
+    "lat": 36.163,
+    "lon": -86.782,
+    "tile": [
+      16969,
+      25698
+    ],
+    "roads": 90,
+    "terrain_samples": 4225,
+    "terrain_min_m": 138.64,
+    "terrain_max_m": 163.96,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "TX",
+    "town": "Austin",
+    "lat": 30.271,
+    "lon": -97.743,
+    "tile": [
+      14974,
+      26981
+    ],
+    "roads": 109,
+    "terrain_samples": 4225,
+    "terrain_min_m": 151.06,
+    "terrain_max_m": 168.66,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "UT",
+    "town": "Salt Lake City",
+    "lat": 40.768,
+    "lon": -111.889,
+    "tile": [
+      12399,
+      24627
+    ],
+    "roads": 99,
+    "terrain_samples": 4225,
+    "terrain_min_m": 1304.65,
+    "terrain_max_m": 1319.38,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "VT",
+    "town": "Stowe",
+    "lat": 44.4654,
+    "lon": -72.6877,
+    "tile": [
+      19535,
+      23711
+    ],
+    "roads": 30,
+    "terrain_samples": 4225,
+    "terrain_min_m": 208.38,
+    "terrain_max_m": 274.69,
+    "first_requests": 5,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "VA",
+    "town": "Chula",
+    "lat": 37.370268,
+    "lon": -77.906945,
+    "tile": [
+      18585,
+      25423
+    ],
+    "roads": 8,
+    "terrain_samples": 4225,
+    "terrain_min_m": 84.99,
+    "terrain_max_m": 97.29,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "WA",
+    "town": "Olympia",
+    "lat": 47.038,
+    "lon": -122.901,
+    "tile": [
+      10394,
+      23040
+    ],
+    "roads": 66,
+    "terrain_samples": 4225,
+    "terrain_min_m": 3.15,
+    "terrain_max_m": 36.73,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "WV",
+    "town": "Charleston",
+    "lat": 38.35,
+    "lon": -81.632,
+    "tile": [
+      17907,
+      25198
+    ],
+    "roads": 163,
+    "terrain_samples": 4225,
+    "terrain_min_m": 181,
+    "terrain_max_m": 184.19,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "WI",
+    "town": "Madison",
+    "lat": 43.074,
+    "lon": -89.384,
+    "tile": [
+      16496,
+      24062
+    ],
+    "roads": 111,
+    "terrain_samples": 4225,
+    "terrain_min_m": 258.39,
+    "terrain_max_m": 281.64,
+    "first_requests": 3,
+    "repeat_requests": 0,
+    "passed": true
+  },
+  {
+    "state": "WY",
+    "town": "Cheyenne",
+    "lat": 41.14,
+    "lon": -104.82,
+    "tile": [
+      13686,
+      24537
+    ],
+    "roads": 66,
+    "terrain_samples": 4225,
+    "terrain_min_m": 1852.66,
+    "terrain_max_m": 1857.47,
+    "first_requests": 2,
+    "repeat_requests": 0,
+    "passed": true
+  }
+]

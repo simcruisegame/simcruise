@@ -1,0 +1,75 @@
+{
+  "material": {
+    "name": "Sandy Gravel 02",
+    "author": "Dario Barresi",
+    "page": "https://polyhaven.com/a/sandy_gravel_02",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://polyhaven.com/license",
+    "sizeMetres": 2.53,
+    "use": "near ground microdetail after soil-color observation",
+    "built": {
+      "path": "game/data/mineral-ground.png",
+      "sha256": "8581244d8c602877faa6a1f33015db58d292f9c19302777bc3c89e1a75c78b2a",
+      "widthPx": 512,
+      "channels": [
+        "relative linear diffuse luminance",
+        "relative displacement",
+        "roughness"
+      ]
+    },
+    "inputs": {
+      "Diffuse": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sandy_gravel_02/sandy_gravel_02_diff_1k.jpg",
+        "md5": "e8f0496f1e0e923514470171de033bf9"
+      },
+      "Displacement": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sandy_gravel_02/sandy_gravel_02_disp_1k.jpg",
+        "md5": "fd62d54065e010038a9c47864c314cca"
+      },
+      "Rough": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sandy_gravel_02/sandy_gravel_02_rough_1k.jpg",
+        "md5": "bbd5bd1358d0a3f7dbdee52707c126c1"
+      }
+    }
+  },
+  "plant": {
+    "path": "game/Rangeland.gd",
+    "license": "MIT",
+    "method": "procedural stem and leaf mesh, deterministically instanced within supported cover, with local aerial cues"
+  },
+  "sensors": [
+    {
+      "site": "Utah",
+      "stac": "S2A_T12SWG_20261106T181016_L2A",
+      "lat": 37.101444,
+      "lon": -109.990814,
+      "crop": "27x27 pixels centred on containing native 10 m pixel",
+      "direct": 608,
+      "redEstimated": 106
+    },
+    {
+      "site": "LaSal",
+      "stac": "S2A_T12SXH_20261106T181016_L2A",
+      "lat": 38.139858,
+      "lon": -109.371372,
+      "crop": "27x27 pixels centred on containing native 10 m pixel",
+      "direct": 729,
+      "redEstimated": 0
+    }
+  ],
+  "sources": {
+    "cover": "https://rangelands.app/support/71-api-documentation",
+    "height": "https://www.mrlc.gov/data/rcmap-shrub-height",
+    "reflectanceEncoding": "https://sentiwiki.copernicus.eu/web/glossary"
+  },
+  "licenses": {
+    "sensor": "Contains modified Copernicus Sentinel data 2026",
+    "photo": {
+      "author": "Ken Lund",
+      "date": "2018-03-20",
+      "original": "https://commons.wikimedia.org/wiki/File:La_Sal_Mountains_From_U.S._Route_191_Between_Monticello_and_Moab,_Utah.jpg",
+      "license": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "use": "resized location photograph in the comparison only"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "size": [
+    513,
+    383
+  ],
+  "index": {
+    "0": "excluded",
+    "1": "building / wall",
+    "2": "tree / shrub",
+    "3": "grass",
+    "4": "road",
+    "5": "sidewalk"
+  },
+  "palette": {
+    "0": [
+      54,
+      58,
+      61
+    ],
+    "1": [
+      255,
+      162,
+      50
+    ],
+    "2": [
+      33,
+      195,
+      116
+    ],
+    "3": [
+      172,
+      210,
+      47
+    ],
+    "4": [
+      206,
+      81,
+      189
+    ],
+    "5": [
+      246,
+      206,
+      118
+    ]
+  },
+  "source": "https://kartaview.org/details/11591982/217",
+  "author": "mrmappenburger",
+  "attribution": "\u00a9 Grab and KartaView contributors. Captured by mrmappenburger. Resized and adapted with DeepLab semantic masks.",
+  "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "model": "https://www.kaggle.com/models/tensorflow/deeplab/TfJs/ade20k-1-quantized",
+  "notice": "Model labels are estimates. Disabled areas include the camera car, unrecognized objects, sky and mask boundaries."
+}

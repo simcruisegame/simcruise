@@ -1,0 +1,31 @@
+{
+  "base_has_photos": false,
+  "baseline_children": 17,
+  "contacts": 4,
+  "renderer": "Apple A18 Pro (Apple9)",
+  "road": "Church Street",
+  "survey_children": 26,
+  "survey_has_photos": true,
+  "tile": [
+    19880.0,
+    23726.0
+  ],
+  "views": {
+    "church-street": {
+      "axis": "vertical",
+      "eye_m": 1.00491373062135,
+      "fov": 67.0,
+      "heading": 341.159315981995,
+      "lat": 44.4077726473649,
+      "lon": -70.7932461733253
+    },
+    "registered": {
+      "axis": "horizontal",
+      "eye_m": 1.65000118255617,
+      "fov": 61.0418968200684,
+      "heading": 23.8717701391387,
+      "lat": 44.407993529435,
+      "lon": -70.7932525178694
+    }
+  }
+}

@@ -1,0 +1,283 @@
+{
+  "version": 1,
+  "sources": {
+    "Utah": {
+      "id": "UT_WestEast_B22",
+      "lockedUSGSObjectID": 90818,
+      "nativeRaster": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/UT_WestEast_B22/TIFF/USGS_1M_12_x58y411_UT_WestEast_B22.tif"
+    },
+    "West Virginia": {
+      "id": "WV_FEMA_R3_East_2016",
+      "nativeRaster": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/WV_FEMA_R3_East_2016/TIFF/USGS_one_meter_x54y419_WV_FEMA_R3_East_2016.tif",
+      "coverage": "offline source-locked control; live catalog had abstained in this archived district"
+    }
+  },
+  "camera": {
+    "latitude": 37.101444,
+    "longitude": -109.990814,
+    "trueBearingDegrees": 233.2,
+    "horizontalFieldDegrees": 69.4,
+    "pitchDownDegrees": -2.7,
+    "photoDate": "2023-04-30"
+  },
+  "nearTerrain": {
+    "utah": {
+      "samples": 1502,
+      "maeM": [
+        1.329,
+        1.08,
+        0.48
+      ],
+      "p90M": [
+        2.48,
+        2.271,
+        1.577
+      ],
+      "nonzeroSubset": {
+        "samples": 1041,
+        "maeM": [
+          1.497,
+          1.138,
+          0.273
+        ]
+      }
+    },
+    "westVirginia": {
+      "samples": 1097,
+      "maeM": [
+        0.392,
+        0.392,
+        0.364
+      ],
+      "p90M": [
+        0.813,
+        0.813,
+        0.746
+      ],
+      "nonzeroSubset": {
+        "samples": 67,
+        "maeM": [
+          0.801,
+          0.801,
+          0.36
+        ]
+      }
+    },
+    "columns": [
+      "coarse64",
+      "priorWarm",
+      "current"
+    ],
+    "roadProbes": 2347,
+    "maxRoadDeltaM": 4.55e-13,
+    "seed": 19990515,
+    "sampling": "13,000 continuous XY points per tile; exclude missing source, compare near-road relief at 10\u201343 m over nearest major centerline against original USGS 1 m raster; source-locked 129 posts fit, native 1 m off-post points held out"
+  },
+  "nativeAdaptiveMesh": {
+    "baseTriangles": 8192,
+    "refinedTriangles": 14931,
+    "uniform128Triangles": 32768,
+    "changedNodes": 3552,
+    "meshMsSingle": 10.013,
+    "colliderMsSingle": 5.461,
+    "applyMsSingle": 2.435
+  },
+  "imageMAE": {
+    "nearTerrain": {
+      "xyxy": [
+        0,
+        397,
+        960,
+        525
+      ],
+      "before": 44.51,
+      "after": 43.28
+    },
+    "rightBank": {
+      "xyxy": [
+        735,
+        414,
+        945,
+        490
+      ],
+      "before": 42.54,
+      "after": 41.55
+    },
+    "leftTurnout": {
+      "xyxy": [
+        0,
+        407,
+        245,
+        448
+      ],
+      "before": 54.23,
+      "after": 56.27
+    },
+    "sky": {
+      "xyxy": [
+        80,
+        10,
+        800,
+        250
+      ],
+      "before": 35.95,
+      "after": 35.95
+    }
+  },
+  "drive": {
+    "previous": {
+      "boundary_events": [],
+      "cockpit_images": [
+        {
+          "at_m": 32.0091243348434,
+          "bearing_deg": 230.361844711063,
+          "camera_far_m": 56000.0,
+          "cockpit": true,
+          "eye_above_road_m": 1.00854804786104,
+          "file": "approach.jpg"
+        }
+      ],
+      "distance_m": 120.039634834917,
+      "end_lat_lon": [
+        37.1007690429688,
+        -109.991874694824
+      ],
+      "frame_ms_p50_p95_p99": [
+        8.2,
+        13.758,
+        19.356
+      ],
+      "frozen_ticks": 0,
+      "hidden_relief_ticks": 0,
+      "max_lane_error_m": 0.057176660746336,
+      "max_speed_mps": 14.2059698104858,
+      "max_vertical_step_m": 0.0089111328125,
+      "near_tiles": [
+        [
+          12744,
+          25485
+        ]
+      ],
+      "pass": true,
+      "pending_ticks": 0,
+      "pending_visible_ticks": 0,
+      "reason": "near-road bank and tire contacts",
+      "regions": [
+        {
+          "aerial": true,
+          "at_m": 0.0,
+          "coarse": 16.0,
+          "detail": 4.0,
+          "detail_images": 4,
+          "middle": true,
+          "region": [
+            1593,
+            3185
+          ],
+          "requests": 0.0,
+          "road_segments": 19.0,
+          "tolerance_m": 20.25,
+          "triangles": 110279,
+          "visible": true
+        }
+      ],
+      "renderer": "macOS",
+      "sim_s": 11.0333333333335,
+      "spawn_error_m": 2.68025398254395,
+      "start_actual_lat_lon": [
+        37.1014595031738,
+        -109.990837097168
+      ],
+      "start_lat_lon": [
+        37.101444,
+        -109.990814
+      ],
+      "ticks": 662,
+      "wall_s": 12.384,
+      "wheel_contacts_0_to_4": [
+        0,
+        0,
+        0,
+        0,
+        662
+      ]
+    },
+    "refined": {
+      "boundary_events": [],
+      "cockpit_images": [
+        {
+          "at_m": 32.0091585742484,
+          "bearing_deg": 230.361930871585,
+          "camera_far_m": 56000.0,
+          "cockpit": true,
+          "eye_above_road_m": 1.00636011123652,
+          "file": "approach.jpg"
+        }
+      ],
+      "distance_m": 120.039876722003,
+      "end_lat_lon": [
+        37.1007690429688,
+        -109.991874694824
+      ],
+      "frame_ms_p50_p95_p99": [
+        8.23,
+        12.565,
+        18.555
+      ],
+      "frozen_ticks": 0,
+      "hidden_relief_ticks": 0,
+      "max_lane_error_m": 0.0570906884968281,
+      "max_speed_mps": 14.2059860229492,
+      "max_vertical_step_m": 0.0089111328125,
+      "near_tiles": [
+        [
+          12744,
+          25485
+        ]
+      ],
+      "pass": true,
+      "pending_ticks": 0,
+      "pending_visible_ticks": 0,
+      "reason": "near-road bank and tire contacts",
+      "regions": [
+        {
+          "aerial": true,
+          "at_m": 0.0,
+          "coarse": 16.0,
+          "detail": 4.0,
+          "detail_images": 4,
+          "middle": true,
+          "region": [
+            1593,
+            3185
+          ],
+          "requests": 0.0,
+          "road_segments": 19.0,
+          "tolerance_m": 20.25,
+          "triangles": 110279,
+          "visible": true
+        }
+      ],
+      "renderer": "macOS",
+      "sim_s": 11.0333333333335,
+      "spawn_error_m": 2.68025398254395,
+      "start_actual_lat_lon": [
+        37.1014595031738,
+        -109.990837097168
+      ],
+      "start_lat_lon": [
+        37.101444,
+        -109.990814
+      ],
+      "ticks": 662,
+      "wall_s": 12.643,
+      "wheel_contacts_0_to_4": [
+        0,
+        0,
+        0,
+        0,
+        662
+      ]
+    }
+  }
+}

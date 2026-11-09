@@ -1,0 +1,173 @@
+{
+  "seed": 19991107,
+  "sample": [
+    {
+      "stratum": "urban",
+      "state": "MO",
+      "place": "Jefferson City",
+      "lat": 38.577,
+      "lon": -92.173,
+      "tile": [
+        15988,
+        25145
+      ],
+      "firstStatus": "no_nearby_photos",
+      "kartaFrames": 0,
+      "panoramaxResultCount": 0,
+      "roadCheck": {
+        "roads": 51,
+        "heights": 4225,
+        "firstRunRequests": 2,
+        "repeatRequests": 0,
+        "identicalRoads": true
+      }
+    },
+    {
+      "stratum": "urban",
+      "state": "WY",
+      "place": "Cheyenne",
+      "lat": 41.14,
+      "lon": -104.82,
+      "tile": [
+        13686,
+        24537
+      ],
+      "firstStatus": "no_nearby_photos",
+      "kartaFrames": 0,
+      "panoramaxResultCount": 0,
+      "roadCheck": {
+        "roads": 66,
+        "heights": 4225,
+        "firstRunRequests": 2,
+        "repeatRequests": 0,
+        "identicalRoads": true
+      }
+    },
+    {
+      "stratum": "urban",
+      "state": "NE",
+      "place": "Lincoln",
+      "lat": 40.809,
+      "lon": -96.675,
+      "tile": [
+        15168,
+        24617
+      ],
+      "firstStatus": "no_nearby_photos",
+      "kartaFrames": 0,
+      "panoramaxResultCount": 5,
+      "roadCheck": {
+        "roads": 20,
+        "heights": 4225,
+        "firstRunRequests": 0,
+        "repeatRequests": 0,
+        "identicalRoads": true
+      }
+    },
+    {
+      "stratum": "urban",
+      "state": "WV",
+      "place": "Charleston",
+      "lat": 38.35,
+      "lon": -81.632,
+      "tile": [
+        17907,
+        25198
+      ],
+      "firstStatus": "three_compatible_poses",
+      "kartaFrames": 3,
+      "panoramaxResultCount": null,
+      "roadCheck": {
+        "roads": 163,
+        "heights": 4225,
+        "firstRunRequests": 0,
+        "repeatRequests": 0,
+        "identicalRoads": true
+      }
+    },
+    {
+      "stratum": "small town or rural",
+      "state": "WV",
+      "place": "Lewisburg",
+      "lat": 37.8023,
+      "lon": -80.4457,
+      "tile": [
+        18123,
+        25324
+      ],
+      "firstStatus": "catalog_unavailable",
+      "kartaFrames": 0,
+      "panoramaxResultCount": 0,
+      "roadCheck": {
+        "roads": 31,
+        "heights": 4225,
+        "firstRunRequests": 2,
+        "repeatRequests": 0,
+        "identicalRoads": true
+      }
+    },
+    {
+      "stratum": "small town or rural",
+      "state": "VA",
+      "place": "Chula",
+      "lat": 37.370268,
+      "lon": -77.906945,
+      "tile": [
+        18585,
+        25423
+      ],
+      "firstStatus": "provider_cooldown",
+      "kartaFrames": 0,
+      "panoramaxResultCount": 0,
+      "roadCheck": {
+        "roads": 8,
+        "heights": 4225,
+        "firstRunRequests": 0,
+        "repeatRequests": 0,
+        "identicalRoads": true
+      }
+    },
+    {
+      "stratum": "small town or rural",
+      "state": "ME",
+      "place": "Bethel",
+      "lat": 44.4042,
+      "lon": -70.7915,
+      "tile": [
+        19880,
+        23727
+      ],
+      "firstStatus": "provider_cooldown",
+      "kartaFrames": 0,
+      "panoramaxResultCount": 0,
+      "roadCheck": {
+        "roads": 21,
+        "heights": 4225,
+        "firstRunRequests": 5,
+        "repeatRequests": 0,
+        "identicalRoads": true
+      }
+    },
+    {
+      "stratum": "small town or rural",
+      "state": "MT",
+      "place": "Choteau",
+      "lat": 47.8124,
+      "lon": -112.1823,
+      "tile": [
+        12345,
+        22832
+      ],
+      "firstStatus": "provider_cooldown",
+      "kartaFrames": 0,
+      "panoramaxResultCount": 0,
+      "roadCheck": {
+        "roads": 37,
+        "heights": 4225,
+        "firstRunRequests": 3,
+        "repeatRequests": 0,
+        "identicalRoads": true
+      }
+    }
+  ]
+}

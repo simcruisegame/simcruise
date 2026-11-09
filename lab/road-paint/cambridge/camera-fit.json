@@ -1,0 +1,50 @@
+{
+  "model": "shared focal, yaw, pitch, eye height; independent outer GPS offsets; middle offset linear interpolation",
+  "training_images": [
+    0,
+    2
+  ],
+  "middle_withheld": true,
+  "pixel_size": [
+    820,
+    615
+  ],
+  "parameters": [
+    8.255691575192234,
+    -20.758364335087013,
+    101.25965311391045,
+    0.8757104845025394,
+    4.919902159683728,
+    1.0809364415639546
+  ],
+  "outer_offsets_m": [
+    [
+      0.891210781874478,
+      5.650757478947742
+    ],
+    [
+      0.8602101871306007,
+      4.189046840419713
+    ]
+  ],
+  "training_loss": 2.2030668320633815,
+  "outer_vanishing_pts_px": [
+    [
+      348.13182003948293,
+      436.5385553348523
+    ],
+    [
+      355.03345623833764,
+      434.8551248568899
+    ]
+  ],
+  "correspondences": [
+    2,
+    7
+  ],
+  "heldout": {
+    "nearest_dash_mean_endpoint_error_px": 69.6069422058819,
+    "dash_id": 5
+  },
+  "runner_up_training_loss": 4.407125302447036
+}

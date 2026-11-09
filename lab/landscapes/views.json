@@ -1,0 +1,33 @@
+[
+  {
+    "place": "wyoming",
+    "title": "Snake River Overlook, Wyoming",
+    "pose": "43.753821, −110.624090 · 263.05° west · 55 mm full-frame lens",
+    "method": "Independent mountain-range check",
+    "finding": "At 23 marked points along the photographed ridgeline, the median vertical discrepancy fell from 139 to 4 pixels in a 960 × 640 image. The camera was aligned using the published Grand Teton summit. That point was excluded from the score. The mountain mesh uses elevation data and aerial imagery; the spring snowline, nearby conifers and Snake River banks still differ.",
+    "author": "Hansueli Krapf · May 30, 2025",
+    "url": "https://commons.wikimedia.org/wiki/File:2025-05-30-194735_USA_Wyoming_Moose_2092.6.jpg"
+  },
+  {
+    "place": "utah",
+    "title": "US 163, Monument Valley, Utah",
+    "pose": "37.101444, −109.990814 · 233.2° southwest · estimated 69.4° horizontal field of view",
+    "method": "Development camera along the highway",
+    "finding": "Adding the mesas reduced mean vertical silhouette discrepancy from 15.2 to 7.8 pixels across 665 outer image columns. The central strip supplied camera calibration. Color thresholds estimate the silhouette and can confuse the earlier panorama’s trees. The highway markings, red soil, shadow and roadside scrub still differ from the April photograph.",
+    "author": "Awinda · April 30, 2023",
+    "url": "https://commons.wikimedia.org/wiki/File:Forrest_Gump_Highway_Monument_Valley.jpg"
+  },
+  {
+    "place": "lasal",
+    "title": "US 191 facing South Mountain, Utah",
+    "pose": "38.139858, −109.371372 · estimated bearing 18.31° · estimated 18.74° horizontal field of view",
+    "method": "Seeded corridor with a usable roadside photograph",
+    "finding": "The left foreground patch moved from a mean RGB difference of 103 to 62 and the right patch from 119 to 78 on a 0–255 scale. These comparisons use one adjusted camera and the mean color within each patch. The game still misses the fence, March snowline, dense brush and much of the contrast in the rock. The photograph and satellite reading are eight years apart.",
+    "author": "Ken Lund · March 20, 2018",
+    "url": "https://commons.wikimedia.org/wiki/File:La_Sal_Mountains_From_U.S._Route_191_Between_Monticello_and_Moab,_Utah.jpg",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0/",
+    "before_caption": "Same camera with both ground layers disabled",
+    "after_caption": "Measured soil and 3D shrub stands"
+  }
+]

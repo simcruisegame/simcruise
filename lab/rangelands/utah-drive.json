@@ -1,0 +1,125 @@
+{
+  "boundary_events": [
+    {
+      "at_m": 495.622508505825,
+      "camera_visible": true,
+      "contacts": 4,
+      "from": [
+        1593,
+        3185
+      ],
+      "speed_mps": 14.0350275039673,
+      "to": [
+        1592,
+        3185
+      ]
+    }
+  ],
+  "cockpit_images": [
+    {
+      "at_m": 32.1854622908868,
+      "bearing_deg": 230.362409157997,
+      "camera_far_m": 56000.0,
+      "cockpit": true,
+      "eye_above_road_m": 1.00798261727186,
+      "file": "approach.jpg"
+    },
+    {
+      "at_m": 600.215523535851,
+      "bearing_deg": 229.934056901562,
+      "camera_far_m": 56000.0,
+      "cockpit": true,
+      "eye_above_road_m": 1.00966058731069,
+      "file": "after-boundary.jpg"
+    }
+  ],
+  "distance_m": 640.131779963616,
+  "end_lat_lon": [
+    37.0977745056152,
+    -109.996368408203
+  ],
+  "frame_ms_p50_p95_p99": [
+    8.105,
+    13.331,
+    17.071
+  ],
+  "frozen_ticks": 0,
+  "hidden_relief_ticks": 0,
+  "max_lane_error_m": 0.0588880926370621,
+  "max_speed_mps": 14.7129926681519,
+  "max_vertical_step_m": 0.0286865234375,
+  "near_tiles": [
+    [
+      12744,
+      25485
+    ],
+    [
+      12744,
+      25486
+    ],
+    [
+      12743,
+      25486
+    ]
+  ],
+  "pass": true,
+  "pending_ticks": 24,
+  "pending_visible_ticks": 24,
+  "reason": "landscape boundary and handling",
+  "regions": [
+    {
+      "aerial": true,
+      "at_m": 0.0,
+      "coarse": 16.0,
+      "detail": 4.0,
+      "detail_images": 4,
+      "middle": true,
+      "region": [
+        1593,
+        3185
+      ],
+      "requests": 0.0,
+      "road_segments": 19.0,
+      "tolerance_m": 20.25,
+      "triangles": 110279,
+      "visible": true
+    },
+    {
+      "aerial": true,
+      "at_m": 501.23602824891,
+      "coarse": 16.0,
+      "detail": 4.0,
+      "detail_images": 4,
+      "middle": true,
+      "region": [
+        1592,
+        3185
+      ],
+      "requests": 0.0,
+      "road_segments": 19.0,
+      "tolerance_m": 20.25,
+      "triangles": 116222,
+      "visible": true
+    }
+  ],
+  "renderer": "macOS",
+  "sim_s": 47.0666666666653,
+  "spawn_error_m": 2.68025398254395,
+  "start_actual_lat_lon": [
+    37.1014595031738,
+    -109.990837097168
+  ],
+  "start_lat_lon": [
+    37.101444,
+    -109.990814
+  ],
+  "ticks": 2824,
+  "wall_s": 48.804,
+  "wheel_contacts_0_to_4": [
+    0,
+    0,
+    0,
+    0,
+    2824
+  ]
+}

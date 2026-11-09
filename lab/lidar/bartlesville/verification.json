@@ -1,0 +1,60 @@
+{
+  "screen_px": [
+    960,
+    720
+  ],
+  "roof_columns_examined": 75,
+  "roof_columns_valid": 75,
+  "roof_columns_x_range": [
+    535,
+    609
+  ],
+  "roof_boundary_observed_before_px_p50_p90": [
+    22.0,
+    28.6
+  ],
+  "roof_boundary_observed_after_px_p50_p90": [
+    3.0,
+    5.0
+  ],
+  "bandpass_window_correlation_roi": [
+    292,
+    341,
+    522,
+    395
+  ],
+  "window_correlation_before_after": [
+    0.1113,
+    0.0112
+  ],
+  "drive": {
+    "source": "canonical source staged with isolated map cache and QA entry point",
+    "distance_m": 42.1156,
+    "peak_mps": 11.8964,
+    "minimum_wheel_contacts": 4,
+    "measured_hip_triangles": 4,
+    "road": "Southeast Washington Boulevard"
+  },
+  "source_derivation": {
+    "leaf_requests_for_rebuild": 1,
+    "leaf_bytes": 257925,
+    "warm_requests": 0,
+    "runtime_survey_network_requests": 0,
+    "files": {
+      "lidar-roofs-15303-25569.json": {
+        "bytes": 37372,
+        "sha256": "0adaa6fb887bd423e7079a4bdb5207c7eafb7a3cb32dc0c6b2c86c238d90be89"
+      },
+      "district-surface-15303-25569.json": {
+        "bytes": 4300,
+        "sha256": "1eb93b2e41e1a32ed1f1090c850616e3404a92c0fb3f83f0a52cceec04edc3d9"
+      }
+    }
+  },
+  "facade_reference": {
+    "photographic_wall_in_runtime": false,
+    "window_band_correlation_old_default": 0.1113,
+    "window_band_correlation_measured_geometry_without_photo": 0.0112,
+    "window_band_correlation_experimental_photo": 0.0714
+  }
+}

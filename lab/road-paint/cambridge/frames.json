@@ -1,0 +1,47 @@
+[
+  {
+    "id": "307178291",
+    "sequenceId": "1284745",
+    "sequenceIndex": 40,
+    "lat": 42.365055,
+    "lon": -71.134601,
+    "heading": 0,
+    "capturedAt": "2018-08-31T14:09:58.000",
+    "cameraType": "PLANE",
+    "author": "cowsandmilk",
+    "sourceUrl": "https://kartaview.org/details/1284745/40",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "imageSHA256": "11671df2c697a06d64154125bf611a1b6735d48fd12cbc14f0b32be9c25bd7f1",
+    "thumbnail": "https://cdn.kartaview.org/pr:sharp/aHR0cHM6Ly9zdG9yYWdlOS5vcGVuc3RyZWV0Y2FtLm9yZy9maWxlcy9waG90by8yMDE4LzkvMS9sdGgvMTI4NDc0NV8wX2U1ZDlhXzQxLmpwZw"
+  },
+  {
+    "id": "307178293",
+    "sequenceId": "1284745",
+    "sequenceIndex": 41,
+    "lat": 42.365183,
+    "lon": -71.134311,
+    "heading": 0,
+    "capturedAt": "2018-08-31T14:10:00.000",
+    "cameraType": "PLANE",
+    "author": "cowsandmilk",
+    "sourceUrl": "https://kartaview.org/details/1284745/41",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "imageSHA256": "73b7f5cf498adf712edee31d3c5495985c2649ba3d6112dedee6483c9e9b8ffa",
+    "thumbnail": "https://cdn.kartaview.org/pr:sharp/aHR0cHM6Ly9zdG9yYWdlOS5vcGVuc3RyZWV0Y2FtLm9yZy9maWxlcy9waG90by8yMDE4LzkvMS9sdGgvMTI4NDc0NV8wX2U1ZDlhXzQyLmpwZw"
+  },
+  {
+    "id": "307178295",
+    "sequenceId": "1284745",
+    "sequenceIndex": 42,
+    "lat": 42.365324,
+    "lon": -71.13401,
+    "heading": 0,
+    "capturedAt": "2018-08-31T14:10:02.000",
+    "cameraType": "PLANE",
+    "author": "cowsandmilk",
+    "sourceUrl": "https://kartaview.org/details/1284745/42",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "imageSHA256": "449ea97d08f380271c90113ba4ad67f7101e4b54887991c617aafbc0c55d7233",
+    "thumbnail": "https://cdn.kartaview.org/pr:sharp/aHR0cHM6Ly9zdG9yYWdlOS5vcGVuc3RyZWV0Y2FtLm9yZy9maWxlcy9waG90by8yMDE4LzkvMS9sdGgvMTI4NDc0NV8wX2U1ZDlhXzQzLmpwZw"
+  }
+]

@@ -1,0 +1,170 @@
+{
+  "before": {
+    "trials": 78,
+    "contacts": 4,
+    "mirrorMaxYawDeltaDegS": 1.0245283803556049e-05,
+    "comparedCorrections": 40,
+    "laterThanRelease": 40,
+    "moreOldYawThanRelease": 22,
+    "maxExtraUnwindMs": 83.33333333334001,
+    "fortyMph70PercentReversal": [
+      {
+        "seedMph": 40.0,
+        "heldInput": 0.7,
+        "correction": -0.7,
+        "mirror": 1.0,
+        "brake": 0.0,
+        "sweepTicks": 0,
+        "yawAt200": 29.9111434888188,
+        "headingChange300": 9.250774924013097,
+        "centerSeconds": 0.11666666666667,
+        "contacts": 4.0
+      }
+    ]
+  },
+  "after": {
+    "trials": 78,
+    "contacts": 4,
+    "mirrorMaxYawDeltaDegS": 1.707547289875322e-05,
+    "comparedCorrections": 40,
+    "laterThanRelease": 0,
+    "moreOldYawThanRelease": 0,
+    "maxExtraUnwindMs": 0.0,
+    "fortyMph70PercentReversal": [
+      {
+        "seedMph": 40.0,
+        "heldInput": 0.7,
+        "correction": -0.7,
+        "mirror": 1.0,
+        "brake": 0.0,
+        "sweepTicks": 0,
+        "yawAt200": 19.7047183875351,
+        "headingChange300": 7.2594770846095,
+        "centerSeconds": 0.06666666666667,
+        "contacts": 4.0
+      }
+    ]
+  },
+  "sweep-before": {
+    "trials": 52,
+    "contacts": 4,
+    "mirrorMaxYawDeltaDegS": 0.002713292647801069,
+    "comparedCorrections": 0,
+    "laterThanRelease": 0,
+    "moreOldYawThanRelease": 0,
+    "maxExtraUnwindMs": 0,
+    "fortyMph70PercentReversal": [
+      {
+        "seedMph": 40.0,
+        "heldInput": 0.7,
+        "correction": -0.7,
+        "mirror": 1.0,
+        "brake": 0.0,
+        "sweepTicks": 6,
+        "yawAt200": 27.4520636517499,
+        "headingChange300": 8.719535490886098,
+        "centerSeconds": 0.11666666666667,
+        "contacts": 4.0
+      },
+      {
+        "seedMph": 40.0,
+        "heldInput": 0.7,
+        "correction": -0.7,
+        "mirror": 1.0,
+        "brake": 0.0,
+        "sweepTicks": 12,
+        "yawAt200": 26.4645224581509,
+        "headingChange300": 8.489474739725699,
+        "centerSeconds": 0.1,
+        "contacts": 4.0
+      }
+    ]
+  },
+  "sweep-after": {
+    "trials": 52,
+    "contacts": 4,
+    "mirrorMaxYawDeltaDegS": 0.0027218303842992952,
+    "comparedCorrections": 0,
+    "laterThanRelease": 0,
+    "moreOldYawThanRelease": 0,
+    "maxExtraUnwindMs": 0,
+    "fortyMph70PercentReversal": [
+      {
+        "seedMph": 40.0,
+        "heldInput": 0.7,
+        "correction": -0.7,
+        "mirror": 1.0,
+        "brake": 0.0,
+        "sweepTicks": 6,
+        "yawAt200": 18.7014097022372,
+        "headingChange300": 7.052287266015501,
+        "centerSeconds": 0.06666666666667,
+        "contacts": 4.0
+      },
+      {
+        "seedMph": 40.0,
+        "heldInput": 0.7,
+        "correction": -0.7,
+        "mirror": 1.0,
+        "brake": 0.0,
+        "sweepTicks": 12,
+        "yawAt200": 24.3310650595732,
+        "headingChange300": 7.977284548907901,
+        "centerSeconds": 0.06666666666667,
+        "contacts": 4.0
+      }
+    ]
+  },
+  "road-before": [
+    {
+      "command": 0,
+      "speedMphAtCommand": 24.19109334242551,
+      "originalYawAt200DegS": 8.46465258462316,
+      "headingChangeTowardsOriginalAt300Deg": 5.67831874762598,
+      "minimumContacts": 4,
+      "minimumGrip": 1.0
+    },
+    {
+      "command": -0.7,
+      "speedMphAtCommand": 24.19957964439088,
+      "originalYawAt200DegS": 13.7817840987488,
+      "headingChangeTowardsOriginalAt300Deg": 5.945666012118011,
+      "minimumContacts": 4,
+      "minimumGrip": 1.0
+    },
+    {
+      "command": -0.14,
+      "speedMphAtCommand": 24.19957964439088,
+      "originalYawAt200DegS": 15.0031593799042,
+      "headingChangeTowardsOriginalAt300Deg": 6.896332721935011,
+      "minimumContacts": 4,
+      "minimumGrip": 1.0
+    }
+  ],
+  "road-after": [
+    {
+      "command": 0,
+      "speedMphAtCommand": 24.197126339398267,
+      "originalYawAt200DegS": 8.49330181309677,
+      "headingChangeTowardsOriginalAt300Deg": 5.682621766802015,
+      "minimumContacts": 4,
+      "minimumGrip": 1.0
+    },
+    {
+      "command": -0.7,
+      "speedMphAtCommand": 24.2215164576416,
+      "originalYawAt200DegS": -0.26230914620611,
+      "headingChangeTowardsOriginalAt300Deg": 3.2226335145739995,
+      "minimumContacts": 4,
+      "minimumGrip": 1.0
+    },
+    {
+      "command": -0.14,
+      "speedMphAtCommand": 24.20822807781675,
+      "originalYawAt200DegS": 7.8754813205915,
+      "headingChangeTowardsOriginalAt300Deg": 5.557697606883011,
+      "minimumContacts": 4,
+      "minimumGrip": 1.0
+    }
+  ]
+}

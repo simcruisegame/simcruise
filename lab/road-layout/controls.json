@@ -1,0 +1,27 @@
+{
+  "normal": {
+    "shapeStations": 4,
+    "photoStations": 3,
+    "contiguous": [
+      [
+        20,
+        26
+      ]
+    ]
+  },
+  "wrong_survey_2.5m": {
+    "shapeStations": 0,
+    "photoStations": 0,
+    "contiguous": []
+  },
+  "wrong_aerial_3m": {
+    "shapeStations": 4,
+    "photoStations": 1,
+    "contiguous": []
+  },
+  "opposed_lane_count": {
+    "shapeStations": 0,
+    "photoStations": 0,
+    "contiguous": []
+  }
+}

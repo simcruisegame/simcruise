@@ -1,0 +1,71 @@
+{
+  "title": "Two office towers on West Fifth Avenue, Anchorage",
+  "summary": "The foreground plaque identifies 601 West Fifth Avenue. Its municipal parcel is 333 metres west of the original photograph’s published pin. The smaller white office building behind it supplies geometric camera control on the proper block.",
+  "measurement": "Two flight lines independently measured main roof elevations of 39.2 m and 32.9 m above local ground. The upper mechanical levels reach 43.84 m and 37.60 m. The original game footprints were both 5 m tall. The historical photograph locates the block and supplies no roof vertices. The measurements describe the 2015 survey. The builder documents a subsequent southeast addition and a new glass exterior at 601 West Fifth. Its present façade differs from this historical photograph.",
+  "images": [
+    {
+      "file": "west-fifth.webp",
+      "caption": "The same registered camera and pinned USGS bare-earth terrain were used for both 960 × 720 game renders. The foreground tower remains several dozen pixels to the right of the original silhouette. Materials, facade openings and street furniture remain generic. Source photograph by Warren LeMay, CC0."
+    },
+    {
+      "file": "identification.webp",
+      "caption": "The city’s 2016 assembly report independently identifies 601 West Fifth Avenue as a nine-story office property and lists the tenant on the plaque. KartaView frame 376 shows a different, lower-rise block. This comparison includes a cropped 2015 photograph and a resized 2022 KartaView photograph. The panel is licensed CC BY-SA 4.0."
+    },
+    {
+      "file": "historic-cladding.webp",
+      "caption": "Optional pre-renovation cladding, reproduced with --source-era 2015-05-22. The held-out upper wall from Warren LeMay’s CC0 photograph spans 36,464 pixels. At the same camera, native RGB error fell from 56.83 to 45.44/255. The podium and neighboring office remain generic. The building was substantially reclad and expanded in 2023."
+    }
+  ],
+  "credit": "2015 photograph by Warren LeMay, CC0. 2022 photograph by jeepjockey, © Grab and KartaView contributors, CC BY-SA 4.0. Geometry from Municipality of Anchorage / USGS 3DEP airborne lidar. Footprints © OpenStreetMap contributors via OpenFreeMap, ODbL. Historic cladding measurements from RadioKAOS and Paxson Woelber (CC BY-SA 3.0), An Errant Knight (CC BY-SA 4.0) and Anchorage Downtown Partnership (CC BY 2.0). The shader uses numerical measurements and contains no source image.",
+  "source_url": "https://commons.wikimedia.org/wiki/File:Downtown,_Anchorage,_AK_along_W_5th_Ave.jpg",
+  "links": [
+    [
+      "Warren LeMay photograph",
+      "https://commons.wikimedia.org/wiki/File:Downtown,_Anchorage,_AK_along_W_5th_Ave.jpg"
+    ],
+    [
+      "Commercial property record",
+      "https://www.muni.org/Lists/AssemblyListDocuments/Attachments/625369/AIM%20070-2016%20OCR.pdf"
+    ],
+    [
+      "Municipal parcel map",
+      "https://services2.arcgis.com/Ce3DhLRthdwbHlfF/arcgis/rest/services/PropertyInformation_Hosted/FeatureServer/0"
+    ],
+    [
+      "NOAA survey metadata",
+      "https://www.fisheries.noaa.gov/inport/item/50281"
+    ],
+    [
+      "Independent KartaView frame",
+      "https://kartaview.org/details/5807193/376"
+    ],
+    [
+      "CC0",
+      "https://creativecommons.org/publicdomain/zero/1.0/"
+    ],
+    [
+      "CC BY-SA 4.0",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    [
+      "601 West Fifth renovation, project builder",
+      "https://www.neeserinc.com/601-west-5th-avenue/"
+    ],
+    [
+      "RadioKAOS · CC BY-SA 3.0",
+      "https://commons.wikimedia.org/wiki/File:Town_Square_Park,_Anchorage,_Alaska,_showing_since-demolished_fountain.jpg"
+    ],
+    [
+      "An Errant Knight · CC BY-SA 4.0",
+      "https://commons.wikimedia.org/wiki/File:Town_Square_Park_Anchorage,_July_2007.JPG"
+    ],
+    [
+      "Paxson Woelber · CC BY-SA 3.0",
+      "https://commons.wikimedia.org/wiki/File:Alaska_Center_for_the_Performing_Arts._Anchorage,_Alaska.jpg"
+    ],
+    [
+      "Anchorage Downtown Partnership · CC BY 2.0",
+      "https://commons.wikimedia.org/wiki/File:3rd_Avenue_%26_F_Street,_Anchorage,_AK.jpg"
+    ]
+  ]
+}

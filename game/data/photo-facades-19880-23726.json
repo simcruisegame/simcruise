@@ -1,0 +1,190 @@
+{
+  "photograph": {
+    "title": "Gould Academy Davidson Hall",
+    "author": "Nick Kline (User:Nickline4)",
+    "capture_utc": "2012-06-29T18:44:36Z",
+    "page": "https://commons.wikimedia.org/wiki/File:Gould_Academy_Davidson_Hall.JPG",
+    "license": "CC BY-SA 3.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+  },
+  "adaptations": "Occlusion masking, wall-plane rectification, illumination correction, neutralized glazing and a masonry sample.",
+  "source": "Gould Academy Davidson Hall",
+  "tile": [
+    19880,
+    23726
+  ],
+  "center": [
+    0.51855,
+    0.49487
+  ],
+  "ring": [
+    [
+      0.47168,
+      0.47461
+    ],
+    [
+      0.50684,
+      0.46191
+    ],
+    [
+      0.51367,
+      0.48242
+    ],
+    [
+      0.54785,
+      0.46973
+    ],
+    [
+      0.56445,
+      0.51465
+    ],
+    [
+      0.53125,
+      0.52734
+    ],
+    [
+      0.52441,
+      0.50781
+    ],
+    [
+      0.48828,
+      0.52051
+    ]
+  ],
+  "index": 2,
+  "eave_above_center": 9.081242063017243,
+  "bottom_above_center": -2.0,
+  "faces": [
+    {
+      "a": 0,
+      "b": 7,
+      "file": "davidson-0-7.png",
+      "width_m": 21.321829325725137,
+      "valid_fraction": 0.6349,
+      "coping_depth_m": 0.0,
+      "coping_height_m": 0.0
+    },
+    {
+      "a": 7,
+      "b": 6,
+      "file": "davidson-7-6.png",
+      "width_m": 16.729601735374455,
+      "valid_fraction": 0.359,
+      "coping_depth_m": 0.14,
+      "coping_height_m": 0.27
+    },
+    {
+      "a": 6,
+      "b": 5,
+      "file": "davidson-6-5.png",
+      "width_m": 9.03954319919911,
+      "valid_fraction": 0.4284,
+      "coping_depth_m": 0.14,
+      "coping_height_m": 0.27
+    },
+    {
+      "a": 5,
+      "b": 4,
+      "file": "davidson-5-4.png",
+      "width_m": 15.526336586001793,
+      "valid_fraction": 0.297,
+      "coping_depth_m": 0.14,
+      "coping_height_m": 0.27
+    }
+  ],
+  "image_sha256": "697c5949f2eb62ae61c970e569c58be25eefdda509ecb251eb071698ebf68868",
+  "entrance_roof": {
+    "corners": [
+      [
+        0.5113882010268398,
+        0.5123872722656833,
+        6.081859313809929
+      ],
+      [
+        0.5138022453441414,
+        0.5192549432250618,
+        6.189288851872163
+      ],
+      [
+        0.5268240443173017,
+        0.5146776709593786,
+        6.014038507642283
+      ],
+      [
+        0.52441,
+        0.50781,
+        5.9066089695800486
+      ]
+    ],
+    "fascia_height_m": 0.54,
+    "top_lip_m": 0.12,
+    "piers": [
+      [
+        [
+          0.5153381005148864,
+          0.510938512267238,
+          5.487606574458653
+        ],
+        [
+          0.5156873018941187,
+          0.5119319489468964,
+          5.503146696316719
+        ],
+        [
+          0.5166807385737773,
+          0.5115827475676642,
+          5.489776798621364
+        ],
+        [
+          0.5163315371945449,
+          0.5105893108880056,
+          5.474236676763297
+        ]
+      ],
+      [
+        [
+          0.5226509843827101,
+          0.5108293819844484,
+          5.433820843181962
+        ],
+        [
+          0.5230001857619424,
+          0.5118228186641068,
+          5.449360965040029
+        ],
+        [
+          0.5239936224416009,
+          0.5114736172848746,
+          5.435991067344645
+        ],
+        [
+          0.5236444210623685,
+          0.510480180605216,
+          5.420450945486607
+        ]
+      ]
+    ],
+    "fascia_srgb": [
+      0.14,
+      0.203,
+      0.209
+    ],
+    "top_srgb": [
+      0.105,
+      0.129,
+      0.134
+    ],
+    "soffit_srgb": [
+      0.57,
+      0.53,
+      0.44
+    ]
+  },
+  "brick_srgb": [
+    0.5929411764705883,
+    0.43921568627450985,
+    0.37960784313725493
+  ],
+  "masonry_file": "davidson-masonry.png",
+  "masonry_repeat_m": 2.0
+}

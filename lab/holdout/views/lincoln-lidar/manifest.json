@@ -1,0 +1,30 @@
+{
+  "title": "Compare roofs reconstructed while driving",
+  "summary": "The photo and both game frames use the same reported position, 91° bearing, 74° lens and exposure time. USGS collected the airborne returns in 2016–17. Look at the roof and upper walls on the right. The foreground trees, morning glare, porches and house finishes still differ visibly.",
+  "measurement": "At eight mapped buildings on this block, 387 laser returns from other octree nodes put the median vertical error at 1.17 m for the old procedural roof and 0.17 m for the streamed roof. In the image, 15,925 pixels changed by over five channel values. Two renders of the control were pixel-identical. A second camera 27 m east looked past these buildings and showed zero changed pixels.",
+  "images": [
+    {
+      "file": "comparison.webp",
+      "caption": "The trees in the street photo obscure part of the measured roofs. The laser error evaluates roof elevations, separately from resemblance of the whole picture."
+    }
+  ],
+  "credit": "Street photo by slinky309 via Panoramax. Resized and labeled comparison under CC BY-SA 4.0. Native Godot Metal frames at 960 × 720, OpenStreetMap contributors, USGS 3DEP.",
+  "links": [
+    [
+      "Original photograph",
+      "https://panoramax.xyz/#focus=pic&pic=202ef7e6-ea03-4311-a626-b9f3b8405a52"
+    ],
+    [
+      "Image license",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    [
+      "USGS point clouds",
+      "https://registry.opendata.aws/usgs-lidar/"
+    ],
+    [
+      "laz-perf",
+      "https://github.com/hobuinc/laz-perf"
+    ]
+  ]
+}

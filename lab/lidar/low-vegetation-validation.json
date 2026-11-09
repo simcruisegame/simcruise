@@ -1,0 +1,238 @@
+{
+  "version": 1,
+  "miami": {
+    "tile": [
+      18166,
+      27914
+    ],
+    "epsg": 6346,
+    "source": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/entwine/geoid18/10338/",
+    "flight": "2021-04-07/2021-06-10",
+    "coarse_nodes": [
+      {
+        "path": "ept-data/10-899-607-508.laz",
+        "sha256": "f79e5b5c23aded7b39b10a3aeaa551768f2a2df5976639e140c34ccc0c4e236c"
+      },
+      {
+        "path": "ept-data/10-899-608-508.laz",
+        "sha256": "02cdd01f147d55a3c0dedff506ace33767e487d8aa8ccb5a64bc238906147bc0"
+      },
+      {
+        "path": "ept-data/10-899-609-508.laz",
+        "sha256": "fb60542cf66f8a2e95249fd850235c49927b5435881d001acd96d79f32559549"
+      },
+      {
+        "path": "ept-data/10-900-607-508.laz",
+        "sha256": "57d839f8ca7e9e511732023021f8b48c9d4b9ac4810a57523ac068186b0bf494"
+      },
+      {
+        "path": "ept-data/10-900-608-508.laz",
+        "sha256": "b9275f72d16ab2524b895af714fe6bd4726bd9b965b3e59c7810a11a34343512"
+      },
+      {
+        "path": "ept-data/10-900-609-508.laz",
+        "sha256": "a630f8c391c299abf8f6ccdd85ff588117e6e357e932fb6026054090703ff721"
+      },
+      {
+        "path": "ept-data/10-901-607-508.laz",
+        "sha256": "935c2f0d9b0c5125a26b1acd828f3dd2e04f0599f5767a33133436df5e015686"
+      },
+      {
+        "path": "ept-data/10-901-608-508.laz",
+        "sha256": "b9f78525e7326cc901a3134185e0ba77dad2a72f7ed124b2201533996fa1bfcd"
+      },
+      {
+        "path": "ept-data/10-901-609-508.laz",
+        "sha256": "24c4ceb61b69887fbf11b88f6eac5bd1486e94595629264372c44af5eb0650a5"
+      }
+    ],
+    "additional_nodes": [
+      {
+        "key": "11-1800-1215-1016",
+        "sha256": "c3c47f678664254e7444342c17c39c8cd1cfda4d9981c61a58b4a422e77a82e3",
+        "bytes": 258112
+      },
+      {
+        "key": "11-1800-1216-1016",
+        "sha256": "cbb29da2e715c1d6e9681365e581e244eac6adaac54894d553bcfa3de2112453",
+        "bytes": 242334
+      },
+      {
+        "key": "11-1800-1217-1016",
+        "sha256": "3dc8a69d3d208e023c82c4aef40b50b70b83220783ac19512894cf28b55dcc1f",
+        "bytes": 291487
+      },
+      {
+        "key": "11-1801-1215-1016",
+        "sha256": "c9b20e5aa613d1dd708cdeaec12221e51df5c83a1b2025e383aa16c7aa4ee017",
+        "bytes": 443575
+      },
+      {
+        "key": "11-1801-1216-1016",
+        "sha256": "970af814244844d385298474d0ecf9e813a6511aad9e6c6443a27c7bfb66a908",
+        "bytes": 216872
+      },
+      {
+        "key": "11-1801-1217-1016",
+        "sha256": "366c7a4f0d32901ed55dc7b1d61c36d638da67014266787849edeb6bb48cf6ae",
+        "bytes": 204368
+      },
+      {
+        "key": "11-1802-1215-1016",
+        "sha256": "bc32d1800b205f4b9c4e22f14e7263910890e44fc07f2aa04c2b547afc5e8172",
+        "bytes": 428636
+      },
+      {
+        "key": "11-1802-1216-1016",
+        "sha256": "262d435bf6d3135255613f6459e6959191fee91b8de99ba220ead9ae75f5c51b",
+        "bytes": 373766
+      },
+      {
+        "key": "11-1802-1217-1016",
+        "sha256": "c377730aafab799f7e63bb32504a262d0678f81e215516640a34206f9875637d",
+        "bytes": 218487
+      }
+    ],
+    "additional_bytes": 2677637,
+    "aerial": "m_2508023_nw_17_030_20230111_20230530",
+    "aerial_date": "2023-01-11",
+    "photo": "https://kartaview.org/details/11591982/217",
+    "fit": {
+      "class_3_4_returns": 238270,
+      "candidate_cells": 4751,
+      "accepted_cells": 12,
+      "holdout_strategy": "entire flight strip 74 withheld from vegetation fitting",
+      "rejections": {
+        "mapped_road_building_water_or_interior": 1210,
+        "aerial_vegetation_or_tile_edge": 570,
+        "sparse_training": 2888,
+        "tall_overstory": 67,
+        "sparse_spatial_holdout": 1,
+        "height_disagreement": 3
+      },
+      "holdout_height_mae_m": 0.10025000000000402,
+      "holdout_height_p90_m": 0.2090000000000244
+    },
+    "heldout_reference": {
+      "heading59_eye1.0": {
+        "visible": 4,
+        "pixels": 413,
+        "classes": {
+          "0": 152,
+          "1": 0,
+          "2": 261,
+          "3": 0,
+          "4": 0,
+          "5": 0
+        },
+        "frac_veg_among_known": 1.0
+      },
+      "heading59_eye1.8": {
+        "visible": 4,
+        "pixels": 446,
+        "classes": {
+          "0": 223,
+          "1": 0,
+          "2": 223,
+          "3": 0,
+          "4": 0,
+          "5": 0
+        },
+        "frac_veg_among_known": 1.0
+      },
+      "heading66_eye1.0": {
+        "visible": 3,
+        "pixels": 349,
+        "classes": {
+          "0": 159,
+          "1": 0,
+          "2": 190,
+          "3": 0,
+          "4": 0,
+          "5": 0
+        },
+        "frac_veg_among_known": 1.0
+      },
+      "heading66_eye1.8": {
+        "visible": 3,
+        "pixels": 341,
+        "classes": {
+          "0": 115,
+          "1": 0,
+          "2": 226,
+          "3": 0,
+          "4": 0,
+          "5": 0
+        },
+        "frac_veg_among_known": 1.0
+      },
+      "heading73_eye1.0": {
+        "visible": 1,
+        "pixels": 140,
+        "classes": {
+          "0": 77,
+          "1": 0,
+          "2": 63,
+          "3": 0,
+          "4": 0,
+          "5": 0
+        },
+        "frac_veg_among_known": 1.0
+      },
+      "heading73_eye1.8": {
+        "visible": 1,
+        "pixels": 134,
+        "classes": {
+          "0": 45,
+          "1": 0,
+          "2": 89,
+          "3": 0,
+          "4": 0,
+          "5": 0
+        },
+        "frac_veg_among_known": 1.0
+      }
+    },
+    "rendered_qa": {
+      "changed_pixels": 161,
+      "rgb_any_pixels": 214,
+      "frame_pixels": 784384,
+      "heldout_semantics": {
+        "0": 102,
+        "1": 0,
+        "2": 59,
+        "3": 0,
+        "4": 0,
+        "5": 0
+      },
+      "mae_on_changed_vegetation_before": 65.30508474576271,
+      "mae_on_changed_vegetation_after": 57.23728813559322,
+      "mae_all_changed_before": 65.30227743271222,
+      "mae_all_changed_after": 53.73498964803313,
+      "in_projected_geometry": {
+        "changed": 161,
+        "class_counts": {
+          "0": 102,
+          "1": 0,
+          "2": 59,
+          "3": 0,
+          "4": 0,
+          "5": 0
+        },
+        "mae_before": 65.30227743271222,
+        "mae_after": 53.73498964803313
+      }
+    }
+  },
+  "chula": {
+    "tile": [
+      18585,
+      25424
+    ],
+    "low_height_cells": 478,
+    "independently_positive_full_pad_NIR": 32,
+    "total_grid_cells": 65536,
+    "finite_above_zero": 21715,
+    "status": "height maximum grid lacks vegetation classification and flight strip labels; no placements accepted on this evidence"
+  }
+}

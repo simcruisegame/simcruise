@@ -1,0 +1,10 @@
+Virginia geographic reconstruction
+Virginia Geographic Information Network (VGIN), Virginia Base Mapping Program orthoimagery, Virginia road centerlines (including VDOT attributes), statewide building footprints, and Virginia Land Cover / Land Use 2021. Imagery sampled and rescaled for this local demonstration. Aerial acquisition dates and source resolution vary by locality.
+https://vgin.vdem.virginia.gov/
+https://vginmaps.vdem.virginia.gov/arcgis/rest/services/VBMP_Imagery/MostRecentImagery_WGS/MapServer
+https://vginmaps.vdem.virginia.gov/arcgis/rest/services/VA_Base_Layers
+USGS 3D Elevation Program, Virginia Sandy 2014 one-meter bare-earth elevation and Virginia SANDY QL2 lidar. Ground resampled to approximately 7.6 meters. Point-cloud crown and roof heights used in part of Chula Road. Other heights, roof forms, facade appearances and individual tree shapes are estimates.
+https://www.usgs.gov/3d-elevation-program/about-3dep-products-services
+Suspension specifications from Fat Cat Motorsports NB Ride Harmonizer. Stock Sport with Bilstein dampers and 15-inch wheels. Damper curves, bushing compliance, tire coefficients and alignment change with travel are modeled estimates.
+https://www.fatcatmotorsports.com/FCM_Ride_Harmony_NB_Mazda_Miata_Online/FCM_Ride_Harmony_NB_Mazda_Miata_Online.htm
+Ground detail texture Grass Ground, Poly Haven, CC0. https://polyhaven.com/a/grass_ground

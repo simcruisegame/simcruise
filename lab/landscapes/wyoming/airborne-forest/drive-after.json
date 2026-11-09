@@ -1,0 +1,23 @@
+{
+ "VirginiaExit": {
+  "activeFarGroups": 0,
+  "activeSurveyMaterials": 0,
+  "activeSurveyTiles": 0,
+  "newSurveyReads": 0
+ },
+ "activeTrunksAtToggle": 10,
+ "beforeDepartureReads": 2,
+ "geographicNegativeLocations": 4,
+ "groundTiles": 12,
+ "minWheelContacts": 4,
+ "mode": "after",
+ "normalCamera": 1,
+ "physicsFrames": 429,
+ "route": "North Highway 89",
+ "speedMPS": 17.7226543426514,
+ "surveyTiles": 12,
+ "tiles": 9,
+ "travelM": 65.2472305297852,
+ "unchangedTrunkColliders": true,
+ "visibleGroundTiles": 6
+}

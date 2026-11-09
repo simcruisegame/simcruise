@@ -1,0 +1,71 @@
+{
+  "la": {
+    "x": 402,
+    "y": 787,
+    "date": "2026-11-05",
+    "valid": 133733,
+    "positives": 5135,
+    "scenes": [
+      {
+        "id": "S2A_T12SXH_20261106T181016_L2A",
+        "date": "2026-11-06",
+        "spacing": 40,
+        "pixels": 133733
+      }
+    ],
+    "rangeBytes": 58355,
+    "rangeReads": 4,
+    "reflectance": [
+      {
+        "id": "S2A_T12SXH_20261106T181016_L2A",
+        "spacing": 79.97086671522214,
+        "pixels": 5135
+      }
+    ],
+    "opticalBytes": 433063,
+    "opticalReads": 2,
+    "status": "available",
+    "file": "summit-snow-v2-402-787-2026-11-05.png",
+    "requests": 3
+  },
+  "wy": {
+    "x": 393,
+    "y": 746,
+    "date": "2025-05-30",
+    "valid": 143077,
+    "positives": 115171,
+    "scenes": [
+      {
+        "id": "S2B_T12TVP_20250531T181718_L2A",
+        "date": "2025-05-31",
+        "spacing": 40,
+        "pixels": 32871
+      },
+      {
+        "id": "S2A_T12TWP_20250531T182815_L2A",
+        "date": "2025-05-31",
+        "spacing": 40,
+        "pixels": 110206
+      }
+    ],
+    "rangeBytes": 152232,
+    "rangeReads": 9,
+    "reflectance": [
+      {
+        "id": "S2A_T12TWP_20250531T182815_L2A",
+        "spacing": 159.82532751091702,
+        "pixels": 91320
+      },
+      {
+        "id": "S2B_T12TVP_20250531T181718_L2A",
+        "spacing": 40,
+        "pixels": 23851
+      }
+    ],
+    "opticalBytes": 509722,
+    "opticalReads": 4,
+    "status": "available",
+    "file": "summit-snow-v2-393-746-2025-05-30.png",
+    "requests": 5
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "changedAbove8": 247439,
+  "controlChangedAbove8": 0,
+  "controlMax": 0,
+  "fourWheelContacts": true,
+  "tiles": {
+    "10965_25007.json": {
+      "footprints": 98,
+      "withEvidence": 11
+    },
+    "17082_24865.json": {
+      "footprints": 50,
+      "withEvidence": 2
+    },
+    "18662_25381.json": {
+      "footprints": 449,
+      "withEvidence": 35
+    },
+    "18663_25381.json": {
+      "footprints": 434,
+      "withEvidence": 7
+    },
+    "19156_24758.json": {
+      "footprints": 25,
+      "withEvidence": 2
+    }
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "sources": {
+    "photo": "https://commons.wikimedia.org/wiki/File:Downtown,_Anchorage,_AK_along_W_5th_Ave.jpg",
+    "municipal": "https://www.muni.org/Lists/AssemblyListDocuments/Attachments/625369/AIM%20070-2016%20OCR.pdf",
+    "lidar": "https://www.fisheries.noaa.gov/inport/item/50281",
+    "catalog": "https://services2.arcgis.com/Ce3DhLRthdwbHlfF/arcgis/rest/services/PropertyInformation_Hosted/FeatureServer/0",
+    "kv": "https://kartaview.org/details/5807193/376",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "cc0": "https://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  "registration": {
+    "lat": 61.217450586312424,
+    "lon": -149.8933690572022,
+    "angles": [
+      290.9289534257198,
+      10.46551154840265,
+      1.0454981770043308
+    ],
+    "fov": 55.35,
+    "control_px": [
+      [
+        496.0,
+        292.0
+      ],
+      [
+        445.0,
+        357.0
+      ],
+      [
+        478.0,
+        741.0
+      ],
+      [
+        426.0,
+        728.0
+      ]
+    ],
+    "control_rms": 2.0599317035170093
+  },
+  "historic_published_pin": [
+    61.217591,
+    -149.887493
+  ],
+  "distance_2015_pin_to_nearest_edge_of_601_parcel_m": 333,
+  "karta_frame": {
+    "id": "1561701161",
+    "seq": "5807193",
+    "frame": 376,
+    "author": "jeepjockey",
+    "lat": 61.217564,
+    "lon": -149.888773,
+    "heading_deg": 265.34,
+    "distance_to_601_parcel_m": 264
+  },
+  "notes": "Pose estimated from corners of the adjacent white building on the mapped outline and EXIF 33 mm equivalent focal length. Four wall corner controls. Foreground outline not used to fit the camera. Approximate observer position and generic materials limit full-view accuracy.",
+  "products": {
+    "version": 1,
+    "conditioned": 445,
+    "structureProtected": 2338,
+    "source": "USGS 3DEP 1/3 arc-second",
+    "products": {
+      "n62w150": "cc742f079a06785f08fd34a94c66de69-86"
+    },
+    "measuredVertices": 4225
+  },
+  "normal_provider": {
+    "building_height_updates": [],
+    "roof_districts": [
+      {
+        "withheld surface mismatch": 4
+      },
+      {
+        "withheld surface mismatch": 4
+      }
+    ]
+  },
+  "airborne": {
+    "14": {
+      "train_points": 1297,
+      "test_points": 602,
+      "ground_counts": [
+        1561,
+        770
+      ],
+      "train_flight": 110,
+      "test_flight": 111,
+      "levels_m": [
+        32.91,
+        37.6
+      ],
+      "heldout_first_return_within_1m": 0.96,
+      "heldout_cells": 158,
+      "heldout_median_m": 0.073,
+      "heldout_p90_m": 0.215,
+      "heldout_grid_within_1m": 0.994
+    },
+    "18": {
+      "train_points": 1502,
+      "test_points": 1030,
+      "ground_counts": [
+        1951,
+        1040
+      ],
+      "train_flight": 110,
+      "test_flight": 111,
+      "levels_m": [
+        39.2,
+        43.84
+      ],
+      "heldout_first_return_within_1m": 0.926,
+      "heldout_cells": 213,
+      "heldout_median_m": 0.039,
+      "heldout_p90_m": 0.103,
+      "heldout_grid_within_1m": 0.953
+    }
+  },
+  "native": {
+    "render": "Godot 4.7.2 Mobile / Metal, 960x720",
+    "stock_survey_repeat_identical": true,
+    "verified_contacts": 4,
+    "photo_timestamp": "2015-05-22T13:51:50 assumed America/Anchorage",
+    "footprints_unchanged": true
+  }
+}

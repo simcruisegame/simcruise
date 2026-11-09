@@ -1,0 +1,71 @@
+{
+  "overtureRelease": "2026-10-21.0",
+  "lidarProofs": [
+    {
+      "tile": [
+        18166,
+        27914
+      ],
+      "certificates": {
+        "cad38762-afd2-444f-9895-1c5919ef4e26": {
+          "outlineHash": "05f7bc9ee74eacb68410d0b1ae6a2571a4bea6a1ba5c61f16d7ee1355552518c",
+          "geometrySource": "Microsoft ML Buildings",
+          "release": "2026-10-21.0",
+          "survey": "miami-dade-2021",
+          "heightM": 5.91,
+          "roofReturns": 272,
+          "groundReturns": 109,
+          "coveredCells": 10,
+          "eligibleCells": 10
+        }
+      },
+      "rejected": {
+        "157f40e5-f271-405b-819c-68fadd503c0f": "surrounding terrain varies substantially"
+      },
+      "acquisition": "2021-04-07/2021-06-10",
+      "survey": "miami-dade-2021",
+      "ept": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/entwine/geoid18/10338/ept.json",
+      "requests": 0,
+      "bytes": 0,
+      "files": {
+        "ept.json": "fe542c061e052da26b728dee096f398c6beca94b6b83ff279887ba83b891714c",
+        "ept-hierarchy/0-0-0-0.json": "efcd1b399462cfcd65bd633acbc6f6001d4a11e70636d1b41f02927c5b63f27f",
+        "ept-hierarchy/8-225-151-127.json": "487a9122d518dc2fbf831c574f1720381c5a3ca8e9770262bf133bfeae310585",
+        "ept-data/10-903-606-508.laz": "af8e3166fdf8c38d125061022154d0bb6d308e8e0fee26ac4fb3885f61229561",
+        "ept-data/10-903-607-508.laz": "607f4b44078c3dab93de96d54154b60e23685efd507ae980eadc685e07501547"
+      }
+    },
+    {
+      "tile": [
+        19818,
+        24238
+      ],
+      "certificates": {
+        "544b5e70-b520-467b-8b2b-7a6d265341d7": {
+          "outlineHash": "424e5af5c01e2e3f749d08129f86a9a3b58c4b1b96632a1a845f619532dcca04",
+          "geometrySource": "Microsoft ML Buildings",
+          "release": "2026-10-21.0",
+          "survey": "ma-central-eastern-2021",
+          "heightM": 4.39,
+          "roofReturns": 791,
+          "groundReturns": 1450,
+          "coveredCells": 8,
+          "eligibleCells": 8
+        }
+      },
+      "rejected": {},
+      "acquisition": "spring 2021",
+      "survey": "ma-central-eastern-2021",
+      "ept": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/MA_CentralEastern_1_2021/ept.json",
+      "requests": 0,
+      "bytes": 0,
+      "files": {
+        "ept.json": "68adfe80e074a89784592e424a49a12eb5a681cc5a8bcb26c46d3e8a08503828",
+        "ept-hierarchy/0-0-0-0.json": "a6c37d705471a358dc2471a873bef6138be7e56d2f591a746d6317932f72c0ca",
+        "ept-hierarchy/6-39-27-31.json": "c92a0eb61740decefc453dc09e43d8b1a5adc7abf0700dac7d50ec1477e9e3d4",
+        "ept-data/10-629-439-508.laz": "5eee5b412ea93465b4ea50f0fddd4968e0c0b94173e446e5527b713944873c58",
+        "ept-data/10-630-439-508.laz": "307241cd244672b285ac0e5206965b886c6dddcc326a21a8208d6db22331eb8d"
+      }
+    }
+  ]
+}

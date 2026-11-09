@@ -1,0 +1,30 @@
+{
+  "title": "Experimental storefront from a separate 2024 capture",
+  "summary": "The June texture covers 79.4 m\u00b2, restricted to the visible front surface around matched windows and exterior signs. A photographed entrance and a separate laser-resolved roadside sign constrained the camera. Manually identified control pixels and a visibility mask were needed.",
+  "measurement": "The same physical roof and ground with generic walls scored 0.011 window-band correlation against the February photograph. The partial texture scored 0.071. The earlier terrain and generic wall scored 0.111. The partial photographic wall stays outside the default game. The stock Miata drove 42.10 m on Southeast Washington Boulevard with four tire contacts in the default scene.",
+  "credit": "Photography by Baloo Uriza, CC BY-SA 4.0. Field photograph reprojected and cropped. Experimental image masked, exposure adjusted and mapped onto the measured wall. USGS 3DEP, 2022\u201323; OpenStreetMap contributors via OpenFreeMap.",
+  "images": [
+    {
+      "file": "partial-wall.webp",
+      "caption": "Experimental partial projection from the 2024 capture, excluded from the default game"
+    }
+  ],
+  "links": [
+    [
+      "June 2024 source",
+      "https://panoramax.xyz/#focus=pic&pic=facd96a4-bae2-4230-9793-8a3a60a851be"
+    ],
+    [
+      "February 2026 reference",
+      "https://panoramax.xyz/#focus=pic&pic=37d05f23-c4c9-428d-90b0-0a47b4e6be13"
+    ],
+    [
+      "USGS 3DEP project",
+      "https://usgs-lidar-public.s3.amazonaws.com/OK_Statewide_1_D22/ept.json"
+    ],
+    [
+      "CC BY-SA 4.0",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ]
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "title": "Davidson Hall from Church Street",
+  "summary": "In Find a place, choose Davidson Hall · Bethel, ME. The northbound Miata passes the school on the right. Four surveyed walls now carry the visible brick, windows and white coping from Nick Kline’s June 2012 photograph. The entrance canopy projects 3.18 m into the recess. Its height was checked using two 2016 laser flight lines.",
+  "measurement": "Across 280,475 building pixels in the registered source view, the mean RGB channel error fell from 86.2 to 58.8 on a 0–255 scale. Edge correlation rose from 0.081 to 0.571. This measures reconstruction of the photograph that supplied the facades. The independent airborne roof elevations support the fitted main roof within 0.42 m. The ordinary cockpit faces 341° from a different camera position, with all four tires on Church Street. Repeated control renders matched pixel for pixel at both viewpoints.",
+  "images": [
+    {
+      "file": "registered.webp",
+      "caption": "Registered photograph and two Godot renders at the June 29, 2012 exposure time. Missing or occluded facade detail uses brick sampled from the photographed wall. Tree positions, the entrance recess and the summer lawn differ."
+    },
+    {
+      "file": "driver.webp",
+      "caption": "Ordinary northbound driver view at the new Find a place stop. Both images use the same loaded scene and the normal afternoon daylight preset. The rearview mirror obscures part of the front wall from this approach."
+    }
+  ],
+  "credit": "Photograph by Nick Kline (User:Nickline4). The original was rectified, masked and illumination-corrected for the four wall textures. Adapted photographs, textures, comparison sheets and survey-containing frames are available under CC BY-SA 3.0. Survey geometry also uses public-domain USGS elevation returns and the OpenStreetMap footprint via OpenFreeMap.",
+  "links": [
+    [
+      "Original photograph",
+      "https://commons.wikimedia.org/wiki/File:Gould_Academy_Davidson_Hall.JPG"
+    ],
+    [
+      "CC BY-SA 3.0",
+      "https://creativecommons.org/licenses/by-sa/3.0/"
+    ],
+    [
+      "USGS 2016 point tile",
+      "https://www.sciencebase.gov/catalog/item/644b2bc8d34e45f6ddcd3d94"
+    ],
+    [
+      "OpenStreetMap attribution",
+      "https://www.openstreetmap.org/copyright"
+    ]
+  ]
+}

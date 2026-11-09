@@ -1,0 +1,141 @@
+{
+  "reference": "Freesound TurboTheSergal interior 523351, exterior 523352 (idle following start, no tachometer)",
+  "orderHz": "a dominant 41.5\u201344 Hz comb; the 1260 rpm match is inferred assuming two even firing events each crank revolution",
+  "harmonicsDbOrder1to10": {
+    "interior": [
+      0.0,
+      -23.1,
+      -24.6,
+      -23.5,
+      -20.8,
+      -29.7,
+      -31.2,
+      -29.5,
+      -27.6,
+      -30.9
+    ],
+    "exterior": [
+      0.0,
+      -15.1,
+      -12.7,
+      -8.7,
+      -18.5,
+      -19.5,
+      -22.1,
+      -12.9,
+      -6.5,
+      -23.0
+    ],
+    "original": [
+      0.0,
+      -9.1,
+      -45.0,
+      -15.4,
+      -45.0,
+      -45.0,
+      -45.0,
+      -45.0,
+      -45.0,
+      -45.0
+    ],
+    "model": [
+      0.0,
+      -15.2,
+      -19.9,
+      -21.6,
+      -24.8,
+      -26.8,
+      -29.5,
+      -32.6,
+      -34.6,
+      -36.2
+    ]
+  },
+  "medianAbsoluteOrderLevelErrorDb": {
+    "interior": [
+      14.7,
+      3.54
+    ],
+    "exterior": [
+      24.23,
+      7.38
+    ]
+  },
+  "idle": {
+    "dbFS": -18.39,
+    "band_rel_low_db": [
+      0.0,
+      -23.04,
+      -37.81
+    ]
+  },
+  "coast": {
+    "dbFS": -19.33,
+    "band_rel_low_db": [
+      0.0,
+      -13.04,
+      -24.68
+    ]
+  },
+  "loaded": {
+    "dbFS": -9.67,
+    "band_rel_low_db": [
+      0.0,
+      -6.16,
+      -18.96
+    ]
+  },
+  "free": {
+    "dbFS": -15.95,
+    "band_rel_low_db": [
+      0.0,
+      -11.24,
+      -25.31
+    ]
+  },
+  "Eunos_HKS_neutral_rev": {
+    "idle_relative_dbFS": -37.45,
+    "rev_relative_dbFS": -16.28,
+    "idleBandAbove640": -10.43,
+    "revBandAbove640": 7.55
+  },
+  "analysis": {
+    "sampleRateHz": 22050,
+    "method": "Welch Hann 4096-point windows, 2048 samples overlap, peak in max(6.5 Hz,3.5% of order center) about n*f for n=1..10. Relative to strongest order, floored at -45 dB. Median across three windows.",
+    "interiorSecondsAndEstimatedFiringHz": [
+      [
+        7.15,
+        7.95,
+        41.75
+      ],
+      [
+        8.15,
+        8.95,
+        42.5
+      ],
+      [
+        9.15,
+        9.8,
+        44
+      ]
+    ],
+    "exteriorSecondsAndEstimatedFiringHz": [
+      [
+        2.15,
+        2.95,
+        42.75
+      ],
+      [
+        3.15,
+        3.95,
+        41.5
+      ],
+      [
+        4.15,
+        4.95,
+        42.75
+      ]
+    ],
+    "modifiedEunosComparison": "0-3 seconds vs 13-17 seconds of the CC0 recording, uncalibrated digital level."
+  }
+}

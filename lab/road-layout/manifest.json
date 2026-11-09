@@ -1,0 +1,26 @@
+{
+  "title": "Single-lane streets in Washington and Portland",
+  "summary": "On Q Street in Washington, DC, the game drew a center divider through a single travel lane and omitted the white side markings. Two separately flown aerial surveys and the city cross section register four short observed paint spans. Southwest Harvey Milk Street in Portland tests the single-lane rule in another state.",
+  "measurement": "The false divider disappeared in both native views. The Portland Miata kept four tire contacts for 657 ticks along 45 m. A separate first-visit test applied seven registered map spans while the car retained its original tile, ground material and colliders.",
+  "images": [
+    {
+      "file": "washington-study.webp",
+      "caption": "Washington, DC \u00b7 surveyed Q Street and the ordinary game camera"
+    },
+    {
+      "file": "portland-study.webp",
+      "caption": "Portland, Oregon \u00b7 single-lane street from an independent district"
+    }
+  ],
+  "credit": "Washington aerial excerpt from Open Data DC, CC BY 4.0. Map data \u00a9 OpenStreetMap contributors, ODbL. The game frames and annotations are from Sunday Driver.",
+  "links": [
+    [
+      "District aerial photography",
+      "https://opendata.dc.gov/datasets/aerial-photography-orthophoto-2025/about"
+    ],
+    [
+      "OSM attribution",
+      "https://www.openstreetmap.org/copyright"
+    ]
+  ]
+}

@@ -1,0 +1,112 @@
+[
+  {
+    "city": "Lincoln",
+    "provider": "Lincoln Parks and Recreation",
+    "tiles": [
+      15168,
+      24617
+    ],
+    "stems": 306,
+    "peaks": 337,
+    "originalMatched": 75,
+    "matched": 78,
+    "previousEstimated": 39,
+    "estimated": 39,
+    "totalRows": 376,
+    "added": [
+      {
+        "treeId": "T028554",
+        "name": "Silver Maple",
+        "dbhM": 0.5334,
+        "apexHeightM": 15,
+        "offsetM": 7.56,
+        "bridgeHeightsM": [
+          14,
+          14,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ]
+      },
+      {
+        "treeId": "T028691",
+        "name": "Redmond American Linden",
+        "dbhM": 0.5334,
+        "apexHeightM": 11,
+        "offsetM": 7.66,
+        "bridgeHeightsM": [
+          8,
+          10,
+          10,
+          10,
+          11,
+          11,
+          11,
+          11,
+          11
+        ]
+      },
+      {
+        "treeId": "T028030",
+        "name": "Emerald Queen Norway Maple",
+        "dbhM": 0.2286,
+        "apexHeightM": 11,
+        "offsetM": 7.11,
+        "bridgeHeightsM": [
+          9,
+          9,
+          10,
+          10,
+          11,
+          11,
+          11,
+          11,
+          11
+        ]
+      }
+    ],
+    "additionalRequests": 0,
+    "removedPriorMatches": 0
+  },
+  {
+    "city": "Cambridge",
+    "provider": "Cambridge GIS and Public Works",
+    "tiles": [
+      19823,
+      24236
+    ],
+    "stems": 331,
+    "peaks": 435,
+    "originalMatched": 43,
+    "matched": 44,
+    "previousEstimated": 88,
+    "estimated": 88,
+    "totalRows": 523,
+    "added": [
+      {
+        "treeId": "7222",
+        "name": "Elm genus",
+        "dbhM": 0.22606,
+        "apexHeightM": 19,
+        "offsetM": 7.56,
+        "bridgeHeightsM": [
+          15,
+          16,
+          16,
+          17,
+          17,
+          18,
+          18,
+          19,
+          19
+        ]
+      }
+    ],
+    "additionalRequests": 0,
+    "removedPriorMatches": 0
+  }
+]

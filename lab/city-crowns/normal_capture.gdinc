@@ -1,0 +1,45 @@
+func capture_city_crowns(tile):
+ game.set_process(false)
+ game.set_physics_process(false)
+ game.vehicle.freeze=true
+ var evidence={"frames":[],"wheel_contacts":game.vehicle.wheel_contact,"capture":destination,"height_survey":"Cambridge 2024","trunk_road_survey":"Cambridge 2018"}
+ for mode in ["before","survey","repeat"]:
+  var show_survey=mode=="survey"
+  game.grove.set_meta("qa_survey",show_survey)
+  for loaded in game.tiles.values():
+   loaded.info.qa_survey=show_survey
+   if not loaded.qa_original_crowns.is_empty():loaded.replace_crowns(loaded.qa_original_crowns)
+  game.grove.last_revision=-1
+  var settled=0
+  for i in 240:
+   game.grove.refresh(game)
+   if game.grove.municipal_crowns.worker or game.grove.municipal_crowns.selection_changed:settled=0
+   else:settled+=1
+   await get_tree().process_frame
+   await RenderingServer.frame_post_draw
+   if settled>=12:break
+  var file=destination.get_basename()+"-"+mode+".png"
+  var image=get_viewport().get_texture().get_image()
+  var rc=image.save_png(file)
+  var active_colliders=[]
+  for trunk in game.grove.trunks:
+   if trunk.collision_layer:
+    var capsule=trunk.get_child(0).shape
+    active_colliders.append([trunk.position.x,trunk.position.y,trunk.position.z,capsule.radius,capsule.height])
+  var models=[]
+  var factor=image.get_width()/get_viewport().get_visible_rect().size.x
+  for row in tile.grove:
+   var at=tile.to_global(row[0])+Vector3.UP*1.55;var d=-photo_camera.to_local(at).z
+   if d<4. or d>45.:continue
+   var px=photo_camera.unproject_position(at).x*factor
+   if px<0 or px>=image.get_width()*.5:continue
+   models.append({"id":row[6].get("objectId",0) if row.size()>6 else 0,"depth":d,"x":px})
+  evidence.frames.append({"mode":mode,"file":file.get_file(),"sha256":FileAccess.get_sha256(file),"rc":rc,"wells":tile.grove.filter(func(r):return r.size()>7).size(),"active_crowns":game.grove.municipal_crowns.active.size(),"cached_crowns":game.grove.municipal_crowns.instances.size(),"left_trunks":models,"colliders":active_colliders})
+ var a=evidence.frames[0];var b=evidence.frames[1];var c=evidence.frames[2]
+ evidence["repeat_identical"]=a.sha256==c.sha256
+ evidence["collision_parity"]=a.colliders==b.colliders and a.colliders==c.colliders
+ var output=FileAccess.open(destination.get_basename()+"-receipt.json",FileAccess.WRITE)
+ output.store_string(JSON.stringify(evidence,"  "));output.close()
+ print("CITY CROWNS ",destination," recovered=",b.wells," mesh=",b.active_crowns," contacts=",evidence.wheel_contacts," parity=",evidence.collision_parity," repeat=",evidence.repeat_identical)
+ game.set_process(true)
+ game.request_game_close(0 if evidence.repeat_identical and evidence.collision_parity and maxi(a.rc,maxi(b.rc,c.rc))==OK else 4)

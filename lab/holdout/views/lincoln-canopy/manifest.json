@@ -1,0 +1,26 @@
+{
+  "title": "The linden at the intersection",
+  "summary": "This east-facing photograph shows a mature linden beside the right curb. The city measured a 53 cm trunk there. The original game placed the treetop in the cross street and discarded it. The canopy-height raster shows continuous foliage back to the mapped trunk.",
+  "measurement": "The mean error in the left edge of the right-hand crown fell from 36 to 11 percentage points of frame width across six rows. In the lower 260 pixels, both 960 × 720 renders are identical. The game still underestimates the reach of the foliage toward the middle of the road.",
+  "images": [
+    {
+      "file": "comparison.webp",
+      "caption": "Lincoln, Nebraska, August 19, 2025. Public street photograph, previous game canopy, and the same frame with the municipal linden restored."
+    }
+  ],
+  "credit": "Photograph © slinky309 via Panoramax, CC BY-SA 4.0. Resized and arranged with Godot renders. This comparison is distributed under the same license. Tree inventory © City of Lincoln / Lancaster County Geospatial Services, Lincoln Parks and Recreation.",
+  "links": [
+    [
+      "Street photograph",
+      "https://panoramax.xyz/#focus=pic&pic=202ef7e6-ea03-4311-a626-b9f3b8405a52"
+    ],
+    [
+      "Municipal tree inventory",
+      "https://gis.lincoln.ne.gov/public/rest/services/Parks/Trees/MapServer/0"
+    ],
+    [
+      "Attribution-ShareAlike 4.0",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ]
+  ]
+}

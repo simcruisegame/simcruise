@@ -1,0 +1,68 @@
+{
+  "points": "roofline-evidence.npz",
+  "tile": "footprints.json",
+  "crs": "EPSG:26917",
+  "footprints": [
+    0,
+    1
+  ],
+  "roofClasses": [
+    1,
+    6
+  ],
+  "origin": [
+    444892.6716440335,
+    4244665.485023728
+  ],
+  "cameraHeightM": 1.65,
+  "roiFraction": [
+    0.0116,
+    0.49
+  ],
+  "skyLabel": 3,
+  "wallLabels": [
+    1,
+    2
+  ],
+  "initialFovH": 85,
+  "attribution": "Photographs by wolfgang8741, \u00a9 Grab and KartaView contributors, CC BY-SA 4.0",
+  "cloudSource": "USGS 3DEP, West Virginia FEMA lidar, 2018\u20132019",
+  "frames": [
+    {
+      "frame": 2858,
+      "lon": -81.630774,
+      "lat": 38.348544,
+      "heading": 136.54,
+      "sourceUrl": "https://kartaview.org/details/3485953/2858",
+      "labels": "frame-2858.png",
+      "use": "train"
+    },
+    {
+      "frame": 2860,
+      "lon": -81.630658,
+      "lat": 38.348449,
+      "heading": 136.44,
+      "sourceUrl": "https://kartaview.org/details/3485953/2860",
+      "labels": "frame-2860.png",
+      "use": "holdout"
+    },
+    {
+      "frame": 2863,
+      "lon": -81.630545,
+      "lat": 38.348355,
+      "heading": 137.46,
+      "sourceUrl": "https://kartaview.org/details/3485953/2863",
+      "labels": "frame-2863.png",
+      "use": "train"
+    },
+    {
+      "frame": 2861,
+      "lon": -81.630601,
+      "lat": 38.348402,
+      "heading": 137.2,
+      "sourceUrl": "https://kartaview.org/details/3485953/2861",
+      "labels": "frame-2861.png",
+      "use": "holdout"
+    }
+  ]
+}

@@ -1,0 +1,627 @@
+{
+  "date": "2026-11-08",
+  "cacheUpgrade": [
+    {
+      "variant": "full",
+      "requests": 0,
+      "unchangedRoofs": 8,
+      "runs": 1
+    },
+    {
+      "variant": "pruned",
+      "requests": 0,
+      "unchangedRoofs": 8,
+      "runs": 0
+    }
+  ],
+  "physicalDrives": {
+    "Lincoln": {
+      "banks": false,
+      "corrected": true,
+      "histogram": [
+        0,
+        0,
+        0,
+        0,
+        629
+      ],
+      "maxBodyStepM": 0.005859375,
+      "maxLaneOffsetErrorM": 0.0388824462890625,
+      "maxSpeedMps": 4.59011173248291,
+      "maxTireRayVsHeightMapM": 7.19204228403214e-05,
+      "rayErrorP95": 4.45811549525388e-05,
+      "road": "J Street",
+      "simTicks": 628,
+      "status": "complete",
+      "survey": {
+        "extraTriangles": 1484,
+        "project": "USGS_LPC_NE_Eastern_UA_2016_LAS_2018",
+        "runs": 1,
+        "sourceIds": [
+          [
+            32,
+            33
+          ]
+        ],
+        "surveyEnd": "2017-02-03",
+        "ways": [
+          "1093468968"
+        ]
+      },
+      "terrain": "",
+      "way": "1093468968",
+      "meanInteriorChassisRollDeg": -4.289,
+      "meanInteriorContactPlaneRollDeg": -3.743
+    },
+    "Lewisburg": {
+      "banks": false,
+      "corrected": true,
+      "histogram": [
+        0,
+        0,
+        0,
+        0,
+        1126
+      ],
+      "maxBodyStepM": 0.0037841796875,
+      "maxLaneOffsetErrorM": 0.0222484588623046,
+      "maxSpeedMps": 4.51541805267334,
+      "maxTireRayVsHeightMapM": 8.98222103842272e-05,
+      "rayErrorP95": 6.86015642941129e-05,
+      "road": "South Court Street",
+      "simTicks": 1125,
+      "status": "complete",
+      "survey": {
+        "extraTriangles": 16408,
+        "project": "USGS_LPC_WV_FEMA_R3_East_2016_LAS_2018",
+        "runs": 8,
+        "sourceIds": [
+          [
+            176,
+            177
+          ]
+        ],
+        "surveyEnd": "2016-12-28",
+        "ways": [
+          "15540796",
+          "15541615",
+          "15542873",
+          "15540984",
+          "15540723",
+          "15541680"
+        ]
+      },
+      "terrain": "",
+      "way": "15541615",
+      "meanInteriorChassisRollDeg": -1.163,
+      "meanInteriorContactPlaneRollDeg": -1.066
+    },
+    "Lewisburg-held": {
+      "banks": false,
+      "corrected": true,
+      "histogram": [
+        0,
+        0,
+        0,
+        0,
+        671
+      ],
+      "maxBodyStepM": 0.0067138671875,
+      "maxLaneOffsetErrorM": 0.0308362960815429,
+      "maxSpeedMps": 5.01779842376709,
+      "maxTireRayVsHeightMapM": 9.08641329715465e-05,
+      "rayErrorP95": 6.6280247551731e-05,
+      "road": "North Jefferson Street",
+      "simTicks": 670,
+      "status": "complete",
+      "survey": {
+        "extraTriangles": 16408,
+        "project": "USGS_LPC_WV_FEMA_R3_East_2016_LAS_2018",
+        "runs": 8,
+        "sourceIds": [
+          [
+            176,
+            177
+          ]
+        ],
+        "surveyEnd": "2016-12-28",
+        "ways": [
+          "15540796",
+          "15541615",
+          "15542873",
+          "15540984",
+          "15540723",
+          "15541680"
+        ]
+      },
+      "terrain": "",
+      "way": "15540796",
+      "meanInteriorChassisRollDeg": -2.711,
+      "meanInteriorContactPlaneRollDeg": -2.479
+    },
+    "Anchorage": {
+      "banks": false,
+      "corrected": true,
+      "histogram": [
+        0,
+        0,
+        0,
+        0,
+        708
+      ],
+      "maxBodyStepM": 0.00389480590820312,
+      "maxLaneOffsetErrorM": 0.022287917137146,
+      "maxSpeedMps": 4.63380432128906,
+      "maxTireRayVsHeightMapM": 4.55785534754227e-05,
+      "rayErrorP95": 3.4233686559304e-05,
+      "road": "K Street",
+      "simTicks": 707,
+      "status": "complete",
+      "survey": {
+        "extraTriangles": 10008,
+        "project": "USGS_LPC_AK_Anchorage_2015_LAS_2017",
+        "runs": 2,
+        "sourceIds": [
+          [
+            110,
+            111
+          ]
+        ],
+        "surveyEnd": "2016-09-29",
+        "ways": [
+          "1086300704",
+          "8912227"
+        ]
+      },
+      "terrain": "",
+      "way": "8912227",
+      "meanInteriorChassisRollDeg": -0.857,
+      "meanInteriorContactPlaneRollDeg": -0.764
+    }
+  },
+  "meshChecks": {
+    "Lincoln": {
+      "plain": {
+        "areaErrorM2": 0.0895611321320757,
+        "banks": false,
+        "colliderFaces": 9676,
+        "faces": 9676,
+        "id": [
+          15168.0,
+          24617.0
+        ],
+        "interiorOrNonmanifoldEdges": 0,
+        "inverted": 0,
+        "meshBuildMs": 20.846,
+        "minimumTriangleM2": 0.726382434368134,
+        "runs": 1,
+        "stats": {
+          "extraTriangles": 1484,
+          "project": "USGS_LPC_NE_Eastern_UA_2016_LAS_2018",
+          "runs": 1,
+          "sourceIds": [
+            [
+              32,
+              33
+            ]
+          ],
+          "surveyEnd": "2017-02-03",
+          "ways": [
+            "1093468968"
+          ]
+        }
+      },
+      "banks": {
+        "areaErrorM2": 0.00422474497463554,
+        "banks": true,
+        "colliderFaces": 9686,
+        "faces": 9686,
+        "id": [
+          15168.0,
+          24617.0
+        ],
+        "interiorOrNonmanifoldEdges": 0,
+        "inverted": 0,
+        "meshBuildMs": 23.569,
+        "minimumTriangleM2": 0.726364076137543,
+        "runs": 1,
+        "stats": {
+          "extraTriangles": 1484,
+          "project": "USGS_LPC_NE_Eastern_UA_2016_LAS_2018",
+          "runs": 1,
+          "sourceIds": [
+            [
+              32,
+              33
+            ]
+          ],
+          "surveyEnd": "2017-02-03",
+          "ways": [
+            "1093468968"
+          ]
+        }
+      }
+    },
+    "Lewisburg": {
+      "plain": {
+        "areaErrorM2": 0.0863508404290769,
+        "banks": false,
+        "colliderFaces": 24600,
+        "faces": 24600,
+        "id": [
+          18123.0,
+          25324.0
+        ],
+        "interiorOrNonmanifoldEdges": 0,
+        "inverted": 0,
+        "meshBuildMs": 155.339,
+        "minimumTriangleM2": 0.791506826877594,
+        "runs": 8,
+        "stats": {
+          "extraTriangles": 16408,
+          "project": "USGS_LPC_WV_FEMA_R3_East_2016_LAS_2018",
+          "runs": 8,
+          "sourceIds": [
+            [
+              176,
+              177
+            ]
+          ],
+          "surveyEnd": "2016-12-28",
+          "ways": [
+            "15540796",
+            "15541615",
+            "15542873",
+            "15540984",
+            "15540723",
+            "15541680"
+          ]
+        }
+      },
+      "banks": {
+        "areaErrorM2": 0.00207825293182395,
+        "banks": true,
+        "colliderFaces": 24610,
+        "faces": 24610,
+        "id": [
+          18123.0,
+          25324.0
+        ],
+        "interiorOrNonmanifoldEdges": 0,
+        "inverted": 0,
+        "meshBuildMs": 155.803,
+        "minimumTriangleM2": 0.791506826877594,
+        "runs": 8,
+        "stats": {
+          "extraTriangles": 16408,
+          "project": "USGS_LPC_WV_FEMA_R3_East_2016_LAS_2018",
+          "runs": 8,
+          "sourceIds": [
+            [
+              176,
+              177
+            ]
+          ],
+          "surveyEnd": "2016-12-28",
+          "ways": [
+            "15540796",
+            "15541615",
+            "15542873",
+            "15540984",
+            "15540723",
+            "15541680"
+          ]
+        }
+      }
+    },
+    "Anchorage": {
+      "plain": {
+        "areaErrorM2": 0.00644669722532853,
+        "banks": false,
+        "colliderFaces": 18200,
+        "faces": 18200,
+        "id": [
+          5479.0,
+          18579.0
+        ],
+        "interiorOrNonmanifoldEdges": 0,
+        "inverted": 0,
+        "meshBuildMs": 118.099,
+        "minimumTriangleM2": 0.293897479772568,
+        "runs": 2,
+        "stats": {
+          "extraTriangles": 10008,
+          "project": "USGS_LPC_AK_Anchorage_2015_LAS_2017",
+          "runs": 2,
+          "sourceIds": [
+            [
+              110,
+              111
+            ]
+          ],
+          "surveyEnd": "2016-09-29",
+          "ways": [
+            "1086300704",
+            "8912227"
+          ]
+        }
+      },
+      "banks": {
+        "areaErrorM2": 0.00642336200689897,
+        "banks": true,
+        "colliderFaces": 18210,
+        "faces": 18210,
+        "id": [
+          5479.0,
+          18579.0
+        ],
+        "interiorOrNonmanifoldEdges": 0,
+        "inverted": 0,
+        "meshBuildMs": 116.061,
+        "minimumTriangleM2": 0.293897479772568,
+        "runs": 2,
+        "stats": {
+          "extraTriangles": 10008,
+          "project": "USGS_LPC_AK_Anchorage_2015_LAS_2017",
+          "runs": 2,
+          "sourceIds": [
+            [
+              110,
+              111
+            ]
+          ],
+          "surveyEnd": "2016-09-29",
+          "ways": [
+            "1086300704",
+            "8912227"
+          ]
+        }
+      }
+    }
+  },
+  "districts": {
+    "Lincoln": {
+      "id": [
+        15168,
+        24617
+      ],
+      "patch": [
+        3,
+        1
+      ],
+      "project": {
+        "name": "USGS_LPC_NE_Eastern_UA_2016_LAS_2018",
+        "start": "2016-12-08",
+        "end": "2017-02-03",
+        "quality": "QL 2"
+      },
+      "crossfall": {
+        "runs": 1,
+        "sections": 3
+      },
+      "requests": 0,
+      "nodes": [
+        {
+          "key": "9-150-137-255",
+          "bytes": 195187,
+          "points": 29347
+        },
+        {
+          "key": "9-150-137-254",
+          "bytes": 388604,
+          "points": 65297
+        },
+        {
+          "key": "10-301-274-510",
+          "bytes": 83061,
+          "points": 13266
+        }
+      ],
+      "independentNodes": [
+        {
+          "key": "10-301-274-509",
+          "bytes": 241644,
+          "sha256": "69132913b9cb35d6ba94134463eb773da9c27c8e23685beb320e274afecdc1e5",
+          "url": "https://usgs-lidar-public.s3.amazonaws.com/USGS_LPC_NE_Eastern_UA_2016_LAS_2018/ept-data/10-301-274-509.laz",
+          "status": 200
+        }
+      ],
+      "independentCm": [
+        {
+          "way": "1093468968",
+          "samples": 47,
+          "oldCm": 6.113,
+          "meshCm": 2.431
+        }
+      ]
+    },
+    "Lewisburg": {
+      "id": [
+        18123,
+        25324
+      ],
+      "patch": [
+        1,
+        2
+      ],
+      "project": {
+        "name": "USGS_LPC_WV_FEMA_R3_East_2016_LAS_2018",
+        "start": "2016-11-22",
+        "end": "2016-12-28",
+        "quality": "QL 2"
+      },
+      "crossfall": {
+        "runs": 8,
+        "sections": 44
+      },
+      "requests": 0,
+      "nodes": [
+        {
+          "key": "9-303-174-255",
+          "bytes": 638984,
+          "points": 102350
+        },
+        {
+          "key": "10-607-349-511",
+          "bytes": 261397,
+          "points": 56220
+        },
+        {
+          "key": "8-151-87-127",
+          "bytes": 1198483,
+          "points": 162568
+        }
+      ],
+      "independentNodes": [
+        {
+          "key": "10-607-348-511",
+          "bytes": 342043,
+          "sha256": "788d7d8ecb1130c56e432f265e0d8b196ea407239a9c765f4029f0b74d95994f",
+          "url": "https://usgs-lidar-public.s3.amazonaws.com/USGS_LPC_WV_FEMA_R3_East_2016_LAS_2018/ept-data/10-607-348-511.laz",
+          "status": 200
+        }
+      ],
+      "independentCm": [
+        {
+          "way": "15540796",
+          "samples": 656,
+          "oldCm": 7.995,
+          "meshCm": 1.399
+        },
+        {
+          "way": "15540984",
+          "samples": 43,
+          "oldCm": 4.736,
+          "meshCm": 1.422
+        },
+        {
+          "way": "15541680",
+          "samples": 32,
+          "oldCm": 1.309,
+          "meshCm": 0.851
+        },
+        {
+          "way": "15541680",
+          "samples": 43,
+          "oldCm": 3.157,
+          "meshCm": 1.114
+        },
+        {
+          "way": "15542873",
+          "samples": 48,
+          "oldCm": 3.086,
+          "meshCm": 2.192
+        }
+      ]
+    },
+    "Anchorage": {
+      "id": [
+        5479,
+        18579
+      ],
+      "patch": [
+        1,
+        2
+      ],
+      "project": {
+        "name": "USGS_LPC_AK_Anchorage_2015_LAS_2017",
+        "start": "2015-05-10",
+        "end": "2016-09-29",
+        "quality": "QL 2"
+      },
+      "crossfall": {
+        "runs": 2,
+        "sections": 13
+      },
+      "requests": 0,
+      "nodes": [
+        {
+          "key": "8-67-162-126",
+          "bytes": 743755,
+          "points": 95491
+        },
+        {
+          "key": "9-135-324-252",
+          "bytes": 470019,
+          "points": 70774
+        },
+        {
+          "key": "7-33-81-63",
+          "bytes": 636280,
+          "points": 72118
+        }
+      ],
+      "independentNodes": [
+        {
+          "key": "9-135-325-252",
+          "bytes": 512066,
+          "sha256": "c4d33bb52bbf615213c69fcc3a1760e2de72d7fc75a776a75f7944eeb0a18a11",
+          "url": "https://usgs-lidar-public.s3.amazonaws.com/USGS_LPC_AK_Anchorage_2015_LAS_2017/ept-data/9-135-325-252.laz",
+          "status": 200
+        }
+      ],
+      "independentCm": [
+        {
+          "way": "8912227",
+          "samples": 51,
+          "oldCm": 2.593,
+          "meshCm": 2.309
+        }
+      ]
+    }
+  },
+  "rejectedPriorKStreet": {
+    "areaErrorM2": 0.00648809265112504,
+    "banks": false,
+    "colliderFaces": 8192,
+    "faces": 8192,
+    "id": [
+      5479.0,
+      18579.0
+    ],
+    "interiorOrNonmanifoldEdges": 0,
+    "inverted": 0,
+    "meshBuildMs": 3.473,
+    "minimumTriangleM2": 10.5810108184814,
+    "runs": 0,
+    "stats": {}
+  },
+  "strictReleaseRunner": {
+    "banks": false,
+    "corrected": true,
+    "histogram": [
+      0,
+      0,
+      0,
+      0,
+      708
+    ],
+    "maxBodyStepM": 0.00389480590820312,
+    "maxLaneOffsetErrorM": 0.022287917137146,
+    "maxSpeedMps": 4.63380432128906,
+    "maxTireRayVsHeightMapM": 4.55785534754227e-05,
+    "passed": true,
+    "rayErrorP95": 3.4233686559304e-05,
+    "road": "K Street",
+    "simTicks": 707,
+    "status": "complete",
+    "survey": {
+      "extraTriangles": 10008,
+      "project": "USGS_LPC_AK_Anchorage_2015_LAS_2017",
+      "runs": 2,
+      "sourceIds": [
+        [
+          110,
+          111
+        ]
+      ],
+      "surveyEnd": "2016-09-29",
+      "ways": [
+        "1086300704",
+        "8912227"
+      ]
+    },
+    "terrain": "USGS 3DEP 1/3 arc-second",
+    "way": "8912227"
+  }
+}

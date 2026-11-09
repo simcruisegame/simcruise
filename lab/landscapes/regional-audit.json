@@ -1,0 +1,198 @@
+[
+  {
+    "place": "Virginia",
+    "region": [
+      2323,
+      3177
+    ],
+    "requests": 0,
+    "transferredBytes": 0,
+    "firstMs": 15,
+    "warmMs": 1,
+    "warmRequests": 0,
+    "meshBytes": 2099744,
+    "vertices": 58555,
+    "triangles": 116423,
+    "heightRangeM": [
+      -53.2276725769043,
+      208.81568908691406
+    ],
+    "toleranceM": 6,
+    "witnessHeight": 40.76868655138637,
+    "correctedPixels": 43,
+    "verificationTiles": 1,
+    "oceanSamples": 0,
+    "detailPhotos": 1,
+    "middle": true,
+    "basePhoto": true,
+    "meshSHA256": "9d603c99a954448c932d6bdeefe81b2bd751aa4acf63f176c14e074d4ebfc3b6"
+  },
+  {
+    "place": "Nebraska",
+    "region": [
+      1898,
+      3084
+    ],
+    "requests": 1,
+    "transferredBytes": 108628,
+    "firstMs": 747,
+    "warmMs": 1,
+    "warmRequests": 0,
+    "meshBytes": 1363172,
+    "vertices": 38048,
+    "triangles": 75549,
+    "heightRangeM": [
+      232.83238220214844,
+      483.7826232910156
+    ],
+    "toleranceM": 6,
+    "witnessHeight": 375.2688405812602,
+    "correctedPixels": 7,
+    "verificationTiles": 1,
+    "oceanSamples": 0,
+    "detailPhotos": 0,
+    "middle": true,
+    "basePhoto": true,
+    "meshSHA256": "4c298b09eb8a2360cc40a3eb1b2c25ed1a06d7eac1b4fe7bad73ebec96d60716"
+  },
+  {
+    "place": "Utah",
+    "region": [
+      1593,
+      3185
+    ],
+    "requests": 0,
+    "transferredBytes": 0,
+    "firstMs": 513,
+    "warmMs": 0,
+    "warmRequests": 0,
+    "meshBytes": 1988732,
+    "vertices": 55448,
+    "triangles": 110279,
+    "heightRangeM": [
+      1116.163330078125,
+      2455.54345703125
+    ],
+    "toleranceM": 20.25,
+    "witnessHeight": null,
+    "correctedPixels": 0,
+    "verificationTiles": 0,
+    "oceanSamples": 0,
+    "detailPhotos": 4,
+    "middle": true,
+    "basePhoto": true,
+    "meshSHA256": "d3208f8275cc7f2b6a2679f36e1c8dd4df3c1976ae82494437c75882a0013c32"
+  },
+  {
+    "place": "Wyoming",
+    "region": [
+      1578,
+      2986
+    ],
+    "requests": 1,
+    "transferredBytes": 105626,
+    "firstMs": 635,
+    "warmMs": 1,
+    "warmRequests": 0,
+    "meshBytes": 2223296,
+    "vertices": 61971,
+    "triangles": 123303,
+    "heightRangeM": [
+      1676.2081298828125,
+      4162.13427734375
+    ],
+    "toleranceM": 30.375,
+    "witnessHeight": null,
+    "correctedPixels": 43,
+    "verificationTiles": 1,
+    "oceanSamples": 0,
+    "detailPhotos": 3,
+    "middle": true,
+    "basePhoto": true,
+    "meshSHA256": "53b2fa0629d6f34651fa7bca46009a52e9e426c688e3ed90a1619e36163022aa"
+  },
+  {
+    "place": "Alaska",
+    "region": [
+      685,
+      2324
+    ],
+    "requests": 0,
+    "transferredBytes": 0,
+    "firstMs": 657,
+    "warmMs": 1,
+    "warmRequests": 0,
+    "meshBytes": 2063048,
+    "vertices": 57474,
+    "triangles": 114446,
+    "heightRangeM": [
+      -47.85345458984375,
+      2097.165771484375
+    ],
+    "toleranceM": 13.5,
+    "witnessHeight": null,
+    "correctedPixels": 0,
+    "verificationTiles": 0,
+    "oceanSamples": 207376,
+    "detailPhotos": 4,
+    "middle": true,
+    "basePhoto": true,
+    "meshSHA256": "e5f0632ca8d853e3d573e96eb7c81bd055ace5a6870cc4d353530c8938491858"
+  },
+  {
+    "place": "Hawaii",
+    "region": [
+      503,
+      3599
+    ],
+    "requests": 0,
+    "transferredBytes": 0,
+    "firstMs": 597,
+    "warmMs": 1,
+    "warmRequests": 0,
+    "meshBytes": 2093024,
+    "vertices": 58153,
+    "triangles": 116265,
+    "heightRangeM": [
+      -38.21428298950195,
+      1227.5150146484375
+    ],
+    "toleranceM": 9,
+    "witnessHeight": null,
+    "correctedPixels": 0,
+    "verificationTiles": 0,
+    "oceanSamples": 832802,
+    "detailPhotos": 4,
+    "middle": true,
+    "basePhoto": true,
+    "meshSHA256": "35c567ccd16c67773d874c0a434c0aa69a8b9fcafee0d44c09beb300dc3818c2"
+  },
+  {
+    "place": "DeathValley",
+    "region": [
+      1438,
+      3210
+    ],
+    "requests": 0,
+    "transferredBytes": 0,
+    "firstMs": 571,
+    "warmMs": 0,
+    "warmRequests": 0,
+    "meshBytes": 1798460,
+    "vertices": 50099,
+    "triangles": 99772,
+    "heightRangeM": [
+      -112.8547592163086,
+      3303.139404296875
+    ],
+    "toleranceM": 30.375,
+    "witnessHeight": null,
+    "correctedPixels": 0,
+    "verificationTiles": 0,
+    "oceanSamples": 0,
+    "detailPhotos": 4,
+    "middle": true,
+    "basePhoto": true,
+    "meshSHA256": "70bec10277a4c9a72597be869a7f266a99f9c404865fea3c447397c4f36f7a5d"
+  }
+]

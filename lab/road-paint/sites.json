@@ -1,0 +1,22 @@
+{
+  "key": {
+    "road": "Overseas Highway",
+    "sources": "Monroe County 2015 and 2024, independently checked against FDOT 2018; original CC BY-SA street camera observations by cowdog, KartaView (2017); OSM contributors",
+    "primary": "county2024",
+    "repeat": "county2015",
+    "withheld": "fdot2018",
+    "lon": -80.449145,
+    "lat": 25.08706,
+    "bearing": 223.2
+  },
+  "cambridge": {
+    "road": "Soldiers Field Road",
+    "sources": "MassGIS orthophotos 2025 and 2023, independently checked against MassGIS 2019; KartaView photographs by cowsandmilk (2018); OSM contributors",
+    "primary": "mass2025",
+    "repeat": "mass2023",
+    "withheld": "mass2019",
+    "lon": -71.134311,
+    "lat": 42.365183,
+    "bearing": 59.3
+  }
+}

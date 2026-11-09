@@ -1,0 +1,50 @@
+{
+  "capture": "Near",
+  "collision_parity": true,
+  "frames": [
+    {
+      "active_crowns": 0,
+      "cached_crowns": 4,
+      "file": "Near-before.png",
+      "left_trunks": [],
+      "mode": "before",
+      "rc": 0,
+      "sha256": "346fc713ebc1561ac243fa2890218fb9ced36b33013eee37a90b6f392761021b",
+      "wells": 0,
+      "collider_count": 2
+    },
+    {
+      "active_crowns": 4,
+      "cached_crowns": 4,
+      "file": "Near-survey.png",
+      "left_trunks": [
+        {
+          "depth": 25.9215698242188,
+          "id": 46114.0,
+          "x": 305.641937255859
+        }
+      ],
+      "mode": "survey",
+      "rc": 0,
+      "sha256": "331783b9ad209b30b7786c9cf112a1af8903b724910fb96db0babd491fd97437",
+      "wells": 2,
+      "collider_count": 2
+    },
+    {
+      "active_crowns": 0,
+      "cached_crowns": 4,
+      "file": "Near-repeat.png",
+      "left_trunks": [],
+      "mode": "repeat",
+      "rc": 0,
+      "sha256": "346fc713ebc1561ac243fa2890218fb9ced36b33013eee37a90b6f392761021b",
+      "wells": 0,
+      "collider_count": 2
+    }
+  ],
+  "height_survey": "Cambridge 2024",
+  "repeat_identical": true,
+  "trunk_road_survey": "Cambridge 2018",
+  "wheel_contacts": 4,
+  "streetFrame": "1906221833"
+}

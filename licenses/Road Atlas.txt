@@ -1,0 +1,147 @@
+Canopy heights derived from Version 2 High Resolution Canopy Height Maps by WRI and Meta, accessed November 7, 2026, https://registry.opendata.aws/dataforgood-fb-forestsv2/ . CC BY 4.0 https://creativecommons.org/licenses/by/4.0/ . Heights and crown extents sampled, downscaled and converted to 3D tree placements. Species and branch shapes are inferred.
+Road atlas map data © OpenStreetMap contributors (ODbL), OpenFreeMap / OpenMapTiles. https://www.openstreetmap.org/copyright
+Raven Wing paved and gravel access, streets and sidewalks from Chesterfield County GIS, Planimetric_ProdA, Impervious Surfaces. https://services3.arcgis.com/TsynfzBSE6sXfoLq/arcgis/rest/services/Planimetric_ProdA/FeatureServer/1
+Forest Leaves 03 material by Poly Haven, CC0 https://polyhaven.com/a/forest_leaves_03
+Detailed 3D branch sprays use adapted, cropped twig and leaf color/alpha textures from Poly Haven Pine Tree 01 and Tree Small 02 (CC0). https://polyhaven.com/a/pine_tree_01 and https://polyhaven.com/a/tree_small_02 .
+Optional weather observations from NOAA Aviation Weather Center, https://aviationweather.gov/data/api/ . Cloud coverage and horizontal visibility alter reference daylight. Observations may be from a nearby airfield.
+Recent imagery contains modified Copernicus Sentinel data, accessed through Element 84 Earth Search. Observation date is shown on the road map. https://earth-search.aws.element84.com/v1/collections/sentinel-2-c1-l2a . Scene classification excludes cloud, shadow and no-data pixels before compositing surface colour. The geometry is from separate road, building and terrain sources.
+The optional Compare Street View button opens Google Maps for visual comparison only. Game graphics do not contain Google imagery.
+Roadside understory meshes and leaf material adapted from Shrub 03, Poly Haven (CC0). Bark photograph from Jølcham Oak Bark 01, Poly Haven (CC0). https://polyhaven.com/a/shrub_03 and https://polyhaven.com/a/jolcham_oak_bark_01 . Individual plant shapes and grass blades are representative.
+Traffic-signal points and fuel polygons © OpenStreetMap contributors, available under ODbL 1.0, https://www.openstreetmap.org/copyright . Local sample includes nodes 206017148 and 206017150 and ways 781945242 and 781945264. The renderer infers mast arms, pumps, canopy structure and colours from those mapped features. Displayed signal lamps are illustrative.
+
+© Grab and KartaView Contributors. Ground photographs by miken, sequence 3690649, frames 2055–2064, https://kartaview.org/details/3690649/2059 . Visible camera timestamp June 13, 2021. Imagery and adapted capture surfaces are provided under CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/ . Roads, signage, dispensers and building materials in the capture assets were cropped, perspective corrected, registered across frames and resampled onto the surveyed tile. The sequence is historic. Prices, business appearance and light states are not current observations. https://kartaview.org/terms . The game code has separate authorship and licenses.
+Southeast woodland patches in scan-*.meshdata and scan-*.png are multiview adaptations of imagery by miken, KartaView sequence 3690649, principally frames 2060 and 2061. © Grab and KartaView Contributors, CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/ . Source and held-out evaluation described in game/data/scan-report.json.
+Pauahi Tower, Capitol Modern and American Savings Bank Tower courtesy of © OpenStreetMap contributors, ODbL 1.0. The three local backup ways retain source dates and version identifiers in observed-honolulu.json. Roof materials and dominant colors represent explicitly tagged properties. Other buildings can use the same mapper when the public service is reachable and footprints match.
+
+Chula sky appearance uses direction-mapped sky pixels from KartaView sequence 3690649, frames 2057–2064, photographed by miken on June 13, 2021. The derived capture-chula-sky.png is distributed under CC BY-SA 4.0. The directions least visible to the survey use an inferred sky gradient blended with the existing HDR panorama. https://kartaview.org/details/3690649/2059 · https://creativecommons.org/licenses/by-sa/4.0/
+
+Optional streamed street observations use © Grab and KartaView Contributors, https://kartaview.org/terms . Photographs and image adaptations are CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/ . Individual photographer attribution, sequence, frame, original URL and license accompany the cached manifest. On the map Photo credit opens the attributed sequence. The preview estimates local color statistics from small processed thumbnails and adjusts supported surfaces near the camera track. Coverage and acquisition date vary.
+
+Building heights in streamed districts — © OpenStreetMap contributors, Overture Maps Foundation. Buildings data is distributed under ODbL 1.0. The helper matches georeferenced polygons and records the GERS identifier, Overture release, originating height dataset and any height-specific source-record update date supplied. Applied values can come from OpenStreetMap, Esri Community Maps or USGS Lidar. Esri Community Maps entries can carry CC BY 4.0 with OpenStreetMap waivers. Individual source and license information accompanies each result. https://docs.overturemaps.org/guides/buildings/ · https://docs.overturemaps.org/attribution/ · https://opendatacommons.org/licenses/odbl/1-0/ · https://creativecommons.org/licenses/by/4.0/
+
+OpenStreetMap Buildings for North America — © OpenStreetMap contributors, ODbL 1.0. Esri's public hosted replica supplies OSM way revisions, raw mapped building attributes and centroids for verification. Source item and credit: https://www.arcgis.com/home/item.html?id=2be4ad6652c649cbaea2be211555b1cf · https://www.openstreetmap.org/copyright
+
+Building-use estimates — U.S. Army Corps of Engineers, National Structure Inventory (NSI), public structures API. The game adapts modeled occupancy classes to four representation categories and preserves optional story counts in the lookup. It caches selected point fields, checks mapped uses and rejects ambiguous footprints. NSI combines several sources for hazard assessment. Individual structure uses and story counts can differ from current conditions. https://www.hec.usace.army.mil/confluence/nsi/technicalreferences/latest/technical-documentation · https://www.hec.usace.army.mil/confluence/nsi/technicalreferences/latest/api-reference-guide
+
+Miami roof surfaces — 2021 Miami-Dade ITD Lidar, Miami-Dade County, Florida. Credit: Miami-Dade County Information Technology Department, with GPI Geospatial acquisition and NOAA Office for Coastal Management distribution. The dataset lists CC0 1.0. NOAA reports flights on April 7–9, April 16 and June 10, 2021. Exact overflight dates for individual buildings are unknown. The game adapts classified airborne building and ground returns into footprint-clipped meshes. Associated OpenFreeMap footprints use © OpenStreetMap contributors, ODbL 1.0. Low-building roof colors can use imagery from the USGS National Map, https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer . https://www.fisheries.noaa.gov/inport/item/76028 · https://creativecommons.org/publicdomain/zero/1.0/
+
+The lab/diagram-assets photo and semantic overlay are adaptations of frame 217 of KartaView sequence 11591982 by mrmappenburger, © Grab and KartaView Contributors. CC BY-SA 4.0. https://kartaview.org/details/11591982/217 . The photo was resized and the overlay labels estimated semantic regions. The off-game research model is documented in lab/semantic/.
+
+
+Virginia Basemap Program orthoimagery. Virginia Geographic Information Network (VGIN). The program confirmed this imagery is public domain in its September 28, 2021 clarification for the same MostRecentImagery_WGS service used for the Chula and Raven Wing samples. https://wiki.openstreetmap.org/w/images/5/5b/VBMP_Permission.png and https://www.arcgis.com/home/item.html?id=36386a7e7dae4032a33cb0b83a1711f1
+Virginia mapping-use notice under Va. Code § 54.1-402(C). Any determination of topography or contours, or any depiction of physical improvements, property lines or boundaries is for general information only and shall not be used for the design, modification, or construction of improvements to real property or for flood plain determination. https://vgin.vdem.virginia.gov/pages/cl-vgin-data-usage
+Raven Wing impervious surfaces. Data retrieved from Chesterfield County GIS Data Catalog. Chesterfield dedicates open GIS data to CC0 1.0 unless a layer specifies otherwise, requests credit, and disclaims liability and warranties. https://opengisdata.chesterfield.gov/ and https://www.arcgis.com/sharing/rest/content/items/457f6e0b2d844284a649e79741460f05/data
+
+Hawaii main-island aerial photography. USDA Farm Service Agency, Aerial Photography Field Office, National Agriculture Imagery Program. The 2021–2023 program flew different islands on different dates. The publisher lists no use restrictions. https://www.fisheries.noaa.gov/inport/item/69406
+Selected Alaska aerial photography. USDA Forest Service Alaska Region (R10) and Geospatial Technology and Applications Center, mixed-resolution post-2000 public orthophotos, CC0. Coverage consists of selected forest and adjoining lands. The imagery does not cover every Alaska road. https://imagery.geoplatform.gov/iipp/rest/services/Aerial_Imagery/RGBI_post2000_USFS_R10_Alaska_multiRes_Public/ImageServer/info/iteminfo
+
+Regional source verification. Honolulu and Hilo produced valid Hawaii NAIP RGB. Juneau and Ketchikan produced valid R10 RGB. The requested R10 image returned fully transparent for the Anchorage downtown tile (z14 1369/4644). The loader omits unsuitable tiles. The Alaska service's published extent does not include Fairbanks.
+
+Panoramax. The hosted catalog is consulted for eligible licensed camera metadata. Credit and license remain attached to each reference. The Lincoln comparison image is by slinky309, CC BY-SA 4.0. https://panoramax.xyz/#focus=pic&pic=8889f6fa-34ff-4959-adb9-7d162c46b68c · https://creativecommons.org/licenses/by-sa/4.0/
+Charleston comparison images adapted from wolfgang8741 and Key Largo from cowdog. © Grab and KartaView contributors, CC BY-SA 4.0. The comparison page links to each original and identifies the resized frames.
+
+Lincoln public tree inventory. © City of Lincoln / Lancaster County Geospatial Services. Tree inventory maintained by Lincoln Parks and Recreation. The City Council's Open Data and Performance Management Policy authorizes reuse, adaptation and redistribution subject to city copyright. Application uses filtered stem locations, diameters and tree labels from the Parks/Trees layer. The administrative record edit timestamp is not a survey date. Source https://gis.lincoln.ne.gov/public/rest/services/Parks/Trees/MapServer/0 and policy resolution A-89931 https://www.arcgis.com/sharing/rest/content/items/df312b42047343ecada9a67ca17c2970/data
+
+Cambridge tree inventory. City of Cambridge GIS and Cambridge Public Works, Environmental Street Trees. Public Domain Dedication and License v1.0. Tree coordinates, species and measured diameter adapted. https://www.cambridgema.gov/gis/gisdatadictionary/environmental/environmental_streettrees · https://opendatacommons.org/licenses/pddl/1-0/
+
+The two street photographs in lab/holdout/views/lincoln-city-trees.jpg are by slinky309, distributed through Panoramax. Resized for comparison. The comparison sheet is licensed under CC BY-SA 4.0. August 19, 2025 https://panoramax.xyz/#focus=pic&pic=8889f6fa-34ff-4959-adb9-7d162c46b68c and September 9, 2025 https://panoramax.xyz/#focus=pic&pic=e018d3fd-228a-4026-90f4-661ca53b6729 · https://creativecommons.org/licenses/by-sa/4.0/
+
+Charleston Clay Center roof — USGS 3DEP / FEMA, WV_FEMAR3_Southcentral_B3_2018, acquired November 17, 2018 through April 16, 2019. The game adapts two flight strips into one footprint-clipped roof mesh. Footprints from OpenFreeMap, © OpenStreetMap contributors, ODbL 1.0. Two aggregate exterior colors derive from photographs by wolfgang8741, © Grab and KartaView contributors, CC BY-SA 4.0. The authoring materials and gallery link each original, record resize and segmentation adaptations and retain the photographic license.
+https://s3-us-west-2.amazonaws.com/usgs-lidar-public/WV_FEMAR3_Southcentral_B3_2018/ept.json · https://www.openstreetmap.org/copyright · https://kartaview.org/details/3485953/2858 · https://kartaview.org/details/3485953/2863 · https://creativecommons.org/licenses/by-sa/4.0/
+
+Streamed road surface classes — © OpenStreetMap contributors, OpenFreeMap (ODbL 1.0). Explicitly unpaved motor roads use the available public orthoimagery for broad color. The laboratory cross-checked the Princeton Road surface against Lancaster County Engineer's Road Surface Type feature 1636 (DXF_COLOR 3, gravel). County coordinates are validation evidence only.
+https://www.openstreetmap.org/copyright · https://openfreemap.org/ · https://gis.lincoln.ne.gov/public/rest/services/CountyEngineer/RoadSurfaceType/MapServer · https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer
+
+Additional building outlines use © Microsoft ML Buildings, from Overture Maps Foundation's buildings theme, ODbL 1.0. The application fetches selected polygons at runtime. Its source includes hashes, independent roof/ground measurements and the matching procedure. Data https://docs.overturemaps.org/guides/buildings/ · https://github.com/microsoft/GlobalMLBuildingFootprints · https://opendatacommons.org/licenses/odbl/1-0/
+Miami additional building measurements use Miami-Dade County ITD 2021 aerial lidar, CC0 1.0, distributed by NOAA Office for Coastal Management. https://www.fisheries.noaa.gov/inport/item/76028
+Massachusetts additional building measurements use USGS 3DEP MA_CentralEastern_1_2021 and MassGIS, collected in spring 2021. U.S. Government public domain. https://www.mass.gov/info-details/massgis-data-lidar-terrain-data · https://www.usgs.gov/faqs/what-are-terms-uselicensing-map-services-and-data-national-map
+
+Davidson Hall, Bethel, Maine. Photograph “Gould Academy Davidson Hall” by Nick Kline (User:Nickline4), June 29, 2012. The visible wall textures were masked, rectified, adjusted for lighting and glass reflections, and combined with an independently surveyed 3D building. The adapted textures, masks and photographic comparisons are shared under Creative Commons Attribution-ShareAlike 3.0 Unported, the selected original license.
+https://commons.wikimedia.org/wiki/File:Gould_Academy_Davidson_Hall.JPG
+https://creativecommons.org/licenses/by-sa/3.0/
+USGS 3DEP Western Maine 2016 LiDAR, U.S. public domain. Footprint © OpenStreetMap contributors via OpenFreeMap (ODbL). Point tile and map attribution:
+https://www.sciencebase.gov/catalog/item/644b2bc8d34e45f6ddcd3d94
+https://www.openstreetmap.org/copyright
+
+Key Largo pavement markings
+Monroe County GIS orthophotos, 2015 and 2024: https://mcgis4.monroecounty-fl.gov/public/rest/services/Images
+Florida Department of Transportation 2018 aerial: https://ca.dep.state.fl.us/image/rest/services/FDOT_Yearly_Aerials/Aerial_Imagery_2018/ImageServer
+The game uses geometric measurements. No county or FDOT source raster pixels are distributed. The gallery street photograph is by cowdog, © Grab and KartaView contributors, CC BY-SA 4.0. It was resized and cropped next to game renders. https://kartaview.org/details/332471/21 · https://creativecommons.org/licenses/by-sa/4.0/
+
+Corroborated building outlines in Lovelock, Nevada and Colby, Kansas
+Geometry © Microsoft, via Overture Maps Foundation, ODbL 1.0. Oak Ridge National Laboratory and the FEMA Geospatial Response Office, USA Structures, CC BY 4.0, supplied independent footprint evidence. The offline importer translates the witness outlines where independently controlled, compares their shapes, and records summary measurements. USDA National Agricultural Imagery Program provides the separately dated, public-domain aerial images. Some building display heights are Microsoft model estimates; others are visual assumptions. Eaves have no measurement in these records.
+https://github.com/microsoft/USBuildingFootprints · https://overturemaps.org/attribution/ · https://www.arcgis.com/home/item.html?id=0ec8512ad21e4bb987d7e848d14e7e24 · https://creativecommons.org/licenses/by/4.0/ · https://www.usgs.gov/centers/eros/science/usgs-eros-archive-aerial-photography-national-agriculture-imagery-program-naip
+
+Regional landscape
+Mapzen / Tilezen Terrain Tiles on AWS. Contains elevation from USGS and other producers. Includes external attribution and terms for individual sources: https://github.com/tilezen/joerd/blob/master/docs/attribution.md · https://registry.opendata.aws/terrain-tiles/
+U.S. Geological Survey National Map Imagery Only service. Imagery acquisition dates and resolution vary. https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer
+Coast polygons from Natural Earth, Ocean 1:10m, 5.1.1, public domain. Derived binary land/ocean masks are sampled at 1/256 degree for distant terrain. https://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-ocean/ · https://www.naturalearthdata.com/about/terms-of-use/
+Mapbox Martini 0.2.0 (ISC), distributed with the native atlas helper. See Martini-ISC.txt. Far-road colors use mapped OpenStreetMap corridors via OpenFreeMap.
+
+Forest form at Snake River Overlook and live US canopy sites. The 30 m stand evidence uses USGS/USDA LANDFIRE Existing Vegetation Type 2025 and USGS/MRLC NLCD 2021 (CONUS) or 2016 (Alaska). Needle photography is adapted from Poly Haven Pine Tree 01 (CC0). The Wyoming forest comparison includes resized and marked images by Hansueli Krapf, May 30, 2025 (CC BY-SA 4.0), and Pedro Szekely, August 31, 2020 (CC BY-SA 2.0). Each adapted photograph is shared under its original license.
+https://landfire.gov/vegetation/evt
+https://www.mrlc.gov/data/legends/national-land-cover-database-class-legend-and-description
+https://polyhaven.com/a/pine_tree_01
+https://polyhaven.com/license
+https://commons.wikimedia.org/wiki/File:2025-05-30-194735_USA_Wyoming_Moose_2092.6.jpg
+https://creativecommons.org/licenses/by-sa/4.0/
+https://commons.wikimedia.org/wiki/File:Snake_River_Overlook_(50498053986).jpg
+https://creativecommons.org/licenses/by-sa/2.0/
+
+Cheyenne • Wyoming State Capitol
+The registered roof uses public-domain USGS WY_Laramie_1_2021 airborne laser returns and an © OpenStreetMap contributors ODbL 1.0 footprint, way 112916176. Published measurements from the Wyoming Capitol Square Project's 2013 dome inspection establish its eight-sided drum, sixteen-sided gilded shell and eight-sided lantern. Only rounded measurements are included.
+https://usgs-lidar-public.s3.amazonaws.com/WY_Laramie_1_2021/ept.json
+https://www.wyomingcapitolsquare.com/s/2014-Level-I-II-Vol-3-pgs-1-32.pdf
+https://www.openstreetmap.org/way/112916176
+https://www.openstreetmap.org/copyright
+
+Cheyenne survey-front-13686-24537.png and photographic render comparisons contain adaptations from Bradlyons, “Wyoming State Capitol” (capture date unknown), GRALISTAIR, “Cheyenne WY Capitol Building” (February 29, 2020), and Carol M. Highsmith, July 24, 2015. Both Wikimedia photographers licensed their work CC BY-SA 4.0. Credit for the Highsmith photograph: Gates Frontiers Fund Wyoming Collection within the Carol M. Highsmith Archive, Library of Congress, Prints and Photographs Division, LC-DIG-highsm-47777. The Library's item rights advisory is “No known restrictions on publication.” Changes include masking, exposure matching, multi-view registration, cropping and mip filtering. The derived photographic atlas and adapted comparison images are CC BY-SA 4.0. The validation photograph is by Dough4872, October 25, 2026, under CC BY-SA 4.0. Creative Commons licenses do not imply endorsement by the photographers.
+https://commons.wikimedia.org/wiki/File:Wyoming_State_Capitol.jpg
+https://commons.wikimedia.org/wiki/File:Cheyenne_WY_Capitol_Building.jpg
+https://www.loc.gov/item/2017884408/
+https://commons.wikimedia.org/wiki/File:Wyoming_State_Capitol_from_24th_Street_and_Capitol_Avenue.jpeg
+https://creativecommons.org/licenses/by-sa/4.0/
+
+Two surveyed Utah highway stretches use Utah Department of Transportation Paint Striping (2023), FHWA HPMS (2024), USDA NAIP aerial photography (2021), and OpenStreetMap road axes (© OpenStreetMap contributors, ODbL). UDOT publishes the inventory for informational use, requests field verification before project use, and disclaims warranties. The US 163 comparison photograph by Awinda (April 30, 2023) has been cropped, resized and labeled under CC BY-SA 4.0.
+https://www.arcgis.com/home/item.html?id=65478779f74d4fcbb6f7dd3411aaaec2
+https://geo.dot.gov/server/rest/services/Hosted/HPMS_FULL_UT_2024/FeatureServer/0
+https://imagery.geoplatform.gov/iipp/rest/services/NAIP/NAIP_plus/ImageServer
+https://commons.wikimedia.org/wiki/File:Forrest_Gump_Highway_Monument_Valley.jpg
+https://creativecommons.org/licenses/by-sa/4.0/
+
+Bartlesville, Oklahoma – two prepared commercial roofs and forecourt grade
+USGS 3D Elevation Program, OK_Statewide_1_D22, December 2022–January 2023. The local ground elevations, roof planes and entrance hip were derived from federal airborne laser returns. OpenStreetMap contributors via OpenFreeMap supply the base outlines and roads (ODbL 1.0). Local base terrain uses the AWS open Terrain Tiles source already identified above. The bounded source receipt, checksums and generator are in lab/lidar/bartlesville.
+https://usgs-lidar-public.s3.amazonaws.com/OK_Statewide_1_D22/ept.json
+https://www.openstreetmap.org/copyright
+
+Baloo Uriza, Panoramax, June 7, 2024 and February 12, 2026. Licensed CC BY-SA 4.0. Adaptations include reprojected and cropped comparison photographs, measured color samples and the separately illustrated, masked experimental facade. The default game contains the survey geometry and solid material colors. The photographic facade is available only as a rendered illustration in the location gallery.
+https://panoramax.xyz/#focus=pic&pic=facd96a4-bae2-4230-9793-8a3a60a851be
+https://panoramax.xyz/#focus=pic&pic=37d05f23-c4c9-428d-90b0-0a47b4e6be13
+https://creativecommons.org/licenses/by-sa/4.0/
+
+Lincoln right-curb canopy and roof comparison photograph © slinky309, August 19, 2025, Panoramax. The comparison panels containing resized photographs and game renders are distributed under CC BY-SA 4.0. https://panoramax.xyz/#focus=pic&pic=202ef7e6-ea03-4311-a626-b9f3b8405a52 · https://creativecommons.org/licenses/by-sa/4.0/
+
+Historical film-time weather at precisely dated road photographs
+Iowa Environmental Mesonet (Iowa State University), U.S. ASOS/AWOS METAR and SPECI archive and historic station catalog. IEM aggregates Unidata IDD, NCEI and MADIS. NOAA/NESDIS GOES-R ABI Level 2 Clear Sky Mask and NOAA Open Data Dissemination. The map reads the cloud and quality flags as a limited neighborhood estimate. It credits the NIST h5wasm 0.10.3 project and the HDF Group for the HDF5 decoder. Preserve the attached original h5wasm-HDF5.txt notice. Weather records carry their source URL, station distance, bracketing observations, satellite scan and quality counts.
+https://mesonet.agron.iastate.edu/request/download.phtml
+https://mesonet.agron.iastate.edu/api/
+https://www.ncei.noaa.gov/access/metadata/landing-page/bin/iso?id=gov.noaa.ncdc%3AC01503
+https://registry.opendata.aws/noaa-goes/
+https://github.com/usnistgov/h5wasm
+
+Measured roadway cross-sections
+The three mapped road-control registers in crossfall-roads.json are derived from © OpenStreetMap contributors, ODbL 1.0, via Esri's OSM North America highway and point layers. Do not represent these registers as MIT-licensed source code. Airborne ground returns are from the USGS 3DEP work units credited per district in lab/road-crossfall/receipt.json. The Lincoln photographic comparison contains an August 19, 2025 Panoramax photograph by slinky309 and is distributed under CC BY-SA 4.0.
+https://www.openstreetmap.org/copyright
+https://registry.opendata.aws/usgs-lidar/
+https://panoramax.xyz/#focus=pic&pic=202ef7e6-ea03-4311-a626-b9f3b8405a52
+https://creativecommons.org/licenses/by-sa/4.0/
+
+Nationwide near-ground terrain: U.S. Geological Survey, 3D Elevation Program, 1/3-arc-second seamless DEM. USGS public-domain elevation data, read in bounded ranges using geotiff.js. https://www.usgs.gov/3d-elevation-program/about-3dep-products-services
+I Street comparative photograph: jeepjockey, KartaView sequence 5724265 / frame 372. Reproduced, cropped for display and labeled in the comparative sheet (CC BY-SA 4.0). https://kartaview.org/details/5724265/372
+Anchorage West Fifth Avenue relief: NOAA Digital Coast 2015 public laser returns and OpenStreetMap building footprints. Municipality of Anchorage property records identify the two office sites. The separate source-photo study credits Warren LeMay (CC0) and KartaView contributor jeepjockey (CC BY-SA 4.0). Detailed links and survey validation are in lab/lidar/anchorage and the comparison gallery.
+
+Lane registration and the Q Street NW comparison
+Road names, directions, lane and parking tags and the small Q Street base-geometry fingerprint are derived from © OpenStreetMap contributors, ODbL 1.0. The live lookup uses Esri’s North America replica. Washington roadway inventory is from DDOT. Curb geometry and 2023/2025 orthophotos are from the District of Columbia Office of the Chief Technology Officer. The comparative sheet crops, rotates and annotates the District’s March 27, 2025 photograph, credited to the City of Washington, DC under CC BY 4.0. Project code is covered by the separate code license. Primary layers, SHA-256 and source-edition details are in lab/road-layout.
+https://www.openstreetmap.org/copyright
+https://opendata.dc.gov/datasets/aerial-photography-orthophoto-2025/about
+https://creativecommons.org/licenses/by/4.0/

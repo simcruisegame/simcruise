@@ -1,0 +1,192 @@
+{
+  "iowa": [
+    {
+      "id": "82816433-82f0-4259-b2df-4272e0c65e1a",
+      "seq": "6b96dfdf-3821-45b3-b7b6-0631c2220265",
+      "lat": 41.6601499,
+      "lon": -91.5328232,
+      "azimuth": 269,
+      "interior": {
+        "camera_model": "Max",
+        "focal_length": 3.0,
+        "field_of_view": 360,
+        "camera_manufacturer": "GoPro",
+        "sensor_array_dimensions": [
+          5760,
+          2880
+        ]
+      },
+      "date": "2025-12-22T21:08:02+00:00",
+      "role": "authoring",
+      "author": "slinky309",
+      "source": "https://panoramax.openstreetmap.fr/derivates/82/81/64/33/82f0-4259-b2df-4272e0c65e1a/sd.jpg",
+      "credit_url": "https://panoramax.fr/#pic=82816433-82f0-4259-b2df-4272e0c65e1a",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "file": "iowa-82816433.jpg",
+      "size": 247768,
+      "pixels": [
+        2048,
+        1024
+      ],
+      "sha256": "2a9378ed788d31132c5952a1d9fe4e3232d7350ea8ac36fa0ab67ec7041780aa"
+    },
+    {
+      "id": "06a10eab-a48d-4a84-873c-6abc76e8dbd9",
+      "seq": "6b96dfdf-3821-45b3-b7b6-0631c2220265",
+      "lat": 41.6601479,
+      "lon": -91.5329822,
+      "azimuth": 276,
+      "interior": {
+        "camera_model": "Max",
+        "focal_length": 3.0,
+        "field_of_view": 360,
+        "camera_manufacturer": "GoPro",
+        "sensor_array_dimensions": [
+          5760,
+          2880
+        ]
+      },
+      "date": "2025-12-22T21:08:16+00:00",
+      "role": "authoring",
+      "author": "slinky309",
+      "source": "https://panoramax.openstreetmap.fr/derivates/06/a1/0e/ab/a48d-4a84-873c-6abc76e8dbd9/sd.jpg",
+      "credit_url": "https://panoramax.fr/#pic=06a10eab-a48d-4a84-873c-6abc76e8dbd9",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "file": "iowa-06a10eab.jpg",
+      "size": 250051,
+      "pixels": [
+        2048,
+        1024
+      ],
+      "sha256": "93701c8372f234ef9c0cd951cd00912cd0f371e088562c323c6c3b159bfddd78"
+    },
+    {
+      "id": "8c36b8bc-d61d-462e-becd-714544b24d13",
+      "seq": "6b96dfdf-3821-45b3-b7b6-0631c2220265",
+      "lat": 41.6601497,
+      "lon": -91.5328997,
+      "azimuth": 269,
+      "interior": {
+        "camera_model": "Max",
+        "focal_length": 3.0,
+        "field_of_view": 360,
+        "camera_manufacturer": "GoPro",
+        "sensor_array_dimensions": [
+          5760,
+          2880
+        ]
+      },
+      "date": "2025-12-22T21:08:04+00:00",
+      "role": "held_out",
+      "author": "slinky309",
+      "source": "https://panoramax.openstreetmap.fr/derivates/8c/36/b8/bc/d61d-462e-becd-714544b24d13/sd.jpg",
+      "credit_url": "https://panoramax.fr/#pic=8c36b8bc-d61d-462e-becd-714544b24d13",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "file": "iowa-8c36b8bc.jpg",
+      "size": 253553,
+      "pixels": [
+        2048,
+        1024
+      ],
+      "sha256": "4e03bcfda092154c8e272269434a7e10000517b8c778ae57f03123431f7253cd"
+    }
+  ],
+  "minneapolis": [
+    {
+      "id": "4a4c2737-88a8-4594-b288-acae4e0999aa",
+      "seq": "3c0d6c92-6af0-46a0-9476-86ca75545418",
+      "lat": 44.981028,
+      "lon": -93.269635,
+      "azimuth": 293,
+      "interior": {
+        "camera_model": "Max",
+        "focal_length": 3.0,
+        "field_of_view": 360,
+        "camera_manufacturer": "GoPro",
+        "sensor_array_dimensions": [
+          5760,
+          2880
+        ]
+      },
+      "date": "2025-04-19T18:28:11+00:00",
+      "role": "authoring",
+      "author": "slinky309",
+      "source": "https://panoramax.openstreetmap.fr/derivates/4a/4c/27/37/88a8-4594-b288-acae4e0999aa/sd.jpg",
+      "credit_url": "https://panoramax.fr/#pic=4a4c2737-88a8-4594-b288-acae4e0999aa",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "file": "minneapolis-4a4c2737.jpg",
+      "size": 314662,
+      "pixels": [
+        2048,
+        1024
+      ],
+      "sha256": "cf3e43e7127210a6b178d112bdacde8bb4c7ef69154a780386fc2a0d94730daa"
+    },
+    {
+      "id": "dabf07be-5abe-4aed-aca3-a434234395b9",
+      "seq": "3c0d6c92-6af0-46a0-9476-86ca75545418",
+      "lat": 44.9810952,
+      "lon": -93.2697689,
+      "azimuth": 306,
+      "interior": {
+        "camera_model": "Max",
+        "focal_length": 3.0,
+        "field_of_view": 360,
+        "camera_manufacturer": "GoPro",
+        "sensor_array_dimensions": [
+          5760,
+          2880
+        ]
+      },
+      "date": "2025-04-19T18:28:15+00:00",
+      "role": "authoring",
+      "author": "slinky309",
+      "source": "https://panoramax.openstreetmap.fr/derivates/da/bf/07/be/5abe-4aed-aca3-a434234395b9/sd.jpg",
+      "credit_url": "https://panoramax.fr/#pic=dabf07be-5abe-4aed-aca3-a434234395b9",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "file": "minneapolis-dabf07be.jpg",
+      "size": 325711,
+      "pixels": [
+        2048,
+        1024
+      ],
+      "sha256": "91cb70fe85d75187353941dbf279d6c9c997ead7b83cb960b05221582fd0edf3"
+    },
+    {
+      "id": "28c7e419-93a5-43ec-b3d1-f477a7bbd80c",
+      "seq": "3c0d6c92-6af0-46a0-9476-86ca75545418",
+      "lat": 44.9810576,
+      "lon": -93.2697017,
+      "azimuth": 299,
+      "interior": {
+        "camera_model": "Max",
+        "focal_length": 3.0,
+        "field_of_view": 360,
+        "camera_manufacturer": "GoPro",
+        "sensor_array_dimensions": [
+          5760,
+          2880
+        ]
+      },
+      "date": "2025-04-19T18:28:13+00:00",
+      "role": "held_out",
+      "author": "slinky309",
+      "source": "https://panoramax.openstreetmap.fr/derivates/28/c7/e4/19/93a5-43ec-b3d1-f477a7bbd80c/sd.jpg",
+      "credit_url": "https://panoramax.fr/#pic=28c7e419-93a5-43ec-b3d1-f477a7bbd80c",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "file": "minneapolis-28c7e419.jpg",
+      "size": 322405,
+      "pixels": [
+        2048,
+        1024
+      ],
+      "sha256": "2f6d28b1a025cc3313d51867bd535b920676d1ab12f652c6edd111e5ad756446"
+    }
+  ]
+}

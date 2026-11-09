@@ -1,0 +1,474 @@
+{
+  "render": "Godot 4.7.2, Mobile Metal, same 960×720 capture frustums. Source ICCs converted to sRGB. The La Sal and Wyoming crops align prior game landmark gradients (correlations .991 and .943).",
+  "metric": "Mean absolute RGB channel difference in upper 2–20% height and middle 92% width; Wyoming upper 2–15% and left 4–33% width to exclude summit. 0–255. Fields reference colors and game color.",
+  "notes": "Normal default play has local capture weather at these roadside cameras within 145 m, transitioning to generic reference daylight by 350 m. Live Weather supersedes all four presets. Forced --reference-epoch uses compatible local evidence only.",
+  "archive_provider": "ECMWF ERA5 hourly via Open-Meteo, attributed CC BY 4.0. Historical METAR observations from Iowa Environmental Mesonet / NOAA.",
+  "cases": [
+    {
+      "place": "US 163, Monument Valley",
+      "latitude": 37.101444,
+      "longitude": -109.990814,
+      "bearing_degrees": 233.2,
+      "HFOV_degrees": 69.4,
+      "pitch_down_degrees": -2.7,
+      "roll_degrees": 0,
+      "shutter_utc": "2023-04-30T14:16:47Z",
+      "shutter_unix": 1682864207,
+      "reference_metadata": "Assumed MDT from local iPhone DateTimeOriginal; GPS image direction 242.08 degrees.",
+      "source": "https://commons.wikimedia.org/wiki/File:Forrest_Gump_Highway_Monument_Valley.jpg",
+      "photographer": "Awinda",
+      "photo_license": "CC BY-SA 4.0",
+      "crop_top_at_960_wide": 0,
+      "crop_height": 720,
+      "ERA5_grid_center": [
+        37.0,
+        -110.0
+      ],
+      "ERA5_UTC": {
+        "time": "2023-04-30T14:00",
+        "cloud_cover": 0,
+        "cloud_cover_low": 0,
+        "cloud_cover_mid": 0,
+        "cloud_cover_high": 0,
+        "direct_normal_irradiance": 585.4,
+        "diffuse_radiation": 45.0
+      },
+      "sun_azimuth": 86.9402829638898,
+      "sun_elevation": 20.5114984881786,
+      "applied_reference": "Apr 30 2023 · clear",
+      "default": {
+        "sky": {
+          "rgb_MAE": 109.16,
+          "pcolor_MAE": 109.16,
+          "mean_RGB": [
+            178.2,
+            199.2,
+            230.8
+          ],
+          "luma_bias": 117.26
+        },
+        "ground": [
+          {
+            "rgb_MAE": 46.5,
+            "pcolor_MAE": 43.4,
+            "mean_RGB": [
+              177.5,
+              159.2,
+              137.8
+            ],
+            "luma_bias": 46.35
+          },
+          {
+            "rgb_MAE": 28.43,
+            "pcolor_MAE": 15.78,
+            "mean_RGB": [
+              187.3,
+              160.3,
+              134.2
+            ],
+            "luma_bias": 13.95
+          },
+          {
+            "rgb_MAE": 46.51,
+            "pcolor_MAE": 15.78,
+            "mean_RGB": [
+              137.3,
+              136.0,
+              134.2
+            ],
+            "luma_bias": 14.87
+          }
+        ]
+      },
+      "updated": {
+        "sky": {
+          "rgb_MAE": 48.28,
+          "pcolor_MAE": 48.12,
+          "mean_RGB": [
+            98.8,
+            119.4,
+            147.6
+          ],
+          "luma_bias": 37.33
+        },
+        "ground": [
+          {
+            "rgb_MAE": 30.99,
+            "pcolor_MAE": 24.5,
+            "mean_RGB": [
+              154.0,
+              136.6,
+              115.0
+            ],
+            "luma_bias": 23.57
+          },
+          {
+            "rgb_MAE": 31.41,
+            "pcolor_MAE": 11.41,
+            "mean_RGB": [
+              177.4,
+              148.8,
+              122.8
+            ],
+            "luma_bias": 2.79
+          },
+          {
+            "rgb_MAE": 45.41,
+            "pcolor_MAE": 10.97,
+            "mean_RGB": [
+              110.6,
+              110.1,
+              106.5
+            ],
+            "luma_bias": -11.37
+          }
+        ]
+      }
+    },
+    {
+      "place": "US 191, La Sal Mountains",
+      "latitude": 38.139858,
+      "longitude": -109.371372,
+      "bearing_degrees": 18.31,
+      "HFOV_degrees": 18.74,
+      "pitch_down_degrees": -2.5,
+      "roll_degrees": 0,
+      "shutter_utc": "2018-03-20T18:05:29Z",
+      "shutter_unix": 1521569129,
+      "reference_metadata": "GPS timestamp; local camera clock differs. Landmark registration in full-height capture.",
+      "source": "https://commons.wikimedia.org/wiki/File:La_Sal_Mountains_From_U.S._Route_191_Between_Monticello_and_Moab,_Utah.jpg",
+      "photographer": "Ken Lund",
+      "photo_license": "CC BY-SA 2.0",
+      "crop_top_at_960_wide": 180,
+      "crop_height": 445,
+      "ERA5_grid_center": [
+        38.25,
+        -109.25
+      ],
+      "ERA5_UTC": {
+        "time": "2018-03-20T18:00",
+        "cloud_cover": 100,
+        "cloud_cover_low": 0,
+        "cloud_cover_mid": 11,
+        "cloud_cover_high": 100,
+        "direct_normal_irradiance": 768.8,
+        "diffuse_radiation": 215.0
+      },
+      "sun_azimuth": 149.669671543417,
+      "sun_elevation": 47.3128333256043,
+      "applied_reference": "Mar 20 2018 · high cloud",
+      "default": {
+        "sky": {
+          "rgb_MAE": 46.82,
+          "pcolor_MAE": 46.82,
+          "mean_RGB": [
+            198.4,
+            205.3,
+            217.2
+          ],
+          "luma_bias": 45.85
+        },
+        "ground": [
+          {
+            "rgb_MAE": 65.4,
+            "pcolor_MAE": 65.4,
+            "mean_RGB": [
+              135.2,
+              118.8,
+              104.2
+            ],
+            "luma_bias": 63.16
+          },
+          {
+            "rgb_MAE": 78.16,
+            "pcolor_MAE": 78.16,
+            "mean_RGB": [
+              146.1,
+              127.1,
+              111.1
+            ],
+            "luma_bias": 76.43
+          }
+        ]
+      },
+      "updated": {
+        "sky": {
+          "rgb_MAE": 8.88,
+          "pcolor_MAE": 7.3,
+          "mean_RGB": [
+            143.9,
+            162.5,
+            172.6
+          ],
+          "luma_bias": 0.47
+        },
+        "ground": [
+          {
+            "rgb_MAE": 66.51,
+            "pcolor_MAE": 66.51,
+            "mean_RGB": [
+              135.5,
+              120.0,
+              106.1
+            ],
+            "luma_bias": 64.18
+          },
+          {
+            "rgb_MAE": 80.56,
+            "pcolor_MAE": 80.56,
+            "mean_RGB": [
+              147.9,
+              129.5,
+              114.0
+            ],
+            "luma_bias": 78.78
+          }
+        ]
+      }
+    },
+    {
+      "place": "Snake River Overlook, Wyoming",
+      "latitude": 43.753821,
+      "longitude": -110.62409,
+      "bearing_degrees": 263.046,
+      "HFOV_degrees": 36.2437,
+      "pitch_down_degrees": -0.24,
+      "roll_degrees": 0,
+      "shutter_utc": "2025-05-30T17:47:35Z",
+      "shutter_unix": 1748627255,
+      "reference_metadata": "GPS time; 55 mm full-frame camera. Station/grid missed visible mountain clouds.",
+      "source": "https://commons.wikimedia.org/wiki/File:2025-05-30-194735_USA_Wyoming_Moose_2092.6.jpg",
+      "photographer": "Hansueli Krapf",
+      "photo_license": "CC BY-SA 4.0",
+      "crop_top_at_960_wide": 48,
+      "crop_height": 640,
+      "ERA5_grid_center": [
+        43.75,
+        -110.5
+      ],
+      "ERA5_UTC": {
+        "time": "2025-05-30T17:00",
+        "cloud_cover": 0,
+        "cloud_cover_low": 0,
+        "cloud_cover_mid": 0,
+        "cloud_cover_high": 0,
+        "direct_normal_irradiance": 949.1,
+        "diffuse_radiation": 86.0
+      },
+      "sun_azimuth": 131.757094969665,
+      "sun_elevation": 60.8458541780917,
+      "applied_reference": "May 30 2025 · regionally clear",
+      "default": {
+        "sky": {
+          "rgb_MAE": 40.86,
+          "pcolor_MAE": 39.89,
+          "mean_RGB": [
+            200.5,
+            220.1,
+            245.5
+          ],
+          "luma_bias": 40.04
+        },
+        "ground": [
+          {
+            "rgb_MAE": 51.33,
+            "pcolor_MAE": 39.1,
+            "mean_RGB": [
+              92.7,
+              103.2,
+              93.5
+            ],
+            "luma_bias": 36.54
+          }
+        ]
+      },
+      "updated": {
+        "sky": {
+          "rgb_MAE": 25.65,
+          "pcolor_MAE": 12.83,
+          "mean_RGB": [
+            146.8,
+            169.0,
+            192.1
+          ],
+          "luma_bias": -11.77
+        },
+        "ground": [
+          {
+            "rgb_MAE": 52.61,
+            "pcolor_MAE": 40.86,
+            "mean_RGB": [
+              94.4,
+              105.7,
+              94.6
+            ],
+            "luma_bias": 38.75
+          }
+        ]
+      }
+    },
+    {
+      "place": "Lewisburg Post Office, West Virginia",
+      "latitude": 37.800861,
+      "longitude": -80.4441,
+      "bearing_degrees": 64.6,
+      "HFOV_degrees": 61.66,
+      "pitch_down_degrees": 0,
+      "roll_degrees": 0,
+      "shutter_utc": "2016-07-08T22:50:26Z",
+      "shutter_unix": 1468018226,
+      "reference_metadata": "GPS time; KLWB 7.5 km away reported broken clouds and light rain 4 min 34 seconds later.",
+      "source": "https://commons.wikimedia.org/wiki/File:Lewisburg,_West_Virginia_post_office_2016.jpg",
+      "photographer": "Antony-22",
+      "photo_license": "CC BY-SA 4.0",
+      "crop_top_at_960_wide": 0,
+      "crop_height": 720,
+      "ERA5_grid_center": [
+        37.75,
+        -80.5
+      ],
+      "ERA5_UTC": {
+        "time": "2016-07-08T22:00",
+        "cloud_cover": 72,
+        "cloud_cover_low": 53,
+        "cloud_cover_mid": 18,
+        "cloud_cover_high": 40,
+        "direct_normal_irradiance": 407.1,
+        "diffuse_radiation": 168.0
+      },
+      "sun_azimuth": 283.129205210112,
+      "sun_elevation": 20.4484894684034,
+      "applied_reference": "Jul 8 2016 · broken cloud",
+      "default": {
+        "sky": {
+          "rgb_MAE": 78.15,
+          "pcolor_MAE": 77.94,
+          "mean_RGB": [
+            116.5,
+            134.6,
+            173.2
+          ],
+          "luma_bias": -84.61
+        },
+        "ground": [
+          {
+            "rgb_MAE": 9.43,
+            "pcolor_MAE": 3.64,
+            "mean_RGB": [
+              83.8,
+              85.9,
+              92.2
+            ],
+            "luma_bias": 1.23
+          }
+        ]
+      },
+      "updated": {
+        "sky": {
+          "rgb_MAE": 31.83,
+          "pcolor_MAE": 31.41,
+          "mean_RGB": [
+            177.0,
+            188.7,
+            198.2
+          ],
+          "luma_bias": -31.28
+        },
+        "ground": [
+          {
+            "rgb_MAE": 11.49,
+            "pcolor_MAE": 8.41,
+            "mean_RGB": [
+              70.5,
+              76.1,
+              80.1
+            ],
+            "luma_bias": -9.47
+          }
+        ]
+      }
+    }
+  ],
+  "ordinary_chula_controls": {
+    "fog": {
+      "epoch": 0,
+      "fog": 0.0133333336561918,
+      "kind": 0,
+      "light": "Weather observation unavailable",
+      "sky": "day",
+      "solar": 0.535247921943665,
+      "station": "",
+      "sun_energy": 1.33759999275208
+    },
+    "observed-clear": {
+      "epoch": 0,
+      "fog": 0.00022000000171829,
+      "kind": 1,
+      "light": "KFCI · 06:56 UTC · 34 km · clear",
+      "sky": "day",
+      "solar": 0.535247921943665,
+      "station": "KFCI",
+      "sun_energy": 1.46000003814697
+    },
+    "passed": true,
+    "reference": {
+      "epoch": 0,
+      "fog": 0.00022000000171829,
+      "kind": 0,
+      "light": "Reference daylight",
+      "sky": "day",
+      "solar": 0.535247921943665,
+      "station": "",
+      "sun_energy": 1.33759999275208
+    },
+    "reference-again": {
+      "epoch": 0,
+      "fog": 0.00022000000171829,
+      "kind": 0,
+      "light": "Reference daylight",
+      "sky": "day",
+      "solar": 0.535247921943665,
+      "station": "",
+      "sun_energy": 1.33759999275208
+    },
+    "storm": {
+      "epoch": 0,
+      "fog": 0.0020000000949949,
+      "kind": 0,
+      "light": "Weather observation unavailable",
+      "sky": "overcast",
+      "solar": 0.535247921943665,
+      "station": "",
+      "sun_energy": 0.439999997615814
+    },
+    "unknown": {
+      "epoch": 0,
+      "fog": 0.00022000000171829,
+      "kind": 0,
+      "light": "Weather observation unavailable",
+      "sky": "day",
+      "solar": 0.535247921943665,
+      "station": "",
+      "sun_energy": 1.33759999275208
+    }
+  },
+  "normal_station_report": {
+    "clear_sky": true,
+    "station": "KFCI",
+    "at": "2026-11-08T06:56:00.000Z",
+    "km": 34.31850907750517,
+    "cloud": 0,
+    "visibility_m": 16093.44,
+    "description": "clear"
+  },
+  "normal_untimed_us163_drive": {
+    "applied_epoch": 1682864207,
+    "kind": 1,
+    "metres": 14.4015130996704,
+    "normal_player_position": "(37.1014, -109.9909)",
+    "player_camera": "@Camera3D@181",
+    "weather_label": "Photo daylight · Apr 30 2023 · clear",
+    "weight": 1.0,
+    "wheel_contact": 4
+  }
+}

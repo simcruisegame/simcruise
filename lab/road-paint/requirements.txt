@@ -1,0 +1,6 @@
+numpy
+Pillow
+pyproj
+shapely>=2.1
+scipy
+opencv-python-headless

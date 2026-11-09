@@ -1,0 +1,174 @@
+{
+  "dc": {
+    "off": {
+      "tile": [
+        18745,
+        25067
+      ],
+      "crowns": 201,
+      "applied_epoch": 1743094800,
+      "camera_heading": 89.95,
+      "horizontal_fov": 76.0,
+      "ready": true,
+      "visible": false,
+      "bayCount": 0,
+      "nativeTileCount": 7,
+      "tiles": [
+        "(18745, 25067)",
+        "(18745, 25066)",
+        "(18744, 25067)",
+        "(18746, 25067)",
+        "(18744, 25066)",
+        "(18746, 25066)",
+        "(18745, 25068)"
+      ],
+      "observedPaint": 0,
+      "sha256": "b39b17c2146454d5abbc5a0cf37cb1cae3ac095e5dd4c34883247d62036e6fc0",
+      "observedWhiteSamples": 54,
+      "observedVisibleSamples": 79,
+      "highContrastMarkSamples": 0,
+      "centerHighContrastPixels": 411,
+      "centerCorridorBrightPixels": 9229
+    },
+    "on": {
+      "tile": [
+        18745,
+        25067
+      ],
+      "crowns": 201,
+      "applied_epoch": 1743094800,
+      "camera_heading": 89.95,
+      "horizontal_fov": 76.0,
+      "ready": true,
+      "visible": true,
+      "bayCount": 1,
+      "nativeTileCount": 7,
+      "tiles": [
+        "(18745, 25067)",
+        "(18745, 25066)",
+        "(18744, 25067)",
+        "(18746, 25067)",
+        "(18744, 25066)",
+        "(18746, 25066)",
+        "(18745, 25068)"
+      ],
+      "observedPaint": 4,
+      "sha256": "3a490a094aeadff5d60e27fad32253692b6650cfa144e223e9ecc0e720b6b94e",
+      "observedWhiteSamples": 79,
+      "observedVisibleSamples": 79,
+      "highContrastMarkSamples": 66,
+      "centerHighContrastPixels": 0,
+      "centerCorridorBrightPixels": 9065
+    },
+    "offRoadMeanRgbDifference": {
+      "sky": 0.069,
+      "facades": 0.273,
+      "left": 0.782
+    }
+  },
+  "portland": {
+    "off": {
+      "tile": [
+        10434,
+        23439
+      ],
+      "crowns": 89,
+      "applied_epoch": 1743094800,
+      "camera_heading": 111.54112,
+      "horizontal_fov": 76.0,
+      "ready": false,
+      "visible": false,
+      "bayCount": 0,
+      "nativeTileCount": 8,
+      "tiles": [
+        "(10434, 23439)",
+        "(10434, 23440)",
+        "(10433, 23439)",
+        "(10433, 23440)",
+        "(10435, 23439)",
+        "(10435, 23440)",
+        "(10434, 23438)",
+        "(10433, 23438)"
+      ],
+      "observedPaint": 0,
+      "sha256": "ec6c69e93883c79562fb3d261beeb989fc3a90fe1fbbdac70039cb29de1f07aa",
+      "remainingDefaultRanges": 1,
+      "centerHighContrastPixels": 227,
+      "centerCorridorBrightPixels": 330
+    },
+    "on": {
+      "tile": [
+        10434,
+        23439
+      ],
+      "crowns": 89,
+      "applied_epoch": 1743094800,
+      "camera_heading": 111.54112,
+      "horizontal_fov": 76.0,
+      "ready": true,
+      "visible": true,
+      "bayCount": 0,
+      "nativeTileCount": 8,
+      "tiles": [
+        "(10434, 23439)",
+        "(10434, 23440)",
+        "(10433, 23439)",
+        "(10433, 23440)",
+        "(10435, 23439)",
+        "(10435, 23440)",
+        "(10434, 23438)",
+        "(10433, 23438)"
+      ],
+      "observedPaint": 0,
+      "sha256": "0d260b0140c2d8376c7c5aa432ae1902d53c4a7d162caa89a75ce809a071d37d",
+      "remainingDefaultRanges": 0,
+      "centerHighContrastPixels": 0,
+      "centerCorridorBrightPixels": 77
+    },
+    "offRoadMeanRgbDifference": {
+      "sky": 2.693,
+      "facades": 1.474,
+      "left": 1.446
+    }
+  },
+  "portland_drive": {
+    "banks": false,
+    "corrected": false,
+    "histogram": [
+      0,
+      0,
+      0,
+      0,
+      657
+    ],
+    "maxBodyStepM": 0.00156211853027344,
+    "maxLaneOffsetErrorM": 0.015174674987793,
+    "maxSpeedMps": 4.69891214370728,
+    "maxTireRayVsHeightMapM": 4.71115112432585e-06,
+    "passed": true,
+    "rayErrorP95": 3.20434570610928e-06,
+    "road": "Southwest Harvey Milk Street",
+    "simTicks": 656,
+    "status": "complete",
+    "survey": {},
+    "terrain": "USGS 3DEP 1/3 arc-second",
+    "way": "892193385"
+  },
+  "firstVisitPaintSwapPortland": {
+    "afterVertices": 3330,
+    "beforeVertices": 3444,
+    "cold": true,
+    "contacts": [
+      0,
+      0,
+      0,
+      0,
+      163
+    ],
+    "postFrames": 90,
+    "sameGroundColliders": true,
+    "sameGroundMaterial": true,
+    "sameTile": true,
+    "spans": 7
+  }
+}

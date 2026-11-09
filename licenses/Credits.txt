@@ -1,0 +1,78 @@
+SUNDAY DRIVER  /  CREDITS AND DATA
+Carytown, Richmond, Virginia • Apple Silicon demonstration
+
+MAP AND ELEVATION
+Map data © OpenStreetMap contributors, ODbL 1.0. https://www.openstreetmap.org/copyright
+OpenMapTiles schema © OpenMapTiles. https://openmaptiles.org/
+Interactive vector tile hosting by OpenFreeMap. https://openfreemap.org/
+Photon geocoder by komoot, using OpenStreetMap data. https://photon.komoot.io/
+Mapzen / Tilezen Terrain Tiles. Includes source data from USGS and other public programs.
+https://github.com/tilezen/joerd/blob/master/docs/attribution.md
+USDA / USGS The National Map orthoimagery. https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer
+2025 City of Richmond lidar, City of Richmond / Sanborn / NOAA Office for Coastal Management.
+Ground and classified roof samples resampled to portable terrain grids and heights.
+https://www.fisheries.noaa.gov/inport/item/80312
+Street trees and streetlight coordinates from City of Richmond, Virginia.
+https://www.rva.gov/public-works/urban-forestry
+https://services1.arcgis.com/k3vhq11XkBNeeOfM/arcgis/rest/services/Streetlights/FeatureServer
+
+PHOTOGRAPHY AND MODELS
+Byrd theatre exterior by Adam Jones. Cropped, perspective-adjusted facade and marquee textures are licensed CC BY-SA 2.0.
+https://commons.wikimedia.org/wiki/File:Facade_of_Byrd_Theater_-_Carytown_District_-_Richmond_-_Virginia_-_USA_(47792558541).jpg
+https://creativecommons.org/licenses/by-sa/2.0/
+1999 Mazda MX-5 Miata rear 4.28.18 by Kevauto. Cropped and perspective-adjusted rear lamp texture, CC BY-SA 4.0.
+https://commons.wikimedia.org/wiki/File:1999_Mazda_MX-5_Miata_rear_4.28.18.jpg
+https://creativecommons.org/licenses/by-sa/4.0/
+Green NB Miata body, running gear and cabin modeled for this demo. Model incorporating the lamp texture, CC BY-SA 4.0.
+Parked cars from Generic passenger car pack by Comrade1280, CC BY 4.0. Sedan and pickup isolated, recentered and textures resized.
+https://sketchfab.com/3d-models/20f9af9b8a404d5cb022ac6fe87f21f5
+https://creativecommons.org/licenses/by/4.0/
+Asphalt Floor and Kloofendal 48d Partly Cloudy from Poly Haven, CC0. https://polyhaven.com/license
+Representative building facades from Free Urban Textures by Scouser, CC0.
+https://opengameart.org/content/free-urban-textures-buildings-apartments-shop-fronts
+Foliage derived from paramecij's vegetation base texture pack, CC0.
+https://opengameart.org/content/paramecijs-vegetation-base-texture-pack
+
+ENGINE AND SOFTWARE
+Godot Engine and third-party components. https://godotengine.org/license/
+Jolt Physics. https://github.com/jrouwe/JoltPhysics
+Map decoder built with Bun, @mapbox/vector-tile, pbf, earcut and fast-png.
+https://bun.com/ • https://github.com/mapbox/vector-tile-js
+Barlow Semi Condensed and Instrument Serif, SIL Open Font License. License files inside the app.
+Street oak mesh adapted from Innerscene (CC0). Three geometry detail levels use folded individual leaves, trunk, and branches. Tree positions, species labels and trunk diameters where available are from Richmond's tree inventory. Shapes represent broadleaf trees, not individual tree scans. Bark texture: Poly Haven, Jølcham Oak Bark 01, CC0.
+https://www.innerscene.com/tools/library/3d-parts/oak-street-tree-detailed-leaves-a273fef9
+https://polyhaven.com/a/jolcham_oak_bark_01
+
+Davidson Hall, Bethel, Maine. Photograph “Gould Academy Davidson Hall” by Nick Kline (User:Nickline4), June 29, 2012. The visible wall textures were masked, rectified, adjusted for lighting and glass reflections, and combined with an independently surveyed 3D building. The adapted textures, masks and photographic comparisons are shared under Creative Commons Attribution-ShareAlike 3.0 Unported, the selected original license.
+https://commons.wikimedia.org/wiki/File:Gould_Academy_Davidson_Hall.JPG
+https://creativecommons.org/licenses/by-sa/3.0/
+USGS 3DEP Western Maine 2016 LiDAR, U.S. public domain. Footprint © OpenStreetMap contributors via OpenFreeMap (ODbL). Point tile and map attribution:
+https://www.sciencebase.gov/catalog/item/644b2bc8d34e45f6ddcd3d94
+https://www.openstreetmap.org/copyright
+
+Forest form at Snake River Overlook and live US canopy sites. The 30 m stand evidence uses USGS/USDA LANDFIRE Existing Vegetation Type 2025 and USGS/MRLC NLCD 2021 (CONUS) or 2016 (Alaska). Needle photography is adapted from Poly Haven Pine Tree 01 (CC0). The Wyoming forest comparison includes resized and marked images by Hansueli Krapf, May 30, 2025 (CC BY-SA 4.0), and Pedro Szekely, August 31, 2020 (CC BY-SA 2.0). Each adapted photograph is shared under its original license.
+https://landfire.gov/vegetation/evt
+https://www.mrlc.gov/data/legends/national-land-cover-database-class-legend-and-description
+https://polyhaven.com/a/pine_tree_01
+https://polyhaven.com/license
+https://commons.wikimedia.org/wiki/File:2025-05-30-194735_USA_Wyoming_Moose_2092.6.jpg
+https://creativecommons.org/licenses/by-sa/4.0/
+https://commons.wikimedia.org/wiki/File:Snake_River_Overlook_(50498053986).jpg
+https://creativecommons.org/licenses/by-sa/2.0/
+
+Two surveyed Utah highway stretches use Utah Department of Transportation Paint Striping (2023), FHWA HPMS (2024), USDA NAIP aerial photography (2021), and OpenStreetMap road axes (© OpenStreetMap contributors, ODbL). UDOT publishes the inventory for informational use, requests field verification before project use, and disclaims warranties. The US 163 comparison photograph by Awinda (April 30, 2023) has been cropped, resized and labeled under CC BY-SA 4.0.
+https://www.arcgis.com/home/item.html?id=65478779f74d4fcbb6f7dd3411aaaec2
+https://geo.dot.gov/server/rest/services/Hosted/HPMS_FULL_UT_2024/FeatureServer/0
+https://imagery.geoplatform.gov/iipp/rest/services/NAIP/NAIP_plus/ImageServer
+https://commons.wikimedia.org/wiki/File:Forrest_Gump_Highway_Monument_Valley.jpg
+https://creativecommons.org/licenses/by-sa/4.0/
+
+STREAMED AIRBORNE ROOFS
+USGS 3D Elevation Program, Work Unit Extent Spatial Metadata and anonymous USGS LiDAR EPT distribution. Survey dates and work unit names are recorded per district. EPT specification by Entwine and Hobu. LAZ decoding uses laz-perf 0.0.7, licensed under Apache-2.0. The map footprints are © OpenStreetMap contributors, ODbL via OpenFreeMap. The reference image by slinky309 is licensed CC BY-SA 4.0.
+https://registry.opendata.aws/usgs-lidar/
+https://index.nationalmap.gov/arcgis/rest/services/3DEPElevationIndex/MapServer/24
+https://entwine.io/en/latest/entwine-point-tile.html
+https://github.com/hobuinc/laz-perf
+https://www.openstreetmap.org/copyright
+https://panoramax.xyz/#focus=pic&pic=202ef7e6-ea03-4311-a626-b9f3b8405a52
+https://creativecommons.org/licenses/by-sa/4.0/

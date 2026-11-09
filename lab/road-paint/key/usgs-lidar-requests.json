@@ -1,0 +1,80 @@
+{
+  "site": [
+    25.08706,
+    -80.449145
+  ],
+  "url": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/FL_TopobathyFLKeysNOAA_Hydroflattened_2019/ept.json",
+  "project_total_points": 51970164694,
+  "horizontal_crs": "EPSG:3857",
+  "vertical": null,
+  "span": 128,
+  "depth": 11,
+  "local_box": "112 m \u00d7 112 m",
+  "nodes": 4,
+  "skipped": [],
+  "counts": {
+    "2": 23367,
+    "1": 45933,
+    "7": 303
+  },
+  "points": 69603,
+  "data_bytes": 2278729,
+  "metadata_bytes": 105956,
+  "http_gets": 8,
+  "range_probe": [
+    "ept-data/11-1721-958-1023.laz",
+    206,
+    227,
+    "bytes 0-226/915843"
+  ],
+  "all_requests": [
+    [
+      "ept.json",
+      200,
+      2513,
+      "cached"
+    ],
+    [
+      "ept-hierarchy/0-0-0-0.json",
+      200,
+      88737,
+      "cached"
+    ],
+    [
+      "ept-hierarchy/8-215-119-127.json",
+      200,
+      14706,
+      "cached"
+    ],
+    [
+      "ept-data/11-1721-958-1023.laz",
+      206,
+      227,
+      "bytes 0-226/915843"
+    ],
+    [
+      "ept-data/11-1721-958-1023.laz",
+      200,
+      915843,
+      null
+    ],
+    [
+      "ept-data/11-1721-957-1023.laz",
+      200,
+      528098,
+      "cached"
+    ],
+    [
+      "ept-data/11-1722-958-1023.laz",
+      200,
+      463618,
+      "cached"
+    ],
+    [
+      "ept-data/11-1722-957-1023.laz",
+      200,
+      371170,
+      "cached"
+    ]
+  ]
+}

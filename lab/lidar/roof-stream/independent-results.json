@@ -1,0 +1,187 @@
+[
+  {
+    "site": "Lincoln",
+    "roofs": [
+      {
+        "index": 139,
+        "form": "gable",
+        "points": 45,
+        "previous_median": 1.254,
+        "median": 0.18,
+        "previous_p90": 2.164,
+        "p90": 0.875
+      },
+      {
+        "index": 135,
+        "form": "gable",
+        "points": 38,
+        "previous_median": 1.664,
+        "median": 0.257,
+        "previous_p90": 3.307,
+        "p90": 1.714
+      },
+      {
+        "index": 142,
+        "form": "hip",
+        "points": 59,
+        "previous_median": 1.316,
+        "median": 0.232,
+        "previous_p90": 2.269,
+        "p90": 0.545
+      },
+      {
+        "index": 149,
+        "form": "gable",
+        "points": 55,
+        "previous_median": 1.646,
+        "median": 0.13,
+        "previous_p90": 2.263,
+        "p90": 2.782
+      },
+      {
+        "index": 126,
+        "form": "gable",
+        "points": 54,
+        "previous_median": 1.576,
+        "median": 0.167,
+        "previous_p90": 2.893,
+        "p90": 1.888
+      },
+      {
+        "index": 146,
+        "form": "plane",
+        "points": 52,
+        "previous_median": 0.498,
+        "median": 0.077,
+        "previous_p90": 0.911,
+        "p90": 0.197
+      },
+      {
+        "index": 96,
+        "form": "gable",
+        "points": 47,
+        "previous_median": 1.312,
+        "median": 0.181,
+        "previous_p90": 2.052,
+        "p90": 0.568
+      },
+      {
+        "index": 154,
+        "form": "gable",
+        "points": 37,
+        "previous_median": 0.778,
+        "median": 0.101,
+        "previous_p90": 1.139,
+        "p90": 0.309
+      }
+    ],
+    "points": 387,
+    "median": [
+      1.168,
+      0.167
+    ],
+    "p90": [
+      2.287,
+      0.7
+    ]
+  },
+  {
+    "site": "Raven",
+    "roofs": [
+      {
+        "index": 56,
+        "form": "gable",
+        "points": 34,
+        "previous_median": 1.933,
+        "median": 0.276,
+        "previous_p90": 4.803,
+        "p90": 0.916
+      }
+    ],
+    "points": 34,
+    "median": [
+      1.933,
+      0.276
+    ],
+    "p90": [
+      4.803,
+      0.916
+    ]
+  },
+  {
+    "site": "Hartford",
+    "roofs": [],
+    "points": 0,
+    "median": [],
+    "p90": []
+  },
+  {
+    "site": "Anchorage",
+    "roofs": [
+      {
+        "index": 5,
+        "form": "plane",
+        "points": 28,
+        "previous_median": 1.865,
+        "median": 0.042,
+        "previous_p90": 1.928,
+        "p90": 0.115
+      }
+    ],
+    "points": 28,
+    "median": [
+      1.865,
+      0.042
+    ],
+    "p90": [
+      1.928,
+      0.115
+    ]
+  },
+  {
+    "site": "Honolulu",
+    "roofs": [],
+    "points": 0,
+    "median": [],
+    "p90": []
+  },
+  {
+    "site": "Seattle",
+    "roofs": [],
+    "points": 0,
+    "median": [],
+    "p90": []
+  },
+  {
+    "site": "Bartlesville",
+    "roofs": [
+      {
+        "index": 2,
+        "form": "plane",
+        "points": 75,
+        "previous_median": 0.17,
+        "median": 0.061,
+        "previous_p90": 1.396,
+        "p90": 1.264
+      },
+      {
+        "index": 4,
+        "form": "plane",
+        "points": 33,
+        "previous_median": 0.27,
+        "median": 0.009,
+        "previous_p90": 0.33,
+        "p90": 0.028
+      }
+    ],
+    "points": 108,
+    "median": [
+      0.215,
+      0.032
+    ],
+    "p90": [
+      1.26,
+      1.21
+    ]
+  }
+]

@@ -1,0 +1,129 @@
+{
+  "attribution": "Chula Road photos by miken, KartaView sequence 3690649. Photo-derived 3D surface and textures, CC BY-SA 4.0.",
+  "source_urls": [
+    "https://kartaview.org/details/3690649/2060",
+    "https://kartaview.org/details/3690649/2061"
+  ],
+  "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "training_frames": [
+    2057,
+    2058,
+    2060,
+    2061,
+    2063,
+    2064
+  ],
+  "reconstructed_sources": {
+    "2060": {
+      "feature_triangulations": 55,
+      "vertices": 1079,
+      "triangles": 1542,
+      "depth_p05_p50_p95_m": [
+        77.03,
+        78.5,
+        82.89
+      ],
+      "bounds": [
+        [
+          187.28,
+          90.27,
+          159.7
+        ],
+        [
+          203.85,
+          104.95,
+          193.81
+        ]
+      ],
+      "holdout": {
+        "2059": {
+          "n": 673,
+          "stereo": {
+            "mae": 18.75,
+            "correlation": 0.174
+          },
+          "constant_depth": {
+            "mae": 19.36,
+            "correlation": 0.086
+          }
+        },
+        "2062": {
+          "n": 1069,
+          "stereo": {
+            "mae": 11.25,
+            "correlation": 0.524
+          },
+          "constant_depth": {
+            "mae": 11.75,
+            "correlation": 0.451
+          }
+        }
+      }
+    },
+    "2061": {
+      "feature_triangulations": 72,
+      "vertices": 1244,
+      "triangles": 1860,
+      "depth_p05_p50_p95_m": [
+        100.94,
+        102.6,
+        141.37
+      ],
+      "bounds": [
+        [
+          185.06,
+          90.56,
+          162.92
+        ],
+        [
+          237.86,
+          106.07,
+          194.88
+        ]
+      ],
+      "holdout": {
+        "2059": {
+          "n": 648,
+          "stereo": {
+            "mae": 23.83,
+            "correlation": 0.078
+          },
+          "constant_depth": {
+            "mae": 24.18,
+            "correlation": 0.081
+          }
+        },
+        "2062": {
+          "n": 1237,
+          "stereo": {
+            "mae": 8.63,
+            "correlation": 0.542
+          },
+          "constant_depth": {
+            "mae": 8.75,
+            "correlation": 0.526
+          }
+        }
+      }
+    }
+  },
+  "held_out_game_views": {
+    "2059": {
+      "affected_forest_pixels": 359,
+      "forest_pixels": 37280,
+      "rgb_mae_forest_on": 42.58,
+      "rgb_mae_forest_off": 42.96,
+      "rgb_mae_affected_on": 81.44,
+      "rgb_mae_affected_off": 117.67
+    },
+    "2062": {
+      "affected_forest_pixels": 2081,
+      "forest_pixels": 18481,
+      "rgb_mae_forest_on": 32.65,
+      "rgb_mae_forest_off": 33.48,
+      "rgb_mae_affected_on": 24.66,
+      "rgb_mae_affected_off": 31.45
+    }
+  },
+  "scope": "Partial triangulated foliage surfaces on the southeast woodland edge. Regional 3D trees fill unobserved portions. Camera heights, rotations and lens are fitted estimates."
+}

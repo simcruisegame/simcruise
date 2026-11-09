@@ -1,0 +1,79 @@
+{
+  "archiveRelease": "2026-10-21.0",
+  "archive_requests": [
+    {
+      "url": "https://overturemaps-extras-us-west-2.s3.us-west-2.amazonaws.com/tiles/2026-10-21.0/transportation.pmtiles",
+      "range_bytes": [
+        0,
+        16383
+      ],
+      "bytes": 16384
+    },
+    {
+      "url": "https://overturemaps-extras-us-west-2.s3.us-west-2.amazonaws.com/tiles/2026-10-21.0/transportation.pmtiles",
+      "range_bytes": [
+        134136383610,
+        134136397919
+      ],
+      "bytes": 14310
+    },
+    {
+      "url": "https://overturemaps-extras-us-west-2.s3.us-west-2.amazonaws.com/tiles/2026-10-21.0/transportation.pmtiles",
+      "range_bytes": [
+        54133541013,
+        54133583240
+      ],
+      "bytes": 42228
+    }
+  ],
+  "total_range_bytes": 72922,
+  "layers": {
+    "connector": {
+      "count": 213,
+      "attributes": [
+        "id",
+        "sources",
+        "version"
+      ]
+    },
+    "segment": {
+      "count": 173,
+      "attributes": [
+        "@name",
+        "access_restrictions",
+        "class",
+        "connectors",
+        "id",
+        "names",
+        "road_flags",
+        "road_surface",
+        "routes",
+        "sources",
+        "speed_limits",
+        "subclass",
+        "subclass_rules",
+        "subtype",
+        "version"
+      ]
+    }
+  },
+  "selectedRoad": "Overseas Highway",
+  "selectedRoadExample": {
+    "@name": "Overseas Highway",
+    "subtype": "road",
+    "id": "990f2d74-8f36-4f4c-b14c-45940c8455c4",
+    "class": "trunk"
+  },
+  "rawOSM": {
+    "way": "52069511",
+    "version": 40,
+    "url": "https://www.openstreetmap.org/way/52069511",
+    "tags": {
+      "highway": "trunk",
+      "lanes": "2",
+      "name": "Overseas Highway",
+      "oneway": "yes",
+      "ref": "US 1"
+    }
+  }
+}

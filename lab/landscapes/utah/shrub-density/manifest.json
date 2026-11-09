@@ -1,0 +1,30 @@
+{
+  "title": "How much of the roadside do shrubs actually cover?",
+  "summary": "The rangeland model gives a percentage of ground covered by shrub crowns. We measured the projected union of the actual 3D crown meshes within an 86 m disk. The renderer now fills each eligible survey cell using measured crown area. Close shrubs use a higher-detail branching mesh.",
+  "measurement": "On US 163, projected cover rose from 0.40% to 6.53% against a survey estimate of 6.82%. At US 191 it rose from 0.53% to 9.22% against 9.30%. This validates the total across the disk. US 163 still lacks shrubs at the near end of the photographed shoulder. Individual plant positions and forms are inferred.",
+  "credit": "Photograph by Ken Lund, CC BY-SA 2.0. The crop and game comparison share that license. RAP and RCMAP supply the cover and height observations.",
+  "images": [
+    {
+      "file": "ground.webp",
+      "caption": "US 191 ground detail. The game still misses the fence and individual plant shapes."
+    }
+  ],
+  "links": [
+    [
+      "Photograph and author",
+      "https://commons.wikimedia.org/wiki/File:La_Sal_Mountains_From_U.S._Route_191_Between_Monticello_and_Moab,_Utah.jpg"
+    ],
+    [
+      "CC BY-SA 2.0",
+      "https://creativecommons.org/licenses/by-sa/2.0/"
+    ],
+    [
+      "Rangeland Analysis Platform",
+      "https://rangelands.app/support/71-api-documentation"
+    ],
+    [
+      "USGS mean shrub height",
+      "https://www.mrlc.gov/data/rcmap-shrub-height"
+    ]
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "title": "Snow and exposed rock on the Teton peaks",
+  "summary": "The middle frame uses the existing regional aerial imagery. The right frame adds detailed orthophotography of the visible ridge, NASA’s May 30 snow observation, and Sentinel-2 classification and red-band reflectance acquired May 31. The matched showcase explicitly requests this historical snow date. Ordinary recent-surface mode queries a recent completed day.",
+  "measurement": "Across 43,474 pixels below the independently marked ridgeline, mean RGB error fell from 44.0 to 40.2 on a 0–255 scale. Brightness correlation rose from 0.36 to 0.49. Using the snow classification alone made the error worse at 48.5. The simulation still misses fine rock detail, the cloud bank and much of the forest below the peaks.",
+  "credit": "Photograph by Hansueli Krapf, CC BY-SA 4.0. Cropped and paired with game views. Contains modified Copernicus Sentinel data 2025 and NASA MODIS observations.",
+  "images": [
+    {
+      "file": "same-pose.webp",
+      "caption": "Spring photograph, game with summer aerial imagery, and terrain with observed snow and rock reflectance."
+    },
+    {
+      "file": "full-view.webp",
+      "caption": "The full fixed-camera view shows the remaining differences along the river and in the forest."
+    }
+  ],
+  "links": [
+    [
+      "Original camera and photograph",
+      "https://commons.wikimedia.org/wiki/File:2025-05-30-194735_USA_Wyoming_Moose_2092.6.jpg"
+    ],
+    [
+      "CC BY-SA 4.0",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    [
+      "NASA MOD10A1",
+      "https://nsidc.org/data/mod10a1/versions/61"
+    ],
+    [
+      "Earth Search",
+      "https://github.com/Element84/earth-search"
+    ]
+  ]
+}

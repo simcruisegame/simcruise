@@ -1,0 +1,25 @@
+{
+  "service": "https://ca.dep.state.fl.us/image/rest/services/FDOT_Yearly_Aerials/Aerial_Imagery_2018/ImageServer",
+  "request": "https://ca.dep.state.fl.us/image/rest/services/FDOT_Yearly_Aerials/Aerial_Imagery_2018/ImageServer/exportImage?bbox=-8955616.376716036%2C2886383.257444539%2C-8955499.335592423%2C2886500.298568152&bboxSR=3857&imageSR=3857&size=850%2C850&format=jpg&interpolation=RSP_Bilinear&f=image",
+  "bounds": [
+    -8955616.376716036,
+    2886383.257444539,
+    -8955499.335592423,
+    2886500.298568152
+  ],
+  "size": [
+    850,
+    850
+  ],
+  "m_per_px": 0.12470588235294118,
+  "sourcePixel": [
+    0.07620015240030392,
+    0.07620015240030392
+  ],
+  "crs": {
+    "wkid": 3087,
+    "latestWkid": 3087
+  },
+  "copyright": "",
+  "description": ""
+}

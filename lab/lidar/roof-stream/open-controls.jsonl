@@ -1,0 +1,7 @@
+{"site":"Lincoln","trials":80,"admitted":[],"refusals":{"withheld surface mismatch":7,"footprint support":2,"too few independent cells":43,"ground returns":27,"ground relief":1}}
+{"site":"Raven","trials":30,"admitted":[],"refusals":{"withheld surface mismatch":7,"too few independent cells":21,"footprint support":2}}
+{"site":"Hartford","trials":4,"admitted":[],"refusals":{"too few independent cells":4}}
+{"site":"Anchorage","trials":4,"admitted":[],"refusals":{"footprint support":2,"too few independent cells":2}}
+{"site":"Honolulu","trials":15,"admitted":[],"refusals":{"footprint support":5,"too few independent cells":8,"ground returns":2}}
+{"site":"Seattle","trials":12,"admitted":[],"refusals":{"too few independent cells":10,"ground relief":2}}
+{"site":"Bartlesville","trials":6,"admitted":[],"refusals":{"too few independent cells":4,"footprint support":1,"ground relief":1}}

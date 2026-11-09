@@ -1,0 +1,1451 @@
+{
+  "source": "OpenStreetMap contributors via OpenFreeMap, ODbL 1.0",
+  "groups": {
+    "v-4665-6345": "d7245753edae45c1c8018dda39eb1b6a7f9c6cdb7e81b559ba41235dd05fdaa8",
+    "v-4666-6345": "d8869be8554ba6898299d71be8cc77a34edb9eab2a7451017f1fdb81b914f131",
+    "v-4666-6346": "0f333d2052ddc7f5e466169a9f46d47899d605c016396d27d82eec572c42bb44",
+    "v-4665-6346": "783ebb2ba95409033c368c57a153d9db7c322ae40720839ffe77ab6353619d0a"
+  },
+  "accepted": [
+    [
+      18663,
+      25382,
+      "Mongrel",
+      "shop"
+    ],
+    [
+      18663,
+      25382,
+      "Venue Skateboards",
+      "shop"
+    ],
+    [
+      18663,
+      25382,
+      "Lucky Road",
+      "shop"
+    ],
+    [
+      18663,
+      25382,
+      "Merrymaker Fine Paper",
+      "shop"
+    ],
+    [
+      18663,
+      25382,
+      "Kilwins",
+      "shop"
+    ],
+    [
+      18663,
+      25382,
+      "Tobacco Hut",
+      "shop"
+    ],
+    [
+      18663,
+      25382,
+      "Heroes & Ghosts Tattoo",
+      "shop"
+    ],
+    [
+      18663,
+      25382,
+      "World of Mirth",
+      "shop"
+    ],
+    [
+      18663,
+      25382,
+      "Fusion Nail Spa",
+      "shop"
+    ],
+    [
+      18663,
+      25382,
+      "Uniqueness",
+      "shop"
+    ],
+    [
+      18663,
+      25382,
+      "Walkabout Outfitter",
+      "shop"
+    ],
+    [
+      18663,
+      25382,
+      "Art Tailors",
+      "shop"
+    ],
+    [
+      18663,
+      25382,
+      "Silver Bramble Jewelry",
+      "shop"
+    ],
+    [
+      18663,
+      25382,
+      "Haru",
+      "shop"
+    ],
+    [
+      18663,
+      25382,
+      "Carytown Tobacco",
+      "shop"
+    ],
+    [
+      18663,
+      25382,
+      "Sen Organic Farmer's Market",
+      "shop"
+    ],
+    [
+      18663,
+      25382,
+      "Sen Organic Flowers",
+      "shop"
+    ],
+    [
+      18663,
+      25382,
+      "The Cozy Journal",
+      "shop"
+    ],
+    [
+      18663,
+      25382,
+      "Sen Organic Market",
+      "grocery"
+    ],
+    [
+      18663,
+      25382,
+      "Carytown Indian Cuisine",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "Sen Organic Small Plate",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "Coppola's Deli",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "New York Deli",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "Sugar & Twine",
+      "cafe"
+    ],
+    [
+      18663,
+      25382,
+      "The Daily Kitchen & Bar",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "Lucky Chopsticks",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "Mellow Mushroom",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "Mayu Sushi & Thai",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "The Mayor",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "Galaxy Diner",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "Greek on Cary",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "Ariana Kabob",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "Capital One Café",
+      "cafe"
+    ],
+    [
+      18663,
+      25382,
+      "Lolita's",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "Zorch Pizza",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "Pho Luca's",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "Mom's Siam",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "Importante Bodega Bar",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "Tiny Vegan",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "Momotaro",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "Chum Chum Onigiri",
+      "restaurant"
+    ],
+    [
+      18663,
+      25382,
+      "Stylist Studio",
+      "hairdresser"
+    ],
+    [
+      18663,
+      25382,
+      "Birch Salon",
+      "hairdresser"
+    ],
+    [
+      18663,
+      25382,
+      "Griffin Coffee & Bakery",
+      "cafe"
+    ],
+    [
+      18665,
+      25380,
+      "Hustler Hollywood",
+      "shop"
+    ],
+    [
+      18665,
+      25380,
+      "Sunset Smoke Shop",
+      "shop"
+    ],
+    [
+      18665,
+      25380,
+      "Kambourian Jewelers",
+      "shop"
+    ],
+    [
+      18665,
+      25380,
+      "Sabai Jai Market",
+      "fast_food"
+    ],
+    [
+      18665,
+      25380,
+      "Starbucks",
+      "cafe"
+    ],
+    [
+      18665,
+      25380,
+      "Gus' Bar & Grill",
+      "restaurant"
+    ],
+    [
+      18665,
+      25380,
+      "Lalo’s Cocina",
+      "restaurant"
+    ],
+    [
+      18665,
+      25380,
+      "Sally Bell's Kitchen",
+      "restaurant"
+    ],
+    [
+      18665,
+      25380,
+      "Chicken Fiesta",
+      "restaurant"
+    ],
+    [
+      18665,
+      25380,
+      "Sabai",
+      "restaurant"
+    ],
+    [
+      18665,
+      25380,
+      "Swan Dive",
+      "restaurant"
+    ],
+    [
+      18665,
+      25380,
+      "Stanley's",
+      "restaurant"
+    ],
+    [
+      18665,
+      25380,
+      "William Byrd Hotel Barber Shop",
+      "hairdresser"
+    ],
+    [
+      18665,
+      25380,
+      "Scott's Shawarma",
+      "restaurant"
+    ],
+    [
+      18665,
+      25380,
+      "Hungry Heart",
+      "hairdresser"
+    ],
+    [
+      18665,
+      25381,
+      "Strawberry Street Market",
+      "shop"
+    ],
+    [
+      18665,
+      25381,
+      "Strawberry Fields",
+      "shop"
+    ],
+    [
+      18665,
+      25381,
+      "Blue Habanero",
+      "restaurant"
+    ],
+    [
+      18665,
+      25381,
+      "8 1/2",
+      "restaurant"
+    ],
+    [
+      18664,
+      25383,
+      "Idlewood Market",
+      "shop"
+    ],
+    [
+      18664,
+      25383,
+      "Lamplighter Roasting Company",
+      "cafe"
+    ],
+    [
+      18662,
+      25381,
+      "Mr. Puffers Tobacco Vape",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "7-Eleven",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Amy Black Tattoos",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Petco",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Jennifer Nail Spa",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "CECO Studio",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Loose Screw Tattoo",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Le Visage Makeup Boutique",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Bijou Nail bar",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Waxing Station",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Palm Beach Tan",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "For the Love of Chocolate",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Fruit Fixed",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Carytown Dolls & Bears",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Dog Krazy",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Beasties",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Crème de la Crème",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Main Street Spa & Wellness Center",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Fable Tattoo Gallery",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Sola Salons",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Carytown Optical",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Richmond Vape & Smoke",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Carytown Nails & Spa",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "FACÉ Studios",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Stylepod Suites",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Haley Too Salon & Med Spa",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "A1 Door Company",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Hand & Stone Massage and Facial Spa",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Wild Aster",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "Richmond Jeweler",
+      "shop"
+    ],
+    [
+      18662,
+      25381,
+      "McDonald's",
+      "fast_food"
+    ],
+    [
+      18662,
+      25381,
+      "Chipotle",
+      "fast_food"
+    ],
+    [
+      18662,
+      25381,
+      "Philly Steak & Gyros",
+      "fast_food"
+    ],
+    [
+      18662,
+      25381,
+      "Domino's",
+      "fast_food"
+    ],
+    [
+      18662,
+      25381,
+      "Ginger Thai Taste",
+      "restaurant"
+    ],
+    [
+      18662,
+      25381,
+      "Tulsi",
+      "restaurant"
+    ],
+    [
+      18662,
+      25381,
+      "Jalapeños Mexican Grill",
+      "restaurant"
+    ],
+    [
+      18662,
+      25381,
+      "Burger Bach",
+      "restaurant"
+    ],
+    [
+      18662,
+      25381,
+      "Carytown Gyro",
+      "restaurant"
+    ],
+    [
+      18662,
+      25381,
+      "Home Sweet Home",
+      "restaurant"
+    ],
+    [
+      18662,
+      25381,
+      "East Coast Provisions",
+      "restaurant"
+    ],
+    [
+      18662,
+      25381,
+      "Flirt",
+      "hairdresser"
+    ],
+    [
+      18662,
+      25381,
+      "Mary Angela's Pizzeria",
+      "restaurant"
+    ],
+    [
+      18662,
+      25381,
+      "Dumpling & Noodle Cart",
+      "restaurant"
+    ],
+    [
+      18662,
+      25381,
+      "Botanya",
+      "restaurant"
+    ],
+    [
+      18662,
+      25381,
+      "Fuel Pump",
+      "cafe"
+    ],
+    [
+      18662,
+      25381,
+      "Hair Cuttery",
+      "hairdresser"
+    ],
+    [
+      18662,
+      25381,
+      "Les Crepes Creperie",
+      "restaurant"
+    ],
+    [
+      18662,
+      25381,
+      "Katrina's Salon",
+      "hairdresser"
+    ],
+    [
+      18662,
+      25381,
+      "Red Barber Co.",
+      "hairdresser"
+    ],
+    [
+      18662,
+      25381,
+      "Minglewood Bakeshop",
+      "bakery"
+    ],
+    [
+      18662,
+      25381,
+      "Chewy's Bagels",
+      "bakery"
+    ],
+    [
+      18662,
+      25381,
+      "Kokee Tea",
+      "cafe"
+    ],
+    [
+      18662,
+      25381,
+      "Boba Tea and Snow Ice House RVA",
+      "cafe"
+    ],
+    [
+      18662,
+      25381,
+      "Nouveau Provisions",
+      "restaurant"
+    ],
+    [
+      18662,
+      25380,
+      "The Fresh Market",
+      "grocery"
+    ],
+    [
+      18664,
+      25382,
+      "The Clothes Rack",
+      "shop"
+    ],
+    [
+      18664,
+      25382,
+      "Vitality",
+      "shop"
+    ],
+    [
+      18664,
+      25382,
+      "Sunny Market",
+      "shop"
+    ],
+    [
+      18664,
+      25382,
+      "Sen Organic Day Spa",
+      "shop"
+    ],
+    [
+      18664,
+      25382,
+      "Wicked Winds",
+      "shop"
+    ],
+    [
+      18664,
+      25382,
+      "Tugwells Market",
+      "shop"
+    ],
+    [
+      18664,
+      25382,
+      "Cary Town In Style Salon",
+      "shop"
+    ],
+    [
+      18664,
+      25382,
+      "Higher Education Richmond",
+      "shop"
+    ],
+    [
+      18664,
+      25382,
+      "Sherwin-Williams",
+      "shop"
+    ],
+    [
+      18664,
+      25382,
+      "William Ivey Fine Furniture",
+      "shop"
+    ],
+    [
+      18664,
+      25382,
+      "Beaucoup",
+      "restaurant"
+    ],
+    [
+      18664,
+      25382,
+      "Helen's Restaurant",
+      "restaurant"
+    ],
+    [
+      18664,
+      25382,
+      "Imago",
+      "hairdresser"
+    ],
+    [
+      18664,
+      25382,
+      "3 Monkeys Bar and Grill",
+      "restaurant"
+    ],
+    [
+      18664,
+      25382,
+      "Bamboo Cafe",
+      "restaurant"
+    ],
+    [
+      18664,
+      25382,
+      "Capitol Market Cafe",
+      "cafe"
+    ],
+    [
+      18664,
+      25382,
+      "Pizza and Beer of Richmond",
+      "restaurant"
+    ],
+    [
+      18664,
+      25382,
+      "Social 52",
+      "restaurant"
+    ],
+    [
+      18664,
+      25382,
+      "Dalton's Hair Chateau",
+      "hairdresser"
+    ],
+    [
+      18664,
+      25382,
+      "Wink Beauty and Brow Bar",
+      "hairdresser"
+    ],
+    [
+      18664,
+      25382,
+      "The Blowout King",
+      "hairdresser"
+    ],
+    [
+      18664,
+      25382,
+      "Pivot Studio",
+      "hairdresser"
+    ],
+    [
+      18664,
+      25382,
+      "Fresca on Addison",
+      "restaurant"
+    ],
+    [
+      18664,
+      25382,
+      "Station 10 Barber",
+      "hairdresser"
+    ],
+    [
+      18664,
+      25382,
+      "TBT El Gallo",
+      "restaurant"
+    ],
+    [
+      18664,
+      25382,
+      "Bar-Q",
+      "restaurant"
+    ],
+    [
+      18664,
+      25382,
+      "Smoke & Barrel",
+      "restaurant"
+    ],
+    [
+      18664,
+      25382,
+      "Brickwood Barbecue",
+      "restaurant"
+    ],
+    [
+      18661,
+      25380,
+      "Ellwood Thompson's Local Market",
+      "grocery"
+    ],
+    [
+      18664,
+      25381,
+      "JAK Salon",
+      "shop"
+    ],
+    [
+      18664,
+      25381,
+      "VMFA Shop",
+      "shop"
+    ],
+    [
+      18664,
+      25381,
+      "Robinson Street Market",
+      "grocery"
+    ],
+    [
+      18664,
+      25381,
+      "Nuevo Mexico #2",
+      "restaurant"
+    ],
+    [
+      18664,
+      25381,
+      "McCormack's Whisky Grill",
+      "restaurant"
+    ],
+    [
+      18664,
+      25381,
+      "Circle Square Salon",
+      "hairdresser"
+    ],
+    [
+      18664,
+      25381,
+      "Starbucks",
+      "cafe"
+    ],
+    [
+      18664,
+      25381,
+      "Curbside Cafe",
+      "restaurant"
+    ],
+    [
+      18664,
+      25381,
+      "Amuse",
+      "restaurant"
+    ],
+    [
+      18664,
+      25381,
+      "Best Café",
+      "cafe"
+    ],
+    [
+      18664,
+      25381,
+      "Uliveto",
+      "restaurant"
+    ],
+    [
+      18664,
+      25381,
+      "Early Bird Biscuit",
+      "restaurant"
+    ],
+    [
+      18664,
+      25381,
+      "Idle Hands",
+      "bakery"
+    ],
+    [
+      18664,
+      25381,
+      "Athen's Tavern",
+      "restaurant"
+    ],
+    [
+      18662,
+      25382,
+      "west elm",
+      "shop"
+    ],
+    [
+      18662,
+      25382,
+      "Ripple Ray's",
+      "restaurant"
+    ],
+    [
+      18664,
+      25380,
+      "7-Eleven",
+      "shop"
+    ],
+    [
+      18664,
+      25380,
+      "McGregor's Serenity Salon",
+      "shop"
+    ],
+    [
+      18664,
+      25380,
+      "Tobacco & More",
+      "shop"
+    ],
+    [
+      18664,
+      25380,
+      "Oaxaca Latin Market",
+      "grocery"
+    ],
+    [
+      18664,
+      25380,
+      "Sheppard Farms",
+      "grocery"
+    ],
+    [
+      18664,
+      25380,
+      "Buddy's Place",
+      "restaurant"
+    ],
+    [
+      18664,
+      25380,
+      "Bandito's Burrito Lounge",
+      "restaurant"
+    ],
+    [
+      18664,
+      25380,
+      "Akida Japanese Restaurant",
+      "restaurant"
+    ],
+    [
+      18664,
+      25380,
+      "China Panda",
+      "restaurant"
+    ],
+    [
+      18664,
+      25380,
+      "Sheppard Street Tavern",
+      "restaurant"
+    ],
+    [
+      18664,
+      25380,
+      "Arianna's Italian Grill and Pizzeria",
+      "restaurant"
+    ],
+    [
+      18664,
+      25380,
+      "B-Side Bakehouse",
+      "bakery"
+    ],
+    [
+      18664,
+      25380,
+      "Texas Inn",
+      "restaurant"
+    ],
+    [
+      18661,
+      25381,
+      "Walgreens",
+      "shop"
+    ],
+    [
+      18661,
+      25381,
+      "CVS Pharmacy",
+      "shop"
+    ],
+    [
+      18661,
+      25381,
+      "7-Eleven",
+      "shop"
+    ],
+    [
+      18661,
+      25381,
+      "Dogma Grooming & Pet Needs",
+      "shop"
+    ],
+    [
+      18661,
+      25381,
+      "Carytown Pack & Ship",
+      "shop"
+    ],
+    [
+      18661,
+      25381,
+      "MyEyeDr.",
+      "shop"
+    ],
+    [
+      18661,
+      25381,
+      "AT&T",
+      "shop"
+    ],
+    [
+      18661,
+      25381,
+      "Schwarzschild Jewelers",
+      "shop"
+    ],
+    [
+      18661,
+      25381,
+      "Sugar Coat",
+      "shop"
+    ],
+    [
+      18661,
+      25381,
+      "Kroger",
+      "grocery"
+    ],
+    [
+      18661,
+      25381,
+      "Publix",
+      "grocery"
+    ],
+    [
+      18661,
+      25381,
+      "Pure Green",
+      "fast_food"
+    ],
+    [
+      18661,
+      25381,
+      "Montana Gold Bread Company",
+      "bakery"
+    ],
+    [
+      18661,
+      25381,
+      "CVS Pharmacy",
+      "pharmacy"
+    ],
+    [
+      18661,
+      25381,
+      "The Mantu",
+      "restaurant"
+    ],
+    [
+      18661,
+      25381,
+      "Torchy's Tacos",
+      "restaurant"
+    ],
+    [
+      18661,
+      25381,
+      "Walgreens",
+      "pharmacy"
+    ],
+    [
+      18661,
+      25381,
+      "Burtons Grill & Bar",
+      "restaurant"
+    ],
+    [
+      18661,
+      25381,
+      "Starbucks",
+      "cafe"
+    ],
+    [
+      18661,
+      25381,
+      "Kroger Pharmacy",
+      "pharmacy"
+    ],
+    [
+      18663,
+      25380,
+      "Kramer's Market",
+      "shop"
+    ],
+    [
+      18663,
+      25380,
+      "The Barking Lot",
+      "shop"
+    ],
+    [
+      18663,
+      25380,
+      "Patterson Mini-Market",
+      "grocery"
+    ],
+    [
+      18663,
+      25380,
+      "Black Hand Coffee Co",
+      "cafe"
+    ],
+    [
+      18663,
+      25380,
+      "Belmont Pizzeria",
+      "restaurant"
+    ],
+    [
+      18663,
+      25380,
+      "Paix Coffee",
+      "cafe"
+    ],
+    [
+      18663,
+      25380,
+      "Chiocca's",
+      "restaurant"
+    ],
+    [
+      18665,
+      25382,
+      "7-Eleven",
+      "shop"
+    ],
+    [
+      18665,
+      25382,
+      "Shields Market",
+      "shop"
+    ],
+    [
+      18665,
+      25382,
+      "Joe's Inn",
+      "restaurant"
+    ],
+    [
+      18665,
+      25382,
+      "Main Street Barber",
+      "hairdresser"
+    ],
+    [
+      18665,
+      25382,
+      "Bacchus",
+      "restaurant"
+    ],
+    [
+      18665,
+      25382,
+      "Fu Jian",
+      "restaurant"
+    ],
+    [
+      18665,
+      25382,
+      "The Sidewalk Cafe",
+      "restaurant"
+    ],
+    [
+      18665,
+      25382,
+      "Sticky Rice",
+      "restaurant"
+    ],
+    [
+      18665,
+      25382,
+      "Bad As",
+      "restaurant"
+    ],
+    [
+      18665,
+      25382,
+      "Pearl Raw Bar",
+      "restaurant"
+    ],
+    [
+      18665,
+      25382,
+      "Fan Noodle Bar",
+      "restaurant"
+    ],
+    [
+      18665,
+      25382,
+      "Mean Bird",
+      "restaurant"
+    ],
+    [
+      18665,
+      25382,
+      "The Annex",
+      "restaurant"
+    ],
+    [
+      18665,
+      25382,
+      "Rowland Food & Spirits",
+      "restaurant"
+    ],
+    [
+      18665,
+      25383,
+      "Reams Market",
+      "shop"
+    ],
+    [
+      18665,
+      25383,
+      "PlantBar",
+      "shop"
+    ],
+    [
+      18665,
+      25383,
+      "Metro Modern",
+      "shop"
+    ],
+    [
+      18665,
+      25383,
+      "Blue Asian Massage Spa",
+      "shop"
+    ],
+    [
+      18665,
+      25383,
+      "Krispy Krunchy Chicken",
+      "fast_food"
+    ],
+    [
+      18665,
+      25383,
+      "Olio",
+      "restaurant"
+    ],
+    [
+      18665,
+      25383,
+      "Caryplace Hair Studio",
+      "hairdresser"
+    ],
+    [
+      18665,
+      25383,
+      "Before and After The Salon",
+      "hairdresser"
+    ],
+    [
+      18665,
+      25383,
+      "The Fancy Biscuit",
+      "bakery"
+    ],
+    [
+      18663,
+      25381,
+      "Chadwick & Son Orchids, Inc.",
+      "shop"
+    ],
+    [
+      18663,
+      25381,
+      "Brick and Mortar",
+      "shop"
+    ],
+    [
+      18663,
+      25381,
+      "Paper Source",
+      "shop"
+    ],
+    [
+      18663,
+      25381,
+      "Carytown Sound",
+      "shop"
+    ],
+    [
+      18663,
+      25381,
+      "Black Rabbit Tattoo",
+      "shop"
+    ],
+    [
+      18663,
+      25381,
+      "Christopher Flowers",
+      "shop"
+    ],
+    [
+      18663,
+      25381,
+      "Can Can Brasserie",
+      "restaurant"
+    ],
+    [
+      18663,
+      25381,
+      "The Stables",
+      "restaurant"
+    ],
+    [
+      18663,
+      25381,
+      "Fire & Hops Pizza Co.",
+      "restaurant"
+    ],
+    [
+      18663,
+      25381,
+      "Shear Concepts",
+      "hairdresser"
+    ],
+    [
+      18663,
+      25381,
+      "Nowhere Hair Lounge",
+      "hairdresser"
+    ]
+  ]
+}

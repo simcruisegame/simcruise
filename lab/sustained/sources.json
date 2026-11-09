@@ -1,0 +1,50 @@
+{
+  "coordinates": "WGS84 longitude, latitude",
+  "route": {
+    "start": [
+      -96.5909,
+      40.56724
+    ],
+    "target_bearing_degrees": 90,
+    "stop_after_m": 1440,
+    "road_label": "Princeton Road",
+    "cross_roads": [
+      "South 96th Street",
+      "South 110th Street"
+    ],
+    "mapped_access": "One short service driveway intersects the test segment."
+  },
+  "vector": {
+    "url": "https://tiles.openfreemap.org/planet/20261101_080013_pt/14/3796/6168.pbf",
+    "source": "OpenFreeMap, © OpenStreetMap contributors, ODbL 1.0",
+    "surface": "unpaved",
+    "class": "minor",
+    "license": "https://www.openstreetmap.org/copyright"
+  },
+  "county_independent_check": {
+    "source": "Lincoln/Lancaster County GIS, Lancaster County Engineer, Road Surface Type",
+    "service": "https://gis.lincoln.ne.gov/public/rest/services/CountyEngineer/RoadSurfaceType/MapServer",
+    "layer": "https://gis.lincoln.ne.gov/public/rest/services/CountyEngineer/RoadSurfaceType/MapServer/0?f=pjson",
+    "query": "https://gis.lincoln.ne.gov/public/rest/services/CountyEngineer/RoadSurfaceType/MapServer/0/query?geometry=-96.5895%2C40.56715%2C-96.5745%2C40.56745&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outSR=4326&outFields=%2A&returnGeometry=true&f=json",
+    "feature_object_id": 1636,
+    "field": "DXF_COLOR",
+    "value": 3,
+    "legend": {
+      "2": "Paved",
+      "3": "Gravel",
+      "4": "Dirt",
+      "99": "Park"
+    },
+    "description": "Independent class check. The game uses the OpenFreeMap road geometry. County centerline is approximately 8 m north of the vector center on this section."
+  },
+  "imagery": {
+    "usgs": "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer",
+    "source_tile_zxy": [
+      14,
+      3796,
+      6168
+    ],
+    "image_sha256": "69b2a07330d092bb8089f94f99905f0c25b5542678ccaaeca4acca868cd63efc",
+    "camera_sources": "KartaView returned no nearby view. Panoramax returned no view for the requested tile. No road-level photographic validation was possible."
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "metrics": {
+    "frozen": {
+      "rgb_mae": 56.83,
+      "vertical_high_pass_correlation_zero_shift": 0.06,
+      "ribbon_contrast_p90_p10": 18.4
+    },
+    "dated": {
+      "rgb_mae": 45.44,
+      "vertical_high_pass_correlation_zero_shift": 0.334,
+      "ribbon_contrast_p90_p10": 67.4
+    }
+  },
+  "joint_wall_pixels": 36464,
+  "changed_pixels": 344782,
+  "default_and_invalid_pixels_identical": false,
+  "source_ribbon_contrast_p90_p10": 114.0,
+  "native_renderer": "Godot 4.7.2 Mobile Metal; 960x720; separately launched processes",
+  "explicit_date": "2015-05-22",
+  "reference_epoch": 1432331510,
+  "enabled_material_batches": {
+    "automatic": 0,
+    "explicit_2015": 1,
+    "conflicting_2024": 0
+  },
+  "wheel_contacts": [
+    4,
+    4,
+    4
+  ],
+  "maximum_default_vs_invalid_rgb_channel_delta": 2,
+  "source_era_coverage": [
+    "2007-07-20",
+    "2015-05-22"
+  ],
+  "source_region_in_native_pixels": {
+    "x": [
+      701,
+      806
+    ],
+    "y": [
+      13,
+      356
+    ]
+  },
+  "photographic_pose": "../registered-camera.json",
+  "renovation": "https://www.neeserinc.com/601-west-5th-avenue/"
+}

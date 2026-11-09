@@ -1,0 +1,1 @@
+At this pose the game selected the same photograph, zero metres from the reference coordinate. The renderer placed the sun 91.34° clockwise from north and 21.70° above the horizon. The modeled houses and gaps in the tree canopy still differ from the photograph.

@@ -1,0 +1,96 @@
+before-DifferentialCheck / identical baseline and revised output
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+DIFFERENTIAL PASSED 54 torque and energy cases; 600 Nm, faster left: (200.0, 400.0)
+
+before-LockedBrakeTurn / identical baseline and revised output
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+FREE PANIC {"command":0.0,"contacts":4,"lateral_m":-0.00000000407529594098621,"lock_frames":102,"onset":119,"peak_heading_deviation_deg":0.00000114720510738743,"stopping_m":27.6650331243873,"yaw_rate_locked_deg_s":0.000000792505985311626}
+FREE PANIC {"command":1.0,"contacts":4,"lateral_m":0.00616347968339965,"lock_frames":101,"onset":119,"peak_heading_deviation_deg":0.326268851863106,"stopping_m":27.4971968308091,"yaw_rate_locked_deg_s":0.351055741763215}
+FREE PANIC {"command":-1.0,"contacts":4,"lateral_m":-0.00616348775342062,"lock_frames":101,"onset":119,"peak_heading_deviation_deg":0.326267437800505,"stopping_m":27.4971968308091,"yaw_rate_locked_deg_s":0.351054007535496}
+LOCKED BRAKING PASSED
+
+before-RearDamperCheck / identical baseline and revised output
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+REAR HARD S DAMPER PASSED: static load and 26 signed wheel-load checks.
+
+before-RideCheck / identical baseline and revised output
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+RIDE baseline_left_N=2640.7687005837 baseline_right_N=2640.76869833669 peak_left_minus_right_N=1397.18790811244 peak_roll_deg=0.82688021659851 settled_roll_deg=0.00000117502384 contacts=4
+
+before-SteerTransient / identical baseline and revised output
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PULSE 0 rack_deg=4.0021861668074 yaw_deg_s=27.7690680990558 sideslip_deg=3.28491506549342 release_yaw_deg_s=27.7690680990558 yaw_after_0.5s=1.44544764100553 settles_s=0.51666666666667 contacts=4
+PULSE 1 rack_deg=4.00218749211646 yaw_deg_s=27.7703129010321 sideslip_deg=3.28498905099354 release_yaw_deg_s=27.7703129010321 yaw_after_0.5s=1.44533985208269 settles_s=0.51666666666667 contacts=4
+PULSE 2 rack_deg=0.85115025059868 yaw_deg_s=6.43477713924284 sideslip_deg=0.63260794332556 release_yaw_deg_s=6.43477713924284 yaw_after_0.5s=0.16651131414589 settles_s=0.4 contacts=4
+PULSE 3 rack_deg=0.85115025059868 yaw_deg_s=6.43477713924284 sideslip_deg=0.63260794332556 release_yaw_deg_s=6.43477713924284 yaw_after_0.5s=0.16651158095015 settles_s=0.4 contacts=4
+PULSE PASSED
+
+before-TireStep / identical baseline and revised output
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SIDE STEP 8.0 m/s; first tick fraction 0.171; measured 63% distance 0.35 m; steady 2028.0 N
+SIDE STEP 16.0 m/s; first tick fraction 0.305; measured 63% distance 0.367 m; steady 2029.0 N
+SIDE STEP -8.0 m/s; first tick fraction 0.171; measured 63% distance 0.35 m; steady 2028.0 N
+SIDE STEP -16.0 m/s; first tick fraction 0.305; measured 63% distance 0.367 m; steady 2029.0 N
+
+before-Track / identical baseline and revised output
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ACCEL 0.5 0.8 1 3155
+ACCEL 2.5 10.5 1 5186
+ACCEL 4.5 18.0 2 5206
+ACCEL 6.5 23.4 3 6685
+ACCEL 8.5 28.0 3 5635
+RESULT flat: 0-60 mph = 7.94811604484319 s; 70-0 mph = 172.999178885236 ft
+CIRCLE 18.0 rad=45.6463928222656 mps=14.2846927642822 steer=0.14538164701325
+CIRCLE 18.0 rad=45.775520324707 mps=18.42919921875 steer=0.17628569152896
+CIRCLE 18.0 rad=45.7643203735352 mps=18.1476802825928 steer=0.20745380482892
+CIRCLE 18.0 rad=45.7244033813477 mps=18.0577278137207 steer=0.20352151099415
+SKID stable lap 18.0m/s  0.73649257112696 g
+CIRCLE 18.4 rad=45.8793678283691 mps=18.4016609191895 steer=0.2355476834475
+CIRCLE 18.4 rad=45.7517433166504 mps=18.4084644317627 steer=0.22012779012086
+CIRCLE 18.4 rad=45.7284660339355 mps=18.4036273956299 steer=0.22053959980036
+SKID stable lap 18.4m/s  0.75558669425052 g
+CIRCLE 18.8 rad=45.8441848754883 mps=18.7741031646729 steer=0.25504474214535
+CIRCLE 18.8 rad=45.7941360473633 mps=18.7912769317627 steer=0.25140084234746
+CIRCLE 18.8 rad=45.7447814941406 mps=18.7973480224609 steer=0.24747714914295
+SKID stable lap 18.8m/s  0.78779830235237 g
+CIRCLE 19.2 rad=45.7903137207031 mps=19.1672649383545 steer=0.27646169980559
+CIRCLE 19.2 rad=45.7634925842285 mps=19.1971435546875 steer=0.27861467409689
+CIRCLE 19.2 rad=45.7428703308105 mps=19.1969299316406 steer=0.28035249823631
+SKID stable lap 19.2m/s  0.82169666386351 g
+CIRCLE 19.6 rad=45.8019142150879 mps=19.5680465698242 steer=0.31426523736683
+CIRCLE 19.6 rad=45.6670074462891 mps=19.6172714233398 steer=0.3019015042163
+CIRCLE 19.6 rad=45.7374801635742 mps=19.5993976593018 steer=0.32622074072029
+SKID stable lap 19.6m/s  0.8556904691848 g
+CIRCLE 20.0 rad=45.9513778686523 mps=19.9596080780029 steer=0.40119424672232
+CIRCLE 20.0 rad=46.3498458862305 mps=19.9214363098145 steer=0.6009897599437
+CIRCLE 20.0 rad=45.6719665527344 mps=20.0022583007812 steer=0.50665539258949
+SKID stable lap 20.0m/s  0.88464141415372 g
+CIRCLE 20.4 rad=46.9222640991211 mps=20.3166732788086 steer=0.87026412146114
+CIRCLE 20.4 rad=53.4928970336914 mps=20.3376693725586 steer=1.0
+CIRCLE 20.4 rad=52.2961082458496 mps=20.3766326904297 steer=1.0
+CIRCLE 20.4 rad=47.0271644592285 mps=20.4473743438721 steer=0.80842097403729
+CIRCLE 20.4 rad=51.6900253295898 mps=20.3819370269775 steer=1.0
+CIRCLE 20.4 rad=54.1623306274414 mps=20.3932228088379 steer=1.0
+CIRCLE 20.4 rad=47.7945823669434 mps=20.4104347229004 steer=0.91572269322809
+CIRCLE 20.4 rad=49.1860275268555 mps=20.3766937255859 steer=1.0
+RESULT skidpad maximum demonstrated stable g: 0.88464141415372 at next trial 20.4
+
+before-TurningCircle / identical baseline and revised output
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+TURN_CIRCLE {"closure_m":0.00513196364045143,"diameter_ft":30.3514438664194,"diameter_m":9.25112009048462,"direction":"left","front_wheel_degrees":[40.0899978197954,34.0491164832695],"samples":1206,"span_m":[9.25111675262451,9.25112342834473],"speed_mps":0.999987469729697}
+TURN_CIRCLE {"closure_m":0.00512639712542295,"diameter_ft":30.3514469952721,"diameter_m":9.25112104415894,"direction":"right","front_wheel_degrees":[-34.0491164832695,-40.0899978197954],"samples":1206,"span_m":[9.25111961364746,9.25112247467041],"speed_mps":0.999987467653913}
+TURN_CIRCLE {"closure_m":0.011081145144999,"diameter_ft":30.5814286229492,"diameter_m":9.3212194442749,"direction":"left","front_wheel_degrees":[40.0899978197954,34.0491164832695],"samples":681,"span_m":[9.32126235961914,9.32117652893066],"speed_mps":1.8022727905041}
+TURN_CIRCLE {"closure_m":0.0110809532925487,"diameter_ft":30.5814286229492,"diameter_m":9.3212194442749,"direction":"right","front_wheel_degrees":[-34.0491164832695,-40.0899978197954],"samples":681,"span_m":[9.32126235961914,9.32117652893066],"speed_mps":1.80227281938741}
+TURN_SUMMARY {"max_error_m":0.116259444274903,"stable":true}
+
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PAD STEERING PASSED both analog directions, center and full keyboard lock

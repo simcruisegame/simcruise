@@ -1,0 +1,504 @@
+[
+  {
+    "site": "Hartford",
+    "point": [
+      41.764,
+      -72.683
+    ],
+    "tile": [
+      19536,
+      24385
+    ],
+    "status": "available",
+    "project": {
+      "name": "CT_Statewide_B4_2016",
+      "start": "2016-03-20",
+      "end": "2016-04-13",
+      "quality": "QL 2"
+    },
+    "nodes": [
+      {
+        "key": "9-7-322-254",
+        "bytes": 373803,
+        "points": 61048
+      },
+      {
+        "key": "9-6-322-254",
+        "bytes": 361009,
+        "points": 56929
+      },
+      {
+        "key": "8-3-161-127",
+        "bytes": 210529,
+        "points": 24336
+      }
+    ],
+    "attempts": [
+      "9-7-322-254",
+      "10-14-644-508",
+      "9-6-322-254",
+      "8-3-161-127"
+    ],
+    "eligible": 4,
+    "admitted": 0,
+    "refusals": {
+      "ground relief": 1,
+      "ground returns": 1,
+      "ground coverage": 1,
+      "withheld surface mismatch": 1
+    }
+  },
+  {
+    "site": "Bismarck",
+    "point": [
+      46.808,
+      -100.783
+    ],
+    "tile": [
+      14421,
+      23101
+    ],
+    "status": "no-public-project",
+    "project": null,
+    "nodes": [],
+    "attempts": [],
+    "eligible": 4,
+    "admitted": 0,
+    "refusals": {}
+  },
+  {
+    "site": "Lincoln",
+    "point": [
+      40.808014,
+      -96.675003
+    ],
+    "tile": [
+      15168,
+      24617
+    ],
+    "status": "available",
+    "project": {
+      "name": "USGS_LPC_NE_Eastern_UA_2016_LAS_2018",
+      "start": "2016-12-08",
+      "end": "2017-02-03",
+      "quality": "QL 2"
+    },
+    "nodes": [
+      {
+        "key": "9-150-137-255",
+        "bytes": 195187,
+        "points": 29347
+      },
+      {
+        "key": "9-150-137-254",
+        "bytes": 388604,
+        "points": 65297
+      },
+      {
+        "key": "10-301-274-510",
+        "bytes": 83061,
+        "points": 13266
+      }
+    ],
+    "attempts": [
+      "9-150-137-255",
+      "9-150-137-254",
+      "10-301-274-510"
+    ],
+    "eligible": 40,
+    "admitted": 8,
+    "refusals": {
+      "too few independent cells": 18,
+      "ground returns": 12,
+      "withheld surface mismatch": 1,
+      "unconfirmed eaves": 1
+    }
+  },
+  {
+    "site": "Raven",
+    "point": [
+      37.3850801,
+      -77.6244769
+    ],
+    "tile": [
+      18636,
+      25420
+    ],
+    "status": "available",
+    "project": {
+      "name": "USGS_LPC_VA_Sandy_2014_LAS_2015",
+      "start": "2014-03-24",
+      "end": "2014-04-21",
+      "quality": "QL 2"
+    },
+    "nodes": [
+      {
+        "key": "9-303-204-255",
+        "bytes": 1236846,
+        "points": 115339
+      },
+      {
+        "key": "10-607-409-511",
+        "bytes": 384284,
+        "points": 38197
+      }
+    ],
+    "attempts": [
+      "9-303-204-255",
+      "10-607-409-511",
+      "8-151-102-127"
+    ],
+    "eligible": 15,
+    "admitted": 1,
+    "refusals": {
+      "too few independent cells": 10,
+      "withheld surface mismatch": 3,
+      "unsupported mesh": 1
+    }
+  },
+  {
+    "site": "Anchorage",
+    "point": [
+      61.2181,
+      -149.9003
+    ],
+    "tile": [
+      5479,
+      18579
+    ],
+    "status": "available",
+    "project": {
+      "name": "USGS_LPC_AK_Anchorage_2015_LAS_2017",
+      "start": "2015-05-10",
+      "end": "2016-09-29",
+      "quality": "QL 2"
+    },
+    "nodes": [
+      {
+        "key": "8-67-162-126",
+        "bytes": 743755,
+        "points": 95491
+      },
+      {
+        "key": "9-135-324-252",
+        "bytes": 470019,
+        "points": 70774
+      },
+      {
+        "key": "7-33-81-63",
+        "bytes": 636280,
+        "points": 72118
+      }
+    ],
+    "attempts": [
+      "8-67-162-126",
+      "9-135-324-252",
+      "7-33-81-63"
+    ],
+    "eligible": 4,
+    "admitted": 1,
+    "refusals": {
+      "withheld surface mismatch": 3
+    }
+  },
+  {
+    "site": "Honolulu",
+    "point": [
+      21.3073,
+      -157.8599
+    ],
+    "tile": [
+      4030,
+      28796
+    ],
+    "status": "available",
+    "project": {
+      "name": "HI_NOAAMauiOahu_2_B20",
+      "start": "2023-01-11",
+      "end": "2023-07-07",
+      "quality": "QL 1"
+    },
+    "nodes": [
+      {
+        "key": "11-355-1189-1012",
+        "bytes": 306652,
+        "points": 60845
+      },
+      {
+        "key": "11-356-1189-1012",
+        "bytes": 247902,
+        "points": 37674
+      },
+      {
+        "key": "11-356-1190-1012",
+        "bytes": 296059,
+        "points": 43086
+      }
+    ],
+    "attempts": [
+      "11-355-1189-1012",
+      "12-710-2379-2024",
+      "11-356-1189-1012",
+      "11-356-1190-1012"
+    ],
+    "eligible": 25,
+    "admitted": 0,
+    "refusals": {
+      "withheld surface mismatch": 14,
+      "too few independent cells": 5,
+      "footprint support": 6
+    }
+  },
+  {
+    "site": "Seattle",
+    "point": [
+      47.6041,
+      -122.3292
+    ],
+    "tile": [
+      10498,
+      22888
+    ],
+    "status": "available",
+    "project": {
+      "name": "WA_KingCo_1_2021",
+      "start": "2021-04-01",
+      "end": "2021-04-24",
+      "quality": "QL 1"
+    },
+    "nodes": [
+      {
+        "key": "9-198-342-258",
+        "bytes": 233321,
+        "points": 24936
+      },
+      {
+        "key": "10-397-685-517",
+        "bytes": 233855,
+        "points": 41279
+      },
+      {
+        "key": "9-199-342-258",
+        "bytes": 247315,
+        "points": 33072
+      }
+    ],
+    "attempts": [
+      "9-198-342-258",
+      "10-397-685-517",
+      "9-199-342-258"
+    ],
+    "eligible": 13,
+    "admitted": 0,
+    "refusals": {
+      "no stable planes": 1,
+      "withheld surface mismatch": 5,
+      "too few independent cells": 3,
+      "large footprint": 1,
+      "footprint support": 1,
+      "ground relief": 2
+    }
+  },
+  {
+    "site": "Bartlesville",
+    "point": [
+      36.7329697,
+      -95.9353957
+    ],
+    "tile": [
+      15303,
+      25569
+    ],
+    "status": "available",
+    "project": {
+      "name": "OK_Statewide_1_D22",
+      "start": "2022-12-14",
+      "end": "2023-01-18",
+      "quality": "QL 2"
+    },
+    "nodes": [
+      {
+        "key": "11-1298-1358-1021",
+        "bytes": 257925,
+        "points": 50938
+      },
+      {
+        "key": "11-1298-1357-1021",
+        "bytes": 268028,
+        "points": 58215
+      }
+    ],
+    "attempts": [
+      "11-1298-1358-1021",
+      "11-1298-1358-1020",
+      "12-2596-2716-2042",
+      "11-1298-1357-1021"
+    ],
+    "eligible": 3,
+    "admitted": 2,
+    "refusals": {
+      "withheld surface mismatch": 1
+    }
+  },
+  {
+    "site": "JeffersonCity",
+    "point": [
+      38.577,
+      -92.173
+    ],
+    "tile": [
+      15988,
+      25145
+    ],
+    "status": "available",
+    "project": {
+      "name": "MO_FEMANRCS_2_2020",
+      "start": "2020-04-08",
+      "end": "2020-11-28",
+      "quality": "QL 2"
+    },
+    "nodes": [
+      {
+        "key": "10-545-216-509",
+        "bytes": 297972,
+        "points": 64692
+      },
+      {
+        "key": "10-544-216-509",
+        "bytes": 273122,
+        "points": 62475
+      },
+      {
+        "key": "10-544-215-509",
+        "bytes": 303342,
+        "points": 67859
+      }
+    ],
+    "attempts": [
+      "10-545-216-509",
+      "11-1090-432-1019",
+      "10-544-216-509",
+      "10-544-215-509"
+    ],
+    "eligible": 40,
+    "admitted": 16,
+    "refusals": {
+      "withheld surface mismatch": 12,
+      "unconfirmed eaves": 5,
+      "no stable planes": 2,
+      "too few independent cells": 4,
+      "footprint support": 1
+    }
+  },
+  {
+    "site": "Choteau",
+    "point": [
+      47.8124,
+      -112.1823
+    ],
+    "tile": [
+      12345,
+      22832
+    ],
+    "status": "no-public-project",
+    "project": null,
+    "nodes": [],
+    "attempts": [],
+    "eligible": 13,
+    "admitted": 0,
+    "refusals": {}
+  },
+  {
+    "site": "Lewisburg",
+    "point": [
+      37.8023,
+      -80.4457
+    ],
+    "tile": [
+      18123,
+      25324
+    ],
+    "status": "available",
+    "project": {
+      "name": "USGS_LPC_WV_FEMA_R3_East_2016_LAS_2018",
+      "start": "2016-11-22",
+      "end": "2016-12-28",
+      "quality": "QL 2"
+    },
+    "nodes": [
+      {
+        "key": "9-303-174-255",
+        "bytes": 638984,
+        "points": 102350
+      },
+      {
+        "key": "10-607-349-511",
+        "bytes": 261397,
+        "points": 56220
+      },
+      {
+        "key": "8-151-87-127",
+        "bytes": 1198483,
+        "points": 162568
+      }
+    ],
+    "attempts": [
+      "9-303-174-255",
+      "10-607-349-511",
+      "8-151-87-127"
+    ],
+    "eligible": 36,
+    "admitted": 11,
+    "refusals": {
+      "withheld surface mismatch": 20,
+      "too few independent cells": 4,
+      "ground relief": 1
+    }
+  },
+  {
+    "site": "Cheyenne",
+    "point": [
+      41.14,
+      -104.82
+    ],
+    "tile": [
+      13686,
+      24537
+    ],
+    "status": "available",
+    "project": {
+      "name": "WY_Laramie_1_2021",
+      "start": "2021-06-17",
+      "end": "2021-06-30",
+      "quality": "QL 2"
+    },
+    "nodes": [
+      {
+        "key": "10-404-343-13",
+        "bytes": 201105,
+        "points": 42855
+      },
+      {
+        "key": "10-404-344-13",
+        "bytes": 238015,
+        "points": 48278
+      },
+      {
+        "key": "9-202-171-6",
+        "bytes": 217538,
+        "points": 29772
+      }
+    ],
+    "attempts": [
+      "10-404-343-13",
+      "11-809-687-27",
+      "10-404-344-13",
+      "9-202-171-6"
+    ],
+    "eligible": 5,
+    "admitted": 2,
+    "refusals": {
+      "withheld surface mismatch": 3
+    }
+  }
+]

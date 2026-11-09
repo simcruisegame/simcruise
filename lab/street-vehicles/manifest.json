@@ -1,0 +1,34 @@
+{
+  "title": "Which parked cars can the street photos locate?",
+  "summary": "I Street in Anchorage has parked cars on both sides in the July 2022 photos. An open detector sees them from three camera positions. A black pickup appears twice. Other cars overlap, change apparent size, or leave the view as the camera moves about 23 metres between pictures.",
+  "measurement": "The detector found 12, 9 and 4 vehicle boxes. Across 24 real images from eight US districts, excluding detected road users changed accepted pavement color or support on only three frames. An uncertain road user remains an observation in the authoring tools.",
+  "images": [
+    {
+      "file": "i-street-observations.webp",
+      "caption": "Three distinct street photographs with model detections. These are annotated source observations."
+    }
+  ],
+  "credit": "Photos by jeepjockey via KartaView, CC BY-SA 4.0. Resized and annotated by Sunday Driver. This derivative is shared under CC BY-SA 4.0.",
+  "links": [
+    [
+      "Capture 371",
+      "https://kartaview.org/details/5724265/371"
+    ],
+    [
+      "Capture 372",
+      "https://kartaview.org/details/5724265/372"
+    ],
+    [
+      "Capture 373",
+      "https://kartaview.org/details/5724265/373"
+    ],
+    [
+      "Image license",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    [
+      "OpenCV NanoDet",
+      "https://github.com/opencv/opencv_zoo/tree/main/models/object_detection_nanodet"
+    ]
+  ]
+}

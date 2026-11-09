@@ -1,0 +1,32 @@
+{
+  "116009324": {
+    "glazing_fraction": 0.611,
+    "normalized_pitch_px": 125.0,
+    "cycles": 3
+  },
+  "41594905": {
+    "glazing_fraction": 0.586,
+    "normalized_pitch_px": 90.5,
+    "cycles": 4
+  },
+  "30336917": {
+    "glazing_fraction": 0.625,
+    "normalized_pitch_px": 96.0,
+    "cycles": 4
+  },
+  "96140231": {
+    "glazing_fraction": 0.623,
+    "normalized_pitch_px": 69.0,
+    "cycles": 5
+  },
+  "held": {
+    "glazing_fraction": 0.617,
+    "normalized_pitch_px": 107.0,
+    "cycles": 3
+  },
+  "material": {
+    "glazing_fraction": 0.611,
+    "pitch_m": 3.984429038974462,
+    "eave_cap_m": 1.631467092085874
+  }
+}

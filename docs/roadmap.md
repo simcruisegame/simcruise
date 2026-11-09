@@ -1,0 +1,66 @@
+# SimCruise roadmap: how we get to real
+
+This is the design-panel report written on 8 November 2026 against the 1.0.8 code, kept as the working roadmap for SimCruise 1.1 and beyond. The panel read the code (file and line references are to the tree at commit `2f1d1cf`), drove the current build and compared it with photographs and published test numbers. The owner's own feedback that day: roads were bumpy enough to launch the car, the Miata did not feel real (a half-second keyboard tap at 45 mph rolled it after leaving the road), the picture looked washed out and flat, and the world needed more real-world context.
+
+Each item carries an estimate in brackets: `[days · impact 1-5 · data/licence]`. **today** marks work meant for the first day on the current build; **[unverified]** marks claims the panel did not confirm in-engine. The report was written when the game was briefly called "Around Town"; that name has been replaced with SimCruise below and nothing else was changed. Items the 1.1 streams have started are tracked in the [changelog](../CHANGELOG.md); the calibration that must not regress while doing any of this is the headless `checks/Track.gd` run described in [CONTRIBUTING.md](../CONTRIBUTING.md).
+
+---
+
+## The panel report: SimCruise — how we get to real (8 November 2026)
+
+Brackets give [days·impact 1-5·data/licence]; **today** = one day on the current build; [unverified] = not yet run in-engine.
+
+## 1. Make the Miata drive and feel real
+
+- **Speed-aware keyboard steering (today).** A held key asks for 18.8° of steer at 45 mph where 3° is usable. On a flat pad the stock car slides but stays upright: your roof landing was a trip, not a grip rollover. Cap steer by speed (Assisted/Direct modes, real wheels exempt), ramp the pedals; gate: 0.5 s tap at 45 mph → heading under 30°, Track.gd unchanged. [1d (+0.5d retune)·4·MIT code, C&D 1999 test]
+- **One-press recovery (today).** Detect roof-down or stuck, prompt "Press R", auto-right at 8 s; R searches main roads only; search all [unverified: freeze-order cause of the double press]. [0.75d·3·MIT]
+- **Roll/trip bench (today).** Embankment, tree-trunk, parked-car cases; logs the tripping collider [unverified: mechanism]. [1d·3·USGS 1 m DEM, public domain]
+- **Tyre curve, then a regression net.** Magic-Formula shape peaking at 6-8°, load-dependent relaxation: crisp breakaway, no free drifts; 120 Hz only if measured [3d·3·published equations; unverified; no Miata tyre data]. Handling suite: keyboard-tap bench, step-steer, quarter mile [3d·3; unverified: targets beyond three C&D numbers].
+- **Engine identity.** Torque peak at 5500 rpm, limiter bounce, throttle-aware auto shifts; gearing checked against EPA N/V [unverified: VICS dip, cut rpm, EPA field]. [1.5d·3·Mazda spec; EPA, public domain]
+
+## 1b. Make the Miata (and any created car) look real
+
+- **Small truths.** Exterior seats black like the real Sport [0.2d, today]; one paint for body, bumpers, bonnet plus honest glass [1.5d]; passenger mirror [0.5d, today]; door-mirror camera later [1.5d; unverified]. [impact 3·MIT]
+- **CarSpec: the car as data.** Every Miata constant (eleven files) moves into one car.json with a source per field, plus an auto-calibrator hitting published 0-60/70-0/skidpad in minutes; the foundation for any created car, no realism by itself [unverified: source databases]. [5-6d·4-5·EPA, NHTSA vPIC public domain]
+- **Cabin that reads as vinyl.** Baked ambient occlusion, grain normal map, real shadows, windshield with dust and sun streak [unverified: no engine run; shadow cost]. [3.5d·4·ambientCG CC0]
+- **Validator before art.** check_car.py gates dimensions ±2 %, roles, budgets, licence allowlist; TrackCompare fails on handling drift. [2.5d·4·brochure facts]
+- **Wheels and tyres.** Sidewall markings, tread, brake dust, contact squish; procedural, no brands. [2d·3; unverified in-engine]
+- **Create-car skill + retarget tool.** Facts from vPIC/EPA at authoring time, CC0/CC-BY geometry ranked, logos stripped; a retarget tool maps any glTF into the game's roles; meshes stay proxy-grade [unverified]. [3d+3d·4·MIT tooling]
+
+## 2. Pull in more public data — legally and efficiently
+
+- **Real clock for the sun (today).** Every drive is pinned to a June afternoon; the solar math exists, so use real time, clamped above 7° until night exists [unverified: HDR sky shot at one sun position]. [0.5d·3 (4 with night)·NOAA, public domain]
+- **Sharper ground nationwide.** USGS already serves 1024 px per z16 tile (16× today's texels), NAIP too; check texture memory first. [inside ortho item·3·public domain]
+- **Stop signs, crossings, lamps for free.** Already in the Overture tile fetched for traffic signals; parse them, build MUTCD signs; needs a hook for bundled Virginia. [3.5-4d·4·ODbL runtime; FHWA art public domain]
+- **Speed limits, surfaces, lanes.** The Esri OSM replica we already query carries maxspeed on a quarter of city ways: R2-1 signs where known, finer grip. [3d·4 signs, 2 grip·ODbL runtime]
+- **Addresses, landmarks, businesses.** Census geocoder, per-state GNIS names [2d·3·public domain]; Overture places as plain-text storefront names, no logos, trademark call yours [3d·3-4·CDLA/Apache-2.0/CC0].
+- **Inventory, then later.** FHWA HPMS lanes, shoulders, medians, roughness [4d·3; unverified: AADT→traffic]; NWS forecast, METAR precipitation flags [1.5d·3]; public domain. Later, impact 3 each [unverified]: 1 m crown from 3DEP samples [4-5d], licence-reviewed city orthos [4d+legal], municipal registry [3d].
+
+## 3. Make the world and the experience real
+
+- **Clean HUD and prompts (today).** Off/Glance/Full levels, nothing opaque, legend only after changes, prompts always visible; needs typed preferences. [1-1.5d·4·MIT]
+- **Kill the double sun.** The sky panorama's unclipped sun adds unshadowed light on top of the real sun (shadow/sun ≈0.5, photographs 0.18-0.32) — your washed view. Clamp it in the cubemap pass, rebalance; A/B today via hdr_clamp_exposure. [2d·5·Poly Haven CC0]
+- **Settings, shadows, measurement (today).** tonemap_white, debanding, 16× anisotropy [0.75d·3; unverified: debanding]; shadows to ~200 m with far trees casting [1d·4; unverified: PCSS]; one haze model [1d·3]; a vsync-off RenderCost run gates every budget and the Forward+ decision [1d·3; unverified estimates].
+- **Trees and grass.** Canopy backlight, occlusion, warm tint, near fade, alpha-to-coverage [2d·4; unverified: BACKLIGHT on Mobile]; mown verges, textured swaying field clumps, fade ring [2.5d·3·CC0 textures].
+- **Sound on by default.** Bus tree, cabin low-pass, procedural tyre/wind/gravel [2d·4]; engine cabin/exterior A/B, limiter stutter, pops [2d·3]; squeal, stones, rumble strips, diff whine [2.5d·3; unverified: strips on US 360].
+- **A head, not a weld.** Lagged head motion, partial horizon lock, gaze lead, micro-vibration, slider, physics interpolation on [1.75d·4]; FOV 67→55 with seat sliders [1d·3; unverified: eye height].
+- **Roads and horizons.** Asphalt normals, wheel-path wear, wet roads once precipitation is parsed [4d·4·Poly Haven CC0]; far forest skirt [5d·4·CC BY 4.0; unverified]; far buildings past 700 m [4-6d·4·ODbL].
+
+## What this means for today
+
+In order:
+1. Housekeeping: the 4.2 GB godot.log is gone (14 GB free); pin the repo so iCloud stops evicting it.
+2. Safety net: `git init`, ignore logs and caches, commit, tag `before-around-town`.
+3. Baseline: run Track.gd and TurningCircle with Godot 4.7.2 (work/tools); "before" screenshots via CaptureDrive and --car-audit.
+4. Rename to SimCruise in game/project.godot, Hud.gd:45, README, credits; the user-data folder follows the name.
+5. Flip clean_view on (Hud.gd:11) as the stopgap for the bars.
+6. Steering cap, then the KeyboardTap bench (drafted; fix its crash, add a time cap); recovery prompt and any-road fallback; hdr_clamp_exposure A/B.
+7. "After": same captures and checks, compare pairs, commit.
+
+## Honest limits
+
+- Render budgets are estimates: nothing ran in-engine for this review; the GPU timer reads 0 on this driver.
+- "Exactly like a Miata" rests on three magazine numbers; no public tyre, damper, dyno data or CC engine recordings; CG height, driver mass, rolling radius unverified.
+- "Exactly like real life": keyless imagery tops out near 0.6 m/px; no night or seasons yet; nothing stands beyond ~700 m.
+- ODbL data stays runtime-fetched, never bundled in the MIT repo; business names, badges (the cockpit's "NARDI" text) and car shapes need a legal call.
+- Create-car facts come keylessly, geometry does not: image-to-3D yields proxies. Headless checks have no log cap.

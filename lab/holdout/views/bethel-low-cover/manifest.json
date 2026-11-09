@@ -1,0 +1,38 @@
+{
+  "title": "Bethel lawn and a paved-road control",
+  "summary": "Three visible Davidson Hall corners locate the roadside camera about 5.8 m east and 1.1 m south of its phone GPS position. A fourth corner was withheld and projected inside its observed 16-pixel interval. With this camera fixed, turning on the optional ground-cover layer uses USDA red and near-infrared imagery and a canopy-height check to identify low vegetation.",
+  "measurement": "Mean absolute RGB channel error fell from 49.3 to 47.3 on 60,790 green ground pixels at 640 × 480. On the near-lawn subset it fell from 54.1 to 51.4. The photographed driveway and an independent Lewisburg road retained their control scores. The simulated lawn remains considerably browner than the June photograph. Repeating the off view after the on view produced the identical lossless frame in both places.",
+  "images": [
+    {
+      "file": "bethel.webp",
+      "caption": "Davidson Hall. June 2012 photograph by User:Nickline4, CC BY-SA 3.0. The spectral observation was acquired September 27, 2023."
+    },
+    {
+      "file": "lewisburg.webp",
+      "caption": "West Virginia negative control. July 2016 photograph by Antony-22, CC BY-SA 4.0. The USDA observation was acquired October 21, 2022. None of the 76,216 sampled motor-road pixels changed by three channel levels."
+    }
+  ],
+  "credit": "Wikimedia Commons photographs were resized and arranged alongside two Metal frames. The Bethel sheet is shared under CC BY-SA 3.0 and the Lewisburg sheet under CC BY-SA 4.0. Ground imagery comes from the USDA National Agriculture Imagery Program through Federal GeoPlatform.",
+  "links": [
+    [
+      "Bethel original",
+      "https://commons.wikimedia.org/wiki/File:Gould_Academy_Davidson_Hall.JPG"
+    ],
+    [
+      "CC BY-SA 3.0",
+      "https://creativecommons.org/licenses/by-sa/3.0/"
+    ],
+    [
+      "Lewisburg original",
+      "https://commons.wikimedia.org/wiki/File:Lewisburg,_West_Virginia_post_office_2016.jpg"
+    ],
+    [
+      "CC BY-SA 4.0",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    [
+      "USDA imagery service",
+      "https://imagery.geoplatform.gov/iipp/rest/services/NAIP/NAIP_plus/ImageServer"
+    ]
+  ]
+}

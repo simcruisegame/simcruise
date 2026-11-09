@@ -1,0 +1,724 @@
+{
+  "coordinate_order": "longitude, latitude",
+  "control": "baseline drive whose streamed Princeton Road segments lacked the source surface property",
+  "metal": "Godot 4.7.2, Metal 4.0 Forward Mobile, Apple A18 Pro (Apple9), 960×600, 60 Hz maximum; 60 Hz Jolt physics",
+  "runs": {
+    "original_paved_control": {
+      "route": {
+        "brake_test": {
+          "at_12mps_m": 1441.95603024258,
+          "begin_m": 1440.13629023811,
+          "begin_mps": 12.8458137512207,
+          "begin_tick": 6885,
+          "distance_12_to_0_5_mps_m": 8.34819894295242,
+          "duration_s": 1.5,
+          "full_distance_m": 10.1724305520765
+        },
+        "display": "headless",
+        "distance_m": 1450.30872079018,
+        "drive_wall_s": 3.183,
+        "end_lon_lat": [
+          -96.5737457275391,
+          40.5673408508301
+        ],
+        "game_counted_source_requests": 0,
+        "game_distance_m": 1450.3113146391,
+        "max_abs_vy_mps": 1.05834579467773,
+        "max_cross_track_m": 0.0496010966598988,
+        "max_pitch_deg": 4.79283295994398,
+        "max_roll_deg": 2.39670633612489,
+        "max_single_step_m": 0.220711827278137,
+        "max_wait_ticks": 0,
+        "min_contacts": 4,
+        "pass": true,
+        "physics_hz": 60,
+        "process_frame_ms": [
+          0.259,
+          0.85,
+          4.454,
+          10.037
+        ],
+        "reason": "completed continuous route and full service brake",
+        "road_grip_range": [
+          1.0,
+          1.0
+        ],
+        "rolling_speed_mps": [
+          12.7363443374634,
+          12.8362493515015,
+          13.0803880691528,
+          13.1943826675415
+        ],
+        "route": "Princeton Road",
+        "sampled_frames": 6973,
+        "screens": [],
+        "seams": [
+          {
+            "contacts": 4,
+            "from": [
+              15184,
+              24675
+            ],
+            "m": 388.406447575297,
+            "speed": 12.8323526382446,
+            "step_velocity_mps": 0.00177532690577209,
+            "step_y_m": 0.001953125,
+            "tick": 1977,
+            "to": [
+              15185,
+              24675
+            ]
+          },
+          {
+            "contacts": 4,
+            "from": [
+              15185,
+              24675
+            ],
+            "m": 853.040333852972,
+            "speed": 12.9952526092529,
+            "step_velocity_mps": 0.000765272881835699,
+            "step_y_m": -0.006561279296875,
+            "tick": 4145,
+            "to": [
+              15186,
+              24675
+            ]
+          },
+          {
+            "contacts": 4,
+            "from": [
+              15186,
+              24675
+            ],
+            "m": 1317.60362698218,
+            "speed": 12.8395309448242,
+            "step_velocity_mps": 0.000248440308496356,
+            "step_y_m": 0.00146484375,
+            "tick": 6312,
+            "to": [
+              15187,
+              24675
+            ]
+          }
+        ],
+        "simulated_s": 116.249999999995,
+        "start_lon_lat": [
+          -96.5908966064453,
+          40.5672416687012
+        ],
+        "startup_s": 0.103,
+        "ticks": 6975,
+        "visited_tiles": [
+          [
+            15184,
+            24675
+          ],
+          [
+            15185,
+            24675
+          ],
+          [
+            15186,
+            24675
+          ],
+          [
+            15187,
+            24675
+          ]
+        ],
+        "wait_ticks": 0,
+        "wheel_contact_histogram": [
+          0,
+          0,
+          0,
+          0,
+          6872
+        ]
+      },
+      "network": {
+        "requests": 0,
+        "response_lengths_total_bytes": 0,
+        "providers": {},
+        "status_codes": {}
+      },
+      "trace_sha256": "6d499b7a279b73bf8f89a838da48a22695ff0fed2ac0c7bd94d901d35ea4c924"
+    },
+    "new_cold_realtime": {
+      "route": {
+        "brake_test": {
+          "at_12mps_m": 1442.22360542167,
+          "begin_m": 1440.11607263745,
+          "begin_mps": 12.8458375930786,
+          "begin_tick": 6885,
+          "distance_12_to_0_5_mps_m": 9.92514603357449,
+          "duration_s": 1.78333333333333,
+          "full_distance_m": 12.0372769124806
+        },
+        "display": "headless",
+        "distance_m": 1452.15334954993,
+        "drive_wall_s": 116.517,
+        "end_lon_lat": [
+          -96.5737228393555,
+          40.5673408508301
+        ],
+        "game_counted_source_requests": 31,
+        "game_distance_m": 1452.15605663644,
+        "max_abs_vy_mps": 1.05800437927246,
+        "max_cross_track_m": 0.0746256038546562,
+        "max_pitch_deg": 4.79050130411607,
+        "max_roll_deg": 2.40236706884295,
+        "max_single_step_m": 0.220590189099312,
+        "max_wait_ticks": 0,
+        "min_contacts": 4,
+        "pass": true,
+        "physics_hz": 60,
+        "process_frame_ms": [
+          15.338,
+          22.176,
+          29.417,
+          57.558
+        ],
+        "reason": "completed continuous route and full service brake",
+        "road_grip_range": [
+          0.76,
+          0.76
+        ],
+        "rolling_speed_mps": [
+          12.7357130050659,
+          12.8361911773682,
+          13.0804252624512,
+          13.1944551467896
+        ],
+        "route": "Princeton Road",
+        "sampled_frames": 7570,
+        "screens": [],
+        "seams": [
+          {
+            "contacts": 4,
+            "from": [
+              15184,
+              24675
+            ],
+            "m": 388.383442578328,
+            "speed": 12.8324155807495,
+            "step_velocity_mps": 0.00160434562712908,
+            "step_y_m": 0.001953125,
+            "tick": 1977,
+            "to": [
+              15185,
+              24675
+            ]
+          },
+          {
+            "contacts": 4,
+            "from": [
+              15185,
+              24675
+            ],
+            "m": 853.018831757319,
+            "speed": 12.9954290390015,
+            "step_velocity_mps": 0.000826805364340544,
+            "step_y_m": -0.006561279296875,
+            "tick": 4145,
+            "to": [
+              15186,
+              24675
+            ]
+          },
+          {
+            "contacts": 4,
+            "from": [
+              15186,
+              24675
+            ],
+            "m": 1317.58385769786,
+            "speed": 12.8395929336548,
+            "step_velocity_mps": 0.000166741563589312,
+            "step_y_m": 0.00146484375,
+            "tick": 6312,
+            "to": [
+              15187,
+              24675
+            ]
+          }
+        ],
+        "simulated_s": 116.533333333328,
+        "start_lon_lat": [
+          -96.5908966064453,
+          40.5672416687012
+        ],
+        "startup_s": 0.807,
+        "ticks": 6992,
+        "visited_tiles": [
+          [
+            15184,
+            24675
+          ],
+          [
+            15185,
+            24675
+          ],
+          [
+            15186,
+            24675
+          ],
+          [
+            15187,
+            24675
+          ]
+        ],
+        "wait_ticks": 0,
+        "wheel_contact_histogram": [
+          0,
+          0,
+          0,
+          0,
+          6885
+        ],
+        "wheel_grip_samples": {
+          "0.76": 27540
+        }
+      },
+      "network": {
+        "requests": 31,
+        "response_lengths_total_bytes": 1589999,
+        "providers": {
+          "tiles.openfreemap.org": 6,
+          "s3.amazonaws.com": 2,
+          "dataforgood-fb-data.s3.amazonaws.com": 18,
+          "basemap.nationalmap.gov": 5
+        },
+        "status_codes": {
+          "200": 13,
+          "206": 18
+        }
+      },
+      "trace_sha256": "a4d8dcefa4eb6ddb5289b2ebf52280cbd6397db1ffbc047071b6292b07dd7c48"
+    },
+    "new_warm_fixed": {
+      "route": {
+        "brake_test": {
+          "at_12mps_m": 1442.22360542167,
+          "begin_m": 1440.11607263745,
+          "begin_mps": 12.8458375930786,
+          "begin_tick": 6885,
+          "distance_12_to_0_5_mps_m": 9.92514603357449,
+          "duration_s": 1.78333333333333,
+          "full_distance_m": 12.0372769124806
+        },
+        "display": "headless",
+        "distance_m": 1452.15334954993,
+        "drive_wall_s": 3.332,
+        "end_lon_lat": [
+          -96.5737228393555,
+          40.5673408508301
+        ],
+        "game_counted_source_requests": 0,
+        "game_distance_m": 1452.15605663644,
+        "max_abs_vy_mps": 1.05800437927246,
+        "max_cross_track_m": 0.0746256038546562,
+        "max_pitch_deg": 4.79050130411607,
+        "max_roll_deg": 2.40236706884295,
+        "max_single_step_m": 0.220590189099312,
+        "max_wait_ticks": 0,
+        "min_contacts": 4,
+        "pass": true,
+        "physics_hz": 60,
+        "process_frame_ms": [
+          0.256,
+          0.972,
+          4.805,
+          23.0
+        ],
+        "reason": "completed continuous route and full service brake",
+        "road_grip_range": [
+          0.76,
+          0.76
+        ],
+        "rolling_speed_mps": [
+          12.7357130050659,
+          12.8361911773682,
+          13.0804252624512,
+          13.1944551467896
+        ],
+        "route": "Princeton Road",
+        "sampled_frames": 6990,
+        "screens": [],
+        "seams": [
+          {
+            "contacts": 4,
+            "from": [
+              15184,
+              24675
+            ],
+            "m": 388.383442578328,
+            "speed": 12.8324155807495,
+            "step_velocity_mps": 0.00160434562712908,
+            "step_y_m": 0.001953125,
+            "tick": 1977,
+            "to": [
+              15185,
+              24675
+            ]
+          },
+          {
+            "contacts": 4,
+            "from": [
+              15185,
+              24675
+            ],
+            "m": 853.018831757319,
+            "speed": 12.9954290390015,
+            "step_velocity_mps": 0.000826805364340544,
+            "step_y_m": -0.006561279296875,
+            "tick": 4145,
+            "to": [
+              15186,
+              24675
+            ]
+          },
+          {
+            "contacts": 4,
+            "from": [
+              15186,
+              24675
+            ],
+            "m": 1317.58385769786,
+            "speed": 12.8395929336548,
+            "step_velocity_mps": 0.000166741563589312,
+            "step_y_m": 0.00146484375,
+            "tick": 6312,
+            "to": [
+              15187,
+              24675
+            ]
+          }
+        ],
+        "simulated_s": 116.533333333328,
+        "start_lon_lat": [
+          -96.5908966064453,
+          40.5672416687012
+        ],
+        "startup_s": 0.111,
+        "ticks": 6992,
+        "visited_tiles": [
+          [
+            15184,
+            24675
+          ],
+          [
+            15185,
+            24675
+          ],
+          [
+            15186,
+            24675
+          ],
+          [
+            15187,
+            24675
+          ]
+        ],
+        "wait_ticks": 0,
+        "wheel_contact_histogram": [
+          0,
+          0,
+          0,
+          0,
+          6885
+        ],
+        "wheel_grip_samples": {
+          "0.76": 27540
+        }
+      },
+      "network": {
+        "requests": 0,
+        "response_lengths_total_bytes": 0,
+        "providers": {},
+        "status_codes": {}
+      },
+      "trace_sha256": "a4d8dcefa4eb6ddb5289b2ebf52280cbd6397db1ffbc047071b6292b07dd7c48"
+    },
+    "new_warm_metal": {
+      "route": {
+        "brake_test": {
+          "at_12mps_m": 1442.22360542167,
+          "begin_m": 1440.11607263745,
+          "begin_mps": 12.8458375930786,
+          "begin_tick": 6885,
+          "distance_12_to_0_5_mps_m": 9.92514603357449,
+          "duration_s": 1.78333333333333,
+          "full_distance_m": 12.0372769124806
+        },
+        "display": "macOS",
+        "distance_m": 1452.15334954993,
+        "drive_wall_s": 116.479,
+        "end_lon_lat": [
+          -96.5737228393555,
+          40.5673408508301
+        ],
+        "game_counted_source_requests": 0,
+        "game_distance_m": 1452.15605663644,
+        "max_abs_vy_mps": 1.05800437927246,
+        "max_cross_track_m": 0.0746256038546562,
+        "max_pitch_deg": 4.79050130411607,
+        "max_roll_deg": 2.40236706884295,
+        "max_single_step_m": 0.220590189099312,
+        "max_wait_ticks": 0,
+        "min_contacts": 4,
+        "pass": true,
+        "physics_hz": 60,
+        "process_frame_ms": [
+          16.68,
+          22.623,
+          35.817,
+          61.671
+        ],
+        "reason": "completed continuous route and full service brake",
+        "road_grip_range": [
+          0.76,
+          0.76
+        ],
+        "rolling_speed_mps": [
+          12.7357130050659,
+          12.8361911773682,
+          13.0804252624512,
+          13.1944551467896
+        ],
+        "route": "Princeton Road",
+        "sampled_frames": 6972,
+        "screens": [
+          "drive-0100m.jpg",
+          "drive-0770m.jpg",
+          "drive-1350m.jpg"
+        ],
+        "seams": [
+          {
+            "contacts": 4,
+            "from": [
+              15184,
+              24675
+            ],
+            "m": 388.383442578328,
+            "speed": 12.8324155807495,
+            "step_velocity_mps": 0.00160434562712908,
+            "step_y_m": 0.001953125,
+            "tick": 1977,
+            "to": [
+              15185,
+              24675
+            ]
+          },
+          {
+            "contacts": 4,
+            "from": [
+              15185,
+              24675
+            ],
+            "m": 853.018831757319,
+            "speed": 12.9954290390015,
+            "step_velocity_mps": 0.000826805364340544,
+            "step_y_m": -0.006561279296875,
+            "tick": 4145,
+            "to": [
+              15186,
+              24675
+            ]
+          },
+          {
+            "contacts": 4,
+            "from": [
+              15186,
+              24675
+            ],
+            "m": 1317.58385769786,
+            "speed": 12.8395929336548,
+            "step_velocity_mps": 0.000166741563589312,
+            "step_y_m": 0.00146484375,
+            "tick": 6312,
+            "to": [
+              15187,
+              24675
+            ]
+          }
+        ],
+        "simulated_s": 116.533333333328,
+        "start_lon_lat": [
+          -96.5908966064453,
+          40.5672416687012
+        ],
+        "startup_s": 1.803,
+        "ticks": 6992,
+        "visited_tiles": [
+          [
+            15184,
+            24675
+          ],
+          [
+            15185,
+            24675
+          ],
+          [
+            15186,
+            24675
+          ],
+          [
+            15187,
+            24675
+          ]
+        ],
+        "wait_ticks": 0,
+        "wheel_contact_histogram": [
+          0,
+          0,
+          0,
+          0,
+          6885
+        ],
+        "wheel_grip_samples": {
+          "0.76": 27540
+        }
+      },
+      "network": {
+        "requests": 0,
+        "response_lengths_total_bytes": 0,
+        "providers": {},
+        "status_codes": {}
+      },
+      "trace_sha256": "a4d8dcefa4eb6ddb5289b2ebf52280cbd6397db1ffbc047071b6292b07dd7c48"
+    }
+  },
+  "ray_samples_vs_same_location_aerial": {
+    "drive-0100m.jpg": {
+      "ray_count": 139,
+      "aerial_median_srgb": [
+        208.0,
+        202.0,
+        186.0
+      ],
+      "control_median_srgb": [
+        107.0,
+        107.0,
+        107.0
+      ],
+      "candidate_median_srgb": [
+        204.0,
+        201.0,
+        190.0
+      ],
+      "control_mean_abs_srgb_error": 91.99,
+      "candidate_mean_abs_srgb_error": 4.14,
+      "control_median_abs_srgb_error": 93.0,
+      "candidate_median_abs_srgb_error": 4.0
+    },
+    "drive-0770m.jpg": {
+      "ray_count": 152,
+      "aerial_median_srgb": [
+        201.0,
+        205.0,
+        182.0
+      ],
+      "control_median_srgb": [
+        111.0,
+        110.0,
+        110.0
+      ],
+      "candidate_median_srgb": [
+        199.0,
+        199.0,
+        186.0
+      ],
+      "control_mean_abs_srgb_error": 86.43,
+      "candidate_mean_abs_srgb_error": 5.81,
+      "control_median_abs_srgb_error": 88.0,
+      "candidate_median_abs_srgb_error": 5.0
+    },
+    "drive-1350m.jpg": {
+      "ray_count": 147,
+      "aerial_median_srgb": [
+        166.0,
+        159.0,
+        123.0
+      ],
+      "control_median_srgb": [
+        86.0,
+        86.0,
+        86.0
+      ],
+      "candidate_median_srgb": [
+        180.0,
+        172.0,
+        143.0
+      ],
+      "control_mean_abs_srgb_error": 65.6,
+      "candidate_mean_abs_srgb_error": 14.64,
+      "control_median_abs_srgb_error": 74.0,
+      "candidate_median_abs_srgb_error": 14.0
+    }
+  },
+  "canonical_runner_check": {
+    "canonical": {
+      "passed": true,
+      "net": {
+        "initially_empty_source_cache": true,
+        "requests": 18,
+        "declared_response_bytes": 784755,
+        "hosts": {
+          "tiles.openfreemap.org": 5,
+          "s3.amazonaws.com": 2,
+          "dataforgood-fb-data.s3.amazonaws.com": 9,
+          "basemap.nationalmap.gov": 2
+        }
+      }
+    },
+    "canonical-metal": {
+      "passed": true,
+      "net": {
+        "initially_empty_source_cache": false,
+        "requests": 13,
+        "declared_response_bytes": 805244,
+        "hosts": {
+          "dataforgood-fb-data.s3.amazonaws.com": 9,
+          "tiles.openfreemap.org": 1,
+          "basemap.nationalmap.gov": 3
+        }
+      }
+    },
+    "canonical-warm": {
+      "passed": true,
+      "net": {
+        "initially_empty_source_cache": false,
+        "requests": 0,
+        "declared_response_bytes": 0,
+        "hosts": {}
+      }
+    }
+  },
+  "location_menu_check": [
+    "SURVEY STOP Clay Center · Charleston, WV road=Lee Street East coordinate=(38.34843, -81.63069) tires=4 surveyed_landmarks=1",
+    "SURVEY STOP J Street · Lincoln, NE road=J Street coordinate=(40.808, -96.675) tires=4 retained_inventory_trees=114",
+    "SURVEY STOP Princeton Road · Lancaster County, NE road=Princeton Road coordinate=(40.56723, -96.5909) tires=4 mapped_gravel=4 eastbound_deg=89.5",
+    "SURVEY STOPS PASSED normal menu selection, locations and measured scenery"
+  ],
+  "final_integrated_source_test": {
+    "distance_m": 1452.1525438488,
+    "brake_test": {
+      "at_12mps_m": 1442.22371130899,
+      "begin_m": 1440.11613978022,
+      "begin_mps": 12.8458528518677,
+      "begin_tick": 6885,
+      "distance_12_to_0_5_mps_m": 9.92423252927915,
+      "duration_s": 1.78333333333333,
+      "full_distance_m": 12.0364040685818
+    },
+    "minimum_contacts": 4,
+    "tile_wait_ticks": 0,
+    "wheel_grips": {
+      "0.76": 27540
+    },
+    "maximum_right_lane_deviation_m": 0.0828203186392784,
+    "fresh_requests": 0,
+    "contains_optional_spectral_ground_and_verified_footprints": true
+  }
+}

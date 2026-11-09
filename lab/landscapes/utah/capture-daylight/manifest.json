@@ -1,0 +1,58 @@
+{
+  "title": "Daylight at the roadside camera’s hour",
+  "summary": "Four documented camera locations in default play now use their photographed hour and an archived weather estimate. The effect fades out between 145 and 350 metres. The Weather button replaces these dated conditions with a recent station report. Elsewhere the ordinary play preset keeps its afternoon.",
+  "measurement": "Against color-managed photographs, upper-sky RGB error on a 0–255 scale fell from 109.2 to 48.3 on US 163, 46.8 to 8.9 at La Sal, 40.9 to 25.7 in Wyoming and 78.2 to 31.8 in Lewisburg. The iPhone shutter at Monument Valley assumes Mountain Daylight Time. Wyoming’s regional weather missed clouds near the peaks, and the La Sal foreground remains too bright.",
+  "credit": "Photographs have been resized and converted to sRGB. Awinda, Hansueli Krapf and Antony-22, CC BY-SA 4.0. Ken Lund, CC BY-SA 2.0. The game uses Greg Zaal’s CC0 Kloofendal clear and partly cloudy HDRs. Historical weather adapts ECMWF ERA5 via Open-Meteo, CC BY 4.0, and NOAA airport reports via Iowa Environmental Mesonet.",
+  "images": [
+    {
+      "file": "four-roads.webp",
+      "caption": "Four held camera views. The first and last columns represent the dated scene; the middle column is the previous playable afternoon."
+    },
+    {
+      "file": "weather-switch.webp",
+      "caption": "Chula weather controls in Metal. The live clear case uses the actual KFCI report from November 8, 2026 at 06:56 UTC. The fog and overcast examples inject test visibilities into the ordinary weather path."
+    }
+  ],
+  "links": [
+    [
+      "US 163, Monument Valley photograph — Awinda",
+      "https://commons.wikimedia.org/wiki/File:Forrest_Gump_Highway_Monument_Valley.jpg"
+    ],
+    [
+      "US 191, La Sal Mountains photograph — Ken Lund",
+      "https://commons.wikimedia.org/wiki/File:La_Sal_Mountains_From_U.S._Route_191_Between_Monticello_and_Moab,_Utah.jpg"
+    ],
+    [
+      "Snake River Overlook, Wyoming photograph — Hansueli Krapf",
+      "https://commons.wikimedia.org/wiki/File:2025-05-30-194735_USA_Wyoming_Moose_2092.6.jpg"
+    ],
+    [
+      "Lewisburg Post Office, West Virginia photograph — Antony-22",
+      "https://commons.wikimedia.org/wiki/File:Lewisburg,_West_Virginia_post_office_2016.jpg"
+    ],
+    [
+      "Photographic clear-sky source by Greg Zaal, CC0",
+      "https://polyhaven.com/a/kloofendal_43d_clear_puresky"
+    ],
+    [
+      "Historical weather, Open-Meteo / ECMWF ERA5",
+      "https://open-meteo.com/en/docs/historical-weather-api"
+    ],
+    [
+      "NOAA METAR observations",
+      "https://aviationweather.gov/data/api/"
+    ],
+    [
+      "CC BY 4.0 weather terms",
+      "https://creativecommons.org/licenses/by/4.0/"
+    ],
+    [
+      "CC BY-SA 4.0 photograph terms",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    [
+      "CC BY-SA 2.0 photograph terms",
+      "https://creativecommons.org/licenses/by-sa/2.0/"
+    ]
+  ]
+}

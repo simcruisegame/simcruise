@@ -1,0 +1,24 @@
+{
+  "site": "cambridge",
+  "aerial_lane_spacing_m": 3.583735327825691,
+  "independent_photo_estimates": [
+    {
+      "frame": 0,
+      "used_rows": 87,
+      "dash_m": 0.088,
+      "edge_m": 0.078
+    },
+    {
+      "frame": 1,
+      "used_rows": 32,
+      "dash_m": 0.106,
+      "edge_m": 0.087
+    },
+    {
+      "frame": 2,
+      "used_rows": 14,
+      "dash_m": 0.079,
+      "edge_m": 0.086
+    }
+  ]
+}

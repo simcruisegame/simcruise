@@ -1,0 +1,25 @@
+config_version=5
+[application]
+config/name="SimCruise"
+config/icon="res://art/icon.png"
+run/main_scene="res://Drive.tscn"
+config/features=PackedStringArray("4.7","Mobile")
+[display]
+window/size/viewport_width=1200
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+[rendering]
+textures/vram_compression/import_etc2_astc=true
+textures/vram_compression/import_s3tc_bptc=true
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+rendering_device/driver.macos="metal"
+textures/default_filters/anisotropic_filtering_level=4
+anti_aliasing/quality/msaa_3d=1
+anti_aliasing/quality/use_debanding=true
+scaling_3d/scale=0.9
+lights_and_shadows/directional_shadow/size=2048
+[physics]
+common/physics_ticks_per_second=60
+3d/physics_engine="Jolt Physics"

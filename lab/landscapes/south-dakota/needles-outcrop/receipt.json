@@ -1,0 +1,472 @@
+{
+  "site": "Needles Highway, Custer State Park, South Dakota",
+  "ordinary_driver": {
+    "search": "43.84018, -103.53945",
+    "heading_degrees": 270,
+    "directions": "Search these coordinates. Drive west on Needles Highway toward the tight northward bend. The granite is across the left side of the windshield around 28 metres from this start."
+  },
+  "photos": [
+    {
+      "id": "149021303",
+      "title": "File:Cathedral Spires and Limber Pine Natural Area, Needles Highway, Custer State Park, Custer, SD - 53764885413.jpg",
+      "author": "w_lemay",
+      "credit_page": "https://commons.wikimedia.org/?curid=149021303",
+      "original": "https://upload.wikimedia.org/wikipedia/commons/4/45/Cathedral_Spires_and_Limber_Pine_Natural_Area%2C_Needles_Highway%2C_Custer_State_Park%2C_Custer%2C_SD_-_53764885413.jpg",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "lat": 43.840133333333334,
+      "lon": -103.54000277777777,
+      "true_heading": "260743/1111",
+      "capture_local": "2023:07:28 12:21:47",
+      "focal_35mm": 26,
+      "role": "Landscape of the other stereo station; corroborates exposed-surface triangulation.",
+      "sha256_960px": "7aaf4bf83ce743e5150f28bc721577b538fad7ad1b72ebb5c3079018b84c297d"
+    },
+    {
+      "id": "149021324",
+      "title": "File:Cathedral Spires and Limber Pine Natural Area, Needles Highway, Custer State Park, Custer, SD - 53765019689.jpg",
+      "author": "w_lemay",
+      "credit_page": "https://commons.wikimedia.org/?curid=149021324",
+      "original": "https://upload.wikimedia.org/wikipedia/commons/8/89/Cathedral_Spires_and_Limber_Pine_Natural_Area%2C_Needles_Highway%2C_Custer_State_Park%2C_Custer%2C_SD_-_53765019689.jpg",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "lat": 43.84014166666667,
+      "lon": -103.54000833333333,
+      "true_heading": "381109/1606",
+      "capture_local": "2023:07:28 12:21:45",
+      "focal_35mm": 26,
+      "role": "Second stereo station; screened gray granite color atlas B.",
+      "sha256_960px": "d0170f89c257d451043892c7f1ea512c4a960332bdbd2576c99b8adc0be81e08"
+    },
+    {
+      "id": "149021330",
+      "title": "File:View from Needles Highway, Custer State Park, Custer, SD - 53765020019.jpg",
+      "author": "w_lemay",
+      "credit_page": "https://commons.wikimedia.org/?curid=149021330",
+      "original": "https://upload.wikimedia.org/wikipedia/commons/c/c7/View_from_Needles_Highway%2C_Custer_State_Park%2C_Custer%2C_SD_-_53765020019.jpg",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "lat": 43.84014444444445,
+      "lon": -103.54002222222222,
+      "true_heading": "559098/2837",
+      "capture_local": "2023:07:28 12:21:41",
+      "focal_35mm": 26,
+      "role": "Overlapping landscape photograph inspected for camera context.",
+      "sha256_960px": "3e7f15128fc9d2cc5d2864622bb52b8969ad731ab90d32bb071b860c061220ff"
+    },
+    {
+      "id": "149021335",
+      "title": "File:View from Needles Highway, Custer State Park, Custer, SD - 53764886168.jpg",
+      "author": "w_lemay",
+      "credit_page": "https://commons.wikimedia.org/?curid=149021335",
+      "original": "https://upload.wikimedia.org/wikipedia/commons/a/af/View_from_Needles_Highway%2C_Custer_State_Park%2C_Custer%2C_SD_-_53764886168.jpg",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "lat": 43.84011111111111,
+      "lon": -103.54006944444444,
+      "true_heading": "811829/4430",
+      "capture_local": "2023:07:28 12:21:32",
+      "focal_35mm": 26,
+      "role": "Independent horizon and camera registration; small measured mineral grain chip.",
+      "sha256_960px": "e4413e30dcb7f42847ea18f91d22b1cf3bed024b901e2f17741d088ed40ff50e"
+    },
+    {
+      "id": "149021336",
+      "title": "File:Cathedral Spires and Limber Pine Natural Area, Needles Highway, Custer State Park, Custer, SD - 53764692591.jpg",
+      "author": "w_lemay",
+      "credit_page": "https://commons.wikimedia.org/?curid=149021336",
+      "original": "https://upload.wikimedia.org/wikipedia/commons/b/be/Cathedral_Spires_and_Limber_Pine_Natural_Area%2C_Needles_Highway%2C_Custer_State_Park%2C_Custer%2C_SD_-_53764692591.jpg",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "lat": 43.84011111111111,
+      "lon": -103.54011388888888,
+      "true_heading": "454439/1981",
+      "capture_local": "2023:07:28 12:21:30",
+      "focal_35mm": 26,
+      "role": "First stereo station; screened gray granite color atlas A.",
+      "sha256_960px": "0d7c0251295a35769a250869df0ba8a81cd2cf0edafa69ea345719c8b86bd171"
+    },
+    {
+      "id": "149021337",
+      "title": "File:Cathedral Spires and Limber Pine Natural Area, Needles Highway, Custer State Park, Custer, SD - 53764886328.jpg",
+      "author": "w_lemay",
+      "credit_page": "https://commons.wikimedia.org/?curid=149021337",
+      "original": "https://upload.wikimedia.org/wikipedia/commons/c/cd/Cathedral_Spires_and_Limber_Pine_Natural_Area%2C_Needles_Highway%2C_Custer_State_Park%2C_Custer%2C_SD_-_53764886328.jpg",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "lat": 43.84011944444445,
+      "lon": -103.54009166666667,
+      "true_heading": "271318/1173",
+      "capture_local": "2023:07:28 12:21:31",
+      "focal_35mm": 26,
+      "role": "Held-out rock geometry and visual evaluation. Six distant non-rock features are used only for relative camera orientation.",
+      "sha256_960px": "03cd98ae6cd4c280e58ac0d9bc48067a5a66e0b17560d97e8a021cbe5b24de20"
+    }
+  ],
+  "license_note": "The photo-derived granite mesh and two masked diffuse textures, mineral detail and photographic comparison sheets are CC BY-SA 2.0. Modifications include cropping, geometric calibration and stereo reconstruction, removal of vegetation and sky, blending observed rock with a mineral fallback, tone handling, image resizing and labels. The author did not provide or endorse the game.",
+  "surveys": {
+    "native_dem": {
+      "project": "SD_BlackHills_1_D23",
+      "product": "USGS 0.25 m original product resolution DEM",
+      "crs": "NAD83(2011) / UTM 13N, NAVD88 metres",
+      "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/OPR/Projects/SD_BlackHills_D23/SD_BlackHills_1_D23/TIFF/USGS_OPR_SD_BlackHills_D23_13TFJ170550.tif",
+      "study_ranged_bytes": [
+        [
+          "native",
+          "bytes=0-16383",
+          16384
+        ],
+        [
+          "native",
+          "bytes=34209792-35291135",
+          1081344
+        ],
+        [
+          "native",
+          "bytes=38486016-39583743",
+          1097728
+        ],
+        [
+          "native",
+          "bytes=42516480-43433983",
+          917504
+        ]
+      ]
+    },
+    "older_laser": {
+      "url": "https://gis.usd.edu/lidar/statewide/Custer/SD_Southwest_NRCS_SD_2018_D18/LAS.zip",
+      "archive_entry": "LAS/13TFJ170550.las",
+      "start": 205154194040,
+      "raw_bytes": 33554432,
+      "central_directory_range_bytes": 455461,
+      "points": 231866,
+      "strips": [
+        1133,
+        1137
+      ],
+      "datum": "COMPOUNDCRS[\"NAD83(2011) / UTM zone 13N + NAVD88 height - Geoid12B\",PROJCRS[\"NAD83(2011) / UTM zone 13N\",BASEGEOGCRS[\"NAD83(2011)\",DATUM[\"NAD83 (National Spatial Reference System 2011)\",ELLIPSOID[\"GRS 1980\",6378137,298.257222101,LENGTHUNIT[\"metre\",1]]],PRIMEM[\"Greenwich\",0,ANGLEUNIT[\"degree\",0.0174532925199433]],ID[\"EPSG\",6318]],CONVERSION[\"UTM zone 13N\",METHOD[\"Transverse Mercator\",ID[\"EPSG\",9807]],PARAMETER[\"Latitude of natural origin\",0,ANGLEUNIT[\"degree\",0.0174532925199433],ID[\"EPSG\",8801]],PARAMETER[\"Longitude of natural origin\",-105,ANGLEUNIT[\"degree\",0.0174532925199433],ID[\"EPSG\",8802]],PARAMETER[\"Scale factor at natural origin\",0.9996,SCALEUNIT[\"unity\",1],ID[\"EPSG\",8805]],PARAMETER[\"False easting\",500000,LENGTHUNIT[\"metre\",1],ID[\"EPSG\",8806]],PARAMETER[\"False northing\",0,LENGTHUNIT[\"metre\",1],ID[\"EPSG\",8807]]],CS[Cartesian,2],AXIS[\"x\",east,ORDER[1],LENGTHUNIT[\"metre\",1]],AXIS[\"y\",north,ORDER[2],LENGTHUNIT[\"metre\",1]],ID[\"EPSG\",6342]],VERTCRS[\"NAVD88 height\",VDATUM[\"North American Vertical Datum 1988\"],CS[vertical,1],AXIS[\"up\",up,LENGTHUNIT[\"metre\",1]],GEOIDMODEL[\"GEOID12B\"],ID[\"EPSG\",5703]]]"
+    },
+    "aerial": {
+      "provider": "USDA NAIP via federal GeoPlatform",
+      "url": "https://imagery.geoplatform.gov/iipp/rest/services/NAIP/NAIP_plus/ImageServer",
+      "record": "m_4310312_ne_13_060_20230815_20231127",
+      "date": "2023-08-15",
+      "rgb_bytes": 502666,
+      "cir_bytes": 505814
+    },
+    "road": "https://www.openstreetmap.org/copyright"
+  },
+  "registration": {
+    "origin": [
+      -1.7487999192744081,
+      1935.1902078880091,
+      -4.081428804155748
+    ],
+    "global_basis": [
+      [
+        -0.6255205863985558,
+        -0.11582246802718972,
+        -0.7715627984109251
+      ],
+      [
+        0.010271933344667536,
+        -0.9900566296560375,
+        0.14029382545034264
+      ],
+      [
+        0.7801400408753354,
+        -0.0798312343272928,
+        -0.6204905242216123
+      ]
+    ],
+    "scale": 9.69398904193193,
+    "training_lidar_1133_distance_quantiles_m": [
+      0.7187719481700262,
+      1.0851698175457545,
+      1.4001777278255763
+    ],
+    "heldout_lidar_1137_distance_quantiles_m": [
+      8.080547777307718,
+      11.802700520636892,
+      13.54311302541515
+    ],
+    "cells": 1071,
+    "C335_world": [
+      -1.2646075415191314,
+      1934.9254085534483,
+      -4.316370593996899
+    ],
+    "C324_world": [
+      7.876920261581436,
+      1935.3436553429021,
+      -5.219580122543515
+    ],
+    "station336_gps": [
+      -1.7867273879306032,
+      1935.29248046875,
+      -0.92569530334105
+    ],
+    "pose_correction_deg": [
+      -0.7309495723009326,
+      -1.7935807846028147,
+      0.5180223036243605
+    ]
+  },
+  "camera": {
+    "149021335": {
+      "lat": 43.840080626416714,
+      "lon": -103.54010743440439,
+      "world_eye": 1933.8272750515036,
+      "angles": [
+        187.9807839111127,
+        -5.959566815550226,
+        -2.3588902696587595
+      ],
+      "point_assumption": "335 camera estimated using 53 optical PnP inliers; 337 position interpolated at 12:21:31 between camera stations at :30 and :32. Relative orientation from six distant features."
+    },
+    "149021337": {
+      "lat": 43.840081682857154,
+      "lon": -103.54011045297662,
+      "world_eye": 1933.959674718784,
+      "angles": [
+        231.25729111972686,
+        8.707431315351746,
+        -3.1221263583518963
+      ],
+      "point_assumption": "335 camera estimated using 53 optical PnP inliers; 337 position interpolated at 12:21:31 between camera stations at :30 and :32. Relative orientation from six distant features."
+    }
+  },
+  "geometry": {
+    "faces": 18000,
+    "vertices": 9002,
+    "nonmanifold_or_boundary_edges": 0,
+    "simplification_bound_m": 0.0491,
+    "measured_faces_source_fraction": 0.7096,
+    "source_336_unobscured_colored_rock_fraction": 0.6978,
+    "spatially_held_out_stereo_depth_median_m": 0.1532,
+    "spatially_held_out_stereo_depth_p90_m": 1.9453,
+    "scale_method": "Metric fit of registered photo station to independent USGS scan line 1133. Scan line 1137 is spatially incomplete in the bounded download: 40 of 1,071 tested surface cells have a return within 1.2 m horizontally; their median 3D distance is 2.52 m. The remaining cells lack comparable coverage.",
+    "clearance": "All sampled on-road or lane-edge vertices retain zero height displacement. The photographed granite shell starts roughly 25 m beyond the previously mapped road edge."
+  },
+  "runtime": {
+    "network_requests": 0,
+    "area": "Two local z16 terrain chips, survey footprint up to 81 m from the photo. Transitions taper at every tile boundary and beside roads. The granite solid belongs to 13919/23870. Other sites use the existing nationwide renderer.",
+    "limits": "The two older flight strips have limited overlap on steep walls. Occluded facets and rock behind the visible exterior use nearby measured mineral detail; the visible individual pines, other formations and distant vegetation remain incomplete. Noon weather and clouds at the time are unknown. The handheld camera height, local clock timezone and interpolation between stations are estimates.",
+    "file_bytes": {
+      "needles-granite-b.meshdata": 148228,
+      "needles-granite-detail.png": 17909,
+      "needles-granite.meshdata": 612112,
+      "needles-granite-a.meshdata": 166812,
+      "needles-ground-13918.meshdata": 16849,
+      "needles-ground-13919.meshdata": 52183
+    }
+  },
+  "held_out_pixels_960x720": {
+    "stock": {
+      "marks": 27,
+      "predicted_geometry_y": [
+        492,
+        491,
+        446,
+        432,
+        418,
+        403,
+        383,
+        365,
+        347,
+        290,
+        268,
+        268,
+        277,
+        278,
+        266,
+        269,
+        269,
+        275,
+        273,
+        269,
+        266,
+        264,
+        260,
+        257,
+        254,
+        251,
+        247
+      ],
+      "photo_y": [
+        352,
+        331,
+        181,
+        137,
+        112,
+        71,
+        48,
+        37,
+        40,
+        52,
+        73,
+        156,
+        142,
+        162,
+        249,
+        233,
+        228,
+        265,
+        271,
+        266,
+        279,
+        278,
+        330,
+        317,
+        327,
+        338,
+        371
+      ],
+      "x": [
+        240,
+        251,
+        300,
+        316,
+        331,
+        348,
+        370,
+        390,
+        410,
+        428,
+        444,
+        468,
+        484,
+        504,
+        537,
+        561,
+        576,
+        611,
+        626,
+        648,
+        665,
+        679,
+        706,
+        722,
+        741,
+        757,
+        780
+      ],
+      "mae_px": 141.26,
+      "median_abs_px": 116.0,
+      "avg_signed_px": 108.59,
+      "apex_at_x390_px": 328
+    },
+    "rock": {
+      "marks": 27,
+      "predicted_geometry_y": [
+        361,
+        332,
+        243,
+        137,
+        107,
+        68,
+        45,
+        37,
+        38,
+        49,
+        70,
+        161,
+        153,
+        163,
+        249,
+        244,
+        234,
+        262,
+        263,
+        266,
+        272,
+        281,
+        321,
+        318,
+        321,
+        331,
+        354
+      ],
+      "photo_y": [
+        352,
+        331,
+        181,
+        137,
+        112,
+        71,
+        48,
+        37,
+        40,
+        52,
+        73,
+        156,
+        142,
+        162,
+        249,
+        233,
+        228,
+        265,
+        271,
+        266,
+        279,
+        278,
+        330,
+        317,
+        327,
+        338,
+        371
+      ],
+      "x": [
+        240,
+        251,
+        300,
+        316,
+        331,
+        348,
+        370,
+        390,
+        410,
+        428,
+        444,
+        468,
+        484,
+        504,
+        537,
+        561,
+        576,
+        611,
+        626,
+        648,
+        665,
+        679,
+        706,
+        722,
+        741,
+        757,
+        780
+      ],
+      "mae_px": 6.89,
+      "median_abs_px": 3.0,
+      "avg_signed_px": 1.26,
+      "apex_at_x390_px": 0
+    }
+  },
+  "canonical_driving_check": {
+    "stock": {
+      "distance_m": 38.1364984737156,
+      "minimum_wheels": 4,
+      "finish_speed_mps": 12.1909227371216
+    },
+    "rock": {
+      "distance_m": 38.1364984737156,
+      "minimum_wheels": 4,
+      "finish_speed_mps": 12.1909227371216
+    }
+  },
+  "canonical_sha256": {
+    "Powertrain.gd": "a7eee55123c4d7e1c5c44f30c155c3d018e454b8291ddfe33404319e36fbea2c",
+    "SurveyOutcropGround.gd": "c6db90f7ff013e841b5b376373fb0e9b52ac0a7e2fa44de49c3b4fb7aa04f3e7",
+    "MeasuredGranite.gd": "d86787c4764d2f59f617bf97023c9b9c20668fbc2951dfb74c648604225cb60b",
+    "MeasuredGranite.gdshader": "859740763a45b12305cdbb44359fb5395381e91ee30d490f9789a81b48d44b66"
+  }
+}

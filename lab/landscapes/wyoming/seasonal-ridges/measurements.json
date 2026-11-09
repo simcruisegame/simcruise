@@ -1,0 +1,42 @@
+{
+  "wy": {
+    "rgb_error": 40.22,
+    "luminance_correlation": 0.491,
+    "luminance_spread": 31.39,
+    "reference_spread": 53.65,
+    "highpass_correlation": 0.009,
+    "samples": 43474
+  },
+  "wy-broad": {
+    "rgb_error": 42.82,
+    "luminance_correlation": 0.41,
+    "luminance_spread": 35.43,
+    "reference_spread": 53.65,
+    "highpass_correlation": 0.008,
+    "samples": 43474
+  },
+  "wy-coarse": {
+    "rgb_error": 42.35,
+    "luminance_correlation": 0.419,
+    "luminance_spread": 34.95,
+    "reference_spread": 53.65,
+    "highpass_correlation": 0.006,
+    "samples": 43474
+  },
+  "wy-summer": {
+    "rgb_error": 43.95,
+    "luminance_correlation": 0.361,
+    "luminance_spread": 32.5,
+    "reference_spread": 53.65,
+    "highpass_correlation": -0.003,
+    "samples": 43474
+  },
+  "semantic": {
+    "rgb_error": 48.46,
+    "luminance_correlation": 0.44,
+    "luminance_spread": 32.59,
+    "reference_spread": 53.65,
+    "highpass_correlation": 0.013,
+    "samples": 43474
+  }
+}

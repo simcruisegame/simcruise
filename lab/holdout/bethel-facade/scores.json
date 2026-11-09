@@ -1,0 +1,38 @@
+{
+  "source_mask_pixels": 280475,
+  "rgb_mae_255": {
+    "stock": 86.211,
+    "survey": 58.752
+  },
+  "photo_edges_correlation": {
+    "stock": 0.081,
+    "survey": 0.571
+  },
+  "colors": {
+    "photo": [
+      111.2,
+      91.9,
+      86.2
+    ],
+    "stock": [
+      110.3,
+      113.4,
+      111.8
+    ],
+    "survey": [
+      104.0,
+      84.1,
+      75.5
+    ]
+  },
+  "views": {
+    "registered": {
+      "repeat_control_different_pixels": 0,
+      "changed_pixels_at_least_three_codes": 342181
+    },
+    "church-street": {
+      "repeat_control_different_pixels": 3,
+      "changed_pixels_at_least_three_codes": 42322
+    }
+  }
+}

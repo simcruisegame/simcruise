@@ -1,0 +1,43 @@
+{
+  "title": "Overseas Highway pavement markings",
+  "summary": "Two straight-ahead arrows, nine divider dashes and 118 m of white edge stripe follow repeated public aerial observations southbound on US 1. The comparison retains the published photographic camera position and the same Godot camera in both renders.",
+  "measurement": "The FDOT 2018 aerial independently supported 96.9% and 100% of the two recovered arrow footprints within 0.29 m. At the original uncalibrated photo pose, their mean centroid error was 32.6 pixels in an 820-pixel-wide image. Separately, an outer-frame optical fit and a 3.32 m observed travel lane predicted 9.8 pixels when the camera was centered in that lane. The Boston candidate failed its historical aerial check.",
+  "images": [
+    {
+      "file": "street-and-renders.webp",
+      "caption": "The 2017 photograph and the two fixed-camera Metal renders show the same approach. The camera GPS lies near the surveyed right stripe, which changes its apparent position in the fixed render."
+    },
+    {
+      "file": "cockpit.webp",
+      "caption": "Normal Miata cockpit on the same 43.1 m southwest physics drive. The screenshots were taken after 16 m. All four tires stayed in contact throughout both runs."
+    },
+    {
+      "file": "camera-registration.webp",
+      "caption": "Diagnostic camera pose from the outer frames and surveyed lane center. The actual Metal arrow centroids averaged 11.0 px from the unused photograph at 820 px wide. The published fixed-pose and normal player comparisons appear above."
+    }
+  ],
+  "source_url": "https://kartaview.org/details/332471/21",
+  "credit": "Street photograph by cowdog, \u00a9 Grab and KartaView contributors, CC BY-SA 4.0. It was resized, cropped and arranged next to game renders. The photographic comparison is shared under CC BY-SA 4.0. The game asset contains measured geometry only.",
+  "links": [
+    [
+      "KartaView, frame 21",
+      "https://kartaview.org/details/332471/21"
+    ],
+    [
+      "CC BY-SA 4.0",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    [
+      "Monroe County 2015 aerial",
+      "https://mcgis4.monroecounty-fl.gov/public/rest/services/Images/Orthos2015/ImageServer"
+    ],
+    [
+      "Monroe County 2024 aerial",
+      "https://mcgis4.monroecounty-fl.gov/public/rest/services/Images/Orthos2024/ImageServer"
+    ],
+    [
+      "FDOT 2018 aerial",
+      "https://ca.dep.state.fl.us/image/rest/services/FDOT_Yearly_Aerials/Aerial_Imagery_2018/ImageServer"
+    ]
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "archiveRelease": "2026-10-21.0",
+  "archive_requests": [
+    {
+      "url": "https://overturemaps-extras-us-west-2.s3.us-west-2.amazonaws.com/tiles/2026-10-21.0/transportation.pmtiles",
+      "range_bytes": [
+        0,
+        16383
+      ],
+      "bytes": 16384
+    },
+    {
+      "url": "https://overturemaps-extras-us-west-2.s3.us-west-2.amazonaws.com/tiles/2026-10-21.0/transportation.pmtiles",
+      "range_bytes": [
+        134133587615,
+        134133601819
+      ],
+      "bytes": 14205
+    },
+    {
+      "url": "https://overturemaps-extras-us-west-2.s3.us-west-2.amazonaws.com/tiles/2026-10-21.0/transportation.pmtiles",
+      "range_bytes": [
+        39982254771,
+        39982731632
+      ],
+      "bytes": 476862
+    }
+  ],
+  "total_range_bytes": 507451,
+  "layers": {
+    "connector": {
+      "count": 2449,
+      "attributes": [
+        "id",
+        "sources",
+        "version"
+      ]
+    },
+    "segment": {
+      "count": 1742,
+      "attributes": [
+        "@name",
+        "access_restrictions",
+        "class",
+        "connectors",
+        "destinations",
+        "id",
+        "level_rules",
+        "names",
+        "prohibited_transitions",
+        "road_flags",
+        "road_surface",
+        "routes",
+        "sources",
+        "speed_limits",
+        "subclass",
+        "subclass_rules",
+        "subtype",
+        "version",
+        "width_rules"
+      ]
+    }
+  },
+  "selectedRoad": "Soldiers Field Road",
+  "selectedRoadExample": {
+    "road_surface": "[{\"value\":\"paved\"}]",
+    "@name": "Soldiers Field Road",
+    "subtype": "road",
+    "id": "0cfac581-f075-4c92-a8c6-8ba6ac849248",
+    "class": "primary"
+  },
+  "rawOSM": {
+    "way": "86134690",
+    "version": 33,
+    "url": "https://www.openstreetmap.org/way/86134690",
+    "tags": {
+      "highway": "primary",
+      "lanes": "2",
+      "name": "Soldiers Field Road",
+      "oneway": "yes",
+      "surface": "asphalt",
+      "width": "31.1"
+    }
+  }
+}

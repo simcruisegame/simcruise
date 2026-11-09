@@ -1,0 +1,114 @@
+{
+  "training_frames": [
+    2057,
+    2058,
+    2060,
+    2062,
+    2063,
+    2064
+  ],
+  "holdout_frames": [
+    2059,
+    2061
+  ],
+  "unit": "metres",
+  "records": "Each row is raw source height, conservative display cap, and number of independent clear-sky views at the original crown top. Coordinates are tile-normalized and quantized to 1/16384.",
+  "tiles": {
+    "18585_25424": {
+      "9888,3936": [
+        15.0,
+        10.35,
+        4
+      ],
+      "9760,4640": [
+        13.0,
+        9.05,
+        4
+      ],
+      "11680,4640": [
+        18.6,
+        15.94,
+        5
+      ],
+      "9888,4896": [
+        18.6,
+        7.57,
+        5
+      ],
+      "11808,5408": [
+        14.5,
+        9.66,
+        6
+      ],
+      "12320,5664": [
+        16.5,
+        9.26,
+        4
+      ],
+      "13152,6112": [
+        12.1,
+        8.46,
+        6
+      ],
+      "12064,6368": [
+        14.6,
+        7.9,
+        4
+      ],
+      "14048,6368": [
+        18.3,
+        9.29,
+        6
+      ],
+      "15456,7008": [
+        16.7,
+        9.78,
+        4
+      ],
+      "13472,7456": [
+        19.2,
+        8.76,
+        6
+      ],
+      "13728,7584": [
+        16.4,
+        8.8,
+        6
+      ]
+    }
+  },
+  "method": "Five horizontal crown samples tested at multiple heights against eroded clear-sky masks. At least three samples in each of three calibrated training frames must conflict. Only the connected height interval extending to the original treetop can be capped. Width follows sqrt(display height/source height); collision and survey values retain their source dimensions.",
+  "validation": {
+    "image_size": [
+      1152,
+      648
+    ],
+    "region_xyxy": [
+      465,
+      94,
+      730,
+      215
+    ],
+    "sky_interior_margin_px": 2,
+    "2059": {
+      "clear_sky_intrusion_before_after": [
+        9520,
+        4247
+      ],
+      "all_sky_foreground_errors_before_after": [
+        10332,
+        5055
+      ]
+    },
+    "2061": {
+      "clear_sky_intrusion_before_after": [
+        5630,
+        2403
+      ],
+      "all_sky_foreground_errors_before_after": [
+        7609,
+        4305
+      ]
+    }
+  }
+}
