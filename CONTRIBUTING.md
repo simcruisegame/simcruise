@@ -66,7 +66,7 @@ A runaway print loop once filled a disk with a multi-gigabyte log, so these are 
 | `authoring/` | Asset validation and model-building tools (`check_assets.py`, `car-assets.json`). |
 | `lab/` | Measurement studies behind individual features, with their own READMEs, data and reproduction scripts. Older ones say "Sunday Driver". |
 | `licenses/`, `Credits.txt` | Per-source terms and attribution; `licenses/` ships inside the app. |
-| `scripts/` | `build-macos.sh` (editor, app and dmg modes), `make-dmg.sh`, `check.sh` (Godot checks) and `check-helper.sh` (helper tests). |
+| `scripts/` | `play.sh` (update and play), `build-macos.sh` (editor, app and dmg modes), `make-dmg.sh`, `check.sh` (Godot checks) and `check-helper.sh` (helper tests). |
 | `.github/` | Issue and pull-request templates. |
 | `docs/` | Player and developer documentation (install, controls, technical overview, data sources, building), the roadmap, history and architecture notes; `docs/images/` holds README images. |
 

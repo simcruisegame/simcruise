@@ -29,6 +29,19 @@ No account, no API keys, no subscription, no telemetry. The game talks directly 
   <a href="docs/how-it-works/index.html"><img src="docs/how-it-works/diagram.svg" alt="How SimCruise works: the Godot client streams map tiles through the atlas helper from public data layers, builds the world from them and drives the car on it" width="720"></a>
 </p>
 
+## Screenshots
+
+| | |
+|---|---|
+| ![The Tail of the Dragon (US 129, Deals Gap NC) from the Miata's cockpit](docs/images/dragon-cockpit.jpg) | ![Capitol Avenue in Cheyenne, Wyoming, with the State Capitol at its end](docs/images/cheyenne-capitol.jpg) |
+| *Tail of the Dragon, US 129, Deals Gap NC* | *Capitol Avenue, Cheyenne WY* |
+| ![US 163 at Forrest Gump Point with Monument Valley on the horizon](docs/images/monument-valley.jpg) | ![The I-180 viaduct over the rail yard in Cheyenne](docs/images/i180-viaduct.jpg) |
+| *US 163 toward Monument Valley, UT* | *The I-180 viaduct, Cheyenne WY* |
+
+![The road atlas around Deals Gap, North Carolina](docs/images/road-atlas.jpg)
+
+*Captured in game with `--screenshots` (see [docs/images/README.md](docs/images/README.md)). Map data © OpenStreetMap contributors.*
+
 ## Features
 
 - **Drive anywhere in the US.** Search a place, street or coordinates; the road network streams in around you as you drive.
@@ -65,10 +78,10 @@ You need [Godot 4.7.2](https://godotengine.org/download/archive/4.7.2-stable/) a
 ```sh
 git clone https://github.com/simcruisegame/simcruise.git
 cd simcruise
-sh scripts/build-macos.sh editor   # compile the map helper and import the project
+sh scripts/play.sh   # compile the map helper, import the project and play
 ```
 
-Then open `game/project.godot` in Godot and press F5. Packaging the app and disk image is covered in [docs/building.md](docs/building.md).
+To work on the game, open `game/project.godot` in Godot and press F5. A step-by-step setup from a fresh Mac, and packaging the app and disk image, are in [docs/building.md](docs/building.md).
 
 To run the automated checks (physics calibration, rendering, data parsing):
 

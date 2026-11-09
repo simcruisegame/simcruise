@@ -11,6 +11,10 @@ if [ "$(uname -s)" != Darwin ] || [ "$(uname -m)" != arm64 ]; then
 fi
 godot=${GODOT_BIN:-godot}
 bun_runtime=${BUN_BIN:-bun}
+# Bun's installer puts it in ~/.bun/bin without always adding that to PATH.
+if ! command -v "$bun_runtime" >/dev/null 2>&1 && [ "$bun_runtime" = bun ] && [ -x "$HOME/.bun/bin/bun" ]; then
+  bun_runtime=$HOME/.bun/bin/bun
+fi
 if ! command -v "$godot" >/dev/null 2>&1 && [ "$godot" = godot ]; then
   godot=/Applications/Godot.app/Contents/MacOS/Godot
 fi

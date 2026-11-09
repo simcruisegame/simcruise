@@ -205,6 +205,7 @@ func _ready():
  if "--profile-trees" in OS.get_cmdline_user_args():add_child(preload("res://checks/RenderCost.gd").new())
  if "--preference-check" in OS.get_cmdline_user_args():add_child(preload("res://checks/PreferenceCheck.gd").new())
  if "--road-test" in OS.get_cmdline_user_args():add_child(preload("res://checks/DriveCheck.gd").new())
+ if "--screenshots" in OS.get_cmdline_user_args():add_child(preload("res://checks/Screenshots.gd").new())
 # Tile workers create mesh/material resources. Joining one while the engine
 # is shutting down can deadlock against the rendering/main thread. Keep the
 # frame loop alive until pending work has returned; no new jobs are launched.
@@ -379,6 +380,14 @@ func ground(p:Vector2):
  var id=tile_id(p)
  if tiles.has(id):return tiles[id].height_at(p-tile_offset(id))
  return vehicle.position.y-.025
+# The surface a car stands on: a bridge deck where there is one (unless the car
+# is clearly below it, driving underneath), else the ground.
+func surface(p:Vector2,near_y:=INF)->float:
+ var under=ground(p);var id=tile_id(p)
+ if not tiles.has(id):return under
+ var deck=tiles[id].deck_at(p-tile_offset(id))
+ if is_nan(deck) or deck<under or (near_y!=INF and near_y<deck-2.5):return under
+ return deck
 # Nearest road to the car. main_only skips service roads and tracks; reach is
 # how far past the car's own tile the search looks (INF: every loaded tile).
 func nearest_world(main_only:=true,reach:=20.):
@@ -398,7 +407,7 @@ func move_to_road(n,o):
    if d.dot(Vector2(sin(a),-cos(a)))<0:d=-d
   elif jump.street=="Chula Road" and d.y<0:d=-d
  pos=n[0]+o+Vector2(-d.y,d.x)*minf(1.8,n[1][3]*.18);yaw=atan2(-d.x,-d.y);velocity=0;steering=0;road_name=n[1][2] if n[1][2]!="" else "Local road"
- vehicle.restart(Vector3(pos.x,ground(pos)+.13,pos.y),yaw)
+ vehicle.restart(Vector3(pos.x,surface(pos)+.13,pos.y),yaw)
 func recover():
  if not ready_drive:return
  # Main roads near the car first; then any road in any loaded tile, so one press
@@ -527,7 +536,7 @@ func _physics_process(dt):
  var forward=-vehicle.global_transform.basis.z;yaw=atan2(-forward.x,-forward.z)
  if vehicle.position.y<ground(pos)-3:recover();return
  var shade=$GroundShade;shade.visible=vehicle.wheel_contact>0
- shade.position=Vector3(pos.x,ground(pos)+.046,pos.y);shade.rotation=Vector3(vehicle.rotation.x,yaw,vehicle.rotation.z)
+ shade.position=Vector3(pos.x,surface(pos,vehicle.position.y)+.046,pos.y);shade.rotation=Vector3(vehicle.rotation.x,yaw,vehicle.rotation.z)
  if lamp_on!=vehicle.service_brake:
   lamp_on=vehicle.service_brake
   for mat in lamp_materials:mat.emission_energy_multiplier=1.72 if lamp_on else 0.
@@ -579,7 +588,7 @@ func _process(dt):
  else:
   goal=body*Vector3(1.92*maxf(.18,1-absf(velocity)/14),1.94,5.8);target=body*Vector3(0,.70,-3.9)
  if view!=1:
-  goal.y=maxf(goal.y,ground(Vector2(goal.x,goal.z))+.55)
+  goal.y=maxf(goal.y,surface(Vector2(goal.x,goal.z),goal.y)+.55)
   # Retract immediately in tight streets rather than passing the camera through a shop wall.
   var pivot=body*Vector3(0,1.12,0)
   var ray=PhysicsRayQueryParameters3D.create(pivot,goal,1,[vehicle.get_rid()]);ray.hit_back_faces=true

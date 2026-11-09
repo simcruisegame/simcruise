@@ -38,6 +38,22 @@ func height_at(p:Vector2)->float:
  var original=base_height(p)
  if crossfall_surface:return crossfall_surface.elevation(p,original)
  return surveyed_outcrop.elevation(p,original) if surveyed_outcrop else original
+# Deck height of a mapped bridge at p (tile metres), or NAN off every deck.
+# The terrain under a bridge is the valley, so placing the car, its shadow and
+# recovery use this first (BridgeDeck.gd builds the matching surface).
+func deck_at(p:Vector2)->float:
+ var best=NAN
+ for row in info.get("bridges",[]):
+  var pts:Array=row[2];var heights:Array=row[4];var half=float(row[3])*.5+.6
+  for k in range(1,pts.size()):
+   var a=Vector2(pts[k-1][0],pts[k-1][1])*side;var b=Vector2(pts[k][0],pts[k][1])*side
+   var ab=b-a;var l2=ab.length_squared()
+   if l2<1e-4:continue
+   var t=clampf((p-a).dot(ab)/l2,0.,1.)
+   if p.distance_to(a+ab*t)>half:continue
+   var z=lerpf(float(heights[k-1]),float(heights[k]),t)
+   if is_nan(best) or z>best:best=z
+ return best
 func base_height(p:Vector2)->float:
  var g=(p/side*grid_steps).clamp(Vector2.ZERO,Vector2.ONE*grid_steps)
  var x=mini(int(g.x),grid_steps-1);var y=mini(int(g.y),grid_steps-1)

@@ -1,12 +1,23 @@
-# README screenshots
-
-The README links four images from this folder that do not exist yet. Capture them from the 1.1 build once the light, road and vegetation streams have landed, with the HUD in its glance or off level, at the game's default 1200 × 720 window or larger, and save them as JPEG at about 1600 px wide and under 400 KB each:
+# README images
 
 | File | Shot |
 |---|---|
-| `cockpit.jpg` | Driver view (C until the HUD button reads *Driver view*) on a two-lane rural road, afternoon light, some canopy on one side. |
-| `chase.jpg` | Chase view on a highway with the regional terrain visible on the horizon, for example `Monument Valley · US 163, UT` heading south-west. |
-| `atlas.jpg` | The road atlas (Tab) with a pinned location, the Imagery layer on and its capture date visible. |
-| `landscape.jpg` | Scenic view near `Capitol Avenue · Cheyenne, WY` or the Snake River overlook, showing streamed buildings or forest. |
+| `dragon-cockpit.jpg` | Driver view on the Tail of the Dragon, US 129 at Deals Gap, NC. |
+| `cheyenne-capitol.jpg` | Chase view on Capitol Avenue, Cheyenne, WY, toward the State Capitol. |
+| `monument-valley.jpg` | Chase view on US 163 at Forrest Gump Point, UT, toward Monument Valley. |
+| `i180-viaduct.jpg` | Chase view on the I-180 viaduct over the Cheyenne rail yard (a streamed bridge deck). |
+| `road-atlas.jpg` | The road atlas (Tab) around Deals Gap. |
+| `simcruise-wordmark.png`, `simcruise-icon-1024.png` | Logo, made by `authoring/logo/make_logo.py`. |
 
-`game/checks/CaptureDrive.gd` (`-- --capture-drive`) writes repeatable captures if you prefer a scripted pair for before-and-after comparisons. Captures are MIT like the rest of the repository; the scenery they show carries the data licences listed in `licenses/`, and the map tiles are © OpenStreetMap contributors (ODbL), so keep that line in the image credit if a screenshot is reused elsewhere.
+## Regenerating the screenshots
+
+`game/checks/Screenshots.gd` visits each place, waits for it to stream, hides the HUD and saves a JPEG. The sun is pinned so captures are repeatable:
+
+```sh
+godot --path game --resolution 1280x720 -- --screenshots /abs/output/dir --solar-epoch 1792096200
+godot --path game --resolution 1280x720 -- --screenshots /abs/output/dir --only=capitol,viaduct --solar-epoch 1792096200
+```
+
+Run it windowed, not `--headless`. On Linux without a GPU it works with Mesa's software Vulkan driver at about one frame per second: install `mesa-vulkan-drivers xvfb`, then prefix the command with `VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json xvfb-run -a -s "-screen 0 1600x900x24"` and add `--audio-driver Dummy`. `SCREENSHOT_SETTLE=<seconds>` sets how long each place streams before the capture (default 45); `--without-landscape` skips the horizon terrain, which software rendering draws slowly.
+
+The images in this folder were captured that way, with the sun pinned to 15 October 2026, 20:30 UTC. Captures are MIT like the rest of the repository; the scenery carries the data licences listed in `licenses/`, and the map is © OpenStreetMap contributors (ODbL), so keep that credit if you reuse a screenshot elsewhere.
