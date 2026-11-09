@@ -11,6 +11,7 @@ var moved=false
 var status:Label
 var coords:Label
 var transmission_button:Button
+var car_button:Button
 var photos_button:Button
 var ground_cover_button:Button
 var photo_status:Label
@@ -34,6 +35,7 @@ func setup(g):
  for spec in [["−",func():zoom(1)],["+",func():zoom(-1)],["Recenter",recenter],["Back to drive",close_map]]:
   var button=g.hud.button(spec[0],spec[1]);row.add_child(button)
  var settings=HFlowContainer.new();settings.add_theme_constant_override("h_separation",8);settings.add_theme_constant_override("v_separation",4);controls.add_child(settings)
+ car_button=g.hud.button("Car · "+g.vehicle.spec.name,g.cycle_car);settings.add_child(car_button)
  transmission_button=g.hud.button("",g.toggle_manual);settings.add_child(transmission_button)
  photos_button=g.hud.button("",g.toggle_street_detail);settings.add_child(photos_button)
  settings.add_child(g.hud.button("Source photo ↗",func():g.street_detail.open_credit(g)))

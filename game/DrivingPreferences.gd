@@ -10,7 +10,9 @@ extends RefCounted
 #   head_motion : float 0..1 scale of the driver head model (Cockpit.gd)
 # SIMCRUISE_QA_PREFS_DIR points a headless check at an isolated directory, so no
 # check ever reads or writes the player's own records.
-const DEFAULTS := {"manual":false,"street_photos":true,"spectral_ground":false,"sound":true,"hud_level":1,"head_motion":1.0}
+#   car         : String id of a file in res://cars (CarSpec.gd)
+#   resume_place: String "lon,lat,title" to reopen after switching cars, used once
+const DEFAULTS := {"manual":false,"street_photos":true,"spectral_ground":false,"sound":true,"hud_level":1,"head_motion":1.0,"car":"nb1999","resume_place":""}
 const QA_FLAGS := ["--car-audit","--bethel-facade-ab","--survey-stops","--seam-check","--pad-steering","--building-check","--street-check","--capture-drive","--reference","--us-check","--field-check","--profile-trees","--road-test"]
 var values := DEFAULTS.duplicate()
 var directory := ""

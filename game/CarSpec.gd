@@ -33,6 +33,7 @@ var track_front_m := 1.414
 var track_rear_m := 1.44
 var mount_height_m := .51
 var hub_drop_m := .205         # wheel node below the mount, visual only
+var driver_eye := Vector3(-.347,1.009,.503)  # driver view for generated models (the NB uses Cockpit.gd)
 
 # Tyres (size gives the free radius)
 var tire_width_m := .195

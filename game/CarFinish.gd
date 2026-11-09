@@ -89,8 +89,13 @@ func build(drive) -> void:
    m.emission_enabled=true;m.emission=Color("#e3281b");m.emission_energy_multiplier=0.
    if m.albedo_texture:m.emission_texture=preload("res://art/stop_mask.png");m.emission=Color.WHITE;m.emission_operator=BaseMaterial3D.EMISSION_OP_MULTIPLY
    node.set_surface_override_material(0,m);game.lamp_materials.append(m);game.lamp_nodes.append(node)
+ shade_and_traffic(game)
+
+# The ground shade under the player's car and the parked cars. Shared by
+# every car (CarBody.gd calls it with its own shade size).
+static func shade_and_traffic(game, shade_size:=Vector2(2.14,4.34)) -> void:
  var ink=StandardMaterial3D.new();ink.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;ink.albedo_texture=preload("res://art/contact.png");ink.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;ink.render_priority=-1
- game.shadow_plane.size=Vector2(2.14,4.34);game.shadow_plane.material=ink
+ game.shadow_plane.size=shade_size;game.shadow_plane.material=ink
  var shadow=MeshInstance3D.new();shadow.name="GroundShade";shadow.layers=2;shadow.mesh=game.shadow_plane;shadow.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;game.add_child(shadow)
  for i in 22:
   var asset=preload("res://art/pickup.glb") if i%5==0 else preload("res://art/sedan.glb")

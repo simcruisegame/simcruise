@@ -103,6 +103,7 @@ func start_engine():
  if manual and stalled and (selected_gear==0 or clutch_pedal>.75):
   engine_omega=spec.idle_omega;rpm=spec.idle_rpm;stalled=false
 func gear_text():
+ if electric():return "R" if in_reverse else "D"
  if manual:
   if selected_gear==0:return "N"
   return "R" if selected_gear==-1 else str(selected_gear)
