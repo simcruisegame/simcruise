@@ -1,0 +1,491 @@
+{
+ "_comment": "Bison XL: full-size crew-cab pickup with a covered bed. Proportions from published full-size pickup dimensions; original shape.",
+ "length_m": 5.89,
+ "width_m": 2.03,
+ "height_m": 1.96,
+ "wheelbase_m": 3.683,
+ "rear_overhang_m": 1.23,
+ "wheel_radius_m": 0.4014,
+ "tire_width_m": 0.265,
+ "rim_in": 17,
+ "track_front_m": 1.717,
+ "track_rear_m": 1.717,
+ "paint": "#5f656b",
+ "rim": "#b9bec4",
+ "caliper": "#3a3c3f",
+ "spokes": 6,
+ "lower": "#18191b",
+ "lower_band_m": 0.1,
+ "arch_gap_m": 0.06,
+ "top": [
+  [
+   0.0,
+   1.18
+  ],
+  [
+   0.012,
+   1.34
+  ],
+  [
+   0.04,
+   1.36
+  ],
+  [
+   0.37,
+   1.36
+  ],
+  [
+   0.385,
+   1.42
+  ],
+  [
+   0.4,
+   1.93
+  ],
+  [
+   0.45,
+   1.96
+  ],
+  [
+   0.55,
+   1.955
+  ],
+  [
+   0.6,
+   1.84
+  ],
+  [
+   0.665,
+   1.4
+  ],
+  [
+   0.75,
+   1.36
+  ],
+  [
+   0.94,
+   1.31
+  ],
+  [
+   0.985,
+   1.22
+  ],
+  [
+   1.0,
+   1.02
+  ]
+ ],
+ "belt": [
+  [
+   0.0,
+   1.16
+  ],
+  [
+   0.03,
+   1.33
+  ],
+  [
+   0.37,
+   1.34
+  ],
+  [
+   0.4,
+   1.34
+  ],
+  [
+   0.6,
+   1.35
+  ],
+  [
+   0.67,
+   1.33
+  ],
+  [
+   0.94,
+   1.27
+  ],
+  [
+   1.0,
+   1.0
+  ]
+ ],
+ "bottom": [
+  [
+   0.0,
+   0.62
+  ],
+  [
+   0.03,
+   0.55
+  ],
+  [
+   0.08,
+   0.52
+  ],
+  [
+   0.92,
+   0.5
+  ],
+  [
+   0.97,
+   0.52
+  ],
+  [
+   1.0,
+   0.58
+  ]
+ ],
+ "plan": [
+  [
+   0.0,
+   0.96
+  ],
+  [
+   0.02,
+   0.99
+  ],
+  [
+   0.06,
+   1.0
+  ],
+  [
+   0.94,
+   1.0
+  ],
+  [
+   0.985,
+   0.97
+  ],
+  [
+   1.0,
+   0.92
+  ]
+ ],
+ "cabin": [
+  0.39,
+  0.4,
+  0.6,
+  0.665
+ ],
+ "pillars": [
+  0.51
+ ],
+ "tumblehome": 0.09,
+ "roof_round": 0.05,
+ "shut_lines": [
+  [
+   0.665,
+   0.55,
+   1.33,
+   0.55
+  ],
+  [
+   0.51,
+   0.52,
+   1.34,
+   0.55
+  ],
+  [
+   0.395,
+   0.52,
+   1.34,
+   0.55
+  ]
+ ],
+ "shut_lines_top": [
+  [
+   0.665
+  ],
+  [
+   0.02
+  ]
+ ],
+ "handles": [
+  [
+   0.57,
+   1.24
+  ],
+  [
+   0.45,
+   1.25
+  ]
+ ],
+ "seat_rows": [
+  0.56,
+  0.45
+ ],
+ "seat_z": 0.88,
+ "plate_rear_z": 0.78,
+ "plate_front_z": 0.62,
+ "parts": [
+  {
+   "name": "bed_rail",
+   "size": [
+    0.06,
+    2.2,
+    0.05
+   ],
+   "at": [
+    0.19,
+    0.96,
+    1.385
+   ],
+   "material": "trim",
+   "mirror": true,
+   "bevel": 0.01
+  },
+  {
+   "name": "step",
+   "size": [
+    0.18,
+    1.6,
+    0.05
+   ],
+   "at": [
+    0.51,
+    1.0,
+    0.48
+   ],
+   "material": "trim",
+   "mirror": true,
+   "bevel": 0.01
+  },
+  {
+   "name": "bumper_rear",
+   "size": [
+    2.0,
+    0.22,
+    0.22
+   ],
+   "at": [
+    0.005,
+    0.0,
+    0.68
+   ],
+   "material": "chrome",
+   "bevel": 0.03
+  }
+ ],
+ "decals": [
+  {
+   "name": "glass_front_door",
+   "plane": "side",
+   "material": "glass",
+   "outline": [
+    [
+     0.52,
+     1.37
+    ],
+    [
+     0.655,
+     1.37
+    ],
+    [
+     0.6,
+     1.8
+    ],
+    [
+     0.57,
+     1.86
+    ],
+    [
+     0.52,
+     1.87
+    ]
+   ]
+  },
+  {
+   "name": "glass_rear_door",
+   "plane": "side",
+   "material": "glass",
+   "outline": [
+    [
+     0.405,
+     1.37
+    ],
+    [
+     0.5,
+     1.37
+    ],
+    [
+     0.5,
+     1.87
+    ],
+    [
+     0.41,
+     1.87
+    ]
+   ]
+  },
+  {
+   "name": "glass_windscreen",
+   "plane": "top",
+   "material": "glass",
+   "mirror": false,
+   "outline": [
+    [
+     0.602,
+     -0.78
+    ],
+    [
+     0.66,
+     -0.86
+    ],
+    [
+     0.66,
+     0.86
+    ],
+    [
+     0.602,
+     0.78
+    ]
+   ]
+  },
+  {
+   "name": "glass_back",
+   "plane": "rear",
+   "material": "glass",
+   "mirror": false,
+   "outline": [
+    [
+     -0.65,
+     1.48
+    ],
+    [
+     0.65,
+     1.48
+    ],
+    [
+     0.62,
+     1.85
+    ],
+    [
+     -0.62,
+     1.85
+    ]
+   ],
+   "offset": 0.004
+  },
+  {
+   "name": "grille",
+   "plane": "front",
+   "material": "chrome",
+   "mirror": false,
+   "outline": [
+    [
+     -0.78,
+     0.78
+    ],
+    [
+     0.78,
+     0.78
+    ],
+    [
+     0.8,
+     1.2
+    ],
+    [
+     -0.8,
+     1.2
+    ]
+   ]
+  },
+  {
+   "name": "grille_mesh",
+   "plane": "front",
+   "material": "grille",
+   "mirror": false,
+   "offset": 0.006,
+   "outline": [
+    [
+     -0.7,
+     0.83
+    ],
+    [
+     0.7,
+     0.83
+    ],
+    [
+     0.72,
+     1.15
+    ],
+    [
+     -0.72,
+     1.15
+    ]
+   ]
+  },
+  {
+   "name": "headlamp",
+   "plane": "front",
+   "material": "lamp_front",
+   "step": 0.006,
+   "outline": [
+    [
+     0.8,
+     0.98
+    ],
+    [
+     0.98,
+     0.98
+    ],
+    [
+     0.98,
+     1.22
+    ],
+    [
+     0.82,
+     1.22
+    ]
+   ]
+  },
+  {
+   "name": "bumper_front",
+   "plane": "front",
+   "material": "chrome",
+   "mirror": false,
+   "outline": [
+    [
+     -1.0,
+     0.52
+    ],
+    [
+     1.0,
+     0.52
+    ],
+    [
+     1.0,
+     0.74
+    ],
+    [
+     -1.0,
+     0.74
+    ]
+   ]
+  },
+  {
+   "name": "taillamp",
+   "plane": "rear",
+   "material": "lamp_rear",
+   "step": 0.006,
+   "outline": [
+    [
+     0.88,
+     0.95
+    ],
+    [
+     1.0,
+     0.95
+    ],
+    [
+     1.0,
+     1.3
+    ],
+    [
+     0.88,
+     1.3
+    ]
+   ]
+  }
+ ]
+}

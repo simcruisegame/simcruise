@@ -176,5 +176,11 @@
   1.5
  ],
  "traction_control": false,
- "calibration_open": "0-60 mph 3.6 s against 2.8 s: Car and Driver omits a 1 ft rollout (about 0.3 s on this launch) while the bench times from rest, and the launch is grip-limited in first gear without a slip-dependent tyre curve"
+ "calibration_open": "0-60 mph 3.6 s against 2.8 s: Car and Driver omits a 1 ft rollout (about 0.3 s on this launch) while the bench times from rest, and the launch is grip-limited in first gear without a slip-dependent tyre curve",
+ "model_scene": "res://art/cars/meridian_z.glb",
+ "driver_eye": [
+  -0.386,
+  1.04,
+  0.017
+ ]
 }

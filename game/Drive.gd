@@ -22,6 +22,7 @@ var yaw=0.0
 var velocity=0.0
 var steering=0.0
 var driving_preferences=preload("res://DrivingPreferences.gd").new()
+var generic_car:=false
 var distance=0.0
 var view=1
 var vehicle=preload("res://Powertrain.gd").new()
@@ -151,7 +152,18 @@ func _ready():
  daylight.update(start_location,"Chula",sun,sky_mat,0,0.,daylight.capture_weight(start_location,true))
  daylight.configure_sun(sun);daylight.apply_conditions(env,sun,daylight.CLEAR_CLOUD,16093.);add_child(sun)
  probe.size=Vector3(78,30,78);probe.max_distance=100;probe.intensity=.53;probe.cull_mask=1;add_child(probe)
- preload("res://CarFinish.gd").new().build(self) # player car, its likeness pass, wheels, lamps, shade and parked cars
+ # The chosen car (preference "car", or --car=<id> for checks). Cars with a
+ # generated model use CarBody.gd; the 1999 roadster keeps its CarFinish pass.
+ driving_preferences.open()
+ var car_id:String=driving_preferences.values.car
+ for arg in OS.get_cmdline_user_args():
+  if arg.begins_with("--car="):car_id=arg.trim_prefix("--car=")
+ var car_spec=preload("res://CarSpec.gd").load_id(car_id)
+ if car_spec.model_scene!="" and ResourceLoader.exists(car_spec.model_scene):
+  vehicle.use_spec(car_spec);generic_car=true
+  preload("res://CarBody.gd").new().build(self)
+ else:
+  preload("res://CarFinish.gd").new().build(self) # player car, its likeness pass, wheels, lamps, shade and parked cars
  vehicle.add_child(cockpit)
  add_child(camera);camera.current=true;camera.near=.055;camera.far=56000 if regional_terrain.enabled else 1100;camera.fov=62
  driving_preferences.open()
@@ -188,7 +200,14 @@ func _ready():
  var road_noise=preload("res://RoadNoise.gd").new();road_noise.name="RoadNoise";road_noise.game=self;add_child(road_noise)
  engine.bus="Engine";engine.volume_db=road_noise.ENGINE_TRIM_DB
  if driving_preferences.values.sound:toggle_sound()
- choose_place(START.x,START.y,current_title,"Chula Road")
+ # After switching cars the scene reloads where the player was.
+ var resume:String=driving_preferences.values.resume_place
+ var resumed=resume.split(",",false,2)
+ if resumed.size()==3 and resumed[0].is_valid_float() and resumed[1].is_valid_float():
+  driving_preferences.remember("resume_place","")
+  current_title=resumed[2];choose_place(float(resumed[0]),float(resumed[1]),resumed[2])
+ else:
+  choose_place(START.x,START.y,current_title,"Chula Road")
  if "--car-audit" in OS.get_cmdline_user_args():add_child(preload("res://checks/CarAppearance.gd").new())
  if "--capture-drive" in OS.get_cmdline_user_args():add_child(preload("res://checks/CaptureDrive.gd").new())
  if "--bethel-facade-ab" in OS.get_cmdline_user_args():add_child(preload("res://checks/BethelFacadeAB.gd").new())
@@ -427,7 +446,8 @@ func toggle_sound():
   engine_voice=preload("res://InlineFourSound.gd").new()
   # Headless checks keep the mixer idle: the dummy audio driver never releases a
   # playing generator before quit, which the exit leak checker then reports.
-  if DisplayServer.get_name()!="headless":engine.play();engine_stream=engine.get_stream_playback()
+  # The electric car has no combustion sound (a motor voice is future work).
+  if DisplayServer.get_name()!="headless" and not vehicle.electric():engine.play();engine_stream=engine.get_stream_playback()
  else:
   engine.stop();engine_stream=null;engine_voice=null
 func _input(e):
@@ -574,13 +594,18 @@ func _process(dt):
  if not ready_drive:return
  var dir=Vector2(-sin(yaw),-cos(yaw));var right=Vector2(-dir.y,dir.x)
  var body=vehicle.global_transform;var goal:Vector3;var target:Vector3
- cockpit.set_view(view==1,camera,vehicle,velocity,dt,distance)
+ cockpit.set_view(view==1 and not generic_car,camera,vehicle,velocity,dt,distance)
  # Read the body the renderer shows this frame: with physics/common/physics_interpolation
  # on, Node3D.get_global_transform_interpolated() is the interpolated transform, and
  # with it off it returns global_transform unchanged (Godot 4.7).
  body=vehicle.get_global_transform_interpolated()
  var head_up=Vector3.UP
- if view==1:
+ if view==1 and generic_car:
+  # Generated cars: the eye point from the car file, looking down the road.
+  var eye:Vector3=vehicle.spec.driver_eye
+  goal=body*eye;target=body*(eye+Vector3(0,-.32,-12.));head_up=body.basis.y
+  camera.fov=70.
+ elif view==1:
   # Driver view: the lagged head model in Cockpit.gd, reset on teleports and view changes.
   if camera_snap:cockpit.reset_head()
   var head=cockpit.head_view(body,vehicle,velocity,dt)
@@ -717,6 +742,16 @@ func stream_canopy():
   canopy_job=Thread.new()
   canopy_job.start(fetch_canopy.bind(best,preload("res://SignalControls.gd").eligible(tiles[best])))
 
+# Switch to the next car in res://cars and reopen the drive where it is now.
+func cycle_car():
+ var ids=preload("res://CarSpec.gd").available()
+ if ids.is_empty():return
+ var next=ids[(ids.find(vehicle.spec.id)+1)%ids.size()]
+ driving_preferences.remember("car",next)
+ if ready_drive:
+  var here=player_coordinates()
+  driving_preferences.remember("resume_place","%.6f,%.6f,%s"%[here.y,here.x,current_title.replace(",",";")])
+ get_tree().reload_current_scene()
 func player_coordinates():
  var xx=float(origin.x)+pos.x/side
  var yy=float(origin.y)+pos.y/side
