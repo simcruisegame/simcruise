@@ -1,13 +1,19 @@
 extends RigidBody3D
 # SI units, +X right, -Z forwards. Springs, dampers, tires and brakes act at each contact.
-const GEARS=[3.136,1.888,1.330,1.0,.814]
-const FINAL_DRIVE=4.30
-# 195/50R15 nominal free radius. Effective loaded rolling circumference still needs measurement.
-const R=(15.*.0254*.5)+(.195*.50)
+# Every car-specific number comes from a CarSpec (res://cars/*.json); the
+# defaults are the 1999 NB Sport, so the Miata's calibration is unchanged.
 const SPORT=preload("res://NB1999Sport.gd")
-const WHEELBASE_M=2.266
-const PARKING_RACK_RAD = 36.6 * PI / 180.0
-const ROAD_ASSIST_REFERENCE_RAD = 35.5 * PI / 180.0
+const CAR_SPEC=preload("res://CarSpec.gd")
+const SUSPENSION=preload("res://CarSuspension.gd")
+var spec
+var suspension
+var GEARS:Array
+var FINAL_DRIVE:float
+# Nominal free radius from the tyre size. Effective loaded rolling circumference still needs measurement.
+var R:float
+var WHEELBASE_M:float
+var PARKING_RACK_RAD:float
+var ROAD_ASSIST_REFERENCE_RAD:float
 # Steering map. Assisted lets a full key or stick ask for the rack angle at the
 # front axle's grip limit: the Ackermann angle for ASSIST_LATERAL_G plus the
 # front-minus-rear slip this tyre model carries at the limit, never more than
@@ -16,17 +22,17 @@ const ROAD_ASSIST_REFERENCE_RAD = 35.5 * PI / 180.0
 # servo such as checks/Track.gd. A car mounted as a scene's `vehicle` is driven
 # by a person, so it enters the tree Assisted; --direct-steering keeps Direct.
 var steering_assist := false
-const ASSIST_LATERAL_G = 0.95
+var ASSIST_LATERAL_G:float
 # Rack beyond Ackermann this tyre model needs at the limit: Track.gd's 20.0 m/s
 # lap holds 0.885 g with about 0.40 × 18.9° = 7.6° of rack, 2.9° of it Ackermann.
 # A held key at 45 mph then reaches 0.86-0.97 g with 10-11° of front slip (the
 # curve peaks near 14°). A tyre curve with a sharper peak would lower this.
-const LIMIT_SLIP_SURPLUS_RAD = 5.0 * PI / 180.0
+var LIMIT_SLIP_SURPLUS_RAD:float
 const LOCK_BLEND_RAD = 3.0 * PI / 180.0
 # A held key moves the rack at a hand's pace: the previous 2.75/s of lock while
 # parking, easing to 12°/s (about 160°/s at the wheel) by highway speed, so a
 # half-second tap at 60 mph reaches 6° instead of the lock. Release is quicker.
-const KEY_RACK_RATE_PARKING_RAD_S = 2.75 * PARKING_RACK_RAD
+var KEY_RACK_RATE_PARKING_RAD_S:float
 const KEY_RACK_RATE_HIGHWAY_RAD_S = 12.0 * PI / 180.0
 const KEY_RETURN_RATE_MIN_RAD_S = 24.0 * PI / 180.0
 const KEY_RETURN_FACTOR = 1.6
@@ -36,11 +42,11 @@ var roof_down := false
 var flipped_seconds := 0.
 var stuck_seconds := 0.
 var stranded_seconds := 0.
-const REST=SPORT.MAX_TRAVEL_M
+var REST:float
 var wheel_camber=[0.,0.,0.,0.]
 var wheel_heading=[0.,0.,0.,0.]
-const MOUNTS=[Vector3(-.707,.51,-1.133),Vector3(.707,.51,-1.133),Vector3(-.720,.51,1.133),Vector3(.720,.51,1.133)]
-const WHEEL_I=1.05
+var MOUNTS:Array
+var WHEEL_I:float
 const G=9.80665
 var connected_wheels=[]
 var omega=[0.,0.,0.,0.]
@@ -57,28 +63,45 @@ var manual=false
 var selected_gear=1  # -1 reverse, 0 neutral, 1..5 forward
 var clutch_pedal=0.0
 var stalled=false
+var tc_cut:=0.
+func _init():
+ use_spec(CAR_SPEC.new())
+# Install a car. Call before setup(); the body, contacts and wheels follow it.
+func use_spec(car_spec):
+ spec=car_spec;suspension=SUSPENSION.new(spec)
+ GEARS=spec.gears;FINAL_DRIVE=spec.final_drive;R=spec.tire_radius_m();WHEELBASE_M=spec.wheelbase_m
+ PARKING_RACK_RAD=spec.parking_rack_deg * PI / 180.0
+ ROAD_ASSIST_REFERENCE_RAD=spec.road_reference_deg * PI / 180.0
+ ASSIST_LATERAL_G=spec.assist_lateral_g
+ LIMIT_SLIP_SURPLUS_RAD=spec.limit_slip_surplus_deg * PI / 180.0
+ KEY_RACK_RATE_PARKING_RAD_S=2.75 * PARKING_RACK_RAD
+ REST=spec.max_travel_m;MOUNTS=spec.mounts();WHEEL_I=spec.wheel_inertia
+ LATERAL_GRIP_SCALE=spec.lateral_grip_scale;static_mu=spec.static_mu;SIDE_RELAXATION_M=spec.relaxation_m
+ rpm=spec.idle_rpm;engine_omega=spec.idle_omega
+func electric()->bool:return spec.engine=="electric"
 func set_manual(enabled):
+ if electric():enabled=false
  manual=enabled;clutch_pedal=0.;stalled=false
  selected_gear=-1 if in_reverse else gear+1
- engine_omega=maxf(engine_omega,89.)
+ engine_omega=maxf(engine_omega,spec.idle_omega)
  if manual and linear_velocity.length()<1.:select_ratio(0)
 func select_ratio(ratio):
  selected_gear=ratio
  in_reverse=ratio==-1
- gear=clampi(ratio-1,0,4)
+ gear=clampi(ratio-1,0,GEARS.size()-1)
 func change_gear(step):
  if not manual:return ""
- var proposed=clampi(selected_gear+step,-1,5)
+ var proposed=clampi(selected_gear+step,-1,GEARS.size())
  if proposed==selected_gear:return ""
  if clutch_pedal<.75:return "Hold the clutch to change gear"
  var forward_speed=-linear_velocity.dot(global_transform.basis.z)
  if (proposed==-1 and forward_speed>1.) or (proposed>0 and forward_speed< -1.):return "Stop before changing direction"
- if proposed>0 and absf(forward_speed)/R*GEARS[proposed-1]*FINAL_DRIVE*60./TAU>7200.:return "Speed is too high for that gear"
+ if proposed>0 and absf(forward_speed)/R*GEARS[proposed-1]*FINAL_DRIVE*60./TAU>spec.max_gear_rpm:return "Speed is too high for that gear"
  select_ratio(proposed)
  return ""
 func start_engine():
  if manual and stalled and (selected_gear==0 or clutch_pedal>.75):
-  engine_omega=89.;rpm=850.;stalled=false
+  engine_omega=spec.idle_omega;rpm=spec.idle_rpm;stalled=false
 func gear_text():
  if manual:
   if selected_gear==0:return "N"
@@ -89,13 +112,13 @@ var steering_input=0.
 var steering=0.
 var wheel_contact=0
 var service_brake=false
-const LATERAL_GRIP_SCALE=1.105
-var static_mu=.963
+var LATERAL_GRIP_SCALE:float
+var static_mu:float
 var surface_grip=[1.,1.,1.,1.]
 var spring_load=[0.,0.,0.,0.]
 # Rolling distance to 63% of steady small-slip response. This is a representative
 # passenger radial estimate; no transient force records for the OE 195/50R15.
-const SIDE_RELAXATION_M = 0.35
+var SIDE_RELAXATION_M:float
 var rolling_slip = [0.,0.,0.,0.]
 
 func contact_slip(i: int, longitudinal: float, transverse: float, dt: float) -> float:
@@ -115,14 +138,14 @@ func contact_slip(i: int, longitudinal: float, transverse: float, dt: float) -> 
  # value for an entire Jolt tick would advance the lateral impulse in time.
  return target-change*fraction/travelled
 func setup():
- mass=1043.;freeze=true;can_sleep=false;continuous_cd=true
- center_of_mass_mode=RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM;center_of_mass=Vector3(0,.435,(.5-SPORT.FRONT_WEIGHT)*2.266)
- inertia=Vector3(1130,1260,370)
+ mass=spec.mass_kg;freeze=true;can_sleep=false;continuous_cd=true
+ center_of_mass_mode=RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM;center_of_mass=Vector3(0,spec.cg_height_m,(.5-spec.front_weight)*spec.wheelbase_m)
+ inertia=spec.inertia
  linear_damp_mode=RigidBody3D.DAMP_MODE_REPLACE;linear_damp=0
- angular_damp_mode=RigidBody3D.DAMP_MODE_REPLACE;angular_damp=.02
- var box=BoxShape3D.new();box.size=Vector3(1.56,.49,3.65);var c=CollisionShape3D.new();c.shape=box;c.position.y=.46;add_child(c)
+ angular_damp_mode=RigidBody3D.DAMP_MODE_REPLACE;angular_damp=spec.angular_damp
+ var box=BoxShape3D.new();box.size=spec.collision_box;var c=CollisionShape3D.new();c.shape=box;c.position.y=spec.collision_box_y;add_child(c)
  for pos in MOUNTS:
-  var wh=Node3D.new();wh.position=pos-Vector3.UP*.205;add_child(wh);connected_wheels.append(wh)
+  var wh=Node3D.new();wh.position=pos-Vector3.UP*spec.hub_drop_m;add_child(wh);connected_wheels.append(wh)
 func _notification(what):
  # Decided at add_child time (a SceneTree bench's root is not in the tree yet
  # during _initialize, so _enter_tree would land after the bench picked a mode).
@@ -139,12 +162,12 @@ func restart(pos:Vector3,head:float):
  sound_throttle=0.;sound_combustion=0.;sound_shaft_load=0.
  selected_gear=0 if manual else 1;clutch_pedal=0.;stalled=false
  roof_down=false;flipped_seconds=0.;stuck_seconds=0.;stranded_seconds=0.
- omega=[0.,0.,0.,0.];gear=0;in_reverse=false;shift_time=0.;steering=0;steering_input=0;service_brake=false;rpm=850;engine_omega=rpm*TAU/60.;reset_physics_interpolation()
+ omega=[0.,0.,0.,0.];gear=0;in_reverse=false;shift_time=0.;steering=0;steering_input=0;service_brake=false;rpm=spec.idle_rpm;engine_omega=rpm*TAU/60.;reset_physics_interpolation()
 func crank_torque(n):
- var curve=[Vector2(800,94),Vector2(1750,127),Vector2(3000,146),Vector2(4150,151),Vector2(5000,161),Vector2(5900,156),Vector2(6500,153),Vector2(7000,137)]
+ var curve=spec.torque_curve
  for i in range(1,curve.size()):
   if n<=curve[i].x:return lerpf(curve[i-1].y,curve[i].y,clampf(inverse_lerp(curve[i-1].x,curve[i].x,n),0,1))
- return 120.
+ return spec.torque_past_curve_nm
 # Polynomial smooth minimum (Quilez): equals the smaller value once the two
 # differ by more than k, and rounds the corner where they cross.
 static func smooth_min(a:float, b:float, k:float) -> float:
@@ -154,7 +177,7 @@ static func smooth_min(a:float, b:float, k:float) -> float:
 # Rack angle a full press asks for at this speed. Assisted: the Ackermann angle
 # for ASSIST_LATERAL_G plus the slip surplus at the limit, blended into the
 # parking lock where the two meet (about 6 m/s). Direct: the previous map.
-static func available_steering(speed_mps:float, assisted:bool=true) -> float:
+func available_steering(speed_mps:float, assisted:bool=true) -> float:
  var speed := absf(speed_mps)
  if not assisted:
   var road_angle := ROAD_ASSIST_REFERENCE_RAD / (1.0 + speed * 0.044)
@@ -163,7 +186,7 @@ static func available_steering(speed_mps:float, assisted:bool=true) -> float:
  return smooth_min(PARKING_RACK_RAD, limit_angle, LOCK_BLEND_RAD)
 
 # How fast a held key moves the rack at this speed, in radians per second.
-static func key_rack_rate(speed_mps:float) -> float:
+func key_rack_rate(speed_mps:float) -> float:
  return lerpf(KEY_RACK_RATE_PARKING_RAD_S, KEY_RACK_RATE_HIGHWAY_RAD_S, smoothstep(5.0, 25.0, absf(speed_mps)))
 
 # A stick has a few millimetres of thumb travel. Allocate its center to ordinary
@@ -217,24 +240,25 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
  steering=steering_input*cap
  roof_down=b.y.dot(Vector3.UP)<.2
  flipped_seconds=flipped_seconds+dt if roof_down else 0.
- var rack=absf(steering);var radius=2.266/maxf(.001,tan(rack))
- var inner=lerpf(rack,atan(2.266/maxf(.2,radius-.707)),.49);var outer=lerpf(rack,atan(2.266/(radius+.707)),.49)
+ var half_track=spec.track_front_m*.5;var blend=spec.ackermann_blend
+ var rack=absf(steering);var radius=WHEELBASE_M/maxf(.001,tan(rack))
+ var inner=lerpf(rack,atan(WHEELBASE_M/maxf(.2,radius-half_track)),blend);var outer=lerpf(rack,atan(WHEELBASE_M/(radius+half_track)),blend)
  var space=get_world_3d().direct_space_state;var up=b.y;var origin=global_position;var com=origin+b*center_of_mass
  var points=[];var lengths=[REST,REST,REST,REST];wheel_contact=0
  for i in 4:
   var src=origin+b*MOUNTS[i];var ray=PhysicsRayQueryParameters3D.create(src,src-up*(REST+R),1,[get_rid()]);ray.hit_from_inside=false
   var hit=space.intersect_ray(ray);var row=[]
   if hit.size() and hit.normal.dot(up)>.33:
-   var p:Vector3=hit.position;var n:Vector3=hit.normal;var len=clampf((src-p).dot(up)-R,SPORT.MIN_TRAVEL_M,REST);lengths[i]=len
+   var p:Vector3=hit.position;var n:Vector3=hit.normal;var len=clampf((src-p).dot(up)-R,spec.min_travel_m,REST);lengths[i]=len
    var arm=p-com;var v=vel+angular_velocity.cross(arm)
    var axle=0 if i<2 else 1
-   var load=SPORT.contact_load(axle,len,v.dot(n),mass)
+   var load=suspension.contact_load(axle,len,v.dot(n),mass)
    var sign_side=-1.0 if i%2==0 else 1.0
    var angle=signf(steering)*(inner if (i==0 and steering>0) or (i==1 and steering<0) else outer) if i<2 else 0.
-   angle+=sign_side*deg_to_rad(SPORT.TOE_PER_WHEEL_DEG)
-   var camber=SPORT.STATIC_CAMBER_DEG[axle]-(SPORT.STATIC_LENGTH_M-len)*SPORT.CAMBER_PER_M[axle]
+   angle+=sign_side*deg_to_rad(spec.toe_per_wheel_deg)
+   var camber=spec.static_camber_deg[axle]-(spec.static_length_m-len)*spec.camber_per_m[axle]
    wheel_camber[i]=-sign_side*deg_to_rad(camber)
-   if i<2:wheel_camber[i]+=sin(angle)*deg_to_rad(SPORT.CASTER_DEG)
+   if i<2:wheel_camber[i]+=sin(angle)*deg_to_rad(spec.caster_deg)
    wheel_heading[i]=angle
    var forward=(-b.z).rotated(up,angle).slide(n).normalized();var right=forward.cross(n).normalized()
    row=[p,n,load,forward,right,v.dot(forward),v.dot(right)];wheel_contact+=1
@@ -243,16 +267,16 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
  stuck_seconds=stuck_seconds+dt if wheel_contact==0 and vel.length()<1. else 0.
  stranded_seconds=stranded_seconds+dt if flipped_seconds>1.5 or stuck_seconds>2. else 0.
  for i in 4:
-  if not points[i].is_empty():points[i][2]=maxf(0.,points[i][2]+(lengths[i^1]-lengths[i])*SPORT.roll_bar_rate(0 if i<2 else 1))
- var forward_ratio=(3.758 if in_reverse else GEARS[gear])*FINAL_DRIVE
+  if not points[i].is_empty():points[i][2]=maxf(0.,points[i][2]+(lengths[i^1]-lengths[i])*suspension.roll_bar_rate(0 if i<2 else 1))
+ var forward_ratio=(spec.reverse_ratio if in_reverse else GEARS[gear])*FINAL_DRIVE
  var sign_dir=-1. if in_reverse else 1.
- var axle_speed=maxf(0.,(omega[2]+omega[3])*.5*sign_dir)
+ var axle_speed=maxf(0.,driven_omega()*sign_dir)
  shift_time=maxf(0,shift_time-dt)
  if not manual and shift_time<=0 and not in_reverse:
   var next=gear
-  if rpm>6700 and gear<4 and absf(speed)*forward_ratio/R>590:next+=1
-  elif rpm<2100 and gear>0:next-=1
-  if next!=gear:gear=next;shift_time=.21;forward_ratio=GEARS[gear]*FINAL_DRIVE
+  if rpm>spec.upshift_rpm and gear<GEARS.size()-1 and absf(speed)*forward_ratio/R>spec.upshift_min_omega:next+=1
+  elif rpm<spec.downshift_rpm and gear>0:next-=1
+  if next!=gear:gear=next;shift_time=spec.shift_seconds;forward_ratio=GEARS[gear]*FINAL_DRIVE
  var net=[0.,0.,0.,0.];var side=[0.,0.,0.,0.]
  for i in 4:
   if points[i].is_empty():
@@ -264,45 +288,57 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
   if fz>0:slip_angle=contact_slip(i,row[5],row[6],dt)
   else:rolling_slip[i]=0.
   # Saturating slip-angle curve; a loaded outside tyre gains less grip per unit of load.
-  var mu=clampf(static_mu*(1.-.095*(fz/2557.-1)),.7,1.16)*surface_grip[i]
-  var lateral=-fz*mu*LATERAL_GRIP_SCALE*tanh(slip_angle*10.8)*(1.-.13*smoothstep(.18,.65,absf(slip_angle)))
+  var mu=clampf(static_mu*(1.-spec.load_sensitivity*(fz/spec.reference_corner_load_n-1)),spec.mu_min,spec.mu_max)*surface_grip[i]*float(spec.axle_grip[0 if i<2 else 1])
+  var lateral=-fz*mu*LATERAL_GRIP_SCALE*tanh(slip_angle*spec.slip_stiffness)*(1.-spec.slip_falloff*smoothstep(spec.slip_falloff_from,spec.slip_falloff_to,absf(slip_angle)))
   var road_lean=asin(clampf(b.x.dot(row[1]),-1.,1.))
-  lateral-=fz*.48*(wheel_camber[i]+road_lean)*minf(1.,absf(row[5])/3.)
+  lateral-=fz*spec.camber_thrust*(wheel_camber[i]+road_lean)*minf(1.,absf(row[5])/3.)
   side[i]=lateral;row.append(mu)
+ # Traction control (cars that have it): trim the throttle while the driven
+ # wheels spin faster than the road by more than the target slip ratio.
+ if spec.traction_control and throttle>0.:
+  var surface_speed=absf(driven_omega())*R
+  var slip=(surface_speed-absf(speed))/maxf(absf(speed),3.)
+  tc_cut=move_toward(tc_cut,clampf((slip-spec.tc_target_slip)*spec.tc_gain,0.,.9),dt*6.)
+  throttle*=1.-tc_cut
  sound_throttle=throttle
  sound_combustion=0.
  sound_shaft_load=0.
  for step in 6:
-  var ds=dt/6.;rpm=engine_omega*60/TAU;var friction=10.+.0020*rpm
-  var torque=(crank_torque(rpm)+friction)*throttle if rpm<7040 else 0.
-  var drag=friction*(1.0 if rpm>850 else .5)
-  var governor=clampf((875-rpm)*.8,0,100.)
-  axle_speed=(omega[2]+omega[3])*.5*sign_dir
-  var clutch_load=clampf((engine_omega-axle_speed*forward_ratio)*12.0,-200.,210.)
-  var target=1000.+throttle*2250.
-  if manual:
-   var capacity=210.*(1.-smoothstep(.16,.88,clutch_pedal))
-   clutch_load=0. if selected_gear==0 else clampf((engine_omega-axle_speed*forward_ratio)*10.,-capacity,capacity)
-   if stalled:torque=0.;governor=0.;drag=minf(26.,engine_omega*.85)
-  elif axle_speed*forward_ratio*60/TAU<target and clutch_load>0:
-   clutch_load=minf(clutch_load,maxf(0.,torque-drag+(rpm-target)*.16))
-  if shift_time>0:clutch_load=0;torque*=.12
-  if not manual and throttle<.01 and rpm<1050 and absf(speed)<3:clutch_load=0
-  sound_combustion+=(torque+governor)/(6.*180.)
-  sound_shaft_load+=clutch_load/(6.*180.)
-  engine_omega=clampf(engine_omega+(torque+governor-drag-clutch_load)*ds/.18,0. if manual else 78.,750.)
-  if manual and not stalled and engine_omega<35.:stalled=true
-  var axle_torque=clutch_load*forward_ratio*.895*sign_dir
-  var drive_torque=SPORT.differential_torque(axle_torque,omega[2],omega[3],WHEEL_I,ds,clutch_load>0.)
+  var ds=dt/6.
+  var clutch_load:float
+  if electric():
+   clutch_load=motor_torque(throttle,forward_ratio,sign_dir,speed)
+  else:
+   rpm=engine_omega*60/TAU;var friction=spec.engine_friction_nm+spec.engine_friction_per_rpm*rpm
+   var torque=(crank_torque(rpm)+friction)*throttle if rpm<spec.fuel_cut_rpm else 0.
+   var drag=friction*(1.0 if rpm>spec.idle_rpm else .5)
+   var governor=clampf((spec.governor_rpm-rpm)*.8,0,100.)
+   axle_speed=driven_omega()*sign_dir
+   clutch_load=clampf((engine_omega-axle_speed*forward_ratio)*spec.clutch_stiffness,-spec.clutch_back_nm,spec.clutch_capacity_nm)
+   var target=spec.launch_rpm+throttle*spec.launch_rpm_per_throttle
+   if manual:
+    var capacity=spec.clutch_capacity_nm*(1.-smoothstep(.16,.88,clutch_pedal))
+    clutch_load=0. if selected_gear==0 else clampf((engine_omega-axle_speed*forward_ratio)*spec.manual_clutch_stiffness,-capacity,capacity)
+    if stalled:torque=0.;governor=0.;drag=minf(26.,engine_omega*.85)
+   elif axle_speed*forward_ratio*60/TAU<target and clutch_load>0:
+    clutch_load=minf(clutch_load,maxf(0.,torque-drag+(rpm-target)*.16))
+   if shift_time>0:clutch_load=0;torque*=.12
+   if not manual and throttle<.01 and rpm<spec.idle_rpm+200. and absf(speed)<3:clutch_load=0
+   sound_combustion+=(torque+governor)/(6.*180.)
+   sound_shaft_load+=clutch_load/(6.*180.)
+   engine_omega=clampf(engine_omega+(torque+governor-drag-clutch_load)*ds/spec.engine_inertia,0. if manual else spec.min_omega_auto,spec.max_omega)
+   if manual and not stalled and engine_omega<spec.stall_omega:stalled=true
+  var axle_torque=clutch_load*forward_ratio*spec.driveline_efficiency*sign_dir
+  var drive_torque=wheel_torques(axle_torque,ds,clutch_load>0. if not electric() else absf(clutch_load)>0.)
   for i in 4:
-   var wheel_t=drive_torque[i-2] if i>1 else 0.
-   var br=brake_amount*(1150. if i<2 else 650.)
-   if InputMap.has_action("parking_brake") and Input.is_action_pressed("parking_brake") and i>1:br=maxf(br,900.)
+   var wheel_t=drive_torque[i]
+   var br=brake_amount*(spec.brake_front_nm if i<2 else spec.brake_rear_nm)
+   if InputMap.has_action("parking_brake") and Input.is_action_pressed("parking_brake") and i>1:br=maxf(br,spec.parking_brake_nm)
    var spin=move_toward(omega[i]+wheel_t*ds/WHEEL_I,0.,br*ds/WHEEL_I);var row=points[i]
    if row.is_empty():omega[i]=spin;continue
    var fz=float(row[2]);var fxmax=fz*float(row[7])
    # Solve wheel inertia and contact force together for stable rolling at low speed.
-   var long_stiff=(fz*12.)/maxf(1.5,absf(row[5]))
+   var long_stiff=(fz*spec.longitudinal_stiffness)/maxf(1.5,absf(row[5]))
    var fx=long_stiff*(spin*R-float(row[5]))/(1.+long_stiff*R*R*ds/WHEEL_I)
    var fy=float(side[i]);var budget=Vector2(fx,fy/LATERAL_GRIP_SCALE).length()
    if budget>fxmax and budget>.01:fx*=fxmax/budget;fy*=fxmax/budget
@@ -329,7 +365,50 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
   var row=points[i];if row.is_empty():continue
   apply_force(row[1]*row[2]+row[3]*net[i]+row[4]*row[8],row[0]-origin)
  if vel.length()>.02:
-  apply_central_force(-vel.normalized()*.5*1.225*.65*vel.length_squared())
-  var rolling=vel.slide(Vector3.UP);if rolling.length()>.01 and wheel_contact>0:apply_central_force(-rolling.normalized()*minf(rolling.length()*mass/dt,mass*G*.012))
+  apply_central_force(-vel.normalized()*.5*1.225*spec.drag_area_m2*vel.length_squared())
+  var rolling=vel.slide(Vector3.UP);if rolling.length()>.01 and wheel_contact>0:apply_central_force(-rolling.normalized()*minf(rolling.length()*mass/dt,mass*G*spec.rolling_resistance))
  rpm=engine_omega*60/TAU
  return speed
+
+# Mean speed of the driven wheels as the propeller shaft sees it. An AWD centre
+# differential with front share s turns at s·front + (1−s)·rear.
+func driven_omega()->float:
+ match spec.layout:
+  "fwd":return (omega[0]+omega[1])*.5
+  "awd":return spec.awd_front_share*(omega[0]+omega[1])*.5+(1.-spec.awd_front_share)*(omega[2]+omega[3])*.5
+ return (omega[2]+omega[3])*.5
+
+# Axle torque to the four wheels through the centre and axle differentials.
+func wheel_torques(axle_torque:float,ds:float,drive:bool)->Array:
+ match spec.layout:
+  "fwd":
+   var f=SUSPENSION.differential_torque(axle_torque,omega[0],omega[1],WHEEL_I,ds,drive,spec.front_diff_bias)
+   return [f.x,f.y,0.,0.]
+  "awd":
+   var s:float=spec.awd_front_share
+   var front=axle_torque*s;var rear=axle_torque*(1.-s)
+   if drive and spec.center_bias>1. and ds>0.:
+    # Limited-slip centre: torque moves toward the slower axle within the bias.
+    var limit=absf(axle_torque)*.5*(spec.center_bias-1.)/(spec.center_bias+1.)
+    var gap=((omega[2]+omega[3])-(omega[0]+omega[1]))*.5*WHEEL_I*2./ds
+    var moved=clampf(gap,-limit,limit)
+    front+=moved;rear-=moved
+   var f=SUSPENSION.differential_torque(front,omega[0],omega[1],WHEEL_I,ds,drive,spec.front_diff_bias)
+   var r=SUSPENSION.differential_torque(rear,omega[2],omega[3],WHEEL_I,ds,drive,spec.rear_diff_bias)
+   return [f.x,f.y,r.x,r.y]
+ var v=SUSPENSION.differential_torque(axle_torque,omega[2],omega[3],WHEEL_I,ds,drive,spec.rear_diff_bias)
+ return [0.,0.,v.x,v.y]
+
+# Electric drive: constant torque to the base speed, constant power above it,
+# nothing past the motor's top speed; light regeneration when coasting.
+# Returns torque at the motor (the clutch_load slot of a combustion car).
+func motor_torque(throttle:float,ratio:float,sign_dir:float,speed:float)->float:
+ var motor_omega=driven_omega()*sign_dir*ratio
+ var available=minf(spec.motor_peak_torque_nm,spec.motor_peak_power_w/maxf(absf(motor_omega),1.))
+ if absf(motor_omega)*60./TAU>spec.motor_max_rpm:available=0.
+ var torque=available*throttle
+ if throttle<.01 and absf(speed)>1.:torque=-spec.regen_torque_nm*smoothstep(1.,5.,absf(speed))*signf(motor_omega)
+ engine_omega=absf(motor_omega)
+ sound_combustion+=absf(torque)/(6.*maxf(spec.motor_peak_torque_nm,1.))
+ sound_shaft_load+=torque/(6.*maxf(spec.motor_peak_torque_nm,1.))
+ return torque

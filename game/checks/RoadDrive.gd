@@ -199,7 +199,7 @@ func _physics_process(dt):
   if vert_g>1.:stats.jolt_10+=1;event("jolt %.1f g"%vert_g)
   stats.max_up_mps=maxf(stats.max_up_mps,v.y-0.)
  for i in 4:
-  if car.spring_load[i]>0. and car.connected_wheels[i].position.y>car.MOUNTS[i].y-car.SPORT.MIN_TRAVEL_M-.002:stats.bump_stop+=1
+  if car.spring_load[i]>0. and car.connected_wheels[i].position.y>car.MOUNTS[i].y-car.spec.min_travel_m-.002:stats.bump_stop+=1
  if car.roof_down:
   if stats.roof==0:event("roof down")
   stats.roof+=1
