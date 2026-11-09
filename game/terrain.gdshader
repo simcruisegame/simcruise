@@ -95,6 +95,37 @@ void fragment() {
    ground=mix(ground,soil*local_ratio*grit_gain,confidence);
   }
  }
+ // Steep ground: an aerial photograph is projected straight down, so on a
+ // slope above ~30° each pixel smears down the hill. Blend toward rock and
+ // soil sampled triplanar in world space (it cannot stretch), keeping the
+ // photo's broad local hue, with faint horizontal strata from world height
+ // the way road cuts and outcrops read. No extra data: slope comes from the
+ // geometry's own normal.
+ vec3 world_n = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
+ vec3 world_p = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+ float steep = smoothstep(0.15, 0.36, 1.0 - world_n.y);
+ if (steep > 0.0) {
+  vec3 tri_w = pow(abs(world_n), vec3(4.0)); tri_w /= max(tri_w.x + tri_w.y + tri_w.z, 0.0001);
+  float rock_detail = tri_w.x * dot(texture(grit, world_p.zy / 1.7).rgb, LUMA)
+   + tri_w.y * dot(texture(grit, world_p.xz / 1.7).rgb, LUMA)
+   + tri_w.z * dot(texture(grit, world_p.xy / 1.7).rgb, LUMA);
+  float rock_broad = tri_w.x * dot(texture(grit, world_p.zy / 9.0).rgb, LUMA)
+   + tri_w.y * dot(texture(grit, world_p.xz / 9.0).rgb, LUMA)
+   + tri_w.z * dot(texture(grit, world_p.xy / 9.0).rgb, LUMA);
+  vec3 hue = imagery ? textureLod(ortho, (UV + quadrant) * 0.25, 4.0).rgb : vec3(0.16, 0.15, 0.12);
+  float hue_light = dot(hue, LUMA);
+  // Exposed rock and soil: the local hue, half desaturated, kept in a plausible albedo range.
+  // Weathered rock and soil sit near 0.08-0.14 albedo; keep the photo's hue but
+  // not its forest shadow, which makes the canopy-dark photo too black.
+  vec3 earth = mix(vec3(hue_light), hue, 0.6) * clamp(0.075 / max(hue_light, 0.02), 0.6, 1.25);
+  float bands = sin(world_p.y * 4.1 + rock_broad * 11.0) * 0.5 + sin(world_p.y * 9.7 + rock_detail * 5.0) * 0.25;
+  float strata = clamp(0.5 + 0.5 * bands, 0.0, 1.0);
+  float grain = clamp((rock_detail - 0.22) * 3.2, -0.6, 0.6);
+  vec3 rock = earth * (0.95 + grain) * (0.72 + 0.48 * strata) * (0.85 + 0.35 * rock_broad);
+  // Vegetation clings where the photo is green and the slope is moderate.
+  float clinging = green * (1.0 - smoothstep(0.30, 0.55, 1.0 - world_n.y));
+  ground = mix(ground, rock, steep * (1.0 - 0.65 * clinging));
+ }
  vec3 paved = paved_surface(imagery ? aerial : paint, fine, broad, wear);
  vec3 unadjusted_paved = paved;
  paved = aerial_pavement(unadjusted_paved, aerial, UV);
