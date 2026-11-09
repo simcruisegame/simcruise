@@ -160,8 +160,10 @@ func _ready():
  spectral_ground.enabled=driving_preferences.values.spectral_ground or "--spectral-ground" in OS.get_cmdline_user_args()
  hud=HUD.new();add_child(hud);hud.build(self);hud.camera.connect(switch_view);hud.reset.connect(recover);hud.sound.connect(toggle_sound);hud.search_for.connect(search);hud.choose.connect(choose_place)
  hud.root.add_child(fps_label);fps_label.position=Vector2(18,58);fps_label.add_theme_font_size_override("font_size",15);fps_label.add_theme_constant_override("outline_size",5);fps_label.hide()
- helper=OS.get_executable_path().get_base_dir().path_join("atlas")
- if OS.has_feature("editor"):helper=ProjectSettings.globalize_path("res://../tools/atlas")
+ # The map helper ships beside the game executable (atlas.exe on Windows).
+ var helper_name="atlas.exe" if OS.get_name()=="Windows" else "atlas"
+ helper=OS.get_executable_path().get_base_dir().path_join(helper_name)
+ if OS.has_feature("editor"):helper=ProjectSettings.globalize_path("res://../tools/"+helper_name)
  cache=ProjectSettings.globalize_path("user://map-cache");DirAccess.make_dir_recursive_absolute(cache)
  for pair in [["gas",KEY_W,KEY_UP],["brake",KEY_S,KEY_DOWN],["left",KEY_A,KEY_LEFT],["right",KEY_D,KEY_RIGHT],["handbrake",KEY_SPACE,KEY_SPACE],["parking_brake",KEY_H,KEY_H],["clutch",KEY_SHIFT,KEY_SHIFT]]:
   InputMap.add_action(pair[0])
