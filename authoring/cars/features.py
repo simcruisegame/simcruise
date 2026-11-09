@@ -172,7 +172,13 @@ class Features:
                 mat = self.patch_material(f, sl)
                 for sd in sides:
                     v, fc, uv = self.patch_mesh(sl, f.get("lift", 0.002), f.get("rings", 7), sd)
-                    if f.get("uv") == "view":
+                    if isinstance(f.get("mat"), dict) and f["mat"].get("tex") == "photo":
+                        # the photograph projected head-on: each side samples its own half
+                        pm = f["mat"]["map"]; img = mat.node_tree.nodes["photo"].image
+                        Wi, Hi = img.size
+                        sg = -1.0 if pm.get("view", "front") == "front" else 1.0
+                        uv = [((pm["cx"] + sg * q[0] * pm["sx"]) / Wi, 1.0 - (pm["py0"] + (pm["z0"] - q[2]) * pm["sz"]) / Hi) for q in v]
+                    elif f.get("uv") == "view":
                         # centred parts (plates): one texture across both halves, seen upright
                         P = np.asarray(f["outline"], float)
                         Wd = max(P[:, 0].max(), 1e-6); z0, z1 = P[:, 1].min(), P[:, 1].max()
@@ -209,6 +215,29 @@ class Features:
         if isinstance(mat, str):
             return self.MATS[mat]
         style = mat["tex"]
+        if style == "photo":
+            name = mat["name"]
+            if name in self.MATS:
+                return self.MATS[name]
+            m = bpy.data.materials.new(name); m.use_nodes = True
+            nt = m.node_tree; b = nt.nodes["Principled BSDF"]
+            t = nt.nodes.new("ShaderNodeTexImage"); t.name = "photo"
+            t.image = bpy.data.images.load(mat["path"]); t.image.pack(); t.extension = "EXTEND"
+            nt.links.new(t.outputs["Color"], b.inputs["Base Color"])
+            b.inputs["Roughness"].default_value = mat.get("rough", 0.2)
+            if mat.get("coat", 0):
+                b.inputs["Coat Weight"].default_value = mat["coat"]; b.inputs["Coat Roughness"].default_value = 0.03
+            if mat.get("emit_mask"):
+                # brake lamps: only the masked (red lens) pixels glow; the game drives the strength
+                e = nt.nodes.new("ShaderNodeTexImage"); e.image = bpy.data.images.load(mat["emit_mask"]); e.image.pack()
+                nt.links.new(e.outputs["Color"], b.inputs["Emission Color"])
+                b.inputs["Emission Strength"].default_value = 0.2   # the game sets it (0 at rest, bright when braking)
+            elif mat.get("emission"):
+                nt.links.new(t.outputs["Color"], b.inputs["Emission Color"])
+                b.inputs["Emission Strength"].default_value = mat["emission"]
+            m.diffuse_color = (0.2, 0.2, 0.2, 1)
+            self.MATS[name] = m
+            return m
         if style == "image":
             m = bpy.data.materials.new(mat["name"]); m.use_nodes = True
             nt = m.node_tree; b = nt.nodes["Principled BSDF"]

@@ -7,7 +7,7 @@ CC BY-SA 4.0; front and rear views listed in docs/cars.md). Notchback with an
 upright greenhouse, hood scoop, black polygonal wheel-arch cladding and sill
 trim, quad exhaust.
 """
-from design_tools import row, L, sedan_regions, standard_lines
+from design_tools import row, L, sedan_regions, standard_lines, photo_map, photo_patch
 import importlib.util as _u, os as _os
 
 PLATE = __import__("os").path.join(__import__("os").path.dirname(__file__), "..", "..", "..", "game", "art", "plate.png")
@@ -117,38 +117,37 @@ def arch_band(name, yc, r_in, outer):
             "mat": {"tex": "grille", "name": "cladding", "pattern": "mesh", "scale": 90, "line": 0.08, "base": "#151618", "rib": "#1d1f22", "rough": 0.75, "coat": 0}}
 
 
-FEATURES = [
-    {"kind": "patch", "name": "headlamp", "view": "xyz", "radius": 0.035, "lift": 0.0025,
-     "outline": [(.86, 1.70, .772), (.85, 1.86, .735), (.80, 2.0, .705), (.68, 2.12, .695), (.50, 2.175, .70),
-                 (.48, 2.165, .752), (.62, 2.13, .782), (.76, 2.05, .80), (.84, 1.90, .806), (.862, 1.76, .797)],
-     "mat": {"tex": "headlamp", "name": "lamp_front", "size": (512, 160), "cells": [0.62, 0.78], "cell_r": 0.05,
-             "amber_u": (0.0, 0.18), "pipe_in": 0.12, "emission": 2.0}},
-    {"kind": "patch", "name": "grille", "view": "front", "lift": 0.002, "radius": 0.03,
-     "outline": [(0, .48), (.30, .49), (.40, .56), (.42, .66), (.36, .73), (0, .745)],
-     "mat": {"tex": "grille", "name": "grille_hex", "pattern": "honeycomb", "scale": 16, "rough": 0.5, "coat": 0.3}},
-    {"kind": "patch", "name": "intake", "view": "front", "lift": 0.002, "radius": 0.02,
-     "outline": [(0, .27), (.42, .28), (.47, .31), (.42, .40), (0, .41)],
-     "mat": {"tex": "grille", "name": "grille_slats", "pattern": "honeycomb", "scale": 30, "line": 0.15, "rough": 0.55, "coat": 0.2}},
-    {"kind": "patch", "name": "corner_intake", "view": "front", "lift": 0.002, "radius": 0.02,
-     "outline": [(.55, .30), (.80, .33), (.84, .45), (.62, .47), (.52, .40)], "mat": "satin"},
+# Front and tail from head-on photographs (the Miata method): "The frontview of
+# Subaru WRX STI Sport# (5BA-VBH tuned).jpg" and "The rearview of Subaru WRX STI
+# Sport# (5BA-VBH tuned).jpg" by Tokumeigakarinoaoshima, Wikimedia Commons, CC0;
+# badges and plates painted out (photo_prep.py).
+_P = lambda f: _os.path.join(_os.path.dirname(__file__), "..", "photos", f)
+FRONT = photo_map(_P("tora_rs_front.jpg"), cx=682, sx=742, z0=.80, py0=60, sz=964)
+REAR = photo_map(_P("tora_rs_rear.jpg"), cx=720, sx=772, z0=.96, py0=125, sz=894, view="rear")
+_f = lambda pts: [(x - 290, y - 640) for (x, y) in pts]
+_r = lambda pts: [(x - 250, y - 480) for (x, y) in pts]
+PHOTOS = [
+    photo_patch("headlamp", FRONT, _f([(332, 700), (420, 725), (500, 762), (565, 800), (575, 835), (500, 830), (420, 812), (350, 795), (335, 760)]),
+                "photo_front", rough=.15, coat=1.0),
+    photo_patch("grille", FRONT, _f([(972, 812), (640, 815), (578, 858), (640, 950), (700, 1010), (972, 1018)]), "photo_front", lift=.004),
+    photo_patch("corner_intake", FRONT, _f([(325, 935), (450, 960), (560, 1060), (555, 1130), (440, 1135), (330, 1090), (318, 1000)]), "photo_front"),
+    photo_patch("intake", FRONT, _f([(972, 1085), (600, 1095), (570, 1150), (620, 1190), (972, 1195)]), "photo_front"),
+    photo_patch("tail", REAR, _r([(970, 545), (1440, 548), (1560, 590), (1630, 640), (1645, 780), (1648, 900), (1640, 1000),
+                                 (1600, 1080), (1500, 1150), (1300, 1185), (970, 1195)]), "lamp_rear", lift=.004, rough=.25, coat=1.0,
+                emit_mask=_P("tora_rs_rear_emit.jpg")),
+]
+
+FEATURES = PHOTOS + [
     {"kind": "patch", "name": "front_lip", "view": "front", "lift": 0.002,
      "outline": [(0, .238), (.62, .25), (.70, .29), (.64, .30), (0, .27)], "mat": "satin"},
     arch_band("clad_front", 1.335, .43, [(1.84, .30), (1.86, .52), (1.74, .70), (1.50, .80), (1.17, .80), (.96, .68), (.88, .48), (.88, .30)]),
     arch_band("clad_rear", -1.335, .43, [(-.86, .30), (-.88, .50), (-.98, .68), (-1.20, .80), (-1.52, .80), (-1.76, .70), (-1.86, .52), (-1.86, .32)]),
     {"kind": "patch", "name": "sill_trim", "view": "side", "lift": 0.002, "radius": 0.02,
      "outline": [(.86, .21), (-.86, .21), (-.86, .30), (.86, .30)], "mat": "satin"},
-    {"kind": "patch", "name": "taillamp", "view": "xyz", "radius": 0.035, "lift": 0.0025,
-     "outline": [(.88, -1.98, .90), (.89, -2.12, .83), (.82, -2.30, .80), (.62, -2.37, .81), (.45, -2.39, .84),
-                 (.45, -2.385, .90), (.62, -2.37, .93), (.80, -2.32, .955), (.87, -2.20, .96), (.885, -2.06, .945)],
-     "mat": {"tex": "taillamp", "name": "lamp_rear", "size": (512, 160), "reverse_u": (0.08, 0.2), "guides": [(0.1, 0.05), (0.25, 0.05), (0.55, 0.04)]}},
-    {"kind": "patch", "name": "plate_rear", "view": "rear", "lift": 0.004,
+    {"kind": "patch", "name": "plate_rear", "view": "rear", "lift": 0.008,
      "outline": [(0, .60), (.155, .60), (.155, .752), (0, .752)], "uv": "view", "mat": {"tex": "image", "name": "plate_r", "path": PLATE}},
     {"kind": "patch", "name": "plate_front", "view": "front", "lift": 0.006,
      "outline": [(0, .295), (.155, .295), (.155, .40), (0, .40)], "uv": "view", "mat": {"tex": "image", "name": "plate_f", "path": PLATE}},
-    {"kind": "patch", "name": "diffuser", "view": "rear", "lift": 0.002, "radius": 0.02,
-     "outline": [(0, .29), (.62, .30), (.74, .38), (.66, .40), (0, .385)], "mat": "satin"},
-    {"kind": "patch", "name": "reflector", "view": "rear", "lift": 0.002, "radius": 0.008,
-     "outline": [(.70, .42), (.84, .43), (.84, .445), (.70, .435)], "mat": {"tex": "reflector", "name": "reflector", "size": (128, 32)}},
 ] + standard_lines(R,
                    door_front=[(.86, .96), (.90, .7), (.92, .5), (.90, .30)],
                    door_mid=[(-.24, .98), (-.25, .6), (-.24, .30)],
@@ -162,7 +161,7 @@ DESIGN = {
     "track_f": 1.565, "track_r": 1.58, "tire_w": .245, "tire_r": .3266, "rim_in": 18,
     "rows": ROWS, "ds": .036, "dl": .026, "level_crease": LEVEL_CREASE, "regions": REGIONS,
     "arch_r": (.415, .415), "arch_z": .335,
-    "paint": "#1d4f9c", "paint_metal": 0.5, "rim": "#2a2c30", "caliper": "#26282b", "spokes": "multi",
+    "paint": "#1a4aa6", "paint_metal": 0.5, "rim": "#2a2c30", "caliper": "#26282b", "spokes": "multi",
     "features": FEATURES,
     "eye": (-.366, .05, 1.16),
     "cabin": {"seat_accent": "#2a2c30", "accent": "#e84a2a", "shifter": "manual", "screen": (.18, .26), "screen_up": -.04,
@@ -172,7 +171,7 @@ DESIGN = {
     "mirror": {"at": (.876, .64, .975), "size": (.2, .11, .125), "mat": "paint", "out": 0.035, "dz": 0.075, "dy": -0.03},
     "handles": [{"at": (.92, -.05, .86), "mat": "paint"}, {"at": (.92, -.98, .87), "mat": "paint"}],
     "wing": {"span": 1.10, "chord": .08, "y": -2.19, "z": 1.09, "thick": .014, "sweep": .02, "rise": .003, "stand_h": 0, "plates": False, "mat": "paint"},
-    "exhaust": {"x": [.40, .51, -.40, -.51], "y": -2.38, "z": .33, "r": .045},
+    
     "fin": {"y": -.72},
     "scoop": {"y": 1.42, "len": .44, "w": .56, "h": .06},
     "wipers": {"blades": [(-.60, .02, 1.02, 1.02), (.04, .55, 1.04, 1.01)], "angle": 3},

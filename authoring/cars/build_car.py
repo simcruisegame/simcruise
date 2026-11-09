@@ -80,8 +80,8 @@ def material(name, color, rough=0.5, metal=0.0, coat=0.0, alpha=1.0, emission=No
 
 def base_materials():
     material("paint", D.get("paint", "#1f4e79"), 0.3, D.get("paint_metal", 0.35), coat=1.0)
-    material("trim", "#0a0b0c", 0.5, 0.0)                       # black window trim, pillars
-    MATS["trim"].node_tree.nodes["Principled BSDF"].inputs["Specular IOR Level"].default_value = 0.3
+    material("trim", "#08090a", 0.68, 0.0)                      # satin black window trim, pillars
+    MATS["trim"].node_tree.nodes["Principled BSDF"].inputs["Specular IOR Level"].default_value = 0.18
     material("satin", "#16171a", 0.6)                          # satin black plastic
     material("under", "#121314", 0.9)
     material("glass", "#0a0f13", 0.03, 0.0, alpha=0.55)

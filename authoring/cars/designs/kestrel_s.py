@@ -5,7 +5,7 @@ sedan, Apr 2026 03.jpg", CC0; front, rear and three-quarter views listed in
 docs/cars.md) and the published dimensions: length 4674 mm, width 1801 mm,
 height 1415 mm, wheelbase 2735 mm, track 1547/1575 mm, 235/40R18 tyres.
 """
-from design_tools import row, L
+from design_tools import row, L, photo_map, photo_patch
 
 PLATE = __import__("os").path.join(__import__("os").path.dirname(__file__), "..", "..", "..", "game", "art", "plate.png")
 WB = 2.735
@@ -131,21 +131,35 @@ REGIONS = [
 
 # Skin features. "xyz" outlines are rough points on the right side that snap
 # to the skin; front/rear outlines are (x, z) in metres, side ones (y, z).
-FEATURES = [
-    {"kind": "patch", "name": "headlamp", "view": "xyz", "radius": 0.06, "lift": 0.0025,
-     "outline": [(.865, 1.68, .728), (.862, 1.85, .69), (.835, 2.02, .656), (.765, 2.14, .642), (.62, 2.215, .645),
-                 (.48, 2.255, .66), (.40, 2.27, .676), (.40, 2.262, .708), (.55, 2.232, .726), (.70, 2.17, .745),
-                 (.80, 2.065, .756), (.85, 1.90, .752), (.866, 1.76, .742)],
-     "mat": {"tex": "headlamp", "name": "lamp_front", "size": (512, 160), "cells": [0.74, 0.86], "cell_r": 0.045,
-             "amber_u": (0.0, 0.13), "pipe_in": 0.2, "emission": 2.0}},
-    {"kind": "patch", "name": "grille_upper", "view": "front", "lift": 0.004, "radius": 0.02,
-     "outline": [(0, .565), (.33, .585), (.415, .655), (.405, .692), (0, .70)],
-     "mat": {"tex": "grille", "name": "grille_honeycomb", "pattern": "honeycomb", "scale": 18, "rough": 0.5, "coat": 0.3}},
-    {"kind": "patch", "name": "intake", "view": "front", "lift": 0.002, "radius": 0.025,
-     "outline": [(0, .272), (.46, .285), (.52, .315), (.45, .455), (0, .465)],
-     "mat": {"tex": "grille", "name": "grille_slats", "pattern": "slats", "scale": 14, "line": 0.3, "rough": 0.55, "coat": 0.2}},
-    {"kind": "patch", "name": "corner_intake", "view": "front", "lift": 0.002, "radius": 0.02,
-     "outline": [(.62, .305), (.80, .325), (.845, .36), (.84, .455), (.66, .465), (.585, .40)], "mat": "satin"},
+# Front end from the photograph (the Miata method): outlines traced on a
+# head-on photo, the same mapping places the photo on them. Source: "2023
+# Cleveland Auto Show (52789253962).jpg", Wikimedia Commons, CC BY 2.0;
+# badge painted out (photo_prep.py).
+FRONT = photo_map(__import__("os").path.join(__import__("os").path.dirname(__file__), "..", "photos", "kestrel_s_front.jpg"),
+                  cx=665, sx=738, z0=.755, py0=28, sz=1010)
+_o = lambda pts: [(x - 280, y - 640) for (x, y) in pts]
+PHOTO_FRONT = [
+    photo_patch("headlamp", FRONT, _o([(315, 668), (390, 718), (490, 752), (590, 782), (640, 815), (615, 842), (590, 842),
+                                       (490, 822), (390, 802), (325, 786), (310, 760)]), "photo_front", rough=.15, coat=1.0),
+    photo_patch("grille", FRONT, _o([(945, 858), (800, 858), (700, 838), (648, 826), (670, 905), (720, 935), (800, 942), (945, 946)]),
+                "photo_front", lift=.004),
+    photo_patch("intake", FRONT, _o([(945, 994), (640, 998), (612, 1012), (560, 1100), (525, 1158), (700, 1165), (945, 1168)]), "photo_front"),
+    photo_patch("corner_intake", FRONT, _o([(318, 948), (480, 972), (430, 1085), (520, 1150), (500, 1165), (330, 1100), (312, 1000)]), "photo_front"),
+]
+
+# Tail from a head-on rear photograph: "2021 Honda Civic sedan RS in Taman
+# Adipura Indah - Jambi City, JA.jpg" by Firzafp, Wikimedia Commons, CC BY-SA
+# 4.0 (badges and plate painted out, white paint swapped for this car's red).
+REAR = photo_map(__import__("os").path.join(__import__("os").path.dirname(__file__), "..", "photos", "kestrel_s_rear.jpg"),
+                 cx=590, sx=653, z0=.93, py0=100, sz=895, view="rear")
+_r = lambda pts: [(x - 30, y - 280) for (x, y) in pts]
+PHOTO_REAR = [
+    photo_patch("tail", REAR, _r([(620, 376), (1050, 374), (1118, 396), (1138, 450), (1140, 560), (1146, 700), (1146, 820),
+                                 (1118, 893), (1060, 928), (620, 933)]), "lamp_rear", lift=.004, rough=.25, coat=1.0,
+                emit_mask=__import__("os").path.join(__import__("os").path.dirname(__file__), "..", "photos", "kestrel_s_rear_emit.jpg")),
+]
+
+FEATURES = PHOTO_FRONT + PHOTO_REAR + [
     {"kind": "patch", "name": "front_lip", "view": "front", "lift": 0.002,
      "outline": [(0, .248), (.55, .262), (.66, .29), (.62, .30), (0, .268)], "mat": "satin"},
     {"kind": "patch", "name": "plate_front", "view": "front", "lift": 0.006,
@@ -155,12 +169,8 @@ FEATURES = [
                  (.40, -2.298, .82), (.27, -2.305, .846), (.27, -2.302, .876), (.45, -2.296, .882), (.65, -2.28, .905),
                  (.78, -2.24, .925), (.85, -2.14, .93), (.868, -2.0, .915)],
      "mat": {"tex": "taillamp", "name": "lamp_rear", "size": (512, 160), "reverse_u": (0.06, 0.2), "guides": [(0.16, 0.05), (0.36, 0.03)]}},
-    {"kind": "patch", "name": "reflector", "view": "rear", "lift": 0.002, "radius": 0.01,
-     "outline": [(.56, .47), (.78, .485), (.78, .505), (.56, .49)], "mat": {"tex": "reflector", "name": "reflector", "size": (128, 32)}},
-    {"kind": "patch", "name": "plate_rear", "view": "rear", "lift": 0.004,
+    {"kind": "patch", "name": "plate_rear", "view": "rear", "lift": 0.008,
      "outline": [(0, .615), (.155, .615), (.155, .767), (0, .767)], "uv": "view", "mat": {"tex": "image", "name": "plate_r", "path": PLATE}},
-    {"kind": "patch", "name": "diffuser", "view": "rear", "lift": 0.002, "radius": 0.02,
-     "outline": [(0, .305), (.60, .315), (.70, .36), (.64, .37), (0, .358)], "mat": "satin"},
     # shut lines
     {"kind": "line", "name": "door_front", "view": "side", "path": [(.80, .935), (.855, .76), (.875, .5), (.866, .272)]},
     {"kind": "line", "name": "door_mid", "view": "side", "path": [(-.215, .952), (-.226, .6), (-.22, .275)]},
@@ -178,8 +188,8 @@ DESIGN = {
     "length": Y_F - Y_R, "width": 1.801, "height": 1.415, "wheelbase": WB,
     "track_f": 1.547, "track_r": 1.575, "tire_w": .235, "tire_r": .3226, "rim_in": 18,
     "rows": ROWS, "ds": .036, "dl": .026, "level_crease": LEVEL_CREASE, "regions": REGIONS,
-    "arch_r": (.385, .385), "arch_z": .33,
-    "paint": "#b2361c", "rim": "#1d1e20", "caliper": "#b01c1c", "spokes": "split5",
+    "arch_r": (.372, .372), "arch_z": .345,
+    "paint": "#b5150f", "rim": "#2c2f33", "caliper": "#b01c1c", "spokes": "split5",
     "features": FEATURES,
     "eye": (-.36, .021, 1.14),
     "cabin": {"seat_accent": "#6e1114", "accent": "#e23b2b", "shifter": "manual", "screen": (.22, .125), "screen_up": .07,

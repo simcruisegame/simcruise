@@ -122,3 +122,23 @@ def standard_lines(R, door_front, door_mid, door_rear, sill, lid=True, lid_rear=
     if lid_rear:
         out.append({"kind": "line", "name": "lid_rear", "view": "xyz", "path": lid_rear, "width": 0.004})
     return out + list(extra)
+
+
+def photo_map(path, cx, sx, z0, py0, sz, view="front"):
+    """Head-on photograph mapping: pixel column = cx - x*sx (front view; the
+    car's right side is on the image's left) or cx + x*sx (rear view), pixel
+    row = py0 + (z0 - z)*sz, in the prepared image's pixels."""
+    return {"path": path, "cx": cx, "sx": sx, "z0": z0, "py0": py0, "sz": sz, "view": view}
+
+
+def photo_outline(m, pixels):
+    """Pixel outline traced on the photograph -> (x, z) in metres."""
+    sg = -1.0 if m["view"] == "front" else 1.0
+    return [((px - m["cx"]) / (sg * m["sx"]), m["z0"] - (py - m["py0"]) / m["sz"]) for (px, py) in pixels]
+
+
+def photo_patch(name, m, pixels, mat_name, lift=0.003, mirror=True, rough=0.2, coat=0.0, emission=0.0, radius=0.0, emit_mask=None):
+    return {"kind": "patch", "name": name, "view": m["view"], "lift": lift, "mirror": mirror, "radius": radius,
+            "outline": photo_outline(m, pixels),
+            "mat": {"tex": "photo", "name": mat_name, "path": m["path"], "map": m, "rough": rough, "coat": coat,
+                    "emission": emission, "emit_mask": emit_mask}}
