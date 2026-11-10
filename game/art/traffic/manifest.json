@@ -5,7 +5,7 @@
       "uid": "05f2a294087541ab82f681136d134344",
       "kind": "mustang65",
       "length_m": 4.613,
-      "flip": false,
+      "flip": true,
       "scene": "res://art/traffic/mustang65-05f2a294/scene.gltf",
       "title": "1965 Ford Mustang Convertible",
       "author": "Kristian LaGrange",
@@ -34,6 +34,132 @@
       "fetched": "2026-11-10",
       "branded": [
         "chevrolet"
+      ]
+    },
+    {
+      "id": "accord18-54c22744",
+      "uid": "54c227442c4b42dfbaa25e474ad9d736",
+      "kind": "accord18",
+      "length_m": 4.88,
+      "flip": false,
+      "scene": "res://art/traffic/accord18-54c22744/scene.gltf",
+      "title": "2018 Honda Accord",
+      "author": "roflowhale",
+      "author_url": "https://sketchfab.com/roflowhale",
+      "licence": "CC BY 4.0",
+      "source_url": "https://sketchfab.com/3d-models/2018-honda-accord-54c227442c4b42dfbaa25e474ad9d736",
+      "faces": 341726,
+      "fetched": "2026-11-10",
+      "branded": [
+        "honda"
+      ]
+    },
+    {
+      "id": "crv25-91c66738",
+      "uid": "91c6673859444597bf006a0ef8570005",
+      "kind": "crv25",
+      "length_m": 4.7,
+      "flip": true,
+      "scene": "res://art/traffic/crv25-91c66738/scene.gltf",
+      "title": "2025 Honda CR-V 1.5 VTEC Turbo CVT",
+      "author": "Palma123 JAAT",
+      "author_url": "https://sketchfab.com/palma123.jaat",
+      "licence": "CC BY 4.0",
+      "source_url": "https://sketchfab.com/3d-models/2025-honda-cr-v-15-vtec-turbo-cvt-91c6673859444597bf006a0ef8570005",
+      "faces": 108434,
+      "fetched": "2026-11-10",
+      "branded": [
+        "honda"
+      ]
+    },
+    {
+      "id": "f150raptor18-096aa1ba",
+      "uid": "096aa1ba46984eeeb196b75f4d213a0a",
+      "kind": "f150raptor18",
+      "length_m": 5.89,
+      "flip": false,
+      "scene": "res://art/traffic/f150raptor18-096aa1ba/scene.gltf",
+      "title": "2018 Ford F-150 Raptor",
+      "author": "Galaxy Car Showroom",
+      "author_url": "https://sketchfab.com/adrianaflak09",
+      "licence": "CC BY 4.0",
+      "source_url": "https://sketchfab.com/3d-models/2018-ford-f-150-raptor-096aa1ba46984eeeb196b75f4d213a0a",
+      "faces": 54340,
+      "fetched": "2026-11-10",
+      "branded": [
+        "ford"
+      ]
+    },
+    {
+      "id": "grandcherokee13-74686a75",
+      "uid": "74686a75e26146a19337724a7e1d458a",
+      "kind": "grandcherokee13",
+      "length_m": 4.82,
+      "flip": false,
+      "scene": "res://art/traffic/grandcherokee13-74686a75/scene.gltf",
+      "title": "2013 Jeep Grand Cherokee SRT8",
+      "author": "Galaxy Car Showroom",
+      "author_url": "https://sketchfab.com/adrianaflak09",
+      "licence": "CC BY 4.0",
+      "source_url": "https://sketchfab.com/3d-models/2013-jeep-grand-cherokee-srt8-74686a75e26146a19337724a7e1d458a",
+      "faces": 15657,
+      "fetched": "2026-11-10",
+      "branded": [
+        "jeep"
+      ]
+    },
+    {
+      "id": "tahoe-39b86984",
+      "uid": "39b86984238941b0b6a46da6a8c31907",
+      "kind": "tahoe",
+      "length_m": 5.18,
+      "flip": true,
+      "scene": "res://art/traffic/tahoe-39b86984/scene.gltf",
+      "title": "Chevrolet Tahoe Suv",
+      "author": "maznalamri80",
+      "author_url": "https://sketchfab.com/maznalamri80",
+      "licence": "CC BY 4.0",
+      "source_url": "https://sketchfab.com/3d-models/chevrolet-tahoe-suv-39b86984238941b0b6a46da6a8c31907",
+      "faces": 112500,
+      "fetched": "2026-11-10",
+      "branded": [
+        "chevrolet"
+      ]
+    },
+    {
+      "id": "odyssey-175ce6fb",
+      "uid": "175ce6fbbb11469ab068965ce4854554",
+      "kind": "odyssey",
+      "length_m": 5.21,
+      "flip": true,
+      "scene": "res://art/traffic/odyssey-175ce6fb/scene.gltf",
+      "title": "Honda Odessey",
+      "author": "MattDoesBlender",
+      "author_url": "https://sketchfab.com/MattDoesBlender",
+      "licence": "CC BY 4.0",
+      "source_url": "https://sketchfab.com/3d-models/honda-odessey-175ce6fbbb11469ab068965ce4854554",
+      "faces": 45722,
+      "fetched": "2026-11-10",
+      "branded": [
+        "honda"
+      ]
+    },
+    {
+      "id": "model3-3a602469",
+      "uid": "3a602469d7874d1397efa67182198705",
+      "kind": "model3",
+      "length_m": 4.69,
+      "flip": true,
+      "scene": "res://art/traffic/model3-3a602469/scene.gltf",
+      "title": "Tesla M3 model",
+      "author": "wintrez",
+      "author_url": "https://sketchfab.com/wintrez",
+      "licence": "CC BY 4.0",
+      "source_url": "https://sketchfab.com/3d-models/tesla-m3-model-3a602469d7874d1397efa67182198705",
+      "faces": 247368,
+      "fetched": "2026-11-10",
+      "branded": [
+        "tesla"
       ]
     }
   ]

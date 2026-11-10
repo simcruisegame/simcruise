@@ -136,6 +136,7 @@ func _ready():
  plain_roof.set_shader_parameter("fallback",Color("#5f605f"));materials.roof=plain_roof
  for key in {"house_trim":"#e3ded1"}:
   materials[key]=material(null,Color("#e3ded1"))
+ for key in TILE.HOUSE.COLORS:materials[key]=material(null,Color(TILE.HOUSE.COLORS[key]))
  # Window glass reflects the sky and street like real glazing instead of a flat panel.
  var window_glass=material(null,Color("#1d2a30"));window_glass.roughness=.06;window_glass.metallic_specular=.9;window_glass.metallic=.25
  materials["house_glass"]=window_glass

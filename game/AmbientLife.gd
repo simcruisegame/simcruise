@@ -4,8 +4,12 @@ extends Node3D
 ##
 ## Traffic. Cars follow the same road segments the tile builder drew
 ## (WorldTile.segments: [a, b, name, width, oneway, class, surface]), on the
-## right-hand lane, at a speed set by the road class, slowing behind other cars
-## and behind the player. Every model part is one MultiMesh, so 32 cars of seven
+## right-hand lane. Each car is driven by the Intelligent Driver Model (desired
+## speed from the road class, time headway, standstill gap, comfortable
+## acceleration and braking) towards the car or the player ahead, a red signal or
+## a sharp turn; TrafficDirector.gd gives every car a persona with its own
+## parameters and decides routes, signal stops and delivery pull-overs about once
+## a second. Every model part is one MultiMesh, so 32 cars of seven
 ## models cost one draw call per part, not one per car. The few cars near the
 ## player also carry a moving collision box, so they cannot be driven through.
 ## The street graph is rebuilt only when the set of loaded tiles changes.
@@ -42,6 +46,10 @@ var rng := RandomNumberGenerator.new()
 var solids: Array = []
 var flocks: Array = []               # {node, center:Vector3, goal:Vector3}
 var bird_material: ShaderMaterial
+const DIRECTOR := preload("res://TrafficDirector.gd")
+const CAR_LENGTH := 4.6
+var director = DIRECTOR.new()
+var utility_models: Array = []      # model indices for delivery vans (pickups)
 
 func configure(traffic_count: int, bird_count: int) -> void:
  traffic_target = traffic_count
@@ -55,6 +63,7 @@ func configure(traffic_count: int, bird_count: int) -> void:
 
 func _ready() -> void:
  rng.seed = 1999
+ director.name = "TrafficDirector";director.life = self;add_child(director)
 
 # ---------------------------------------------------------------- traffic ----
 const TRAFFIC_MANIFEST := "res://art/traffic/manifest.json"
@@ -86,6 +95,7 @@ func build_models() -> void:
   node.visibility_range_end = 400.
   add_child(node)
   list.append([mm, fit])
+  if "pickup" in str(source.scene) or "bison" in str(source.scene):utility_models.append(parts.size())
   parts.append(list);model_bounds.append(fit * merged.get_aabb())
  for i in 6:
   var body := AnimatableBody3D.new();body.sync_to_physics = false
@@ -157,12 +167,20 @@ func signature() -> int:
  for id in game.tiles:h = h * 31 + hash(id)
  return h + game.origin.x * 7919 + game.origin.y * 104729
 
-func next_segment(k: int, dir: int) -> Array:
+func seg_length(k: int) -> float:
+ return segs[k][0].distance_to(segs[k][1])
+
+func seg_heading(k: int, dir: int) -> Vector2:
+ return ((segs[k][1] - segs[k][0]) * dir).normalized()
+
+## Every way on from the end of segment k travelled in direction dir:
+## [segment, direction, cosine of the turn].
+func options(k: int, dir: int) -> Array:
  # dir +1 travels a->b, -1 travels b->a. Find segments that start where this ends.
  var s: Array = segs[k]
  var at: Vector2 = s[1] if dir > 0 else s[0]
  var heading: Vector2 = ((s[1] - s[0]) * dir).normalized()
- var options := []
+ var found := []
  for dx in [-1, 0, 1]:
   for dy in [-1, 0, 1]:
    for pair in ends.get(Vector2i((at / 1.5).round()) + Vector2i(dx, dy), []):
@@ -176,10 +194,19 @@ func next_segment(k: int, dir: int) -> Array:
     var out: Vector2 = ((t[1] - t[0]) * nd).normalized()
     var turn := heading.dot(out)
     if turn < -.3:continue                        # no U-turns at junctions
-    options.append([j, nd, turn + rng.randf() * .9])
- if options.is_empty():return []
- options.sort_custom(func(x, y): return x[2] > y[2])
- return options[0]
+    found.append([j, nd, turn])
+ return found
+
+## The way on at a junction: the director's planned route if it still holds,
+## otherwise the driver's own choice now.
+func next_segment(car: Dictionary) -> Array:
+ var opts := options(car.seg, car.dir)
+ if not car.route.is_empty():
+  var planned: Array = car.route.pop_front()
+  for o in opts:
+   if o[0] == planned[0] and o[1] == planned[1]:return o
+  car.route.clear()
+ return director.choose(car, opts)
 
 func spawn(car: Dictionary) -> bool:
  var player: Vector2 = game.pos
@@ -195,7 +222,10 @@ func spawn(car: Dictionary) -> bool:
   if d < 140. and (p - player).normalized().dot(look) > .3:continue
   var dir: int = s[3] if s[3] != 0 else (1 if rng.randf() < .5 else -1)
   car.seg = k;car.dir = dir;car.s = t * s[0].distance_to(s[1]) if dir > 0 else (1. - t) * s[0].distance_to(s[1])
-  car.speed = 0.;car.cruise = SPEED.get(s[4], 12.) * rng.randf_range(.85, 1.1)
+  director.assign(car, SPEED.get(s[4], 12.))
+  car.speed = car.cruise * .7                    # appears already moving with the traffic
+  car.model = car.base_model
+  if car.drv.persona == "delivery" and not utility_models.is_empty():car.model = utility_models[rng.randi() % utility_models.size()]
   return true
  return false
 
@@ -210,7 +240,9 @@ func lane_point(car: Dictionary) -> Array:
  # Right-hand traffic: two-way roads keep right of the centre line; one-way
  # roads use the lane right of centre on wide roads, the middle on narrow ones.
  var offset := width * .25 if s[3] == 0 else (width * .2 if width > 7. else 0.)
- return [a + t * car.s + right * offset, t, length]
+ # car.lat moves the car off the lane centre: towards the kerb to pull over,
+ # towards the centre line to pass a van that has. [3] is the room to the kerb.
+ return [a + t * car.s + right * (offset + car.lat), t, length, maxf(0., width * .5 - offset - 1.1)]
 
 func step_traffic(dt: float) -> void:
  if game.tiles.is_empty():return
@@ -219,52 +251,130 @@ func step_traffic(dt: float) -> void:
   graph_clock = 1.
   var sig := signature()
   if sig != tile_signature:
-   tile_signature = sig;rebuild_graph()
+   tile_signature = sig;rebuild_graph();director.rebuild_signals()
    for car in cars:car.seg = -1             # positions are stale after a rebase or reload
  if segs.is_empty():
   for list in parts:
    for part in list:part[0].visible_instance_count = 0
   return
- while cars.size() < traffic_target:cars.append({"seg":-1,"dir":1,"s":0.,"speed":0.,"cruise":12.,"model":cars.size() % parts.size(),"pos":Vector3.ZERO,"fwd":Vector2.UP})
+ while cars.size() < traffic_target:
+  var m := cars.size() % parts.size()
+  cars.append({"seg":-1,"dir":1,"s":0.,"speed":0.,"cruise":12.,"model":m,"base_model":m,"pos":Vector3.ZERO,"fwd":Vector2.UP,"route":[],"hy":[]})
+ director.step(dt)
+ var now: float = director.now
  var player := Vector3(game.pos.x, 0., game.pos.y)
  var player_v: Vector3 = game.vehicle.linear_velocity
  for car in cars:
   if car.seg < 0 or car.seg >= segs.size():
-   if not spawn(car):continue
-  # Gap ahead: the nearest car or the player inside the lane in front.
-  var gap := 60.
-  var here: Vector2 = Vector2(car.pos.x, car.pos.z)
-  var fwd: Vector2 = car.fwd
-  for other in cars:
-   if other == car or other.seg < 0:continue
-   var rel: Vector2 = Vector2(other.pos.x, other.pos.z) - here
+   if spawn(car):
+    car.hy = []
+    var l0 := lane_point(car)
+    car.pos = Vector3(l0[0].x, height(car, l0[0], l0), l0[0].y);car.fwd = l0[1]
+ # A snapshot of every car at the start of the step, in packed arrays: the
+ # all-pairs leader search reads these instead of dictionaries.
+ var n := cars.size()
+ var at := PackedVector2Array();at.resize(n)
+ var heading := PackedVector2Array();heading.resize(n)
+ var info := PackedFloat32Array();info.resize(n * 2)     # speed, lateral offset
+ var live := PackedByteArray();live.resize(n)
+ for i in n:
+  var c: Dictionary = cars[i]
+  live[i] = (2 if c.parked else 1) if c.seg >= 0 and c.has("drv") else 0
+  at[i] = Vector2(c.pos.x, c.pos.z);heading[i] = c.fwd;info[i * 2] = c.speed;info[i * 2 + 1] = c.get("lat", 0.)
+ for ci in n:
+  if live[ci] == 0:continue
+  var car: Dictionary = cars[ci]
+  var drv: Dictionary = car.drv
+  var here: Vector2 = at[ci]
+  var fwd: Vector2 = heading[ci]
+  var horizon := maxf(70., car.speed * 5.)
+  # Leader: the nearest car or the player in the lane in front, as a net
+  # (bumper to bumper) gap and its speed along our heading.
+  var gap := INF
+  var lead_v := 0.
+  var shift := 0.
+  for oi in n:
+   if oi == ci or live[oi] == 0:continue
+   var rel: Vector2 = at[oi] - here
    var ahead := rel.dot(fwd)
-   if ahead > 0. and ahead < gap and absf(rel.cross(fwd)) < 2.2 and other.fwd.dot(fwd) > .5:gap = ahead
+   if ahead <= 0. or ahead - CAR_LENGTH >= minf(gap, horizon):continue
+   if absf(rel.cross(fwd)) >= 2.2:continue
+   var along := heading[oi].dot(fwd)
+   if along <= .5:continue
+   var other_lat := info[oi * 2 + 1]
+   if live[oi] == 2 or other_lat > .8:
+    # A van pulled over at the kerb: ease out round it, slowly (on a
+    # street too narrow to clear it this means crossing the centre line).
+    if ahead < 25.:shift = maxf(shift, clampf(2.1 - other_lat, 0., 1.4))
+    continue
+   gap = ahead - CAR_LENGTH;lead_v = info[oi * 2] * along
   var rel_p := Vector2(player.x, player.z) - here
   var ahead_p := rel_p.dot(fwd)
-  if ahead_p > -2. and ahead_p < gap and absf(rel_p.cross(fwd)) < 2.6:gap = maxf(0., ahead_p)
-  # Two-second rule with a 7 m standstill gap; gentle accel, firm brake.
-  var want: float = car.cruise if gap > 7. + car.speed * 2. else clampf((gap - 7.) / 2., 0., car.cruise)
-  car.speed = move_toward(car.speed, want, dt * (2.2 if want > car.speed else 6.))
-  car.s += car.speed * dt
+  if ahead_p > -2. and ahead_p - CAR_LENGTH < minf(gap, horizon) and absf(rel_p.cross(fwd)) < 2.6:
+   gap = maxf(0., ahead_p - CAR_LENGTH);lead_v = Vector2(player_v.x, player_v.z).dot(fwd)
+  # Standing virtual leaders: the stop bar of a red signal, a delivery stop.
+  if now < car.stop_until and car.stop_at - car.s - CAR_LENGTH * .5 > -.5:
+   var g: float = car.stop_at - car.s - CAR_LENGTH * .5 + drv.s0
+   if g < gap:gap = maxf(g, .1);lead_v = 0.
+  if car.park_at < car.s - 2.:car.park_at = INF
   var lane := lane_point(car)
+  var lat_goal := -shift
+  if car.park_at < INF:
+   var g2: float = car.park_at - car.s + drv.s0
+   if g2 < gap:gap = maxf(g2, .1);lead_v = 0.
+   if car.park_at - car.s < 30.:lat_goal = lane[3]
+   if absf(car.park_at - car.s) < 1.5 and car.speed < .5:
+    car.parked = true;car.park_until = now + car.dwell;car.park_at = INF
+  # Desired speed: the road's, capped on the approach to a sharp turn so the
+  # driver can brake comfortably down to the cornering speed, and while passing.
+  var v0: float = car.cruise
+  if car.turn_at < INF and car.turn_at > car.s - 6.:
+   v0 = minf(v0, sqrt(car.turn_v * car.turn_v + 2. * float(drv.b) * maxf(0., car.turn_at - car.s)))
+  if shift > 0.:v0 = minf(v0, 7.)
+  if car.parked:
+   car.speed = 0.;lat_goal = lane[3]
+   if now >= car.park_until:car.parked = false;lat_goal = 0.
+  else:
+   var acc: float = DIRECTOR.idm(car.speed, v0, gap, car.speed - lead_v, drv)
+   var moved: Vector2 = DIRECTOR.advance(car.speed, acc, dt)
+   car.s += moved.x;car.speed = moved.y
+  car.lat = move_toward(car.lat, lat_goal, dt * .7)
+  lane = lane_point(car)
   var guard := 0
   while car.s > lane[2] and guard < 4:
    guard += 1
-   var nxt := next_segment(car.seg, car.dir)
+   var nxt := next_segment(car)
    if nxt.is_empty():
     car.seg = -1;break                          # dead end or the edge of the loaded map
-   car.s -= lane[2];car.seg = nxt[0];car.dir = nxt[1]
-   var cls: String = segs[car.seg][4]
-   car.cruise = SPEED.get(cls, 12.) * rng.randf_range(.85, 1.1)
+   var l: float = lane[2]
+   car.s -= l;car.seg = nxt[0];car.dir = nxt[1]
+   car.turn_at -= l;car.stop_at -= l;car.park_at -= l
+   car.cruise = SPEED.get(segs[car.seg][4], 12.) * float(drv.speed)
+   car.hy = []
    lane = lane_point(car)
   if car.seg < 0:continue
   var p2: Vector2 = lane[0]
   var target_fwd: Vector2 = lane[1]
   car.fwd = car.fwd.slerp(target_fwd, minf(1., dt * 4.)) if car.fwd.length_squared() > .5 else target_fwd
-  car.pos = Vector3(p2.x, game.surface(p2), p2.y)
+  car.pos = Vector3(p2.x, height(car, p2, lane), p2.y)
   if Vector2(car.pos.x - player.x, car.pos.z - player.z).length() > DESPAWN:car.seg = -1
  publish()
+
+## Road height under a car. game.surface() follows the road ribbon and costs
+## tens of microseconds, so it is sampled every HEIGHT_STEP metres along the
+## lane and interpolated in between (the ribbon is smooth at that scale).
+const HEIGHT_STEP := 6.
+func height(car: Dictionary, p: Vector2, lane: Array) -> float:
+ var hy: Array = car.hy
+ if hy.size() == 4 and car.s >= hy[0] and car.s <= hy[2]:
+  return lerpf(hy[1], hy[3], (car.s - hy[0]) / maxf(hy[2] - hy[0], .001))
+ var y0: float = game.surface(p)
+ var s1: float = minf(car.s + HEIGHT_STEP, lane[2])
+ if s1 - car.s < .5:
+  car.hy = [];return y0
+ var p1: Vector2 = p + lane[1] * (s1 - car.s)
+ car.hy = [car.s, y0, s1, game.surface(p1)]
+ return y0
 
 func publish() -> void:
  var counts := []

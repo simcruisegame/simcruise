@@ -1,0 +1,16 @@
+{
+ "version": 0.6,
+ "generator": "SYNTHETIC TEST DATA written by hand for lab/check-guard-rails.mjs. Not OpenStreetMap data and not a real place: arbitrary points in z16 tile 18000/26000, shaped like an Overpass API answer.",
+ "osm3s": {"copyright": "Synthetic fixture; contains no OpenStreetMap content."},
+ "elements": [
+  {"type": "way", "id": 1, "tags": {"barrier": "guard_rail"},
+   "geometry": [{"lat": 34.8124503, "lon": -81.1219482}, {"lat": 34.8123601, "lon": -81.1216736}, {"lat": 34.8121797, "lon": -81.1213989}]},
+  {"type": "way", "id": 1, "tags": {"barrier": "guard_rail"},
+   "geometry": [{"lat": 34.8124503, "lon": -81.1219482}, {"lat": 34.8123601, "lon": -81.1216736}, {"lat": 34.8121797, "lon": -81.1213989}]},
+  {"type": "way", "id": 2, "tags": {"barrier": "jersey_barrier"},
+   "geometry": [{"lat": 34.8115483, "lon": -81.1186523}, {"lat": 34.8113228, "lon": -81.1170044}]},
+  {"type": "way", "id": 3, "tags": {"barrier": "fence"},
+   "geometry": [{"lat": 34.8115483, "lon": -81.1203003}, {"lat": 34.8110973, "lon": -81.119751}]},
+  {"type": "node", "id": 4, "lat": 34.8115483, "lon": -81.1203003, "tags": {"barrier": "guard_rail"}}
+ ]
+}

@@ -1,6 +1,7 @@
 extends Node3D
 const LIDAR_ROOF=preload("res://LidarRoof.gd")
 const JUNCTION=preload("res://Junction.gd")
+const HOUSE=preload("res://HouseRecipe.gd")
 var info:Dictionary
 var side:float
 var batches={}
@@ -35,6 +36,10 @@ var grid_steps=32
 var surveyed_outcrop
 var crossfall_surface
 var road_surface   # RoadSurface.gd ribbons, or null
+# Triangles emitted by tri(), and the share spent on surveyed houses (survey_building).
+var drawn_triangles:=0
+var house_stats:=Vector2i.ZERO   # x houses, y triangles
+var house_fronts:=PackedVector3Array()   # front door and its outward normal, pairs (checks/RailView.gd)
 func height_at(p:Vector2)->float:
  if road_surface:
   var on_road=road_surface.height(p)
@@ -327,6 +332,7 @@ func tool(k):
   var st=SurfaceTool.new();st.begin(Mesh.PRIMITIVE_TRIANGLES);st.set_material(materials[k]);batches[k]=st
  return batches[k]
 func tri(st,a,b,c,uv1,uv2,uv3,n):
+ drawn_triangles+=1
  var ps=[a,b,c];var uv=[uv1,uv2,uv3]
  if (b-a).cross(c-a).dot(n)>0:ps=[a,c,b];uv=[uv1,uv3,uv2]
  for i in 3:
@@ -989,6 +995,11 @@ func roof_half(vertices,axis,offset,sign_side):
  return clipped
 
 func survey_building(b,idx,observed={},measured={}):
+ var start_triangles:=drawn_triangles
+ survey_house(b,idx,observed,measured)
+ house_stats+=Vector2i(1,drawn_triangles-start_triangles)
+
+func survey_house(b,idx,observed,measured):
  var center=point([b[4],b[5]]);var base=height_at(center);var outline=PackedVector2Array()
  for uv in b[0][0]:outline.append(point(uv))
  var bounds=Rect2(outline[0],Vector2.ZERO)
@@ -1022,7 +1033,11 @@ func survey_building(b,idx,observed={},measured={}):
  # About one house in four is brick (siding12-15); the rest are painted lap siding.
  var wall_key="siding"+str(id%16) if materials.has("siding15") else "siding"+str(id%4)
  var wall=finishes.material(self,observed,"wall",wall_key);var pts=[]
- for ring in b[0]:
+ # Front door, garage door and porch go on the wall facing the nearest street (HouseRecipe.gd).
+ var shape=HOUSE.ring_points(self,b[0][0])
+ var front=HOUSE.plan(self,shape,center,id,str(inventory.get("use","")))
+ for ring_index in b[0].size():
+  var ring=b[0][ring_index]
   for i in ring.size():
    var a=point(ring[i]);var d=point(ring[(i+1)%ring.size()]);pts.append(a)
    var length=a.distance_to(d)
@@ -1039,8 +1054,10 @@ func survey_building(b,idx,observed={},measured={}):
     collision_faces.append_array(PackedVector3Array([vert(l,bottom),vert(r,rh),vert(r,bottom),vert(l,bottom),vert(l,lh),vert(r,rh)]))
    if length<3.1:continue
    var count=clampi(roundi(length/3.9),1,8)
+   var front_wall=HOUSE.enabled and ring_index==0 and HOUSE.same_edge(front,a,d)
    for floor_index in floors:
     for k in count:
+     if front_wall and floor_index==0 and HOUSE.blocks(front,length*(k+.5)/count):continue
      var c=a.lerp(d,(k+.5)/count)+out*.022
      var lo=base+.91+floor_index*storey_height;var hi=minf(lo+1.25,eave-.18)
      if hi-lo<.7:continue
@@ -1051,9 +1068,14 @@ func survey_building(b,idx,observed={},measured={}):
      c+=out*.013;var mid=(lo+hi)*.5
      quad("house_trim",vert(c-wing,mid-.019),vert(c+wing,mid-.019),vert(c+wing,mid+.019),vert(c-wing,mid+.019),normal)
  var roof_key=finishes.material(self,observed,"roof",roof_base_key(b))
+ HOUSE.draw_front(self,front,base,axis,offset,width,eave,rise,roof_key)
  if not measured.is_empty():
   LIDAR_ROOF.draw(self,measured,base,roof_key,wall)
   return
+ if HOUSE.enabled and rise>=.5 and b[0].size()==1:
+  HOUSE.chimney(self,shape,id,axis,offset,width,eave,rise,wall)
+  # Eaves overhang the walls by 0.3-0.5 m, per house.
+  if HOUSE.eave_roof(self,shape,roof_key,axis,offset,width,eave,rise,.3+.05*((id>>20)%5)):return
  var roof=tool(roof_key)
  for j in range(0,b[1].size(),3):
   var face=[pts[int(b[1][j])],pts[int(b[1][j+1])],pts[int(b[1][j+2])]]

@@ -16,6 +16,7 @@ The MIT license in [LICENSE](../LICENSE) covers the original game code, shaders,
 | Building use | US Army Corps of Engineers National Structure Inventory | US public domain | At runtime |
 | Measured roofs and road camber | USGS 3DEP lidar point clouds (EPT on AWS); Miami-Dade County lidar | US public domain; CC0 (Miami-Dade) | At runtime; 15 Miami roofs bundled |
 | Traffic signals, street objects | Overture transportation theme; optional self-hosted Overpass | ODbL 1.0 | At runtime |
+| Guard rails and concrete barriers (`barrier=guard_rail`, `barrier=jersey_barrier`) | OpenStreetMap via public Overpass mirrors (or `SIMCRUISE_OVERPASS_URL`), one query per z14 area, cached 90 days | ODbL 1.0 | At runtime, never bundled |
 | Weather and sky | NOAA Aviation Weather Center METAR; NWS observations via Iowa Environmental Mesonet; NOAA GOES cloud mask; NASA GIBS snow | US public domain | At runtime, optional |
 | Street photographs | KartaView, Panoramax (thumbnails and credits only) | CC BY-SA 4.0 | At runtime, optional |
 | Car, props, textures, sky, fonts | Original Miata model with Wikimedia lamp textures; Poly Haven and OpenGameArt textures; Comrade1280 parked cars; the UI and title typefaces credited in `Credits.txt` | CC BY-SA 4.0; CC0; CC BY 4.0; SIL OFL | Bundled in `game/art/` |

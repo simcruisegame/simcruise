@@ -6,7 +6,7 @@ Every car in SimCruise is a JSON file in [`game/cars/`](../game/cars/). Powertra
 
 ![The five generated cars rendered in Blender, and the Kestrel S in the game on Capitol Avenue, Cheyenne](images/garage.jpg)
 
-*Kestrel S, Tora RS, Volta, Meridian Z and Bison XL as generated, and the Kestrel S in the game.*
+*Kestrel S, Tora RS, Volta, Meridian Z and Bison XL as generated, and the Kestrel S in the game. The Meridian Z's physics now carry a real Corvette Stingray (C8) model; see below.*
 
 | File | Name | Layout | Reference car | 0–60 mph | 70–0 mph | Skidpad |
 |---|---|---|---|---|---|---|
@@ -14,7 +14,7 @@ Every car in SimCruise is a JSON file in [`game/cars/`](../game/cars/). Powertra
 | `kestrel_s.json` | Kestrel S | front drive, turbo four, 6-speed manual | 2022 Honda Civic Si | 6.83 s (6.8) | 161.8 ft (160) | 0.953 g (0.94) |
 | `tora_rs.json` | Tora RS | all-wheel drive, turbo flat four, 6-speed manual | 2022 Subaru WRX | 5.58 s (5.5) | 154.4 ft (153) | 0.953 g (0.95) |
 | `volta.json` | Volta | electric, rear motor, single speed | Tesla Model 3 RWD | 5.30 s (5.4) | 166.3 ft (165*) | 0.897 g (0.88) |
-| `meridian_z.json` | Meridian Z | mid-engine V8, rear drive, 8-speed dual clutch | 2020 Chevrolet Corvette Z51 | 3.60 s (2.8†) | 149.1 ft (148) | 1.025 g (1.03) |
+| `meridian_z.json` | Corvette Stingray Z51 (C8), formerly Meridian Z | mid-engine V8, rear drive, 8-speed dual clutch | 2020 Chevrolet Corvette Z51 | 3.60 s (2.8†) | 149.1 ft (148) | 1.025 g (1.03) |
 | `mustang65.json` | 1965 Mustang 289 | front engine, rear drive, 289 V8 four-barrel, 4-speed manual | 1965 Ford Mustang 289/210 | 9.00 s (8.9) | 259.3 ft (264‡) | 0.699 g (0.70*) |
 | `bison_xl.json` | Bison XL | crew-cab pickup, twin-turbo V6, 10-speed automatic, 4WD | Ford F-150 2.7 EcoBoost 4x4 | 5.68 s (5.7) | 188.8 ft (190) | 0.733 g (0.74) |
 
