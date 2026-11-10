@@ -4,6 +4,10 @@ This is the design-panel report written on 8 November 2026 against the 1.0.8 cod
 
 Each item carries an estimate in brackets: `[days · impact 1-5 · data/licence]`. **today** marks work meant for the first day on the current build; **[unverified]** marks claims the panel did not confirm in-engine. Items the 1.1 streams have started are tracked in the [changelog](../CHANGELOG.md); the calibration that must not regress while doing any of this is the headless `checks/Track.gd` run described in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
+## Progress on 10 November 2026
+
+Done (see the [changelog](../CHANGELOG.md) "Unreleased"): graphics presets with adaptive resolution; moving traffic and birds; engineered road ribbons (Tail of the Dragon kinks 34.6 → 6.4 per km); inferred guard rails; natural driver lens; 1965 Mustang and Corvette C8 with real models; flake paint and road grime; houses with siding, brick and shingles; non-repeating ground textures; the S-bend handling test. In progress in parallel branches: slip-curve tyre model calibration, an AI traffic director, mapped OSM guard rails, house geometry (porches, garages, overhangs), road-wear masks, and a random-place drive campaign across every region. The detail-engine plan is in [research/detail-engine.md](research/detail-engine.md); the realism notes in [research/real-world-detail.md](research/real-world-detail.md).
+
 ## Next: the plan after the November 2026 work
 
 What landed in 1.1 is in the [changelog](../CHANGELOG.md): road benches and bridge decks, the real-road test drive, five new cars with calibrated physics and generated models, a Windows build and steep-slope ground. This is the ordered list that follows, with what each item is measured by.
