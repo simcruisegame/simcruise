@@ -23,8 +23,19 @@ func _initialize()->void:
  if grounds.is_empty() or collisions.is_empty():push_error("Missing drivable ground");tile.free();quit(8);return
  var faces=int(info.get("measured_granite_faces",0))
  var target=18000 if int(info.id[0])==13919 else 0
- info.roads[0][4]=float(info.roads[0][4])+1.
- var fallbacks=preload("res://SurveyOutcropGround.gd").for_tile(tile)==null
- print("NEEDLES tile=",info.id," road height maximum error=",max_road_error," granite faces=",faces," changed-road fallback=",fallbacks)
+ # The data must fall back when the road map changes: a moved vertex, or a class
+ # with another reference width. A narrower width alone keeps it (road-widths.mjs).
+ var outcrop=preload("res://SurveyOutcropGround.gd")
+ var first=info.roads[0][3][0].duplicate()
+ info.roads[0][3][0]=[float(first[0])+.00001,float(first[1])]
+ var fallbacks=outcrop.for_tile(tile)==null
+ info.roads[0][3][0]=first
+ var cls=str(info.roads[0][0])
+ info.roads[0][0]="motorway" if cls!="motorway" else "trunk"
+ fallbacks=fallbacks and outcrop.for_tile(tile)==null
+ info.roads[0][0]=cls
+ info.roads[0][4]=float(info.roads[0][4])-1.
+ var keeps_narrower=outcrop.for_tile(tile)!=null
+ print("NEEDLES tile=",info.id," road height maximum error=",max_road_error," granite faces=",faces," changed-road fallback=",fallbacks," narrower-road kept=",keeps_narrower)
  tile.free()
- quit(0 if max_road_error<.0001 and faces==target and fallbacks else 4)
+ quit(0 if max_road_error<.0001 and faces==target and fallbacks and keeps_narrower else 4)

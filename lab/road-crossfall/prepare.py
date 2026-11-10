@@ -17,6 +17,9 @@ from shapely.geometry import LineString, Point
 EARTH = 40075016.68557849
 BASE = 'https://services6.arcgis.com/Do88DoK2xjTUCXd1/ArcGIS/rest/services/OSM_NA_'
 PAVED = {'motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'minor'}
+# Class reference widths (helper/road-widths.mjs). Sections and the road
+# signature use these, not a road's own width, which can be narrower.
+REFERENCE_WIDTH = {'motorway':19,'trunk':16,'primary':12,'secondary':11,'tertiary':10,'minor':8,'service':4.6,'track':3}
 ROAD_TAGS = {'motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'residential', 'unclassified','living_street'}
 MAX_BODY = 420000
 
@@ -60,7 +63,7 @@ def prepare(tile, raw_vector, items):
     series=[]
     for i,road in enumerate(tile['roads']):
         cls,one,name,uv,width,*flags=road
-        half=min(width/2-.8,5)
+        half=min(REFERENCE_WIDTH.get(cls,width)/2-.8,5)
         if cls not in PAVED or not name or 'unpaved' in flags or half<2.25:continue
         line=LineString([(u*side,v*side) for u,v in uv])
         for s in range(12,math.ceil(line.length-11),6):
@@ -89,7 +92,7 @@ def prepare(tile, raw_vector, items):
             if any(key!=ident and d<(7 if tag.get('highway') in ('service','footway','path') else 13) for key,tag,_,d in nearby):continue
             series.append([i,ident,s,round(p.x,3),round(p.y,3),round(tx,6),round(ty,6),round(half,3)])
     if len(series)>768:raise ValueError('Road registry exceeds tile budget')
-    rows=['%d|%s'%(round(r[4]*100),','.join('%d/%d'%(round(p[0]*1000000),round(p[1]*1000000)) for p in r[3])) for r in tile['roads']]
+    rows=['%d|%s'%(round(REFERENCE_WIDTH.get(r[0],r[4])*100),','.join('%d/%d'%(round(p[0]*1000000),round(p[1]*1000000)) for p in r[3])) for r in tile['roads']]
     raw=gzip.decompress(raw_vector) if raw_vector[:2]==b'\x1f\x8b' else raw_vector
     return {'id':[x,y],'prepared':date.today().isoformat(),'roadSignature':hashlib.sha256('\n'.join(sorted(rows)).encode()).hexdigest(),
             'mapFingerprint':hashlib.sha256(raw).hexdigest()[:24],'sections':series}
