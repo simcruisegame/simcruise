@@ -87,6 +87,37 @@ const TC_PROPORTIONAL = .15
 const TC_OVERSHOOT = .05           # extra cut per unit of error beyond 1 (slip twice the target)
 const TC_CUT_RATE_UP = 20.
 const TC_CUT_RATE_DOWN = 6.
+# Electronic stability control (cars that had it, spec.stability_control), as
+# FMVSS 126 S4 defines it: a closed loop that compares the measured yaw rate
+# with the yaw rate the driver's steering asks for, estimates the sideslip
+# rate, brakes single wheels to make a correcting yaw moment and modifies the
+# propulsion torque. This one limits oversteer only. The yaw rate it allows is
+# the smaller of the neutral-steer rate for the road-wheel angle (v·tan δ / L)
+# and the rate the measured lateral acceleration supports (a_y / v, zero
+# sideslip rate), so a car that rotates faster than its path curves, with the
+# wheel frozen or countersteered, is caught by its sideslip rate, the quantity
+# van Zanten (SAE 2000-01-1633) names as the key to stability. Past a
+# deadband it brakes the outer front wheel (through ABS), cuts drive torque
+# and holds regeneration off. It works above 20 km/h (FMVSS 126 S5.1.2).
+const ESC_MIN_SPEED_MPS = 20.0 / 3.6
+# Deadbands (estimates; production thresholds are not published): against the
+# steering reference 0.02 rad/s plus 5 % (it already allows a neutral car's yaw
+# rate, more than any understeering road car reaches), against the
+# accelerometer's path rate 0.05 rad/s plus 10 % (the sensor sees road bumps).
+const ESC_STEER_DEADBAND_RAD_S = .02
+const ESC_STEER_DEADBAND_SHARE = .05
+const ESC_PATH_DEADBAND_RAD_S = .05
+const ESC_PATH_DEADBAND_SHARE = .10
+const ESC_FULL_RAD_S = .08          # estimate: excess past the deadband for full front-wheel pressure
+const ESC_BUILD_S = .15             # estimate: pump pressure build-up, zero to full
+const ESC_RELEASE_S = .10
+const ESC_ACCEL_FILTER_S = .02      # lateral accelerometer low-pass
+var esc_brake = [0.,0.,0.,0.]       # brake torque ESC adds per wheel (N·m)
+var esc_level := 0.                 # 0..1 intervention, last tick
+var esc_excess := 0.                # yaw-rate excess over the allowed rate (rad/s), last tick
+var esc_lateral := 0.               # filtered lateral acceleration, + to the left (m/s²)
+var esc_prev_velocity := Vector3.ZERO
+var esc_has_velocity := false
 # Benches set this to read traction control and driveline torque every force
 # substep (checks/TractionControlCheck.gd): [tc_cut, clutch or motor torque, shifting].
 var trace_substeps := false
@@ -210,6 +241,7 @@ func restart(pos:Vector3,head:float):
  freeze=true;global_transform=Transform3D(Basis(Vector3.UP,head),pos)
  freeze=false;linear_velocity=Vector3.ZERO;angular_velocity=Vector3.ZERO;sleeping=false
  rolling_slip.fill(0.)
+ esc_brake.fill(0.);esc_level=0.;esc_excess=0.;esc_lateral=0.;esc_has_velocity=false
  sound_throttle=0.;sound_combustion=0.;sound_shaft_load=0.
  selected_gear=0 if manual else 1;clutch_pedal=0.;stalled=false
  roof_down=false;flipped_seconds=0.;stuck_seconds=0.;stranded_seconds=0.
@@ -322,6 +354,7 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
  stranded_seconds=stranded_seconds+dt if flipped_seconds>1.5 or stuck_seconds>2. else 0.
  for i in 4:
   if not points[i].is_empty():points[i][2]=maxf(0.,points[i][2]+(lengths[i^1]-lengths[i])*suspension.roll_bar_rate(0 if i<2 else 1))
+ update_stability_control(dt,b,vel,speed)
  var forward_ratio=(spec.reverse_ratio if in_reverse else GEARS[gear])*FINAL_DRIVE
  var sign_dir=-1. if in_reverse else 1.
  var axle_speed=maxf(0.,driven_omega()*sign_dir)
@@ -350,6 +383,7 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
  var throttle_aid=spec.traction_control
  if not throttle_aid or throttle<=0.:tc_cut=0.;tc_integral=0.;tc_slip=0.;tc_slip_filtered=0.
  var pedal_throttle=throttle
+ throttle*=1.-esc_level
  sound_throttle=throttle
  sound_combustion=0.
  sound_shaft_load=0.
@@ -373,7 +407,7 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
     if not clutch_saturated or integral_step<0.:tc_integral=clampf(tc_integral+integral_step,0.,.9)
     var wanted=clampf(tc_integral+TC_PROPORTIONAL*clampf(excess,-1.,2.)+TC_OVERSHOOT*maxf(excess-1.,0.),0.,.9)
     tc_cut=clampf(wanted,tc_cut-TC_CUT_RATE_DOWN*ds,tc_cut+(0. if clutch_saturated else TC_CUT_RATE_UP*ds))
-   throttle=pedal_throttle*(1.-tc_cut)
+   throttle=pedal_throttle*(1.-tc_cut)*(1.-esc_level)
   var clutch_load:float
   if electric():
    clutch_load=motor_torque(throttle,forward_ratio,sign_dir,speed)
@@ -414,7 +448,7 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
   var drive_torque=wheel_torques(axle_torque,ds,clutch_load>0. if not electric() else absf(clutch_load)>0.)
   for i in 4:
    var wheel_t=drive_torque[i]
-   var br=brake_amount*(spec.brake_front_nm if i<2 else spec.brake_rear_nm)
+   var br=brake_amount*(spec.brake_front_nm if i<2 else spec.brake_rear_nm)+esc_brake[i]
    # ABS (cars that had it): a per-wheel pressure modulator. It integrates the
    # slip error and dumps in proportion past the peak, so each tyre cycles
    # about its peak slip instead of locking, as production systems do.
@@ -478,6 +512,35 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
  rpm=engine_omega*60/TAU
  return speed
 
+# Stability control, once per tick (a production ESC loop runs every 10-20 ms).
+func update_stability_control(dt:float,b:Basis,vel:Vector3,speed:float)->void:
+ var accel:=Vector3.ZERO
+ if esc_has_velocity and dt>0.:accel=(vel-esc_prev_velocity)/dt
+ esc_prev_velocity=vel;esc_has_velocity=true
+ esc_lateral+=(-accel.dot(b.x)-esc_lateral)*(1.-exp(-dt/ESC_ACCEL_FILTER_S))
+ var wanted:=0.;var outer_front:=0
+ if spec.stability_control and speed>ESC_MIN_SPEED_MPS and wheel_contact>=3:
+  var r:float=angular_velocity.dot(b.y)
+  var turning:=signf(r) if absf(r)>.001 else 1.
+  # Allowed yaw rate in the direction the car is rotating; countersteer makes
+  # the steering term negative, so every bit of that rotation counts.
+  var by_steering:float=turning*speed*tan(steering)/WHEELBASE_M
+  var by_path:float=maxf(turning*esc_lateral,0.)/speed
+  esc_excess=maxf(absf(r)-by_steering-(ESC_STEER_DEADBAND_RAD_S+ESC_STEER_DEADBAND_SHARE*maxf(by_steering,0.)),
+   absf(r)-by_path-(ESC_PATH_DEADBAND_RAD_S+ESC_PATH_DEADBAND_SHARE*by_path))
+  wanted=clampf(esc_excess/ESC_FULL_RAD_S,0.,1.)
+  # Left turn (r > 0): the outer wheels are on the right (+X), index 1.
+  outer_front=1 if turning>0. else 0
+ else:esc_excess=0.
+ for i in 4:
+  var target:float=wanted*spec.brake_front_nm if i==outer_front else 0.
+  var cap:float=spec.brake_front_nm if i<2 else spec.brake_rear_nm
+  esc_brake[i]=move_toward(esc_brake[i],target,dt*cap/(ESC_BUILD_S if target>esc_brake[i] else ESC_RELEASE_S))
+ # Propulsion: drive torque and regeneration go to zero within 50 ms of an
+ # intervention (an engine's spark and fuel cut, a motor's current) and come
+ # back over the release time once the car is inside the deadband again.
+ esc_level=move_toward(esc_level,1. if wanted>0. else 0.,dt/(.05 if wanted>0. else ESC_RELEASE_S))
+
 # Mean speed of the driven wheels as the propeller shaft sees it. An AWD centre
 # differential with front share s turns at s·front + (1−s)·rear.
 func driven_omega()->float:
@@ -515,7 +578,7 @@ func motor_torque(throttle:float,ratio:float,sign_dir:float,speed:float)->float:
  var available=minf(spec.motor_peak_torque_nm,spec.motor_peak_power_w/maxf(absf(motor_omega),1.))
  if absf(motor_omega)*60./TAU>spec.motor_max_rpm:available=0.
  var torque=available*throttle
- if throttle<.01 and absf(speed)>1.:torque=-spec.regen_torque_nm*smoothstep(1.,5.,absf(speed))*signf(motor_omega)
+ if throttle<.01 and absf(speed)>1.:torque=-spec.regen_torque_nm*smoothstep(1.,5.,absf(speed))*signf(motor_omega)*(1.-esc_level)
  engine_omega=absf(motor_omega)
  sound_combustion+=absf(torque)/(6.*maxf(spec.motor_peak_torque_nm,1.))
  sound_shaft_load+=torque/(6.*maxf(spec.motor_peak_torque_nm,1.))

@@ -165,6 +165,7 @@
  "target_70_0_ft": 148.0,
  "target_skidpad_g": 1.03,
  "sources": {
+  "stability": "FMVSS 126 (49 CFR 571.126, https://www.law.cornell.edu/cfr/text/49/571.126) requires electronic stability control on every US light vehicle built from 1 September 2011, so the reference car has it. Model: Powertrain.gd limits oversteer against a neutral-steer and a lateral-acceleration yaw reference by braking the outer front wheel and cutting propulsion; its deadbands, gain and 0.15 s pressure build are estimates, checked against FMVSS 126's sine-with-dwell limits by checks/SineWithDwell.gd.",
   "calibration": "Car and Driver: 2.8 s to 60 mph and 149 ft from 70 mph (first test), 148 ft and 1.03 g (long-term 2021 Z51); 3647 lb measured; 40/60 weight split (Chevrolet).",
   "engine": "495 hp at 6450 rpm, 470 lb-ft at 5150 rpm with the Z51 exhaust (Chevrolet); curve shape estimated.",
   "gearing": "Eight-speed DCT ratios and 5.17 final drive: unverified.",
@@ -177,6 +178,7 @@
   1.5
  ],
  "traction_control": true,
+ "stability_control": true,
  "calibration_open": "0-60 mph 3.55 s against 2.8 s (3.60 s before the slip-ratio tyre curve): Car and Driver omits a 1 ft rollout (about 0.3 s on this launch) while the bench times from rest, and from pedal-down at idle, where the car's launch control holds the engine at launch speed before the brake is released (not modelled). Traction control holds the rear tyres at their peak slip.",
  "model_scene": "res://art/traffic/c8-790c40cc/scene.gltf",
  "model_rig": {"fit": true},

@@ -238,6 +238,7 @@
  "target_70_0_ft": 173.0,
  "target_skidpad_g": 0.89,
  "sources": {
+  "stability": "No stability control: the NB was sold with optional ABS and no yaw control; the gate in checks/LiftOff.gd and checks/SineWithDwell.gd only reports this car above 0.5 g.",
   "calibration": "Car and Driver 1999 road test: 0-60 mph 7.97 s, 70-0 mph 173 ft, 300 ft skidpad 0.89 g (README).",
   "springs_bars": "Fat Cat Motorsports NB Ride Harmonizer, NB Sport row.",
   "rear_damper": "Fat Cat Motorsports Bilstein Hard S rear dyno trace (NB1999Sport.gd).",

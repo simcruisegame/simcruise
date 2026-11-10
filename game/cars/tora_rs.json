@@ -159,12 +159,14 @@
  "target_70_0_ft": 153.0,
  "target_skidpad_g": 0.95,
  "sources": {
+  "stability": "FMVSS 126 (49 CFR 571.126, https://www.law.cornell.edu/cfr/text/49/571.126) requires electronic stability control on every US light vehicle built from 1 September 2011, so the reference car has it. Model: Powertrain.gd limits oversteer against a neutral-steer and a lateral-acceleration yaw reference by braking the outer front wheel and cutting propulsion; its deadbands, gain and 0.15 s pressure build are estimates, checked against FMVSS 126's sine-with-dwell limits by checks/SineWithDwell.gd.",
   "calibration": "2022 WRX as reported from Car and Driver: 0-60 mph 5.5 s, 70-0 mph 153 ft, 0.95 g; about 3350 lb.",
   "engine": "271 hp, 258 lb-ft from 2000-5200 rpm (Subaru); curve shape estimated.",
   "gearing": "Six-speed ratios and 4.111 final drive: unverified.",
   "estimates": "Weight split, centre of gravity, inertia (scaled), spring and bar rates (1.7/1.9 Hz), dampers, centre coupling, brakes, tyre grip (calibrated)."
  },
  "traction_control": true,
+ "stability_control": true,
  "model_scene": "res://art/cars/tora_rs.glb",
  "driver_eye": [
   -0.366,

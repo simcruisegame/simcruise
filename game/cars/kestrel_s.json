@@ -152,6 +152,7 @@
  "target_70_0_ft": 160.0,
  "target_skidpad_g": 0.94,
  "sources": {
+  "stability": "FMVSS 126 (49 CFR 571.126, https://www.law.cornell.edu/cfr/text/49/571.126) requires electronic stability control on every US light vehicle built from 1 September 2011, so the reference car has it. Model: Powertrain.gd limits oversteer against a neutral-steer and a lateral-acceleration yaw reference by braking the outer front wheel and cutting propulsion; its deadbands, gain and 0.15 s pressure build are estimates, checked against FMVSS 126's sine-with-dwell limits by checks/SineWithDwell.gd.",
   "calibration": "Car and Driver test of the 2022 Civic Si as reported: 0-60 mph 6.8 s, 70-0 mph 160 ft, 0.94 g; curb weight 2937 lb.",
   "engine": "200 hp, 192 lb-ft (Honda); curve shape estimated.",
   "gearing": "Six-speed ratios and final drive: published Si figures, unverified for 2022.",
@@ -159,6 +160,7 @@
   "estimates": "Weight split, centre of gravity, inertia (scaled), spring and bar rates (ride frequency 1.6/1.8 Hz), dampers, brakes, tyre grip (calibrated)."
  },
  "traction_control": true,
+ "stability_control": true,
  "model_scene": "res://art/cars/kestrel_s.glb",
  "driver_eye": [
   -0.36,

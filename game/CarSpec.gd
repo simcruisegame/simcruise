@@ -129,6 +129,9 @@ var transmission := "manual"   # manual (player may pick automatic), automatic, 
 var traction_control := false
 var tc_target_slip := 0.            # driven-wheel slip held; 0 = the tyre's peak slip (Powertrain.gd)
 var tc_gain := 3.                   # integral gain (1/s) of the torque reduction, on the filtered slip
+# Electronic stability control (Powertrain.gd): required on every US light
+# vehicle built from 1 September 2011 (FMVSS 126); off on the 1999 and 1965 cars.
+var stability_control := false
 
 # Drivetrain
 var layout := "rwd"            # rwd, fwd, awd
