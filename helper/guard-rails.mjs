@@ -48,7 +48,7 @@ export function neighbourhoodBounds(mx,my){
  return [lat(my+1),lon(mx),lat(my),lon(mx+1)].map(n=>n.toFixed(6)).join(',');
 }
 export function overpassQuery(mx,my){
- return '[out:json][timeout:20];way[barrier~"^(guard_rail|jersey_barrier)$"]('+neighbourhoodBounds(mx,my)+');out geom;';
+ return '[out:json][timeout:3];way[barrier~"^(guard_rail|jersey_barrier)$"]('+neighbourhoodBounds(mx,my)+');out geom;';
 }
 
 // Overpass elements -> rows [kind, [[x,y],...]] in units of the z16 tile x,y

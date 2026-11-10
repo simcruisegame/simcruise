@@ -242,6 +242,7 @@
   "springs_bars": "Fat Cat Motorsports NB Ride Harmonizer, NB Sport row.",
   "rear_damper": "Fat Cat Motorsports Bilstein Hard S rear dyno trace (NB1999Sport.gd).",
   "gearing": "Mazda specification: 3.136/1.888/1.330/1.000/0.814, 4.30 final drive.",
+  "tyre_slip": "Slip-ratio curve flat (slip_ratio_falloff 0, CarSpec default): the only braking figure, the 173 ft full-pedal stop without ABS, pins the grip of a locked tyre at 0.963, and a fall-off would need a peak above it with no measurement behind it (peak 1.07 sliding to 0.963 raised trail-braking grip 5.3 % in checks/CombinedSlip.gd). Peak grip 0.963 and lateral scale 1.105 as calibrated before the curve.",
   "estimates": "Front damping, tyre curve, camber gain, inertia and differential bias are development estimates (see Powertrain.gd and NB1999Sport.gd comments)."
  }
 }

@@ -7,7 +7,7 @@ The game opens in the cockpit on a random road from a pool of 36 verified US dri
 | Action | Keyboard | Xbox controller |
 |---|---|---|
 | Accelerate | W or ↑ | Right trigger |
-| Brake, then reverse once stopped | S or ↓ | Left trigger |
+| Brake, then reverse once stopped (below about 1 mph; a trigger pressed too lightly to brake coasts) | S or ↓ | Left trigger |
 | Steer | A / D or ← / → | Left stick |
 | Full brake (service brake) | Space | — |
 | Parking brake, rear wheels | H (hold) | A (hold) |
@@ -21,6 +21,7 @@ The game opens in the cockpit on a random road from a pool of 36 verified US dri
 | Graphics preset (Auto, Low, Medium, High, Ultra) | F4 | — |
 | Driver lens (natural 45°, true to screen, wide 67°) | F6 | — |
 | Engine sound on / off | M | — (HUD button) |
+| Head lamps on / off (1999 roadster) | L | — |
 | Road atlas open / close | Tab (Esc also closes) | Menu |
 | Atlas: zoom, recenter | + / −, mouse wheel, drag to pan, click to pin | D-pad up / down, A |
 | Minimap zoom | Mouse wheel over the minimap, its + / − buttons | D-pad up / down |

@@ -19,8 +19,14 @@ extends RefCounted
 #  - the boxed tail-lamps become oval lenses on the skin with a gasket;
 #  - shut lines (hood, doors, trunk lid, rear bumper cover, fuel door) are thin
 #    dark strips 1.6 mm above the paint, merged into one mesh;
-#  - door-top mirrors on stalks, flush body-colour door pulls, rear side
-#    reflectors, a neutral SIMCRUISE plate, the third stop lamp on the lid.
+#  - door-top mirrors on stalks at the front corner of the door glass, flush
+#    body-colour door pulls, rear side reflectors, a neutral SIMCRUISE plate,
+#    the third stop lamp on the lid;
+#  - turntable pass (checks/CarTurntable.gd against the Commons photographs,
+#    lab/miata/appearance/turntable): smooth normals on the faceted hardtop and
+#    glass, lighter screen tint, black trim, underbody and wheel liners, a
+#    slimmer body-colour windscreen frame, the black cowl grille, a hardtop
+#    lining seen from the seat, and working head, parking and tail lamps (L).
 # Powertrain MOUNTS and R, the hub pivots and the physics are untouched.
 #
 # The exterior model stays CC BY-SA 4.0 (photographed lamp textures). The
@@ -50,6 +56,7 @@ var body: MeshInstance3D
 var paint: Material
 var dark_trim: StandardMaterial3D
 var seam_ink: StandardMaterial3D
+var satin_black: StandardMaterial3D
 var lamp_ends := {}
 var report := {}
 
@@ -89,6 +96,7 @@ func build(drive) -> void:
    m.emission_enabled=true;m.emission=Color("#e3281b");m.emission_energy_multiplier=0.
    if m.albedo_texture:m.emission_texture=preload("res://art/stop_mask.png");m.emission=Color.WHITE;m.emission_operator=BaseMaterial3D.EMISSION_OP_MULTIPLY
    node.set_surface_override_material(0,m);game.lamp_materials.append(m);game.lamp_nodes.append(node)
+ head_lamps()
  shade_and_traffic(game)
 
 # The ground shade under the player's car and the parked cars. Shared by
@@ -98,8 +106,16 @@ static func shade_and_traffic(game, shade_size:=Vector2(2.14,4.34)) -> void:
  game.shadow_plane.size=shade_size;game.shadow_plane.material=ink
  var shadow=MeshInstance3D.new();shadow.name="GroundShade";shadow.layers=2;shadow.mesh=game.shadow_plane;shadow.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;game.add_child(shadow)
  for i in 22:
-  var asset=preload("res://art/pickup.glb") if i%5==0 else preload("res://art/sedan.glb")
-  var prop=StaticBody3D.new();var look=asset.instantiate();prop.add_child(look);var shade=MeshInstance3D.new();shade.mesh=game.shadow_plane;shade.position.y=.035;shade.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;prop.add_child(shade);var hit=CollisionShape3D.new();var box=BoxShape3D.new();box.size=Vector3(1.68,1.12,4.12);hit.shape=box;hit.position.y=.70;prop.add_child(hit);prop.collision_layer=0;game.add_child(prop);prop.hide();game.traffic.append(prop)
+  # Parked cars come from the real traffic fleet (AmbientLife.fleet()); every
+  # fifth slot is a utility vehicle, as the old pickup slot was.
+  var prop=StaticBody3D.new();var look=MeshInstance3D.new()
+  var rows:Array=preload("res://AmbientLife.gd").fleet()
+  if not rows.is_empty():
+   var pool=rows.filter(func(r):return r[2]==(i%5==0))
+   if pool.is_empty():pool=rows
+   var row=pool[(i*7+3)%pool.size()]
+   look.mesh=row[0];look.transform=row[1]
+  prop.add_child(look);var shade=MeshInstance3D.new();shade.mesh=game.shadow_plane;shade.position.y=.035;shade.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;prop.add_child(shade);var hit=CollisionShape3D.new();var box=BoxShape3D.new();box.size=Vector3(1.68,1.12,4.12);hit.shape=box;hit.position.y=.70;prop.add_child(hit);prop.collision_layer=0;game.add_child(prop);prop.hide();game.traffic.append(prop)
 
 # ---------------------------------------------------------------------------
 func likeness() -> void:
@@ -108,6 +124,7 @@ func likeness() -> void:
  assert(body is MeshInstance3D, "Miata body shell missing")
  make_materials()
  reshape()
+ finish_surfaces()
  model.position.y = -DROP
  var shell := Shell.new().add(body.mesh, AABB(Vector3(-1.2, .1, -2.2), Vector3(2.4, 1.2, 4.4)))
  for lamp in model.find_children("rear_light_*", "MeshInstance3D", true, false):
@@ -144,10 +161,22 @@ func make_materials() -> void:
  var cloth := StandardMaterial3D.new()
  cloth.albedo_color = Color("#1c1d1e"); cloth.roughness = .94; cloth.metallic_specular = .18
  cloth.cull_mode = BaseMaterial3D.CULL_DISABLED
+ # Laminated screen and door glass with the factory green tint: about 75 %
+ # light transmission, so the black cabin reads through it in daylight, with
+ # the sky's reflection on top (the previous .58 alpha read as smoked glass).
  var glass := StandardMaterial3D.new()
- glass.albedo_color = Color(.10, .13, .13, .58); glass.roughness = .04; glass.metallic = 0.
- glass.metallic_specular = .9; glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+ glass.albedo_color = Color(.07, .11, .10, .34); glass.roughness = .03; glass.metallic = 0.
+ glass.metallic_specular = .75; glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
  glass.cull_mode = BaseMaterial3D.CULL_DISABLED
+ # The model's "trim" (dash top, steering wheel rim, rear bulkhead, the
+ # underbody visible below the sills and in the wheel wells) was a light
+ # blue-grey; on the car all of it is black plastic, vinyl or underseal.
+ satin_black = StandardMaterial3D.new()
+ satin_black.albedo_color = Color("#141516"); satin_black.roughness = .68; satin_black.metallic_specular = .3
+ satin_black.cull_mode = BaseMaterial3D.CULL_DISABLED
+ var liner := StandardMaterial3D.new()
+ liner.albedo_color = Color("#0a0b0b"); liner.roughness = .92; liner.metallic_specular = .2
+ liner.cull_mode = BaseMaterial3D.CULL_DISABLED
  for part in model.find_children("*", "MeshInstance3D", true, false):
   for si in part.mesh.get_surface_count():
    var sm = part.mesh.surface_get_material(si)
@@ -161,6 +190,10 @@ func make_materials() -> void:
     replacement = glass
    elif name == "leather":
     replacement = cloth   # Sport package: black cloth, not tan leather
+   elif name == "trim":
+    replacement = satin_black
+   elif part.name.begins_with("Wheelhouse"):
+    replacement = liner   # textured black plastic liners, not grey intake paint
    if replacement:
     part.set_surface_override_material(si, replacement)
 
@@ -217,7 +250,10 @@ func reshape() -> void:
      return Vector3(signf(p.x) * .40, .45, -1.0)  # 20 mm hood strips
     return field(p))
   elif n == "body_trim":
-   deform(part, func(p: Vector3, _i: int) -> Vector3:
+   var slim := slim_frame_tubes(part)
+   deform(part, func(p: Vector3, i: int) -> Vector3:
+    if slim.has(i):
+     return field(slim[i])
     if absf(p.x) > .76 and p.y > .67 and p.y < .78 and p.z > -.34 and p.z < -.25:
      return Vector3(signf(p.x) * .70, .70, -.28)  # old mirror stalks
     if absf(p.x) < .2 and p.y > .485 and p.y < .645 and p.z > 1.86 and p.z < 1.9:
@@ -229,6 +265,50 @@ func reshape() -> void:
    deform(part, func(p: Vector3, _i: int) -> Vector3: return field(p) + Vector3(0., .045, 0.))
   else:
    deform(part, func(p: Vector3, _i: int) -> Vector3: return field(p))
+
+# The windscreen frame (A-pillars and header) is modelled as round tubes about
+# twice as thick as the NB's slim pressed pillars. Each tube (a small connected
+# piece inside the frame region) is narrowed to FRAME_SLIM of its radius around
+# its own long axis. Returns {vertex index: new position}.
+const FRAME_SLIM := .5
+static func in_frame(c: Vector3) -> bool:
+ return c.z > -.56 and c.z < -.05 and c.y > .80 and (absf(c.x) > .55 or c.y > 1.0)
+func slim_frame_tubes(part: MeshInstance3D) -> Dictionary:
+ var arrays := part.mesh.surface_get_arrays(0)
+ var v: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+ var comp := components(v.size(), arrays[Mesh.ARRAY_INDEX])
+ var members := {}
+ for i in v.size():
+  if not members.has(comp[i]):
+   members[comp[i]] = PackedInt32Array()
+  members[comp[i]].append(i)
+ var out := {}
+ for key in members:
+  var list: PackedInt32Array = members[key]
+  if list.size() > 64:
+   continue
+  var c := Vector3.ZERO
+  for i in list:
+   c += v[i]
+  c /= list.size()
+  if not in_frame(c):
+   continue
+  # Long axis by power iteration on the covariance.
+  var axis := Vector3(.3, .9, .2).normalized()
+  for _k in 12:
+   var next := Vector3.ZERO
+   for i in list:
+    var d := v[i] - c
+    next += d * d.dot(axis)
+   if next.length_squared() < 1e-12:
+    break
+   axis = next.normalized()
+  for i in list:
+   var d := v[i] - c
+   var along := axis * d.dot(axis)
+   out[i] = c + along + (d - along) * FRAME_SLIM
+ report["slimmed_frame_vertices"] = out.size()
+ return out
 
 static func argmax(v: PackedVector3Array, axis: Vector3) -> int:
  var best := -INF
@@ -319,6 +399,202 @@ func lowest_paint() -> float:
   if p.y > .1:
    low = minf(low, p.y)
  return low
+
+# ---------------------------------------------------------------------------
+# Surface finish after the reshape, compared with the Commons photographs
+# (lab/miata/appearance/turntable/README.md):
+#  - the hardtop and the screen, door and rear glass were loose flat quads, so
+#    each reflected the sky as its own tile; their normals are now shared with
+#    every touching face that bends less than ~57 degrees;
+#  - the windscreen frame (A-pillars and header) came out of the trim colour:
+#    on the NB it is painted body colour;
+#  - the strip between the hood's rear edge and the screen is the black
+#    plastic cowl grille, not paint.
+func finish_surfaces() -> void:
+ report["welded_paint_vertices"] = weld_normals(body, 4)
+ var glass_part: MeshInstance3D = model.find_child("body_glass", true, false)
+ if glass_part:
+  report["welded_glass_vertices"] = weld_normals(glass_part, 4)
+ var cowl := StandardMaterial3D.new()
+ cowl.albedo_color = Color("#101112"); cowl.roughness = .55; cowl.metallic_specular = .35
+ cowl.cull_mode = BaseMaterial3D.CULL_DISABLED
+ report["cowl_triangles"] = regroup(body, [cowl], func(c: Vector3, n: Vector3) -> int:
+  return 0 if c.z > -.505 and c.z < -.415 and absf(c.x) < .60 and c.y > .62 and c.y < .80 and n.y > .35 else -1)
+ var trim: MeshInstance3D = model.find_child("body_trim", true, false)
+ if trim:
+  report["frame_triangles"] = regroup(trim, [paint], func(c: Vector3, _n: Vector3) -> int:
+   return 0 if in_frame(c) else -1)
+ var lining := headliner()
+ lining.position.y = -DROP   # the cockpit sits at the body origin, the model DROP lower
+ game.cockpit.add_child(lining)
+
+# The driver's view hides the exterior (Cockpit.gd), and the cabin model is
+# open-topped, so from the seat the hardtop vanished. A copy of the hardtop
+# roof, lined in dark cloth, is drawn on the cockpit layer only.
+func headliner() -> MeshInstance3D:
+ var arrays := body.mesh.surface_get_arrays(0)
+ var v: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+ var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+ # The hardtop is the loose quads (pieces of four vertices) above the
+ # beltline; the A-pillar boxes and the body are larger pieces.
+ var comp := components(v.size(), idx)
+ var size := {}
+ for k in comp:
+  size[k] = size.get(k, 0) + 1
+ var keep := PackedInt32Array()
+ for t in range(0, idx.size(), 3):
+  var c := (v[idx[t]] + v[idx[t + 1]] + v[idx[t + 2]]) / 3.
+  if size[comp[idx[t]]] <= 4 and c.y > .9 and c.z > -.3 and c.z < 1.05:
+   keep.append(idx[t]); keep.append(idx[t + 1]); keep.append(idx[t + 2])
+ var node := MeshInstance3D.new()
+ node.name = "Headliner"
+ node.layers = preload("res://Cockpit.gd").DRIVER_LAYER
+ node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ report["headliner_triangles"] = keep.size() / 3
+ if keep.is_empty():
+  return node
+ arrays[Mesh.ARRAY_INDEX] = keep
+ var mesh := ArrayMesh.new()
+ mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+ var cloth := StandardMaterial3D.new()
+ cloth.albedo_color = Color("#26282a"); cloth.roughness = .96; cloth.metallic_specular = .15
+ cloth.cull_mode = BaseMaterial3D.CULL_DISABLED
+ mesh.surface_set_material(0, cloth)
+ node.mesh = mesh
+ return node
+
+# Moves the triangles of a single-surface part for which pick(centroid, face
+# normal) returns k >= 0 into an extra surface drawn with materials[k]. Returns
+# how many moved. Vertex arrays are shared, so shading is unchanged.
+static func regroup(part: MeshInstance3D, materials: Array, pick: Callable) -> int:
+ if part.mesh.get_surface_count() != 1:
+  return 0
+ var arrays := part.mesh.surface_get_arrays(0)
+ var v: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+ var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+ var groups := []
+ for k in materials.size() + 1:
+  groups.append(PackedInt32Array())
+ for t in range(0, idx.size(), 3):
+  var a := v[idx[t]]; var b := v[idx[t + 1]]; var c := v[idx[t + 2]]
+  var fn := (b - a).cross(c - a).normalized()
+  var nv: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+  if nv.size() == v.size() and fn.dot(nv[idx[t]]) < 0.:
+   fn = -fn
+  var k: int = pick.call((a + b + c) / 3., fn)
+  var g: PackedInt32Array = groups[k + 1]
+  g.append(idx[t]); g.append(idx[t + 1]); g.append(idx[t + 2])
+  groups[k + 1] = g
+ var moved: int = idx.size() - groups[0].size()
+ if moved == 0:
+  return 0
+ var mesh := ArrayMesh.new()
+ var materials_out := [part.get_surface_override_material(0) if part.get_surface_override_material(0) else part.mesh.surface_get_material(0)]
+ materials_out.append_array(materials)
+ for k in groups.size():
+  if groups[k].is_empty():
+   continue
+  var copy := arrays.duplicate()
+  copy[Mesh.ARRAY_INDEX] = groups[k]
+  mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, copy)
+  mesh.surface_set_material(mesh.get_surface_count() - 1, materials_out[k])
+ part.mesh = mesh
+ for s in mesh.get_surface_count():
+  part.set_surface_override_material(s, null)
+ return moved / 3
+
+# Smooth normals for loose facets: every vertex of a connected piece with at
+# most `small` vertices takes the area-weighted normal of all faces (of any
+# piece) that touch its position and bend less than acos(cos_limit) from its
+# own face. Returns the number of vertices changed.
+static func weld_normals(part: MeshInstance3D, small: int, cos_limit := .55) -> int:
+ var arrays := part.mesh.surface_get_arrays(0)
+ var v: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+ var n: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+ var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+ if n.size() != v.size() or idx.is_empty():
+  return 0
+ var comp := components(v.size(), idx)
+ var size := {}
+ for c in comp:
+  size[c] = size.get(c, 0) + 1
+ var faces := PackedVector3Array()
+ var at := {}   # 2 mm position key -> triangle starts
+ for t in range(0, idx.size(), 3):
+  var fn := (v[idx[t + 1]] - v[idx[t]]).cross(v[idx[t + 2]] - v[idx[t]])
+  if fn.dot(n[idx[t]] + n[idx[t + 1]] + n[idx[t + 2]]) < 0.:
+   fn = -fn
+  faces.append(fn)
+  for k in 3:
+   var key := Vector3i((v[idx[t + k]] * 500.).round())
+   if not at.has(key):
+    at[key] = []
+   at[key].append(t / 3)
+ var out := n.duplicate()
+ var changed := 0
+ for i in v.size():
+  if size[comp[i]] > small:
+   continue
+  var own := n[i].normalized()
+  var sum := Vector3.ZERO
+  for f in at.get(Vector3i((v[i] * 500.).round()), []):
+   if faces[f].normalized().dot(own) > cos_limit:
+    sum += faces[f]
+  if sum.length_squared() > 1e-16:
+   out[i] = sum.normalized(); changed += 1
+ arrays[Mesh.ARRAY_NORMAL] = out
+ var mesh := ArrayMesh.new()
+ mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+ mesh.surface_set_material(0, part.mesh.surface_get_material(0))
+ for s in range(1, part.mesh.get_surface_count()):
+  mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, part.mesh.surface_get_arrays(s))
+  mesh.surface_set_material(s, part.mesh.surface_get_material(s))
+ var overrides := []
+ for s in mesh.get_surface_count():
+  overrides.append(part.get_surface_override_material(s))
+ part.mesh = mesh
+ for s in overrides.size():
+  if overrides[s]:
+   part.set_surface_override_material(s, overrides[s])
+ return changed
+
+# Head lamps (Drive.set_head_lamps, key L): the photographed lenses glow warm
+# white behind a clear, glossy cover; two low-beam spot lights aimed 2
+# degrees down light the road; the amber bumper markers glow as parking lamps.
+func head_lamps() -> void:
+ for lamp in model.find_children("Headlamp *", "MeshInstance3D", true, false):
+  if lamp.name.begins_with("Headlamp seal"):
+   continue
+  var lens: StandardMaterial3D = lamp.mesh.surface_get_material(0).duplicate()
+  lens.roughness = .1; lens.metallic_specular = .8
+  lens.clearcoat_enabled = true; lens.clearcoat = 1.; lens.clearcoat_roughness = .03
+  lens.emission_enabled = true; lens.emission = Color(1., .95, .86)
+  lens.emission_texture = lens.albedo_texture
+  lens.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY
+  lens.emission_energy_multiplier = 0.
+  lamp.set_surface_override_material(0, lens)
+  game.head_lamp_parts.append([lens, 2.6])
+  var box: AABB = lamp.get_aabb()
+  var beam := SpotLight3D.new()
+  beam.name = "LowBeam" + ("R" if box.get_center().x > 0. else "L")
+  # Just ahead of the lens: from inside the housing the bumper and lens
+  # would occlude it. Nothing of the car lies ahead, so no shadow map.
+  var centre := box.get_center()
+  beam.position = model.position + Vector3(centre.x, centre.y, box.position.z - .03)
+  beam.rotation = Vector3(deg_to_rad(-2.), 0., 0.)
+  beam.light_color = Color(1., .94, .84)
+  beam.light_energy = 14.; beam.spot_range = 60.; beam.spot_attenuation = 1.2
+  beam.spot_angle = 26.; beam.spot_angle_attenuation = 1.6
+  beam.shadow_enabled = false
+  beam.layers = 1 | 2   # a camera culls lights by their layers too: world and car views
+  beam.visible = false
+  game.vehicle.add_child(beam)
+  game.head_lamp_parts.append(beam)
+ for marker in model.find_children("Bumper side marker*", "MeshInstance3D", true, false):
+  var amber: StandardMaterial3D = marker.mesh.surface_get_material(0).duplicate()
+  amber.emission_enabled = true; amber.emission = Color("#ff8a1c"); amber.emission_energy_multiplier = 0.
+  marker.set_surface_override_material(0, amber)
+  game.head_lamp_parts.append([amber, 1.4])
 
 # ---------------------------------------------------------------------------
 # Triangle soup of the shell inside a region, binned in 1 cm slabs along each
@@ -798,19 +1074,21 @@ static func bar(st: SurfaceTool, pts: Array, nrm: Array, lift: float, width: flo
    tri(st, a, c, d, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, out)
 
 # ---------------------------------------------------------------------------
-# Door mirror: the NB's bullet housing on a short stalk from the door top,
-# about a third of the way back along the door, glass facing aft.
+# Door mirror: the NB's bullet housing on a short stalk from the door top at
+# the front corner of the door glass, glass facing aft (photographs: the glass
+# face sits about 0.25 m behind the A-pillar foot; about 190 x 120 mm glass).
+const MIRROR_Z := -.36   # where the stalk meets the door top
 func mirror(side: float, shell: Shell) -> MeshInstance3D:
  var node := MeshInstance3D.new()
  node.layers = 2
  node.name = "Mirror" + ("R" if side > 0. else "L")
- var top := shell.hit(Vector3(side * .745, 3., -.12), Vector3.DOWN, 3.)
+ var top := shell.hit(Vector3(side * .745, 3., MIRROR_Z - .045), Vector3.DOWN, 3.)
  var door_top: float = top[0].y if not top.is_empty() and top[0].y > .65 and top[0].y < .85 else .735
  report["door_top_at_mirror_mm_above_ground"] = roundf((door_top - DROP - .005) * 1000.)
  # Housing frame: x outward, y up, z aft. The glass face is at z = 0.
- var face_centre := Vector3(side * .885, door_top + .062, .035)
- var half := Vector2(.078, .049)     # glass face half-width, half-height
- var depth := .13                    # housing length ahead of the glass
+ var face_centre := Vector3(side * .885, door_top + .066, MIRROR_Z + .155)
+ var half := Vector2(.094, .06)      # glass face half-width, half-height
+ var depth := .14                    # housing length ahead of the glass
  var housing := SurfaceTool.new()
  housing.begin(Mesh.PRIMITIVE_TRIANGLES)
  var rows := 14
@@ -847,7 +1125,7 @@ func mirror(side: float, shell: Shell) -> MeshInstance3D:
  # Stalk: a flattened, slightly swept post from the door top to the housing.
  var stalk := SurfaceTool.new()
  stalk.begin(Mesh.PRIMITIVE_TRIANGLES)
- var base := Vector3(side * .795, door_top - .004, -.075)
+ var base := Vector3(side * .795, door_top - .004, MIRROR_Z + .045)
  var tip := face_centre + Vector3(-side * .045, -half.y * .55, -depth * .62)
  for j in 16:
   var a0 := TAU * j / 16.
