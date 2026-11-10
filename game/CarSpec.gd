@@ -16,6 +16,7 @@ var name := "1999 Roadster Sport"
 var make := ""
 var body := "roadster"
 var model_scene := ""          # res:// path of the exterior; "" uses the Miata finish
+var model_rig := {}            # downloaded models: fitted by ModelRig.gd ({} = use the file as authored; {"fit":true,"flip":bool})
 var seats := 2
 
 # Mass and body

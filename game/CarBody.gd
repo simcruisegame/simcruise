@@ -19,7 +19,14 @@ func build(drive) -> void:
  var vehicle=game.vehicle
  var spec=vehicle.spec
  vehicle.setup();game.add_child(vehicle)
- var model:Node3D=load(spec.model_scene).instantiate()
+ var model:Node3D
+ if spec.model_rig.get("fit",false):
+  # A downloaded model (ModelRig.gd): wheels found and cut out, scaled to the
+  # spec's wheelbase, turned to face -Z and set at the static ride height.
+  var rig=preload("res://ModelRig.gd").new()
+  model=rig.build(spec.model_scene,spec,spec.model_rig)
+  if model==null:push_warning("Could not fit %s: %s"%[spec.model_scene,"; ".join(rig.log_lines)])
+ if model==null:model=load(spec.model_scene).instantiate()
  vehicle.add_child(model)
  for part in model.find_children("*","MeshInstance3D",true,false):part.layers=2
  for i in WHEELS.size():

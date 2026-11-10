@@ -1,0 +1,11 @@
+Model Information:
+* title:	1965 Ford Mustang Convertible
+* source:	https://sketchfab.com/3d-models/1965-ford-mustang-convertible-05f2a294087541ab82f681136d134344
+* author:	Kristian LaGrange (https://sketchfab.com/kristian123)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "1965 Ford Mustang Convertible" (https://sketchfab.com/3d-models/1965-ford-mustang-convertible-05f2a294087541ab82f681136d134344) by Kristian LaGrange (https://sketchfab.com/kristian123) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

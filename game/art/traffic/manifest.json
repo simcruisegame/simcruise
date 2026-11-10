@@ -1,0 +1,40 @@
+{
+  "models": [
+    {
+      "id": "mustang65-05f2a294",
+      "uid": "05f2a294087541ab82f681136d134344",
+      "kind": "mustang65",
+      "length_m": 4.613,
+      "flip": false,
+      "scene": "res://art/traffic/mustang65-05f2a294/scene.gltf",
+      "title": "1965 Ford Mustang Convertible",
+      "author": "Kristian LaGrange",
+      "author_url": "https://sketchfab.com/kristian123",
+      "licence": "CC BY 4.0",
+      "source_url": "https://sketchfab.com/3d-models/1965-ford-mustang-convertible-05f2a294087541ab82f681136d134344",
+      "faces": 111817,
+      "fetched": "2026-11-10",
+      "branded": [
+        "ford"
+      ]
+    },
+    {
+      "id": "c8-790c40cc",
+      "uid": "790c40ccff6843eab0b7b4bd18421ff8",
+      "kind": "c8",
+      "length_m": 4.63,
+      "flip": false,
+      "scene": "res://art/traffic/c8-790c40cc/scene.gltf",
+      "title": "2019 Chevrolet Corvette C8 Stingray",
+      "author": "Hari Prasath R",
+      "author_url": "https://sketchfab.com/Haris3D",
+      "licence": "CC BY 4.0",
+      "source_url": "https://sketchfab.com/3d-models/2019-chevrolet-corvette-c8-stingray-790c40ccff6843eab0b7b4bd18421ff8",
+      "faces": 263691,
+      "fetched": "2026-11-10",
+      "branded": [
+        "chevrolet"
+      ]
+    }
+  ]
+}
