@@ -55,11 +55,11 @@ void fragment() {
  float loose_cover=smoothstep(0.24,0.80,loose_signal);
  paint.gb-=vec2(loose_signal*loose_cover);
  vec2 metres = UV * meters + detail_origin;
- float fine = dot(texture(grit, metres / 2.0).rgb, LUMA);
+ float fine = dot(stochastic(grit, metres / 2.0, true).rgb, LUMA);
  float broad = dot(texture(grit, vec2(metres.y, -metres.x) / 12.0).rgb, LUMA);
- vec3 grass = texture(grass_detail, metres / 2.0).rgb;
+ vec3 grass = stochastic(grass_detail, metres / 2.0, true).rgb;
  vec3 lawn_blades = texture(grass_detail, vec2(metres.y, -metres.x) / 0.8).rgb;
- vec3 leaves = texture(litter, vec2(-metres.y, metres.x) / 3.0).rgb;
+ vec3 leaves = stochastic(litter, vec2(-metres.y, metres.x) / 3.0, true).rgb;
  float near_view = 1.0 - smoothstep(22.0, 125.0, length(VERTEX));
  vec3 wear = weathering(metres);
  // The red channel places invented rectangular repairs. Its mean over the
@@ -90,7 +90,7 @@ void fragment() {
    vec3 broad_aerial=textureLod(ortho,(UV+quadrant)*.25,3.).rgb;
    vec3 local_ratio=clamp(aerial/max(broad_aerial,vec3(.018)),vec3(.48),vec3(1.65));
    mineral_weight=confidence*near_view;
-   mineral=texture(mineral_detail,(UV*meters+mineral_origin)/2.53).rgb;
+   mineral=stochastic(mineral_detail,(UV*meters+mineral_origin)/2.53,true).rgb;
    float grit_gain=mix(1.,clamp(mineral.r*2.,.45,1.75),near_view);
    ground=mix(ground,soil*local_ratio*grit_gain,confidence);
   }

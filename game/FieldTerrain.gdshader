@@ -22,10 +22,10 @@ void fragment() {
  vec4 cover = texture(pavement, UV);
  vec2 metres = UV * meters + detail_origin;
  vec3 aerial = texture(photo, UV).rgb;
- vec3 grass = texture(grass_detail, metres / 2.0).rgb;
+ vec3 grass = stochastic(grass_detail, metres / 2.0, true).rgb;
  vec3 lawn_blades = texture(grass_detail, vec2(metres.y, -metres.x) / 0.8).rgb;
- vec3 leaves = texture(litter, vec2(-metres.y, metres.x) / 3.0).rgb;
- float fine = dot(texture(grain, metres / 2.0).rgb, LUMA);
+ vec3 leaves = stochastic(litter, vec2(-metres.y, metres.x) / 3.0, true).rgb;
+ float fine = dot(stochastic(grain, metres / 2.0, true).rgb, LUMA);
  float broad = dot(texture(grain, vec2(metres.y, -metres.x) / 12.0).rgb, LUMA);
  vec3 wear = weathering(metres);
  float near_view = 1.0 - smoothstep(22.0, 125.0, length(VERTEX));
