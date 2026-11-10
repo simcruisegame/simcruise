@@ -73,6 +73,7 @@ func _process(_dt):
     clock=0.;ticks=0
   "frame":
    ticks+=1
+   if ticks==1:game.hud.message("") # the start hint ('W or up to accelerate') is not part of the view
    if shot[8] and ticks==1:game.hud.atlas_map.open_map()
    if ticks>=(12 if shot[8] else 4):capture()
 

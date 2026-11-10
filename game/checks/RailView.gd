@@ -4,6 +4,8 @@ extends Node
 ## where there is none, the car, from three cameras of its own (roadside, low
 ## roadside, oblique aerial) and saves rails-0.jpg, rails-1.jpg and
 ## aerial-oblique.jpg. Windowed only; pass --quality=ultra for judging looks.
+## --rail-car frames the car whatever rails are near and adds road-ahead.jpg
+## (driver's eye) and road-above.jpg (high, along the road) for judging markings.
 ## --rail-wait=SECONDS waits longer before the shots (default 10). While it
 ## waits it samples AmbientLife.cost_us every frame and prints the traffic it
 ## saw (TrafficDirector personas, speeds, signal stops), then also saves
@@ -60,8 +62,10 @@ func _process(dt):
    if d < mapped_d:mapped_d = d;best_d = d;best = t
  print("RAILVIEW rails on %d tiles: mapped %.0f m, inferred %.0f m, inferred suppressed near mapped %.0f m, sources %s" % [game.tiles.size(), totals.mapped, totals.inferred, totals.suppressed, sources.keys()])
  if is_finite(mapped_d):print("RAILVIEW framing a mapped rail")
- if not is_finite(best_d):
-  print("RAILVIEW no rails loaded; framing the car")
+ # --rail-car frames the car whatever rails are near (road markings, the road ahead).
+ var car_only := "--rail-car" in OS.get_cmdline_user_args()
+ if car_only or not is_finite(best_d):
+  print("RAILVIEW no rails loaded; framing the car" if not car_only else "RAILVIEW framing the car (--rail-car)")
   best = game.vehicle.global_transform
  var along := -best.basis.z;along.y = 0.;along = along.normalized()
  var side := along.cross(Vector3.UP)
@@ -76,6 +80,13 @@ func _process(dt):
   cam.look_at(focus + along * 6. + v[2], Vector3.UP)
   for i in 20:await RenderingServer.frame_post_draw
   get_viewport().get_texture().get_image().save_jpg(out.path_join(v[1] + ".jpg"), .9)
+ if car_only:
+  # A driver's eye view down the road, and a high view straight along it.
+  for v in [[Vector3.UP * 1.2 + along * 2., along * 40., "road-ahead"], [Vector3.UP * 9. - along * 6., along * 30., "road-above"]]:
+   cam.global_position = focus + v[0]
+   cam.look_at(focus + v[1], Vector3.UP)
+   for i in 20:await RenderingServer.frame_post_draw
+   get_viewport().get_texture().get_image().save_jpg(out.path_join(v[2] + ".jpg"), .9)
  var under=game.tile_id(game.pos)
  if game.tiles.has(under):
   var t=game.tiles[under]
