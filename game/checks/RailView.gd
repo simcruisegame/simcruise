@@ -46,6 +46,20 @@ func _process(dt):
    var t: Transform3D = posts.global_transform * posts.multimesh.get_instance_transform(i)
    var d := t.origin.distance_to(game.vehicle.global_position)
    if d < best_d:best_d = d;best = t
+ # Mapped rails (OSM, GuardRails.gd) are framed in preference to inferred ones.
+ var mapped_d := INF;var totals := {"mapped":0., "inferred":0., "suppressed":0.};var sources := {}
+ for id in game.tiles:
+  var info: Dictionary = game.tiles[id].info
+  totals.mapped += float(info.get("guard_rail_mapped_m", 0.));totals.inferred += float(info.get("guard_rail_inferred_m", 0.))
+  totals.suppressed += float(info.get("guard_rail_suppressed_m", 0.));sources[str(info.get("guard_rail_source", ""))] = true
+  var rails = game.tiles[id].get_node_or_null("GuardRails")
+  if rails == null or not rails.has_meta("mapped_focus"):continue
+  for f in rails.get_meta("mapped_focus"):
+   var t: Transform3D = rails.global_transform * f
+   var d := t.origin.distance_to(game.vehicle.global_position)
+   if d < mapped_d:mapped_d = d;best_d = d;best = t
+ print("RAILVIEW rails on %d tiles: mapped %.0f m, inferred %.0f m, inferred suppressed near mapped %.0f m, sources %s" % [game.tiles.size(), totals.mapped, totals.inferred, totals.suppressed, sources.keys()])
+ if is_finite(mapped_d):print("RAILVIEW framing a mapped rail")
  if not is_finite(best_d):
   print("RAILVIEW no rails loaded; framing the car")
   best = game.vehicle.global_transform
