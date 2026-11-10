@@ -41,9 +41,11 @@ static func build_canopy(t,f):
   box(t,t.vert(p,floor_y+1.28),a,Vector3(1.06,.43,.69),"house_glass")
   box(t,t.vert(p,floor_y+.51),a,Vector3(1.06,.55,.69),key)
   if not t.capture.record.is_empty() and str(f.brand).to_lower()=="exxon":t.capture.dispenser(t,p,across,floor_y)
-  var shape=BoxShape3D.new();shape.size=Vector3(1.12,1.65,.74)
-  var body=StaticBody3D.new();var col=CollisionShape3D.new();col.shape=shape
-  body.add_child(col);body.position=t.vert(p,floor_y+.825);body.rotation.y=-a.angle();t.add_child(body)
+  # No pump collider on a mapped road (WorldTile.wall_on_road).
+  if not t.wall_on_road(p-a*.56,p+a*.56,floor_y+1.65):
+   var shape=BoxShape3D.new();shape.size=Vector3(1.12,1.65,.74)
+   var body=StaticBody3D.new();body.name="FuelPump";var col=CollisionShape3D.new();col.shape=shape
+   body.add_child(col);body.position=t.vert(p,floor_y+.825);body.rotation.y=-a.angle();t.add_child(body,true)
   for signum in [-1.,1.]:
    var light=p+across*width*.30*signum
    box(t,t.vert(light,deck-.322),a,Vector3(.48,.034,.30),"globe")

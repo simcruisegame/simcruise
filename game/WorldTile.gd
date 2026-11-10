@@ -533,7 +533,7 @@ func apply_recent(texture,soil=null):
 func ground_mesh(mat):
  terrain_material=mat
  if road_surface:
-  var ribbon=road_surface.mesh(mat,side);mesh_node(ribbon);collider(ribbon.create_trimesh_shape())
+  var ribbon=road_surface.mesh(mat,side);mesh_node(ribbon);collider(ribbon.create_trimesh_shape(),"RoadRibbon")
  preload("res://GroundFinish.gd").bind(mat,materials,info.id,side)
  mat.set_shader_parameter("recent_quadrant",Vector2(int(info.id[0])%4,int(info.id[1])%4))
  # A 128 grid is drawn adaptively: cells split only where the detail differs
@@ -727,7 +727,7 @@ func make_building(b,idx):
   for j in ring.size():
    var a=point(ring[j]);var d=point(ring[(j+1)%ring.size()]);pts.append(vert(a,top));var length=a.distance_to(d);if length<.02:continue
    var vec=(d-a)/length;var norm=Vector3(vec.y,0,-vec.x)
-   if b[3]<2:
+   if b[3]<2 and not wall_on_road(a,d,top):
     var v0=vert(a,bottom-2);var v1=vert(d,bottom-2);var v2=vert(d,top);var v3=vert(a,top)
     collision_faces.append_array(PackedVector3Array([v0,v2,v1,v0,v3,v2]))
    if not photo.is_empty() and ring==rings[0] and photographs.draw_edge(self,photo,j,(j+1)%ring.size(),base,top,norm):continue
@@ -929,7 +929,7 @@ func replace_structure_layer(replacement):
 
 func finish_geometry():
  if collision_faces.size()>0:
-  var shape=ConcavePolygonShape3D.new();shape.backface_collision=true;shape.set_faces(collision_faces);collider(shape);collision_faces.clear()
+  var shape=ConcavePolygonShape3D.new();shape.backface_collision=true;shape.set_faces(collision_faces);collider(shape,"Structures");collision_faces.clear()
  for st in batches.values():mesh_node(st.commit())
  batches.clear()
 
@@ -978,8 +978,29 @@ func street_details():
     parked.append([p,atan2(t.x,t.y)+(PI if signum<0 and seg[4]==0 else 0),rnd%5])
 var parked=[]
 
-func collider(shape):
- var immovable=StaticBody3D.new();var col=CollisionShape3D.new();col.shape=shape;immovable.add_child(col);add_child(immovable)
+# A wall that a mapped road's centreline runs through or beside (a building
+# passage, or a footprint drawn over the road) keeps its picture but not its
+# collider: nothing solid stands on a road (DrivableCorridor.gd,
+# checks/RoadClearance.gd). A road on a deck above the wall's top passes over it.
+const ROAD_WALL_CLEAR_M=2.4
+func wall_on_road(a:Vector2,d:Vector2,top:float)->bool:
+ if segments.is_empty() or not preload("res://DrivableCorridor.gd").enabled():return false
+ if road_grid.is_empty():road_index()
+ var reach=Vector2.ONE*ROAD_WALL_CLEAR_M
+ var lo=Vector2i(((a.min(d)-reach)/24.).floor());var hi=Vector2i(((a.max(d)+reach)/24.).floor())
+ for x in range(lo.x,hi.x+1):
+  for y in range(lo.y,hi.y+1):
+   for seg in road_grid.get(Vector2i(x,y),[]):
+    var c=Geometry2D.get_closest_points_between_segments(a,d,seg[0],seg[1])
+    if c[0].distance_to(c[1])>=ROAD_WALL_CLEAR_M:continue
+    var deck=deck_at(c[1])
+    if not is_nan(deck) and deck>top:continue
+    info["building_walls_on_road"]=int(info.get("building_walls_on_road",0))+1
+    return true
+ return false
+
+func collider(shape,label:="Ground"):
+ var immovable=StaticBody3D.new();immovable.name=label;var col=CollisionShape3D.new();col.shape=shape;immovable.add_child(col);add_child(immovable,true)
 
 func roof_height(p,axis,offset,width,eave,rise):
  return eave+rise*clampf(1.-absf(p.dot(axis)-offset)/width,0,1)
@@ -1047,10 +1068,11 @@ func survey_house(b,idx,observed,measured):
    var parts=[a];var da=a.dot(axis)-offset;var dd=d.dot(axis)-offset
    if da*dd<0:parts.append(a.lerp(d,da/(da-dd)))
    parts.append(d)
+   var solid=not wall_on_road(a,d,eave+rise)
    for k in range(1,parts.size()):
     var l=parts[k-1];var r=parts[k];var lh=roof_height(l,axis,offset,width,eave,rise);var rh=roof_height(r,axis,offset,width,eave,rise)
     quad(wall,vert(l,bottom),vert(r,bottom),vert(r,rh),vert(l,lh),normal,Vector2(r.distance_to(l),(lh+rh)*.5-bottom))
-    collision_faces.append_array(PackedVector3Array([vert(l,bottom),vert(r,rh),vert(r,bottom),vert(l,bottom),vert(l,lh),vert(r,rh)]))
+    if solid:collision_faces.append_array(PackedVector3Array([vert(l,bottom),vert(r,rh),vert(r,bottom),vert(l,bottom),vert(l,lh),vert(r,rh)]))
    if length<3.1:continue
    var count=clampi(roundi(length/3.9),1,8)
    var front_wall=HOUSE.enabled and ring_index==0 and HOUSE.same_edge(front,a,d)

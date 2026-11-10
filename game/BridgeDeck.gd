@@ -17,6 +17,8 @@ const SLAB_M=1.1
 const PIER_SPACING_M=25.
 const PIER_CLEAR_M=2.
 const PAINT_LIFT=.012
+const PARAPET_PIECE_M=1.
+const CORRIDOR=preload("res://DrivableCorridor.gd")
 
 static var _asphalt:StandardMaterial3D
 static var _concrete:StandardMaterial3D
@@ -26,7 +28,11 @@ static func build(tile)->int:
  if rows.is_empty():return 0
  ensure_materials(tile.materials)
  var built=0
- for row in rows:
+ # Decks and parapets collide on bodies of their own, so a car meeting a
+ # parapet is told apart from the deck it drives on (checks/RoadClearance.gd).
+ var parapets=PackedVector3Array();var decks=PackedVector3Array()
+ for row_index in rows.size():
+  var row=rows[row_index]
   if not row is Array or row.size()<5:continue
   var pts:Array=row[2];var heights:Array=row[4]
   if pts.size()<2 or pts.size()!=heights.size():continue
@@ -38,8 +44,12 @@ static func build(tile)->int:
    if path.size()>0 and Vector2(p.x-path[-1].x,p.z-path[-1].z).length()<.3:continue
    path.append(p)
   if path.size()<2:continue
-  deck(tile,path,float(row[3]),str(row[0]),row.size()>6 and int(row[6])!=0)
+  deck(tile,path,float(row[3]),str(row[0]),row.size()>6 and int(row[6])!=0,parapets,decks,row_index)
   built+=1
+ for body in [[decks,"BridgeDeck"],[parapets,"BridgeParapets"]]:
+  if body[0].is_empty():continue
+  var shape=ConcavePolygonShape3D.new();shape.backface_collision=true;shape.set_faces(body[0])
+  tile.collider(shape,body[1])
  return built
 
 static func ensure_materials(materials:Dictionary)->void:
@@ -83,24 +93,52 @@ static func normals(path:PackedVector3Array)->PackedVector2Array:
 static func at(p:Vector3,n:Vector2,offset:float,lift:float)->Vector3:
  return Vector3(p.x+n.x*offset,p.y+lift,p.z+n.y*offset)
 
-static func deck(tile,path:PackedVector3Array,width:float,cls:String,oneway:bool)->void:
+static func deck(tile,path:PackedVector3Array,width:float,cls:String,oneway:bool,parapets:PackedVector3Array,decks:PackedVector3Array,row_index:int)->void:
  var n=normals(path)
  var half=width*.5+SHOULDER_M
  var outer=half+PARAPET_W
  var station=0.
+ # Parapets never stand on another road: where one would (an overlapping deck,
+ # a road joining at the deck end) the deck edge keeps only its fascia
+ # (DrivableCorridor.gd; --without-road-clearance builds them everywhere).
+ var corridor=CORRIDOR.for_tile(tile) if CORRIDOR.enabled() else null
  for k in range(1,path.size()):
   var a=path[k-1];var b=path[k];var na=n[k-1];var nb=n[k]
   var length=Vector2(b.x-a.x,b.z-a.z).length()
   if length<.01:continue
   var v0=station/3.;var v1=(station+length)/3.
   # Deck surface (drives and collides).
-  surface(tile,"bridge_asphalt",at(a,na,half,0),at(b,nb,half,0),at(b,nb,-half,0),at(a,na,-half,0),Vector2(half*2/3.,v1-v0),true)
+  surface(tile,"bridge_asphalt",at(a,na,half,0),at(b,nb,half,0),at(b,nb,-half,0),at(a,na,-half,0),Vector2(half*2/3.,v1-v0),false,decks)
   for side_sign in [1.,-1.]:
    var s=side_sign
-   # Parapet: inner face, top, outer face; fascia below the deck edge.
-   surface(tile,"bridge_concrete",at(a,na,s*half,0),at(b,nb,s*half,0),at(b,nb,s*half,PARAPET_H),at(a,na,s*half,PARAPET_H),Vector2(1,1),true)
-   surface(tile,"bridge_concrete",at(a,na,s*half,PARAPET_H),at(b,nb,s*half,PARAPET_H),at(b,nb,s*outer,PARAPET_H),at(a,na,s*outer,PARAPET_H),Vector2(1,1),true)
-   surface(tile,"bridge_concrete",at(a,na,s*outer,PARAPET_H),at(b,nb,s*outer,PARAPET_H),at(b,nb,s*outer,-SLAB_M),at(a,na,s*outer,-SLAB_M),Vector2(1,1),false)
+   # Pieces of at most PARAPET_PIECE_M, merged while their state holds.
+   var count=maxi(1,ceili(length/PARAPET_PIECE_M)) if corridor!=null else 1
+   var blocked=[]
+   for m in count:
+    var f=(m+.5)/count
+    var c=a.lerp(b,f);var nc=na.lerp(nb,f)
+    var hit=false
+    if corridor!=null:
+     for offset in [s*half,s*outer]:
+      var q=at(c,nc,offset,0)
+      if corridor.blocked(Vector2(q.x,q.z),c.y,c.y+PARAPET_H,"B%d"%row_index):hit=true
+    blocked.append(hit)
+   var m0=0
+   while m0<count:
+    var m1=m0
+    while m1+1<count and blocked[m1+1]==blocked[m0]:m1+=1
+    var a0=a.lerp(b,float(m0)/count);var b0=a.lerp(b,float(m1+1)/count)
+    var n0=na.lerp(nb,float(m0)/count);var n1=na.lerp(nb,float(m1+1)/count)
+    if blocked[m0]:
+     # Fascia only, from the deck edge down.
+     surface(tile,"bridge_concrete",at(a0,n0,s*outer,0),at(b0,n1,s*outer,0),at(b0,n1,s*outer,-SLAB_M),at(a0,n0,s*outer,-SLAB_M),Vector2(1,1),false)
+     tile.info["bridge_parapet_clipped_m"]=float(tile.info.get("bridge_parapet_clipped_m",0.))+length*float(m1+1-m0)/count
+    else:
+     # Parapet: inner face, top, outer face; fascia below the deck edge.
+     surface(tile,"bridge_concrete",at(a0,n0,s*half,0),at(b0,n1,s*half,0),at(b0,n1,s*half,PARAPET_H),at(a0,n0,s*half,PARAPET_H),Vector2(1,1),false,parapets)
+     surface(tile,"bridge_concrete",at(a0,n0,s*half,PARAPET_H),at(b0,n1,s*half,PARAPET_H),at(b0,n1,s*outer,PARAPET_H),at(a0,n0,s*outer,PARAPET_H),Vector2(1,1),false,parapets)
+     surface(tile,"bridge_concrete",at(a0,n0,s*outer,PARAPET_H),at(b0,n1,s*outer,PARAPET_H),at(b0,n1,s*outer,-SLAB_M),at(a0,n0,s*outer,-SLAB_M),Vector2(1,1),false)
+    m0=m1+1
   # Soffit.
   surface(tile,"bridge_concrete",at(a,na,outer,-SLAB_M),at(b,nb,outer,-SLAB_M),at(b,nb,-outer,-SLAB_M),at(a,na,-outer,-SLAB_M),Vector2(1,1),false)
   paint(tile,a,b,na,nb,width,cls,oneway,station,length)
@@ -108,11 +146,12 @@ static func deck(tile,path:PackedVector3Array,width:float,cls:String,oneway:bool
   station+=length
 
 # One quad on the tile's batched mesh, optionally also in the shared collider.
-static func surface(tile,key:String,p0:Vector3,p1:Vector3,p2:Vector3,p3:Vector3,tiles:Vector2,collide:bool)->void:
+static func surface(tile,key:String,p0:Vector3,p1:Vector3,p2:Vector3,p3:Vector3,tiles:Vector2,collide:bool,into=null)->void:
  var normal=(p1-p0).cross(p3-p0).normalized()
  if normal.y<0 and absf(normal.y)>.5:normal=-normal
  tile.quad(key,p0,p1,p2,p3,normal,tiles)
  if collide:tile.collision_faces.append_array(PackedVector3Array([p0,p1,p2,p0,p2,p3]))
+ if into!=null:into.append_array(PackedVector3Array([p0,p1,p2,p0,p2,p3]))
 
 # MUTCD-style markings: white edge lines; two-way decks get a double yellow
 # centre line; lanes in the same direction are split by 10 ft dashes on a

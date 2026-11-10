@@ -42,6 +42,13 @@ const MAPPED_SNAP_M := 6.
 const MAPPED_STEP_M := 2.
 const BIN_M := 20.
 const ROAD_SURFACE := preload("res://RoadSurface.gd")
+const CORRIDOR := preload("res://DrivableCorridor.gd")
+const CLIP_STEP_M := 1.
+const MIN_PIECE_M := 6.
+const TERMINAL_M := 7.6         # 25 ft turned-down end
+const FLARE_M := .6
+const TERMINAL_EDGE_M := 12.    # no terminal where a run is only cut by the tile edge
+const POST_MIN_SCALE := .6
 const JERSEY_TOP_M := .81
 # Concrete F-shape safety shape: (half width, height), base to top.
 const JERSEY_PROFILE := [Vector2(.305, 0.), Vector2(.305, .075), Vector2(.205, .33), Vector2(.12, JERSEY_TOP_M)]
@@ -62,19 +69,21 @@ static func build(tile) -> int:
  var runs := mapped.duplicate()
  for run in inferred:
   if clear_bins.is_empty():runs.append(run);continue
-  var piece := PackedVector3Array()
+  var piece := PackedVector3Array();var piece_stations := PackedInt32Array()
   var pts: PackedVector3Array = run.pts
   for k in pts.size():
    var q := Vector2(pts[k].x, pts[k].z)
    if near_any(clear_bins, q, MAPPED_CLEAR_M):
     if k > 0:suppressed += Vector2(pts[k-1].x, pts[k-1].z).distance_to(q)
-    if length(piece) >= MIN_RUN_M:runs.append({"pts":piece, "kind":"guard_rail", "face":run.face})
-    piece = PackedVector3Array()
-   else:piece.append(pts[k])
-  if length(piece) >= MIN_RUN_M:runs.append({"pts":piece, "kind":"guard_rail", "face":run.face})
+    if length(piece) >= MIN_RUN_M:runs.append({"pts":piece, "kind":"guard_rail", "face":run.face, "line":run.line, "stations":piece_stations})
+    piece = PackedVector3Array();piece_stations = PackedInt32Array()
+   else:piece.append(pts[k]);piece_stations.append(run.stations[k])
+  if length(piece) >= MIN_RUN_M:runs.append({"pts":piece, "kind":"guard_rail", "face":run.face, "line":run.line, "stations":piece_stations})
  tile.info["guard_rail_source"] = tile.info.get("guard_rails_status", "")
  tile.info["guard_rail_mapped_runs"] = mapped.size()
  tile.info["guard_rail_suppressed_m"] = snappedf(suppressed, .1)
+ # No rail on any drivable road or junction, and a terminal at each end.
+ if CORRIDOR.enabled():runs = clip(tile, runs)
  if runs.is_empty():return 0
  var rail := SurfaceTool.new();rail.begin(Mesh.PRIMITIVE_TRIANGLES)
  var concrete := SurfaceTool.new();concrete.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -90,6 +99,8 @@ static func build(tile) -> int:
   var jersey: bool = run.kind == "jersey_barrier"
   var face: float = run.face
   var top := JERSEY_TOP_M if jersey else RAIL_TOP_M
+  # Height share per point: 1 along the run, falling to 0 over a terminal.
+  var scale: PackedFloat32Array = run.get("scale", PackedFloat32Array())
   if run.has("mapped"):
    var mid := pts.size() / 2;var dir := pts[mini(mid + 1, pts.size() - 1)] - pts[maxi(mid - 1, 0)];dir.y = 0.
    if dir.length() > 1e-3:mapped_focus.append(Transform3D(Basis.looking_at(dir.normalized(), Vector3.UP), pts[mid]))
@@ -100,31 +111,37 @@ static func build(tile) -> int:
    var p: Vector3 = pts[k];var p0: Vector3 = pts[k-1]
    var seg := Vector2(p.x - p0.x, p.z - p0.z).length()
    if seg < 1e-4:continue
+   var s0 := scale[k-1] if k - 1 < scale.size() else 1.;var s1 := scale[k] if k < scale.size() else 1.
    var t0 := (p - p0);t0.y = 0.;t0 = t0.normalized();var o0 := Vector3(-t0.z, 0., t0.x) * face
    if jersey:
     has_concrete = true
     for m in JERSEY_PROFILE.size() * 2 - 1:
      var u: Vector2 = section_point(m);var w: Vector2 = section_point(m + 1)
-     var a0 := p0 + o0 * u.x + Vector3.UP * u.y;var b0 := p0 + o0 * w.x + Vector3.UP * w.y
-     var a1 := p + o0 * u.x + Vector3.UP * u.y;var b1 := p + o0 * w.x + Vector3.UP * w.y
+     var a0 := p0 + o0 * u.x + Vector3.UP * u.y * s0;var b0 := p0 + o0 * w.x + Vector3.UP * w.y * s0
+     var a1 := p + o0 * u.x + Vector3.UP * u.y * s1;var b1 := p + o0 * w.x + Vector3.UP * w.y * s1
      for v in [a0, a1, b1, a0, b1, b0]:concrete.add_vertex(v)
    else:
     has_rail = true
-    # Posts every POST_SPACING_M along the run, standing on the shoulder.
+    # Posts every POST_SPACING_M along the run, standing on the shoulder
+    # (none where a terminal has turned the beam down to the ground).
     while next_post <= along + seg:
-     var q: Vector3 = p0.lerp(p, clampf((next_post - along) / seg, 0., 1.))
-     posts.append(Transform3D(Basis.looking_at(t0, Vector3.UP), q + Vector3.UP * (RAIL_TOP_M * .5 - .05)))
+     var f := clampf((next_post - along) / seg, 0., 1.)
+     var q: Vector3 = p0.lerp(p, f)
+     if lerpf(s0, s1, f) >= POST_MIN_SCALE:posts.append(Transform3D(Basis.looking_at(t0, Vector3.UP), q + Vector3.UP * (RAIL_TOP_M * .5 - .05)))
      next_post += POST_SPACING_M
     for m in profile.size() - 1:
-     var a0: Vector3 = p0 + o0 * profile[m].x + Vector3.UP * (RAIL_TOP_M - profile[m].y)
-     var b0: Vector3 = p0 + o0 * profile[m+1].x + Vector3.UP * (RAIL_TOP_M - profile[m+1].y)
-     var a1: Vector3 = p + o0 * profile[m].x + Vector3.UP * (RAIL_TOP_M - profile[m].y)
-     var b1: Vector3 = p + o0 * profile[m+1].x + Vector3.UP * (RAIL_TOP_M - profile[m+1].y)
+     var a0: Vector3 = p0 + o0 * profile[m].x + Vector3.UP * (RAIL_TOP_M * s0 - profile[m].y)
+     var b0: Vector3 = p0 + o0 * profile[m+1].x + Vector3.UP * (RAIL_TOP_M * s0 - profile[m+1].y)
+     var a1: Vector3 = p + o0 * profile[m].x + Vector3.UP * (RAIL_TOP_M * s1 - profile[m].y)
+     var b1: Vector3 = p + o0 * profile[m+1].x + Vector3.UP * (RAIL_TOP_M * s1 - profile[m+1].y)
      for v in [a0, a1, b1, a0, b1, b0]:rail.add_vertex(v)
    along += seg
-   # Collider: a wall from the ground to the rail top along the run.
+   # Collider: a wall from the ground to the rail top along the run; over a
+   # terminal it ramps down with the beam, so a car meeting the end rides up
+   # it instead of stopping on a blunt face.
+   if maxf(s0, s1) * top < .1:continue
    var g0 := p0 + Vector3.UP * .05;var g1 := p + Vector3.UP * .05
-   var h0 := p0 + Vector3.UP * top;var h1 := p + Vector3.UP * top
+   var h0 := p0 + Vector3.UP * maxf(.05, top * s0);var h1 := p + Vector3.UP * maxf(.05, top * s1)
    faces.append_array(PackedVector3Array([g0, h0, h1, g0, h1, g1]))
  var mesh := ArrayMesh.new()
  if has_rail:
@@ -148,8 +165,9 @@ static func build(tile) -> int:
   var mm := MultiMesh.new();mm.transform_format = MultiMesh.TRANSFORM_3D;mm.mesh = post_mesh;mm.instance_count = posts.size()
   for i in posts.size():mm.set_instance_transform(i, posts[i])
   var post_node := MultiMeshInstance3D.new();post_node.multimesh = mm;post_node.name = "GuardRailPosts";tile.add_child(post_node)
- var shape := ConcavePolygonShape3D.new();shape.backface_collision = true;shape.set_faces(faces)
- tile.collider(shape)
+ if not faces.is_empty():
+  var shape := ConcavePolygonShape3D.new();shape.backface_collision = true;shape.set_faces(faces)
+  tile.collider(shape,"RailCollider")
  tile.info["guard_rail_runs"] = runs.size()
  tile.info["guard_rail_mapped_m"] = snappedf(mapped_m, .1)
  tile.info["guard_rail_inferred_m"] = snappedf(inferred_m, .1)
@@ -211,7 +229,7 @@ static func frame(line: Dictionary, i: int, p: Vector2) -> Dictionary:
   var n := na.lerp(nb, t).normalized()
   var lateral := (p - c).dot(n)
   var e := 4 if lateral >= 0. else 0
-  best = {"d":d, "c":c, "n":n, "lateral":lateral, "outer":outer, "sign":1. if lateral >= 0. else -1.,
+  best = {"d":d, "c":c, "n":n, "lateral":lateral, "outer":outer, "sign":1. if lateral >= 0. else -1., "i":j if t < .5 else j + 1,
    "edge_h":lerpf(sections[j][e].y, sections[j+1][e].y, t)}
  return best
 
@@ -255,6 +273,7 @@ static func mapped_runs(tile) -> Array:
   for v in votes:
    if votes[v] > most:most = votes[v];chosen = v
   var placed := PackedVector3Array()
+  var placed_stations := PackedInt32Array()    # station on the chosen road (DrivableCorridor own-road test)
   var clear := PackedByteArray();clear.resize(pts.size())
   var face_sum := 0.
   for k in pts.size():
@@ -289,6 +308,7 @@ static func mapped_runs(tile) -> Array:
     var lat := absf((Vector2(q.x, q.z) - any.c).dot(any.n))
     if lat < any.outer - ROAD_SURFACE.SHOULDER_M:clear[k] = 0
    placed.append(q)
+   placed_stations.append(int(f.i) if not f.is_empty() else -1)
   # W-beam faces the road it runs along.
   for k in range(1, placed.size()):
    var t := Vector2(placed[k].x - placed[k-1].x, placed[k].z - placed[k-1].z)
@@ -300,22 +320,26 @@ static func mapped_runs(tile) -> Array:
   var face := 1. if face_sum >= 0. else -1.
   # Keep only segments this tile owns (midpoint inside), so a rail crossing a
   # tile edge is drawn once and its two halves meet.
-  var piece := PackedVector3Array()
+  var line := "L%d" % chosen.x if chosen.x >= 0 else ""
+  var piece := PackedVector3Array();var piece_stations := PackedInt32Array()
   for k in range(1, placed.size()):
    var mid := Vector2(placed[k].x + placed[k-1].x, placed[k].z + placed[k-1].z) * .5
    var owned: bool = mid.x >= 0. and mid.y >= 0. and mid.x < tile.side and mid.y < tile.side and clear[k-1] == 1 and clear[k] == 1
    if owned:
-    if piece.is_empty():piece.append(placed[k-1])
-    piece.append(placed[k])
+    if piece.is_empty():piece.append(placed[k-1]);piece_stations.append(placed_stations[k-1])
+    piece.append(placed[k]);piece_stations.append(placed_stations[k])
    elif piece.size() >= 2:
-    runs.append({"pts":piece, "kind":kind, "face":face, "mapped":true});piece = PackedVector3Array()
-   else:piece = PackedVector3Array()
-  if piece.size() >= 2:runs.append({"pts":piece, "kind":kind, "face":face, "mapped":true})
+    runs.append({"pts":piece, "kind":kind, "face":face, "mapped":true, "line":line, "stations":piece_stations})
+    piece = PackedVector3Array();piece_stations = PackedInt32Array()
+   else:piece = PackedVector3Array();piece_stations = PackedInt32Array()
+  if piece.size() >= 2:runs.append({"pts":piece, "kind":kind, "face":face, "mapped":true, "line":line, "stations":piece_stations})
  return runs
 
 static func inferred_runs(tile) -> Array:
  var runs := []
- for line in tile.road_surface.lines:
+ var lines: Array = tile.road_surface.lines
+ for li in lines.size():
+  var line: Dictionary = lines[li]
   if str(line.cls) in ["service","track"]:continue
   var sections: Array = line.sections
   if sections.size() < 3:continue
@@ -340,13 +364,96 @@ static func inferred_runs(tile) -> Array:
      var a := i;var b := j
      while a > 0 and station[i] - station[a-1] <= LEAD_M:a -= 1
      while b + 1 < sections.size() and station[b+1] - station[j] <= LEAD_M:b += 1
-     var pts := PackedVector3Array()
+     var pts := PackedVector3Array();var stations := PackedInt32Array()
      for k in range(a, b + 1):
+      stations.append(k)
       var centre: Vector3 = sections[k][2];var edge: Vector3 = sections[k][side]
       var inward := (centre - edge);inward.y = 0.;inward = inward.normalized()
       pts.append(edge + inward * RAIL_OFFSET_M)
      # The road is on the travel-left of a right-side rail (0) and the
      # travel-right of a left-side rail (4).
-     runs.append({"pts":pts, "kind":"guard_rail", "face":1. if side == 0 else -1.})
+     runs.append({"pts":pts, "kind":"guard_rail", "face":1. if side == 0 else -1., "line":"L%d" % li, "stations":stations})
     i = j + 1
  return runs
+
+## Cut every run where it would stand on the drivable corridor (another road,
+## a junction, a deck; DrivableCorridor.gd), drop the short leftovers, and give
+## each remaining end a terminal. Runs are tested every CLIP_STEP_M.
+static func clip(tile, runs: Array) -> Array:
+ var corridor = CORRIDOR.for_tile(tile)
+ var out := []
+ var before := 0.;var after := 0.;var ends := 0
+ for run in runs:
+  var pts: PackedVector3Array = run.pts
+  var stations: PackedInt32Array = run.get("stations", PackedInt32Array())
+  var line: String = run.get("line", "")
+  var top := JERSEY_TOP_M if run.kind == "jersey_barrier" else RAIL_TOP_M
+  var dense := PackedVector3Array();var dense_stations := PackedInt32Array()
+  for k in pts.size():
+   var st := stations[k] if k < stations.size() else -1
+   if k > 0:
+    var a: Vector3 = pts[k-1]
+    var steps := ceili(Vector2(pts[k].x - a.x, pts[k].z - a.z).length() / CLIP_STEP_M)
+    var previous := stations[k-1] if k - 1 < stations.size() else -1
+    for s in range(1, steps):
+     dense.append(a.lerp(pts[k], float(s) / steps));dense_stations.append(previous if s * 2 < steps else st)
+   dense.append(pts[k]);dense_stations.append(st)
+  before += length(dense)
+  var keep := PackedByteArray();keep.resize(dense.size())
+  for k in dense.size():
+   var p: Vector3 = dense[k]
+   keep[k] = 0 if corridor.blocked(Vector2(p.x, p.z), p.y, p.y + top, "", line, dense_stations[k]) else 1
+  var k := 0
+  while k < dense.size():
+   if keep[k] == 0:k += 1;continue
+   var j := k
+   while j + 1 < dense.size() and keep[j+1] == 1:j += 1
+   var piece := dense.slice(k, j + 1)
+   if length(piece) >= MIN_PIECE_M:
+    var r: Dictionary = run.duplicate()
+    r["pts"] = piece;r["stations"] = dense_stations.slice(k, j + 1)
+    ends += terminals(tile, r, corridor)
+    after += length(r.pts)
+    out.append(r)
+   k = j + 1
+ tile.info["guard_rail_clipped_m"] = snappedf(before - after, .1)
+ tile.info["guard_rail_terminals"] = ends
+ return out
+
+## Turned-down terminals: over the last TERMINAL_M (or half a short run) the
+## beam and its collider fall to the ground and flare FLARE_M away from the
+## road, so the end is a ramp, not a blunt face. An end the tile edge made
+## (the run goes on in the neighbouring tile) keeps full height. Returns the
+## number of terminals made.
+static func terminals(tile, run: Dictionary, corridor) -> int:
+ var pts: PackedVector3Array = run.pts
+ var n := pts.size()
+ var scale := PackedFloat32Array();scale.resize(n);scale.fill(1.)
+ run["scale"] = scale
+ if n < 2:return 0
+ var along := PackedFloat32Array();along.resize(n)
+ for k in range(1, n):along[k] = along[k-1] + Vector2(pts[k].x - pts[k-1].x, pts[k].z - pts[k-1].z).length()
+ var total := along[n-1]
+ var reach := minf(TERMINAL_M, total * .5)
+ var inner := Rect2(0, 0, tile.side, tile.side).grow(-TERMINAL_EDGE_M)
+ var top := JERSEY_TOP_M if run.kind == "jersey_barrier" else RAIL_TOP_M
+ var made := 0
+ for end in [0, n - 1]:
+  if not inner.has_point(Vector2(pts[end].x, pts[end].z)):continue
+  made += 1
+  for k in n:
+   var d: float = along[k] if end == 0 else total - along[k]
+   if d >= reach:continue
+   var u := d / reach
+   scale[k] = minf(scale[k], u)
+   var a: Vector3 = pts[maxi(k - 1, 0)];var b: Vector3 = pts[mini(k + 1, n - 1)]
+   var t := Vector2(b.x - a.x, b.z - a.z)
+   if t.length_squared() < 1e-8:continue
+   t = t.normalized()
+   # (−t.y, t.x)·face points toward traffic; the flare goes the other way.
+   var away := -Vector2(-t.y, t.x) * float(run.face)
+   var flared: Vector3 = pts[k] + Vector3(away.x, 0., away.y) * FLARE_M * (1. - u) * (1. - u)
+   if not corridor.blocked(Vector2(flared.x, flared.z), flared.y, flared.y + top * u, "", run.get("line", ""), -1):pts[k] = flared
+ run["pts"] = pts
+ run["scale"] = scale
+ return made
