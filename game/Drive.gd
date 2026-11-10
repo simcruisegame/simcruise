@@ -130,10 +130,24 @@ func _ready():
  for key in roadside_colors:materials[key]=material(null,Color(roadside_colors[key]))
  materials.whitepaint=material(null,Color("#d8d5c2"));materials.yellowpaint=material(null,Color("#c6a354"))
  materials.doorframe=material(null,Color("#a79d88"))
- materials.cap=material(null,Color("#b9ad99"));materials.roof=material(null,Color("#787875"))
- for key in {"siding0":"#c8c4b7","siding1":"#abb2a9","siding2":"#b4a391","siding3":"#b2a59c","house_trim":"#e3ded1","house_glass":"#42565c"}:
-  var colors={"siding0":"#c8c4b7","siding1":"#abb2a9","siding2":"#b4a391","siding3":"#b2a59c","house_trim":"#e3ded1","house_glass":"#42565c"}
-  materials[key]=material(null,Color(colors[key]))
+ materials.cap=material(null,Color("#b9ad99"))
+ # Roofs without an aerial photo still get shingle courses (SurveyRoof.gdshader, no image).
+ var plain_roof=ShaderMaterial.new();plain_roof.shader=preload("res://SurveyRoof.gdshader")
+ plain_roof.set_shader_parameter("fallback",Color("#5f605f"));materials.roof=plain_roof
+ for key in {"house_trim":"#e3ded1"}:
+  materials[key]=material(null,Color("#e3ded1"))
+ # Window glass reflects the sky and street like real glazing instead of a flat panel.
+ var window_glass=material(null,Color("#1d2a30"));window_glass.roughness=.06;window_glass.metallic_specular=.9;window_glass.metallic=.25
+ materials["house_glass"]=window_glass
+ # House walls (HouseWall.gdshader): 12 common US exterior paints on lap siding
+ # (siding0-11) and 4 brick colours (siding12-15), chosen per house by id.
+ var house_paints=["#ece9e1","#e2d9c4","#c9cbc7","#b8b1a2","#c6b28d","#a8b29a","#a8bbc7","#6f8293","#e4d397","#8d8372","#53575a","#b9a48a"]
+ var bricks=["#8b4838","#76503f","#9f5a42","#a98c6a"]
+ for i in 16:
+  var wall_material=ShaderMaterial.new();wall_material.shader=preload("res://HouseWall.gdshader")
+  wall_material.set_shader_parameter("paint",Color(house_paints[i] if i<12 else bricks[i-12]))
+  wall_material.set_shader_parameter("style",0 if i<12 else 1)
+  materials["siding"+str(i)]=wall_material
  var grass=Image.new()
  if grass.load_jpg_from_buffer(FileAccess.get_file_as_bytes("res://data/grass-detail.jpg"))==OK:
   grass.generate_mipmaps();materials["grass_detail"]=ImageTexture.create_from_image(grass)

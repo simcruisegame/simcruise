@@ -1,12 +1,13 @@
 extends Node
 ## --rail-view OUTPUT_DIRECTORY [--place=lon,lat,bearing]: loads a place, waits
-## for it to stream, then frames the nearest guard-rail run (GuardRails.gd) and
-## the road ribbon from a roadside camera and saves rails-N.jpg. Windowed only.
+## for it to stream, then frames the nearest guard-rail run (GuardRails.gd) or,
+## where there is none, the car, from three cameras of its own (roadside, low
+## roadside, oblique aerial) and saves rails-0.jpg, rails-1.jpg and
+## aerial-oblique.jpg. Windowed only; pass --quality=ultra for judging looks.
 var game
 var out := ""
 var clock := 0.
 var place := Vector3(-83.9202491, 35.4667227, 315.)
-var shots := 0
 func _ready():
  game = get_parent()
  var args := OS.get_cmdline_user_args()
@@ -22,6 +23,7 @@ func _process(dt):
  if not game.ready_drive or game.tiles.size() < 6 or game.job:return
  clock += dt
  if clock < 10.:return
+ set_process(false)
  game.vehicle.freeze = true
  game.hud.root.visible = false
  # Nearest post to the car among loaded tiles.
@@ -34,17 +36,26 @@ func _process(dt):
    var d := t.origin.distance_to(game.vehicle.global_position)
    if d < best_d:best_d = d;best = t
  if not is_finite(best_d):
-  print("RAILVIEW no rails loaded; driver view only")
+  print("RAILVIEW no rails loaded; framing the car")
   best = game.vehicle.global_transform
- set_process(false)
  var along := -best.basis.z;along.y = 0.;along = along.normalized()
  var side := along.cross(Vector3.UP)
- for v in [[side * 7. - along * 9. + Vector3.UP * 2.2, "rails-0"], [-side * 6. - along * 14. + Vector3.UP * 1.3, "rails-1"]]:
-  for i in 30:
-   await RenderingServer.frame_pre_draw
-   game.camera.global_position = best.origin + v[0]
-   game.camera.look_at(best.origin + along * 6. + Vector3.UP * .4, Vector3.UP)
-  await RenderingServer.frame_post_draw
+ # A camera of our own: the cockpit camera re-aims itself every frame.
+ var cam := Camera3D.new();cam.fov = 50.;cam.far = 4000.;game.add_child(cam);cam.current = true
+ var focus: Vector3 = best.origin
+ var views := [[side * 7. - along * 9. + Vector3.UP * 2.2, "rails-0", Vector3.UP * .4],
+  [-side * 6. - along * 14. + Vector3.UP * 1.3, "rails-1", Vector3.UP * .4],
+  [-along * 28. + side * 10. + Vector3.UP * 22., "aerial-oblique", Vector3.ZERO]]
+ for v in views:
+  cam.global_position = focus + v[0]
+  cam.look_at(focus + along * 6. + v[2], Vector3.UP)
+  for i in 20:await RenderingServer.frame_post_draw
   get_viewport().get_texture().get_image().save_jpg(out.path_join(v[1] + ".jpg"), .9)
+ var under=game.tile_id(game.pos)
+ if game.tiles.has(under):
+  var t=game.tiles[under]
+  var keys=[]
+  for k in t.materials:if str(k).contains("roof"):keys.append("%s:%s"%[k,t.materials[k].get_class()])
+  print("RAILVIEW roof materials on tile ",under,": ",keys," lidar_roofs=",t.info.get("lidar_roofs",{}).size() if t.info.get("lidar_roofs") is Dictionary else t.info.get("lidar_roofs",[]).size() if t.info.get("lidar_roofs") is Array else "-")
  print("RAILVIEW saved, nearest rail %.0f m from the car" % best_d)
  get_tree().quit(0)
