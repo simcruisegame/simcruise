@@ -27,5 +27,5 @@ export async function conditions(lat,lon,read){
  // NSC, absent visibility and distant stations do not establish clear blue sky.
  const clearSky=(r.cover==='CLR'||r.cover==='SKC')&&Number.isFinite(visibility)
   &&visibility*1609.344>=10000&&r.km<=40&&!String(r.wxString??'').trim();
- return {clear_sky:clearSky,station:r.icaoId,at:new Date(r.obsTime*1000).toISOString(),km:r.km,cloud:cover[r.cover],visibility_m:Number.isFinite(visibility)?visibility*1609.344:16093,description:({CLR:'clear',SKC:'clear',NSC:'mostly clear',FEW:'few clouds',SCT:'scattered clouds',BKN:'broken clouds',OVC:'overcast',VV:'obscured sky'})[r.cover]};
+ return {clear_sky:clearSky,wet:/(^|[\s+-])(FZ)?(SH|TS)?(RA|DZ|SN|SG|PL|GR|GS|UP)/.test(String(r.wxString??'')),station:r.icaoId,at:new Date(r.obsTime*1000).toISOString(),km:r.km,cloud:cover[r.cover],visibility_m:Number.isFinite(visibility)?visibility*1609.344:16093,description:({CLR:'clear',SKC:'clear',NSC:'mostly clear',FEW:'few clouds',SCT:'scattered clouds',BKN:'broken clouds',OVC:'overcast',VV:'obscured sky'})[r.cover]};
 }

@@ -90,6 +90,9 @@ func apply(choice: String) -> void:
  RenderingServer.directional_shadow_atlas_set_size(p.shadow_atlas, true)
  if game.sun:game.sun.directional_shadow_max_distance = p.shadow_m
  if game.has_node("AmbientLife"):game.get_node("AmbientLife").configure(p.traffic, p.birds)
+ cinematic_lighting(level)
+ # How far the car moves before its reflection probe re-renders the surroundings.
+ game.probe_step_m = {"low":40.,"medium":24.,"high":12.,"ultra":8.}[level]
 
 func label() -> String:
  var name: String = level.capitalize()
@@ -133,3 +136,31 @@ func _process(dt: float) -> void:
   scale = minf(p.render_scale, scale + .05);settle = 2.
  else:return
  vp.scaling_3d_scale = scale
+
+## Lighting the Mobile renderer cannot do. When the game runs on Forward+
+## (desktop GPUs; see docs/research/real-world-detail.md), High and Ultra add:
+##   SSAO  — contact darkening in corners, under cars, where walls meet ground
+##   SSIL  — screen-space bounce: a sunlit wall warms the street beside it
+##   SDFGI — large-scale indirect light and sky occlusion across the open world
+##   volumetric fog — depth haze and light shafts that respond to the sun
+##   glow  — a soft bloom on bright sky, glass and chrome
+## Low and Medium, and the Mobile renderer, keep the direct-light look.
+func cinematic_lighting(preset_name: String) -> void:
+ var env: Environment = game.world_environment
+ if env == null:return
+ var forward := RenderingServer.get_current_rendering_method() == "forward_plus"
+ var on := forward and preset_name in ["high", "ultra"]
+ env.ssao_enabled = on
+ env.ssao_radius = 1.6;env.ssao_intensity = 2.2;env.ssao_power = 1.6;env.ssao_detail = .5
+ env.ssil_enabled = on
+ env.ssil_radius = 6.;env.ssil_intensity = 1.1
+ env.sdfgi_enabled = on and preset_name == "ultra"
+ env.sdfgi_use_occlusion = true;env.sdfgi_cascades = 6;env.sdfgi_min_cell_size = .4
+ env.sdfgi_y_scale = Environment.SDFGI_Y_SCALE_75_PERCENT
+ env.volumetric_fog_enabled = on
+ env.volumetric_fog_density = .0006;env.volumetric_fog_anisotropy = .6;env.volumetric_fog_sky_affect = 0.
+ env.volumetric_fog_length = 220.;env.volumetric_fog_albedo = Color("#d8dde0")
+ env.glow_enabled = on
+ env.glow_intensity = .4;env.glow_bloom = .02;env.glow_hdr_threshold = 1.4
+ # FSR 2 is a temporal upscaler: sharper than bilinear at the same cost.
+ if forward:get_viewport().scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR2 if scale < 1. else Viewport.SCALING_3D_MODE_BILINEAR
