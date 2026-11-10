@@ -222,8 +222,11 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
  var b=global_transform.basis;var vel=linear_velocity;var speed=-vel.dot(b.z);var throttle=0.
  service_brake=foot or (back>.01 and speed>.45) or (gas>.01 and speed<-.45)
  if not service_brake and not manual:
-  if gas>0:in_reverse=false;throttle=gas
-  elif back>0:in_reverse=true;throttle=back
+  # The selector changes direction only near standstill, like a real
+  # automatic's reverse inhibitor: a pedal below the brake threshold while
+  # rolling the other way coasts instead of engaging the opposite gear.
+  if gas>0 and speed>-.45:in_reverse=false;throttle=gas
+  elif back>0 and speed<.45:in_reverse=true;throttle=back
  var brake_amount=1.0 if foot else (maxf(back,gas) if service_brake else 0.)
  if manual:
   throttle=gas;service_brake=foot or back>.01;brake_amount=maxf(back,1. if foot else 0.)
