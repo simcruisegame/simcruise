@@ -153,6 +153,8 @@ func tick(game):
      tile.info["road_lanes"]=doc
      tile.install_marking_update(result.get("paint_update",{}))
     else:lane_visits[pending_id]=Time.get_ticks_msec()+600000
+    # The next waiting tile of the ring goes at once (often its group's cache).
+    next_check=0
    elif layout_job:
     tile.info["road_layout_download"]=result.get("status","unavailable")
     if result.get("layout") is Dictionary:
@@ -181,13 +183,13 @@ func tick(game):
  var current=game.tile_id(game.pos)
  var velocity=Vector2(game.vehicle.linear_velocity.x,game.vehicle.linear_velocity.z)
  var ahead=game.tile_id(game.pos+velocity*5.)
- # Lane counts first: the markings are in view at once, and one request
- # serves a 2 x 2 group of tiles.
- for id in [current,ahead]:
+ # Lane counts first, for every streamed tile still waiting for them (the
+ # ring around the car, not only the tiles under and ahead of it), nearest
+ # first: a ring tile is built at least a tile's width away, so its lines are
+ # repainted long before they come into view. One request serves a 2 x 2
+ # group of tiles; the rest of the group then reads the helper's cache.
+ for id in lane_order(game,now):
   var tile=game.tiles.get(id)
-  if not tile or not tile.info.get("live_canopy",false):continue
-  var lanes=tile.info.get("road_lanes")
-  if not lanes is Dictionary or lanes.get("status")!="pending" or lane_visits.get(id,0)>now:continue
   if lane_visits.size()>=96:lane_visits.erase(lane_visits.keys()[0])
   lane_visits[id]=now+60000
   pending_id=id;pending_instance=tile.get_instance_id();lanes_job=true;layout_job=false;roof_job=false
@@ -241,6 +243,18 @@ func tick(game):
  next_roof_check=now+30000
  worker=Thread.new()
  worker.start(fetch_roofs.bind(game.helper,game.cache,id,patch,tile.height_at(local),tile.info.duplicate(),game.side,tile.materials.duplicate(),tile.segments.duplicate()))
+
+# Streamed tiles whose lane counts are still pending and due, nearest first.
+func lane_order(game,now:int)->Array:
+ var due=[]
+ for id in game.tiles:
+  var tile=game.tiles[id]
+  if not tile or not tile.info.get("live_canopy",false):continue
+  var lanes=tile.info.get("road_lanes")
+  if not lanes is Dictionary or lanes.get("status")!="pending" or lane_visits.get(id,0)>now:continue
+  due.append([(game.tile_offset(id)+Vector2.ONE*tile.side*.5).distance_squared_to(game.pos),id])
+ due.sort_custom(func(a,b):return a[0]<b[0])
+ return due.map(func(row):return row[1])
 
 func fetch_layout(helper,cache,id:Vector2i,info:Dictionary,side:float,materials:Dictionary,observations:Array)->Dictionary:
  var args=PackedStringArray(["road-layout",cache,str(id.x),str(id.y)])

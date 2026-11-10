@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import {roadWidth,LANE_M} from '../helper/road-widths.mjs';
 import {count,mph,onewayOf,decodeLaneWays,matchLaneCounts,laneCountKey,laneCountQuery,cachedLaneWays,laneRoadsFile} from '../helper/lane-counts.mjs';
 
 assert.equal(count('4'),4);assert.equal(count('2;3'),2);assert.equal(count(''),0);assert.equal(count('40'),0);assert.equal(count(null),0);
@@ -82,4 +83,18 @@ try{
  assert.ok(laneRoadsFile(tmp,X,Y).startsWith(tmp));
  assert.throws(()=>laneRoadsFile(tmp,-1,Y));
 }finally{fs.rmSync(tmp,{recursive:true,force:true});}
+// The game paints an unmapped one-way with the lanes its surface was built for
+// (LaneMarkings.gd oneway_default_lanes: 2 when the paved width holds two
+// 3.6 m lanes, else 1). Every one-way carriageway width must give 2 and every
+// ramp width 1, or the paint would disagree with the surface.
+{
+ const gdLanes=w=>w>=2*LANE_M-.05?2:1;
+ for(const cls of ['motorway','trunk','primary','secondary','tertiary']){
+  assert.equal(gdLanes(roadWidth(cls,1,0)),2,cls+' one-way carriageway is painted with two lanes');
+  assert.equal(gdLanes(roadWidth(cls,1,1)),1,cls+' ramp is painted with one lane');
+ }
+ const gd=fs.readFileSync(new URL('../game/LaneMarkings.gd',import.meta.url),'utf8');
+ assert.match(gd,/const WIDTH_LANE_M := 3\.6\b/,'LaneMarkings.gd uses road-widths.mjs LANE_M');
+ assert.match(gd,/const ONE_WAY_LANES := 2\b/,'LaneMarkings.gd uses road-widths.mjs ONE_WAY_LANES');
+}
 console.log('lane-counts: all assertions passed');

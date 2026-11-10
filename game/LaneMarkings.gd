@@ -9,8 +9,9 @@ extends RefCounted
 ## rest in the background and repaints). A segment with no mapped count takes
 ## the counts of the same road within INHERIT_M, then the counts mapped on
 ## most of the same street in the tile, then the US default: two lanes, one
-## each way, on a two-way road and one lane on a one-way road that is not an
-## arterial. From the count:
+## each way, on a two-way road, and on a one-way road the lanes its paved
+## width was built for (helper/road-widths.mjs: two, one on a ramp). From the
+## count:
 ##   * white edge lines on freeways, expressways and arterials (motorway, trunk,
 ##     primary) everywhere and on collectors (secondary, tertiary) outside
 ##     towns (3B.06, 3B.07); on a one-way carriageway the left edge is yellow.
@@ -36,9 +37,11 @@ extends RefCounted
 ##     road narrower than 16 ft or mapped with a single lane (3B.01).
 ## Lanes are LANE_M wide, narrower if the mapped count does not fit the road's
 ## width but never under MIN_LANE_M: a count the road cannot hold loses its
-## centre lane, then lanes from the busier direction (the road width is still
-## the class estimate, not the mapped count). Lanes may use the paved
-## shoulder of the road ribbon (RoadSurface.gd) when the count needs it.
+## centre lane, then lanes from the busier direction. The width is the paved
+## width of the ribbon at each station (RoadSurface.gd `halves`), which
+## helper/road-widths.mjs sets from the class, one-way and ramp flags alone so
+## that both tiles of a seam agree, never from the mapped count. Lanes may use
+## the paved shoulder of the road ribbon when the count needs it.
 ##
 ## The lines follow the engineered road ribbon: their path is the ribbon's
 ## 2 m station centreline and every corner sits LIFT_M above the surface the
@@ -68,12 +71,18 @@ const DOUBLE_GAP_M := .1      # between the two lines of a double line
 const STEP_M := 2.            # station spacing of polyline (no-ribbon) paths
 const SHOULDER_M := 1.2       # RoadSurface.SHOULDER_M
 const MAX_JOIN_M := 8.        # a longer step between stations is a gap
+const SKIP_SPAN_M := 10.      # kept_stations(): longest straight run drawn without its inner stations
+const SKIP_HEIGHT_M := .005   # ... and how far its cross-sections may leave the straight line in height
+const SKIP_EDGE_M := 12.      # ... and how near the tile edge stations are always kept
+const OWN_REACH_M := 1.6      # a stripe point this near its station shares its ownership (own_station())
 const SURFACE := preload("res://RoadSurface.gd")
 const PROFILE := 15
 const MAJOR := ["motorway","trunk","primary","secondary","tertiary"]
 const ARTERIAL := ["motorway","trunk","primary"]
 const LANE_M := {"motorway":3.65,"trunk":3.65,"primary":3.5,"secondary":3.35,"tertiary":3.2}
 const MIN_LANE_M := 2.75
+const WIDTH_LANE_M := 3.6     # helper/road-widths.mjs LANE_M
+const ONE_WAY_LANES := 2      # helper/road-widths.mjs ONE_WAY_LANES
 const NARROW_M := 4.9         # 16 ft: no centre line below this travelled width
 # Default posted speed where OSM has no maxspeed, rural / in town.
 const RURAL_MPH := {"motorway":65,"trunk":55,"primary":55,"secondary":50,"tertiary":45}
@@ -102,6 +111,8 @@ var roads: Array = []
 var mapped := {}       # road index -> {segment index: [lanes, forward, backward, mph]}
 var segs: Array = []   # [a, b, road index, segment index, half width, class, name]
 var grid := {}         # Vector2i -> [index into segs]
+var marked_cells := {} # Vector2i -> true where a road that gets markings (markable()) has a segment
+var marked_near := {}  # marked_cells grown by one cell
 var covered := {}      # Vector2i(road, segment) -> true once a ribbon station used it
 var deck := {}         # road index -> true for roads drawn on a bridge deck (BridgeDeck.gd)
 var homes := {}        # Vector2i -> building count
@@ -110,7 +121,11 @@ var heights := {}      # Vector2 -> stripe corner height, within one polyline
 var ribbon := []       # cross-sections of the ribbon the current path follows (RoadSurface.lines)
 var ribbon_index := -1 # its index in RoadSurface.lines
 var profile := PackedFloat64Array()   # per station of that ribbon, PROFILE numbers (see ribbon_fit())
-var ribbon_bins := {}  # Vector2i (RoadSurface.BIN cell) -> {ribbon index: true}, every ribbon near the cell
+var own_k := PackedByteArray()   # per station of the current path: 1 where its stripes lie on its ribbon alone
+var cross_k := PackedByteArray()   # kept_stations(): per station, 0 not tested, 1 no crossing road, 2 a crossing road
+var fans := {}         # paint batch key -> the tile's SurfaceTool for it (stripe())
+var up4 := PackedVector3Array([Vector3.UP, Vector3.UP, Vector3.UP, Vector3.UP])
+var cell_ribbons := {}   # Vector2i (RoadSurface.BIN cell) -> {ribbon index: bounding box of its quads there} (cell_boxes())
 var towns := {}        # Vector2i -> built up (dense())
 var street_town := {}  # street -> share of its length in this tile that is built up
 var street_counts := {}   # [street, class, one-way] -> the counts mapped on most of its length here
@@ -147,9 +162,10 @@ static func cross_section(cls: String, oneway: bool, lanes: Array, width: float,
  var b := int(lanes[2]) if lanes.size() > 2 else 0
  var c := 0
  if oneway:
-  # An unmapped one-way gets one lane unless it is an arterial: the road
-  # width is itself a class estimate, so it cannot vouch for a second lane.
-  if total <= 0:total = f if f > 0 else (2 if cls in ARTERIAL and width >= 7.3 else 1)
+  # An unmapped one-way gets the lanes its paved width was built for
+  # (helper/road-widths.mjs: a one-way carriageway is two lanes plus its
+  # shoulders, a ramp one), so the paint never disagrees with the surface.
+  if total <= 0:total = f if f > 0 else oneway_default_lanes(width)
   f = total;b = 0
  else:
   if f > 0 and b > 0:
@@ -224,6 +240,13 @@ static func cross_section(cls: String, oneway: bool, lanes: Array, width: float,
    lines.append([centre - d, "yellow", "dash" if passing[1] else "solid", LINE_M])
  return {"lines":lines, "lanes":n, "forward":f, "backward":b, "centre":c, "lane":lane, "travelled":travelled, "edges":edges, "centre_line":kind, "mapped_lanes":mapped_lanes}
 
+## Lanes of an unmapped one-way road of this paved width: as many WIDTH_LANE_M
+## lanes as helper/road-widths.mjs built it for, 1 or ONE_WAY_LANES. Every
+## two-lane one-way width there (two 3.6 m lanes plus shoulders, 9.0-11.4 m)
+## holds two; a ramp (one lane plus shoulders, 6 m) holds one.
+static func oneway_default_lanes(width: float) -> int:
+ return ONE_WAY_LANES if width >= ONE_WAY_LANES * WIDTH_LANE_M - .05 else 1
+
 ## MUTCD Table 3B-1 passing sight distance in metres for a speed in mph.
 static func passing_sight_m(mph: float) -> float:
  var v := clampi(int(roundf(mph / 5.)) * 5, 25, 70)
@@ -247,19 +270,6 @@ func prepare() -> void:
     for j in range(int(run[0]), mini(int(run[1]), 4096) + 1):per[j] = [int(run[2]), int(run[3]), int(run[4]), int(run[5])]
    mapped[i] = per
  var decks: bool = not tile.info.get("bridges", []).is_empty()
- # Which ribbons reach each cell (with a cell of margin), to tell where two
- # ribbons overlap: there the road surface is the higher of them.
- if tile.road_surface:
-  for li in tile.road_surface.lines.size():
-   for section in tile.road_surface.lines[li].sections:
-    for j in 5:
-     for v in [section[j], section[j].lerp(section[mini(j + 1, 4)], .5)]:
-      var c := Vector2i(floori(v.x / SURFACE.BIN), floori(v.z / SURFACE.BIN))
-      for dx in range(-1, 2):
-       for dy in range(-1, 2):
-        var key := c + Vector2i(dx, dy)
-        if not ribbon_bins.has(key):ribbon_bins[key] = {}
-        ribbon_bins[key][li] = true
  for i in roads.size():
   var road: Array = roads[i]
   if decks and road.size() > 6 and road[6] == "bridge":
@@ -288,6 +298,10 @@ func prepare() -> void:
      var key := Vector2i(x, y)
      if not grid.has(key):grid[key] = []
      grid[key].append(index)
+     if markable(i):marked_cells[key] = true
+ for key in marked_cells:
+  for dx in range(-1, 2):
+   for dy in range(-1, 2):marked_near[key + Vector2i(dx, dy)] = true
  for b in tile.info.get("buildings", []):
   var p = b
   for depth in 3:
@@ -359,6 +373,10 @@ func town_share(street: String) -> float:
  return street_town[street]
 
 ## The road segment a station of a ribbon belongs to: [segment, +1/-1 along it].
+## A ribbon chain can join roads of several classes (road-grade.mjs links the
+## straight-on continuation whatever its class, and names the chain after its
+## first piece), so the station's own paved half width, which is its road's,
+## picks between roads that meet there; the chain's class only breaks ties.
 func match(p: Vector2, t: Vector2, cls: String, half: float) -> Array:
  var best := [];var best_score := INF
  for index in grid.get(Vector2i((p / BIN_M).floor()), []):
@@ -367,16 +385,33 @@ func match(p: Vector2, t: Vector2, cls: String, half: float) -> Array:
   if absf(along) < .85:continue
   var dist := Geometry2D.get_closest_point_to_segment(p, s[0], s[1]).distance_to(p)
   if dist > half + 1.5:continue
-  var score := dist + (0. if s[5] == cls else 4.)
+  var score := dist + (0. if absf(s[4] - half) < .05 else 4.) + (0. if s[5] == cls else .5)
   if score < best_score:best_score = score;best = [s, 1 if along > 0. else -1]
  return best
 
 func ribbon_path(line: Dictionary, index: int) -> void:
+ # Every ribbon, whatever its class: a chain named after a local street can
+ # carry on along a major road (match()), and its stations must follow the
+ # ribbon, not the map polyline beside it.
  var cls := str(line.get("cls", ""))
- if cls not in MAJOR:return
  var pts := PackedVector2Array()
- for section in line.sections:pts.append(Vector2(section[2].x, section[2].z))
- path(pts, cls, float(line.half), [], line.sections, index)
+ var near := false
+ for k in line.sections.size():
+  var section: Array = line.sections[k]
+  pts.append(Vector2(section[2].x, section[2].z))
+  # A ribbon that never comes near a marked road is skipped. Every third
+  # station is tested against the marked cells grown by one cell, so any
+  # station in a marked cell has a tested one within a cell of it.
+  if not near and (k % 3 == 0 or k == line.sections.size() - 1 or (k > 0 and pts[k].distance_to(pts[k - 1]) > MAX_JOIN_M)):
+   near = marked_near.has(Vector2i((pts[k] / BIN_M).floor()))
+ if not near:return
+ # Each station's own paved half width (RoadSurface.gd `halves`): a chain can
+ # join roads of different widths, and the lines must fit the surface under them.
+ var halves = line.get("halves")
+ if not halves is PackedFloat32Array or halves.size() != pts.size():
+  push_error("LaneMarkings: road surface line %d has no per-station halves" % index)
+  return
+ path(pts, cls, halves, [], line.sections, index)
 
 ## Major-road segments no ribbon station used (no ribbon, or --grid-roads).
 func polyline_paths() -> void:
@@ -390,7 +425,9 @@ func polyline_paths() -> void:
    var length := a.distance_to(b)
    if j < route.size() and length < .1:continue
    if j == route.size() or covered.has(Vector2i(i, j - 1)):
-    if pts.size() >= 2 and pts[0].distance_to(pts[pts.size() - 1]) >= 4.:path(pts, str(roads[i][0]), float(roads[i][4]) * .5, forced)
+    if pts.size() >= 2 and pts[0].distance_to(pts[pts.size() - 1]) >= 4.:
+     var halves := PackedFloat32Array();halves.resize(pts.size());halves.fill(float(roads[i][4]) * .5)
+     path(pts, str(roads[i][0]), halves, forced)
     pts = PackedVector2Array();forced = []
     continue
    var steps := maxi(1, ceili(length / STEP_M))
@@ -399,10 +436,7 @@ func polyline_paths() -> void:
     forced.append([i, j - 1])
 
 ## Lays the markings along one path of stations (2 m apart).
-func path(pts: PackedVector2Array, cls: String, half: float, forced: Array, ribbon_sections: Array = [], index: int = -1) -> void:
- ribbon = ribbon_sections;ribbon_index = index
- profile.resize(ribbon.size() * PROFILE)
- for k in ribbon.size():profile_station(k)
+func path(pts: PackedVector2Array, cls: String, halves: PackedFloat32Array, forced: Array, ribbon_sections: Array = [], index: int = -1) -> void:
  var n := pts.size()
  if n < 2:return
  var st := []
@@ -415,7 +449,11 @@ func path(pts: PackedVector2Array, cls: String, half: float, forced: Array, ribb
   var t := (pts[mini(k + 1, n - 1)] - pts[maxi(k - 1, 0)]).normalized()
   var i := -1;var j := -1;var sign := 1
   if forced.is_empty():
-   var hit := match(pts[k], t, cls, half)
+   # Most stations of a local street's ribbon are nowhere near a marked road.
+   if not marked_cells.has(Vector2i((pts[k] / BIN_M).floor())):
+    st.append(null)
+    continue
+   var hit := match(pts[k], t, cls, halves[k])
    if not hit.is_empty():i = hit[0][2];j = hit[0][3];sign = hit[1]
   else:
    i = forced[k][0];j = forced[k][1]
@@ -433,8 +471,15 @@ func path(pts: PackedVector2Array, cls: String, half: float, forced: Array, ribb
   # Two-way counts are kept along the path: forward is the path direction.
   if not oneway and counts.size() == 4 and road_sign < 0:counts = [counts[0], counts[2], counts[1], counts[3]]
   st.append({"p":pts[k], "t":t, "road":i, "sign":road_sign if oneway else 1, "oneway":oneway, "counts":counts,
-   "cls":str(road[0]), "width":float(road[4]), "name":str(road[2])})
- stats.stations += n
+   "cls":str(road[0]), "width":2. * halves[k], "name":str(road[2])})
+ var markable_stations := n - st.count(null)
+ if markable_stations == 0:return
+ stats.stations += markable_stations
+ # The ribbon's own profile, for heights on it (ribbon_fit()).
+ ribbon = ribbon_sections;ribbon_index = index
+ profile.resize(ribbon.size() * PROFILE)
+ for k in ribbon.size():
+  if k <= 1 or k >= n - 2 or st[k] != null or st[k - 1] != null or st[k + 1] != null:profile_station(k)
  # An unmapped station takes the counts of the nearest mapped station of the
  # same road within INHERIT_M (a map segment can miss its way at a junction).
  var last := -1
@@ -514,6 +559,9 @@ func path(pts: PackedVector2Array, cls: String, half: float, forced: Array, ribb
  sight_us += Time.get_ticks_usec() - ts
  # Cross-section of every station, in the path frame (offset right of the path tangent).
  var sections := []
+ var prev_key := [];var prev_cached = null
+ own_k.resize(n);own_k.fill(0)
+ var outer := PackedFloat32Array();outer.resize(n)   # outermost line offset per station
  for k in n:
   if st[k] == null:sections.append(null);continue
   var r: Dictionary = st[k]
@@ -522,51 +570,80 @@ func path(pts: PackedVector2Array, cls: String, half: float, forced: Array, ribb
   var counts: Array = r.counts
   if counts.size() == 4:stats.mapped_stations += 1
   if r.get("street", false):stats.street_stations += 1
-  # Neighbouring stations nearly always share a cross-section: build each once.
-  var key := [r.cls, r.oneway, counts, r.width, r.town, passing, r.sign, r.name]
-  var cached = sections_by_key.get(key)
+  # Neighbouring stations nearly always share a cross-section: build each once,
+  # and reuse the previous station's without hashing when nothing changed.
+  var cached = null
+  var prev_r = st[k - 1] if k > 0 else null
+  if prev_r != null and prev_key.size() == 6 and prev_key[0] == r.road and prev_key[1] == r.width and prev_key[2] == r.town and prev_key[3] == passing and prev_key[4] == r.sign and prev_key[5] == counts:
+   cached = prev_cached
+  var key := []
+  if cached == null:
+   key = [r.cls, r.oneway, counts, r.width, r.town, passing, r.sign, r.name]
+   cached = sections_by_key.get(key)
+   prev_key = [r.road, r.width, r.town, passing, r.sign, counts]
   if cached == null:
    var x := cross_section(r.cls, r.oneway, [counts[0], counts[1], counts[2]] if counts.size() == 4 else [0, 0, 0], r.width, r.town, passing)
    var lines := []
    for line in x.lines:lines.append([line[0] * r.sign, line[1], line[2], line[3]])
    var label := "%s %s: %d lanes %d+%s%d %s%s" % [r.cls, r.name, x.lanes, x.forward, "TWLTL+" if x.centre > 0 else "", x.backward, x.centre_line if x.centre_line != "" else ("one-way" if r.oneway else "no centre line"), ", edge lines" if x.edges else ""]
    if x.mapped_lanes != x.lanes:label += " (%d mapped, too narrow)" % x.mapped_lanes
-   cached = {"lines":lines, "label":label, "fitted":x.mapped_lanes != x.lanes}
+   var widest := 0.
+   for line in lines:widest = maxf(widest, absf(line[0]) + line[3] * .5)
+   cached = {"lines":lines, "label":label, "fitted":x.mapped_lanes != x.lanes, "outer":widest}
    sections_by_key[key] = cached
+  prev_cached = cached
   sections.append(cached.lines)
   stats.layouts[cached.label] = stats.layouts.get(cached.label, 0) + 1
   if cached.fitted:stats.fitted_stations += 1
+  outer[k] = cached.outer
+ # Whether every stripe point at station k lies on this ribbon alone: no other
+ # ribbon within its outermost line plus OWN_REACH_M. Tested for three
+ # neighbouring stations at once, around the middle one.
+ var k0 := 0
+ while k0 < n and not ribbon.is_empty():
+  if sections[k0] == null:k0 += 1;continue
+  var k1 := k0;var reach: float = outer[k0]
+  while k1 + 1 < n and k1 - k0 < 2 and sections[k1 + 1] != null:k1 += 1;reach = maxf(reach, outer[k1])
+  var c: Vector2 = pts[(k0 + k1) / 2]
+  var spread := maxf(c.distance_to(pts[k0]), c.distance_to(pts[k1]))
+  var clear := 1 if alone(c, reach + OWN_REACH_M + spread) else 0
+  for k in range(k0, k1 + 1):own_k[k] = clear
+  k0 = k1 + 1
  # A world-anchored dash phase for the path.
  var t0 := (pts[1] - pts[0]).normalized()
  var phase := fposmod((origin + pts[0]).dot(t0), PERIOD_M)
  # Each line is followed from station to station as a track (a polyline on
  # the ribbon) and drawn when it ends, so straight runs become long quads.
  var td := Time.get_ticks_usec()
+ var kept := kept_stations(pts, st, sections, n)
  var open := {}   # line index at the current station -> track
- for k in n - 1:
-  var a = st[k];var b = st[k + 1]
-  var mid: Vector2 = (pts[k] + pts[k + 1]) * .5
+ for m in kept.size() - 1:
+  var k: int = kept[m];var k2: int = kept[m + 1]
+  # Stations left out between k and k2 lie on the straight run between them.
+  var skipped: bool = k2 > k + 1
+  var a = st[k];var b = st[k2]
+  var mid: Vector2 = (pts[k] + pts[k2]) * .5
   var usable: bool = a != null and b != null and not (a.road != b.road and a.cls != b.cls)
-  usable = usable and mid.x >= 0. and mid.y >= 0. and mid.x < tile.side and mid.y < tile.side and pts[k].distance_to(pts[k + 1]) <= MAX_JOIN_M
+  usable = usable and mid.x >= 0. and mid.y >= 0. and mid.x < tile.side and mid.y < tile.side and (skipped or pts[k].distance_to(pts[k2]) <= MAX_JOIN_M)
   usable = usable and not (tile.road_survey and tile.road_survey.observed(mid, a.t))
   if not usable:
    for track in open.values():close(track, phase)
    open = {}
    continue
   var ra := right_of(a.t);var rb := right_of(b.t)
-  var crossing := near_crossing(mid, a.road, a.t, maxf(a.width, b.width) * .5 + 1.)
+  var crossing := false if skipped else near_crossing(mid, a.road, a.t, maxf(a.width, b.width) * .5 + 1.)
   var next := {}
-  var same: bool = is_same(sections[k], sections[k + 1])
+  var same: bool = is_same(sections[k], sections[k2])
   for li in sections[k].size():
    var line: Array = sections[k][li]
    var oi: int = li if same else -1;var gap := .35
    if not same:
-    for ci in sections[k + 1].size():
-     var cand: Array = sections[k + 1][ci]
+    for ci in sections[k2].size():
+     var cand: Array = sections[k2][ci]
      if cand[1] == line[1] and absf(cand[0] - line[0]) < gap:gap = absf(cand[0] - line[0]);oi = ci
    var track = open.get(li)
    var pa: Vector2 = pts[k] + ra * line[0]
-   var pb: Vector2 = pts[k + 1] + rb * sections[k + 1][oi][0] if oi >= 0 else pa
+   var pb: Vector2 = pts[k2] + rb * sections[k2][oi][0] if oi >= 0 else pa
    var stop: bool = oi < 0 or next.has(oi)
    if not stop and crossing:stop = blocked((pa + pb) * .5, a.road, a.t, line[1] == "yellow", mid, ra, float(a.width) * .5)
    if track != null and (stop or track.line[2] != line[2]):
@@ -575,8 +652,8 @@ func path(pts: PackedVector2Array, cls: String, half: float, forced: Array, ribb
    # On a ribbon path each point keeps its station: its height comes from
    # the ribbon's own cross-sections, unless another ribbon overlaps it there.
    if track == null:
-    track = {"pts":PackedVector2Array([pa]), "r":PackedVector2Array([ra]), "arc":PackedFloat64Array([arc[k]]), "k":PackedFloat64Array([own_station(pa, k)]), "line":line, "station":a}
-   track.pts.append(pb);track.r.append(rb);track.arc.append(arc[k + 1]);track.k.append(own_station(pb, k + 1))
+    track = {"pts":PackedVector2Array([pa]), "r":PackedVector2Array([ra]), "arc":PackedFloat64Array([arc[k]]), "k":PackedFloat64Array([own_station(k)]), "c":PackedByteArray([0]), "line":line, "station":a}
+   track.pts.append(pb);track.r.append(rb);track.arc.append(arc[k2]);track.k.append(own_station(k2));track.c.append(1 if skipped else 0)
    track["next"] = true
    next[oi] = track
   for track in open.values():
@@ -586,29 +663,81 @@ func path(pts: PackedVector2Array, cls: String, half: float, forced: Array, ribb
  for track in open.values():close(track, phase)
  draw_us += Time.get_ticks_usec() - td
 
+## The stations the lines are drawn through. On a straight, uniform stretch of
+## the path's own ribbon a station adds nothing: the stripe quads would run
+## straight through it anyway (polyline() merges up to 10 m). A station is
+## left out when it and every station between the kept ones around it (at most
+## SKIP_SPAN_M apart) lie on the ribbon alone with the same cross-section, no
+## crossing road and no measured paint, its centre lies within 1 cm of the
+## straight line between them in plan, its direction within 0.06 deg, and every
+## point of its ribbon cross-section within SKIP_HEIGHT_M of the straight line
+## in height, so each line's height there is within SKIP_HEIGHT_M of its chord
+## too (well inside FIT_M). Stations near the tile edge are always kept.
+func kept_stations(pts: PackedVector2Array, st: Array, sections: Array, n: int) -> PackedInt32Array:
+ var kept := PackedInt32Array()
+ if n == 0:return kept
+ kept.append(0)
+ cross_k.resize(n);cross_k.fill(0)
+ if ribbon.is_empty() or tile.road_survey or tile.paint_evidence != null or tile.measured_section or tile.road_layout:
+  for k in range(1, n):kept.append(k)
+  return kept
+ var a := 0
+ while a < n - 1:
+  var b := a + 1
+  # Extend the run a..b while every station strictly inside may be left out.
+  while b + 1 < n and skippable(pts, st, sections, a, b + 1):b += 1
+  if b > a + 1 and not skippable(pts, st, sections, a, b):b = a + 1
+  kept.append(b)
+  a = b
+ return kept
+
+## Whether every station strictly between a and b may be left out (kept_stations()).
+func skippable(pts: PackedVector2Array, st: Array, sections: Array, a: int, b: int) -> bool:
+ if pts[a].distance_to(pts[b]) > SKIP_SPAN_M:return false
+ if st[a] == null or st[b] == null or own_k[a] == 0 or own_k[b] == 0:return false
+ var sa: Array = ribbon[a];var sb: Array = ribbon[b]
+ var ta: Vector2 = st[a].t
+ for k in range(a + 1, b):
+  var r = st[k]
+  if r == null or own_k[k] == 0 or not is_same(sections[k], sections[a]) or r.road != st[a].road:return false
+  if pts[k].distance_to(pts[k - 1]) > MAX_JOIN_M:return false
+  var p := pts[k]
+  if p.x < SKIP_EDGE_M or p.y < SKIP_EDGE_M or p.x > tile.side - SKIP_EDGE_M or p.y > tile.side - SKIP_EDGE_M:return false
+  if Geometry2D.get_closest_point_to_segment(p, pts[a], pts[b]).distance_to(p) > .01:return false
+  if r.t.dot(ta) < .9999995:return false
+  var f := float(k - a) / (b - a)
+  var sk: Array = ribbon[k]
+  for j in 5:
+   if absf(sk[j].y - lerpf(sa[j].y, sb[j].y, f)) > SKIP_HEIGHT_M:return false
+  if cross_k[k] == 0:cross_k[k] = 2 if near_crossing(p, r.road, r.t, float(r.width) * .5 + 1.) else 1
+  if cross_k[k] == 2:return false
+ return true
+
 ## Draws a finished track: solid, or 10 ft dashes on the world-anchored cycle.
 func close(track: Dictionary, phase: float) -> void:
  if track.get("drawn", false):return
  track["drawn"] = true
  var line: Array = track.line
  var key := "yellowpaint" if line[1] == "yellow" else "whitepaint"
- var P: PackedVector2Array = track.pts;var R: PackedVector2Array = track.r;var A: PackedFloat64Array = track.arc;var K: PackedFloat64Array = track.k
+ var P: PackedVector2Array = track.pts;var R: PackedVector2Array = track.r;var A: PackedFloat64Array = track.arc;var K: PackedFloat64Array = track.k;var C: PackedByteArray = track.c
  if P.size() < 2:return
  if line[2] == "solid":
-  polyline(key, P, R, A, K, line, track.station)
+  polyline(key, P, R, A, K, line, track.station, C)
   return
  var start := floorf((A[0] + phase) / PERIOD_M) * PERIOD_M - phase
+ var first := 0   # dashes run forward along the track: no point before this one matters again
  while start < A[A.size() - 1]:
   var d0 := maxf(start, A[0]);var d1 := minf(start + DASH_M, A[A.size() - 1])
   if d1 - d0 > .05:
-   var p := PackedVector2Array();var r := PackedVector2Array();var a := PackedFloat64Array();var k := PackedFloat64Array()
-   for i in A.size() - 1:
-    if A[i + 1] <= d0 or A[i] >= d1:continue
+   var p := PackedVector2Array();var r := PackedVector2Array();var a := PackedFloat64Array();var k := PackedFloat64Array();var c := PackedByteArray()
+   for i in range(first, A.size() - 1):
+    if A[i + 1] <= d0:first = i + 1;continue
+    if A[i] >= d1:break
     var span := maxf(A[i + 1] - A[i], 1e-6)
     var f0 := clampf((d0 - A[i]) / span, 0., 1.);var f1 := clampf((d1 - A[i]) / span, 0., 1.)
-    if p.is_empty():p.append(P[i].lerp(P[i + 1], f0));r.append(R[i].lerp(R[i + 1], f0).normalized());a.append(lerpf(A[i], A[i + 1], f0));k.append(lerpf(K[i], K[i + 1], f0))
-    p.append(P[i].lerp(P[i + 1], f1));r.append(R[i].lerp(R[i + 1], f1).normalized());a.append(lerpf(A[i], A[i + 1], f1));k.append(lerpf(K[i], K[i + 1], f1))
-   if p.size() >= 2:polyline(key, p, r, a, k, line, track.station)
+    if p.is_empty():p.append(P[i].lerp(P[i + 1], f0));r.append(R[i].lerp(R[i + 1], f0).normalized());a.append(lerpf(A[i], A[i + 1], f0));k.append(lerpf(K[i], K[i + 1], f0));c.append(0)
+    p.append(P[i].lerp(P[i + 1], f1));r.append(R[i].lerp(R[i + 1], f1).normalized());a.append(lerpf(A[i], A[i + 1], f1));k.append(lerpf(K[i], K[i + 1], f1));c.append(C[i + 1])
+   if p.size() >= 2:polyline(key, p, r, a, k, line, track.station, c)
   start += PERIOD_M
 
 ## Emits a polyline as few quads as keep every point within 2 cm of a chord
@@ -624,8 +753,10 @@ func close(track: Dictionary, phase: float) -> void:
 ## path's own ribbon is there (K, a fractional station index, else NAN) the
 ## ribbon's own profile (ribbon_fit(), for the fit and the corners),
 ## which runs straight from station to station, so no step is
-## searched between two such points.
-func polyline(key: String, P: PackedVector2Array, R: PackedVector2Array, A: PackedFloat64Array, K: PackedFloat64Array, line: Array, station: Dictionary) -> void:
+## searched between two such points. C[i] = 1 marks a piece from point i - 1
+## to i that spans stations left out by kept_stations(), all on the ribbon
+## alone, however long it is.
+func polyline(key: String, P: PackedVector2Array, R: PackedVector2Array, A: PackedFloat64Array, K: PackedFloat64Array, line: Array, station: Dictionary, C: PackedByteArray = PackedByteArray()) -> void:
  heights.clear()
  var P2 := PackedVector2Array([P[0]]);var R2 := PackedVector2Array([R[0]]);var A2 := PackedFloat64Array([A[0]]);var K2 := PackedFloat64Array([K[0]])
  var own := PackedByteArray();own.resize(P.size())
@@ -634,10 +765,11 @@ func polyline(key: String, P: PackedVector2Array, R: PackedVector2Array, A: Pack
   own[i] = 0 if is_nan(K[i]) else 1
   top[i] = ribbon_fit(P[i], K[i]) if own[i] == 1 else NAN
   if is_nan(top[i]):own[i] = 0;top[i] = surface(P[i])
+ if own[0] == 0:K2[0] = NAN
  var z := PackedFloat64Array([top[0]])
  var cut := PackedByteArray()   # cut[i] = 1: no paint from point i to i + 1
  for i in range(1, P.size()):
-  if own[i] == 1 and own[i - 1] == 1:
+  if own[i] == 1 and own[i - 1] == 1 and ((i < C.size() and C[i] == 1) or P[i].distance_to(P[i - 1]) <= 2. * OWN_REACH_M - .2):
    P2.append(P[i]);R2.append(R[i]);A2.append(A[i]);K2.append(K[i]);z.append(top[i]);cut.append(0)
    continue
   var ends := PackedFloat64Array([z[z.size() - 1], top[i]])
@@ -661,7 +793,7 @@ func polyline(key: String, P: PackedVector2Array, R: PackedVector2Array, A: Pack
     P2.append(P[i - 1].lerp(P[i], f));R2.append(R[i - 1].lerp(R[i], f).normalized());A2.append(lerpf(A[i - 1], A[i], f));K2.append(NAN)
     z.append(ends[k])
    cut.append(off[k])
-  P2.append(P[i]);R2.append(R[i]);A2.append(A[i]);K2.append(K[i]);z.append(ends[pieces])
+  P2.append(P[i]);R2.append(R[i]);A2.append(A[i]);K2.append(K[i] if own[i] == 1 else NAN);z.append(ends[pieces])
  P = P2;R = R2;A = A2;K = K2
  var s := 0
  var m := P.size()
@@ -681,12 +813,53 @@ func polyline(key: String, P: PackedVector2Array, R: PackedVector2Array, A: Pack
   emit(key, P[s], P[e], R[s], R[e], K[s], K[e], z[s], z[e], line[3], station, line)
   s = e
 
-## Station k of the current path for a point p on its own ribbon, or NAN
-## where there is no ribbon or another ribbon comes near (they overlap there).
-func own_station(p: Vector2, k: float) -> float:
- if ribbon.is_empty():return NAN
- var near: Dictionary = ribbon_bins.get(Vector2i(floori(p.x / SURFACE.BIN), floori(p.y / SURFACE.BIN)), {})
- return k if near.size() == 1 and near.has(ribbon_index) else NAN
+## Station k of the current path for a stripe point at that station when the
+## point lies on the path's own ribbon alone, or NAN where another ribbon may
+## overlap it (own_k, from alone()). Every stripe point at station k is within
+## the station's outermost line of the station; polyline() treats two
+## neighbouring own points as own only when they are at most 2 OWN_REACH_M
+## - 0.2 m apart (ribbon stations are 2 m apart), so every point between them
+## is within OWN_REACH_M of one of them: the whole piece lies on this ribbon
+## alone, and polyline() may follow the ribbon's own profile there without
+## looking for a step.
+func own_station(k: int) -> float:
+ if ribbon.is_empty() or own_k[k] == 0:return NAN
+ return float(k)
+
+## Whether no ribbon but the current one has a quad within reach of p: no
+## other ribbon's quads in a RoadSurface bin near p come within the square of
+## half side `reach` around p (their bounding box in that bin, cell_boxes()).
+func alone(p: Vector2, reach: float) -> bool:
+ var lo := Vector2i(floori((p.x - reach) / SURFACE.BIN), floori((p.y - reach) / SURFACE.BIN))
+ var hi := Vector2i(floori((p.x + reach) / SURFACE.BIN), floori((p.y + reach) / SURFACE.BIN))
+ for x in range(lo.x, hi.x + 1):
+  for y in range(lo.y, hi.y + 1):
+   var boxes: Dictionary = cell_boxes(Vector2i(x, y))
+   for li in boxes:
+    if li == ribbon_index:continue
+    var b: PackedFloat32Array = boxes[li]
+    if p.x + reach >= b[0] and p.y + reach >= b[1] and p.x - reach <= b[2] and p.y - reach <= b[3]:return false
+ return true
+
+## Per ribbon (RoadSurface.lines index) with quads in a RoadSurface bin, the
+## bounding box of those quads (min x, min z, max x, max z), cached per bin.
+func cell_boxes(cell: Vector2i) -> Dictionary:
+ var found = cell_ribbons.get(cell)
+ if found != null:return found
+ var boxes := {}
+ var lines: PackedInt32Array = tile.road_surface.quad_line
+ var quad_boxes: PackedFloat32Array = tile.road_surface.boxes
+ for q in tile.road_surface.bins.get(cell, []):
+  var li: int = lines[q]
+  var o: int = q * 4
+  if not boxes.has(li):
+   boxes[li] = PackedFloat32Array([quad_boxes[o], quad_boxes[o + 1], quad_boxes[o + 2], quad_boxes[o + 3]])
+   continue
+  var b: PackedFloat32Array = boxes[li]
+  b[0] = minf(b[0], quad_boxes[o]);b[1] = minf(b[1], quad_boxes[o + 1]);b[2] = maxf(b[2], quad_boxes[o + 2]);b[3] = maxf(b[3], quad_boxes[o + 3])
+  boxes[li] = b
+ cell_ribbons[cell] = boxes
+ return boxes
 
 ## The ribbon's height at p near its station k, from its cross-sections:
 ## RoadSurface.gd builds each one from five points (shoulder, edge, centre,
@@ -832,6 +1005,22 @@ func corner(p: Vector2, k: float) -> Vector3:
   heights[p] = h
  return tile.vert(p, h)
 
+## One stripe quad (a, b at one end, c, d at the other) into the tile's paint
+## batch, as WorldTile.quad() draws it (facing up, the same UVs), in one
+## SurfaceTool call instead of eighteen.
+func stripe(key: String, a: Vector3, b: Vector3, c: Vector3, d: Vector3) -> void:
+ var st = fans.get(key)
+ if st == null:
+  if not tile.has_method("tool"):
+   tile.quad(key, a, b, c, d, Vector3.UP)
+   return
+  st = tile.tool(key);fans[key] = st
+ if (b - a).cross(c - a).y > 0.:
+  st.add_triangle_fan(PackedVector3Array([a, d, c, b]), PackedVector2Array([Vector2(1, 1), Vector2(1, 0), Vector2(0, 0), Vector2(0, 1)]), PackedColorArray(), PackedVector2Array(), up4)
+ else:
+  st.add_triangle_fan(PackedVector3Array([a, b, c, d]), PackedVector2Array([Vector2(1, 1), Vector2(0, 1), Vector2(0, 0), Vector2(1, 0)]), PackedColorArray(), PackedVector2Array(), up4)
+ tile.drawn_triangles += 2
+
 ## One raised stripe piece, after the measured-paint masks of its road.
 func emit(key: String, p: Vector2, q: Vector2, rp: Vector2, rq: Vector2, kp: float, kq: float, zp: float, zq: float, width: float, station: Dictionary, line: Array) -> void:
  var parts := [[p, q]]
@@ -859,6 +1048,17 @@ func emit(key: String, p: Vector2, q: Vector2, rp: Vector2, rq: Vector2, kp: flo
   var fx := clampf((x - p).dot(q - p) / (length * length), 0., 1.);var fy := clampf((y - p).dot(q - p) / (length * length), 0., 1.)
   var wx: Vector2 = rp.lerp(rq, fx).normalized() * width * .5;var wy: Vector2 = rp.lerp(rq, fy).normalized() * width * .5
   var kx := lerpf(kp, kq, fx);var ky := lerpf(kp, kq, fy)
+  if not is_nan(kx) and not is_nan(ky):
+   # On the path's own ribbon alone (own_station()): one smooth surface, so
+   # the stripe lies flat across its width at the height its fit found on
+   # the line. The helper banks a ribbon at most 6 % (road-grade.mjs), so
+   # across 15 cm that is within 5 mm of it, and no other surface can step
+   # under it.
+   var hx := lerpf(zp, zq, fx) + LIFT_M;var hy := lerpf(zp, zq, fy) + LIFT_M
+   stripe(key, tile.vert(x - wx, hx), tile.vert(x + wx, hx), tile.vert(y + wy, hy), tile.vert(y - wy, hy))
+   stats.quads += 1
+   stats[line[1] + "_" + line[2] + "_m"] += l
+   continue
   var a := corner(x - wx, kx);var b := corner(x + wx, kx);var c := corner(y + wy, ky);var d := corner(y - wy, ky)
   # A line across the edge of a higher ribbon (a step in the road surface
   # where two roads overlap), or with an end off the surface its fit
@@ -868,6 +1068,6 @@ func emit(key: String, p: Vector2, q: Vector2, rp: Vector2, rq: Vector2, kp: flo
   if absf(a.y - b.y) > width * STEP_SLOPE or absf(c.y - d.y) > width * STEP_SLOPE or off_x > STEP_M_OFF or off_y > STEP_M_OFF:
    stats.step_pieces += 1
    continue
-  tile.quad(key, a, b, c, d, Vector3.UP)
+  stripe(key, a, b, c, d)
   stats.quads += 1
   stats[line[1] + "_" + line[2] + "_m"] += l

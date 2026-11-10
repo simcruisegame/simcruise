@@ -13,12 +13,17 @@ extends SceneTree
 ## the road ribbon's own trimesh where there is one (else the nearest
 ## collider: ground, deck). Where another collider (the ground grid, a kerb)
 ## rises above the ribbon under the paint, that is counted and reported, as a
-## defect of the road surface rather than of the paint.
-## Exit 0 when every rule holds.
+## defect of the road surface rather than of the paint. The default run also
+## paints two of the bundled tiles again on a synthetic road ribbon
+## (ribbon_fixture()), so the ribbon paths, crest and fold splitting and the
+## per-ribbon collider comparison run without network data.
+## Exit 0 when every rule holds and no script error was raised
+## (ScriptErrorGuard.gd: a runtime error would otherwise only abandon one road).
 const TILE=preload("res://WorldTile.gd")
 const LANES=preload("res://LaneMarkings.gd")
 const EARTH=40075016.68557849
 const DEFAULT_TILES=["18179_27907","18179_27908","18180_27907","18180_27908"]
+const RIBBON_FIXTURE_TILES=["18180_27907","18180_27908"]
 const MIN_GAP_M:=.01   # under this the stripe z-fights or sinks into the surface
 const MAX_GAP_M:=.10   # over this it floats visibly
 const FOLD_M:=.03      # a road surface bending more than this inside one stripe piece is not a road
@@ -99,10 +104,11 @@ func rules()->void:
  expect(count(x,"white","dash")==2 and count(x,"yellow","solid")==1 and count(x,"white","solid")==1,"one-way three lanes: %s"%[x.lines])
  for line in x.lines:
   if line[1]=="yellow":expect(line[0]<0.,"one-way yellow edge on the left")
- # An unmapped one-way: one lane unless an arterial (the width is a class guess).
- expect(LANES.cross_section("tertiary",true,[0,0,0],10.,true).lanes==1,"unmapped one-way collector: one lane")
- expect(LANES.cross_section("secondary",true,[0,0,0],11.,true).lanes==1,"unmapped one-way secondary: one lane")
- expect(LANES.cross_section("primary",true,[0,0,0],12.,true).lanes==2,"unmapped one-way arterial: two lanes")
+ # An unmapped one-way: the lanes helper/road-widths.mjs built its width for
+ # (two 3.6 m lanes plus class shoulders; a ramp one lane, 6 m).
+ for case in [["motorway",11.4,2],["trunk",10.5,2],["primary",9.6,2],["secondary",9.3,2],["tertiary",9.,2],["motorway",6.,1],["primary",6.,1]]:
+  x=LANES.cross_section(case[0],true,[0,0,0],case[1],true)
+  expect(x.lanes==case[2],"unmapped one-way %s %.1f m: %d lanes, as its surface (got %d)"%[case[0],case[1],case[2],x.lanes])
  # A single mapped lane, two-way: no centre line.
  x=LANES.cross_section("tertiary",false,[1,0,0],10.,false)
  expect(count(x,"yellow","solid")+count(x,"yellow","dash")==0,"single-lane two-way has no centre line")
@@ -208,7 +214,7 @@ func collider_gap(col:Dictionary,p:Vector3)->Array:
   else:
    cover=maxf(cover,h-p.y)
    if is_nan(any) or absf(p.y-h)<absf(any):any=p.y-h
- return [best,cover] if not is_nan(best) else [any,0.]
+ return [best,cover,true] if not is_nan(best) else [any,0.,false]
 
 ## How far the road surface at p rises above the plane through the surface
 ## under the stripe triangle's three corners.
@@ -217,31 +223,116 @@ func surface_fold(tile,a:Vector3,b:Vector3,c:Vector3,p:Vector3)->float:
  var flat:=preload("res://RoadSurface.gd").tri_height(q,Vector3(a.x,tile.height_at(Vector2(a.x,a.z)),a.z),Vector3(b.x,tile.height_at(Vector2(b.x,b.z)),b.z),Vector3(c.x,tile.height_at(Vector2(c.x,c.z)),c.z))
  return 0. if is_nan(flat) else tile.height_at(q)-flat
 
+## A road ribbon fixture: a bundled tile with an engineered road surface
+## (`road_surface`, as helper/road-grade.mjs writes it) laid along every paved
+## road, so the default suite paints on ribbons without network data. Each
+## road gets its own profile: the ground plus a long wave, a sharp crest (the
+## grade turns from +4 % to -4 % at one station), a superelevation wave, and on
+## alternate roads a 20 m width taper (a chain joining a narrower road), so
+## ribbons cross and overlap at different heights at every junction. One-way
+## roads take helper/road-widths.mjs's two-lane one-way widths; the first
+## two-way major road carries a mapped 2 + TWLTL + 2 lane count.
+const ONE_WAY_WIDTH:={"motorway":11.4,"trunk":10.5,"primary":9.6,"secondary":9.3,"tertiary":9.}
+func ribbon_fixture(data:Dictionary,side:float)->Dictionary:
+ var out:Dictionary=data.duplicate(true)
+ var n:int=int(out.get("grid",32));var h:Array=out.h;var cell:=side/n
+ var ground:=func(p:Vector2)->float:
+  var g:=(p/cell).clamp(Vector2.ZERO,Vector2(n-.001,n-.001));var i:=int(g.x);var j:=int(g.y);var f:=g-Vector2(i,j)
+  var a:=lerpf(float(h[j*(n+1)+i]),float(h[j*(n+1)+i+1]),f.x);var b:=lerpf(float(h[(j+1)*(n+1)+i]),float(h[(j+1)*(n+1)+i+1]),f.x)
+  return lerpf(a,b,f.y)
+ var chains:=[];var lanes:=[];var mapped_one:=false
+ for ri in out.roads.size():
+  var road:Array=out.roads[ri]
+  var cls:=str(road[0])
+  if cls not in ["motorway","trunk","primary","secondary","tertiary","minor"]:continue
+  if int(road[1])!=0 and ONE_WAY_WIDTH.has(cls):road[4]=ONE_WAY_WIDTH[cls]
+  var w:float=float(road[4])
+  var route:Array=road[3]
+  var pts:=PackedVector2Array()
+  for j in range(1,route.size()):
+   var a:=Vector2(route[j-1][0],route[j-1][1])*side;var b:=Vector2(route[j][0],route[j][1])*side
+   var steps:=maxi(1,ceili(a.distance_to(b)/2.))
+   for k in range(0 if pts.is_empty() else 1,steps+1):pts.append(a.lerp(b,float(k)/steps))
+  if pts.size()<3:continue
+  var rows:=[];var s:=0.
+  for k in pts.size():
+   if k>0:s+=pts[k].distance_to(pts[k-1])
+   var t:=(pts[mini(k+1,pts.size()-1)]-pts[maxi(k-1,0)]).normalized()
+   var z:float=ground.call(pts[k])+.7+.6*sin(TAU*s/90.)+.04*maxf(0.,30.-absf(s-60.))
+   var e:=.03*sin(s/40.)
+   var wk:=w
+   if ri%2==1 and s>80.:wk=w*lerpf(1.,.8,clampf((s-80.)/20.,0.,1.))
+   rows.append([pts[k].x/side,pts[k].y/side,z,e,t.x,t.y,wk])
+  chains.append({"cls":cls,"w":w,"pts":rows})
+  if not mapped_one and int(road[1])==0 and cls!="minor":
+   mapped_one=true
+   lanes.append([ri,[[0,route.size()-2,5,2,2,35]]])
+ out["road_surface"]=chains
+ out["road_lanes"]={"version":1,"status":"checked","roads":lanes}
+ return out
+
+## BuildingStream.gd fetches pending lane counts for every streamed tile, the
+## ring included, nearest first, not only the tiles under and ahead of the car.
+class StubTile:
+ extends RefCounted
+ var info:={}
+ var side:=400.
+class StubGame:
+ extends RefCounted
+ var tiles:={}
+ var pos:=Vector2(200.,200.)
+ func tile_offset(id:Vector2i)->Vector2:return Vector2(id)*400.
+func lane_prefetch()->void:
+ var game=StubGame.new()
+ for x in range(-1,2):
+  for y in range(-1,2):
+   var t=StubTile.new();t.info={"live_canopy":true,"road_lanes":{"version":1,"status":"pending" if (x+y)%2==0 or x==1 else "checked"}}
+   game.tiles[Vector2i(x,y)]=t
+ var stream=preload("res://BuildingStream.gd").new()
+ var order:Array=stream.lane_order(game,0)
+ var expected:=[]
+ for id in game.tiles:
+  if game.tiles[id].info.road_lanes.status=="pending":expected.append(id)
+ expect(order.size()==expected.size() and order[0]==Vector2i(0,0),"lane counts are fetched for every pending ring tile, the car's own first: %s"%[order])
+ for i in range(1,order.size()):
+  expect(Vector2(order[i]).length()>=Vector2(order[i-1]).length(),"ring tiles in order of distance: %s"%[order])
+ stream.lane_visits[Vector2i(1,1)]=10000
+ expect(not stream.lane_order(game,0).has(Vector2i(1,1)),"a tile whose lane request failed waits for its retry time")
+
 func _initialize():
+ var guard=preload("res://checks/ScriptErrorGuard.gd").install()
  rules()
+ lane_prefetch()
  print("LANE RULES %s (%d failures)"%["PASS" if failures==0 else "FAIL",failures])
  var args=OS.get_cmdline_user_args()
  var folder="res://data";var tiles=DEFAULT_TILES.duplicate()
+ # The default run also paints the ribbon fixture (ribbon_fixture()) on these.
+ var fixtures=RIBBON_FIXTURE_TILES.duplicate()
  for arg in args:
   if arg.begins_with("--dir="):
-   folder=arg.trim_prefix("--dir=");tiles=[]
+   folder=arg.trim_prefix("--dir=");tiles=[];fixtures=[]
    for file in DirAccess.get_files_at(folder):
     var parts=file.get_basename().split("_")
     if file.get_extension()=="json" and parts.size()==2 and parts[0].is_valid_int() and parts[1].is_valid_int():tiles.append(file.get_basename())
    tiles.sort()
  for arg in args:
   if arg.begins_with("--tiles="):tiles=Array(arg.trim_prefix("--tiles=").split(",",false))
+ for id in fixtures:tiles.append(id+"+ribbon")
  var mats={}
  for key in TILE.WALL+TILE.SHOP+["trim","awning0","awning1","awning2","iron","globe","curb","walk","signal_steel","signal_yellow","signal_dark","signal_go","fuel_red","fuel_green","fuel_white","fuel_steel","whitepaint","yellowpaint","doorframe","cap","roof","siding0","siding1","siding2","siding3","house_trim","house_glass"]:
   mats[key]=StandardMaterial3D.new()
  var side=0.;var totals={"white_solid_m":0.,"white_dash_m":0.,"yellow_solid_m":0.,"yellow_dash_m":0.}
  var layouts={};var built=0;var samples=0;var sunk=0;var floating=0;var bare=0
  var folds=0;var fold_max=0.;var steps=0;var beyond=0;var covered=0;var cover_max=0.;var gap_min=INF;var gap_max=-INF;var flips=0;var street_stations=0;var fitted=0;var paint_total=0.;var build_total=0.
+ var fold_gap_min=INF;var fold_gap_max=-INF;var ribbon_samples=0;var worst_share=0.;var worst_tile=""
+ var ribbon_tiles=0;var ribbon_quads=0
  for id in tiles:
-  var path=folder.path_join("%s.json"%id)
+  var fixture:bool=id.ends_with("+ribbon")
+  var path=folder.path_join("%s.json"%id.trim_suffix("+ribbon"))
   var data=JSON.parse_string(FileAccess.get_file_as_string(path)) if FileAccess.file_exists(path) else null
   if not data is Dictionary or not data.has("roads"):print("  %s missing"%id);continue
   if side==0.:side=EARTH/65536./cosh(PI*(1.-2.*(float(data.id[1])+.5)/65536.))
+  if fixture:data=ribbon_fixture(data,side)
   var tile=TILE.new()
   var started=Time.get_ticks_usec()
   tile.build(data,side,mats)
@@ -276,15 +367,19 @@ func _initialize():
      if hit[1]>0. and "--verbose" in args and covered<=10:print("    under another collider by %.3f m at (%.2f, %.2f, %.2f)"%[hit[1],p.x,p.y,p.z])
      if is_nan(gap):bare+=1;bad="no collider"
      else:
-      gap_min=minf(gap_min,gap);gap_max=maxf(gap_max,gap)
-      if gap<MIN_GAP_M or gap>MAX_GAP_M:
+      var fold:=0.
+      if gap<MIN_GAP_M or gap>MAX_GAP_M:fold=surface_fold(tile,a,b,c,p)
+      if absf(fold)>FOLD_M:
        # The road surface itself folds inside this piece by more than a road
        # can (FOLD_M within one stripe piece, a few metres at most): a
-       # defect of the surface, counted apart from the paint's own errors.
-       var fold=surface_fold(tile,a,b,c,p)
-       if absf(fold)>FOLD_M:folds+=1;fold_max=maxf(fold_max,absf(fold));bad="surface fold"
-       elif gap<MIN_GAP_M:sunk+=1;bad="sunk"
-       else:floating+=1;bad="floating"
+       # defect of the surface, counted and ranged apart from the paint's.
+       folds+=1;fold_max=maxf(fold_max,absf(fold));bad="surface fold"
+       fold_gap_min=minf(fold_gap_min,gap);fold_gap_max=maxf(fold_gap_max,gap)
+      else:
+       gap_min=minf(gap_min,gap);gap_max=maxf(gap_max,gap)
+       if gap<MIN_GAP_M:sunk+=1;bad="sunk"
+       elif gap>MAX_GAP_M:floating+=1;bad="floating"
+       if hit[2]:ribbon_samples+=1
      if bad=="surface fold":
       if "--verbose" in args:print("    road surface folds %.3f m under the paint at (%.2f, %.2f, %.2f)"%[surface_fold(tile,a,b,c,p),p.x,p.y,p.z])
       bad=""
@@ -292,6 +387,8 @@ func _initialize():
       tile_bad+=1
       if "--verbose" in args and tile_bad<=40:print("    %s at (%.2f, %.2f, %.2f) gap %.3f height_at %.3f in triangle %s %s %s"%[bad,p.x,p.y,p.z,gap,tile.height_at(Vector2(p.x,p.z)),a,b,c])
   built+=1
+  if tile.road_surface:ribbon_tiles+=1;ribbon_quads+=int(s.quads)
+  if 100.*paint_ms/maxf(ms,1.)>worst_share:worst_share=100.*paint_ms/maxf(ms,1.);worst_tile=id
   flips+=int(s.get("town_flips",0));street_stations+=int(s.street_stations);fitted+=int(s.fitted_stations);steps+=int(s.step_pieces)
   var lanes_doc=data.get("road_lanes",{})
   print("  %s build %.0f ms, markings %.0f ms (%.0f %%; sight %.0f, town %.0f, lines %.0f; %d height lookups), %d quads · white %.0f m solid %.0f m broken · yellow %.0f m solid %.0f m broken · lanes %s, %d/%d stations mapped (%d from the street) · ribbon %s · %d stripe samples off the collider"%[id,ms,paint_ms,100.*paint_ms/maxf(ms,1.),s.sight_ms,s.town_ms,s.draw_ms,s.height_calls,s.quads,s.white_solid_m,s.white_dash_m,s.yellow_solid_m,s.yellow_dash_m,lanes_doc.get("status","absent") if lanes_doc is Dictionary else "absent",s.mapped_stations,s.stations,s.street_stations,"yes" if tile.road_surface else "no",tile_bad])
@@ -300,9 +397,17 @@ func _initialize():
   tile.free()
  var labels=layouts.keys();labels.sort()
  for label in labels:print("    %5d stations  %s"%[layouts[label],label])
- print("LANE MARKINGS %d tiles · white %.0f m solid %.0f m broken · yellow %.0f m solid %.0f m broken · markings %.0f ms of %.0f ms build · %d town/rural changes along streets · %d stations took the street's counts · %d stations fitted to the road width · %d pieces left out across a step in the road surface"%[built,totals.white_solid_m,totals.white_dash_m,totals.yellow_solid_m,totals.yellow_dash_m,paint_total,build_total,flips,street_stations,fitted,steps])
- print("STRIPES ON THE COLLIDER %d samples · gap %.3f..%.3f m · %d under %.2f m · %d over %.2f m · %d with no collider within 1 m · %d past the tile edge · %d where the ground or a kerb collider rises above the paint on a ribbon (up to %.3f m) · %d where the road surface folds more than %.2f m inside one piece (up to %.3f m); both RoadSurface defects, not the paint"%[samples,gap_min,gap_max,sunk,MIN_GAP_M,floating,MAX_GAP_M,bare,beyond,covered,cover_max,folds,FOLD_M,fold_max])
+ if not fixtures.is_empty():expect(labels.any(func(l):return "2+TWLTL+2" in l),"the fixture's mapped 2 + TWLTL + 2 count was painted")
+ print("LANE MARKINGS %d tiles (%d on ribbons) · white %.0f m solid %.0f m broken · yellow %.0f m solid %.0f m broken · markings %.0f ms of %.0f ms build (%.1f %%, worst tile %s %.1f %%) · %d town/rural changes along streets · %d stations took the street's counts · %d stations fitted to the road width · %d pieces left out across a step in the road surface"%[built,ribbon_tiles,totals.white_solid_m,totals.white_dash_m,totals.yellow_solid_m,totals.yellow_dash_m,paint_total,build_total,100.*paint_total/maxf(build_total,1.),worst_tile,worst_share,flips,street_stations,fitted,steps])
+ # The gap range is over the samples judged as paint (sunk / floating); the
+ # samples over a folded road surface are ranged on their own.
+ print("STRIPES ON THE COLLIDER %d samples (%d on a ribbon trimesh) · paint gap %.3f..%.3f m · %d under %.2f m · %d over %.2f m · %d with no collider within 1 m · %d past the tile edge · %d where the ground or a kerb collider rises above the paint on a ribbon (up to %.3f m) · %d where the road surface folds more than %.2f m inside one piece (up to %.3f m, gap %s); both RoadSurface defects, not the paint"%[samples,ribbon_samples,gap_min,gap_max,sunk,MIN_GAP_M,floating,MAX_GAP_M,bare,beyond,covered,cover_max,folds,FOLD_M,fold_max,"%.3f..%.3f m"%[fold_gap_min,fold_gap_max] if folds>0 else "-"])
  expect(built>0 and totals.white_solid_m>0.,"edge lines were drawn")
  expect(samples>0 and sunk==0 and floating==0 and bare==0 and beyond==0,"stripes lie on the collider the tyres drive on")
+ # The default run must paint on a ribbon (the fixture), not only on the grid.
+ if not fixtures.is_empty():expect(ribbon_tiles>=fixtures.size() and ribbon_quads>0 and ribbon_samples>0,"the ribbon fixture was painted on its ribbons (%d tiles, %d quads, %d samples on the ribbon trimesh)"%[ribbon_tiles,ribbon_quads,ribbon_samples])
+ var script_errors:int=guard.count()
+ print("Script errors raised while painting: %d%s"%[script_errors,(" · first: "+guard.first) if script_errors>0 else ""])
+ expect(script_errors==0,"no script errors while painting")
  print("LANE MARKING CHECK %s"%["PASSED" if failures==0 else "FAILED"])
  quit(0 if failures==0 else 1)

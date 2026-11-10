@@ -34,6 +34,8 @@ const BIN := 8.
 
 var quads: Array = []         # [a, b, c, d] Vector3, tile metres (a,b at station i; c,d at i+1)
 var bins := {}                # Vector2i -> [quad index]
+var quad_line := PackedInt32Array()   # quad index -> index into lines of the ribbon it belongs to
+var boxes := PackedFloat32Array()     # quad index * 4 -> plan bounding box (min x, min z, max x, max z)
 var active := false
 # Per road: cls, halves (paved half width at each station; a chain can join
 # roads of different widths) and sections (5 cross-section points per station:
@@ -84,7 +86,7 @@ func build(rows: Array, side: float) -> void:
     var p: Vector2 = c + n * L
     section.append(Vector3(p.x, h, p.y))
    sections.append(section)
-  chains.append({"rank":RANK.get(str(chain.get("cls","")),1)*100000+pts.size(),"sections":sections})
+  chains.append({"rank":RANK.get(str(chain.get("cls","")),1)*100000+pts.size(),"sections":sections,"line":lines.size()})
   lines.append({"cls":str(chain.get("cls","")),"halves":halves,"sections":sections})
  chains.sort_custom(func(a, b): return a.rank > b.rank)
  for chain in chains:
@@ -95,6 +97,7 @@ func build(rows: Array, side: float) -> void:
    if Vector2(prev[2].x, prev[2].z).distance_to(Vector2(section[2].x, section[2].z)) >= 8.:continue
    for k in section.size() - 1:
     add_quad(prev[k], prev[k+1], section[k+1], section[k])
+    quad_line.append(int(chain.line))
   active = not quads.is_empty()
 
 ## Snap a lower-ranked ribbon onto the ribbons already built where they
@@ -131,6 +134,7 @@ func add_quad(a: Vector3, b: Vector3, c: Vector3, d: Vector3) -> void:
  quads.append([a, b, c, d])
  var lo := Vector2(minf(minf(a.x, b.x), minf(c.x, d.x)), minf(minf(a.z, b.z), minf(c.z, d.z)))
  var hi := Vector2(maxf(maxf(a.x, b.x), maxf(c.x, d.x)), maxf(maxf(a.z, b.z), maxf(c.z, d.z)))
+ boxes.append(lo.x - .01);boxes.append(lo.y - .01);boxes.append(hi.x + .01);boxes.append(hi.y + .01)
  for x in range(floori(lo.x / BIN), floori(hi.x / BIN) + 1):
   for y in range(floori(lo.y / BIN), floori(hi.y / BIN) + 1):
    var key := Vector2i(x, y)
@@ -149,6 +153,9 @@ static func tri_height(p: Vector2, a: Vector3, b: Vector3, c: Vector3) -> float:
 func height(p: Vector2) -> float:
  var best := NAN
  for idx in bins.get(Vector2i(floori(p.x / BIN), floori(p.y / BIN)), []):
+  # Most quads in a bin are nowhere near p: reject them on their box first.
+  var o: int = idx * 4
+  if p.x < boxes[o] or p.y < boxes[o + 1] or p.x > boxes[o + 2] or p.y > boxes[o + 3]:continue
   var q: Array = quads[idx]
   var h := tri_height(p, q[0], q[1], q[2])
   if is_nan(h):h = tri_height(p, q[0], q[2], q[3])
