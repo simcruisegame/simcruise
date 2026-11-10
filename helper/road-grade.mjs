@@ -586,7 +586,7 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
 // to the tile, width, deck height per point, layer, oneway].
 const BRIDGE_TURN=.5; // cos 60°: a sharper joint starts a new deck row
 async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,worldKey,roads=new Map()){
- const rows=[];
+ const rows=[],items=[];
  const benchAt=p=>{
   let best=null;
   for(const sgm of roads.get(Math.floor(p[0]/BIN)+','+Math.floor(p[1]/BIN))??[]){
@@ -606,6 +606,16 @@ async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,w
    for(const q of p)if(!pts.length||Math.hypot(q[0]-pts[pts.length-1][0],q[1]-pts[pts.length-1][1])>.5){pts.push(q);owner.push(i)}
   });
   if(pts.length<2)continue;
+  // A point every DECK_STEP, so the deck can follow the at-grade roads it
+  // overlaps (deckOnGrade); the inserted points belong to the part they lie on.
+  {
+   const dp=[pts[0]],dow=[owner[0]];
+   for(let k=1;k<pts.length;k++){
+    const n=Math.max(1,Math.ceil(Math.hypot(pts[k][0]-pts[k-1][0],pts[k][1]-pts[k-1][1])/DECK_STEP));
+    for(let j=1;j<=n;j++){dp.push(j===n?pts[k]:[pts[k-1][0]+(pts[k][0]-pts[k-1][0])*j/n,pts[k-1][1]+(pts[k][1]-pts[k-1][1])*j/n]);dow.push(owner[k])}
+   }
+   pts.length=0;pts.push(...dp);owner.length=0;owner.push(...dow);
+  }
   const s=arcLength(pts),length=s[s.length-1];
   if(length<2)continue;
   // An end measured here (its approach profile has data) is remembered in the
@@ -628,6 +638,13 @@ async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,w
   if(!Number.isFinite(za))za=zb;
   if(!Number.isFinite(zb))zb=za;
   const z=s.map(l=>za+(zb-za)*l/length);
+  items.push({parts,pts,owner,s,z});
+ }
+ // Every deck's straight profile first, then each one's corrections from the
+ // others' (deckOnGrade), so the order of the chains does not matter.
+ const graded=items.map(item=>deckOnGrade(item,roads,inside,items));
+ items.forEach((item,i)=>{item.z=graded[i]});
+ for(const {parts,pts,owner,z} of items){
   // Rows split where the class or width changes or the chain turns by more
   // than 60°; the joint point belongs to both rows.
   const groups=[];let from=0;
@@ -663,6 +680,62 @@ async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,w
   }
  }
  return rows;
+}
+// A deck that overlaps an at-grade road running beside it (a ramp leaving the
+// bridge road, the other carriageway of a divided road that comes down to grade
+// first) is at that road's level where they overlap: two drivable surfaces in
+// one place cannot be 1-3 m apart, and the straight profile between the
+// bridge's far ends missed them (Cambridge St, Allston MA: a westbound deck
+// 1.7 m below the ramp and eastbound carriageway it shares a footprint with, a
+// dead stop at 18 m/s). Only roads within GRADE_BAND of the deck and running
+// within 45° of it count, so a road passing under the bridge never pulls the
+// deck down. The correction is the junction join of RoadSurface.gd: each
+// overlap's difference fades out along the deck over a length that grows with
+// it (4 % grade, 15-60 m), and overlapping fades are averaged. Every input lies
+// within 60 m of the point it moves, inside every tile's 150 m sample apron,
+// so both tiles of a seam move a deck cut identically.
+const DECK_STEP=4,GRADE_BAND=3,GRADE_RATE=.04,GRADE_FADE_MIN=15,GRADE_FADE_MAX=60;
+function deckOnGrade(item,roads,inside,items){
+ const {pts,owner,parts,s,z}=item;
+ const anchors=[];
+ for(let i=0;i<pts.length;i++){
+  const p=pts[i];if(!inside(p[0],p[1]))continue;
+  const j=Math.min(i+1,pts.length-1),k=Math.max(i-1,0);
+  const ux=pts[j][0]-pts[k][0],uy=pts[j][1]-pts[k][1],ul=Math.hypot(ux,uy);
+  if(ul<.01)continue;
+  const half=parts[owner[i]].piece.width/2;
+  let best=null;
+  for(const sgm of roads.get(Math.floor(p[0]/BIN)+','+Math.floor(p[1]/BIN))??[]){
+   if(sgm.structure)continue;
+   const q=segmentDistance(sgm,p[0],p[1]);
+   if(q.d>half+sgm.half)continue;
+   const station=sgm.sa+(sgm.sb-sgm.sa)*q.t;
+   // Past the end of the road (the approach meeting the deck end) is not beside it.
+   if((q.raw<0||q.raw>1)&&Math.min(station,sgm.total-station)<.01)continue;
+   const align=Math.abs((ux*(sgm.bx-sgm.ax)+uy*(sgm.by-sgm.ay))/(ul*sgm.l));
+   if(align<Math.SQRT1_2)continue;
+   // The road's surface under the deck's centreline: its profile tilted by its
+   // cross slope at that offset, as the ribbon is built.
+   const [zc,e,tx,ty]=profileAt(sgm.profile,station);
+   const zb=zc-e*((p[0]-q.x)*-ty+(p[1]-q.y)*tx);
+   if(!Number.isFinite(zb)||Math.abs(zb-z[i])>=GRADE_BAND)continue;
+   if(!best||q.d<best.d)best={d:q.d,zb};
+  }
+  if(best)anchors.push([s[i],best.zb-z[i]]);
+ }
+ if(!anchors.length)return z;
+ const out=z.slice();
+ for(let i=0;i<z.length;i++){
+  let sum=0,sw=0,wmax=0;
+  for(const [sa,delta] of anchors){
+   const F=Math.min(Math.max(Math.abs(delta)/GRADE_RATE,GRADE_FADE_MIN),GRADE_FADE_MAX);
+   const d=Math.abs(s[i]-sa);if(d>=F)continue;
+   let w=1-d/F;w=w*w*(3-2*w);
+   sum+=w*delta;sw+=w;wmax=Math.max(wmax,w);
+  }
+  if(sw>0)out[i]=z[i]+sum/sw*wmax;
+ }
+ return out;
 }
 function profileAtHeight(profile,s){return gaussianLinear(profile.S,profile.Z,profile.W,s)+fixAt(profile,s)}
 

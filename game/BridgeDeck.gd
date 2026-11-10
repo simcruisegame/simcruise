@@ -36,6 +36,11 @@ extends RefCounted
 ##     and fades to level over the same distance;
 ##   * only a surface within 4 m of the helper's end height counts, so a road
 ##     passing under the abutment never pulls the deck down.
+## Then a joint end follows the deck it joins as that deck was fitted
+## (fit_joints), and a deck sharing its footprint with a ribbon takes that
+## ribbon's height within 0.5 m (level_to_ribbons; the helper already set it
+## to that road's level, road-grade.mjs deckOnGrade). Nothing moves within the
+## neighbour's apron of a cut at the tile edge.
 const SHOULDER_M=.6
 const PARAPET_W=.45
 const PARAPET_H=.85
@@ -81,6 +86,16 @@ static func prepare(tile)->void:
  for d in decks:helper.append({"path":d.path.duplicate(),"half":d.width*.5+SHOULDER_M})
  var stats={"ends":0,"fitted":0,"joints":0,"max_shift":0.}
  for i in decks.size():fit(tile,decks[i],helper,i,stats)
+ # Then every joint end follows the deck it joins as that deck was fitted: a
+ # side road or ramp whose deck ends on a bridge kept the helper's height while
+ # the bridge under it was fitted to its approach, and the two overlapping
+ # decks stood up to 0.45 m apart (a tertiary deck joining Cambridge St, Allston
+ # MA: a dead stop in reverse). Shifts are read from the first pass for every
+ # deck before any moves, so the order of the rows does not matter.
+ var fitted=[]
+ for d in decks:fitted.append({"path":d.path.duplicate(),"half":d.width*.5+SHOULDER_M})
+ for i in decks.size():fit_joints(tile,decks[i],helper,fitted,i,stats)
+ for d in decks:level_to_ribbons(tile,d,stats)
  tile.info["bridge_fit"]=stats
  var index=preload("res://RoadSurface.gd").new()
  var owner=PackedInt32Array()
@@ -286,6 +301,9 @@ static func fit(tile,d:Dictionary,decks:Array,self_index:int,stats:Dictionary)->
  # and never past a cut at the tile edge, where the neighbouring tile's part of
  # the deck (fitted by that tile) must meet this one unchanged.
  var R=minf(RAMP_M,L*(.5 if ends.size()==2 else 1.))
+ # A cut keeps the neighbour's apron (with_apron, up to APRON_MAX_M onto this
+ # deck) on this deck: the fade ends before it.
+ if cuts>0 and ends.size()==1:R=minf(R,maxf(1.,L-APRON_MAX_M))
  var base=PackedFloat64Array()
  for k in path.size():base.append(path[k].y)
  var shift_a=0.;var shift_b=0.
@@ -316,6 +334,102 @@ static func fit(tile,d:Dictionary,decks:Array,self_index:int,stats:Dictionary)->
   path[k]=Vector3(path[k].x,y,path[k].z)
  d["path"]=path
  d["crossfall"]=crossfall
+
+# The fitted height of the deck a joint end at `at` joins (helper height z0
+# there), and its grade along `inward` per metre (NAN unknown); [] when the end
+# is not a joint.
+static func joint_target(at:Vector2,inward:Vector2,z0:float,helper:Array,fitted:Array,self_index:int)->Array:
+ var best=-1;var best_d=JOINT_M
+ for j in helper.size():
+  if j==self_index:continue
+  var h=polyline_height(helper[j].path,at,JOINT_M)
+  if is_nan(h) or absf(h-z0)>=.3:continue
+  var d=polyline_distance(helper[j].path,at)
+  if d<=best_d:best_d=d;best=j
+ if best<0:return []
+ var h0=polyline_height(fitted[best].path,at,JOINT_M)
+ if is_nan(h0):return []
+ var h1=polyline_height(fitted[best].path,at+inward*2.,fitted[best].half)
+ return [h0,(h1-h0)/2. if not is_nan(h1) else NAN]
+
+static func polyline_distance(path:PackedVector3Array,p:Vector2)->float:
+ var best=INF
+ for k in range(1,path.size()):
+  best=minf(best,Geometry2D.get_closest_point_to_segment(p,Vector2(path[k-1].x,path[k-1].z),Vector2(path[k].x,path[k].z)).distance_to(p))
+ return best
+
+# Move each joint end of deck d onto the fitted deck it joins (prepare): the
+# same C1 fade as a fitted end, which never reaches a cut at the tile edge or
+# the deck's other end.
+static func fit_joints(tile,d:Dictionary,helper:Array,fitted:Array,self_index:int,stats:Dictionary)->void:
+ var path:PackedVector3Array=d.path
+ var s=stations(path);var L=s[-1]
+ if L<1.:return
+ var base=PackedFloat64Array()
+ for k in path.size():base.append(path[k].y)
+ var ends=[]
+ for e in [0,path.size()-1]:
+  if on_tile_edge(tile,path[e]):continue
+  var other=path[1] if e==0 else path[-2]
+  var at=Vector2(path[e].x,path[e].z)
+  var inward=Vector2(other.x-path[e].x,other.z-path[e].z).normalized()
+  var t=joint_target(at,inward,helper[self_index].path[0 if e==0 else -1].y,helper,fitted,self_index)
+  if t.is_empty():continue
+  var shift:float=t[0]-path[e].y
+  var j=1 if e==0 else path.size()-2
+  var own=(base[j]-base[e])/maxf(.01,absf(s[j]-s[e]))
+  var dg:float=(t[1]-own) if not is_nan(t[1]) else 0.
+  if absf(shift)<.005 and absf(dg)<.002:continue
+  ends.append({"index":e,"shift":shift,"dg":dg})
+  stats["joints_moved"]=stats.get("joints_moved",0)+1
+  stats.max_shift=maxf(stats.max_shift,absf(shift))
+ if ends.is_empty():return
+ var R=minf(RAMP_M,L*.5)
+ for k in path.size():
+  var y=base[k]
+  for end in ends:
+   var dist=s[k] if end.index==0 else L-s[k]
+   if dist>=R:continue
+   y+=end.shift*(1.-smooth(dist/R))+end.dg*dist*pow(1.-dist/R,2.)
+  path[k]=Vector3(path[k].x,y,path[k].z)
+ d["path"]=path
+
+# Where a deck shares its footprint with an at-grade ribbon (the helper already
+# set it to that road's level: road-grade.mjs deckOnGrade), it takes the
+# ribbon's height as this tile built it (joined, banked), within LEVEL_REACH_M:
+# 0.1-0.17 m apart, the wheels rode the ribbon and dropped onto the deck where
+# it ended (Cambridge St beside its I-90 ramp, Allston MA). Each difference
+# fades out along the deck over at least LEVEL_FADE_M (4 % grade), averaged
+# where fades overlap, as RoadSurface.join does.
+const LEVEL_REACH_M=.5
+const LEVEL_FADE_M=6.
+static func level_to_ribbons(tile,d:Dictionary,stats:Dictionary)->void:
+ if tile.road_surface==null:return
+ var path:PackedVector3Array=d.path
+ var s=stations(path)
+ var anchors=[]
+ for k in path.size():
+  var h=closest(tile.road_surface.heights(Vector2(path[k].x,path[k].z)),path[k].y)
+  if not is_nan(h) and absf(h-path[k].y)<=LEVEL_REACH_M and absf(h-path[k].y)>.005:anchors.append([s[k],h-path[k].y])
+ if anchors.is_empty():return
+ stats["levelled"]=stats.get("levelled",0)+anchors.size()
+ var out=path.duplicate()
+ for k in path.size():
+  var sum=0.;var sw=0.;var wmax=0.
+  for a in anchors:
+   var F=maxf(LEVEL_FADE_M,absf(a[1])/.04)
+   var dist=absf(s[k]-a[0])
+   if dist>=F:continue
+   var w=smooth(1.-dist/F)
+   sum+=w*a[1];sw+=w;wmax=maxf(wmax,w)
+  # Nothing moves within APRON_MAX_M of a cut at the tile edge, where the
+  # neighbouring tile's apron lies on this deck (with_apron) and its part
+  # of the deck, levelled from what that tile holds, must meet this one.
+  var keep=1.
+  if on_tile_edge(tile,path[0]):keep=minf(keep,smooth((s[k]-APRON_MAX_M)/LEVEL_FADE_M))
+  if on_tile_edge(tile,path[-1]):keep=minf(keep,smooth((s[-1]-s[k]-APRON_MAX_M)/LEVEL_FADE_M))
+  if sw>0.:out[k]=Vector3(path[k].x,path[k].y+sum/sw*wmax*keep,path[k].z)
+ d["path"]=out
 
 static func smooth(x:float)->float:
  var t=clampf(x,0.,1.)

@@ -50,7 +50,14 @@ static func for_tile(tile) -> RefCounted:
  var rows: Array = tile.info.get("road_surface", [])
  if rows.is_empty() or not enabled():return null
  var s = new()
- s.build(rows, tile.side)
+ # Real deck ends (not cuts at the tile edge): the abutments of join().
+ var abutments := PackedVector2Array()
+ for row in tile.info.get("bridges", []):
+  if not row is Array or row.size() < 3 or row[2].size() < 2:continue
+  for e in [0, row[2].size() - 1]:
+   var p: Vector2 = Vector2(float(row[2][e][0]), float(row[2][e][1])) * tile.side
+   if p.x > .05 and p.y > .05 and p.x < tile.side - .05 and p.y < tile.side - .05:abutments.append(p)
+ s.build(rows, tile.side, abutments)
  return s if s.active else null
 
 # Major roads first: at an intersection the minor road meets the major road's
@@ -64,8 +71,9 @@ const JOIN_FADE_M := 15.
 const JOIN_FADE_MAX_M := 60.
 const JOIN_GRADE := .04
 
-func build(rows: Array, side: float) -> void:
+func build(rows: Array, side: float, abutments := PackedVector2Array()) -> void:
  _side = side
+ _abutments = abutments
  var chains := []
  for chain in rows:
   var pts: Array = chain.get("pts", [])
@@ -116,6 +124,23 @@ func join(sections: Array) -> void:
  var delta := PackedFloat32Array();delta.resize(sections.size())
  var covered := []
  var crossing := []
+ # Sections within ABUTMENT_M of a chain end where a bridge deck begins: a
+ # road crossing there passes under the bridge, so it is joined only when its
+ # height is within JOIN_REACH_M (level), never snapped to as a junction. River
+ # St, Allston MA, was pulled 1.7 m down onto Soldiers Field Road under its own
+ # abutment, and its deck was fitted down after it (a 2.3 m step).
+ var at_abutment := []
+ var from_start := 0.;var to_end := 0.
+ for i in range(1, sections.size()):to_end += Vector2(sections[i][2].x, sections[i][2].z).distance_to(Vector2(sections[i-1][2].x, sections[i-1][2].z))
+ var abut_a := false;var abut_b := false
+ for p in _abutments:
+  abut_a = abut_a or p.distance_to(Vector2(sections[0][2].x, sections[0][2].z)) <= ABUTMENT_SNAP_M
+  abut_b = abut_b or p.distance_to(Vector2(sections[-1][2].x, sections[-1][2].z)) <= ABUTMENT_SNAP_M
+ for i in sections.size():
+  if i > 0:
+   var l := Vector2(sections[i][2].x, sections[i][2].z).distance_to(Vector2(sections[i-1][2].x, sections[i-1][2].z))
+   from_start += l;to_end -= l
+  at_abutment.append((abut_a and from_start < ABUTMENT_M) or (abut_b and to_end < ABUTMENT_M))
  for i in sections.size():
   var sum := 0.;var count := 0
   # The centreline on another ribbon: a junction, joined whatever the
@@ -123,7 +148,7 @@ func join(sections: Array) -> void:
   # a ramp merging) when the heights are close, or a road on another level
   # (a street ending at the abutment of a bridge over a motorway) when not.
   var c := Vector2(sections[i][2].x, sections[i][2].z)
-  var centre := not is_nan(height(c)) and not unshared(c)
+  var centre: bool = not is_nan(height(c)) and not unshared(c) and not at_abutment[i]
   crossing.append(centre)
   for v in sections[i]:
    var p := Vector2(v.x, v.z)
@@ -172,6 +197,9 @@ func join(sections: Array) -> void:
    var p := Vector2(v.x, v.z)
    var hi := height(p) if crossing[i] and not unshared(p) else NAN
    sections[i][k] = Vector3(v.x, hi if not is_nan(hi) else y, v.z)
+const ABUTMENT_M := 20.
+const ABUTMENT_SNAP_M := 3.
+var _abutments := PackedVector2Array()
 const SEAM_SHARED_M := 6.
 const SEAM_CLEAR_M := 15.
 var _side := 0.

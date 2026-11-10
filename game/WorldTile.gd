@@ -682,6 +682,8 @@ func nearest(p:Vector2,main_only=false,street=""):
  return out
 func make_building(b,idx):
  if JUNCTION.contains_canopy(self,b) or capture.store(self,b,idx):return
+ if carries_deck(b):return
+
  var observed=preload("res://ObservedBuildings.gd").find(self,idx)
  var archived=info.get("enriched_finishes",{}).get(idx,{})
  if not archived.is_empty():
@@ -925,6 +927,30 @@ func build(data:Dictionary,size_m:float,mats:Dictionary):
     if not occupied(p):foliage(p,6.2+float(i%5),i)
  if not info.get("field",false) and not info.get("live_canopy",false):street_details()
  finish_geometry()
+
+# A mapped building that a bridge deck runs through is part of the bridge (a
+# suspension tower or a portal frame mapped as one footprint across the
+# roadway): drawn as a solid box it stood across both carriageways of the
+# Mackinac Bridge, 169 m tall, and stopped every car dead. The deck is the
+# bridge here, so the footprint is left out.
+func carries_deck(b)->bool:
+ var rows:Array=info.get("bridges",[])
+ if rows.is_empty() or not b is Array or b.is_empty() or b[0].is_empty():return false
+ var ring=PackedVector2Array()
+ for p in b[0][0]:ring.append(Vector2(float(p[0]),float(p[1])))
+ if ring.size()<3:return false
+ var lo=ring[0];var hi=ring[0]
+ for p in ring:lo=lo.min(p);hi=hi.max(p)
+ for row in rows:
+  if not row is Array or row.size()<3:continue
+  var pts:Array=row[2]
+  for k in pts.size():
+   var a=Vector2(float(pts[k][0]),float(pts[k][1]))
+   # Each segment's ends and midpoint (deck rows have a point every 4 m).
+   for q in ([a] if k==0 else [a,(a+Vector2(float(pts[k-1][0]),float(pts[k-1][1])))*.5]):
+    if q.x<lo.x or q.y<lo.y or q.x>hi.x or q.y>hi.y:continue
+    if Geometry2D.is_point_in_polygon(q,ring):return true
+ return false
 
 func build_structures(data,size_m,shared_materials,road_segments):
  info=data

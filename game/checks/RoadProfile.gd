@@ -121,6 +121,9 @@ func _initialize():
  for line in off_deck:print("  off deck "+line)
  print("BRIDGE ENDS %d ends driven 6 m either side · largest step %.3f m per 0.5 m · largest grade change %.2f°/m · %d ends where the deck is not reached%s"%[ends.count,ends.step,ends.kink,ends.missed,(" (worst %s)"%ends.where) if ends.where!="" else ""])
  for line in ends.missed_at.slice(0,12):print("  deck not reached "+line)
+ # The roughest ends, so a bad one is found without a probe.
+ ends.each.sort_custom(func(a,b):return a[0]>b[0])
+ for e in ends.each.slice(0,6):print("  end %s: step %.3f m per 0.5 m, grade change %.2f°/m"%[e[2],e[0],e[1]])
  # A deck cut at a tile edge must meet the neighbour's part of it at the same
  # height. The seam check above reads only the ground grid, so a step between
  # two tiles' decks (2.4-5 m on the Mackinac Bridge when mid-span decks took
@@ -156,7 +159,7 @@ var gap_tiles=[]
 var bridge_m=0.
 var off_deck_m=0.
 var off_deck=[]
-var ends={"count":0,"step":0.,"kink":0.,"missed":0,"missed_at":[],"where":""}
+var ends={"count":0,"step":0.,"kink":0.,"missed":0,"missed_at":[],"where":"","each":[]}
 
 # Where a bridge road starts: on the fitted deck of its own class under p (two
 # decks can overlap there, a ramp above a street), else on the top surface.
@@ -211,13 +214,17 @@ func bridge_ends(tile,data:Dictionary,faces:PackedVector3Array,index:Dictionary,
    if not reached:
     ends.missed+=1
     ends.missed_at.append("%s %s end at (%.1f, %.1f): surface %.2f m, deck %s"%[id,str(row[0]),at.x,at.y,zs[-1],str(deck_h)])
+   var end_step=0.;var end_kink=0.
    for k in range(1,zs.size()):
     var step=absf(zs[k]-zs[k-1])
+    end_step=maxf(end_step,step)
     if step>ends.step:ends.step=step;ends.where="%s %s end at (%.1f, %.1f)"%[id,str(row[0]),at.x,at.y]
    # Grade change per metre between consecutive 1 m chords.
    for k in range(4,zs.size(),1):
     var g1=rad_to_deg(atan((zs[k]-zs[k-2])/1.));var g0=rad_to_deg(atan((zs[k-2]-zs[k-4])/1.))
+    end_kink=maxf(end_kink,absf(g1-g0))
     ends.kink=maxf(ends.kink,absf(g1-g0))
+   ends.each.append([end_step,end_kink,"%s %s %s (%.1f, %.1f)"%[id,str(row[0]),str(row[1]) if str(row[1])!="" else "-",at.x,at.y]])
 
 var edges={}
 var raw_edges={}
