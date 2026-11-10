@@ -104,8 +104,8 @@ func finish_trim() -> void:
     # Painted hood and mirror seen from the seat: the same racing-green
     # clearcoat as the exterior (CarFinish.gd PAINT_COLOR).
     mat.albedo_color = Color("#0f3b2a")
-    mat.metallic = .42
-    mat.roughness = .36
+    mat.metallic = .2
+    mat.roughness = .42
     mat.clearcoat_enabled = true
     mat.clearcoat = 1.
     mat.clearcoat_roughness = .07

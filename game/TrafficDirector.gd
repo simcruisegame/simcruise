@@ -66,7 +66,7 @@ const DELTA := 4.              # IDM acceleration exponent
 const CAR_LENGTH := 4.6
 const TICK := .25              # a quarter of the cars per tick: each car once a second
 const LOOK := 110.             # metres of route planned ahead
-const STOP_LINE := 7.          # stop bar this far before a signalised junction node
+const STOP_LINE := 3.          # stop bar this far before the cross road's near edge (a crosswalk)
 const YELLOW := 4.
 const ALL_RED := 2.
 const LLM_TIMEOUT := 2.
@@ -89,7 +89,9 @@ var signals: Array = []        # {at:Vector2, axis:Vector2, cycle, offset, split
 var seg_signal := {}           # segment * 2 + arriving end -> signal index
 var log_rows: Array = []       # [area, character, source, ms] for QA and captures
 
-var llm_enabled := true
+# Off by default: a local model costs gigabytes of RAM and CPU time while
+# driving. --traffic-llm opts in; the rule-based place character is the default.
+var llm_enabled := false
 var llm_state := "off"         # off, probing, warming, ready, absent
 var llm_host := ""
 var llm_model := ""
@@ -105,6 +107,7 @@ func _ready() -> void:
  rng.seed = 334
  for arg in OS.get_cmdline_user_args():
   if arg == "--without-traffic-llm":llm_enabled = false
+  elif arg == "--traffic-llm":llm_enabled = true
   elif arg.begins_with("--traffic-llm-model="):llm_model = arg.get_slice("=", 1)
   elif arg.begins_with("--traffic-llm-timeout="):llm_timeout = maxf(.5, float(arg.get_slice("=", 1)))
 
@@ -246,7 +249,7 @@ func plan(car: Dictionary) -> void:
   if not signal_seen:
    var si: int = seg_signal.get(k * 2 + (1 if d > 0 else 0), -1)
    if si >= 0:
-    var line := cum - STOP_LINE
+    var line := cum - float(signals[si].get("half", 3.5)) - STOP_LINE
     var to_line: float = line - car.s
     if to_line > .5:
      var ph := signal_phase(signals[si], heading, now)
@@ -339,7 +342,7 @@ func rebuild_signals() -> void:
    var world := Vector2(game.origin) * float(game.side) + at
    var h: int = hash(Vector2i(world.round()))
    cells[key] = cells.get(key, []) + [signals.size()]
-   signals.append({"at":at, "axis":Vector2.RIGHT, "rank":-9, "cycle":60. + float(absi(h) % 41), "offset":float(absi(h >> 8) % 97), "split":.55})
+   signals.append({"at":at, "axis":Vector2.RIGHT, "rank":-9, "half":3.5, "cycle":60. + float(absi(h) % 41), "offset":float(absi(h >> 8) % 97), "split":.55})
  if signals.is_empty():return
  for k in life.segs.size():
   var s: Array = life.segs[k]
@@ -352,6 +355,8 @@ func rebuild_signals() -> void:
       var sig: Dictionary = signals[j]
       if sig.at.distance_to(p) > 9.:continue
       seg_signal[k * 2 + e] = j
+      # The stop bar sits behind the widest road through the junction.
+      sig.half = maxf(float(sig.half), float(s[2]) * .5)
       var r: int = RANK.get(s[4], 0)
       if r > sig.rank:sig.rank = r;sig.axis = (s[1] - s[0]).normalized()
 

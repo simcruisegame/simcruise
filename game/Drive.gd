@@ -6,7 +6,7 @@ const WORLD=40075016.686
 const START_POOL=preload("res://StartPool.gd")
 # Check modes and A/B captures start in the bundled place, offline and the same
 # every run (StartPool.FALLBACK); --random-start (or start_mode) overrides.
-const BUNDLED_START_FLAGS=["--bundled-start","--car-audit","--bethel-facade-ab","--archive-normal-check","--reference","--pad-steering","--capitol-drive-proof","--building-check","--crossfall-drive","--street-check","--us-check","--survey-stops","--seam-check","--landscape-drive","--field-check","--profile-trees","--preference-check","--road-test"]
+const BUNDLED_START_FLAGS=["--bundled-start","--car-audit","--bethel-facade-ab","--archive-normal-check","--reference","--pad-steering","--capitol-drive-proof","--building-check","--crossfall-drive","--street-check","--us-check","--survey-stops","--seam-check","--landscape-drive","--field-check","--profile-trees","--preference-check","--road-test","--car-turntable"]
 var tiles={}
 var materials={}
 var rangeland=preload("res://Rangeland.gd").new()
@@ -103,6 +103,13 @@ var lamp_nodes=[]
 var steering_wheel=[]   # [node, rest basis] on generated cars (CarBody.gd)
 const STEERING_RATIO:=14.5
 var lamp_on=false
+# Head and tail lamps (L). CarFinish.gd fills head_lamp_parts for the 1999
+# roadster: the headlamp lens glow and two low-beam spot lights. With the lamps
+# on the stop lamps keep a dimmer tail glow between brake applications.
+const BRAKE_GLOW:=1.72
+const TAIL_GLOW:=.42
+var head_lamps_on=false
+var head_lamp_parts=[]  # [material, lit emission energy] pairs and Light3D nodes
 var shadow_plane=PlaneMesh.new()
 var ambient_life=preload("res://AmbientLife.gd").new()
 var roughness=preload("res://RoadRoughness.gd").new()
@@ -270,6 +277,7 @@ func _ready():
  if "--car-showcase" in OS.get_cmdline_user_args():add_child(preload("res://checks/CarShowcase.gd").new())
  if "--quality-bench" in OS.get_cmdline_user_args():add_child(preload("res://checks/QualityBench.gd").new())
  if "--rail-view" in OS.get_cmdline_user_args():add_child(preload("res://checks/RailView.gd").new())
+ if "--car-turntable" in OS.get_cmdline_user_args():add_child(preload("res://checks/CarTurntable.gd").new())
 # Tile workers create mesh/material resources. Joining one while the engine
 # is shutting down can deadlock against the rendering/main thread. Keep the
 # frame loop alive until pending work has returned; no new jobs are launched.
@@ -391,6 +399,9 @@ func work(spec):
  if FileAccess.file_exists(name):raw=FileAccess.get_file_as_string(name)
  else:
   var args=["tile",cache,str(id.x),str(id.y)]
+  # Mapped OSM guard rails come from the public Overpass service; opt-in only,
+  # so a default install sends no requests to volunteer-run servers.
+  if "--mapped-guard-rails" in OS.get_cmdline_user_args() and not "--without-guard-rails" in OS.get_cmdline_user_args():args.append("--mapped-guard-rails")
   if not road_banks.enabled:args.append("--without-road-banks")
   var out=[];var code=OS.execute(helper,args,out,true)
   if code or out.is_empty():return {"error":"Map download failed. Check the connection and retry."}
@@ -517,6 +528,14 @@ func recover():
  move_to_road(r[0],r[1]);camera_snap=true;say("Back on "+road_name)
 func switch_view():
  view=(view+1)%3;camera_snap=true
+func rear_lamp_glow()->float:
+ return BRAKE_GLOW if lamp_on else (TAIL_GLOW if head_lamps_on else 0.)
+func set_head_lamps(on:bool):
+ head_lamps_on=on
+ for part in head_lamp_parts:
+  if part is Light3D:part.visible=on
+  else:part[0].emission_energy_multiplier=part[1] if on else 0.
+ for mat in lamp_materials:mat.emission_energy_multiplier=rear_lamp_glow()
 func toggle_sound():
  sound_enabled=not sound_enabled;hud.audio_on=sound_enabled
  driving_preferences.remember("sound",sound_enabled)
@@ -607,6 +626,7 @@ func _unhandled_key_input(e):
   KEY_C:switch_view()
   KEY_R:recover()
   KEY_M:toggle_sound()
+  KEY_L:set_head_lamps(not head_lamps_on);say("Lights on" if head_lamps_on else "Lights off",2.)
   KEY_F3:fps_label.visible=not fps_label.visible
   KEY_F4:graphics.cycle()
   KEY_F6:cycle_lens()
@@ -658,7 +678,7 @@ func _physics_process(dt):
  shade.position=Vector3(pos.x,surface(pos,vehicle.position.y)+.046,pos.y);shade.rotation=Vector3(vehicle.rotation.x,yaw,vehicle.rotation.z)
  if lamp_on!=vehicle.service_brake:
   lamp_on=vehicle.service_brake
-  for mat in lamp_materials:mat.emission_energy_multiplier=1.72 if lamp_on else 0.
+  for mat in lamp_materials:mat.emission_energy_multiplier=rear_lamp_glow()
  for i in wheels.size():
   var w=wheels[i];var phys=vehicle.connected_wheels[i];w[0].position=phys.position
   w[0].rotation.y=vehicle.wheel_heading[i];w[0].rotation.z=vehicle.wheel_camber[i];wheel_angle[i]=fmod(wheel_angle[i]-vehicle.omega[i]*dt,TAU);w[1].rotation.x=wheel_angle[i]

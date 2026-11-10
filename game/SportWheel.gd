@@ -205,7 +205,11 @@ static func build_wheel() -> ArrayMesh:
  lathe(tire,tyre_profile(),96)
  tire.generate_tangents()
  tire.commit(mesh)
- var alloy=surface(material(Color("#c2c6c8"),.48,.36))
+ # Factory silver paint under clear: darker and more metallic than the earlier
+ # #c2c6c8, which read near-white beside the Commons photographs in sunlight.
+ var silver=material(Color("#a7abad"),.68,.34)
+ silver.clearcoat_enabled=true;silver.clearcoat=.6;silver.clearcoat_roughness=.12
+ var alloy=surface(silver)
  # Rim: bead seat, flange and a polished-looking lip, then the inner barrel.
  ring(alloy,[Vector2(.077,.181),Vector2(.083,.188),Vector2(.083,.196),Vector2(.079,.2012),Vector2(.073,.2002),Vector2(.0715,.196),Vector2(-.078,.194),Vector2(-.08,.181),Vector2(.077,.181)],Vector3.ZERO,96)
  var dark=surface(material(Color("#3e403d"),.26,.61))

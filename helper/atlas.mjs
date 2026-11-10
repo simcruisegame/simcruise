@@ -79,7 +79,7 @@ async function chunk(X,Y){
  const url=meta.tiles[0].replace('{z}','14').replace('{x}',mx).replace('{y}',my);
  const aerial_key=aerialSource(mx,my)?.key??'';
  const aerial=aerial_key&&fs.existsSync(path.join(cache,aerial_key))?aerial_key:'';
- const [buf,elev,street_objects,ground,mapped_rails]=await Promise.all([data('v-'+mx+'-'+my,url),data('h-'+ex+'-'+ey,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+ex+'/'+ey+'.png'),fetchObjects(X,Y,cache,readCached),measuredGround(X,Y,cache,readCached),mappedGuardRails(X,Y,cache,readCached).catch(()=>({status:'unavailable',rows:[]}))]);
+ const [buf,elev,street_objects,ground,mapped_rails]=await Promise.all([data('v-'+mx+'-'+my,url),data('h-'+ex+'-'+ey,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+ex+'/'+ey+'.png'),fetchObjects(X,Y,cache,readCached),measuredGround(X,Y,cache,readCached),(args.includes('--mapped-guard-rails')?mappedGuardRails(X,Y,cache,readCached).catch(()=>({status:'unavailable',rows:[]})):Promise.resolve({status:'off',rows:[]}))]);
  const vector=buf[0]===31?gunzipSync(buf):buf;
  const tile=vectorTile(vector),dem=decode(elev);
  // A neighbouring z14 vector tile is read only when a road crosses into it near

@@ -17,7 +17,7 @@ extends RefCounted
 #   view_cm     : float  eye-to-screen distance for the "screen" lens
 #   quality     : String "auto", "low", "medium", "high" or "ultra" (GraphicsQuality.gd)
 const DEFAULTS := {"manual":false,"street_photos":true,"spectral_ground":false,"sound":true,"hud_level":1,"head_motion":1.0,"car":"nb1999","resume_place":"","quality":"auto","lens":"natural","view_cm":60.0,"car_dirt":0.15}
-const QA_FLAGS := ["--car-audit","--bethel-facade-ab","--survey-stops","--seam-check","--pad-steering","--building-check","--street-check","--reference","--us-check","--field-check","--profile-trees","--road-test"]
+const QA_FLAGS := ["--car-audit","--bethel-facade-ab","--survey-stops","--seam-check","--pad-steering","--building-check","--street-check","--reference","--us-check","--field-check","--profile-trees","--road-test","--car-turntable"]
 var values := DEFAULTS.duplicate()
 var directory := ""
 
