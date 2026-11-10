@@ -26,7 +26,7 @@ static func for_tile(tile):
  if cache.is_empty() or id.size()!=2 or tile.grid_steps not in [64,128] or info.get("field",false) or info.get("survey_ground_nodes",0)>0 or not info.get("roadbed",[]).is_empty():return null
  var stem=cache.path_join("road-crossfall-v1-%d-%d"%[int(id[0]),int(id[1])])
  if not FileAccess.file_exists(stem+".ready"):return null
- var sig=preload("res://SurveyOutcropGround.gd").road_signature(info.roads).hex_encode()
+ var sig=preload("res://SurveyOutcropGround.gd").road_signature(info.roads,info.get("road_class_width",[])).hex_encode()
  var now=Time.get_unix_time_from_system()*1000.
  var choices=[]
  for x in 4:
@@ -49,11 +49,12 @@ static func for_tile(tile):
  var best=choices[0].project
  for entry in choices:
   if entry.project!=best:continue
-  var run=out.read_run(entry.rows,info.roads,entry.project)
+  var run=out.read_run(entry.rows,info.roads,entry.project,info.get("road_class_width",[]))
   if not run.is_empty():out.runs.append(run)
  return null if out.runs.is_empty() else out
 
-func read_run(rows:Array,roads:Array,project:Dictionary)->Dictionary:
+# class_widths: the helper's road widths (RoadWidths.gd), which the rows were cut to.
+func read_run(rows:Array,roads:Array,project:Dictionary,class_widths:Array=[])->Dictionary:
  var pts=PackedVector2Array();var tangents=PackedVector2Array();var slopes=PackedVector3Array()
  var previous=[]
  for row in rows:
@@ -61,7 +62,7 @@ func read_run(rows:Array,roads:Array,project:Dictionary)->Dictionary:
   for j in [0,2,3,4,5,6,7,8,9,10,11,12,13,14]:
    if typeof(row[j]) not in [TYPE_FLOAT,TYPE_INT] or not is_finite(row[j]):return {}
   var road=int(row[0]);var width=float(row[7])
-  if road<0 or road>=roads.size() or not str(row[1]).is_valid_int() or width<2.25 or width>5. or absf(width-minf(5.,float(roads[road][4])*.5-.8))>.02:return {}
+  if road<0 or road>=roads.size() or not str(row[1]).is_valid_int() or width<2.25 or width>5. or absf(width-minf(5.,(float(class_widths[road]) if road<class_widths.size() else float(roads[road][4]))*.5-.8))>.02:return {}
   if row[11]<=0 or row[12]<=0 or row[11]==row[12] or minf(row[13],row[14])<18:return {}
   var p=Vector2(row[3],row[4])*side;var tangent=Vector2(row[5],row[6])
   if minf(minf(p.x,p.y),minf(side-p.x,side-p.y))<16.5 or absf(tangent.length()-1.)>.002:return {}

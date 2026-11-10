@@ -2,12 +2,15 @@ extends RefCounted
 ## The drivable corridor of a tile: every place a car may drive, so that nothing
 ## that collides is ever built there (GuardRails.gd, BridgeDeck.gd).
 ##
-## The 2026-11-10 field test crashed every run at two real places because a
-## collider stood on a through road: inferred guard rails of Jerome's side
-## streets ran diagonally across the AZ-89A junction (each side street's ribbon
-## reaches the main road's centreline, and so did the rail along its shoulder),
-## and at Moab the parapet of one US-191 carriageway's deck stood inside the
-## other carriageway's deck (twin one-way decks 17 m apart, each 16 m wide).
+## The 2026-11-10 field test suspected rails and parapets standing on through
+## roads (problem B): inferred guard rails of Jerome's side streets cross the
+## AZ-89A junction (each side street's ribbon reaches the main road's
+## centreline, and so did the rail along its shoulder), and at Moab the
+## parapets of the twin US-191 decks stood in each other. Clipping them is
+## right, but it did not change either field-test drive (checks/RoadDrive.gd,
+## identical with and without it). At Moab the car rolled where one-way
+## carriageways built at two-way widths overlapped (RoadWidths.gd) and stops at
+## a deck height step at a tile seam (problem C).
 ##
 ## The corridor is the union of, all with their surface height:
 ##   * every road ribbon (RoadSurface.gd): its carriageway half width plus

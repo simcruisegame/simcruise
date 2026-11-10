@@ -4,7 +4,7 @@ The MIT license in [LICENSE](../LICENSE) covers the original game code, shaders,
 
 | Layer | Source | License | Reaches the game |
 |---|---|---|---|
-| Roads, buildings, land use, water, place names | OpenStreetMap via [OpenFreeMap](https://openfreemap.org/) vector tiles | ODbL 1.0 | At runtime; the offline-start tiles and the start pool bundled |
+| Roads, buildings, land use, water, place names | OpenStreetMap via [OpenFreeMap](https://openfreemap.org/) vector tiles (a road's width comes from its class and `oneway` tag, not a measurement) | ODbL 1.0 | At runtime; the offline-start tiles and the start pool bundled |
 | Place search | [Photon](https://photon.komoot.io/) geocoder on OSM data | ODbL 1.0 (data) | At runtime |
 | Ground elevation | Mapzen/Tilezen Terrarium tiles; USGS 3DEP 1/3-arc-second and 1 m products (The National Map) | US public domain | At runtime |
 | Aerial imagery | USGS The National Map imagery; USDA NAIP (Hawaii, low-vegetation detection); USDA Forest Service Alaska orthophotos | US public domain | At runtime; offline-start imagery bundled |

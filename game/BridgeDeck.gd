@@ -29,7 +29,8 @@ static func build(tile)->int:
  ensure_materials(tile.materials)
  var built=0
  # Decks and parapets collide on bodies of their own, so a car meeting a
- # parapet is told apart from the deck it drives on (checks/RoadClearance.gd).
+ # parapet is told apart from the deck it drives on (checks/RoadClearance.gd);
+ # with --without-road-clearance they stay in the tile's shared collider.
  var parapets=PackedVector3Array();var decks=PackedVector3Array()
  for row_index in rows.size():
   var row=rows[row_index]
@@ -98,9 +99,13 @@ static func deck(tile,path:PackedVector3Array,width:float,cls:String,oneway:bool
  var half=width*.5+SHOULDER_M
  var outer=half+PARAPET_W
  var station=0.
- # Parapets never stand on another road: where one would (an overlapping deck,
- # a road joining at the deck end) the deck edge keeps only its fascia
- # (DrivableCorridor.gd; --without-road-clearance builds them everywhere).
+ # Parapets never stand on another road: where one would (a road joining at
+ # the deck end, or a deck the data still overlaps after RoadWidths.gd) the
+ # deck edge keeps only its fascia (DrivableCorridor.gd). Each clipped metre
+ # is counted in info.bridge_parapet_clipped_m: a stopgap that marks deck
+ # data at odds with the road, not real bridge geometry.
+ # --without-road-clearance builds every deck exactly as before this change:
+ # full parapets in the tile's shared collider.
  var corridor=CORRIDOR.for_tile(tile) if CORRIDOR.enabled() else null
  for k in range(1,path.size()):
   var a=path[k-1];var b=path[k];var na=n[k-1];var nb=n[k]
@@ -108,27 +113,32 @@ static func deck(tile,path:PackedVector3Array,width:float,cls:String,oneway:bool
   if length<.01:continue
   var v0=station/3.;var v1=(station+length)/3.
   # Deck surface (drives and collides).
-  surface(tile,"bridge_asphalt",at(a,na,half,0),at(b,nb,half,0),at(b,nb,-half,0),at(a,na,-half,0),Vector2(half*2/3.,v1-v0),false,decks)
+  surface(tile,"bridge_asphalt",at(a,na,half,0),at(b,nb,half,0),at(b,nb,-half,0),at(a,na,-half,0),Vector2(half*2/3.,v1-v0),corridor==null,decks if corridor!=null else null)
   for side_sign in [1.,-1.]:
    var s=side_sign
+   if corridor==null:
+    # Parapet: inner face, top, outer face; fascia below the deck edge.
+    surface(tile,"bridge_concrete",at(a,na,s*half,0),at(b,nb,s*half,0),at(b,nb,s*half,PARAPET_H),at(a,na,s*half,PARAPET_H),Vector2(1,1),true)
+    surface(tile,"bridge_concrete",at(a,na,s*half,PARAPET_H),at(b,nb,s*half,PARAPET_H),at(b,nb,s*outer,PARAPET_H),at(a,na,s*outer,PARAPET_H),Vector2(1,1),true)
+    surface(tile,"bridge_concrete",at(a,na,s*outer,PARAPET_H),at(b,nb,s*outer,PARAPET_H),at(b,nb,s*outer,-SLAB_M),at(a,na,s*outer,-SLAB_M),Vector2(1,1),false)
+    continue
    # Pieces of at most PARAPET_PIECE_M, merged while their state holds.
-   var count=maxi(1,ceili(length/PARAPET_PIECE_M)) if corridor!=null else 1
+   var count=maxi(1,ceili(length/PARAPET_PIECE_M))
    var blocked=[]
    for m in count:
     var f=(m+.5)/count
     var c=a.lerp(b,f);var nc=na.lerp(nb,f)
     var hit=false
-    if corridor!=null:
-     for offset in [s*half,s*outer]:
-      var q=at(c,nc,offset,0)
-      if corridor.blocked(Vector2(q.x,q.z),c.y,c.y+PARAPET_H,"B%d"%row_index):hit=true
+    for offset in [s*half,s*outer]:
+     var q=at(c,nc,offset,0)
+     if corridor.blocked(Vector2(q.x,q.z),c.y,c.y+PARAPET_H,"B%d"%row_index):hit=true
     blocked.append(hit)
    var m0=0
    while m0<count:
     var m1=m0
     while m1+1<count and blocked[m1+1]==blocked[m0]:m1+=1
-    var a0=a.lerp(b,float(m0)/count);var b0=a.lerp(b,float(m1+1)/count)
-    var n0=na.lerp(nb,float(m0)/count);var n1=na.lerp(nb,float(m1+1)/count)
+    var a0=a if m0==0 else a.lerp(b,float(m0)/count);var b0=b if m1+1==count else a.lerp(b,float(m1+1)/count)
+    var n0=na if m0==0 else na.lerp(nb,float(m0)/count);var n1=nb if m1+1==count else na.lerp(nb,float(m1+1)/count)
     if blocked[m0]:
      # Fascia only, from the deck edge down.
      surface(tile,"bridge_concrete",at(a0,n0,s*outer,0),at(b0,n1,s*outer,0),at(b0,n1,s*outer,-SLAB_M),at(a0,n0,s*outer,-SLAB_M),Vector2(1,1),false)

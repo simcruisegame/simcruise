@@ -5,8 +5,11 @@ extends SceneTree
 ##     [--classes=motorway,trunk,primary,secondary,tertiary,minor] [--step=1] [--strict] [--without-road-clearance]
 ##
 ## With no --dir it checks the bundled Miami Beach block (game/data, the offline
-## start; default suite). --without-road-clearance builds rails, parapets and
-## building walls unclipped, as before DrivableCorridor.gd: the before measurement.
+## start; default suite). --without-road-clearance builds every tile exactly as
+## before this clearance work (rails, parapets and building walls unclipped,
+## helper road widths, decks and parapets in the tile's shared Structures
+## collider): the before measurement, and the
+## same drive as main in checks/RoadDrive.gd.
 ## Tiles are the helper's `atlas tile CACHE X Y` output saved as X_Y.json (any
 ## folder; the same files checks/RoadDrive.gd drives). They are built with
 ## WorldTile exactly as the streamer builds them and placed side by side. Then a
@@ -35,11 +38,24 @@ extends SceneTree
 ## primary, secondary, tertiary, minor/residential/unclassified); service roads
 ## and tracks are swept and listed but do not fail. One line per hit stretch
 ## (at most 60, or --lines=N), one summary, exit 1 when any WALL hit is on a failing class.
+## A "data" line sums what the clearance changed: building wall edges opened and
+## their length against all colliding wall length (WorldTile.wall_spans), rail
+## and parapet metres clipped, one-way roads narrowed and twin decks narrowed
+## (RoadWidths.gd). Exit 1 too when the openings pass MAX_WALL_OPEN (1 %) of the
+## wall length (the bundled Miami Beach start: 0.43 %).
+##
+## What a pass means: this is a static box sweep along the mapped centrelines.
+## It proves that no rail, parapet or wall stands in a car-sized box on a road;
+## it does not drive anything. A tile can pass here and still stop or roll a car
+## on a step, a bank or a deck end (STEP and SURFACE lines, field-test problems
+## C and D); only checks/RoadDrive.gd measures that. In the default suite it
+## costs about 25-35 s (the bundled 24 tiles are built and swept once).
 const TILE=preload("res://WorldTile.gd")
 const EARTH=40075016.68557849
 const BOX:=Vector3(1.8,1.2,4.4)   # width, height, length
 const FLOOR_M:=.3
 const EDGE_M:=3.
+const MAX_WALL_OPEN:=.01
 const DEFAULT_FAIL:=["motorway","trunk","primary","secondary","tertiary","minor","residential","unclassified"]
 var tiles={}
 var side=0.
@@ -197,9 +213,22 @@ func sweep():
  var bodies=PackedStringArray()
  for b in by_body:bodies.append("%s=%d"%[b,by_body[b]])
  print("RESULT clearance: wall_hits=%d wall_m=%.0f wall_bodies={%s} wall_hits_service_track=%d building_lane_hits=%d step_hits=%d surface_hits=%d"%[walls_fail,walls_m,", ".join(bodies),walls_other,buildings,steps,surface])
+ # What the clearance changed in the data, summed over the tiles: building
+ # wall openings (WorldTile.wall_spans), clipped rails and parapets, narrowed
+ # one-way roads and twin decks (RoadWidths.gd).
+ var sums={}
+ for key in ["building_walls_on_road","building_wall_open_m","building_wall_m","guard_rail_clipped_m","bridge_parapet_clipped_m","road_oneway_narrowed","bridge_twin_narrowed"]:
+  var total=0.
+  for id in tiles:total+=float(tiles[id].info.get(key,0.))
+  sums[key]=total
+ var open_share=sums.building_wall_open_m/sums.building_wall_m if sums.building_wall_m>0. else 0.
+ print("ROADCLEARANCE data: wall_edges_opened=%d wall_open_m=%.0f of %.0f (%.2f %%) rail_clipped_m=%.0f parapet_clipped_m=%.0f oneway_roads_narrowed=%d twin_decks_narrowed=%d"%[sums.building_walls_on_road,sums.building_wall_open_m,sums.building_wall_m,open_share*100.,sums.guard_rail_clipped_m,sums.bridge_parapet_clipped_m,sums.road_oneway_narrowed,sums.bridge_twin_narrowed])
  # No road swept is no evidence: the folder held no roads (or none inside).
  if swept.is_empty():print("ROADCLEARANCE swept no road; nothing was checked");quit(2);return
- var bad=walls_fail>0 or (strict and (steps>0 or surface>0 or buildings>0))
+ # Openings are for a car's path only; a share above MAX_WALL_OPEN means the
+ # opening rule has grown into removing buildings.
+ if open_share>MAX_WALL_OPEN:print("ROADCLEARANCE FAIL building wall openings %.2f %% of wall length, above %.2f %%"%[open_share*100.,MAX_WALL_OPEN*100.])
+ var bad=walls_fail>0 or open_share>MAX_WALL_OPEN or (strict and (steps>0 or surface>0 or buildings>0))
  quit(1 if bad else 0)
 
 func mark(hit)->String:

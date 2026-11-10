@@ -727,9 +727,11 @@ func make_building(b,idx):
   for j in ring.size():
    var a=point(ring[j]);var d=point(ring[(j+1)%ring.size()]);pts.append(vert(a,top));var length=a.distance_to(d);if length<.02:continue
    var vec=(d-a)/length;var norm=Vector3(vec.y,0,-vec.x)
-   if b[3]<2 and not wall_on_road(a,d,top):
-    var v0=vert(a,bottom-2);var v1=vert(d,bottom-2);var v2=vert(d,top);var v3=vert(a,top)
-    collision_faces.append_array(PackedVector3Array([v0,v2,v1,v0,v3,v2]))
+   if b[3]<2:
+    for span in wall_spans(a,d,top):
+     var sa=along(a,d,span[0]);var sd=along(a,d,span[1])
+     var v0=vert(sa,bottom-2);var v1=vert(sd,bottom-2);var v2=vert(sd,top);var v3=vert(sa,top)
+     collision_faces.append_array(PackedVector3Array([v0,v2,v1,v0,v3,v2]))
    if not photo.is_empty() and ring==rings[0] and photographs.draw_edge(self,photo,j,(j+1)%ring.size(),base,top,norm):continue
    var lo=minf(bottom,height_at(a))-1.3 if b[3]<1 else bottom
    var hi=top-.17;var storefront=commercial
@@ -841,6 +843,9 @@ func apply_forest_form()->int:
  return changed
 
 func build(data:Dictionary,size_m:float,mats:Dictionary):
+ # One-way carriageways and twin decks at their own widths, before anything
+ # is built from the roads (RoadWidths.gd).
+ preload("res://RoadWidths.gd").apply(data)
  preload("res://SurveyGroundPatch.gd").apply(data)
  preload("res://RoadBankMesh.gd").apply(data)
  info=data;side=size_m;materials=mats.duplicate();grid_steps=int(data.get("grid",32))
@@ -978,26 +983,88 @@ func street_details():
     parked.append([p,atan2(t.x,t.y)+(PI if signum<0 and seg[4]==0 else 0),rnd%5])
 var parked=[]
 
-# A wall that a mapped road's centreline runs through or beside (a building
-# passage, or a footprint drawn over the road) keeps its picture but not its
-# collider: nothing solid stands on a road (DrivableCorridor.gd,
-# checks/RoadClearance.gd). A road on a deck above the wall's top passes over it.
-const ROAD_WALL_CLEAR_M=2.4
-func wall_on_road(a:Vector2,d:Vector2,top:float)->bool:
- if segments.is_empty() or not preload("res://DrivableCorridor.gd").enabled():return false
+# Building walls keep their collider except where a car following a mapped
+# road would drive into them (a building passage, a garage drive, a footprint
+# drawn over the road): nothing solid stands in a car's path (checks/
+# RoadClearance.gd). Only that part of the wall loses its collider; the wall is
+# still drawn.
+#   * A wall the centreline crosses opens for the road's own width: the part
+#     of the wall within the road's half width (at least CAR_CLEAR_M) of the
+#     centreline, so a car fits through a mapped passage.
+#   * A wall beside the centreline opens only where it is within CAR_CLEAR_M
+#     of it: the half width of a 1.9 m car plus 0.55 m for the body's
+#     overhang on a bend (checks/RoadClearance.gd sweeps a straight 4.4 m box)
+#     and a little steering error. A wall inside a class-default road width
+#     but clear of a car on the centreline stays solid (that is a width
+#     estimate, not a passage).
+#   * A road on a deck above the wall's top passes over it.
+# Per tile, info.building_walls_on_road counts the edges opened,
+# building_wall_open_m their opened length and building_wall_m all colliding
+# wall length. --without-road-clearance keeps every wall solid.
+const CAR_CLEAR_M=1.5
+# Solid parts of wall edge a-d as [t0, t1] fractions along it ([[0, 1]]: all).
+func wall_spans(a:Vector2,d:Vector2,top:float)->Array:
+ if not preload("res://DrivableCorridor.gd").enabled():return [[0.,1.]]
+ var length=a.distance_to(d)
+ info["building_wall_m"]=float(info.get("building_wall_m",0.))+length
+ if segments.is_empty() or length<.02:return [[0.,1.]]
  if road_grid.is_empty():road_index()
- var reach=Vector2.ONE*ROAD_WALL_CLEAR_M
- var lo=Vector2i(((a.min(d)-reach)/24.).floor());var hi=Vector2i(((a.max(d)+reach)/24.).floor())
+ # road_index files each segment under every bin within its half width + 2.2 m,
+ # which covers every opening radius below, so the wall's own bins suffice.
+ var lo=Vector2i((a.min(d)/24.).floor());var hi=Vector2i((a.max(d)/24.).floor())
+ var cuts=[]
  for x in range(lo.x,hi.x+1):
   for y in range(lo.y,hi.y+1):
    for seg in road_grid.get(Vector2i(x,y),[]):
-    var c=Geometry2D.get_closest_points_between_segments(a,d,seg[0],seg[1])
-    if c[0].distance_to(c[1])>=ROAD_WALL_CLEAR_M:continue
+    var p:Vector2=seg[0];var q:Vector2=seg[1]
+    var crosses=Geometry2D.segment_intersects_segment(a,d,p,q)!=null
+    var radius=maxf(float(seg[3])*.5,CAR_CLEAR_M) if crosses else CAR_CLEAR_M
+    var c=Geometry2D.get_closest_points_between_segments(a,d,p,q)
+    if c[0].distance_to(c[1])>=radius:continue
     var deck=deck_at(c[1])
     if not is_nan(deck) and deck>top:continue
-    info["building_walls_on_road"]=int(info.get("building_walls_on_road",0))+1
-    return true
- return false
+    # Distance to the centreline is convex along the wall: bisect each side of
+    # the closest point for where it reaches the radius.
+    var mid=clampf((c[0]-a).dot(d-a)/(length*length),0.,1.)
+    var t0=0.;var t1=1.
+    if a.distance_to(Geometry2D.get_closest_point_to_segment(a,p,q))>=radius:
+     var inside=mid;var out=0.
+     for i in 24:
+      var m=(inside+out)*.5
+      if a.lerp(d,m).distance_to(Geometry2D.get_closest_point_to_segment(a.lerp(d,m),p,q))<radius:inside=m
+      else:out=m
+     t0=inside
+    if d.distance_to(Geometry2D.get_closest_point_to_segment(d,p,q))>=radius:
+     var inside=mid;var out=1.
+     for i in 24:
+      var m=(inside+out)*.5
+      if a.lerp(d,m).distance_to(Geometry2D.get_closest_point_to_segment(a.lerp(d,m),p,q))<radius:inside=m
+      else:out=m
+     t1=inside
+    if t1>t0:cuts.append([t0,t1])
+ if cuts.is_empty():return [[0.,1.]]
+ cuts.sort_custom(func(u,v):return u[0]<v[0])
+ var solid=[];var at=0.;var opened=0.
+ for cut in cuts:
+  if cut[0]>at:solid.append([at,cut[0]])
+  if cut[1]>at:opened+=cut[1]-maxf(at,cut[0]);at=cut[1]
+ if at<1.:solid.append([at,1.])
+ # Slivers under 5 cm are not worth a collider.
+ solid=solid.filter(func(s):return (s[1]-s[0])*length>=.05)
+ info["building_walls_on_road"]=int(info.get("building_walls_on_road",0))+1
+ info["building_wall_open_m"]=float(info.get("building_wall_open_m",0.))+opened*length
+ return solid
+
+# The point at fraction t of a-d, exactly a or d at the ends.
+static func along(a:Vector2,d:Vector2,t:float)->Vector2:
+ if t<=0.:return a
+ if t>=1.:return d
+ return a.lerp(d,t)
+
+# True when any part of the wall a-d stands in a car's path (wall_spans).
+func wall_on_road(a:Vector2,d:Vector2,top:float)->bool:
+ var spans=wall_spans(a,d,top)
+ return spans.size()!=1 or spans[0][0]>0. or spans[0][1]<1.
 
 func collider(shape,label:="Ground"):
  var immovable=StaticBody3D.new();immovable.name=label;var col=CollisionShape3D.new();col.shape=shape;immovable.add_child(col);add_child(immovable,true)
@@ -1068,11 +1135,18 @@ func survey_house(b,idx,observed,measured):
    var parts=[a];var da=a.dot(axis)-offset;var dd=d.dot(axis)-offset
    if da*dd<0:parts.append(a.lerp(d,da/(da-dd)))
    parts.append(d)
-   var solid=not wall_on_road(a,d,eave+rise)
+   var spans=wall_spans(a,d,eave+rise)
    for k in range(1,parts.size()):
     var l=parts[k-1];var r=parts[k];var lh=roof_height(l,axis,offset,width,eave,rise);var rh=roof_height(r,axis,offset,width,eave,rise)
     quad(wall,vert(l,bottom),vert(r,bottom),vert(r,rh),vert(l,lh),normal,Vector2(r.distance_to(l),(lh+rh)*.5-bottom))
-    if solid:collision_faces.append_array(PackedVector3Array([vert(l,bottom),vert(r,rh),vert(r,bottom),vert(l,bottom),vert(l,lh),vert(r,rh)]))
+    # Collider over the solid spans only (wall_spans); a whole part keeps its own corners.
+    var tl=a.distance_to(l)/length;var tr=a.distance_to(r)/length
+    for span in spans:
+     var u0=maxf(tl,span[0]);var u1=minf(tr,span[1])
+     if u1<=u0:continue
+     var sl=l if u0<=tl else along(a,d,u0);var sr=r if u1>=tr else along(a,d,u1)
+     var slh=lh if u0<=tl else roof_height(sl,axis,offset,width,eave,rise);var srh=rh if u1>=tr else roof_height(sr,axis,offset,width,eave,rise)
+     collision_faces.append_array(PackedVector3Array([vert(sl,bottom),vert(sr,srh),vert(sr,bottom),vert(sl,bottom),vert(sl,slh),vert(sr,srh)]))
    if length<3.1:continue
    var count=clampi(roundi(length/3.9),1,8)
    var front_wall=HOUSE.enabled and ring_index==0 and HOUSE.same_edge(front,a,d)

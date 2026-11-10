@@ -44,7 +44,7 @@ tail -5 /tmp/simcruise-*.log
 | `TurningCircle.gd` | `TURN_SUMMARY {"max_error_m": ≤ 0.20, "stable": true}`, inner wheel 38 ± 3°, outer 33 ± 3° |
 | `Wall.gd` | `contact=true crossed=false` at 70 mph into a 15 cm wall |
 
-The other scripts in `game/checks/` are unit-style checks (`DifferentialCheck`, `RearDamperCheck`, `TireStep`, `SplitGrip`, `SteerTransient`, `LockedBrakeTurn`, `LiftOff` (no spin on a lift or trail brake mid-corner), `TractionControlCheck`, `CombinedSlip`, `AbsReverse`, `DaylightWeatherCheck`, `RoadBankMeshCheck`, `CrownArrivalOrder`, `SignalControlCheck`, `RoadClearance` (no wall on any road; `--dir=` for fetched tiles), …) and in-game QA modes selected with arguments after `--` (`--car-audit`, `--field-check`, `--us-check`, `--reference`, …). Read the header comment of each; most say how to run them. Those that drive real places need the network and the compiled helper at `tools/atlas`.
+The other scripts in `game/checks/` are unit-style checks (`DifferentialCheck`, `RearDamperCheck`, `TireStep`, `SplitGrip`, `SteerTransient`, `LockedBrakeTurn`, `LiftOff` (no spin on a lift or trail brake mid-corner), `TractionControlCheck`, `CombinedSlip`, `AbsReverse`, `DaylightWeatherCheck`, `RoadBankMeshCheck`, `CrownArrivalOrder`, `SignalControlCheck`, `RoadClearance` (a static box sweep: no wall on any road, and how much wall the clearance opened; `--dir=` for fetched tiles; a pass is not a drive, see `RoadDrive`), …) and in-game QA modes selected with arguments after `--` (`--car-audit`, `--field-check`, `--us-check`, `--reference`, …). Read the header comment of each; most say how to run them. Those that drive real places need the network and the compiled helper at `tools/atlas`.
 
 ### Safety rules for scripted Godot runs
 

@@ -22,12 +22,16 @@ static func for_tile(tile):
  var instance=new()
  return instance if instance.read(tile,Vector2i(int(id[0]),int(id[1]))) else null
 
-static func road_signature(roads:Array)->PackedByteArray:
+# class_widths: the helper's widths when RoadWidths.gd narrowed some rows
+# (info.road_class_width), so data signed by the helper still matches.
+static func road_signature(roads:Array,class_widths:Array=[])->PackedByteArray:
  var rows:=PackedStringArray()
- for road in roads:
+ for i in roads.size():
+  var road=roads[i]
   var route:=PackedStringArray()
   for p in road[3]:route.append("%d/%d"%[roundi(float(p[0])*1000000.),roundi(float(p[1])*1000000.)])
-  rows.append("%d|%s"%[roundi(float(road[4])*100.),",".join(route)])
+  var width=float(class_widths[i]) if i<class_widths.size() else float(road[4])
+  rows.append("%d|%s"%[roundi(width*100.),",".join(route)])
  rows.sort()
  return "\n".join(rows).sha256_buffer()
 
@@ -44,7 +48,7 @@ func read(tile,id:Vector2i)->bool:
  if dimensions!=count*SUB+Vector2i.ONE or first.x<0 or first.y<0 or (first+count).x>GRID or (first+count).y>GRID:return false
  var cells=dimensions.x*dimensions.y
  if cells<=0 or cells>32768 or f.get_length()!=88+3*cells:return false
- if f.get_buffer(32)!=road_signature(tile.info.roads):return false
+ if f.get_buffer(32)!=road_signature(tile.info.roads,tile.info.get("road_class_width",[])):return false
  var cm=f.get_buffer(cells*2)
  weights=f.get_buffer(cells)
  heights.resize(cells)
