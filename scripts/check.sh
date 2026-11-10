@@ -41,7 +41,14 @@ run_godot() { # SECONDS LOG args...
   (
     trap '' XFSZ
     ulimit -f 2097152
-    { perl -e 'alarm shift @ARGV; exec @ARGV' "$secs" "$godot" "$@" 2>&1; echo $? > "$log.code"; } | head -c 104857600 > "$log"
+    # GNU timeout where it exists (Linux, Git Bash on Windows); perl's alarm
+    # elsewhere (stock macOS). MSYS perl cannot exec a Windows .exe, so on
+    # Windows the perl path ran nothing and left an empty log.
+    if command -v timeout >/dev/null 2>&1; then
+      { timeout "$secs" "$godot" "$@" 2>&1; echo $? > "$log.code"; } | head -c 104857600 > "$log"
+    else
+      { perl -e 'alarm shift @ARGV; exec @ARGV' "$secs" "$godot" "$@" 2>&1; echo $? > "$log.code"; } | head -c 104857600 > "$log"
+    fi
   )
   code=$(cat "$log.code" 2>/dev/null); [ -n "$code" ] || code=1
   return "$code"
