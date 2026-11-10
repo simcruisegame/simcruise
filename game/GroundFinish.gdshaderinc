@@ -1,5 +1,6 @@
 // Close-range surfaces use photographed aggregate, grass and forest litter.
 // The repair pattern is illustrative and independent of measured road geometry.
+#include "res://Stochastic.gdshaderinc"
 uniform sampler2D asphalt_wear : hint_default_black, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D grass_detail : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D litter : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
@@ -21,7 +22,7 @@ vec3 season_tint(vec3 base, vec2 uv, float amount) {
 }
 
 vec3 weathering(vec2 metres) {
- vec3 first = texture(asphalt_wear, metres / 24.0).rgb;
+ vec3 first = stochastic(asphalt_wear, metres / 24.0, false).rgb;
  vec3 other = texture(asphalt_wear, vec2(-metres.y, metres.x) / 32.0 + vec2(0.26, 0.39)).rgb;
  // Two independent periods prevent a recognizable run of identical repairs.
  return vec3(max(first.r * 0.9, other.r * 0.58), max(first.g, other.g * 0.65),
@@ -109,7 +110,7 @@ vec3 cotangent_perturb(vec3 view_pos, vec3 surface_normal, vec2 uv, vec3 tangent
 // Aggregate micro-normals at two scales; mip filtering flattens them with
 // distance and strength removes the rest, so the far road keeps the old look.
 vec3 asphalt_bumps(vec3 view_pos, vec3 surface_normal, vec2 metres, float strength) {
- vec3 coarse = texture(asphalt_normal, metres / 0.55).xyz * 2.0 - 1.0;
+ vec3 coarse = stochastic(asphalt_normal, metres / 0.55, false).xyz * 2.0 - 1.0;
  vec3 fine = texture(asphalt_normal, vec2(-metres.y, metres.x) / 1.70 + vec2(0.31, 0.07)).xyz * 2.0 - 1.0;
  vec3 tangent_normal = normalize(vec3((coarse.xy * 0.75 + fine.xy * 0.45) * strength, 1.0));
  return cotangent_perturb(view_pos, surface_normal, metres, tangent_normal);
