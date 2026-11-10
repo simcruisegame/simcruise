@@ -1,0 +1,227 @@
+{
+  "tool": "game/checks/CarTurntable.gd: godot --path game --windowed --resolution 1600x1000 -- --car-turntable DIR --quality=ultra --lamps",
+  "renderer": "Godot 4.7.2 Mobile renderer (Vulkan), NVIDIA GeForce RTX 2070 Super with Max-Q Design, Windows 11",
+  "before": "HEAD 3f66d3e game/CarFinish.gd, SportWheel.gd, Cockpit.gd with the same turntable",
+  "car_finish_report_after": {
+    "build_ms": 810.6,
+    "cowl_triangles": 36,
+    "door_top_at_mirror_mm_above_ground": 710,
+    "frame_triangles": 140,
+    "ground_clearance_mm": 171,
+    "headliner_triangles": 224,
+    "lamp_-1_centre": [
+      -0.579,
+      0.698,
+      1.794
+    ],
+    "lamp_-1_span_mm": 440,
+    "lamp_1_centre": [
+      0.579,
+      0.698,
+      1.794
+    ],
+    "lamp_1_span_mm": 440,
+    "lamp_ray_retries": 6,
+    "mirror_centre_mm_above_ground": 776,
+    "old_mirror_verts": [
+      642,
+      642
+    ],
+    "plate_centre_mm_above_ground": 697,
+    "seam_bumper_cover": 86,
+    "seam_cowl": 114,
+    "seam_door_front": 88,
+    "seam_door_rear": 294,
+    "seam_fuel_door": 49,
+    "seam_hood_side": 230,
+    "seam_nose": 35,
+    "seam_points": 1225,
+    "seam_trunk_lead": 111,
+    "seam_trunk_side": 138,
+    "seam_trunk_trailing": 80,
+    "slimmed_frame_vertices": 90,
+    "welded_glass_vertices": 204,
+    "welded_paint_vertices": 488,
+    "wiper_blades": 2
+  },
+  "references": [
+    {
+      "file": "File:1999 Mazda MX-5 Miata.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:1999_Mazda_MX-5_Miata.jpg",
+      "author": "DestinationFearFan",
+      "licence": "CC BY-SA 4.0",
+      "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "taken": "2021-04-09 11:01:17",
+      "used_in": [
+        "looked at only, not reproduced"
+      ]
+    },
+    {
+      "file": "File:1999 Mazda MX-5 Miata front 4.28.18.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:1999_Mazda_MX-5_Miata_front_4.28.18.jpg",
+      "author": "Kevauto",
+      "licence": "CC BY-SA 4.0",
+      "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "taken": "2018-04-28 02:45:50",
+      "used_in": [
+        "compare-exterior.jpg (front 3/4 left)",
+        "compare-details.jpg (hardtop cabin)"
+      ]
+    },
+    {
+      "file": "File:1999 Mazda MX-5 Miata rear 4.28.18.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:1999_Mazda_MX-5_Miata_rear_4.28.18.jpg",
+      "author": "Kevauto",
+      "licence": "CC BY-SA 4.0",
+      "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "taken": "2018-04-28 02:46:05",
+      "used_in": [
+        "compare-exterior.jpg (rear 3/4 left)",
+        "compare-details.jpg (tail lamp)"
+      ]
+    },
+    {
+      "file": "File:1999 Mazda MX-5 Miata Base in Highlight Silver Metallic, Rear Left, 08-06-2022.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:1999_Mazda_MX-5_Miata_Base_in_Highlight_Silver_Metallic,_Rear_Left,_08-06-2022.jpg",
+      "author": "Elise240SX",
+      "licence": "CC BY-SA 4.0",
+      "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "taken": "2022-08-06 10:21:55",
+      "used_in": [
+        "looked at only, not reproduced"
+      ]
+    },
+    {
+      "file": "File:1999 Mazda MX-5 Miata Base in Highlight Silver Metallic, Front Left, 08-06-2022.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:1999_Mazda_MX-5_Miata_Base_in_Highlight_Silver_Metallic,_Front_Left,_08-06-2022.jpg",
+      "author": "Elise240SX",
+      "licence": "CC BY-SA 4.0",
+      "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "taken": "2022-08-06 10:22:21",
+      "used_in": [
+        "looked at only, not reproduced"
+      ]
+    },
+    {
+      "file": "File:1999 Mazda MX-5 Miata Leather Package in Highlight Silver Metallic, Front Right, 06-29-2023.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:1999_Mazda_MX-5_Miata_Leather_Package_in_Highlight_Silver_Metallic,_Front_Right,_06-29-2023.jpg",
+      "author": "Elise240SX",
+      "licence": "CC BY-SA 4.0",
+      "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "taken": "2023-06-29 17:46:46",
+      "used_in": [
+        "compare-exterior.jpg (front 3/4 right)",
+        "compare-details.jpg (headlamp, wheel)"
+      ]
+    },
+    {
+      "file": "File:Mazda-miata-1999-blue-side.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Mazda-miata-1999-blue-side.jpg",
+      "author": "Tysto",
+      "licence": "Public domain",
+      "taken": "17 September 2002 (according to Exif data)",
+      "used_in": [
+        "compare-exterior.jpg (side)"
+      ]
+    },
+    {
+      "file": "File:1999 Mazda MX-5 1.8.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:1999_Mazda_MX-5_1.8.jpg",
+      "author": "Calreyn88",
+      "licence": "CC BY-SA 4.0",
+      "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "taken": "21 April 2024 (according to Exif data)",
+      "used_in": [
+        "looked at only, not reproduced"
+      ]
+    },
+    {
+      "file": "File:2000 Mazda Miata Special Edition, front left, 11-16-2024.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:2000_Mazda_Miata_Special_Edition,_front_left,_11-16-2024.jpg",
+      "author": "MercurySable99",
+      "licence": "CC BY-SA 4.0",
+      "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "taken": "2024-11-16 16:23:36",
+      "used_in": [
+        "looked at only, not reproduced"
+      ]
+    },
+    {
+      "file": "File:2002 Mazda MX5 1.8 Sport Black Interior.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:2002_Mazda_MX5_1.8_Sport_Black_Interior.jpg",
+      "author": "Pahazzard",
+      "licence": "CC BY-SA 3.0",
+      "licence_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "taken": "2005-08-30",
+      "used_in": [
+        "compare-details.jpg (interior)"
+      ]
+    },
+    {
+      "file": "File:Mazda MX-5 - left tail-light.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Mazda_MX-5_-_left_tail-light.jpg",
+      "author": "User Mafmafmaf on en.wikipedia",
+      "licence": "CC BY 2.5",
+      "licence_url": "https://creativecommons.org/licenses/by/2.5",
+      "taken": "",
+      "used_in": [
+        "looked at only, not reproduced"
+      ]
+    },
+    {
+      "file": "File:2000 (W) Mazda MX-5.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:2000_(W)_Mazda_MX-5.jpg",
+      "author": "Aboutdamnavantime.wiki",
+      "licence": "CC BY 4.0",
+      "licence_url": "https://creativecommons.org/licenses/by/4.0",
+      "taken": "05/10/2024",
+      "used_in": [
+        "looked at only, not reproduced"
+      ]
+    },
+    {
+      "file": "File:1999 Mazda Miata (54897584920).jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:1999_Mazda_Miata_(54897584920).jpg",
+      "author": "Robert Yorde from Ohio, USA",
+      "licence": "CC BY-SA 4.0",
+      "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "taken": "2025-11-02 16:25",
+      "used_in": [
+        "looked at only, not reproduced"
+      ]
+    },
+    {
+      "file": "File:1999 Mazda Miata (54896417342).jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:1999_Mazda_Miata_(54896417342).jpg",
+      "author": "Robert Yorde from Ohio, USA",
+      "licence": "CC BY-SA 4.0",
+      "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "taken": "2025-11-02 16:27",
+      "used_in": [
+        "looked at only, not reproduced"
+      ]
+    },
+    {
+      "file": "File:1999 Mazda Miata (54897283711).jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:1999_Mazda_Miata_(54897283711).jpg",
+      "author": "Robert Yorde from Ohio, USA",
+      "licence": "CC BY-SA 4.0",
+      "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "taken": "2025-11-02 16:26",
+      "used_in": [
+        "looked at only, not reproduced"
+      ]
+    },
+    {
+      "file": "File:1999 Mazda Miata (54897284901).jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:1999_Mazda_Miata_(54897284901).jpg",
+      "author": "Robert Yorde from Ohio, USA",
+      "licence": "CC BY-SA 4.0",
+      "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "taken": "2025-11-02 16:27",
+      "used_in": [
+        "looked at only, not reproduced"
+      ]
+    }
+  ]
+}
