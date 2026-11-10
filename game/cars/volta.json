@@ -126,7 +126,6 @@
   -0.37,
   1.14,
   -0.07
- ],
- "abs": true,
- "tc_target_slip": 0.1
+ ],
+ "abs": true
 }

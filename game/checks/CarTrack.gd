@@ -40,6 +40,7 @@ func next_car():
  if queue.is_empty():finish();return
  spec=CAR_SPEC.load_id(queue.pop_front())
  car=load("res://Powertrain.gd").new();car.use_spec(spec);car.setup();root.add_child(car);car.restart(Vector3(0,.18,0),0.)
+ car.test_driver=true  # feeds in the throttle on a car without traction control
  tick=0;state=0;t=0.;last=0.;a60=0.;b70=0.;reached=false
  speed_i=0.
 

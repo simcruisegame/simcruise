@@ -158,12 +158,12 @@
   "estimates": "Weight split, centre of gravity, inertia (scaled), spring and bar rates (ride frequency 1.6/1.8 Hz), dampers, brakes, tyre grip (calibrated)."
  },
  "traction_control": true,
+ "calibration_open": "0-60 mph 7.05 s against 6.80 s: a traction-limited front-drive launch. With the slip-ratio tyre curve the traction control holds the front tyres near their peak slip instead of the earlier full grip at any wheelspin, and loses about 0.2 s in first gear and after the 1-2 shift; launch rpm from 4000 to 5500 changed it by at most 0.07 s.",
  "model_scene": "res://art/cars/kestrel_s.glb",
  "driver_eye": [
   -0.36,
   1.14,
   -0.021
- ],
- "abs": true,
- "tc_target_slip": 0.1
+ ],
+ "abs": true
 }

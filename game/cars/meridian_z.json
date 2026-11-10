@@ -176,14 +176,13 @@
   1.5
  ],
  "traction_control": true,
- "calibration_open": "0-60 mph 3.6 s against 2.8 s: Car and Driver omits a 1 ft rollout (about 0.3 s on this launch) while the bench times from rest, and the launch is grip-limited in first gear without a slip-dependent tyre curve",
+ "calibration_open": "0-60 mph 4.2 s against 2.8 s: Car and Driver omits a 1 ft rollout (about 0.3 s on this launch) while the bench times from rest, and with the slip-ratio tyre curve the launch is traction-controlled: when the dual clutch locks up in first gear the rear tyres spin past their peak and the torque reduction and driveline oscillate for about 1.5 s (3.6 s before the curve, when a spinning tyre kept full grip). The car's launch control is not modelled.",
  "model_scene": "res://art/traffic/c8-790c40cc/scene.gltf",
  "model_rig": {"fit": true},
  "driver_eye": [
   -0.386,
   0.95,
   0.06
- ],
- "abs": true,
- "tc_target_slip": 0.1
+ ],
+ "abs": true
 }
