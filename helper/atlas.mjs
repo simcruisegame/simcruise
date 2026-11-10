@@ -15,7 +15,7 @@ import {spectralGround} from './spectral-ground.mjs';
 import {trimSourceCache} from './cache-eviction.mjs';
 import {aerialSource,regionalPhotograph} from './regional-aerial.mjs';
 import {regionalTerrain} from './regional-terrain.mjs';
-import {measuredGround} from './usgs-ground.mjs';
+import {measuredGround,elevationGate} from './usgs-ground.mjs';
 import {streamedTerrain} from './road-grade.mjs';
 import {pedestrianSurfaces} from './pedestrian.mjs';
 import {cartography} from './cartography.mjs';
@@ -34,7 +34,8 @@ import {cacheReader} from './atlas-cache.mjs';
 import {buildingUses} from './nsi-buildings.mjs';
 import {buildingRows,buildingEnrichment,localBuildingTile,buildingFingerprint} from './overture-buildings.mjs';
 import {vectorTile} from './vector-tile.mjs';
-import {roadWidths as widths,hasFootprintSurvey} from './verified-footprints.mjs';
+import {hasFootprintSurvey} from './verified-footprints.mjs';
+import {roadWidths as widths} from './road-widths.mjs';
 import {decode} from 'fast-png';
 import {inflateSync,gunzipSync} from 'node:zlib';
 import fs from 'node:fs';
@@ -93,9 +94,10 @@ async function chunk(X,Y){
  const url=meta.tiles[0].replace('{z}','14').replace('{x}',mx).replace('{y}',my);
  const aerial_key=aerialSource(mx,my)?.key??'';
  const aerial=aerial_key&&fs.existsSync(path.join(cache,aerial_key))?aerial_key:'';
- const [buf,elev,street_objects,ground,mapped_rails,lane_ways]=await Promise.all([data('v-'+mx+'-'+my,url),data('h-'+ex+'-'+ey,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+ex+'/'+ey+'.png'),fetchObjects(X,Y,cache,readCached),measuredGround(X,Y,cache,readCached),(args.includes('--mapped-guard-rails')?mappedGuardRails(X,Y,cache,readCached).catch(()=>({status:'unavailable',rows:[]})):Promise.resolve({status:'off',rows:[]})),laneWays(X,Y)]);
+ const [buf,elev,street_objects,measured,mapped_rails,lane_ways]=await Promise.all([data('v-'+mx+'-'+my,url),data('h-'+ex+'-'+ey,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+ex+'/'+ey+'.png'),fetchObjects(X,Y,cache,readCached),measuredGround(X,Y,cache,readCached),(args.includes('--mapped-guard-rails')?mappedGuardRails(X,Y,cache,readCached).catch(()=>({status:'unavailable',rows:[]})):Promise.resolve({status:'off',rows:[]})),laneWays(X,Y)]);
  const vector=buf[0]===31?gunzipSync(buf):buf;
  const tile=vectorTile(vector),dem=decode(elev);
+ const ground=elevationGate(cache,X,Y,measured);
  // A neighbouring z14 vector tile is read only when a road crosses into it near
  // this tile; the 3 × 3 ring would request it moments later anyway.
  const readVector=async(nx,ny)=>{const raw=await data('v-'+nx+'-'+ny,meta.tiles[0].replace('{z}','14').replace('{x}',nx).replace('{y}',ny));return vectorTile(raw[0]===31?gunzipSync(raw):raw)};
@@ -103,6 +105,7 @@ async function chunk(X,Y){
  const memo={get:key=>{try{return JSON.parse(fs.readFileSync(path.join(cache,'bridge-end-v1-'+key+'.json'),'utf8')).z}catch{return undefined}},
   set:(key,z)=>{try{fs.writeFileSync(path.join(cache,'bridge-end-v1-'+key+'.json'),JSON.stringify({z:Math.round(z*100)/100}))}catch{}}};
  const terrain=await streamedTerrain(X,Y,tile,dem,widths,(x,y)=>data('h-'+x+'-'+y,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+x+'/'+y+'.png'),ground,readVector,memo);
+ if(measured?.unavailable)terrain.road_grade.elevation_fallback=measured.reason;
  if(!args.includes('--without-road-banks'))applyRoadBanks(X,Y,tile,widths,terrain,cachedBankSurface(X,Y,cache));
  const roads=[],buildings=buildingRows(tile.layers.building,X,Y),land=[],pois=[];
  const each=(name,fn)=>{const layer=tile.layers[name];if(!layer)return;for(let i=0;i<layer.length;i++){const f=layer.feature(i);const box=f.bbox(),t=f.extent/4,sx=(X%4)*t,sy=(Y%4)*t;if(box[2]<sx||box[0]>sx+t||box[3]<sy||box[1]>sy+t)continue;fn(f,p=>[rounded((p.x-sx)/t),rounded((p.y-sy)/t)])}};
@@ -121,7 +124,7 @@ async function chunk(X,Y){
    let run=[];
    const commit=()=>{
     if(run.length>1){
-     const road=[p.class,p.oneway||0,name,run,widths[p.class]];
+     const road=[p.class,p.oneway||0,name,run,widths.of(f)];
      const bridge=p.brunnel==='bridge'||Number(p.layer??0)>0;
      if(p.surface==='unpaved'||p.surface==='paved'||bridge)road.push(p.surface==='unpaved'||p.surface==='paved'?p.surface:'');
      // Index 6 marks a structure: the deck comes from `bridges`, not the ground.

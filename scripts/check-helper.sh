@@ -17,7 +17,7 @@ mkdir -p "$logs"
 [ -d node_modules ] || "$bun" install --frozen-lockfile >/dev/null
 
 offline="cache-check check-cache-eviction check-ground-reflectance check-guard-rails check-lane-counts check-panoramax
-check-pedestrian check-rangeland check-regional-height-outliers check_civic_trees
+check-pedestrian check-rangeland check-road-pipeline check-regional-height-outliers check_civic_trees
 check_overture_heights check_regional_aerial check_signal_controls
 check_verified_footprints nsi-check optional-street-objects street-appearance-check
 street_sample_check verify-road-banks"
