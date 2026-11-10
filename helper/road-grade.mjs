@@ -242,7 +242,7 @@ function chainProfile(parts,sample,inside,designSpeed,bridgeAt=[false,false]){
  // banking stay continuous around the sharp corners of simplified map lines.
  const TX=new Float64Array(rows.length),TY=new Float64Array(rows.length);
  for(let i=0;i<rows.length;i++){TX[i]=Math.cos(H[i]);TY[i]=Math.sin(H[i])}
- const profile={S,Z,W:R,E:smoothE,TX,TY,ONES,fix:[]};
+ const profile={S,Z,W:R,E:smoothE,TX,TY,ONES,fix:[],X:rows.map(r=>r[1]),Y:rows.map(r=>r[2])};
  // An approach that ends at a bridge usually climbs an embankment, and a
  // one-sided wide fit undershoots that curve. Measure the end with a short
  // uniform fit over the last 25 m and blend the profile onto it over 30 m, so
@@ -276,6 +276,35 @@ function profileAt(profile,s){
  const fix=fixAt(profile,s);
  const tx=gaussianLinear(profile.S,profile.TX,profile.ONES,s),ty=gaussianLinear(profile.S,profile.TY,profile.ONES,s),l=Math.hypot(tx,ty)||1;
  return [gaussianLinear(profile.S,profile.Z,profile.W,s)+fix,gaussianLinear(profile.S,profile.E,profile.ONES,s),tx/l,ty/l];
+}
+
+// The engineered road surface for the game (RoadSurface.gd): every chain
+// station inside this tile (plus a 6 m apron so neighbours meet) with the
+// smooth profile height, superelevation and smoothed tangent. The game builds
+// the drivable ribbon from these instead of from the terrain grid, whose
+// 3.9 m triangles cannot follow a banked hairpin (checks/RoadProfile.gd).
+// Rows: [x, y] in tile units (0..1 like roads), z m, e (cross slope, + lowers
+// the side the left normal points to), tx, ty.
+const SURFACE_APRON=6;
+function roadSurface(chains,{tx0,ty0,scale}){
+ const out=[];
+ for(const {cls,width,profile} of chains){
+  if(LOOSE.has(cls))continue;
+  const rows=[];let run=[];
+  const flush=()=>{if(run.length>=2)rows.push(run);run=[]};
+  for(let i=0;i<profile.S.length;i++){
+   const x=profile.X[i],y=profile.Y[i];
+   const inBox=x>=tx0-SURFACE_APRON&&x<=tx0+scale+SURFACE_APRON&&y>=ty0-SURFACE_APRON&&y<=ty0+scale+SURFACE_APRON;
+   if(!inBox){flush();continue}
+   const [z,e,tx,ty]=profileAt(profile,profile.S[i]);
+   if(!Number.isFinite(z)){flush();continue}
+   const r=(v,k)=>Math.round(v*k)/k;
+   run.push([r((x-tx0)/scale,1e6),r((y-ty0)/scale,1e6),r(z,1e3),r(e,1e4),r(tx,1e4),r(ty,1e4)]);
+  }
+  flush();
+  for(const pts of rows)out.push({cls,w:Math.round(width*100)/100,pts});
+ }
+ return out;
 }
 
 // Design speed for superelevation, km/h. Low-speed streets keep a normal crown
@@ -372,7 +401,7 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
     const k=x+','+y;if(!roads.has(k))roads.set(k,[]);roads.get(k).push(seg);
    }
  };
- const cell=scale/FINE,terminals=[];
+ const cell=scale/FINE,terminals=[],surfaceChains=[];
  chains.forEach((parts,id)=>{
   const cls=parts[0].piece.cls,width=Math.max(...parts.map(p=>p.piece.width));
   const ends=[parts[0].reversed?parts[0].piece.pts[parts[0].piece.pts.length-1]:parts[0].piece.pts[0],
@@ -380,6 +409,7 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
   const bridgeAt=ends.map(a=>bridgeEnds.some(b=>Math.hypot(a[0]-b[0],a[1]-b[1])<=3));
   const profile=chainProfile(parts,sample,inside,designSpeed(cls),bridgeAt);
   const half=width/2,bench=half+Math.max(1.5,1.2*cell);
+  surfaceChains.push({cls,width,profile});
   const total=parts.reduce((sum,p)=>sum+p.length,0);
   // Chain ends: a bridge deck starts at the bench height where its approach ends.
   for(const [part,atStart] of [[parts[0],true],[parts[parts.length-1],false]]){
@@ -502,7 +532,7 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
  const worldKey=(x,y)=>{const [wx,wy]=toWorld(x,y);return Math.round(wx*2e4)+'-'+Math.round(wy*2e4)};
  const bridges=await bridgeDecks(structures.filter(p=>p.bridge),terminals,sample,inside,{tx0,ty0,scale},memo,worldKey);
  summary.bench.bridges=bridges.length;
- return {h,grid:FINE,road_grade:summary,bridges};
+ return {h,grid:FINE,road_grade:summary,bridges,road_surface:roadSurface(surfaceChains,{tx0,ty0,scale})};
 }
 
 // Bridge decks. Each bridge chain runs straight in profile between the bench

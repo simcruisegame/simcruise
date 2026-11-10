@@ -34,7 +34,11 @@ var photo_sample:Image
 var grid_steps=32
 var surveyed_outcrop
 var crossfall_surface
+var road_surface   # RoadSurface.gd ribbons, or null
 func height_at(p:Vector2)->float:
+ if road_surface:
+  var on_road=road_surface.height(p)
+  if not is_nan(on_road):return on_road
  var original=base_height(p)
  if crossfall_surface:return crossfall_surface.elevation(p,original)
  return surveyed_outcrop.elevation(p,original) if surveyed_outcrop else original
@@ -522,6 +526,8 @@ func apply_recent(texture,soil=null):
  if texture:terrain_material.set_shader_parameter("recent_image",texture)
 func ground_mesh(mat):
  terrain_material=mat
+ if road_surface:
+  var ribbon=road_surface.mesh(mat,side);mesh_node(ribbon);collider(ribbon.create_trimesh_shape())
  preload("res://GroundFinish.gd").bind(mat,materials,info.id,side)
  mat.set_shader_parameter("recent_quadrant",Vector2(int(info.id[0])%4,int(info.id[1])%4))
  # A 128 grid is drawn adaptively: cells split only where the detail differs
@@ -843,6 +849,9 @@ func build(data:Dictionary,size_m:float,mats:Dictionary):
  for i in range(0,roadbed.size()-1,2):
   info.h[int(roadbed[i])] = roadbed[i+1]
  smooth_road_corridors()
+ # Engineered road ribbons (RoadSurface.gd): the grid is pushed below them first.
+ road_surface=preload("res://RoadSurface.gd").for_tile(self)
+ if road_surface:info["road_surface_lowered"]=road_surface.lower_grid(info.h,grid_steps,side)
  surveyed_outcrop=preload("res://SurveyOutcropGround.gd").for_tile(self)
  if not surveyed_outcrop:crossfall_surface=preload("res://RoadCrossfallGround.gd").for_tile(self)
  capture.load_tile(self)
@@ -853,6 +862,8 @@ func build(data:Dictionary,size_m:float,mats:Dictionary):
  make_ground();road_index()
  # Decks for mapped bridges; the ground under them stays the valley or road below.
  preload("res://BridgeDeck.gd").build(self)
+ # Guard rails where the ground drops away beside a road ribbon (GuardRails.gd).
+ preload("res://GuardRails.gd").build(self)
  if not info.get("field",false):
   paint_lane_marks()
   if info.get("live_canopy",false):install_lane_meshes(take_lane_meshes())

@@ -190,6 +190,7 @@ func _ready():
  # them (GraphicsQuality.gd; headless and QA runs keep project.godot as it is).
  ambient_life.name="AmbientLife";ambient_life.game=self;add_child(ambient_life)
  graphics.name="GraphicsQuality";add_child(graphics);graphics.setup(self)
+ apply_lens()
  # The map helper ships beside the game executable (atlas.exe on Windows).
  var helper_name="atlas.exe" if OS.get_name()=="Windows" else "atlas"
  helper=OS.get_executable_path().get_base_dir().path_join(helper_name)
@@ -249,6 +250,7 @@ func _ready():
  if "--screenshots" in OS.get_cmdline_user_args():add_child(preload("res://checks/Screenshots.gd").new())
  if "--car-showcase" in OS.get_cmdline_user_args():add_child(preload("res://checks/CarShowcase.gd").new())
  if "--quality-bench" in OS.get_cmdline_user_args():add_child(preload("res://checks/QualityBench.gd").new())
+ if "--rail-view" in OS.get_cmdline_user_args():add_child(preload("res://checks/RailView.gd").new())
 # Tile workers create mesh/material resources. Joining one while the engine
 # is shutting down can deadlock against the rendering/main thread. Keep the
 # frame loop alive until pending work has returned; no new jobs are launched.
@@ -513,6 +515,15 @@ func _input(e):
   if hud.atlas_map.visible:hud.atlas_map.close_map()
   else:hud.atlas_map.open_map()
   get_viewport().set_input_as_handled()
+# Driver lens (ViewLens.gd): natural by default; scripted captures keep 67°.
+func apply_lens():
+ var mode:String=driving_preferences.values.lens if graphics.managed else "wide"
+ cockpit.driver_fov=preload("res://ViewLens.gd").fov(mode,driving_preferences.values.view_cm)
+func cycle_lens():
+ var order=preload("res://ViewLens.gd").ORDER
+ var next:String=order[(order.find(driving_preferences.values.lens)+1)%order.size()]
+ driving_preferences.remember("lens",next);apply_lens()
+ say(preload("res://ViewLens.gd").label(next,driving_preferences.values.view_cm),3.)
 func toggle_street_detail():
  street_detail.enabled=not street_detail.enabled
  street_detail.reapply(self)
@@ -579,6 +590,7 @@ func _unhandled_key_input(e):
   KEY_M:toggle_sound()
   KEY_F3:fps_label.visible=not fps_label.visible
   KEY_F4:graphics.cycle()
+  KEY_F6:cycle_lens()
 func _physics_process(dt):
  if closing:return
  if not ready_drive:return
@@ -672,7 +684,7 @@ func _process(dt):
   # Generated cars: the eye point from the car file, looking down the road.
   var eye:Vector3=vehicle.spec.driver_eye
   goal=body*eye;target=body*(eye+Vector3(0,-.32,-12.));head_up=body.basis.y
-  camera.fov=70.
+  camera.fov=cockpit.driver_fov
  elif view==1:
   # Driver view: the lagged head model in Cockpit.gd, reset on teleports and view changes.
   if camera_snap:cockpit.reset_head()

@@ -19,6 +19,7 @@ The game opens in the cockpit on a random road from a pool of 36 verified US dri
 | Hide or show the driving HUD | F2 | Left-stick click |
 | Frame rate, active tiles, map requests | F3 | — |
 | Graphics preset (Auto, Low, Medium, High, Ultra) | F4 | — |
+| Driver lens (natural 45°, true to screen, wide 67°) | F6 | — |
 | Engine sound on / off | M | — (HUD button) |
 | Road atlas open / close | Tab (Esc also closes) | Menu |
 | Atlas: zoom, recenter | + / −, mouse wheel, drag to pan, click to pin | D-pad up / down, A |
