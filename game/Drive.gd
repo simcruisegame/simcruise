@@ -197,7 +197,13 @@ func _ready():
  for arg in OS.get_cmdline_user_args():
   if arg.begins_with("--car="):car_id=arg.trim_prefix("--car=")
  var car_spec=preload("res://CarSpec.gd").load_id(car_id)
- if car_spec.model_scene!="" and ResourceLoader.exists(car_spec.model_scene):
+ # A private model for this car (user://cars/<id>.glb, e.g. one you bought or
+ # downloaded for yourself) replaces its exterior; it stays on this machine.
+ # --stock-model ignores it.
+ var private_model:="user://cars/%s.glb"%car_id
+ if FileAccess.file_exists(private_model) and not "--stock-model" in OS.get_cmdline_user_args():
+  car_spec.model_scene=private_model;car_spec.model_rig=car_spec.model_rig.duplicate();car_spec.model_rig.fit=true
+ if car_spec.model_scene!="" and (ResourceLoader.exists(car_spec.model_scene) or car_spec.model_scene.begins_with("user://")):
   vehicle.use_spec(car_spec);generic_car=true
   preload("res://CarBody.gd").new().build(self)
  else:
@@ -403,6 +409,8 @@ func work(spec):
   # so a default install sends no requests to volunteer-run servers.
   if "--mapped-guard-rails" in OS.get_cmdline_user_args() and not "--without-guard-rails" in OS.get_cmdline_user_args():args.append("--mapped-guard-rails")
   if not road_banks.enabled:args.append("--without-road-banks")
+  # Mapped lane counts for the markings (helper/lane-counts.mjs); US defaults without.
+  if "--without-lane-counts" in OS.get_cmdline_user_args():args.append("--without-lane-counts")
   var out=[];var code=OS.execute(helper,args,out,true)
   if code or out.is_empty():return {"error":"Map download failed. Check the connection and retry."}
   raw=str(out[0])
