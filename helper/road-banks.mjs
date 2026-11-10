@@ -21,7 +21,7 @@ function geometry(tile,x,y,side,widths){
    const bounds=f.bbox(),near=(a,b,c,d)=>c>=-80&&a<=side+80&&d>=-80&&b<=side+80;
    if(!near(bounds[0]*scale-x0,bounds[1]*scale-y0,bounds[2]*scale-x0,bounds[3]*scale-y0))continue;
    if(layer==='transportation'&&f.type===2){
-    const road=eligible(p),bridge=!!p.brunnel||Number(p.layer??0)!==0,w=(widths[p.class]??4)/2;
+    const road=eligible(p),bridge=!!p.brunnel||Number(p.layer??0)!==0,w=((widths.of?widths.of(f,Math.floor(x/4),Math.floor(y/4)):widths[p.class])??4)/2;
     for(const line of f.loadGeometry())for(let j=1;j<line.length;j++){
      const a=line[j-1],b=line[j],ax=a.x*scale-x0,ay=a.y*scale-y0,bx=b.x*scale-x0,by=b.y*scale-y0;
      if(!near(Math.min(ax,bx),Math.min(ay,by),Math.max(ax,bx),Math.max(ay,by)))continue;
