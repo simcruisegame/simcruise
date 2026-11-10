@@ -12,8 +12,8 @@ extends RefCounted
 ## helper fits along the road changes by at most ~0.17°/m.
 ##
 ## So the helper exports each road's fitted profile (helper/road-grade.mjs,
-## road_surface: stations every 2 m with height, cross slope and a smoothed
-## tangent) and this builds, per road, a ribbon from it:
+## road_surface: stations every 2 m with height, cross slope, paved width and a
+## smoothed tangent) and this builds, per road, a ribbon from it:
 ##   * the carriageway at the profile height with its superelevation, plus a
 ##     1 m shoulder that drops 4 cm, like a paved edge;
 ##   * drawn with the tile's own ground material and UVs (position / side), so
@@ -35,7 +35,11 @@ const BIN := 8.
 var quads: Array = []         # [a, b, c, d] Vector3, tile metres (a,b at station i; c,d at i+1)
 var bins := {}                # Vector2i -> [quad index]
 var active := false
-var lines: Array = []         # per road: cls, half width, sections (5 cross-section points per station; GuardRails.gd)
+# Per road: cls, halves (paved half width at each station; a chain can join
+# roads of different widths) and sections (5 cross-section points per station:
+# shoulder edge, paved edge, centre, paved edge, shoulder edge). GuardRails.gd
+# places rails from each station's own shoulder edge, never a chain-wide width.
+var lines: Array = []
 
 static func enabled() -> bool:
  return not "--grid-roads" in OS.get_cmdline_user_args()
@@ -50,6 +54,9 @@ static func for_tile(tile) -> RefCounted:
 # Major roads first: at an intersection the minor road meets the major road's
 # surface (its ribbon snaps where they overlap, and the correction fades out
 # along the minor road over JOIN_FADE_M, so there is no step at the edge).
+# Ribbons of one class meet the same way, the longer first. Where two banked
+# roads overlap (a couplet splitting from its approach) the helper has already
+# run their superelevation out, so their cross slopes agree there.
 const RANK := {"motorway":7,"trunk":6,"primary":5,"secondary":4,"tertiary":3,"minor":2,"residential":2,"unclassified":2}
 const JOIN_FADE_M := 15.
 
@@ -59,22 +66,26 @@ func build(rows: Array, side: float) -> void:
   var pts: Array = chain.get("pts", [])
   if pts.size() < 2:continue
   var half := float(chain.get("w", 6.)) * .5
-  var offsets := [-(half + SHOULDER_M), -half, 0., half, half + SHOULDER_M]
   var sections := []
+  var halves := PackedFloat32Array()
   for row in pts:
+   # Per-station width (a chain can join roads of different widths); older rows have none.
+   var half_i: float = float(row[6]) * .5 if row.size() > 6 else half
+   halves.append(half_i)
+   var offsets := [-(half_i + SHOULDER_M), -half_i, 0., half_i, half_i + SHOULDER_M]
    var c := Vector2(float(row[0]), float(row[1])) * side
    var z := float(row[2]);var e := float(row[3])
    var n := Vector2(-float(row[5]), float(row[4]))      # left normal (helper convention)
    var section := []
    for L in offsets:
-    var lateral: float = clampf(L, -half, half)
+    var lateral: float = clampf(L, -half_i, half_i)
     var h: float = z - e * lateral
-    if absf(L) > half:h -= SHOULDER_DROP_M
+    if absf(L) > half_i:h -= SHOULDER_DROP_M
     var p: Vector2 = c + n * L
     section.append(Vector3(p.x, h, p.y))
    sections.append(section)
   chains.append({"rank":RANK.get(str(chain.get("cls","")),1)*100000+pts.size(),"sections":sections})
-  lines.append({"cls":str(chain.get("cls","")),"half":half,"sections":sections})
+  lines.append({"cls":str(chain.get("cls","")),"halves":halves,"sections":sections})
  chains.sort_custom(func(a, b): return a.rank > b.rank)
  for chain in chains:
   var sections: Array = chain.sections

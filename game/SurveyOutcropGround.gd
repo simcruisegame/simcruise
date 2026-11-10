@@ -22,16 +22,24 @@ static func for_tile(tile):
  var instance=new()
  return instance if instance.read(tile,Vector2i(int(id[0]),int(id[1]))) else null
 
-# class_widths: the helper's widths when RoadWidths.gd narrowed some rows
-# (info.road_class_width), so data signed by the helper still matches.
-static func road_signature(roads:Array,class_widths:Array=[])->PackedByteArray:
+# Class reference widths (helper/road-widths.mjs referenceWidths). A road's own
+# width (road[4]) is at most this: one-way carriageways and ramps are narrower.
+const REFERENCE_WIDTH:={"motorway":19.,"trunk":16.,"primary":12.,"secondary":11.,"tertiary":10.,"minor":8.,"service":4.6,"track":3.}
+
+static func reference_width(road:Array)->float:
+ return float(REFERENCE_WIDTH.get(str(road[0]),road[4]))
+
+## Signs each road's geometry and the reference width of its class, not its own
+## width, so data surveyed for a tile (lidar crossfall, this outcrop ground, lane
+## layouts) stays valid when only the width rule changes; a survey made for the
+## reference width still covers the narrower paved road. Same function as
+## helper/road-layout.mjs laneRoadSignature().
+static func road_signature(roads:Array)->PackedByteArray:
  var rows:=PackedStringArray()
- for i in roads.size():
-  var road=roads[i]
+ for road in roads:
   var route:=PackedStringArray()
   for p in road[3]:route.append("%d/%d"%[roundi(float(p[0])*1000000.),roundi(float(p[1])*1000000.)])
-  var width=float(class_widths[i]) if i<class_widths.size() else float(road[4])
-  rows.append("%d|%s"%[roundi(width*100.),",".join(route)])
+  rows.append("%d|%s"%[roundi(reference_width(road)*100.),",".join(route)])
  rows.sort()
  return "\n".join(rows).sha256_buffer()
 
@@ -48,7 +56,7 @@ func read(tile,id:Vector2i)->bool:
  if dimensions!=count*SUB+Vector2i.ONE or first.x<0 or first.y<0 or (first+count).x>GRID or (first+count).y>GRID:return false
  var cells=dimensions.x*dimensions.y
  if cells<=0 or cells>32768 or f.get_length()!=88+3*cells:return false
- if f.get_buffer(32)!=road_signature(tile.info.roads,tile.info.get("road_class_width",[])):return false
+ if f.get_buffer(32)!=road_signature(tile.info.roads):return false
  var cm=f.get_buffer(cells*2)
  weights=f.get_buffer(cells)
  heights.resize(cells)

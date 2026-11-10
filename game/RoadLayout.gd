@@ -17,7 +17,7 @@ static func for_tile(tile):
  var observed=FileAccess.file_exists(survey_path)
  var cached=info.get("road_layout")
  if not observed and not cached is Dictionary:return null
- var signature=MAP_SIGNATURE.road_signature(info.roads,info.get("road_class_width",[])).hex_encode()
+ var signature=MAP_SIGNATURE.road_signature(info.roads).hex_encode()
  var model=new();model.side=tile.side
  if cached is Dictionary and cached.get("id",[])==id and cached.get("version") == 1 and cached.get("status")=="checked" and cached.get("roadSignature")==signature:
   var entries=cached.get("spans",[])
