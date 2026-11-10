@@ -116,6 +116,10 @@ var service_brake=false
 var LATERAL_GRIP_SCALE:float
 var static_mu:float
 var surface_grip=[1.,1.,1.,1.]
+# Road profile under each tyre (m, + raises the road) and its rate of change
+# (m/s), set by Drive.gd from RoadRoughness.gd. Zero on test pads.
+var road_profile=[0.,0.,0.,0.]
+var road_profile_rate=[0.,0.,0.,0.]
 var spring_load=[0.,0.,0.,0.]
 # Rolling distance to 63% of steady small-slip response. This is a representative
 # passenger radial estimate; no transient force records for the OE 195/50R15.
@@ -250,10 +254,10 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
   var src=origin+b*MOUNTS[i];var ray=PhysicsRayQueryParameters3D.create(src,src-up*(REST+R),1,[get_rid()]);ray.hit_from_inside=false
   var hit=space.intersect_ray(ray);var row=[]
   if hit.size() and hit.normal.dot(up)>.33:
-   var p:Vector3=hit.position;var n:Vector3=hit.normal;var len=clampf((src-p).dot(up)-R,spec.min_travel_m,REST);lengths[i]=len
+   var p:Vector3=hit.position;var n:Vector3=hit.normal;var len=clampf((src-p).dot(up)-R-road_profile[i],spec.min_travel_m,REST);lengths[i]=len
    var arm=p-com;var v=vel+angular_velocity.cross(arm)
    var axle=0 if i<2 else 1
-   var load=suspension.contact_load(axle,len,v.dot(n),mass)
+   var load=suspension.contact_load(axle,len,v.dot(n)-road_profile_rate[i],mass)
    var sign_side=-1.0 if i%2==0 else 1.0
    var angle=signf(steering)*(inner if (i==0 and steering>0) or (i==1 and steering<0) else outer) if i<2 else 0.
    angle+=sign_side*deg_to_rad(spec.toe_per_wheel_deg)

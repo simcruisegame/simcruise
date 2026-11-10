@@ -39,6 +39,17 @@ The new cars' models are generated in Blender by `authoring/cars/build_car.py` f
 
 The generated models have accurate proportions, working glass, lamps and wheels, and clean silhouettes, but they are not photoreal. Better models are a welcome contribution: CC0 or CC BY, with the node names the README lists.
 
+## Traffic models from Sketchfab
+
+The moving traffic (`game/AmbientLife.gd`) uses the parked-car models, the generated cars and any model listed in `game/art/traffic/manifest.json`. `authoring/cars/sketchfab.mjs` fills that manifest:
+
+```
+bun authoring/cars/sketchfab.mjs search "generic sedan"
+SKETCHFAB_API_TOKEN=… bun authoring/cars/sketchfab.mjs fetch <uid> --kind=sedan --length=4.7
+```
+
+Only CC0 and CC BY models are accepted. Models with a car maker in the title are refused unless you pass `--allow-brand` (then remove the badges). The token is your own, from sketchfab.com → Settings → Password & API; it is never written anywhere. Models are normalised at load (long axis along the road, scaled to `length_m`, wheels on the ground); set `"flip": true` in the manifest if one drives backwards. Credits go to `licenses/Traffic models.txt`.
+
 ## Adding a car
 
 1. Copy the closest file in `game/cars/` and change `id` (the file name), `name`, `make` and `body`.
