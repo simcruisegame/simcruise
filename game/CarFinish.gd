@@ -47,7 +47,7 @@ const SEAM_LIFT := .0016
 var game
 var model: Node3D
 var body: MeshInstance3D
-var paint: StandardMaterial3D
+var paint: Material
 var dark_trim: StandardMaterial3D
 var seam_ink: StandardMaterial3D
 var lamp_ends := {}
@@ -130,12 +130,11 @@ func likeness() -> void:
  print("CAR FINISH ", JSON.stringify(report))
 
 func make_materials() -> void:
- paint = StandardMaterial3D.new()
+ # Metallic paint with mica flakes and clearcoat orange peel (CarPaint.gdshader).
+ paint = ShaderMaterial.new()
+ paint.shader = preload("res://CarPaint.gdshader")
  paint.resource_name = "racing green paint"
- paint.albedo_color = PAINT_COLOR
- paint.metallic = .42; paint.roughness = .36; paint.metallic_specular = .5
- paint.clearcoat_enabled = true; paint.clearcoat = 1.; paint.clearcoat_roughness = .07
- paint.cull_mode = BaseMaterial3D.CULL_DISABLED
+ paint.set_shader_parameter("base_color", PAINT_COLOR)
  dark_trim = StandardMaterial3D.new()
  dark_trim.albedo_color = Color("#121414"); dark_trim.roughness = .74; dark_trim.metallic = .05
  dark_trim.cull_mode = BaseMaterial3D.CULL_DISABLED

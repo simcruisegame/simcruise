@@ -13,9 +13,10 @@ extends RefCounted
 #   car         : String id of a file in res://cars (CarSpec.gd)
 #   resume_place: String "lon,lat,title" to reopen after switching cars, used once
 #   lens        : String "natural", "screen" or "wide" (ViewLens.gd)
+#   car_dirt    : float 0..1 road grime on the car (CarWear.gd)
 #   view_cm     : float  eye-to-screen distance for the "screen" lens
 #   quality     : String "auto", "low", "medium", "high" or "ultra" (GraphicsQuality.gd)
-const DEFAULTS := {"manual":false,"street_photos":true,"spectral_ground":false,"sound":true,"hud_level":1,"head_motion":1.0,"car":"nb1999","resume_place":"","quality":"auto","lens":"natural","view_cm":60.0}
+const DEFAULTS := {"manual":false,"street_photos":true,"spectral_ground":false,"sound":true,"hud_level":1,"head_motion":1.0,"car":"nb1999","resume_place":"","quality":"auto","lens":"natural","view_cm":60.0,"car_dirt":0.15}
 const QA_FLAGS := ["--car-audit","--bethel-facade-ab","--survey-stops","--seam-check","--pad-steering","--building-check","--street-check","--reference","--us-check","--field-check","--profile-trees","--road-test"]
 var values := DEFAULTS.duplicate()
 var directory := ""
@@ -46,6 +47,7 @@ static func coerce(name: String, value):
   "hud_level":return clampi(value,0,2)
   "head_motion":return clampf(value,0.,1.)
   "view_cm":return clampf(value,20.,300.)
+  "car_dirt":return clampf(value,0.,1.)
  return value
 
 func remember(name: String, value) -> void:

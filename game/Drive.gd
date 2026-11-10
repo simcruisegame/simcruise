@@ -107,6 +107,8 @@ var shadow_plane=PlaneMesh.new()
 var ambient_life=preload("res://AmbientLife.gd").new()
 var roughness=preload("res://RoadRoughness.gd").new()
 var graphics=preload("res://GraphicsQuality.gd").new()
+var car_wear=preload("res://CarWear.gd").new()
+var probe_step_m=32.
 func material(tex=null,color=Color.WHITE):
  var m=StandardMaterial3D.new();m.cull_mode=BaseMaterial3D.CULL_DISABLED;m.albedo_color=color;m.roughness=.86;m.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
  if tex:m.albedo_texture=tex
@@ -191,6 +193,8 @@ func _ready():
  ambient_life.name="AmbientLife";ambient_life.game=self;add_child(ambient_life)
  graphics.name="GraphicsQuality";add_child(graphics);graphics.setup(self)
  apply_lens()
+ # Road grime that builds with distance and washes off in real rain (CarWear.gd).
+ car_wear.name="CarWear";add_child(car_wear);car_wear.setup(self)
  # The map helper ships beside the game executable (atlas.exe on Windows).
  var helper_name="atlas.exe" if OS.get_name()=="Windows" else "atlas"
  helper=OS.get_executable_path().get_base_dir().path_join(helper_name)
@@ -709,7 +713,7 @@ func _process(dt):
  park_clock+=dt
  if park_clock>.75:
   update_parked();park_clock=0
- if not job and (not is_finite(last_probe.x) or last_probe.distance_to(pos)>32):
+ if not job and (not is_finite(last_probe.x) or last_probe.distance_to(pos)>probe_step_m):
   probe.position=vehicle.position+Vector3.UP*1.1;last_probe=pos
  timer+=dt
  if timer>.16:
@@ -718,7 +722,7 @@ func _process(dt):
    var rr=near[0][1];road_name=rr[2] if rr[2]!="" else "Local road"
   hud.refresh(roundi(absf(velocity)*2.23694),vehicle.gear_text()+" · "+str(roundi(vehicle.rpm))+" rpm",distance/1609.344,road_name,view)
   hud.update_drive_hint()
-  fps_label.text="%d FPS    %d active tiles    %d map requests    %s"%[Engine.get_frames_per_second(),tiles.size(),calls,graphics.label()];timer=0
+  fps_label.text="%d FPS    %d active tiles    %d map requests    %s    %s"%[Engine.get_frames_per_second(),tiles.size(),calls,graphics.label(),car_wear.label()];timer=0
  if sound_enabled and engine_stream:
   var available=engine_stream.get_frames_available()
   if available>0:
