@@ -39,10 +39,10 @@
   [],
   []
  ],
- "_comment": "Mid-engine V8 sports car with an eight-speed dual-clutch gearbox. Reference: 2020 Chevrolet Corvette Stingray Z51 (fictional name and body).",
+ "_comment": "Mid-engine V8 sports car with an eight-speed dual-clutch gearbox. Reference: 2020 Chevrolet Corvette Stingray Z51 ; model: Sketchfab 2019 Chevrolet Corvette C8 Stingray by Haris3D (CC BY 4.0). The generated Meridian Z body remains in art/cars/meridian_z.glb.",
  "id": "meridian_z",
- "name": "Meridian Z",
- "make": "Halcyon",
+ "name": "Corvette Stingray Z51 (C8)",
+ "make": "Chevrolet",
  "body": "coupe",
  "seats": 2,
  "mass_kg": 1654.0,
@@ -177,10 +177,11 @@
  ],
  "traction_control": false,
  "calibration_open": "0-60 mph 3.6 s against 2.8 s: Car and Driver omits a 1 ft rollout (about 0.3 s on this launch) while the bench times from rest, and the launch is grip-limited in first gear without a slip-dependent tyre curve",
- "model_scene": "res://art/cars/meridian_z.glb",
+ "model_scene": "res://art/traffic/c8-790c40cc/scene.gltf",
+ "model_rig": {"fit": true},
  "driver_eye": [
   -0.386,
-  1.04,
-  0.017
+  0.95,
+  0.06
  ]
 }
