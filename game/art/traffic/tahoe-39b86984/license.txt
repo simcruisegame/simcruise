@@ -1,0 +1,11 @@
+Model Information:
+* title:	Chevrolet Tahoe Suv
+* source:	https://sketchfab.com/3d-models/chevrolet-tahoe-suv-39b86984238941b0b6a46da6a8c31907
+* author:	maznalamri80 (https://sketchfab.com/maznalamri80)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Chevrolet Tahoe Suv" (https://sketchfab.com/3d-models/chevrolet-tahoe-suv-39b86984238941b0b6a46da6a8c31907) by maznalamri80 (https://sketchfab.com/maznalamri80) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
