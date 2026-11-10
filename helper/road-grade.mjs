@@ -114,22 +114,64 @@ function tileLines(tile,widths,ox,oy,scale,clipToOwn){
   if(!protectedRoad&&(!PAVED.has(p.class)||LOOSE.has(p.surface)))continue;
   const width=(widths.of?widths.of(feature):widths[p.class])??8,f=size/feature.extent;
   for(const line of feature.loadGeometry()){
-   let piece=[];
+   let piece=[],start=0,run=0;
    const bridge=protectedRoad&&p.brunnel!=='tunnel'&&(PAVED.has(p.class)||['service','track'].includes(p.class))&&(p.brunnel==='bridge'||Number(p.layer??0)>0);
-   const flush=()=>{if(piece.length>=2)out.push({pts:piece,width,protectedRoad,elevatedRoad,bridge,layer:Number(p.layer??0),oneway:Number(p.oneway??0),cls:p.class,name:p.name??''});piece=[]};
+   // The source line a piece was cut from (its end points in this z14 tile's
+   // integer extent) and where along that line, in extent units, the piece
+   // starts: pieceWear anchors the drawn road wear on them, which do not
+   // depend on where float clipping happened to split the line.
+   const source=line.length>1?`${line[0].x},${line[0].y}|${line[line.length-1].x},${line[line.length-1].y}|${feature.extent}`:'';
+   const flush=()=>{if(piece.length>=2)out.push({pts:piece,width,protectedRoad,elevatedRoad,bridge,layer:Number(p.layer??0),oneway:Number(p.oneway??0),cls:p.class,name:p.name??'',source,sourceStart:start,unitsPerMetre:1/f});piece=[]};
    for(let j=1;j<line.length;j++){
     const ax=ox+line[j-1].x*f,ay=oy+line[j-1].y*f,bx=ox+line[j].x*f,by=oy+line[j].y*f;
     const c=clipToOwn?clipSegment(ax,ay,bx,by,ox,oy,ox+size,oy+size):[ax,ay,bx,by];
+    const before=run;run+=Math.hypot(line[j].x-line[j-1].x,line[j].y-line[j-1].y);
     if(!c){flush();continue}
     const last=piece[piece.length-1];
-    if(!last||Math.hypot(last[0]-c[0],last[1]-c[1])>1e-6){flush();piece.push([c[0],c[1]])}
+    if(!last||Math.hypot(last[0]-c[0],last[1]-c[1])>1e-6){flush();piece.push([c[0],c[1]]);start=before+Math.hypot(c[0]-ax,c[1]-ay)/f}
     piece.push([c[2],c[3]]);
     if(c[2]!==bx||c[3]!==by)flush();
    }
    flush();
   }
  }
+ if(clipToOwn)nameUnnamed(out,tile,ox,oy,size,scale);
  return out;
+}
+
+// OpenMapTiles keeps most road names in transportation_name, not on the road
+// line. Like atlas.mjs does for the game's roads, an unnamed piece takes the
+// label that runs along its longest segment (aligned within cos 0.8, its
+// midpoint within 0.012 of a z16 tile), as piece.street (piece.name, which
+// joins chains, is left alone). The label is looked for in the piece's own
+// z14 tile only, so every game tile that loads the piece names it alike (the
+// drawn wear's street condition, RoadSurface.gd).
+function nameUnnamed(pieces,tile,ox,oy,size,scale){
+ const layer=tile?.layers?.transportation_name;
+ if(!layer)return;
+ const labels=[];
+ for(let i=0;i<layer.length;i++){
+  const feature=layer.feature(i),name=feature.properties.name;
+  if(!name)continue;
+  const f=size/feature.extent;
+  for(const line of feature.loadGeometry())labels.push([line.map(p=>[ox+p.x*f,oy+p.y*f]),String(name)]);
+ }
+ const reach=(.012*scale)**2;
+ for(const piece of pieces){
+  if(piece.name)continue;
+  const pts=piece.pts;
+  let longest=0,aa=pts[0],bb=pts[1];
+  for(let j=1;j<pts.length;j++){const d=Math.hypot(pts[j][0]-pts[j-1][0],pts[j][1]-pts[j-1][1]);if(d>longest){longest=d;aa=pts[j-1];bb=pts[j]}}
+  if(!(longest>0))continue;
+  const cx=(aa[0]+bb[0])/2,cy=(aa[1]+bb[1])/2;
+  let best=reach;
+  for(const [q,name] of labels)for(let j=1;j<q.length;j++){
+   const a=q[j-1],b=q[j],dx=b[0]-a[0],dy=b[1]-a[1],ll=dx*dx+dy*dy;if(!ll)continue;
+   if(Math.abs((dx*(bb[0]-aa[0])+dy*(bb[1]-aa[1]))/(Math.sqrt(ll)*longest))<.8)continue;
+   const t=Math.max(0,Math.min(1,((cx-a[0])*dx+(cy-a[1])*dy)/ll)),d=(cx-a[0]-dx*t)**2+(cy-a[1]-dy*t)**2;
+   if(d<best){best=d;piece.street=name}
+  }
+ }
 }
 
 function arcLength(pts){
@@ -213,16 +255,17 @@ function gaussianLinear(S,Z,W,s){
 // Samples, robust weights, profile and superelevation for one chain.
 function chainProfile(parts,sample,inside,designSpeed,bridgeAt=[false,false]){
  const rows=[];
- for(const part of parts){
+ parts.forEach((part,index)=>{
   const {piece,s,length,reversed,offset}=part;
   let seg=0;
   for(let l=0;l<=length+1e-9;l+=STEP){
    while(seg<s.length-2&&l>s[seg+1])seg++;
    const a=piece.pts[seg],b=piece.pts[seg+1],t=(l-s[seg])/Math.max(s[seg+1]-s[seg],1e-9);
    const x=a[0]+(b[0]-a[0])*t,y=a[1]+(b[1]-a[1])*t;
-   rows.push([offset+(reversed?length-l:l),x,y]);
+   // Part index and the distance along the piece in its own direction (wear.along).
+   rows.push([offset+(reversed?length-l:l),x,y,index,(piece.wear?.along??0)+l*(piece.wear?.unit??1)]);
   }
- }
+ });
  rows.sort((p,q)=>p[0]-q[0]);
  const S=new Float64Array(rows.length),Z=new Float64Array(rows.length),W=new Float64Array(rows.length);
  rows.forEach((r,i)=>{S[i]=r[0];if(inside(r[1],r[2])){Z[i]=sample(r[1],r[2]);W[i]=Number.isFinite(Z[i])?1:0}});
@@ -254,7 +297,7 @@ function chainProfile(parts,sample,inside,designSpeed,bridgeAt=[false,false]){
  // banking stay continuous around the sharp corners of simplified map lines.
  const TX=new Float64Array(rows.length),TY=new Float64Array(rows.length);
  for(let i=0;i<rows.length;i++){TX[i]=Math.cos(H[i]);TY[i]=Math.sin(H[i])}
- const profile={S,Z,W:R,E:smoothE,TX,TY,ONES,fix:[],X:rows.map(r=>r[1]),Y:rows.map(r=>r[2])};
+ const profile={S,Z,W:R,E:smoothE,TX,TY,ONES,fix:[],X:rows.map(r=>r[1]),Y:rows.map(r=>r[2]),P:rows.map(r=>r[3]),A:rows.map(r=>r[4])};
  // An approach that ends at a bridge usually climbs an embankment, and a
  // one-sided wide fit undershoots that curve. Measure the end with a short
  // uniform fit over the last 25 m and blend the profile onto it over 30 m, so
@@ -290,13 +333,39 @@ function profileAt(profile,s){
  return [gaussianLinear(profile.S,profile.Z,profile.W,s)+fix,gaussianLinear(profile.S,profile.E,profile.ONES,s),tx/l,ty/l];
 }
 
+// Where the drawn road wear (GroundFinish.gdshaderinc lane_wear) lies along
+// each piece. A piece is one road of one z14 vector tile, clipped to that tile,
+// so every game tile that loads it sees the same source line. Distance along
+// is measured along that source line from its first vertex, in the metres of
+// the piece's own z14 tile (unit = own scale / this tile's scale; they differ
+// by the cosine of latitude across a z14 row), and starts at a hash (0-1800 m)
+// of the line's integer end points and its z14 tile. So both copies of a road
+// on a seam, and the ribbon a neighbouring z14 tile draws, carry the same
+// distance along, wherever float clipping split the line into pieces.
+function pieceWear(pieces,mx,my,scale){
+ const parent=2**VECTOR_ZOOM;
+ const rowScale=row=>EARTH_METRES/65536*Math.cos(Math.atan(Math.sinh(Math.PI*(1-2*(row+.5)/parent))));
+ for(const piece of pieces){
+  if(piece.wear)continue;
+  const col=mx+(piece.parentCol??0),row=my+(piece.parentRow??0);
+  const key=col+'/'+row+'/'+(piece.source??'');
+  let h=0x811c9dc5;
+  for(let i=0;i<key.length;i++){h^=key.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0}
+  const unit=rowScale(row)/scale;
+  piece.wear={along:h%1800+(piece.sourceStart??0)/(piece.unitsPerMetre??1)*unit,unit};
+ }
+}
+
 // The engineered road surface for the game (RoadSurface.gd): every chain
 // station inside this tile (plus a 6 m apron so neighbours meet) with the
 // smooth profile height, superelevation and smoothed tangent. The game builds
 // the drivable ribbon from these instead of from the terrain grid, whose
 // 3.9 m triangles cannot follow a banked hairpin (checks/RoadProfile.gd).
 // Rows: [x, y] in tile units (0..1 like roads), z m, e (cross slope, + lowers
-// the side the left normal points to), tx, ty, w (paved width at the station, m).
+// the side the left normal points to), tx, ty, w (paved width at the station, m),
+// part (index into the chain's streets) and along (m along the piece's source line, from
+// pieceWear): the game draws road wear from the street and distance of the
+// piece itself, so tiles on both sides of a seam draw a road alike.
 // A chain can join roads of different widths (a one-way carriageway continuing
 // as a two-way road); w changes linearly across a 20 m window centred on the
 // joint (WIDTH_TAPER = 10 m on each side), and the row's own w is the widest
@@ -313,7 +382,7 @@ function widthAlong(parts){
 }
 function roadSurface(chains,{tx0,ty0,scale}){
  const out=[];
- for(const {cls,width,widthAt,profile} of chains){
+ for(const {cls,width,widthAt,profile,parts} of chains){
   if(LOOSE.has(cls))continue;
   const rows=[];let run=[];
   const flush=()=>{if(run.length>=2)rows.push(run);run=[]};
@@ -324,10 +393,14 @@ function roadSurface(chains,{tx0,ty0,scale}){
    const [z,e,tx,ty]=profileAt(profile,profile.S[i]);
    if(!Number.isFinite(z)){flush();continue}
    const r=(v,k)=>Math.round(v*k)/k;
-   run.push([r((x-tx0)/scale,1e6),r((y-ty0)/scale,1e6),r(z,1e3),r(e,1e4),r(tx,1e4),r(ty,1e4),r(widthAt(profile.S[i]),100)]);
+   run.push([r((x-tx0)/scale,1e6),r((y-ty0)/scale,1e6),r(z,1e3),r(e,1e4),r(tx,1e4),r(ty,1e4),r(widthAt(profile.S[i]),100),profile.P[i],r(profile.A[i],100)]);
   }
   flush();
-  for(const pts of rows)out.push({cls,w:Math.round(width*100)/100,pts});
+  // The street of each part: [name, class, 1 if the chain runs against the
+  // piece's own direction]. A row's index 7 names its part and index 8 is its
+  // distance along the piece's source line (pieceWear), so both tiles of a seam agree.
+  const streets=parts.map(p=>[p.piece.name||p.piece.street||'',p.piece.cls,p.reversed?1:0]);
+  for(const pts of rows)out.push({cls,w:Math.round(width*100)/100,pts,streets});
  }
  return out;
 }
@@ -384,7 +457,7 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
   loaded.add(key);
   try{
    const other=await readVector((nx+parent)%parent,ny);
-   pieces=pieces.concat(tileLines(other,widths,dx*size,dy*size,scale,true));
+   pieces=pieces.concat(tileLines(other,widths,dx*size,dy*size,scale,true).map(p=>Object.assign(p,{parentRow:dy,parentCol:dx})));
    summary.bench.neighbours++;
   }catch{}
  };
@@ -407,6 +480,7 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
   }
   if(!added)break;
  }
+ pieceWear(pieces,mx,my,scale);
  const benchPieces=pieces.filter(p=>!p.protectedRoad);
  const structures=pieces.filter(p=>p.protectedRoad);
 
@@ -434,7 +508,7 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
   const bridgeAt=ends.map(a=>bridgeEnds.some(b=>Math.hypot(a[0]-b[0],a[1]-b[1])<=3));
   const profile=chainProfile(parts,sample,inside,designSpeed(cls),bridgeAt);
   const widthAt=widthAlong(parts);
-  surfaceChains.push({cls,width,widthAt,profile});
+  surfaceChains.push({cls,width,widthAt,profile,parts});
   banked.push({id,profile,widthAt,banked:designSpeed(cls)>0});
   const total=parts.reduce((sum,p)=>sum+p.length,0);
   // Chain ends: a bridge deck starts at the bench height where its approach ends.

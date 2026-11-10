@@ -60,12 +60,29 @@ static func iri(tile, p: Vector2, grip: float) -> float:
   var d := q.distance_to(p)
   if d > float(seg[3]) * .5 + .5 or d > best:continue
   best = d
-  var base: float = CLASS_IRI.get(str(seg[5]), 2.4)
-  if seg.size() > 6 and seg[6] == "unpaved":base = UNPAVED_IRI
-  # Street condition: stable per name and class, 0.6× (new) to 1.9× (worn).
-  var h := absi(hash(str(seg[2]) + "|" + str(seg[5]))) % 1000 / 1000.
-  value = base * lerpf(.6, 1.9, h * h)
+  value = street_iri(str(seg[2]), str(seg[5]), seg.size() > 6 and seg[6] == "unpaved")
  return minf(value, 10.)   # IRI 10: a rutted track; beyond that is off-road, not road
+
+## IRI of the street a point lies on in this tile's road index, or -1 where
+## the index has none (its road lies in the neighbouring tile).
+static func street_iri_at(tile, p: Vector2) -> float:
+ var best := INF
+ var value := -1.
+ for seg in tile.road_grid.get(Vector2i((p / 24.).floor()), []):
+  var d := Geometry2D.get_closest_point_to_segment(p, seg[0], seg[1]).distance_to(p)
+  if d > float(seg[3]) * .5 + .5 or d > best:continue
+  best = d
+  value = street_iri(str(seg[2]), str(seg[5]), seg.size() > 6 and seg[6] == "unpaved")
+ return minf(value, 10.)
+
+## IRI of a street from its name and class alone (RoadSurface.gd draws the
+## wear of a ribbon from the street the helper exported with it, so both
+## tiles of a seam agree): the class baseline × a street condition stable per
+## name and class, 0.6× (new) to 1.9× (worn).
+static func street_iri(name: String, cls: String, unpaved := false) -> float:
+ var base: float = UNPAVED_IRI if unpaved else CLASS_IRI.get(cls, 2.4)
+ var h := absi(hash(name + "|" + cls)) % 1000 / 1000.
+ return base * lerpf(.6, 1.9, h * h)
 
 ## Surface height (m) at absolute map coordinates for a given IRI.
 func height(world: Vector2, value: float) -> float:

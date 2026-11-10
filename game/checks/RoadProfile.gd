@@ -87,9 +87,13 @@ func _initialize():
 # frame mesh() hands the ground shader: lane_fit() never overhangs the
 # carriageway, every vertex is flagged and carries its own lateral offset and
 # the lane layout of its station's width (one ribbon narrows from 14 to 10 m),
-# the street condition follows the street under every 2 m station (a 6 m
-# street with another name inside a chain included), and two chains do not
-# start their distance along at the same value. Prints one RIBBON line.
+# the street condition and distance along follow the exported piece under
+# every 2 m station (a 6 m street with another name inside a chain included),
+# a chain without that export takes its street from the tile's road index and,
+# where the index has none, from the nearest station that found one (never the
+# default), two chains do not start their distance along at the same value,
+# and two seam copies of one road draw alike (ribbon_seam). Prints one RIBBON
+# line.
 func ribbon_lane_frame()->int:
  const SURFACE=preload("res://RoadSurface.gd")
  var errors=[]
@@ -102,6 +106,11 @@ func ribbon_lane_frame()->int:
    errors.append("lane_fit(%.2f)=%s"%[half,fit])
  var side=600.
  var rows=[]
+ # Alpha is exported as the helper does now: each station names its part
+ # (Alpha, a 6 m "Short Bridge" piece inside it, Alpha again) and carries its
+ # distance along that piece (piece offsets 100, 700 and 1300 m). Bravo is a
+ # tile cached before that export: no streets, no part, no width.
+ var alpha_parts=[[50.,203.,100.],[203.,209.,700.],[209.,550.,1300.]]
  for spec in [["primary",14.,Vector2(50,300),Vector2(1,0)],["residential",5.6,Vector2(300,50),Vector2(0,1)]]:
   var pts=[]
   for i in 251:
@@ -109,13 +118,19 @@ func ribbon_lane_frame()->int:
    var row=[c.x/side,c.y/side,10.,0.,spec[3].x,spec[3].y]
    # Alpha carries a per-station width (14 m, then 10 m from x = 400 m), as
    # the helper exports where a chain joins roads of different widths.
-   if spec[0]=="primary":row.append(14. if c.x<399. else 10.)
+   if spec[0]=="primary":
+    row.append(14. if c.x<399. else 10.)
+    var part=0 if c.x<203. else (1 if c.x<209. else 2)
+    row.append_array([part,alpha_parts[part][2]+c.x-alpha_parts[part][0]])
    pts.append(row)
-  rows.append({"cls":spec[0],"w":spec[1],"pts":pts})
+  var chain={"cls":spec[0],"w":spec[1],"pts":pts}
+  if spec[0]=="primary":chain["streets"]=[["Alpha","primary",0],["Short Bridge","primary",0],["Alpha","primary",0]]
+  rows.append(chain)
  # Streets under the ribbons as WorldTile.road_index() files them: Alpha with a
- # 6 m "Short Bridge" inside it, and Bravo across.
+ # 6 m "Short Bridge" inside it, and Bravo across, whose road in this tile's
+ # index ends at z = 400 m (the rest lies in the neighbouring tile).
  var segs=[[Vector2(50,300),Vector2(203,300),"Alpha",14.,0,"primary"],[Vector2(203,300),Vector2(209,300),"Short Bridge",14.,0,"primary"],
-  [Vector2(209,300),Vector2(550,300),"Alpha",14.,0,"primary"],[Vector2(300,50),Vector2(300,550),"Bravo",5.6,0,"residential"]]
+  [Vector2(209,300),Vector2(550,300),"Alpha",14.,0,"primary"],[Vector2(300,50),Vector2(300,400),"Bravo",5.6,0,"residential"]]
  var grid={}
  for seg in segs:
   var reach=Vector2.ONE*(float(seg[3])*.5+2.2);var lo=Vector2i(((seg[0].min(seg[1])-reach)/24.).floor());var hi=Vector2i(((seg[0].max(seg[1])+reach)/24.).floor())
@@ -124,9 +139,12 @@ func ribbon_lane_frame()->int:
     if not grid.has(Vector2i(x,y)):grid[Vector2i(x,y)]=[]
     grid[Vector2i(x,y)].append(seg)
  var tile={"road_grid":grid}
- var short_condition=SURFACE.condition(tile,Vector2(206,300),"primary")
- var alpha_condition=SURFACE.condition(tile,Vector2(150,300),"primary")
+ const ROUGH=preload("res://RoadRoughness.gd")
+ var short_condition=SURFACE.condition_of(ROUGH.street_iri("Short Bridge","primary"))
+ var alpha_condition=SURFACE.condition_of(ROUGH.street_iri("Alpha","primary"))
+ var bravo_condition=SURFACE.condition_of(ROUGH.street_iri("Bravo","residential"))
  if absf(short_condition-alpha_condition)<.01:errors.append("test streets share a condition (%.3f); rename one"%alpha_condition)
+ if absf(bravo_condition-SURFACE.condition_of(2.4))<.01:errors.append("Bravo's condition equals the 2.4 default; rename it")
  var surface=SURFACE.new()
  surface.build(rows,side)
  var m=surface.mesh(StandardMaterial3D.new(),side,tile)
@@ -155,15 +173,70 @@ func ribbon_lane_frame()->int:
   var station=Vector2(p.x,p.z) if absf(uv2[v].x-SURFACE.LANE_FLAG)<1e-3 else Vector2.ZERO
   # Where the two streets cross both are 0 m away and float noise picks one.
   if station!=Vector2.ZERO and station.distance_to(Vector2(300,300))>.5:
-   var want=SURFACE.condition(tile,station,"primary" if on_alpha else "residential")
+   # Alpha's stations take their exported street; Bravo's are looked up, and
+   # beyond z = 400 m (no street in this tile) take the nearest that found one.
+   var want=bravo_condition
+   if on_alpha:want=short_condition if station.x>203.5 and station.x<208.5 else alpha_condition
    if absf(colours[v].g-want)>1.05/255.:errors.append("condition %.3f at %s, street gives %.3f"%[colours[v].g,station,want]);break
    if on_alpha and station.x>203.5 and station.x<208.5:
     short_hits+=1
+   # Along Alpha the distance is that of the piece under the station.
+   if on_alpha:
+    var part=0 if station.x<203. else (1 if station.x<209. else 2)
+    var expect=alpha_parts[part][2]+station.x-alpha_parts[part][0]
+    var ok=absf(uv2[v].y-expect)<1e-3
+    # The quad that ends on a piece's first station continues the previous piece.
+    if not ok and part>0:ok=absf(uv2[v].y-(alpha_parts[part-1][2]+station.x-alpha_parts[part-1][0]))<1e-3
+    if not ok:errors.append("along %.3f at %s, piece gives %.3f"%[uv2[v].y,station,expect]);break
   start_along[on_alpha]=minf(start_along.get(on_alpha,INF),uv2[v].y)
  if short_hits==0:errors.append("no station on the 6 m street carries its condition")
  if start_along.size()==2 and absf(start_along[true]-start_along[false])<1.:errors.append("both chains start at along %.1f m"%start_along[true])
- print("RIBBON lane frame (synthetic, 2 chains, %d quads) · %s · %s"%[surface.quads.size(),JSON.stringify(surface.mesh_stats),"ok" if errors.is_empty() else "FAILED: "+"; ".join(errors.slice(0,6))])
+ if int(surface.mesh_stats.get("legacy_stations",-1))!=251:errors.append("%s legacy stations, expected Bravo's 251"%surface.mesh_stats.get("legacy_stations"))
+ var seam_errors=ribbon_seam(SURFACE)
+ errors.append_array(seam_errors)
+ print("RIBBON lane frame (synthetic, 2 chains, %d quads) · %s · seam copies %s · %s"%[surface.quads.size(),JSON.stringify(surface.mesh_stats),"agree" if seam_errors.is_empty() else "differ","ok" if errors.is_empty() else "FAILED: "+"; ".join(errors.slice(0,6))])
  return errors.size()
+
+# One road ("Charlie", secondary) crossing the seam at x = 600 m between two
+# tiles, as both export it: tile A walks its chain westward from its 6 m apron
+# (so the chain runs against the piece) and has no road index at all, tile B
+# walks it eastward from x = 594 m. The piece runs east from x = 500 m with
+# its distance along starting at 900 m. Every vertex both tiles draw at the
+# same world point must carry the same lateral offset, distance along and
+# condition, so the two coplanar copies shade alike.
+func ribbon_seam(SURFACE)->Array:
+ var errors=[]
+ var side=600.
+ var drawn=[]
+ for copy in [[606.,500.,Vector2(-1,0),Vector2.ZERO,1],[594.,700.,Vector2(1,0),Vector2(600,0),0]]:
+  var pts=[]
+  var x:float=copy[0]
+  while (x-copy[1])*copy[2].x<=1e-6:
+   var local:Vector2=Vector2(x,150.)-copy[3]
+   pts.append([local.x/side,local.y/side,10.,0.,copy[2].x,copy[2].y,7.,0,900.+x-500.])
+   x+=2.*copy[2].x
+  var surface=SURFACE.new()
+  surface.build([{"cls":"secondary","w":7.,"pts":pts,"streets":[["Charlie","secondary",copy[4]]]}],side)
+  var m=surface.mesh(StandardMaterial3D.new(),side,{"road_grid":{}})
+  var arrays=m.surface_get_arrays(0)
+  var at={}
+  var verts:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX];var uv2:PackedVector2Array=arrays[Mesh.ARRAY_TEX_UV2];var colours:PackedColorArray=arrays[Mesh.ARRAY_COLOR]
+  for v in verts.size():
+   var world:Vector3=verts[v]+Vector3(copy[3].x,0,copy[3].y)
+   at[Vector2i((Vector2(world.x,world.z)*100.).round())]=[uv2[v],colours[v].g]
+  drawn.append(at)
+ var shared=0
+ for key in drawn[0]:
+  if not drawn[1].has(key):continue
+  var a=drawn[0][key];var b=drawn[1][key]
+  # Only stations inside both copies (a quad's far end may continue the other way).
+  var x=key.x/100.
+  if x<596. or x>604.:continue
+  shared+=1
+  if absf(a[0].x-b[0].x)>1e-3 or absf(a[0].y-b[0].y)>1e-3 or absf(a[1]-b[1])>1e-3:
+   errors.append("seam copies differ at %s: %s / %.3f vs %s / %.3f"%[Vector2(key)/100.,a[0],a[1],b[0],b[1]]);break
+ if shared<10:errors.append("seam copies share only %d vertices"%shared)
+ return errors
 
 var edges={}
 var raw_edges={}

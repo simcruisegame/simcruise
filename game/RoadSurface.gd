@@ -41,8 +41,9 @@ var active := false
 # places rails from each station's own shoulder edge, never a chain-wide width.
 var lines: Array = []
 # Lane frame for the drawn surface (GroundFinish.gdshaderinc lane_wear): per
-# built chain its half width, distance along (m) and centre per station, and
-# its class; per quad [chain, station, offset index].
+# built chain its half width, distance along (m), side sign, map piece,
+# condition and centre per station, and its class (lane_frame()); per quad
+# [chain, station, offset index].
 var lane_chains: Array = []
 var quad_lane: Array = []
 const LANE_FLAG := 1000.      # added to the lateral offset in UV2; the ground mesh has no UV2
@@ -101,7 +102,17 @@ func build(rows: Array, side: float) -> void:
   var sections := []
   var centres := []
   var halves := PackedFloat32Array()
+  # The street and distance along of each station, as the helper exported them
+  # (road-grade.mjs pieceWear): row[7] indexes the chain's streets, row[8] is
+  # metres along the piece's source line. Tiles cached before the export have neither.
+  var streets: Array = chain.get("streets", [])
+  var parts := PackedInt32Array()
+  var exported := PackedFloat32Array()
   for row in pts:
+   if row.size() > 8 and int(row[7]) >= 0 and int(row[7]) < streets.size():
+    parts.append(int(row[7]));exported.append(float(row[8]))
+   else:
+    parts.append(-1);exported.append(NAN)
    # Per-station width (a chain can join roads of different widths); older rows have none.
    var half_i: float = float(row[6]) * .5 if row.size() > 6 else half
    halves.append(half_i)
@@ -118,23 +129,16 @@ func build(rows: Array, side: float) -> void:
     var p: Vector2 = c + n * L
     section.append(Vector3(p.x, h, p.y))
    sections.append(section)
-  chains.append({"rank":RANK.get(str(chain.get("cls","")),1)*100000+pts.size(),"sections":sections,"halves":halves,"centres":centres,"cls":str(chain.get("cls",""))})
+  chains.append({"rank":RANK.get(str(chain.get("cls","")),1)*100000+pts.size(),"sections":sections,"halves":halves,"centres":centres,"cls":str(chain.get("cls","")),"streets":streets,"parts":parts,"exported":exported})
   lines.append({"cls":str(chain.get("cls","")),"halves":halves,"sections":sections})
  chains.sort_custom(func(a, b): return a.rank > b.rank)
  for chain in chains:
   var sections: Array = chain.sections
   if active:join(sections)
-  var along := PackedFloat32Array();along.resize(sections.size())
-  # Each chain starts its distance along at its own offset (0-1800 m, from
-  # where it starts), so the hashed cracks, patches and joints of two chains
-  # that meet do not repeat the same pattern from their junction.
-  along[0] = float(absi(hash(Vector2i((chain.centres[0] as Vector2).round()))) % 1800)
-  for i in range(1, sections.size()):
-   along[i] = along[i-1] + Vector2(sections[i][2].x, sections[i][2].z).distance_to(Vector2(sections[i-1][2].x, sections[i-1][2].z))
   # Lanes are laid out from the centreline and fitted inside the carriageway
   # at each station (lane_fit of that station's half width, see mesh()).
   var ci := lane_chains.size()
-  lane_chains.append({"halves":chain.halves,"along":along,"centres":chain.centres,"cls":chain.cls})
+  lane_chains.append(lane_frame(chain))
   for i in range(1, sections.size()):
    var prev: Array = sections[i-1];var section: Array = sections[i]
    if Vector2(prev[2].x, prev[2].z).distance_to(Vector2(section[2].x, section[2].z)) >= 8.:continue
@@ -142,6 +146,42 @@ func build(rows: Array, side: float) -> void:
     add_quad(prev[k], prev[k+1], section[k+1], section[k])
     quad_lane.append([ci, i, k])
   active = not quads.is_empty()
+
+## The lane frame of one built chain: per station its half width, distance
+## along (m), side sign, part and street condition (-1: look it up, mesh()).
+## The distance along and the lateral side are those of the map piece the
+## station lies on (one road of one z14 vector tile, see road-grade.mjs
+## pieceWear), not of this tile's chain, which is clipped differently by each
+## tile: so the copies of a road that two tiles draw over their seam get the
+## same cracks, joints and patches, and two roads that meet do not repeat the
+## same pattern from their junction (each source line starts at its own hashed
+## offset). sign is -1 where the chain runs against the piece, so the lateral
+## offset is measured to the piece's left. The condition comes from the
+## piece's own street (name and class), as RoadRoughness.street_iri() gives the
+## tyres, so it does not depend on which tile's road index holds the street.
+func lane_frame(chain: Dictionary) -> Dictionary:
+ var n: int = chain.halves.size()
+ var along := PackedFloat32Array();along.resize(n)
+ var signs := PackedFloat32Array();signs.resize(n)
+ var cond := PackedFloat32Array();cond.resize(n)
+ var parts: PackedInt32Array = chain.parts
+ var streets: Array = chain.streets
+ var by_part := {}
+ var centres: Array = chain.centres
+ for i in n:
+  var part := parts[i]
+  if part < 0:
+   # Before the export carried the piece: distance along this chain from a
+   # hashed start, the street looked up in this tile's roads (mesh()).
+   along[i] = float(absi(hash(Vector2i((centres[0] as Vector2).round()))) % 1800) if i == 0 else along[i-1] + (centres[i] as Vector2).distance_to(centres[i-1])
+   signs[i] = 1.;cond[i] = -1.
+   continue
+  along[i] = chain.exported[i]
+  var street: Array = streets[part]
+  signs[i] = -1. if street.size() > 2 and int(street[2]) == 1 else 1.
+  if not by_part.has(part):by_part[part] = condition_of(ROUGHNESS.street_iri(str(street[0]), str(street[1])))
+  cond[i] = by_part[part]
+ return {"halves":chain.halves,"along":along,"signs":signs,"parts":parts,"cond":cond,"centres":centres,"cls":chain.cls}
 
 ## Snap a lower-ranked ribbon onto the ribbons already built where they
 ## overlap; the station-wise correction fades out over JOIN_FADE_M.
@@ -221,11 +261,31 @@ func lower_grid(h: Array, n: int, side: float) -> int:
 ## IRI 0.8 (new) maps to 0 and 3.3 (poor; FHWA "poor" starts at 2.7) to 1, so
 ## a typical primary road (1.6) sits near 0.3 and a typical street near 0.65.
 ## --road-condition=X forces X everywhere (A/B captures).
-static func condition(tile, p: Vector2, cls: String) -> float:
- var value: float = ROUGHNESS.CLASS_IRI.get(cls, 2.4)
- if tile != null and not tile.road_grid.is_empty():value = ROUGHNESS.iri(tile, p, 1.)
- return clampf((value - .8) / 2.5, 0., 1.)
+static func condition_of(iri: float) -> float:
+ return clampf((iri - .8) / 2.5, 0., 1.)
 const ROUGHNESS := preload("res://RoadRoughness.gd")
+
+## Conditions for the stations of a chain exported before the helper named
+## each station's street: the street under each station in this tile's road
+## index; a station whose street is not in it (it lies in the neighbouring
+## tile) takes the nearest station of the chain that found one, and a chain
+## that found none takes its class baseline.
+static func legacy_conditions(tile, lc: Dictionary) -> PackedFloat32Array:
+ var cond: PackedFloat32Array = lc.cond.duplicate()
+ var found := []
+ for i in cond.size():
+  if cond[i] >= 0.:continue
+  var value := -1.
+  if tile != null and not tile.road_grid.is_empty():value = ROUGHNESS.street_iri_at(tile, lc.centres[i])
+  if value >= 0.:cond[i] = condition_of(value);found.append(i)
+ var base := condition_of(ROUGHNESS.CLASS_IRI.get(str(lc.cls), 2.4))
+ for i in cond.size():
+  if cond[i] >= 0.:continue
+  var best := -1
+  for j in found:
+   if best < 0 or absi(j - i) < absi(best - i):best = j
+  cond[i] = cond[best] if best >= 0 else base
+ return cond
 
 func mesh(mat: Material, side: float, tile = null) -> ArrayMesh:
  var forced := -1.
@@ -236,29 +296,35 @@ func mesh(mat: Material, side: float, tile = null) -> ArrayMesh:
  var started := Time.get_ticks_usec()
  var wear := []
  var samples := 0
+ var legacy := 0
  for lc in lane_chains:
   # Per station: lane width / 8 m, condition, half width / 16 m, lanes per side / 4.
   var halves: PackedFloat32Array = lc.halves
   var frame := PackedColorArray();frame.resize(halves.size())
+  # Every station (2 m apart) has its own street's condition (lane_frame()),
+  # so a street change of any length along the ribbon is drawn where the
+  # tyres feel it, and the lanes follow the paved width where a chain joins
+  # roads of different widths.
+  var cond: PackedFloat32Array = lc.cond
+  if cond.has(-1.):
+   legacy += cond.count(-1.)
+   if forced < 0.:cond = legacy_conditions(tile, lc)
   for i in halves.size():
-   # Every station (2 m apart) is evaluated, so a street change of any
-   # length along the ribbon is drawn where the tyres feel it, and the lanes
-   # follow the paved width where a chain joins roads of different widths.
    var fit := lane_fit(halves[i])
-   var cond := forced if forced >= 0. else condition(tile, lc.centres[i], lc.cls)
-   frame[i] = Color(fit.y / 8., cond, halves[i] / 16., fit.x / 4.)
+   frame[i] = Color(fit.y / 8., forced if forced >= 0. else cond[i], halves[i] / 16., fit.x / 4.)
   if forced < 0.:samples += halves.size()
   wear.append(frame)
  var flag := 0. if plain else LANE_FLAG
- # UV2.x of the five cross-section points of every station (+ the flag).
+ # UV2.x of the five cross-section points of every station, before the side
+ # sign of the piece and the flag (applied per quad below).
  var laterals := []
  for lc in lane_chains:
   var halves: PackedFloat32Array = lc.halves
   var lat := PackedFloat32Array();lat.resize(halves.size() * 5)
   for i in halves.size():
-   for k in 5:lat[i * 5 + k] = lateral_offset(k, halves[i]) + flag
+   for k in 5:lat[i * 5 + k] = lateral_offset(k, halves[i])
   laterals.append(lat)
- mesh_stats = {"condition_ms":(Time.get_ticks_usec() - started) / 1000., "condition_samples":samples}
+ mesh_stats = {"condition_ms":(Time.get_ticks_usec() - started) / 1000., "condition_samples":samples, "legacy_stations":legacy}
  started = Time.get_ticks_usec()
  # Packed arrays filled in one pass and handed to SurfaceTool for the normals:
  # per-vertex SurfaceTool calls cost about twice as much once UV2 and colour
@@ -272,6 +338,7 @@ func mesh(mat: Material, side: float, tile = null) -> ArrayMesh:
  var n := 0
  var last_ci := -1
  var frame: PackedColorArray;var along: PackedFloat32Array;var lat: PackedFloat32Array
+ var signs: PackedFloat32Array;var parts: PackedInt32Array;var centres: Array
  for qi in quads.size():
   var q: Array = quads[qi]
   var ql: Array = quad_lane[qi]
@@ -279,12 +346,16 @@ func mesh(mat: Material, side: float, tile = null) -> ArrayMesh:
   if ci != last_ci:
    # Quads of one chain are consecutive: look its frame up once.
    var lc: Dictionary = lane_chains[ci]
-   last_ci = ci;frame = wear[ci];along = lc.along;lat = laterals[ci]
+   last_ci = ci;frame = wear[ci];along = lc.along;lat = laterals[ci];signs = lc.signs;parts = lc.parts;centres = lc.centres
   # a, b at station i-1 and offsets k, k+1; c, d at station i and offsets k+1, k
   # (see build()); each station has its own half width.
   var p0 := (i - 1) * 5 + k;var p1 := i * 5 + k
-  var a0: float = lat[p0];var b0: float = lat[p0 + 1];var c1: float = lat[p1 + 1];var d1: float = lat[p1]
+  # The quad is drawn in the frame of the piece at station i-1: where station
+  # i starts the next piece, its distance along continues this piece's.
+  var sg := signs[i - 1]
+  var a0: float = lat[p0] * sg + flag;var b0: float = lat[p0 + 1] * sg + flag;var c1: float = lat[p1 + 1] * sg + flag;var d1: float = lat[p1] * sg + flag
   var s0: float = along[i - 1];var s1: float = along[i]
+  if parts[i] != parts[i - 1]:s1 = s0 + sg * (centres[i] as Vector2).distance_to(centres[i - 1])
   var f0 := frame[i - 1];var f1 := frame[i]
   var a: Vector3 = q[0];var b: Vector3 = q[1];var c: Vector3 = q[2];var d: Vector3 = q[3]
   # Godot front faces wind clockwise seen from the front (above): a c b, a d c.
