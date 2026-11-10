@@ -1,57 +1,57 @@
 // Offline checks for the tile pipeline gaps found by the 2026-11-10 field test:
-// road widths from OSM lanes (Vidalia GA, Eureka CA), roads that cross a tile
+// one-way carriageway widths (Vidalia GA, Eureka CA), roads that cross a tile
 // with no vertex inside it (Leakey TX) and tiles without an elevation source
 // (Bozeman MT). Synthetic inputs only; no network.
 import assert from 'node:assert/strict';
 import os from 'node:os';import fs from 'node:fs';import path from 'node:path';
-import {laneWidth,laneWidths,classWidths,LANE_M} from '../helper/lane-widths.mjs';
+import {createHash} from 'node:crypto';
+import {roadWidth,roadWidths,referenceWidths,LANE_M} from '../helper/road-widths.mjs';
+import {laneRoadSignature} from '../helper/road-layout.mjs';
 import {crossesBox} from '../helper/road-grade.mjs';
 import {elevationGate,ELEVATION_TRIES,RETRY_WINDOW_MS} from '../helper/usgs-ground.mjs';
+import {trimSourceCache} from '../helper/cache-eviction.mjs';
 
-// Widths: lanes x 3.6 m plus shoulders by class; one-way carriageways get an
-// outside and a median shoulder.
+// Widths: two-way roads keep the class reference width; a one-way carriageway
+// is two 3.6 m lanes plus an outside and a median shoulder; a ramp one lane.
 assert.equal(LANE_M,3.6);
-assert.equal(laneWidth('trunk',0,0),12);            // 2 x 3.6 + 2 x 2.4
-assert.equal(laneWidth('trunk',1,0),10.5);          // 2 x 3.6 + 2.4 + 0.9
-assert.equal(laneWidth('trunk',0,0,4),19.2);        // 4 x 3.6 + 2 x 2.4
-assert.equal(laneWidth('trunk',1,0,3),14.1);        // 3 x 3.6 + 2.4 + 0.9
-assert.equal(laneWidth('secondary',1,0,1),5.7);     // 3.6 + 1.5 + 0.6
-assert.equal(laneWidth('primary',0,0,1),10.8);      // a two-way road has at least 2 lanes
-assert.equal(laneWidth('primary',1,1),6);           // a ramp: 1 lane, ramp shoulders
-assert.equal(laneWidth('tertiary',0,0,null,7),9.4); // OSM width= is the carriageway
-assert.equal(laneWidth('minor',1,0,3),8);           // classes without lane data keep their widths
-assert.equal(classWidths.trunk,12);assert.equal(classWidths.service,4.6);
-for(const cls of ['motorway','trunk','primary','secondary','tertiary'])assert.ok(laneWidth(cls,1,0)<laneWidth(cls,0,0)+1e-9,cls);
+assert.deepEqual(referenceWidths,{motorway:19,trunk:16,primary:12,secondary:11,tertiary:10,minor:8,service:4.6,track:3});
+assert.equal(roadWidth('trunk',0,0),16);
+assert.equal(roadWidth('trunk',1,0),10.5);          // 2 x 3.6 + 2.4 + 0.9
+assert.equal(roadWidth('trunk',-1,0),10.5);         // one-way against the drawing direction
+assert.equal(roadWidth('motorway',1,0),11.4);       // 2 x 3.6 + 3 + 1.2
+assert.equal(roadWidth('secondary',1,0),9.3);       // 2 x 3.6 + 1.5 + 0.6
+assert.equal(roadWidth('tertiary',1,0),9);          // 2 x 3.6 + 1.2 + 0.6
+assert.equal(roadWidth('motorway',1,1),6);          // a ramp: 1 lane, ramp shoulders
+assert.equal(roadWidth('primary',0,1),6);           // ramps are one-way whatever the flag says
+assert.equal(roadWidth('minor',1,0),8);             // classes without a carriageway rule keep their widths
+assert.equal(roadWidth('service',0,0),4.6);
+assert.equal(roadWidth('path',0,0),undefined);      // not drawn as a road
+// Never wider than the reference width that bundled survey data is signed with.
+for(const cls of Object.keys(referenceWidths))for(const one of [0,1])for(const ramp of [0,1])
+ assert.ok(roadWidth(cls,one,ramp)<=referenceWidths[cls],cls+' '+one+' '+ramp);
+// A function of the feature's properties alone (no tile, no network): both
+// tiles of a seam give the same road the same width.
+const feature=props=>({properties:props,loadGeometry:()=>{throw Error('geometry must not be read')}});
+assert.equal(roadWidths.of(feature({class:'trunk',oneway:1})),10.5);
+assert.equal(roadWidths.of(feature({class:'primary'})),12);
+assert.equal(roadWidths.of(feature({class:'motorway',oneway:1,ramp:1})),6);
+assert.equal(roadWidths.trunk,16);assert.equal(roadWidths.of.length,1);
+assert.deepEqual(Object.keys(roadWidths),Object.keys(referenceWidths));
 
-// Matching a vector-tile road to the OSM way under it.
-const EARTH=40075016.68557849,HALF=EARTH/2,SPAN=EARTH/16384,px=4400,py=6650;
-const feature=(props,pts)=>({properties:props,extent:4096,loadGeometry:()=>[pts.map(([x,y])=>({x,y}))],
- bbox:()=>[Math.min(...pts.map(p=>p[0])),Math.min(...pts.map(p=>p[1])),Math.max(...pts.map(p=>p[0])),Math.max(...pts.map(p=>p[1]))]});
-const mercator=([x,y])=>[px*SPAN-HALF+x*SPAN/4096,HALF-py*SPAN-y*SPAN/4096];
-const temp=fs.mkdtempSync(path.join(os.tmpdir(),'sd-lanes-'));
+// The road signature signs the reference width of each road's class, so it is
+// the main-branch signature (every road at its class width) and does not change
+// when a road is narrower; geometry and class still change it.
+const route=[[.1,.2],[.3,.4000004]];
+const roads=[['trunk',1,'US 280',route,10.5],['tertiary',0,'Main',[[0,0],[1,1]],10],['minor',0,'',[[.5,0],[.5,1]],8]];
+const legacy=rows=>createHash('sha256').update(rows.map(r=>Math.round(r[4]*100)+'|'+r[3].map(p=>Math.round(p[0]*1e6)+'/'+Math.round(p[1]*1e6)).join(',')).sort().join('\n')).digest('hex');
+const atReference=roads.map(r=>[...r.slice(0,4),referenceWidths[r[0]]]);
+assert.equal(laneRoadSignature(roads),legacy(atReference));
+assert.equal(laneRoadSignature(roads),laneRoadSignature(atReference));
+assert.notEqual(laneRoadSignature([['primary',...roads[0].slice(1)],...roads.slice(1)]),laneRoadSignature(roads));
+assert.notEqual(laneRoadSignature([[...roads[0].slice(0,3),[[.1,.2],[.3,.400002]],10.5],...roads.slice(1)]),laneRoadSignature(roads));
+
+const temp=fs.mkdtempSync(path.join(os.tmpdir(),'sd-pipeline-'));
 try{
- const ways=[
-  {attributes:{highway:'trunk',oneway:'yes',lanes:'3',width:null},geometry:{paths:[[[0,1000],[4096,1000]].map(mercator)]}},
-  {attributes:{highway:'trunk',oneway:'yes',lanes:null,width:null},geometry:{paths:[[[4096,1200],[0,1200]].map(mercator)]}},
-  {attributes:{highway:'secondary',oneway:null,lanes:'4',width:null},geometry:{paths:[[[2000,0],[2000,4096]].map(mercator)]}},
- ];
- let reads=0;
- const read=async()=>{reads++;return Buffer.from(JSON.stringify({features:ways,exceededTransferLimit:false}))};
- const widths=laneWidths(temp,read);
- assert.equal(await widths.load(px,py),true);
- assert.equal(widths.of(feature({class:'trunk',oneway:1},[[0,1000],[4096,1000]]),px,py),14.1);
- // The other carriageway, 2 lanes by default, keeps its one-way width.
- assert.equal(widths.of(feature({class:'trunk',oneway:1},[[4096,1201],[0,1201]]),px,py),10.5);
- // Direction must agree: a cross street over a matched way does not take its lanes.
- assert.equal(widths.of(feature({class:'secondary'},[[2000,100],[2000,3000]]),px,py),17.4);
- assert.equal(widths.of(feature({class:'secondary'},[[100,2000],[3000,2000]]),px,py),classWidths.secondary);
- assert.equal(widths.of(feature({class:'minor'},[[0,0],[10,10]]),px,py),8);
- assert.equal(reads,1);
- // An unreadable source falls back to the class table and is not retried at once.
- const broken=laneWidths(temp,async()=>{throw Error('offline')});
- assert.equal(await broken.load(px+1,py),false);
- assert.equal(broken.of(feature({class:'trunk',oneway:1},[[0,1000],[4096,1000]]),px+1,py),10.5);
-
  // A segment that crosses a box with both vertices outside it is near the box.
  assert.equal(crossesBox([[-100,50],[200,50]],0,0,100,100),true);
  assert.equal(crossesBox([[-100,-100],[200,200]],0,0,100,100),true);
@@ -70,5 +70,19 @@ try{
  // Old failures leave the window.
  for(let k=0;k<ELEVATION_TRIES;k++)assert.throws(()=>elevationGate(temp,11,20,failed,t0+k));
  assert.throws(()=>elevationGate(temp,11,20,failed,t0+RETRY_WINDOW_MS+10));
+
+ // Cache eviction removes retry records a day old and manages the lane-width
+ // files an earlier draft of this pipeline wrote.
+ const state=path.join(temp,'.source-state'),now=Date.now();
+ const stale=path.join(state,'elevation-retry-1-2.json'),fresh=path.join(state,'elevation-retry-3-4.json'),other=path.join(state,'banks-retry.until');
+ for(const f of [stale,fresh,other])fs.writeFileSync(f,'[]');
+ for(const f of [stale,other])fs.utimesSync(f,(now-2*86400000)/1000,(now-2*86400000)/1000);
+ const lanes=path.join(temp,'lane-widths-v1-4400-6650-0');
+ fs.writeFileSync(lanes,'x'.repeat(1000));fs.utimesSync(lanes,(now-3600000)/1000,(now-3600000)/1000);
+ trimSourceCache(temp,0,null,now);
+ assert.equal(fs.existsSync(stale),false);
+ assert.equal(fs.existsSync(fresh),true);
+ assert.equal(fs.existsSync(other),true);
+ assert.equal(fs.existsSync(lanes),false);
  console.log('road pipeline checks passed');
 }finally{fs.rmSync(temp,{recursive:true,force:true})}

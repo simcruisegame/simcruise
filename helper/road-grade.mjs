@@ -102,7 +102,7 @@ export function crossesBox(pts,x0,y0,x1,y1){
 
 // Lines of one z14 tile in metres relative to the requesting tile's parent.
 // kind: 'bench' (paved, at grade), 'protected' (bridge, tunnel, layer != 0).
-function tileLines(tile,widths,ox,oy,scale,clipToOwn,px=0,py=0){
+function tileLines(tile,widths,ox,oy,scale,clipToOwn){
  const out=[],layer=tile?.layers?.transportation;
  if(!layer)return out;
  const size=4*scale;
@@ -112,7 +112,7 @@ function tileLines(tile,widths,ox,oy,scale,clipToOwn,px=0,py=0){
   const protectedRoad=p.brunnel==='bridge'||p.brunnel==='tunnel'||Number(p.layer??0)!==0||p.class==='ferry';
   const elevatedRoad=(p.brunnel==='bridge'||Number(p.layer??0)>0)&&(PAVED.has(p.class)||['service','track','busway'].includes(p.class));
   if(!protectedRoad&&(!PAVED.has(p.class)||LOOSE.has(p.surface)))continue;
-  const width=(widths.of?widths.of(feature,px,py):widths[p.class])??8,f=size/feature.extent;
+  const width=(widths.of?widths.of(feature):widths[p.class])??8,f=size/feature.extent;
   for(const line of feature.loadGeometry()){
    let piece=[];
    const bridge=protectedRoad&&p.brunnel!=='tunnel'&&(PAVED.has(p.class)||['service','track'].includes(p.class))&&(p.brunnel==='bridge'||Number(p.layer??0)>0);
@@ -298,8 +298,9 @@ function profileAt(profile,s){
 // Rows: [x, y] in tile units (0..1 like roads), z m, e (cross slope, + lowers
 // the side the left normal points to), tx, ty, w (paved width at the station, m).
 // A chain can join roads of different widths (a one-way carriageway continuing
-// as a two-way road); w changes linearly over WIDTH_TAPER either side of the
-// joint, and the row's own w is the widest part, as before.
+// as a two-way road); w changes linearly across a 20 m window centred on the
+// joint (WIDTH_TAPER = 10 m on each side), and the row's own w is the widest
+// part, as before.
 const SURFACE_APRON=6,WIDTH_TAPER=10;
 function widthAlong(parts){
  if(parts.every(p=>p.piece.width===parts[0].piece.width)){const w=parts[0].piece.width;return ()=>w}
@@ -362,9 +363,8 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
  const near=(pts,margin)=>crossesBox(pts,tx0-margin,ty0-margin,tx1+margin,ty1+margin);
  // Road pieces: this parent clipped to itself; a neighbour parent is read only
  // when a road of this parent runs into it near this tile (its buffer shows it).
- await widths.load?.(mx,my);
- const own=tileLines(tile,widths,0,0,scale,true,mx,my);
- const unclipped=tileLines(tile,widths,0,0,scale,false,mx,my);
+ const own=tileLines(tile,widths,0,0,scale,true);
+ const unclipped=tileLines(tile,widths,0,0,scale,false);
  const size=4*scale,need=SAMPLE_APRON+WINDOW;
  const neighbours=[];
  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
@@ -384,8 +384,7 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
   loaded.add(key);
   try{
    const other=await readVector((nx+parent)%parent,ny);
-   await widths.load?.((nx+parent)%parent,ny);
-   pieces=pieces.concat(tileLines(other,widths,dx*size,dy*size,scale,true,(nx+parent)%parent,ny));
+   pieces=pieces.concat(tileLines(other,widths,dx*size,dy*size,scale,true));
    summary.bench.neighbours++;
   }catch{}
  };

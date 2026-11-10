@@ -22,12 +22,24 @@ static func for_tile(tile):
  var instance=new()
  return instance if instance.read(tile,Vector2i(int(id[0]),int(id[1]))) else null
 
+# Class reference widths (helper/road-widths.mjs referenceWidths). A road's own
+# width (road[4]) is at most this: one-way carriageways and ramps are narrower.
+const REFERENCE_WIDTH:={"motorway":19.,"trunk":16.,"primary":12.,"secondary":11.,"tertiary":10.,"minor":8.,"service":4.6,"track":3.}
+
+static func reference_width(road:Array)->float:
+ return float(REFERENCE_WIDTH.get(str(road[0]),road[4]))
+
+## Signs each road's geometry and the reference width of its class, not its own
+## width, so data surveyed for a tile (lidar crossfall, this outcrop ground, lane
+## layouts) stays valid when only the width rule changes; a survey made for the
+## reference width still covers the narrower paved road. Same function as
+## helper/road-layout.mjs laneRoadSignature().
 static func road_signature(roads:Array)->PackedByteArray:
  var rows:=PackedStringArray()
  for road in roads:
   var route:=PackedStringArray()
   for p in road[3]:route.append("%d/%d"%[roundi(float(p[0])*1000000.),roundi(float(p[1])*1000000.)])
-  rows.append("%d|%s"%[roundi(float(road[4])*100.),",".join(route)])
+  rows.append("%d|%s"%[roundi(reference_width(road)*100.),",".join(route)])
  rows.sort()
  return "\n".join(rows).sha256_buffer()
 

@@ -34,7 +34,7 @@ import {buildingUses} from './nsi-buildings.mjs';
 import {buildingRows,buildingEnrichment,localBuildingTile,buildingFingerprint} from './overture-buildings.mjs';
 import {vectorTile} from './vector-tile.mjs';
 import {hasFootprintSurvey} from './verified-footprints.mjs';
-import {laneWidths} from './lane-widths.mjs';
+import {roadWidths as widths} from './road-widths.mjs';
 import {decode} from 'fast-png';
 import {inflateSync,gunzipSync} from 'node:zlib';
 import fs from 'node:fs';
@@ -49,8 +49,6 @@ fs.mkdirSync(cache,{recursive:true});
 const day=86400000, cap=96*1024*1024;
 let requests=0;
 const readCached=cacheReader(cache,()=>requests++);
-// Road widths from OSM lanes (lane-widths.mjs); the class table where unknown.
-const widths=laneWidths(cache,readCached);
 const data=(id,url,ttl=30*day)=>readCached(id,url,ttl);
 const merc=(lon,lat)=>[(lon+180)/360*65536,(1-Math.asinh(Math.tan(lat*Math.PI/180))/Math.PI)/2*65536];
 const rounded=n=>Math.round(n*100000)/100000;
@@ -82,7 +80,7 @@ async function chunk(X,Y){
  const url=meta.tiles[0].replace('{z}','14').replace('{x}',mx).replace('{y}',my);
  const aerial_key=aerialSource(mx,my)?.key??'';
  const aerial=aerial_key&&fs.existsSync(path.join(cache,aerial_key))?aerial_key:'';
- const [buf,elev,street_objects,measured,,mapped_rails]=await Promise.all([data('v-'+mx+'-'+my,url),data('h-'+ex+'-'+ey,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+ex+'/'+ey+'.png'),fetchObjects(X,Y,cache,readCached),measuredGround(X,Y,cache,readCached),widths.load(mx,my),(args.includes('--mapped-guard-rails')?mappedGuardRails(X,Y,cache,readCached).catch(()=>({status:'unavailable',rows:[]})):Promise.resolve({status:'off',rows:[]}))]);
+ const [buf,elev,street_objects,measured,mapped_rails]=await Promise.all([data('v-'+mx+'-'+my,url),data('h-'+ex+'-'+ey,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+ex+'/'+ey+'.png'),fetchObjects(X,Y,cache,readCached),measuredGround(X,Y,cache,readCached),(args.includes('--mapped-guard-rails')?mappedGuardRails(X,Y,cache,readCached).catch(()=>({status:'unavailable',rows:[]})):Promise.resolve({status:'off',rows:[]}))]);
  const vector=buf[0]===31?gunzipSync(buf):buf;
  const tile=vectorTile(vector),dem=decode(elev);
  const ground=elevationGate(cache,X,Y,measured);
@@ -112,7 +110,7 @@ async function chunk(X,Y){
    let run=[];
    const commit=()=>{
     if(run.length>1){
-     const road=[p.class,p.oneway||0,name,run,widths.of(f,mx,my)];
+     const road=[p.class,p.oneway||0,name,run,widths.of(f)];
      const bridge=p.brunnel==='bridge'||Number(p.layer??0)>0;
      if(p.surface==='unpaved'||p.surface==='paved'||bridge)road.push(p.surface==='unpaved'||p.surface==='paved'?p.surface:'');
      // Index 6 marks a structure: the deck comes from `bridges`, not the ground.

@@ -35,7 +35,11 @@ const BIN := 8.
 var quads: Array = []         # [a, b, c, d] Vector3, tile metres (a,b at station i; c,d at i+1)
 var bins := {}                # Vector2i -> [quad index]
 var active := false
-var lines: Array = []         # per road: cls, half width, sections (5 cross-section points per station; GuardRails.gd)
+# Per road: cls, halves (paved half width at each station; a chain can join
+# roads of different widths) and sections (5 cross-section points per station:
+# shoulder edge, paved edge, centre, paved edge, shoulder edge). GuardRails.gd
+# places rails from each station's own shoulder edge, never a chain-wide width.
+var lines: Array = []
 
 static func enabled() -> bool:
  return not "--grid-roads" in OS.get_cmdline_user_args()
@@ -63,9 +67,11 @@ func build(rows: Array, side: float) -> void:
   if pts.size() < 2:continue
   var half := float(chain.get("w", 6.)) * .5
   var sections := []
+  var halves := PackedFloat32Array()
   for row in pts:
    # Per-station width (a chain can join roads of different widths); older rows have none.
    var half_i: float = float(row[6]) * .5 if row.size() > 6 else half
+   halves.append(half_i)
    var offsets := [-(half_i + SHOULDER_M), -half_i, 0., half_i, half_i + SHOULDER_M]
    var c := Vector2(float(row[0]), float(row[1])) * side
    var z := float(row[2]);var e := float(row[3])
@@ -79,7 +85,7 @@ func build(rows: Array, side: float) -> void:
     section.append(Vector3(p.x, h, p.y))
    sections.append(section)
   chains.append({"rank":RANK.get(str(chain.get("cls","")),1)*100000+pts.size(),"sections":sections})
-  lines.append({"cls":str(chain.get("cls","")),"half":half,"sections":sections})
+  lines.append({"cls":str(chain.get("cls","")),"halves":halves,"sections":sections})
  chains.sort_custom(func(a, b): return a.rank > b.rank)
  for chain in chains:
   var sections: Array = chain.sections
