@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const managed = /^(?:manifest|[vh]-\d+-\d+|a-(?:hi-naip-|ak-usfs-)?\d+-\d+\.(?:jpg|png)(?:\.miss)?|s-[0-9a-f]+|(?:usgs-dem|roof-wesm|roof-ept|roof-laz|roof-district-v[12]|road-crossfall-v1|bridge-end-v[12]|lane-layout-v1|lane-widths-v1|snow-terra|ridge-aerial|summit-snow|snow-stac|ridge-band|shrub|banks-v1|forest-v1|relief|naip-low|ov|nsi-uses|vmap|scene-list|street-osm|panoramax|inventory|crown-poly|civic-pits|civic-pavement|metar|kv\d+|[cs]\d+)-[A-Za-z0-9._-]+)$/;
+const managed = /^(?:manifest|[vh]-\d+-\d+|a-(?:hi-naip-|ak-usfs-)?\d+-\d+\.(?:jpg|png)(?:\.miss)?|s-[0-9a-f]+|(?:usgs-dem|roof-wesm|roof-ept|roof-laz|roof-district-v[12]|road-crossfall-v1|bridge-end-v[12]|lane-layout-v1|lane-widths-v1|lane-counts-v1|lane-roads|snow-terra|ridge-aerial|summit-snow|snow-stac|ridge-band|shrub|banks-v1|forest-v1|relief|naip-low|ov|nsi-uses|vmap|scene-list|street-osm|panoramax|inventory|crown-poly|civic-pits|civic-pavement|metar|kv\d+|[cs]\d+)-[A-Za-z0-9._-]+)$/;
 const handoffMs = 60_000;
 // Per-tile retry records (usgs-ground.mjs elevationGate) only matter inside
 // their 20-minute retry window; older ones are removed whatever the budget.

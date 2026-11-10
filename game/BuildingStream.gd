@@ -11,6 +11,11 @@ var next_roof_check = 0
 var roof_job = false
 var layout_job = false
 var layout_visits:Dictionary={}
+# Mapped lane counts the helper did not have cached when it built the tile
+# (road_lanes status "pending"): fetched here, off the first tile's critical
+# path, then the markings are repainted (LaneMarkings.gd).
+var lanes_job = false
+var lane_visits:Dictionary={}
 var pending_patch = Vector2i.ZERO
 
 static func number(value)->bool:
@@ -142,7 +147,15 @@ func tick(game):
   var tile=game.tiles.get(pending_id)
   game.calls+=int(result.get("requests",0))
   if tile and tile.get_instance_id()==pending_instance:
-   if layout_job:
+   if lanes_job:
+    var doc=result.get("road_lanes")
+    if doc is Dictionary and doc.get("status")=="checked":
+     tile.info["road_lanes"]=doc
+     tile.install_marking_update(result.get("paint_update",{}))
+    else:lane_visits[pending_id]=Time.get_ticks_msec()+600000
+    # The next waiting tile of the ring goes at once (often its group's cache).
+    next_check=0
+   elif layout_job:
     tile.info["road_layout_download"]=result.get("status","unavailable")
     if result.get("layout") is Dictionary:
      tile.info["road_layout"]=result.layout
@@ -163,12 +176,27 @@ func tick(game):
      tile.info["building_release"]=result.release
   elif result.has("layer"):result.layer.free()
   layout_job=false
+  lanes_job=false
  var now=Time.get_ticks_msec()
  if not game.ready_drive or not game.jump.is_empty() or now<next_check:return
  next_check=now+800
  var current=game.tile_id(game.pos)
  var velocity=Vector2(game.vehicle.linear_velocity.x,game.vehicle.linear_velocity.z)
  var ahead=game.tile_id(game.pos+velocity*5.)
+ # Lane counts first, for every streamed tile still waiting for them (the
+ # ring around the car, not only the tiles under and ahead of it), nearest
+ # first: a ring tile is built at least a tile's width away, so its lines are
+ # repainted long before they come into view. One request serves a 2 x 2
+ # group of tiles; the rest of the group then reads the helper's cache.
+ for id in lane_order(game,now):
+  var tile=game.tiles.get(id)
+  if lane_visits.size()>=96:lane_visits.erase(lane_visits.keys()[0])
+  lane_visits[id]=now+60000
+  pending_id=id;pending_instance=tile.get_instance_id();lanes_job=true;layout_job=false;roof_job=false
+  var observations=[tile.paint_evidence,tile.measured_section,tile.road_survey,tile.surveyed_outcrop,tile.crossfall_surface,tile.road_surface]
+  worker=Thread.new()
+  worker.start(fetch_lanes.bind(game.helper,game.cache,id,tile.info.duplicate(),game.side,tile.materials.duplicate(),observations))
+  return
  for id in [current,ahead]:
   var tile=game.tiles.get(id)
   if tile==null or tile.structure_layer==null:continue
@@ -191,7 +219,7 @@ func tick(game):
   if layout_visits.size()>=96:layout_visits.erase(layout_visits.keys()[0])
   layout_visits[id]=now+6*3600000
   pending_id=id;pending_instance=tile.get_instance_id();layout_job=true;roof_job=false
-  var observations=[tile.paint_evidence,tile.measured_section,tile.road_survey,tile.surveyed_outcrop,tile.crossfall_surface]
+  var observations=[tile.paint_evidence,tile.measured_section,tile.road_survey,tile.surveyed_outcrop,tile.crossfall_surface,tile.road_surface]
   worker=Thread.new()
   worker.start(fetch_layout.bind(game.helper,game.cache,id,tile.info.duplicate(),game.side,tile.materials.duplicate(),observations))
   return
@@ -216,6 +244,18 @@ func tick(game):
  worker=Thread.new()
  worker.start(fetch_roofs.bind(game.helper,game.cache,id,patch,tile.height_at(local),tile.info.duplicate(),game.side,tile.materials.duplicate(),tile.segments.duplicate()))
 
+# Streamed tiles whose lane counts are still pending and due, nearest first.
+func lane_order(game,now:int)->Array:
+ var due=[]
+ for id in game.tiles:
+  var tile=game.tiles[id]
+  if not tile or not tile.info.get("live_canopy",false):continue
+  var lanes=tile.info.get("road_lanes")
+  if not lanes is Dictionary or lanes.get("status")!="pending" or lane_visits.get(id,0)>now:continue
+  due.append([(game.tile_offset(id)+Vector2.ONE*tile.side*.5).distance_squared_to(game.pos),id])
+ due.sort_custom(func(a,b):return a[0]<b[0])
+ return due.map(func(row):return row[1])
+
 func fetch_layout(helper,cache,id:Vector2i,info:Dictionary,side:float,materials:Dictionary,observations:Array)->Dictionary:
  var args=PackedStringArray(["road-layout",cache,str(id.x),str(id.y)])
  var roads=JSON.stringify(info.roads).to_utf8_buffer()
@@ -229,6 +269,23 @@ func fetch_layout(helper,cache,id:Vector2i,info:Dictionary,side:float,materials:
   info["road_layout"]=layout
   var scratch=TILE.new()
   result["paint_update"]=scratch.prepare_lane_update(info,side,materials,observations)
+  scratch.free()
+ return result
+
+func fetch_lanes(helper,cache,id:Vector2i,info:Dictionary,side:float,materials:Dictionary,observations:Array)->Dictionary:
+ # The road rows go through a file: a Windows command line holds 32767 characters.
+ var file=FileAccess.open(cache.path_join("lane-roads-%d-%d.json"%[id.x,id.y]),FileAccess.WRITE)
+ if not file:return {"status":"unavailable","requests":0}
+ file.store_string(JSON.stringify(info.roads));file.close()
+ var lines=[]
+ var rc=OS.execute(helper,["lane-counts",cache,str(id.x),str(id.y)],lines,true)
+ var result=JSON.parse_string(str(lines[0])) if rc==0 and not lines.is_empty() else null
+ if not result is Dictionary:return {"status":"unavailable","requests":0}
+ var doc=result.get("road_lanes")
+ if doc is Dictionary and doc.get("status")=="checked":
+  info["road_lanes"]=doc
+  var scratch=TILE.new()
+  result["paint_update"]=scratch.prepare_marking_update(info,side,materials,observations)
   scratch.free()
  return result
 

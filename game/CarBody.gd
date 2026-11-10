@@ -26,7 +26,8 @@ func build(drive) -> void:
   var rig=preload("res://ModelRig.gd").new()
   model=rig.build(spec.model_scene,spec,spec.model_rig)
   if model==null:push_warning("Could not fit %s: %s"%[spec.model_scene,"; ".join(rig.log_lines)])
- if model==null:model=load(spec.model_scene).instantiate()
+ if model==null and spec.model_scene.begins_with("res://"):model=load(spec.model_scene).instantiate()
+ if model==null:model=Node3D.new() # a private model that could not be fitted: see the warning
  vehicle.add_child(model)
  for part in model.find_children("*","MeshInstance3D",true,false):part.layers=2
  for i in WHEELS.size():
