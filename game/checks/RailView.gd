@@ -4,10 +4,19 @@ extends Node
 ## where there is none, the car, from three cameras of its own (roadside, low
 ## roadside, oblique aerial) and saves rails-0.jpg, rails-1.jpg and
 ## aerial-oblique.jpg. Windowed only; pass --quality=ultra for judging looks.
+## --rail-wait=SECONDS waits longer before the shots (default 10). While it
+## waits it samples AmbientLife.cost_us every frame and prints the traffic it
+## saw (TrafficDirector personas, speeds, signal stops), then also saves
+## traffic.jpg looking down on the nearest moving car and, where a car is
+## waiting at a red signal, traffic-signal.jpg behind it.
 var game
 var out := ""
 var clock := 0.
 var place := Vector3(-83.9202491, 35.4667227, 315.)
+var wait := 10.
+var costs: Array = []
+var speeds: Array = []
+var held := 0
 func _ready():
  game = get_parent()
  var args := OS.get_cmdline_user_args()
@@ -17,12 +26,14 @@ func _ready():
   if a.begins_with("--place="):
    var p := a.trim_prefix("--place=").split(",")
    place = Vector3(float(p[0]), float(p[1]), float(p[2]))
+  if a.begins_with("--rail-wait="):wait = float(a.get_slice("=", 1))
  game.live_weather = false
  game.choose_place.call_deferred(place.x, place.y, "Rail view", "", place.z)
 func _process(dt):
  if not game.ready_drive or game.tiles.size() < 6 or game.job:return
  clock += dt
- if clock < 10.:return
+ sample_traffic()
+ if clock < wait:return
  set_process(false)
  game.vehicle.freeze = true
  game.hud.root.visible = false
@@ -80,5 +91,58 @@ func _process(dt):
    for i in 20:await RenderingServer.frame_post_draw
    get_viewport().get_texture().get_image().save_jpg(out.path_join(v[1] + ".jpg"), .9)
   print("RAILVIEW house front %.0f m from the car at %s" % [door_d, door])
+ for mode in ["traffic", "traffic-signal"]:
+  if not traffic_shot(cam, mode == "traffic-signal"):continue
+  for i in 20:await RenderingServer.frame_post_draw
+  get_viewport().get_texture().get_image().save_jpg(out.path_join(mode + ".jpg"), .9)
+ report_traffic()
  print("RAILVIEW saved, nearest rail %.0f m from the car" % best_d)
  get_tree().quit(0)
+
+func sample_traffic() -> void:
+ var life = game.ambient_life
+ if life.cars.is_empty():return
+ costs.append(life.cost_us)
+ for car in life.cars:
+  if car.seg < 0:continue
+  speeds.append(car.speed)
+  if car.get("stop_until", 0.) > life.director.now and car.get("stop_at", INF) < INF:held += 1
+
+func traffic_shot(cam: Camera3D, at_signal: bool) -> bool:
+ var life = game.ambient_life
+ var best = null
+ var best_d := INF
+ for car in life.cars:
+  if car.seg < 0 or not car.has("drv"):continue
+  if at_signal and not (car.stop_until > life.director.now and car.stop_at < INF and car.speed < .5):continue
+  if not at_signal and car.speed < 1.:continue
+  var d: float = car.pos.distance_to(game.vehicle.global_position)
+  if d < best_d:best_d = d;best = car
+ if best == null:return false
+ var f := Vector3(best.fwd.x, 0., best.fwd.y)
+ var side := f.cross(Vector3.UP)
+ cam.global_position = best.pos - f * 22. + side * 9. + Vector3.UP * 14.
+ cam.look_at(best.pos + f * 10., Vector3.UP)
+ return true
+
+func report_traffic() -> void:
+ var life = game.ambient_life
+ var d = life.director
+ var sorted := costs.duplicate();sorted.sort()
+ var mean := 0.
+ for c in costs:mean += c
+ mean /= maxf(1., costs.size())
+ var personas := {}
+ var moving := 0
+ var parked := 0
+ for car in life.cars:
+  if car.seg < 0 or not car.has("drv"):continue
+  personas[car.drv.persona] = personas.get(car.drv.persona, 0) + 1
+  if car.speed > .5:moving += 1
+  if car.parked:parked += 1
+ var vmean := 0.
+ for v in speeds:vmean += v
+ vmean /= maxf(1., speeds.size())
+ print("TRAFFIC cost over %d frames: mean %.3f ms, p95 %.3f ms, max %.3f ms" % [costs.size(), mean / 1000., (sorted[int(sorted.size() * .95)] if sorted.size() else 0) / 1000., (sorted[-1] if sorted.size() else 0) / 1000.])
+ print("TRAFFIC cars %d active, %d moving, %d parked; personas %s; mean speed %.1f m/s; car-frames held at a signal %d of %d" % [personas.values().reduce(func(a, b): return a + b, 0), moving, parked, personas, vmean, held, speeds.size()])
+ print("TRAFFIC character %s (%s); signals %d on %d segment ends; graph %d segments; llm %s %s" % [d.character, d.character_source, d.signals.size(), d.seg_signal.size(), life.segs.size(), d.llm_state, d.llm_model])
