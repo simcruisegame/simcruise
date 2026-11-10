@@ -55,6 +55,10 @@ SKETCHFAB_API_TOKEN=… bun authoring/cars/sketchfab.mjs fetch <uid> --kind=seda
 
 Only CC0 and CC BY models are accepted. Models with a car maker in the title are refused unless you pass `--allow-brand` (then remove the badges). The token is your own, from sketchfab.com → Settings → Password & API; it is never written anywhere. Models are normalised at load (long axis along the road, scaled to `length_m`, wheels on the ground); set `"flip": true` in the manifest if one drives backwards. Credits go to `licenses/Traffic models.txt`.
 
+## The road a car drives on
+
+Paved roads on streamed tiles are driven on, and drawn as, the ribbons `game/RoadSurface.gd` builds from the helper's road profile. The ground shader `game/terrain.gdshader` (only that one: the field-tile ground in `FieldTerrain.gdshader` has no ribbons and no lane wear) draws lane wear on them from each vertex's place in the road: wheel paths 0.9 m either side of each lane centre, an oil-drip strip between them, sealed paving joints and transverse cracks, and patches. Lanes are fitted inside the carriageway (`RoadSurface.lane_fit()`: 3.6 m lanes, as many per side as fit with up to 0.9 m to spare, narrowed to share the width but never below 3.0 m; a carriageway under 5.4 m is one centred lane), and every wear feature is masked by the carriageway, so nothing is drawn on the shoulder beyond it. How worn a street looks is the street condition `game/RoadRoughness.gd` gives the tyres (class IRI × a stable per-street hash), so with `--rough-roads` a road that looks worn also rides worn; the condition also scales the texture's own sealed cracks before they set the pavement colour. `--road-condition=X` (0 new to 1 worn) forces a condition for comparisons and `--without-lane-wear` turns the layer off.
+
 ## Adding a car
 
 1. Copy the closest file in `game/cars/` and change `id` (the file name), `name`, `make` and `body`.

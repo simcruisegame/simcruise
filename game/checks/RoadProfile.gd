@@ -68,7 +68,8 @@ func _initialize():
    merge(surface_rows,name,surface)
    tile_creases+=local.creases;tile_max=maxf(tile_max,local.max);tile_km+=local.m/1000.
   var smoothing=tile.info.get("road_smoothing",{})
-  tile_lines.append("%s build %.0f ms · smoothing %s · %.2f km, max %.2f°/m, %d creases >%.1f°, height_at vs collider %.3f m"%[id,build_ms,JSON.stringify(smoothing) if not smoothing.is_empty() else "off",tile_km,tile_max,tile_creases,CREASE_DEG,gap])
+  var ribbon_mesh=tile.info.get("road_ribbon_mesh",{})
+  tile_lines.append("%s build %.0f ms · smoothing %s · ribbon %s · %.2f km, max %.2f°/m, %d creases >%.1f°, height_at vs collider %.3f m"%[id,build_ms,JSON.stringify(smoothing) if not smoothing.is_empty() else "off",JSON.stringify(ribbon_mesh) if not ribbon_mesh.is_empty() else "none",tile_km,tile_max,tile_creases,CREASE_DEG,gap])
   edges[Vector2i(int(data.id[0]),int(data.id[1]))]=tile_edges(tile.info.h,int(data.get("grid",32)))
   raw_edges[Vector2i(int(data.id[0]),int(data.id[1]))]=tile_edges(raw_heights(data),int(data.get("grid",32)))
   tile.free()

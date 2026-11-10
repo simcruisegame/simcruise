@@ -66,6 +66,11 @@ void fragment() {
  // 96 m pattern repeat preserves the calibrated diffuse level and roughness.
  // Green and blue retain fine crack seals and gradual age variation.
  wear.r = 0.0393;
+ // On a road ribbon (RoadSurface.gd: UV2.x carries the lateral offset plus
+ // LANE_FLAG) the texture's own sealed cracks follow the street condition.
+ // Scaled here, before paved_surface() turns wear.g into albedo.
+ bool ribbon = UV2.x > LANE_FLAG * 0.5;
+ if (ribbon) {wear.g *= mix(0.35, 1.2, COLOR.g);}
  vec3 aerial = imagery ? texture(ortho, (UV + quadrant) * 0.25).rgb : vec3(0.143, 0.168, 0.081);
  float value = dot(aerial, LUMA);
  float aerial_green = smoothstep(0.05, 0.30, (aerial.g - 0.50 * (aerial.r + aerial.b)) / max(0.022, value));
@@ -132,32 +137,33 @@ void fragment() {
  // Lateral position across the mapped carriageway from the box-filtered
  // semantic map: 3 m half-width for tyre tracks, 8 m for the mown verge.
  float mask_texels = float(textureSize(surface_map, 0).x);
- float lane_edge = edge_metres(mapped_asphalt(textureLod(surface_map, UV, coverage_lod(mask_texels, meters, 3.0)).rgb), 3.0);
  float verge_edge = edge_metres(mapped_asphalt(textureLod(surface_map, UV, coverage_lod(mask_texels, meters, 8.0)).rgb), 8.0);
- float paths = wheel_paths(lane_edge);
+ float paths;
  float age = aerial_asphalt_age(wear.b, aerial, UV);
  // On a road ribbon the lane frame is known (GroundFinish lane_wear): wheel
  // paths and the oil strip sit at real lane offsets, and crack seals and
- // patches follow the street's condition.
- bool ribbon = UV2.x > LANE_FLAG * 0.5;
+ // patches follow the street's condition. Its derivatives are taken here, in
+ // uniform control flow (a ribbon triangle is all ribbon).
+ float lateral = UV2.x - LANE_FLAG;
+ float along = UV2.y;
+ vec2 lane_px = vec2(fwidth(lateral), fwidth(along));
  float seal = 0.0;
  float lane_tone = 1.0;
  if (ribbon) {
-  float lateral = UV2.x - LANE_FLAG;
-  float along = UV2.y;
   float oil; float patch_tone;
-  lane_wear(lateral, along, COLOR.r * 8.0, COLOR.b * 16.0, COLOR.g,
-            fwidth(lateral), fwidth(along), paths, oil, seal, patch_tone);
+  lane_wear(lateral, along, COLOR.r * 8.0, COLOR.b * 16.0, floor(COLOR.a * 4.0 + 0.5), COLOR.g,
+            lane_px.x, lane_px.y, length(VERTEX), paths, oil, seal, patch_tone);
   // Wear varies along the lane: broad grit for the paths, lane-aligned
   // streaks for drips (stretched along the direction of travel).
-  float streak = dot(texture(grit, vec2(along / 6.0, lateral / 0.7)).rgb, LUMA);
   paths *= clamp(0.80 + (broad - 0.224) * 3.0, 0.55, 1.20) * mix(0.75, 1.0, COLOR.g);
-  float drip = oil * mix(0.09, 0.24, COLOR.g) * clamp(0.55 + (streak - 0.224) * 5.0, 0.15, 1.45);
+  float drip = oil * mix(0.09, 0.24, COLOR.g) * clamp(0.55 + (lane_streak(lateral, along) - 0.5) * 1.6, 0.15, 1.45);
   // Tyres scrub the binder off the wheel paths of an older road (lighter,
   // exposed aggregate); worn_asphalt() below adds the age-dependent part.
   lane_tone = (1.0 - drip) * (1.0 + patch_tone) * (1.0 + paths * mix(0.03, 0.11, COLOR.g));
-  // The texture's own sealed cracks follow the condition too.
-  wear.g *= mix(0.35, 1.2, COLOR.g);
+ } else {
+  // Elsewhere the lateral position comes from the box-filtered coverage mask.
+  float lane_edge = edge_metres(mapped_asphalt(textureLod(surface_map, UV, coverage_lod(mask_texels, meters, 3.0)).rgb), 3.0);
+  paths = wheel_paths(lane_edge);
  }
  paved = worn_asphalt(paved, paths, age);
  float mown = smoothstep(-6.0, -1.5, verge_edge) * green * (1.0 - trees);

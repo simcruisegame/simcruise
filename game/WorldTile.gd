@@ -533,8 +533,11 @@ func apply_recent(texture,soil=null):
 func ground_mesh(mat):
  terrain_material=mat
  if road_surface:
-  if road_grid.is_empty():road_index()   # street condition for the drawn lane wear
+  var started=Time.get_ticks_usec()
+  if road_grid.is_empty():road_index()   # street condition for the drawn lane wear (build() reuses it)
+  var index_ms=(Time.get_ticks_usec()-started)/1000.
   var ribbon=road_surface.mesh(mat,side,self);mesh_node(ribbon);collider(ribbon.create_trimesh_shape())
+  info["road_ribbon_mesh"]=road_surface.mesh_stats.merged({"road_index_ms":index_ms})
  preload("res://GroundFinish.gd").bind(mat,materials,info.id,side)
  mat.set_shader_parameter("recent_quadrant",Vector2(int(info.id[0])%4,int(info.id[1])%4))
  # A 128 grid is drawn adaptively: cells split only where the detail differs

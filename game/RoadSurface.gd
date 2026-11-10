@@ -43,6 +43,19 @@ var lane_chains: Array = []
 var quad_lane: Array = []
 const LANE_FLAG := 1000.      # added to the lateral offset in UV2; the ground mesh has no UV2
 const LANE_M := 3.6           # a US travel lane (AASHTO 12 ft)
+const LANE_MIN_M := 3.0       # narrowest lane a carriageway is split into (10 ft)
+const CONDITION_STEP := 5     # stations between street-condition samples (refined where they differ)
+var mesh_stats := {}          # timing of the last mesh() (checks/RoadProfile.gd prints it)
+
+## Lanes per side and lane width that fit inside a carriageway of half width
+## `half`: 3.6 m lanes, as many per side as fit with up to 0.9 m to spare
+## (narrowed to share the width, never below 3.0 m), so lanes never overhang
+## the carriageway. A road under 5.4 m is one centred lane: Vector2(0, 2 half).
+static func lane_fit(half: float) -> Vector2:
+ if half < LANE_M * .75:return Vector2(0., half * 2.)
+ var n := maxf(floorf(half / LANE_M + .25), 1.)
+ while n > 1. and half / n < LANE_MIN_M:n -= 1.
+ return Vector2(n, minf(LANE_M, half / n))
 
 static func enabled() -> bool:
  return not "--grid-roads" in OS.get_cmdline_user_args()
@@ -91,10 +104,11 @@ func build(rows: Array, side: float) -> void:
   var along := PackedFloat32Array();along.resize(sections.size())
   for i in range(1, sections.size()):
    along[i] = along[i-1] + Vector2(sections[i][2].x, sections[i][2].z).distance_to(Vector2(sections[i-1][2].x, sections[i-1][2].z))
-  # Lanes are laid out from the centreline (the shader fits as many per side
-  # as the width allows); a road narrower than two lanes is one centred lane.
+  # Lanes are laid out from the centreline, fitted inside the carriageway
+  # (lane_fit); a road narrower than two lanes is one centred lane.
   var ci := lane_chains.size()
-  lane_chains.append({"half":chain.half,"lane_w":LANE_M if chain.half >= LANE_M * .75 else chain.half * 2.,"offsets":chain.offsets,"along":along,"centres":chain.centres,"cls":chain.cls})
+  var fit := lane_fit(chain.half)
+  lane_chains.append({"half":chain.half,"lane_w":fit.y,"per_side":fit.x,"offsets":chain.offsets,"along":along,"centres":chain.centres,"cls":chain.cls})
   for i in range(1, sections.size()):
    var prev: Array = sections[i-1];var section: Array = sections[i]
    if Vector2(prev[2].x, prev[2].z).distance_to(Vector2(section[2].x, section[2].z)) >= 8.:continue
@@ -187,34 +201,109 @@ static func condition(tile, p: Vector2, cls: String) -> float:
  return clampf((value - .8) / 2.5, 0., 1.)
 const ROUGHNESS := preload("res://RoadRoughness.gd")
 
+## Ribbons carry UV2 and vertex colour, which the plain ground mesh does not,
+## so the ground shader needs pipelines for a second vertex format. Show one
+## sub-pixel triangle of that format 1 m in front of the camera (also casting
+## a shadow) for the first two seconds, so those pipelines are compiled while
+## the start place loads instead of when the first ribbon comes into view.
+static func prewarm(camera: Node3D, shader: Shader) -> void:
+ if not enabled() or "--without-lane-wear" in OS.get_cmdline_user_args():return
+ var arrays := []
+ arrays.resize(Mesh.ARRAY_MAX)
+ arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array([Vector3.ZERO, Vector3(.0002, 0., 0.), Vector3(0., .0002, 0.)])
+ arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array([Vector3.BACK, Vector3.BACK, Vector3.BACK])
+ arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array([Vector2.ZERO, Vector2.ZERO, Vector2.ZERO])
+ arrays[Mesh.ARRAY_TEX_UV2] = PackedVector2Array([Vector2(LANE_FLAG, 0.), Vector2(LANE_FLAG, 0.), Vector2(LANE_FLAG, 0.)])
+ arrays[Mesh.ARRAY_COLOR] = PackedColorArray([Color(.45, .5, .2, .25), Color(.45, .5, .2, .25), Color(.45, .5, .2, .25)])
+ var m := ArrayMesh.new()
+ m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+ var mat := ShaderMaterial.new()
+ mat.shader = shader
+ m.surface_set_material(0, mat)
+ var warm := MeshInstance3D.new()
+ warm.name = "RibbonPipelineWarm"
+ warm.mesh = m
+ warm.position = Vector3(0., 0., -1.)
+ camera.add_child(warm)
+ camera.get_tree().create_timer(2.).timeout.connect(warm.queue_free)
+
 func mesh(mat: Material, side: float, tile = null) -> ArrayMesh:
  var forced := -1.
  # --without-lane-wear leaves the flag off, so the shader keeps its old look (A/B).
  var plain := "--without-lane-wear" in OS.get_cmdline_user_args()
  for a in OS.get_cmdline_user_args():
   if a.begins_with("--road-condition="):forced = clampf(a.trim_prefix("--road-condition=").to_float(), 0., 1.)
+ var started := Time.get_ticks_usec()
  var wear := []
+ var samples := 0
  for lc in lane_chains:
   var w := PackedFloat32Array();w.resize(lc.centres.size())
-  for i in w.size():w[i] = forced if forced >= 0. else condition(tile, lc.centres[i], lc.cls)
+  if forced >= 0.:
+   w.fill(forced)
+  else:
+   # The condition changes only where the ribbon passes from one street to
+   # another, so sample every CONDITION_STEP stations and evaluate the
+   # stations in between only where two samples differ.
+   var last := w.size() - 1
+   var prev_i := 0
+   w[0] = condition(tile, lc.centres[0], lc.cls);samples += 1
+   while prev_i < last:
+    var i := mini(prev_i + CONDITION_STEP, last)
+    w[i] = condition(tile, lc.centres[i], lc.cls);samples += 1
+    for j in range(prev_i + 1, i):
+     if w[i] == w[prev_i]:w[j] = w[i]
+     else:w[j] = condition(tile, lc.centres[j], lc.cls);samples += 1
+    prev_i = i
   wear.append(w)
- var st := SurfaceTool.new()
- st.begin(Mesh.PRIMITIVE_TRIANGLES)
+ mesh_stats = {"condition_ms":(Time.get_ticks_usec() - started) / 1000., "condition_samples":samples}
+ started = Time.get_ticks_usec()
+ # Packed arrays filled in one pass and handed to SurfaceTool for the normals:
+ # per-vertex SurfaceTool calls cost about twice as much once UV2 and colour
+ # are set too.
+ var count := quads.size() * 6
+ var verts := PackedVector3Array();verts.resize(count)
+ var uvs := PackedVector2Array();uvs.resize(count)
+ var uv2s := PackedVector2Array();uv2s.resize(count)
+ var colours := PackedColorArray();colours.resize(count)
+ var flag := 0. if plain else LANE_FLAG
+ var inv := 1. / side
+ var n := 0
+ var last_ci := -1
+ var w: PackedFloat32Array;var along: PackedFloat32Array;var offsets: Array;var fixed := Color()
  for qi in quads.size():
   var q: Array = quads[qi]
   var ql: Array = quad_lane[qi]
-  var lc: Dictionary = lane_chains[ql[0]]
-  var i: int = ql[1];var k: int = ql[2]
-  # Station and cross-section offset of a, b, c, d (see build()).
-  var at := [Vector2i(i - 1, k), Vector2i(i - 1, k + 1), Vector2i(i, k + 1), Vector2i(i, k)]
-  # Godot front faces wind clockwise seen from the front (above).
-  for idx in [0, 2, 1, 0, 3, 2]:
-   var v: Vector3 = q[idx];var s: Vector2i = at[idx]
-   st.set_uv(Vector2(v.x, v.z) / side)
-   st.set_uv2(Vector2(float(lc.offsets[s.y]) + (0. if plain else LANE_FLAG), lc.along[s.x]))
-   st.set_color(Color(lc.lane_w / 8., wear[ql[0]][s.x], lc.half / 16., 1.))
-   st.add_vertex(v)
+  var ci: int = ql[0];var i: int = ql[1];var k: int = ql[2]
+  if ci != last_ci:
+   # Quads of one chain are consecutive: look its frame up once.
+   var lc: Dictionary = lane_chains[ci]
+   last_ci = ci;w = wear[ci];along = lc.along;offsets = lc.offsets
+   fixed = Color(lc.lane_w / 8., 0., lc.half / 16., lc.per_side / 4.)
+  # a, b at station i-1 and offsets k, k+1; c, d at station i and offsets k+1, k (see build()).
+  var l0: float = float(offsets[k]) + flag;var l1: float = float(offsets[k + 1]) + flag
+  var s0: float = along[i - 1];var s1: float = along[i]
+  var c0 := Color(fixed.r, w[i - 1], fixed.b, fixed.a)
+  var c1 := Color(fixed.r, w[i], fixed.b, fixed.a)
+  var a: Vector3 = q[0];var b: Vector3 = q[1];var c: Vector3 = q[2];var d: Vector3 = q[3]
+  # Godot front faces wind clockwise seen from the front (above): a c b, a d c.
+  verts[n] = a;uvs[n] = Vector2(a.x, a.z) * inv;uv2s[n] = Vector2(l0, s0);colours[n] = c0
+  verts[n+1] = c;uvs[n+1] = Vector2(c.x, c.z) * inv;uv2s[n+1] = Vector2(l1, s1);colours[n+1] = c1
+  verts[n+2] = b;uvs[n+2] = Vector2(b.x, b.z) * inv;uv2s[n+2] = Vector2(l1, s0);colours[n+2] = c0
+  verts[n+3] = a;uvs[n+3] = uvs[n];uv2s[n+3] = uv2s[n];colours[n+3] = c0
+  verts[n+4] = d;uvs[n+4] = Vector2(d.x, d.z) * inv;uv2s[n+4] = Vector2(l0, s1);colours[n+4] = c1
+  verts[n+5] = c;uvs[n+5] = uvs[n+1];uv2s[n+5] = uv2s[n+1];colours[n+5] = c1
+  n += 6
+ var arrays := []
+ arrays.resize(Mesh.ARRAY_MAX)
+ arrays[Mesh.ARRAY_VERTEX] = verts
+ arrays[Mesh.ARRAY_TEX_UV] = uvs
+ arrays[Mesh.ARRAY_TEX_UV2] = uv2s
+ arrays[Mesh.ARRAY_COLOR] = colours
+ mesh_stats["fill_ms"] = (Time.get_ticks_usec() - started) / 1000.
+ var st := SurfaceTool.new()
+ st.create_from_arrays(arrays, Mesh.PRIMITIVE_TRIANGLES)
  st.generate_normals()
  var m := st.commit()
  m.surface_set_material(0, mat)
+ mesh_stats["mesh_ms"] = (Time.get_ticks_usec() - started) / 1000.
  return m

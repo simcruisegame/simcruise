@@ -4,6 +4,9 @@ extends Node
 ## time, GPU time, draw calls and the ambient traffic and bird counts, saves a
 ## chase-view JPEG per preset and writes quality-bench.json. Run windowed:
 ##   godot --path game -- --bundled-start --quality=high --quality-bench /abs/out
+## --place=lon,lat,bearing then jumps to a streamed place and holds the car
+## where it lands; add --without-traffic and --solar-epoch UNIX for A/B runs
+## whose frames match (GPU min / p90 / max and pipeline compiles are reported).
 const HOLD := 6.
 var game
 var out := ""
@@ -43,8 +46,14 @@ func _process(dt):
  if not game.ready_drive or game.tiles.size() < 4 or game.job or not game.jump.is_empty():return
  if place != null:
   # Jump only once the start place has loaded, so the start cannot override it.
-  game.choose_place(place.x, place.y, "Quality bench", "", place.z);place = null;clock = 0.
+  game.choose_place(place.x, place.y, "Quality bench", "", place.z);place = null;clock = 0.;hold_pending = true
   return
+ if hold_pending:
+  # Keep the car where it was placed, so every run of a place frames the same view.
+  hold_pending = false;held = game.vehicle.global_transform
+  # --without-traffic hides the ambient cars, which otherwise stop behind the
+  # held car and can block the chase camera (A/B of a ground shader).
+  if "--without-traffic" in OS.get_cmdline_user_args():game.ambient_life.visible = false
  if game.hud.root.visible:game.hud.root.visible = false
  game.view = 0
  clock += dt
@@ -64,11 +73,15 @@ func _process(dt):
  for car in game.ambient_life.cars:
   if car.seg >= 0:nearest.append(snappedf(Vector2(car.pos.x, car.pos.z).distance_to(game.pos), .1))
  nearest.sort()
- report[current] = {"frame_ms": median(0), "gpu_ms": median(1), "draw_calls": median(2), "render_cpu_ms": median(3), "process_ms": median(4), "ambient_ms": game.ambient_life.cost_us / 1000., "drive_process_ms": drive_ms, "physics_ms": median(5), "scale": game.graphics.scale, "moving_cars": cars, "car_distances_m": nearest.slice(0, 6), "graph_segments": game.ambient_life.segs.size(), "fps": Engine.get_frames_per_second(), "vsync": DisplayServer.window_get_vsync_mode()}
+ report[current] = {"frame_ms": median(0), "gpu_ms": median(1), "draw_calls": median(2), "render_cpu_ms": median(3), "process_ms": median(4), "ambient_ms": game.ambient_life.cost_us / 1000., "drive_process_ms": drive_ms, "physics_ms": median(5), "scale": game.graphics.scale, "moving_cars": cars, "car_distances_m": nearest.slice(0, 6), "graph_segments": game.ambient_life.segs.size(), "fps": Engine.get_frames_per_second(), "vsync": DisplayServer.window_get_vsync_mode(), "gpu_ms_min": quantile(1, 0.), "gpu_ms_p90": quantile(1, .9), "gpu_ms_max": quantile(1, 1.), "frame_ms_max": quantile(0, 1.), "pipelines_compiled_at_draw": Performance.get_monitor(Performance.PIPELINE_COMPILATIONS_DRAW), "pipelines_compiled_ahead": Performance.get_monitor(Performance.PIPELINE_COMPILATIONS_SURFACE) + Performance.get_monitor(Performance.PIPELINE_COMPILATIONS_MESH)}
  next()
 
 var drive_ms := {}
+var hold_pending := false
+var held = null     # Transform3D the car is held at after --place= (runs after Drive.gd's physics step)
 func _physics_process(_dt):
+ if held != null:
+  game.vehicle.global_transform = held;game.vehicle.linear_velocity = Vector3.ZERO;game.vehicle.angular_velocity = Vector3.ZERO
  # Coarse attribution: time the Drive._process sub-steps once per second.
  if current == "" or Engine.get_physics_frames() % 60 != 0:return
  for step in ["stream","stream_photo","stream_canopy","stream_recent","stream_surfaces"]:
@@ -85,6 +98,13 @@ func median(col: int) -> float:
  for r in rows:vals.append(r[col])
  vals.sort()
  return vals[vals.size()/2] if vals.size() else -1.
+
+## Value at fraction q (0 = smallest, 1 = largest) of a measured column.
+func quantile(col: int, q: float) -> float:
+ var vals := []
+ for r in rows:vals.append(r[col])
+ vals.sort()
+ return vals[mini(int(q * vals.size()), vals.size() - 1)] if vals.size() else -1.
 
 func overview():
  # A drone's view straight down the street, 60 m up behind the car: proves the
