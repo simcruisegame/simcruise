@@ -165,7 +165,7 @@
  "target_70_0_ft": 190.0,
  "target_skidpad_g": 0.74,
  "sources": {
-  "stability": "FMVSS 126 (49 CFR 571.126, https://www.law.cornell.edu/cfr/text/49/571.126) requires electronic stability control on every US light vehicle built from 1 September 2011, so the reference car has it. Model: Powertrain.gd limits oversteer against a neutral-steer and a lateral-acceleration yaw reference by braking the outer front wheel and cutting propulsion; its deadbands, gain and 0.15 s pressure build are estimates, checked against FMVSS 126's sine-with-dwell limits by checks/SineWithDwell.gd.",
+  "stability": "FMVSS 126 (49 CFR 571.126, https://www.law.cornell.edu/cfr/text/49/571.126) requires electronic stability control on every US light vehicle built from 1 September 2011, so the reference car has it. Model: Powertrain.gd limits oversteer against a lagged bicycle-model yaw reference (esc_understeer_deg_per_g: this car's own understeer gradient, measured in a slow ramp steer at 15-35 m/s and 0.2-0.5 g and rounded down) and the lateral-acceleration path rate, by braking the outer front wheel and cutting propulsion in proportion to the excess; its deadbands, gains and 0.15 s pressure build are estimates, checked against FMVSS 126's sine-with-dwell limits by checks/SineWithDwell.gd and against ordinary driving by checks/StabilityQuiet.gd.",
   "calibration": "Car and Driver measured 5.7 s to 60 mph in a 2.7 EcoBoost SuperCab 4x4, and 193 ft / 0.74 g in a 2021 F-150. The crew cab's extra weight is inside the \u00b10.15 s band; the 190 ft braking target splits the difference between pickup tests.",
   "engine": "325 hp, 400 lb-ft (Ford, 2018+); curve shape estimated.",
   "gearing": "10R80 ratios and a 3.55 axle (published).",
@@ -177,6 +177,7 @@
  "front_diff_bias": 1.0,
  "traction_control": true,
  "stability_control": true,
+ "esc_understeer_deg_per_g": 0.5,
  "model_scene": "res://art/cars/bison_xl.glb",
  "driver_eye": [
   -0.406,

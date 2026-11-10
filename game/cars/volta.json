@@ -115,7 +115,7 @@
  "target_70_0_ft": 165.0,
  "target_skidpad_g": 0.88,
  "sources": {
-  "stability": "FMVSS 126 (49 CFR 571.126, https://www.law.cornell.edu/cfr/text/49/571.126) requires electronic stability control on every US light vehicle built from 1 September 2011, so the reference car has it. Model: Powertrain.gd limits oversteer against a neutral-steer and a lateral-acceleration yaw reference by braking the outer front wheel and cutting propulsion; its deadbands, gain and 0.15 s pressure build are estimates, checked against FMVSS 126's sine-with-dwell limits by checks/SineWithDwell.gd. While it intervenes, regeneration is held off: owners of the RWD Model 3 report regeneration fading in hard corners and returning as the wheel straightens (Tesla Motors Club, https://teslamotorsclub.com/tmc/threads/reduced-regen-with-lateral-gs.115479/); Tesla's manual says traction control acts on brake pressure and motor power.",
+  "stability": "FMVSS 126 (49 CFR 571.126, https://www.law.cornell.edu/cfr/text/49/571.126) requires electronic stability control on every US light vehicle built from 1 September 2011, so the reference car has it. Model: Powertrain.gd limits oversteer against a lagged bicycle-model yaw reference (esc_understeer_deg_per_g: this car's own understeer gradient, measured in a slow ramp steer at 15-35 m/s and 0.2-0.5 g and rounded down) and the lateral-acceleration path rate, by braking the outer front wheel and cutting propulsion in proportion to the excess; its deadbands, gains and 0.15 s pressure build are estimates, checked against FMVSS 126's sine-with-dwell limits by checks/SineWithDwell.gd and against ordinary driving by checks/StabilityQuiet.gd. While it intervenes, regeneration is cut in proportion to the intervention; it is also blended out as a rear wheel's braking slip nears the ABS threshold (Powertrain.gd regen_blend; regeneration acts outside the friction-brake ABS modulator): owners of the RWD Model 3 report regeneration fading in hard corners and returning as the wheel straightens (Tesla Motors Club, https://teslamotorsclub.com/tmc/threads/reduced-regen-with-lateral-gs.115479/); Tesla's manual says traction control acts on brake pressure and motor power.",
   "regeneration": "Regeneration on lift: 110 N·m at the motor through the 9.04 reduction is about 0.17 g at low speed, inside the about 0.2 g standard maximum (Electrek, 25 Oct 2018: Track Mode raised it from 0.2 g to 0.3 g, https://electrek.co/?p=77523); the brake pedal adds friction braking on top, as Tesla's pedal does not blend regeneration.",
   "calibration": "Car and Driver measured a current Model 3 Standard at 5.4 s to 60 mph and 0.88 g on 235/45R-18 all-season tyres. The 70-0 mph target (165 ft) is an estimate.",
   "motor": "About 286 hp quoted for the current Standard; 430 N\u00b7m motor torque and a 9.04 reduction are estimates from earlier RWD versions.",
@@ -124,6 +124,7 @@
  },
  "traction_control": true,
  "stability_control": true,
+ "esc_understeer_deg_per_g": 0.15,
  "model_scene": "res://art/cars/volta.glb",
  "driver_eye": [
   -0.37,

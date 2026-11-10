@@ -132,6 +132,10 @@ var tc_gain := 3.                   # integral gain (1/s) of the torque reductio
 # Electronic stability control (Powertrain.gd): required on every US light
 # vehicle built from 1 September 2011 (FMVSS 126); off on the 1999 and 1965 cars.
 var stability_control := false
+# Understeer gradient of its yaw-rate reference (degrees of road-wheel angle
+# per g): the car's own, measured as a production ESC is calibrated, rounded
+# down so a steady turn never reads as oversteer. 0 = neutral steer.
+var esc_understeer_deg_per_g := 0.
 
 # Drivetrain
 var layout := "rwd"            # rwd, fwd, awd

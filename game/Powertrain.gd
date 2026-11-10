@@ -91,33 +91,68 @@ const TC_CUT_RATE_DOWN = 6.
 # FMVSS 126 S4 defines it: a closed loop that compares the measured yaw rate
 # with the yaw rate the driver's steering asks for, estimates the sideslip
 # rate, brakes single wheels to make a correcting yaw moment and modifies the
-# propulsion torque. This one limits oversteer only. The yaw rate it allows is
-# the smaller of the neutral-steer rate for the road-wheel angle (v·tan δ / L)
-# and the rate the measured lateral acceleration supports (a_y / v, zero
-# sideslip rate), so a car that rotates faster than its path curves, with the
-# wheel frozen or countersteered, is caught by its sideslip rate, the quantity
-# van Zanten (SAE 2000-01-1633) names as the key to stability. Past a
-# deadband it brakes the outer front wheel (through ABS), cuts drive torque
-# and holds regeneration off. It works above 20 km/h (FMVSS 126 S5.1.2).
+# propulsion torque. This one limits oversteer only, against two references
+# (van Zanten, "Bosch ESP Systems: 5 Years of Experience", SAE 2000-01-1633):
+#  - the driver's yaw rate: the linear bicycle model's steady yaw rate for the
+#    road-wheel angle, v·tan δ / (L + K·v²/g) with the car's understeer gradient
+#    K (spec.esc_understeer_deg_per_g, measured on the car as a production ESC
+#    is calibrated), saturated at the yaw rate the car's measured lateral grip
+#    supports (skidpad g / v) and passed through a first-order lag for the
+#    car's yaw response, so the reference turns with the car instead of ahead
+#    of it in every steering correction. When the wheel points against the
+#    yaw (a left-right transition, a correction, or countersteer) the
+#    reference only counts against the car once a slide is confirmed; before
+#    that the allowed rate is zero in the car's own direction, as in a
+#    transition the yaw is falling anyway;
+#  - the path: the yaw rate the measured lateral acceleration supports (a_y / v,
+#    zero sideslip rate), which catches a car rotating faster than its path
+#    curves with the wheel frozen.
+# A slide is confirmed when the car has gained 1.7° of heading over the
+# driver's reference while its sideslip grows, or when the sideslip estimate
+# or its rate is past a threshold. Before that, the yaw deadband grows with
+# speed and with the reference, yaw its path also follows (a trail-braked car
+# tucking in) does not count, and the path reference only counts while the
+# car out-rotates the driver's reference; once a slide is confirmed the
+# deadband shrinks to its base value. Past the deadband it brakes the outer
+# front wheel (through ABS) and cuts drive torque and regeneration, both in
+# proportion to the excess. It works above 20 km/h (FMVSS 126 S5.1.2).
 const ESC_MIN_SPEED_MPS = 20.0 / 3.6
-# Deadbands (estimates; production thresholds are not published): against the
-# steering reference 0.02 rad/s plus 5 % (it already allows a neutral car's yaw
-# rate, more than any understeering road car reaches), against the
-# accelerometer's path rate 0.05 rad/s plus 10 % (the sensor sees road bumps).
-const ESC_STEER_DEADBAND_RAD_S = .02
-const ESC_STEER_DEADBAND_SHARE = .05
-const ESC_PATH_DEADBAND_RAD_S = .05
-const ESC_PATH_DEADBAND_SHARE = .10
-const ESC_FULL_RAD_S = .08          # estimate: excess past the deadband for full front-wheel pressure
-const ESC_BUILD_S = .15             # estimate: pump pressure build-up, zero to full
+# Estimates (production thresholds are not published). Deadbands: 0.035 rad/s
+# (2 °/s) plus 0.0015 rad/s per m/s (0.065 rad/s at 20 m/s, 0.08 at 30) plus
+# 10 % of the reference; against the path 0.06 rad/s plus the same 0.0015 per
+# m/s plus 10 % (the accelerometer also sees road bumps), only while the car
+# out-rotates the reference or slides. In a confirmed slide: 0.035 and
+# 0.06 rad/s. Gains:
+# full front-wheel pressure and a full propulsion cut at 0.04 and 0.05 rad/s
+# past the deadband.
+const ESC_DEADBAND_RAD_S = .035
+const ESC_DEADBAND_PER_MPS = .0015
+const ESC_DEADBAND_SHARE = .10
+const ESC_PATH_DEADBAND_RAD_S = .06
+const ESC_REFERENCE_LAG_S = .12     # yaw response time of a road car at speed
+const ESC_SLIDE_BETA_RAD = .035     # 2 ° of estimated sideslip, plus ...
+const ESC_SLIDE_BETA_PER_G = .05    # ... 2.9 ° per g of lateral acceleration (a car that follows its path carries more sideslip in a harder turn), ...
+const ESC_SLIDE_BETA_RATE = .15     # ... or 0.15 rad/s of sideslip rate: the car is sliding
+const ESC_BETA_LEAK_S = 3.          # the sideslip estimate (integrated rate) forgets drift over 3 s
+const ESC_SLIDE_TURN_RAD = .03      # 1.7 ° of heading gained over the reference: the car is sliding
+const ESC_OVERTURN_LEAK_S = 1.
+const ESC_FULL_RAD_S = .04          # excess past the deadband for full front-wheel pressure
+const ESC_CUT_FULL_RAD_S = .05      # excess past the deadband for a full propulsion cut
+const ESC_BUILD_S = .15             # pump pressure build-up, zero to full
 const ESC_RELEASE_S = .10
-const ESC_ACCEL_FILTER_S = .02      # lateral accelerometer low-pass
+const ESC_CUT_S = .05               # a full propulsion cut within 50 ms (spark and fuel cut, motor current)
+const ESC_ACCEL_FILTER_S = .05      # lateral accelerometer low-pass (about 3 Hz, as ESC sensor clusters filter)
 var esc_brake = [0.,0.,0.,0.]       # brake torque ESC adds per wheel (N·m)
-var esc_level := 0.                 # 0..1 intervention, last tick
-var esc_excess := 0.                # yaw-rate excess over the allowed rate (rad/s), last tick
+var esc_level := 0.                 # 0..1 propulsion cut, last tick
+var esc_excess := 0.                # yaw-rate excess over the allowed rate past the deadband (rad/s), last tick
 var esc_lateral := 0.               # filtered lateral acceleration, + to the left (m/s²)
+var esc_reference := 0.             # lagged driver's yaw rate (rad/s, + left)
+var esc_beta := 0.                  # estimated sideslip (rad, + nose left of the path)
+var esc_sliding := false            # a slide was confirmed and the car has not yet come back to the reference
+var esc_overturn := 0.              # heading gained over the reference (rad), leaky
 var esc_prev_velocity := Vector3.ZERO
 var esc_has_velocity := false
+var regen_share := 1.               # regeneration left after the slip blend (Volta)
 # Benches set this to read traction control and driveline torque every force
 # substep (checks/TractionControlCheck.gd): [tc_cut, clutch or motor torque, shifting].
 var trace_substeps := false
@@ -241,7 +276,7 @@ func restart(pos:Vector3,head:float):
  freeze=true;global_transform=Transform3D(Basis(Vector3.UP,head),pos)
  freeze=false;linear_velocity=Vector3.ZERO;angular_velocity=Vector3.ZERO;sleeping=false
  rolling_slip.fill(0.)
- esc_brake.fill(0.);esc_level=0.;esc_excess=0.;esc_lateral=0.;esc_has_velocity=false
+ esc_brake.fill(0.);esc_level=0.;esc_excess=0.;esc_lateral=0.;esc_reference=0.;esc_beta=0.;esc_overturn=0.;esc_sliding=false;esc_has_velocity=false;regen_share=1.
  sound_throttle=0.;sound_combustion=0.;sound_shaft_load=0.
  selected_gear=0 if manual else 1;clutch_pedal=0.;stalled=false
  roof_down=false;flipped_seconds=0.;stuck_seconds=0.;stranded_seconds=0.
@@ -410,6 +445,7 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
    throttle=pedal_throttle*(1.-tc_cut)*(1.-esc_level)
   var clutch_load:float
   if electric():
+   regen_share=regen_blend(ds)
    clutch_load=motor_torque(throttle,forward_ratio,sign_dir,speed)
   else:
    rpm=engine_omega*60/TAU;var friction=spec.engine_friction_nm+spec.engine_friction_per_rpm*rpm
@@ -518,28 +554,79 @@ func update_stability_control(dt:float,b:Basis,vel:Vector3,speed:float)->void:
  if esc_has_velocity and dt>0.:accel=(vel-esc_prev_velocity)/dt
  esc_prev_velocity=vel;esc_has_velocity=true
  esc_lateral+=(-accel.dot(b.x)-esc_lateral)*(1.-exp(-dt/ESC_ACCEL_FILTER_S))
- var wanted:=0.;var outer_front:=0
- if spec.stability_control and speed>ESC_MIN_SPEED_MPS and wheel_contact>=3:
-  var r:float=angular_velocity.dot(b.y)
+ var wanted:=0.;var cut:=0.;var outer_front:=0
+ var r:float=angular_velocity.dot(b.y)
+ var moving:=speed>ESC_MIN_SPEED_MPS
+ # Driver's yaw rate, lagged by the car's yaw response, and the sideslip
+ # estimate (leaky integral of the sideslip rate r − a_y/v), both kept up to
+ # date whenever the car moves so they are settled when the loop arms.
+ var rate:=0.
+ if moving:
+  var understeer:=deg_to_rad(spec.esc_understeer_deg_per_g)
+  var steady:float=speed*tan(steering)/(WHEELBASE_M+understeer*speed*speed/G)
+  # Friction limit: the car's measured lateral grip on a dry road (its skidpad
+  # figure). Near the limit an understeering car's wheel angle asks for a yaw
+  # rate its tyres cannot give, which would hide an oversteer that follows.
+  var grip_rate:float=(spec.target_skidpad_g*G if spec.target_skidpad_g>0. else static_mu*LATERAL_GRIP_SCALE*G)/speed
+  esc_reference+=(clampf(steady,-grip_rate,grip_rate)-esc_reference)*(1.-exp(-dt/ESC_REFERENCE_LAG_S))
+  rate=r-esc_lateral/speed
+  esc_beta=esc_beta*exp(-dt/ESC_BETA_LEAK_S)+rate*dt
+  # Heading the car has gained over the driver's reference (leaky integral of
+  # the yaw rate past the reference, in the car's own direction of rotation),
+  # counted only while its sideslip grows (it rotates faster than its path).
+  # It ignores the sideslip a car carries while it follows its steering, which
+  # grows with lateral acceleration and speed, and a car that turns tighter
+  # than the wheel asks (trail braking tucks it in) while its path follows:
+  # neither is a skid.
+  var own:=signf(r)
+  var past:float=absf(r)-maxf(own*esc_reference,0.) if absf(r)>own*esc_lateral/speed else 0.
+  esc_overturn=esc_overturn*exp(-dt/ESC_OVERTURN_LEAK_S)+maxf(past,0.)*dt
+ else:esc_reference=0.;esc_beta=0.;esc_overturn=0.;esc_sliding=false
+ if spec.stability_control and moving and wheel_contact>=3:
   var turning:=signf(r) if absf(r)>.001 else 1.
-  # Allowed yaw rate in the direction the car is rotating; countersteer makes
-  # the steering term negative, so every bit of that rotation counts.
-  var by_steering:float=turning*speed*tan(steering)/WHEELBASE_M
+  # Reference in the direction the car rotates. Against the rotation (the
+  # wheel already points the other way) it only counts once the car slides.
+  var along:float=turning*esc_reference
+  # A slide is confirmed when the car has turned past the reference by
+  # ESC_SLIDE_TURN_RAD, or by the sideslip estimate or its rate, and stays
+  # confirmed until the gained heading has fallen to half that and the car no
+  # longer out-rotates the reference past the base deadband: the estimates
+  # forget slowly, the slide must end first.
+  var sliding:bool=esc_overturn>ESC_SLIDE_TURN_RAD or turning*esc_beta>ESC_SLIDE_BETA_RAD+ESC_SLIDE_BETA_PER_G*absf(esc_lateral)/G \
+   or turning*rate>ESC_SLIDE_BETA_RATE or (esc_sliding and (esc_overturn>.5*ESC_SLIDE_TURN_RAD or absf(r)-along>ESC_DEADBAND_RAD_S))
+  esc_sliding=sliding
+  var allowed:float=along if along>=0. or sliding else 0.
+  # A confirmed slide needs no margin for steering corrections or speed: the
+  # deadband shrinks to its base value.
+  var deadband:=ESC_DEADBAND_RAD_S if sliding else ESC_DEADBAND_RAD_S+ESC_DEADBAND_PER_MPS*speed+ESC_DEADBAND_SHARE*maxf(along,0.)
+  # Yaw the path also follows is no oversteer: a car that tucks in under a
+  # trail brake while its path curves at least as fast (sideslip not growing)
+  # turns tighter than the wheel asks without skidding, and the driver
+  # unwinds. Once a slide is confirmed this no longer applies: the body's
+  # lateral acceleration then also carries the sideways skid.
   var by_path:float=maxf(turning*esc_lateral,0.)/speed
-  esc_excess=maxf(absf(r)-by_steering-(ESC_STEER_DEADBAND_RAD_S+ESC_STEER_DEADBAND_SHARE*maxf(by_steering,0.)),
-   absf(r)-by_path-(ESC_PATH_DEADBAND_RAD_S+ESC_PATH_DEADBAND_SHARE*by_path))
+  esc_excess=absf(r)-(allowed if sliding else maxf(allowed,by_path))-deadband
+  # The path reference (zero sideslip rate) counts only while the car rotates
+  # faster than the driver's reference, or slides: a car that follows its
+  # steering also builds a degree or two of sideslip in every quick change of
+  # direction (0.09 rad/s of sideslip rate in a 0.45 g, 0.5 Hz weave), while
+  # its yaw still lags the reference, and that is not a skid.
+  if sliding or absf(r)>along:
+   esc_excess=maxf(esc_excess,absf(r)-by_path-ESC_PATH_DEADBAND_RAD_S-(0. if sliding else ESC_DEADBAND_PER_MPS*speed+ESC_DEADBAND_SHARE*by_path))
   wanted=clampf(esc_excess/ESC_FULL_RAD_S,0.,1.)
+  cut=clampf(esc_excess/ESC_CUT_FULL_RAD_S,0.,1.)
   # Left turn (r > 0): the outer wheels are on the right (+X), index 1.
   outer_front=1 if turning>0. else 0
- else:esc_excess=0.
+ else:esc_excess=0.;esc_sliding=false
  for i in 4:
   var target:float=wanted*spec.brake_front_nm if i==outer_front else 0.
   var cap:float=spec.brake_front_nm if i<2 else spec.brake_rear_nm
   esc_brake[i]=move_toward(esc_brake[i],target,dt*cap/(ESC_BUILD_S if target>esc_brake[i] else ESC_RELEASE_S))
- # Propulsion: drive torque and regeneration go to zero within 50 ms of an
- # intervention (an engine's spark and fuel cut, a motor's current) and come
- # back over the release time once the car is inside the deadband again.
- esc_level=move_toward(esc_level,1. if wanted>0. else 0.,dt/(.05 if wanted>0. else ESC_RELEASE_S))
+ # Propulsion: drive torque and regeneration are cut in proportion to the
+ # excess, a full cut within 50 ms (an engine's spark and fuel cut, a motor's
+ # current), and come back over the release time once the car is inside the
+ # deadband again.
+ esc_level=move_toward(esc_level,cut,dt/(ESC_CUT_S if cut>esc_level else ESC_RELEASE_S))
 
 # Mean speed of the driven wheels as the propeller shaft sees it. An AWD centre
 # differential with front share s turns at s·front + (1−s)·rear.
@@ -570,6 +657,24 @@ func wheel_torques(axle_torque:float,ds:float,drive:bool)->Array:
  var v=SUSPENSION.differential_torque(axle_torque,omega[2],omega[3],WHEEL_I,ds,drive,spec.rear_diff_bias)
  return [0.,0.,v.x,v.y]
 
+# Regeneration brakes the driven axle through the motor, outside the ABS
+# modulator, which only releases friction-brake pressure. As an EV's brake
+# controller does, it is blended out as a driven wheel's braking slip nears
+# the ABS threshold (from REGEN_BLEND_FROM of the peak slip to the peak), out
+# within 30 ms and back over 0.3 s, so regeneration cannot lock or over-slip a
+# rear wheel that ABS would have released. Cars without ABS keep it all.
+const REGEN_BLEND_FROM = .6
+const REGEN_OUT_S = .03
+const REGEN_BACK_S = .3
+func regen_blend(ds:float)->float:
+ if not spec.abs_enabled:return 1.
+ var worst:=0.
+ for i in 4:
+  if spec.driven(i) and spring_load[i]>0. and absf(row_speed(i))>1.5:
+   worst=maxf(worst,-slip_ratio[i]*signf(row_speed(i))/maxf(peak_slip[i]*ABS_TARGET_OVER_PEAK,.01))
+ var target:=1.-smoothstep(REGEN_BLEND_FROM,1.,worst)
+ return move_toward(regen_share,target,ds/(REGEN_OUT_S if target<regen_share else REGEN_BACK_S))
+
 # Electric drive: constant torque to the base speed, constant power above it,
 # nothing past the motor's top speed; light regeneration when coasting.
 # Returns torque at the motor (the clutch_load slot of a combustion car).
@@ -578,7 +683,7 @@ func motor_torque(throttle:float,ratio:float,sign_dir:float,speed:float)->float:
  var available=minf(spec.motor_peak_torque_nm,spec.motor_peak_power_w/maxf(absf(motor_omega),1.))
  if absf(motor_omega)*60./TAU>spec.motor_max_rpm:available=0.
  var torque=available*throttle
- if throttle<.01 and absf(speed)>1.:torque=-spec.regen_torque_nm*smoothstep(1.,5.,absf(speed))*signf(motor_omega)*(1.-esc_level)
+ if throttle<.01 and absf(speed)>1.:torque=-spec.regen_torque_nm*smoothstep(1.,5.,absf(speed))*signf(motor_omega)*(1.-esc_level)*regen_share
  engine_omega=absf(motor_omega)
  sound_combustion+=absf(torque)/(6.*maxf(spec.motor_peak_torque_nm,1.))
  sound_shaft_load+=torque/(6.*maxf(spec.motor_peak_torque_nm,1.))

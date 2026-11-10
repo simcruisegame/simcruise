@@ -185,7 +185,7 @@ func _physics_process(dt):
  return false
 
 func print_trace(beta:float,yaw_rate:float,speed:float):
- var s="TRACE %s %.2f t %.2f v %.2f r %.3f beta %.2f gear %d rpm %d esc %.2f excess %.3f"%[cases[case_i][2],cases[case_i][1],t,speed,yaw_rate,beta,car.gear+1,car.rpm,car.esc_level,car.esc_excess]
+ var s="TRACE %s %.2f t %.2f v %.2f r %.3f beta %.2f gear %d rpm %d esc %.2f excess %.3f ref %.3f beta_est %.2f overturn %.2f ay/v %.3f regen %.2f"%[cases[case_i][2],cases[case_i][1],t,speed,yaw_rate,beta,car.gear+1,car.rpm,car.esc_level,car.esc_excess,car.esc_reference,rad_to_deg(car.esc_beta),rad_to_deg(car.esc_overturn),car.esc_lateral/maxf(speed,1.),car.regen_share]
  for i in 4:
   var fwd=speed;var w=car.omega[i]*car.R
   s+=" | w%d fz %.0f a %.2f k %.3f"%[i,car.spring_load[i],rad_to_deg(car.rolling_slip[i]),(w-fwd)/maxf(absf(fwd),1.)]

@@ -22,6 +22,12 @@ extends SceneTree
 ## ROADDRIVE_PLAN=1 prints the speed plan; ROADDRIVE_DEBUG=1 prints the first 10 s.
 ## Each event (airtime, jolt above 1 g, leaving the road, roof down) prints once
 ## with its tile and position, at most 40 lines.
+## Stability control (cars that have it): a second RESULT line counts its
+## interventions (any propulsion cut or ESC brake torque), the time it was
+## active while moving above 6 m/s, and the largest front-wheel ESC brake as a
+## share of the service brake; the first 10 interventions print as ESC lines
+## with the station, speed, yaw rate, lateral acceleration and excess. A
+## production ESC does not act in ordinary road driving at 0.4 g.
 const TILE=preload("res://WorldTile.gd")
 const EARTH=40075016.68557849
 var car
@@ -44,6 +50,7 @@ var done=false
 var settle=0
 var speed_i=0.
 var on_stop=[false,false,false,false]
+var esc={"events":0,"ticks":0,"moving":0,"max_brake":0.,"was":false,"printed":0}
 
 func _initialize():
  var args=OS.get_cmdline_user_args()
@@ -185,7 +192,7 @@ func _physics_process(dt):
  var slide=absf(v.dot(b.x))
  if slide>1.:gas*=clampf(1.-(slide-1.)/1.5,0.,1.);speed_i=0.
  car.drive(dt,gas,brake,turn,false)
- if OS.has_environment("ROADDRIVE_TRACE") and tick%6==0 and station>=int(OS.get_environment("ROADDRIVE_TRACE").split("-")[0]) and station<=int(OS.get_environment("ROADDRIVE_TRACE").split("-")[1]):print("TRACE st %d want %.1f v %.1f gas %.2f brk %.2f turn %.2f yawrate %.2f lat %.2f cross %.1f contacts %d"%[station,want,speed,gas,brake,turn,car.angular_velocity.y,v.dot(b.x),cross,car.wheel_contact]+wheel_trace(speed))
+ if OS.has_environment("ROADDRIVE_TRACE") and tick%6==0 and station>=int(OS.get_environment("ROADDRIVE_TRACE").split("-")[0]) and station<=int(OS.get_environment("ROADDRIVE_TRACE").split("-")[1]):print("TRACE st %d want %.1f v %.1f gas %.2f brk %.2f turn %.2f yawrate %.2f lat %.2f cross %.1f contacts %d"%[station,want,speed,gas,brake,turn,car.angular_velocity.y,v.dot(b.x),cross,car.wheel_contact]+wheel_trace(speed)+esc_trace())
  if OS.has_environment("ROADDRIVE_DEBUG") and tick%60==0 and tick<=600:print("DBG drive station %d want %.1f speed %.2f gas %.2f brake %.2f turn %.2f gear %s rpm %d"%[station,want,speed,gas,brake,turn,car.gear_text(),car.rpm])
  # Observations.
  stats.seconds+=dt
@@ -210,6 +217,7 @@ func _physics_process(dt):
   if stop:stats.bump_stop+=1
   if stop and not on_stop[i]:event("bump stop wheel %d, load %.0f N"%[i,car.spring_load[i]])
   on_stop[i]=stop
+ if "esc_level" in car and car.spec.stability_control:observe_esc(b,speed)
  if car.roof_down:
   if stats.roof==0:event("roof down")
   stats.roof+=1
@@ -222,6 +230,27 @@ func wheel_trace(speed:float)->String:
  var s=" gear %s"%car.gear_text()
  for i in 4:s+=" | fz %.0f a %.1f k %.3f"%[car.spring_load[i],rad_to_deg(car.rolling_slip[i]),(car.omega[i]*car.R-speed)/maxf(absf(speed),1.)]
  return s
+
+# Stability-control state for TRACE lines (cars that have it).
+func esc_trace()->String:
+ if not ("esc_reference" in car and car.spec.stability_control):return ""
+ return " | esc %.2f brake %.0f %.0f excess %+.3f ref %+.3f ay/v %+.3f overturn %.2f° beta_est %+.2f°"%[car.esc_level,car.esc_brake[0],car.esc_brake[1],car.esc_excess,car.esc_reference,car.esc_lateral/maxf(absf(-car.linear_velocity.dot(car.global_transform.basis.z)),1.),rad_to_deg(car.esc_overturn),rad_to_deg(car.esc_beta)]
+
+func observe_esc(b:Basis,speed:float):
+ if absf(speed)<=6.:return
+ esc.moving+=1
+ var brake:=0.
+ for i in 4:brake=maxf(brake,float(car.esc_brake[i]))
+ var active:bool=car.esc_level>0. or brake>0.
+ if active:
+  esc.ticks+=1
+  esc.max_brake=maxf(esc.max_brake,brake/maxf(car.spec.brake_front_nm,1.))
+  if not esc.was:
+   esc.events+=1
+   if esc.printed<10:
+    esc.printed+=1
+    print("ESC at station %d m, speed %.1f m/s, yaw rate %+.3f rad/s, lateral %+.2f g, excess %+.3f rad/s"%[station,speed,car.angular_velocity.dot(b.y),car.esc_lateral/9.80665,car.esc_excess])
+ esc.was=active
 
 # One line per event (not per frame), capped, with where it happened.
 var events_printed=0
@@ -246,6 +275,8 @@ func finish(reason:String):
  print("ROADDRIVE %s · %.2f of %.2f km in %.0f s (avg %.1f m/s)"%[reason,km,route[-1].y/1000.,stats.seconds,station/maxf(stats.seconds,.01)])
  print("RESULT ride: air_events=%d air_seconds=%.2f launches=%d jolts>0.5g=%d jolts>1g=%d max_vertical_g=%.2f max_up_mps=%.2f bump_stop_ticks=%d off_road=%d impacts=%d roof_ticks=%d max_cross_m=%.1f"%[
   stats.air_events,stats.air_ticks/60.,stats.launch,stats.jolt_05,stats.jolt_10,stats.max_vert_g,stats.max_up_mps,stats.bump_stop,stats.off_road,stats.impacts,stats.roof,stats.max_cross_m])
+ if "esc_level" in car and car.spec.stability_control:
+  print("RESULT esc: interventions=%d active_s=%.2f active_share=%.2f%% max_front_brake_share=%.2f"%[esc.events,esc.ticks/60.,100.*esc.ticks/maxf(esc.moving,1.),esc.max_brake])
  var ok=reason=="finished" and stats.launch==0 and stats.roof==0 and stats.impacts==0
  quit(0 if ok else 1)
 

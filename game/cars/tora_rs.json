@@ -159,7 +159,7 @@
  "target_70_0_ft": 153.0,
  "target_skidpad_g": 0.95,
  "sources": {
-  "stability": "FMVSS 126 (49 CFR 571.126, https://www.law.cornell.edu/cfr/text/49/571.126) requires electronic stability control on every US light vehicle built from 1 September 2011, so the reference car has it. Model: Powertrain.gd limits oversteer against a neutral-steer and a lateral-acceleration yaw reference by braking the outer front wheel and cutting propulsion; its deadbands, gain and 0.15 s pressure build are estimates, checked against FMVSS 126's sine-with-dwell limits by checks/SineWithDwell.gd.",
+  "stability": "FMVSS 126 (49 CFR 571.126, https://www.law.cornell.edu/cfr/text/49/571.126) requires electronic stability control on every US light vehicle built from 1 September 2011, so the reference car has it. Model: Powertrain.gd limits oversteer against a lagged bicycle-model yaw reference (esc_understeer_deg_per_g: this car's own understeer gradient, measured in a slow ramp steer at 15-35 m/s and 0.2-0.5 g and rounded down) and the lateral-acceleration path rate, by braking the outer front wheel and cutting propulsion in proportion to the excess; its deadbands, gains and 0.15 s pressure build are estimates, checked against FMVSS 126's sine-with-dwell limits by checks/SineWithDwell.gd and against ordinary driving by checks/StabilityQuiet.gd.",
   "calibration": "2022 WRX as reported from Car and Driver: 0-60 mph 5.5 s, 70-0 mph 153 ft, 0.95 g; about 3350 lb.",
   "engine": "271 hp, 258 lb-ft from 2000-5200 rpm (Subaru); curve shape estimated.",
   "gearing": "Six-speed ratios and 4.111 final drive: unverified.",
@@ -167,6 +167,7 @@
  },
  "traction_control": true,
  "stability_control": true,
+ "esc_understeer_deg_per_g": 0.5,
  "model_scene": "res://art/cars/tora_rs.glb",
  "driver_eye": [
   -0.366,
