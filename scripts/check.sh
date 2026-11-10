@@ -61,7 +61,8 @@ LightingCheck:0 DaylightWeatherCheck:0 HeadCameraCheck:0 HudLevelCheck:0 RoadNoi
 VegetationCheck:0 RoadProfile:0 RoadBankMeshCheck:0 CrownArrivalOrder:0 SignalControlCheck:0
 StorefrontCheck:0 ObservedPaintCheck:0 PhotoFacadeCheck:0 LandmarkRoof:0
 HistoricAnchorageCheck:0 SustainedSurfaceCheck:0 DriftHold:60 BumpDrive:60 CarTrack:60
-AmbientCheck:0 TrafficCheck:0 SBend:60 LiftOff:60 TractionControlCheck:60 CombinedSlip:60 AbsReverse:60"
+AmbientCheck:0 TrafficCheck:0 SBend:60 LiftOff:60 TractionControlCheck:60 CombinedSlip:60 AbsReverse:60
+ParkedStart:60"
 
 fps_for() {
   for entry in $default_suite; do

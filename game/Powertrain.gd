@@ -140,6 +140,14 @@ var steering_input=0.
 var steering=0.
 var wheel_contact=0
 var service_brake=false
+# Parked (park()): a car the game sets down (a start, a jump, the back-on-the-
+# road key) stands still where it was put, as a parked car does, until the
+# first throttle, brake or handbrake input (release()). The tyre law is a
+# regularised (velocity) one, so even locked brakes let a car on a grade creep
+# a few centimetres per second; at Deals Gap a free car ran 166 m back down the
+# 5.4° grade in 45 s, and on its rear parking brake it still crept 4.9 m
+# (checks/StartPlacement.gd).
+var start_hold=false
 var LATERAL_GRIP_SCALE:float
 var static_mu:float
 var surface_grip=[1.,1.,1.,1.]
@@ -203,17 +211,32 @@ func _notification(what):
  if what==NOTIFICATION_PARENTED:
   var mounted=get_parent().get("vehicle")==self
   steering_assist=mounted and not "--direct-steering" in OS.get_cmdline_user_args()
-func restart(pos:Vector3,head:float):
+## Body origin height above the road at static load (suspension at its static
+## length): where RoadPlacement sets a car down so it neither drops nor digs in.
+func ride_height()->float:
+ return R+spec.static_length_m-spec.mount_height_m
+# up: the road's normal under the car (RoadPlacement.pose), so a car set down on
+# a grade or a banked curve stands level with the road instead of upright.
+func restart(pos:Vector3,head:float,up:=Vector3.UP):
  # Teleport while static, then clear the live body's velocity: Jolt treats a
  # velocity set on a frozen body as surface velocity, and deactivation already
  # zeroed the body's own, so the order used to rely on that side effect.
- freeze=true;global_transform=Transform3D(Basis(Vector3.UP,head),pos)
+ var tilt=Basis() if up.is_equal_approx(Vector3.UP) else Basis(Quaternion(Vector3.UP,up.normalized()))
+ start_hold=false
+ freeze=true;global_transform=Transform3D(tilt*Basis(Vector3.UP,head),pos)
  freeze=false;linear_velocity=Vector3.ZERO;angular_velocity=Vector3.ZERO;sleeping=false
  rolling_slip.fill(0.)
  sound_throttle=0.;sound_combustion=0.;sound_shaft_load=0.
  selected_gear=0 if manual else 1;clutch_pedal=0.;stalled=false
  roof_down=false;flipped_seconds=0.;stuck_seconds=0.;stranded_seconds=0.
  omega=[0.,0.,0.,0.];gear=0;in_reverse=false;shift_time=0.;steering=0;steering_input=0;service_brake=false;rpm=spec.idle_rpm;engine_omega=rpm*TAU/60.;reset_physics_interpolation()
+## Hold the car where restart() put it (static body) until the driver acts.
+## Call right after restart(), with the car at its ride height (RoadPlacement).
+func park():
+ start_hold=true;freeze=true
+func release():
+ if not start_hold:return
+ start_hold=false;freeze=false;linear_velocity=Vector3.ZERO;angular_velocity=Vector3.ZERO;sleeping=false
 func crank_torque(n):
  var curve=spec.torque_curve
  for i in range(1,curve.size()):
@@ -266,6 +289,8 @@ static func advance_thumbstick(current:float, target:float, dt:float)->float:
 
 func drive(dt,gas,back,turn,foot,thumbstick:=false):
  var b=global_transform.basis;var vel=linear_velocity;var speed=-vel.dot(b.z);var throttle=0.
+ # A manual waits in neutral until a gear is selected: revving there is not driving off.
+ if start_hold and (back>.01 or foot or (gas>.01 and (not manual or selected_gear!=0))):release()
  service_brake=foot or (back>.01 and speed>.45) or (gas>.01 and speed<-.45)
  if not service_brake and not manual:
   # The selector changes direction only near standstill, like a real

@@ -4,6 +4,7 @@ const HUD=preload("res://Hud.gd")
 const CAR=preload("res://art/miata.glb")
 const WORLD=40075016.686
 const START_POOL=preload("res://StartPool.gd")
+const ROAD_PLACEMENT=preload("res://RoadPlacement.gd")
 # Check modes and A/B captures start in the bundled place, offline and the same
 # every run (StartPool.FALLBACK); --random-start (or start_mode) overrides.
 const BUNDLED_START_FLAGS=["--bundled-start","--car-audit","--bethel-facade-ab","--archive-normal-check","--reference","--pad-steering","--capitol-drive-proof","--building-check","--crossfall-drive","--street-check","--us-check","--survey-stops","--seam-check","--landscape-drive","--field-check","--profile-trees","--preference-check","--road-test","--car-turntable"]
@@ -517,13 +518,16 @@ func nearest_world(main_only:=true,reach:=20.):
  return [best,o]
 func move_to_road(n,o):
  waiting_tile=null
- var d:Vector2=(n[1][1]-n[1][0]).normalized();if n[1][4]==-1:d=-d
- if not jump.is_empty():
-  if jump.get("bearing")!=null and n[1][4]==0:
-   var a=deg_to_rad(float(jump.bearing))
-   if d.dot(Vector2(sin(a),-cos(a)))<0:d=-d
- pos=n[0]+o+Vector2(-d.y,d.x)*minf(1.8,n[1][3]*.18);yaw=atan2(-d.x,-d.y);velocity=0;steering=0;road_name=n[1][2] if n[1][2]!="" else "Local road"
- vehicle.restart(Vector3(pos.x,surface(pos)+.13,pos.y),yaw)
+ # In its lane, along the road, level with it, parked (RoadPlacement.gd).
+ # Which way along a two-way road: the jump's bearing, else the way the car faces.
+ var facing=-vehicle.global_transform.basis.z
+ var prefer=Vector2(facing.x,facing.z)
+ if not jump.is_empty():prefer=ROAD_PLACEMENT.bearing_direction(float(jump.bearing)) if jump.get("bearing")!=null else Vector2.ZERO
+ var d:Vector2=ROAD_PLACEMENT.travel_direction(n[1],prefer)
+ pos=n[0]+o+Vector2(-d.y,d.x)*ROAD_PLACEMENT.lane_offset(n[1][3]);velocity=0;steering=0;road_name=n[1][2] if n[1][2]!="" else "Local road"
+ var set_down=ROAD_PLACEMENT.pose(pos,d,vehicle.MOUNTS,vehicle.ride_height(),func(q:Vector2)->float:return surface(q))
+ yaw=set_down[1]
+ vehicle.restart(set_down[0],yaw,set_down[2]);vehicle.park()
 func recover():
  if not ready_drive:return
  # Main roads near the car first; then any road in any loaded tile, so one press
@@ -655,7 +659,7 @@ func _physics_process(dt):
   vehicle.freeze=true
   if msg_time<=0:say("Loading the road ahead…",1)
   return
- vehicle.freeze=false
+ vehicle.freeze=vehicle.start_hold # parked until the first pedal (Powertrain.park)
  if waiting_tile!=null:
   vehicle.linear_velocity=waiting_linear
   vehicle.angular_velocity=waiting_angular

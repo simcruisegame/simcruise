@@ -64,7 +64,7 @@ You need an internet connection for places outside the bundled starter area: wit
 
 ## How to play
 
-The game starts on a random road from a pool of 36 verified US drives (`game/data/start-pool.json`); offline, it starts in Miami Beach. Press `/` to search for a place and drive there, or press **Surprise me** in the search box for another random road.
+The game starts on a random road from a pool of 36 verified US drives (`game/data/start-pool.json`); offline, it starts in Miami Beach. Press `/` to search for a place and drive there, or press **Surprise me** in the search box for another random road. The car starts parked in its lane, level with the road, and stays put until you press accelerate or brake.
 
 | Action | Keyboard | Xbox controller |
 |---|---|---|
