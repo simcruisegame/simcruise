@@ -126,7 +126,7 @@
  "clutch_stiffness": 14.0,
  "clutch_capacity_nm": 850.0,
  "clutch_back_nm": 800.0,
- "launch_rpm": 2800.0,
+ "launch_rpm": 1800.0,
  "launch_rpm_per_throttle": 1200.0,
  "layout": "rwd",
  "rear_diff_bias": 3.0,
@@ -169,6 +169,7 @@
   "engine": "495 hp at 6450 rpm, 470 lb-ft at 5150 rpm with the Z51 exhaust (Chevrolet); curve shape estimated.",
   "gearing": "Eight-speed DCT ratios and 5.17 final drive: unverified.",
   "tyres": "Staggered 245/35ZR19 front, 305/30ZR20 rear: the rear axle grips 25 % harder (axle_grip, estimate); the model uses one rolling radius, the rear's.",
+  "launch": "Automatic launch at 3000 rpm at full pedal (1800 + 1200 per unit of throttle; estimate, 580 Nm on this curve). The launch is tyre-limited with traction control on, so a higher speed only revs the engine longer before the clutch bites (4000 rpm: 3.61 s, 3000 rpm: 3.58 s on CarTrack).",
   "estimates": "Centre of gravity, inertia (scaled, 15 % less yaw for the mid engine), spring and bar rates (2.0/2.2 Hz), dampers, launch, brakes, tyre grip (calibrated)."
  },
  "axle_grip": [
@@ -176,7 +177,7 @@
   1.5
  ],
  "traction_control": true,
- "calibration_open": "0-60 mph 4.2 s against 2.8 s: Car and Driver omits a 1 ft rollout (about 0.3 s on this launch) while the bench times from rest, and with the slip-ratio tyre curve the launch is traction-controlled: when the dual clutch locks up in first gear the rear tyres spin past their peak and the torque reduction and driveline oscillate for about 1.5 s (3.6 s before the curve, when a spinning tyre kept full grip). The car's launch control is not modelled.",
+ "calibration_open": "0-60 mph 3.55 s against 2.8 s (3.60 s before the slip-ratio tyre curve): Car and Driver omits a 1 ft rollout (about 0.3 s on this launch) while the bench times from rest, and from pedal-down at idle, where the car's launch control holds the engine at launch speed before the brake is released (not modelled). Traction control holds the rear tyres at their peak slip.",
  "model_scene": "res://art/traffic/c8-790c40cc/scene.gltf",
  "model_rig": {"fit": true},
  "driver_eye": [
@@ -184,5 +185,6 @@
   0.95,
   0.06
  ],
- "abs": true
+ "abs_enabled": true,
+ "slip_ratio_falloff": 0.1
 }

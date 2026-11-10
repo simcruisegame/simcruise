@@ -40,13 +40,10 @@ var driver_eye := Vector3(-.347,1.009,.503)  # driver view for generated models 
 var tire_width_m := .195
 var tire_aspect_ratio := .50
 var rim_in := 15.
-# static_mu is the tyre's peak longitudinal grip. The NB's locked-wheel stop
-# (173 ft from 70 mph, no ABS) fixes its sliding grip at 0.963, the value this
-# field held before the slip-ratio curve; at the 10 % slide fall-off that is a
-# 1.07 peak. lateral_grip_scale fell by the same factor, so lateral grip
-# (static_mu × lateral_grip_scale = 1.064) is unchanged.
-var static_mu := 1.07
-var lateral_grip_scale := .9945
+# static_mu is the tyre's peak longitudinal grip. The NB's 0.963 and 1.105 are
+# calibrated against Car and Driver's 173 ft stop and 0.89 g skidpad.
+var static_mu := .963
+var lateral_grip_scale := 1.105
 var load_sensitivity := .095   # grip lost per unit of extra load over the static corner load
 var reference_corner_load_n := 2557.  # the static corner load that sensitivity is measured from (≈ m·g/4)
 # Grip of each axle's tyres relative to static_mu, for staggered sizes or compounds.
@@ -64,12 +61,19 @@ var relaxation_m := .35
 # then falling by slip_ratio_falloff toward a locked or spinning wheel (reached
 # at 3.5 × the peak). Radials on dry asphalt peak near 0.10 and slide at about
 # 90 % of the peak (Wong, Theory of Ground Vehicles, table 1.3: peak 0.8-0.9,
-# sliding 0.75, so 83-94 %); bias-ply tyres peak later and fall further
-# (estimate: 0.15 and 25 % for the 1965 car).
+# sliding 0.75, so 83-94 %), so the radial cars with ABS set 0.10.
+# The default (the NB) stays flat, 0: its only braking figure is one 173 ft
+# full-pedal stop without ABS, which pins the grip of a locked tyre. A fall-off
+# would need a peak above it (1.07 for 10 %), which raised the NB's
+# trail-braking grip 5.3 % (checks/CombinedSlip.gd) with no measurement behind
+# it, so the NB keeps the grip it was calibrated with until a test separates
+# peak from sliding grip. The 1965 car stays flat as well: an estimated
+# bias-ply curve (peak 0.15, 25 % fall-off) made its full-throttle 0-60 10.7 s
+# and a 10 % fall-off 9.35 s against Car Life's 8.9 s (9.00 s flat).
 var slip_ratio_peak := .10
-var slip_ratio_falloff := .10
+var slip_ratio_falloff := 0.
 var relaxation_load_exponent := .5  # relaxation length grows with load^n
-var abs := false                   # anti-lock brakes, only on cars that had them (Powertrain.gd)
+var abs_enabled := false           # anti-lock brakes, only on cars that had them (Powertrain.gd)
 var wheel_inertia := 1.05
 var rolling_resistance := .012
 
@@ -123,8 +127,8 @@ var transmission := "manual"   # manual (player may pick automatic), automatic, 
 
 # Traction control: off on the 1999 car, standard on the modern ones.
 var traction_control := false
-var tc_target_slip := 0.            # driven-wheel slip held; 0 = 1.3 × the tyre's peak slip
-var tc_gain := 20.                  # integral gain (1/s) of the torque reduction
+var tc_target_slip := 0.            # driven-wheel slip held; 0 = the tyre's peak slip (Powertrain.gd)
+var tc_gain := 3.                   # integral gain (1/s) of the torque reduction, on the filtered slip
 
 # Drivetrain
 var layout := "rwd"            # rwd, fwd, awd

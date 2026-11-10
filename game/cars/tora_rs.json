@@ -171,5 +171,6 @@
   1.16,
   -0.05
  ],
- "abs": true
+ "abs_enabled": true,
+ "slip_ratio_falloff": 0.1
 }
