@@ -20,6 +20,7 @@ import {pedestrianSurfaces} from './pedestrian.mjs';
 import {cartography} from './cartography.mjs';
 import {conditions} from './conditions.mjs';
 import {fetchObjects} from './street-objects.mjs';
+import {mappedGuardRails} from './guard-rails.mjs';
 import {panoraReferences} from './panoramax.mjs';
 import {streetSample} from './street-samples.mjs';
 import {estimateStreetAppearance} from './street-appearance.mjs';
@@ -78,7 +79,7 @@ async function chunk(X,Y){
  const url=meta.tiles[0].replace('{z}','14').replace('{x}',mx).replace('{y}',my);
  const aerial_key=aerialSource(mx,my)?.key??'';
  const aerial=aerial_key&&fs.existsSync(path.join(cache,aerial_key))?aerial_key:'';
- const [buf,elev,street_objects,ground]=await Promise.all([data('v-'+mx+'-'+my,url),data('h-'+ex+'-'+ey,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+ex+'/'+ey+'.png'),fetchObjects(X,Y,cache,readCached),measuredGround(X,Y,cache,readCached)]);
+ const [buf,elev,street_objects,ground,mapped_rails]=await Promise.all([data('v-'+mx+'-'+my,url),data('h-'+ex+'-'+ey,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+ex+'/'+ey+'.png'),fetchObjects(X,Y,cache,readCached),measuredGround(X,Y,cache,readCached),mappedGuardRails(X,Y,cache,readCached).catch(()=>({status:'unavailable',rows:[]}))]);
  const vector=buf[0]===31?gunzipSync(buf):buf;
  const tile=vectorTile(vector),dem=decode(elev);
  // A neighbouring z14 vector tile is read only when a road crosses into it near
@@ -119,7 +120,7 @@ async function chunk(X,Y){
   }});
  for(const name of ['landcover','park','water'])each(name,(f,conv)=>{if(f.type===3)land.push([name,f.properties.class||'',f.loadGeometry().map(r=>r.map(conv))])});
  each('poi',(f,conv)=>{if(f.type===1&&f.properties.name){const p=conv(f.loadGeometry()[0][0]);if(p.every(v=>v>=0&&v<1))pois.push([p,f.properties.name,String(f.properties.class||'')])}});
- return {id:[X,Y],aerial,aerial_key,street_objects,live_canopy:true,footprint_survey:hasFootprintSurvey(X,Y)?buildingFingerprint(vector):'',...terrain,roads,pedestrian:pedestrianSurfaces(each,clip),buildings,land,pois,trees:[],requests};
+ return {id:[X,Y],aerial,aerial_key,street_objects,guard_rails:mapped_rails.rows,guard_rails_status:mapped_rails.status,live_canopy:true,footprint_survey:hasFootprintSurvey(X,Y)?buildingFingerprint(vector):'',...terrain,roads,pedestrian:pedestrianSurfaces(each,clip),buildings,land,pois,trees:[],requests};
 }
 try{
  let result;
