@@ -197,7 +197,13 @@ func _ready():
  for arg in OS.get_cmdline_user_args():
   if arg.begins_with("--car="):car_id=arg.trim_prefix("--car=")
  var car_spec=preload("res://CarSpec.gd").load_id(car_id)
- if car_spec.model_scene!="" and ResourceLoader.exists(car_spec.model_scene):
+ # A private model for this car (user://cars/<id>.glb, e.g. one you bought or
+ # downloaded for yourself) replaces its exterior; it stays on this machine.
+ # --stock-model ignores it.
+ var private_model:="user://cars/%s.glb"%car_id
+ if FileAccess.file_exists(private_model) and not "--stock-model" in OS.get_cmdline_user_args():
+  car_spec.model_scene=private_model;car_spec.model_rig=car_spec.model_rig.duplicate();car_spec.model_rig.fit=true
+ if car_spec.model_scene!="" and (ResourceLoader.exists(car_spec.model_scene) or car_spec.model_scene.begins_with("user://")):
   vehicle.use_spec(car_spec);generic_car=true
   preload("res://CarBody.gd").new().build(self)
  else:
