@@ -57,5 +57,28 @@ func _process(dt):
   var keys=[]
   for k in t.materials:if str(k).contains("roof"):keys.append("%s:%s"%[k,t.materials[k].get_class()])
   print("RAILVIEW roof materials on tile ",under,": ",keys," lidar_roofs=",t.info.get("lidar_roofs",{}).size() if t.info.get("lidar_roofs") is Dictionary else t.info.get("lidar_roofs",[]).size() if t.info.get("lidar_roofs") is Array else "-")
+ var houses:=Vector2i.ZERO
+ for id in game.tiles:
+  houses+=game.tiles[id].house_stats
+  var layer=game.tiles[id].structure_layer
+  if layer:houses+=layer.house_stats
+ print("RAILVIEW surveyed houses %d, triangles %d (%.1f per house)" % [houses.x, houses.y, houses.y / maxf(1., houses.x)])
+ # The surveyed house front nearest the car (HouseRecipe.gd), head-on and oblique.
+ var door := Vector3.ZERO;var facing := Vector3.ZERO;var door_d := INF
+ for id in game.tiles:
+  for node in [game.tiles[id], game.tiles[id].structure_layer]:
+   if node == null:continue
+   for i in range(0, node.house_fronts.size(), 2):
+    var p: Vector3 = node.global_transform * node.house_fronts[i]
+    var d := p.distance_to(game.vehicle.global_position)
+    if d < door_d:door_d = d;door = p;facing = node.global_transform.basis * node.house_fronts[i + 1]
+ if is_finite(door_d):
+  var across := facing.cross(Vector3.UP)
+  for v in [[facing * 13. + across * 3. + Vector3.UP * 1.7, "house-front"], [facing * 11. - across * 11. + Vector3.UP * 7., "house-oblique"]]:
+   cam.global_position = door + v[0]
+   cam.look_at(door + Vector3.UP * 2.2, Vector3.UP)
+   for i in 20:await RenderingServer.frame_post_draw
+   get_viewport().get_texture().get_image().save_jpg(out.path_join(v[1] + ".jpg"), .9)
+  print("RAILVIEW house front %.0f m from the car at %s" % [door_d, door])
  print("RAILVIEW saved, nearest rail %.0f m from the car" % best_d)
  get_tree().quit(0)
