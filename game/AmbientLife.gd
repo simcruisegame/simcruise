@@ -162,7 +162,12 @@ static func merged_mesh(path: String) -> ArrayMesh:
  # ImporterMesh) so a distant 300k-triangle car costs a few thousand.
  var im := ImporterMesh.new()
  for s in merged.get_surface_count():
-  im.add_surface(Mesh.PRIMITIVE_TRIANGLES, merged.surface_get_arrays(s), [], {}, merged.surface_get_material(s))
+  # Custom channels and skinning need format flags ImporterMesh is not given;
+  # a parked or moving car uses neither, so drop them (they made
+  # add_surface fail with "Invalid array format" and the car vanish).
+  var arrays := merged.surface_get_arrays(s)
+  for k in [Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2, Mesh.ARRAY_CUSTOM3, Mesh.ARRAY_BONES, Mesh.ARRAY_WEIGHTS]:arrays[k] = null
+  im.add_surface(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, merged.surface_get_material(s))
  im.generate_lods(25., 60., [])
  var lodded: ArrayMesh = im.get_mesh()
  merged_cache[path] = lodded
