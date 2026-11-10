@@ -64,6 +64,33 @@ var selected_gear=1  # -1 reverse, 0 neutral, 1..5 forward
 var clutch_pedal=0.0
 var stalled=false
 var tc_cut:=0.
+var tc_integral:=0.
+var tc_slip:=0.   # driven-wheel slip relative to the target as the controller reads it (1 = on target)
+var tc_slip_filtered:=0.
+var clutch_saturated:=false   # last substep: the clutch slipped at its capacity
+# Traction control (cars that had it) cuts engine or motor torque to hold the
+# most-slipping driven wheel at its tyre's peak slip (peak_slip: the end of
+# the full-grip plateau, where the slip-ratio curve starts to fall), the same
+# slip ABS holds under braking. Not past it: beyond the peak the force no
+# longer rises with slip, nothing damps the wheel and a target there (1.15 or
+# 1.3 × the peak) oscillated for 1-2.5 s in checks/TractionControlCheck.gd.
+# The controller reads the slip as wheel-speed sensors and an ECU do: through
+# a 20 ms low-pass filter and a slew limit, so one substep's spike cannot
+# swing the torque. It acts proportional plus integral on the error, cuts
+# harder on a large overshoot, holds its state through a gear change, does not
+# wind up while the clutch slips at its capacity (the wheels then take the
+# flywheel, not the throttle), and changes the cut no faster than an engine
+# can (off within 50 ms by spark retard and fuel cut, back on over 0.15 s).
+const TC_FILTER_S = .02
+const TC_SLIP_SLEW_PER_S = 100.     # the read slip moves at most one target per 10 ms
+const TC_PROPORTIONAL = .15
+const TC_OVERSHOOT = .05           # extra cut per unit of error beyond 1 (slip twice the target)
+const TC_CUT_RATE_UP = 20.
+const TC_CUT_RATE_DOWN = 6.
+# Benches set this to read traction control and driveline torque every force
+# substep (checks/TractionControlCheck.gd): [tc_cut, clutch or motor torque, shifting].
+var trace_substeps := false
+var substep_trace := []
 func _init():
  use_spec(CAR_SPEC.new())
 # Install a car. Call before setup(); the body, contacts and wheels follow it.
@@ -125,13 +152,32 @@ var spring_load=[0.,0.,0.,0.]
 # passenger radial estimate; no transient force records for the OE 195/50R15.
 var SIDE_RELAXATION_M:float
 var rolling_slip = [0.,0.,0.,0.]
+var slip_ratio = [0.,0.,0.,0.]      # longitudinal slip per wheel, last substep
+# Driven-wheel slip as traction control measures it: over the road speed, but
+# never over less than 1.5 m/s, the floor the tyre force law uses, so at a
+# walking pace it reacts to the slip that already saturates the tyre.
+var tc_wheel_slip = [0.,0.,0.,0.]
+# Share of each tyre's grip its longitudinal force used, last substep (benches read it).
+var grip_use = [0.,0.,0.,0.]
+var abs_release = [1.,1.,1.,1.]     # ABS pressure fraction per wheel
+var peak_slip = [.1,.1,.1,.1]       # slip ratio at peak force per wheel, last substep
+# ABS modulator: integral gain on the slip error (1/s), a proportional dump
+# when the wheel is past its peak, and the slip it aims at relative to the peak.
+const ABS_GAIN_PER_S = 20.
+const ABS_PROPORTIONAL = .3
+const ABS_TARGET_OVER_PEAK = 1.
+var contact_rows := []
+func row_speed(i:int)->float:
+ return float(contact_rows[i][5]) if i<contact_rows.size() and not contact_rows[i].is_empty() else 0.
 
-func contact_slip(i: int, longitudinal: float, transverse: float, dt: float) -> float:
+func contact_slip(i: int, longitudinal: float, transverse: float, dt: float, fz: float = -1.) -> float:
  var speed := absf(longitudinal)
  var target := atan2(transverse,maxf(1.8,speed))
  # Below walking speed the existing regularized contact also handles static
  # friction. Blend continuously into the rolling-tire model as travel builds.
- var length_m := SIDE_RELAXATION_M*smoothstep(.8,3.5,speed)
+ # A lightly loaded tyre builds side force over a shorter distance.
+ var load_scale := pow(clampf(fz/spec.reference_corner_load_n,.25,2.5),spec.relaxation_load_exponent) if fz>0. else 1.
+ var length_m := SIDE_RELAXATION_M*load_scale*smoothstep(.8,3.5,speed)
  if length_m < .0001:
   rolling_slip[i]=target
   return target
@@ -285,7 +331,7 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
   if rpm>spec.upshift_rpm and gear<GEARS.size()-1 and absf(speed)*forward_ratio/R>spec.upshift_min_omega:next+=1
   elif rpm<spec.downshift_rpm and gear>0:next-=1
   if next!=gear:gear=next;shift_time=spec.shift_seconds;forward_ratio=GEARS[gear]*FINAL_DRIVE
- var net=[0.,0.,0.,0.];var side=[0.,0.,0.,0.]
+ var net=[0.,0.,0.,0.];var side=[0.,0.,0.,0.];contact_rows=points
  for i in 4:
   if points[i].is_empty():
    spring_load[i]=0
@@ -293,7 +339,7 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
    continue
   var row=points[i];var fz=float(row[2]);spring_load[i]=fz
   var slip_angle=0.
-  if fz>0:slip_angle=contact_slip(i,row[5],row[6],dt)
+  if fz>0:slip_angle=contact_slip(i,row[5],row[6],dt,fz)
   else:rolling_slip[i]=0.
   # Saturating slip-angle curve; a loaded outside tyre gains less grip per unit of load.
   var mu=clampf(static_mu*(1.-spec.load_sensitivity*(fz/spec.reference_corner_load_n-1)),spec.mu_min,spec.mu_max)*surface_grip[i]*float(spec.axle_grip[0 if i<2 else 1])
@@ -301,18 +347,33 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
   var road_lean=asin(clampf(b.x.dot(row[1]),-1.,1.))
   lateral-=fz*spec.camber_thrust*(wheel_camber[i]+road_lean)*minf(1.,absf(row[5])/3.)
   side[i]=lateral;row.append(mu)
- # Traction control (cars that have it): trim the throttle while the driven
- # wheels spin faster than the road by more than the target slip ratio.
- if spec.traction_control and throttle>0.:
-  var surface_speed=absf(driven_omega())*R
-  var slip=(surface_speed-absf(speed))/maxf(absf(speed),3.)
-  tc_cut=move_toward(tc_cut,clampf((slip-spec.tc_target_slip)*spec.tc_gain,0.,.9),dt*6.)
-  throttle*=1.-tc_cut
+ var throttle_aid=spec.traction_control
+ if not throttle_aid or throttle<=0.:tc_cut=0.;tc_integral=0.;tc_slip=0.;tc_slip_filtered=0.
+ var pedal_throttle=throttle
  sound_throttle=throttle
  sound_combustion=0.
  sound_shaft_load=0.
+ if trace_substeps:substep_trace.clear()
  for step in 6:
   var ds=dt/6.
+  # Traction control (cars that have it): engine or motor torque reduction,
+  # updated every substep, from how far the most-slipping driven wheel is
+  # past its target slip.
+  if throttle_aid and pedal_throttle>0.:
+   var ratio=0.
+   for i in 4:
+    if spec.driven(i) and spring_load[i]>0.:ratio=maxf(ratio,tc_wheel_slip[i]*sign_dir/maxf(maxf(spec.tc_target_slip,peak_slip[i]),.01))
+   tc_slip_filtered+=(ratio-tc_slip_filtered)*(1.-exp(-ds/TC_FILTER_S))
+   tc_slip=move_toward(tc_slip,tc_slip_filtered,TC_SLIP_SLEW_PER_S*ds)
+   var excess=tc_slip-1.
+   if shift_time<=0.:
+    # While the clutch slips at its capacity the wheels take the flywheel, not
+    # the throttle: cutting harder would not help, so the cut does not grow.
+    var integral_step=ds*spec.tc_gain*clampf(excess,-1.,.5)
+    if not clutch_saturated or integral_step<0.:tc_integral=clampf(tc_integral+integral_step,0.,.9)
+    var wanted=clampf(tc_integral+TC_PROPORTIONAL*clampf(excess,-1.,2.)+TC_OVERSHOOT*maxf(excess-1.,0.),0.,.9)
+    tc_cut=clampf(wanted,tc_cut-TC_CUT_RATE_DOWN*ds,tc_cut+(0. if clutch_saturated else TC_CUT_RATE_UP*ds))
+   throttle=pedal_throttle*(1.-tc_cut)
   var clutch_load:float
   if electric():
    clutch_load=motor_torque(throttle,forward_ratio,sign_dir,speed)
@@ -322,34 +383,73 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
    var drag=friction*(1.0 if rpm>spec.idle_rpm else .5)
    var governor=clampf((spec.governor_rpm-rpm)*.8,0,100.)
    axle_speed=driven_omega()*sign_dir
-   clutch_load=clampf((engine_omega-axle_speed*forward_ratio)*spec.clutch_stiffness,-spec.clutch_back_nm,spec.clutch_capacity_nm)
-   var target=spec.launch_rpm+throttle*spec.launch_rpm_per_throttle
+   # The clutch (or torque converter, dual clutch) couples the engine and the
+   # driven wheels with a torque proportional to their speed difference. In low
+   # gears, with the tyres at their grip limit, the wheels reflect so little
+   # inertia that this explicit coupling overshot every substep: the clutch
+   # torque alternated sign by tens of percent once a dual clutch locked up.
+   # Never couple harder than the torque that closes the gap in one substep.
+   var reflected=forward_ratio*forward_ratio*spec.driveline_efficiency/(WHEEL_I*(4. if spec.layout=="awd" else 2.))
+   var coupling=minf(spec.clutch_stiffness,1./(ds*(1./spec.engine_inertia+reflected)))
+   clutch_load=clampf((engine_omega-axle_speed*forward_ratio)*coupling,-spec.clutch_back_nm,spec.clutch_capacity_nm)
+   # The launch rpm follows the pedal, not the torque traction control leaves.
+   var target=spec.launch_rpm+pedal_throttle*spec.launch_rpm_per_throttle
    if manual:
     var capacity=spec.clutch_capacity_nm*(1.-smoothstep(.16,.88,clutch_pedal))
     clutch_load=0. if selected_gear==0 else clampf((engine_omega-axle_speed*forward_ratio)*spec.manual_clutch_stiffness,-capacity,capacity)
     if stalled:torque=0.;governor=0.;drag=minf(26.,engine_omega*.85)
    elif axle_speed*forward_ratio*60/TAU<target and clutch_load>0:
     clutch_load=minf(clutch_load,maxf(0.,torque-drag+(rpm-target)*.16))
-   if shift_time>0:clutch_load=0;torque*=.12
+   # A gear change interrupts the drive, except on a dual clutch, which hands
+   # the torque from one clutch to the other without a gap.
+   if shift_time>0 and spec.transmission!="dct":clutch_load=0;torque*=.12
    if not manual and throttle<.01 and rpm<spec.idle_rpm+200. and absf(speed)<3:clutch_load=0
    sound_combustion+=(torque+governor)/(6.*180.)
    sound_shaft_load+=clutch_load/(6.*180.)
    engine_omega=clampf(engine_omega+(torque+governor-drag-clutch_load)*ds/spec.engine_inertia,0. if manual else spec.min_omega_auto,spec.max_omega)
    if manual and not stalled and engine_omega<spec.stall_omega:stalled=true
+  clutch_saturated=not electric() and clutch_load>=spec.clutch_capacity_nm*.98
+  if trace_substeps:substep_trace.append([tc_cut,clutch_load,shift_time>0.])
   var axle_torque=clutch_load*forward_ratio*spec.driveline_efficiency*sign_dir
   var drive_torque=wheel_torques(axle_torque,ds,clutch_load>0. if not electric() else absf(clutch_load)>0.)
   for i in 4:
    var wheel_t=drive_torque[i]
    var br=brake_amount*(spec.brake_front_nm if i<2 else spec.brake_rear_nm)
+   # ABS (cars that had it): a per-wheel pressure modulator. It integrates the
+   # slip error and dumps in proportion past the peak, so each tyre cycles
+   # about its peak slip instead of locking, as production systems do.
+   if spec.abs_enabled and br>0. and absf(row_speed(i))>1.5:
+    var target=peak_slip[i]*ABS_TARGET_OVER_PEAK
+    # Braking slip is positive as the wheel turns slower than the road in the
+    # direction the car travels, forwards or in reverse.
+    var braking_slip=-slip_ratio[i]*signf(row_speed(i))
+    var slip_error=(target-braking_slip)/target
+    abs_release[i]=clampf(abs_release[i]+ds*ABS_GAIN_PER_S*clampf(slip_error,-3.,1.),.05,1.)
+    br*=clampf(abs_release[i]+ABS_PROPORTIONAL*clampf(slip_error,-1.,0.),0.,1.)
+   else:abs_release[i]=1.
    if InputMap.has_action("parking_brake") and Input.is_action_pressed("parking_brake") and i>1:br=maxf(br,spec.parking_brake_nm)
    var spin=move_toward(omega[i]+wheel_t*ds/WHEEL_I,0.,br*ds/WHEEL_I);var row=points[i]
    if row.is_empty():omega[i]=spin;continue
-   var fz=float(row[2]);var fxmax=fz*float(row[7])
+   var fz=float(row[2])
+   # Slip-ratio curve: the friction circle holds its full size up to the peak
+   # slip and shrinks toward the sliding value as the wheel spins or locks, so a
+   # spinning rear tyre also loses side grip (combined slip, via the budget).
+   # The slip is the wheel's as it stands (end of the last substep, where brake
+   # and contact impulses balance), not the brake-only intermediate spin.
+   var kappa=(omega[i]*R-float(row[5]))/maxf(absf(float(row[5])),5.)
+   slip_ratio[i]=kappa
+   tc_wheel_slip[i]=(omega[i]*R-float(row[5]))/maxf(absf(float(row[5])),1.5)
+   # The force cannot fall before it has peaked: a grippy tyre on this linear
+   # stiffness reaches its full grip at mu/stiffness, which can pass the
+   # tyre type's nominal peak slip.
+   peak_slip[i]=maxf(spec.slip_ratio_peak,float(row[7])/spec.longitudinal_stiffness)
+   var fxmax=fz*float(row[7])*(1.-spec.slip_ratio_falloff*smoothstep(peak_slip[i],peak_slip[i]*3.5,absf(kappa)))
    # Solve wheel inertia and contact force together for stable rolling at low speed.
    var long_stiff=(fz*spec.longitudinal_stiffness)/maxf(1.5,absf(row[5]))
    var fx=long_stiff*(spin*R-float(row[5]))/(1.+long_stiff*R*R*ds/WHEEL_I)
    var fy=float(side[i]);var budget=Vector2(fx,fy/LATERAL_GRIP_SCALE).length()
    if budget>fxmax and budget>.01:fx*=fxmax/budget;fy*=fxmax/budget
+   grip_use[i]=fx/maxf(fz*float(row[7]),1.)
    # As a braked tire stops rotating, the tread slides across the road with
    # the contact patch velocity. Preserve the existing friction envelope,
    # blending out the rolling-slip law only over the last 20% before lock.

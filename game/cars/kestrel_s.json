@@ -113,8 +113,8 @@
  "downshift_rpm": 1900.0,
  "clutch_capacity_nm": 340.0,
  "clutch_back_nm": 320.0,
- "launch_rpm": 1500.0,
- "launch_rpm_per_throttle": 2500.0,
+ "launch_rpm": 1000.0,
+ "launch_rpm_per_throttle": 1500.0,
  "layout": "fwd",
  "front_diff_bias": 2.0,
  "transmission": "manual",
@@ -155,13 +155,16 @@
   "calibration": "Car and Driver test of the 2022 Civic Si as reported: 0-60 mph 6.8 s, 70-0 mph 160 ft, 0.94 g; curb weight 2937 lb.",
   "engine": "200 hp, 192 lb-ft (Honda); curve shape estimated.",
   "gearing": "Six-speed ratios and final drive: published Si figures, unverified for 2022.",
+  "launch": "Automatic mode lets the clutch in at 2500 rpm at full pedal (1000 + 1500 per unit of throttle; estimate, the driver's choice on the real manual car). The curve has its full 260 Nm from 1800 rpm and the launch is tyre-limited with traction control on, so a higher launch speed only revs the engine longer before the clutch bites (4000 rpm: about 0.1 s slower on CarTrack).",
   "estimates": "Weight split, centre of gravity, inertia (scaled), spring and bar rates (ride frequency 1.6/1.8 Hz), dampers, brakes, tyre grip (calibrated)."
  },
- "traction_control": false,
+ "traction_control": true,
  "model_scene": "res://art/cars/kestrel_s.glb",
  "driver_eye": [
   -0.36,
   1.14,
   -0.021
- ]
+ ],
+ "abs_enabled": true,
+ "slip_ratio_falloff": 0.1
 }

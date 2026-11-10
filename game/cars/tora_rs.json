@@ -164,11 +164,13 @@
   "gearing": "Six-speed ratios and 4.111 final drive: unverified.",
   "estimates": "Weight split, centre of gravity, inertia (scaled), spring and bar rates (1.7/1.9 Hz), dampers, centre coupling, brakes, tyre grip (calibrated)."
  },
- "traction_control": false,
+ "traction_control": true,
  "model_scene": "res://art/cars/tora_rs.glb",
  "driver_eye": [
   -0.366,
   1.16,
   -0.05
- ]
+ ],
+ "abs_enabled": true,
+ "slip_ratio_falloff": 0.1
 }
