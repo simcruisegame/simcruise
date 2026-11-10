@@ -197,6 +197,8 @@ func sweep():
  var bodies=PackedStringArray()
  for b in by_body:bodies.append("%s=%d"%[b,by_body[b]])
  print("RESULT clearance: wall_hits=%d wall_m=%.0f wall_bodies={%s} wall_hits_service_track=%d building_lane_hits=%d step_hits=%d surface_hits=%d"%[walls_fail,walls_m,", ".join(bodies),walls_other,buildings,steps,surface])
+ # No road swept is no evidence: the folder held no roads (or none inside).
+ if swept.is_empty():print("ROADCLEARANCE swept no road; nothing was checked");quit(2);return
  var bad=walls_fail>0 or (strict and (steps>0 or surface>0 or buildings>0))
  quit(1 if bad else 0)
 
