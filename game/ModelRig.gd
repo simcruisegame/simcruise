@@ -35,6 +35,29 @@ static func relative(root: Node, node: Node) -> Transform3D:
   n = n.get_parent()
  return t
 
+## Some uploads are not Y-up after their own root transform (an OBJ converted
+## twice can lie on its side or upside down). A car is lower than it is wide or
+## long, so the shortest axis is up; tyre surfaces sit below the middle of the body.
+func upright(parts: Array) -> void:
+ var lo := Vector3.INF;var hi := -Vector3.INF
+ for p in parts:
+  for v in p[0][Mesh.ARRAY_VERTEX]:
+   var w: Vector3 = p[2] * v;lo = lo.min(w);hi = hi.max(w)
+ var size := hi - lo
+ var turn := Basis.IDENTITY
+ if size.x < size.y and size.x <= size.z:turn = Basis(Vector3.FORWARD, PI * .5)
+ elif size.z < size.y and size.z < size.x:turn = Basis(Vector3.RIGHT, -PI * .5)
+ var tyre := Vector3.ZERO;var tyres := 0;var mid := (lo + hi) * .5
+ for p in parts:
+  var label: String = ((str(p[1].resource_name) if p[1] else "") + p[3]).to_lower()
+  if not ("tire" in label or "tyre" in label):continue
+  for v in p[0][Mesh.ARRAY_VERTEX]:
+   tyre += turn * (p[2] * v);tyres += 1
+ if tyres > 0 and (tyre / tyres).y > (turn * mid).y:turn = Basis(Vector3.RIGHT, PI) * turn
+ if turn == Basis.IDENTITY:return
+ note("upright: turned %s" % turn.get_euler())
+ for p in parts:p[2] = Transform3D(turn, Vector3.ZERO) * p[2]
+
 func note(s: String) -> void:
  log_lines.append(s)
 
@@ -61,12 +84,25 @@ func named_wheel(owner_name: String) -> String:
  return ""
 
 func build(scene_path: String, spec, rig: Dictionary = {}) -> Node3D:
- var packed = load(scene_path)
- if not packed is PackedScene:return null
- var root: Node = packed.instantiate()
+ var root: Node = null
+ if scene_path.begins_with("res://"):
+  var packed = load(scene_path)
+  if not packed is PackedScene:return null
+  root = packed.instantiate()
+ else:
+  # A private model outside the project (user://cars/<id>.glb): read at run
+  # time, never imported or committed.
+  var doc := GLTFDocument.new();var state := GLTFState.new()
+  if doc.append_from_file(scene_path, state) != OK:return null
+  var scene: Node = doc.generate_scene(state)
+  if scene == null:return null
+  # Keep the scene root's own transform (Sketchfab exports turn Z-up to Y-up
+  # there): the editor importer wraps it the same way.
+  root = Node3D.new();root.add_child(scene)
  var parts := collect(root)
  root.free()
  if parts.is_empty():return null
+ upright(parts)
 
  # Root-space bounds: the glTF importer has already made +Y up.
  var lo := Vector3.INF;var hi := -Vector3.INF
