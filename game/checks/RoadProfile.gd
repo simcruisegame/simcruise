@@ -79,7 +79,77 @@ func _initialize():
  report(surface_rows,"height_at() (camera, props and paint)")
  var seam=seams()
  print("SEAMS %d shared edges between built tiles · largest difference in the source data %.3f m · largest difference introduced by the build %.6f m"%[seam.count,seam.raw,seam.introduced])
- quit(2 if seam.introduced>1e-3 else (1 if failed>0 else 0))
+ var ribbon_errors=ribbon_lane_frame()
+ quit(2 if seam.introduced>1e-3 else (1 if failed>0 else (3 if ribbon_errors>0 else 0)))
+
+# The bundled Miami tiles carry no road profile, so no ribbon is built from
+# them. This builds two synthetic ribbons (RoadSurface.gd) and checks the lane
+# frame mesh() hands the ground shader: lane_fit() never overhangs the
+# carriageway, every vertex is flagged and carries its chain's lane layout,
+# the street condition follows the street under every 2 m station (a 6 m
+# street with another name inside a chain included), and two chains do not
+# start their distance along at the same value. Prints one RIBBON line.
+func ribbon_lane_frame()->int:
+ const SURFACE=preload("res://RoadSurface.gd")
+ var errors=[]
+ for k in 400:
+  var half=.05*k
+  var fit=SURFACE.lane_fit(half)
+  if fit.x==0.:
+   if half>=2.7-1e-4 or absf(fit.y-2.*half)>1e-4:errors.append("lane_fit(%.2f)=%s"%[half,fit])
+  elif fit.x*fit.y>half+1e-4 or fit.y>3.6+1e-4 or fit.y<2.7-1e-4 or (fit.x>=2. and fit.y<3.15-1e-4) or half-fit.x*fit.y>=2.7:
+   errors.append("lane_fit(%.2f)=%s"%[half,fit])
+ var side=600.
+ var rows=[]
+ for spec in [["primary",14.,Vector2(50,300),Vector2(1,0)],["residential",5.6,Vector2(300,50),Vector2(0,1)]]:
+  var pts=[]
+  for i in 251:
+   var c:Vector2=spec[2]+spec[3]*2.*i
+   pts.append([c.x/side,c.y/side,10.,0.,spec[3].x,spec[3].y])
+  rows.append({"cls":spec[0],"w":spec[1],"pts":pts})
+ # Streets under the ribbons as WorldTile.road_index() files them: Alpha with a
+ # 6 m "Short Bridge" inside it, and Bravo across.
+ var segs=[[Vector2(50,300),Vector2(203,300),"Alpha",14.,0,"primary"],[Vector2(203,300),Vector2(209,300),"Short Bridge",14.,0,"primary"],
+  [Vector2(209,300),Vector2(550,300),"Alpha",14.,0,"primary"],[Vector2(300,50),Vector2(300,550),"Bravo",5.6,0,"residential"]]
+ var grid={}
+ for seg in segs:
+  var reach=Vector2.ONE*(float(seg[3])*.5+2.2);var lo=Vector2i(((seg[0].min(seg[1])-reach)/24.).floor());var hi=Vector2i(((seg[0].max(seg[1])+reach)/24.).floor())
+  for x in range(lo.x,hi.x+1):
+   for y in range(lo.y,hi.y+1):
+    if not grid.has(Vector2i(x,y)):grid[Vector2i(x,y)]=[]
+    grid[Vector2i(x,y)].append(seg)
+ var tile={"road_grid":grid}
+ var short_condition=SURFACE.condition(tile,Vector2(206,300),"primary")
+ var alpha_condition=SURFACE.condition(tile,Vector2(150,300),"primary")
+ if absf(short_condition-alpha_condition)<.01:errors.append("test streets share a condition (%.3f); rename one"%alpha_condition)
+ var surface=SURFACE.new()
+ surface.build(rows,side)
+ var m=surface.mesh(StandardMaterial3D.new(),side,tile)
+ var arrays=m.surface_get_arrays(0)
+ var verts:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX];var uv2:PackedVector2Array=arrays[Mesh.ARRAY_TEX_UV2];var colours:PackedColorArray=arrays[Mesh.ARRAY_COLOR]
+ if verts.size()!=surface.quads.size()*6 or uv2.size()!=verts.size() or colours.size()!=verts.size():
+  errors.append("%d vertices, %d UV2, %d colours for %d quads"%[verts.size(),uv2.size(),colours.size(),surface.quads.size()])
+ var start_along={}
+ var short_hits=0
+ for v in verts.size():
+  var p=verts[v]
+  if uv2[v].x<SURFACE.LANE_FLAG*.5:errors.append("vertex %d not flagged"%v);break
+  # Vertex colour is stored as 8-bit unorm (truncated): compare within one step.
+  var on_alpha=absf(colours[v].b*16.-7.)<.07
+  var fit=SURFACE.lane_fit(7. if on_alpha else 2.8)
+  if absf(colours[v].r*8.-fit.y)>.035 or absf(colours[v].a*4.-fit.x)>.02:errors.append("vertex %d lane layout %s, expected %s"%[v,colours[v],fit]);break
+  var station=Vector2(p.x,p.z) if absf(uv2[v].x-SURFACE.LANE_FLAG)<1e-3 else Vector2.ZERO
+  # Where the two streets cross both are 0 m away and float noise picks one.
+  if station!=Vector2.ZERO and station.distance_to(Vector2(300,300))>.5:
+   var want=SURFACE.condition(tile,station,"primary" if on_alpha else "residential")
+   if absf(colours[v].g-want)>1.05/255.:errors.append("condition %.3f at %s, street gives %.3f"%[colours[v].g,station,want]);break
+   if on_alpha and station.x>203.5 and station.x<208.5:
+    short_hits+=1
+  start_along[on_alpha]=minf(start_along.get(on_alpha,INF),uv2[v].y)
+ if short_hits==0:errors.append("no station on the 6 m street carries its condition")
+ if start_along.size()==2 and absf(start_along[true]-start_along[false])<1.:errors.append("both chains start at along %.1f m"%start_along[true])
+ print("RIBBON lane frame (synthetic, 2 chains, %d quads) · %s · %s"%[surface.quads.size(),JSON.stringify(surface.mesh_stats),"ok" if errors.is_empty() else "FAILED: "+"; ".join(errors.slice(0,6))])
+ return errors.size()
 
 var edges={}
 var raw_edges={}

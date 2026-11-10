@@ -43,18 +43,19 @@ var lane_chains: Array = []
 var quad_lane: Array = []
 const LANE_FLAG := 1000.      # added to the lateral offset in UV2; the ground mesh has no UV2
 const LANE_M := 3.6           # a US travel lane (AASHTO 12 ft)
-const LANE_MIN_M := 3.0       # narrowest lane a carriageway is split into (10 ft)
-const CONDITION_STEP := 5     # stations between street-condition samples (refined where they differ)
 var mesh_stats := {}          # timing of the last mesh() (checks/RoadProfile.gd prints it)
 
-## Lanes per side and lane width that fit inside a carriageway of half width
-## `half`: 3.6 m lanes, as many per side as fit with up to 0.9 m to spare
-## (narrowed to share the width, never below 3.0 m), so lanes never overhang
-## the carriageway. A road under 5.4 m is one centred lane: Vector2(0, 2 half).
+## Lanes per side and lane width inside a carriageway of half width `half`,
+## as Vector2(lanes per side, lane width). n = floor(half / 3.6 + 0.25): a
+## further lane is counted once three quarters of it fits, and then all lanes
+## of that side narrow to share the half width (min(3.6, half / n)). So a lane
+## is 2.7-3.6 m with one per side (AASHTO's 9-12 ft range; a 5.4-7.2 m road is
+## two narrowed lanes) and 3.15-3.6 m with two or more; what is left of the
+## half width (under 2.7 m) is shoulder or parking. Lanes never overhang the
+## carriageway. A road under 5.4 m is one centred lane: Vector2(0, 2 half).
 static func lane_fit(half: float) -> Vector2:
- if half < LANE_M * .75:return Vector2(0., half * 2.)
- var n := maxf(floorf(half / LANE_M + .25), 1.)
- while n > 1. and half / n < LANE_MIN_M:n -= 1.
+ var n := floorf(half / LANE_M + .25)
+ if n < 1.:return Vector2(0., half * 2.)
  return Vector2(n, minf(LANE_M, half / n))
 
 static func enabled() -> bool:
@@ -102,6 +103,10 @@ func build(rows: Array, side: float) -> void:
   var sections: Array = chain.sections
   if active:join(sections)
   var along := PackedFloat32Array();along.resize(sections.size())
+  # Each chain starts its distance along at its own offset (0-1800 m, from
+  # where it starts), so the hashed cracks, patches and joints of two chains
+  # that meet do not repeat the same pattern from their junction.
+  along[0] = float(absi(hash(Vector2i((chain.centres[0] as Vector2).round()))) % 1800)
   for i in range(1, sections.size()):
    along[i] = along[i-1] + Vector2(sections[i][2].x, sections[i][2].z).distance_to(Vector2(sections[i-1][2].x, sections[i-1][2].z))
   # Lanes are laid out from the centreline, fitted inside the carriageway
@@ -201,32 +206,6 @@ static func condition(tile, p: Vector2, cls: String) -> float:
  return clampf((value - .8) / 2.5, 0., 1.)
 const ROUGHNESS := preload("res://RoadRoughness.gd")
 
-## Ribbons carry UV2 and vertex colour, which the plain ground mesh does not,
-## so the ground shader needs pipelines for a second vertex format. Show one
-## sub-pixel triangle of that format 1 m in front of the camera (also casting
-## a shadow) for the first two seconds, so those pipelines are compiled while
-## the start place loads instead of when the first ribbon comes into view.
-static func prewarm(camera: Node3D, shader: Shader) -> void:
- if not enabled() or "--without-lane-wear" in OS.get_cmdline_user_args():return
- var arrays := []
- arrays.resize(Mesh.ARRAY_MAX)
- arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array([Vector3.ZERO, Vector3(.0002, 0., 0.), Vector3(0., .0002, 0.)])
- arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array([Vector3.BACK, Vector3.BACK, Vector3.BACK])
- arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array([Vector2.ZERO, Vector2.ZERO, Vector2.ZERO])
- arrays[Mesh.ARRAY_TEX_UV2] = PackedVector2Array([Vector2(LANE_FLAG, 0.), Vector2(LANE_FLAG, 0.), Vector2(LANE_FLAG, 0.)])
- arrays[Mesh.ARRAY_COLOR] = PackedColorArray([Color(.45, .5, .2, .25), Color(.45, .5, .2, .25), Color(.45, .5, .2, .25)])
- var m := ArrayMesh.new()
- m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
- var mat := ShaderMaterial.new()
- mat.shader = shader
- m.surface_set_material(0, mat)
- var warm := MeshInstance3D.new()
- warm.name = "RibbonPipelineWarm"
- warm.mesh = m
- warm.position = Vector3(0., 0., -1.)
- camera.add_child(warm)
- camera.get_tree().create_timer(2.).timeout.connect(warm.queue_free)
-
 func mesh(mat: Material, side: float, tile = null) -> ArrayMesh:
  var forced := -1.
  # --without-lane-wear leaves the flag off, so the shader keeps its old look (A/B).
@@ -241,19 +220,10 @@ func mesh(mat: Material, side: float, tile = null) -> ArrayMesh:
   if forced >= 0.:
    w.fill(forced)
   else:
-   # The condition changes only where the ribbon passes from one street to
-   # another, so sample every CONDITION_STEP stations and evaluate the
-   # stations in between only where two samples differ.
-   var last := w.size() - 1
-   var prev_i := 0
-   w[0] = condition(tile, lc.centres[0], lc.cls);samples += 1
-   while prev_i < last:
-    var i := mini(prev_i + CONDITION_STEP, last)
-    w[i] = condition(tile, lc.centres[i], lc.cls);samples += 1
-    for j in range(prev_i + 1, i):
-     if w[i] == w[prev_i]:w[j] = w[i]
-     else:w[j] = condition(tile, lc.centres[j], lc.cls);samples += 1
-    prev_i = i
+   # Every station (2 m apart) is evaluated, so a street change of any
+   # length along the ribbon is drawn where the tyres feel it.
+   for i in w.size():w[i] = condition(tile, lc.centres[i], lc.cls)
+   samples += w.size()
   wear.append(w)
  mesh_stats = {"condition_ms":(Time.get_ticks_usec() - started) / 1000., "condition_samples":samples}
  started = Time.get_ticks_usec()

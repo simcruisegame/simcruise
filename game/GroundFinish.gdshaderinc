@@ -201,7 +201,11 @@ void lane_wear(float lateral, float along, float lane_w, float half_w, float per
  vec4 h = lane_rand(cell, 3.0);
  if (h.x < condition * 0.75 - 0.1) {
   float pos = cell * 9.0 + 2.0 + 5.0 * h.y;
-  float bend = lateral * (h.z - 0.5) * 0.30 + 0.12 * sin(lateral * 0.9 + h.z * 6.0) + 0.04 * sin(lateral * 3.7 + h.w * 9.0);
+  // The crack lies 2-7 m into its 9 m cell and is only drawn inside it, so
+  // the skew is limited to 1.7 m at the carriageway edge (plus 0.16 m of
+  // wander): it never leaves the cell and is never cut off on a wide road.
+  float skew = (h.z - 0.5) * min(0.30, 3.4 / max(half_w, 1.0));
+  float bend = lateral * skew + 0.12 * sin(lateral * 0.9 + h.z * 6.0) + 0.04 * sin(lateral * 3.7 + h.w * 9.0);
   float reach = h.z < 0.33 ? 1.0 : (h.z < 0.67 ? step(0.0, lateral * (h.y - 0.5))
               : step(abs(lateral - sign(h.y - 0.5) * lane_w * 0.5), lane_w * 0.5));
   crack = thin_line(along - pos - bend, 0.08, px_along) * reach;

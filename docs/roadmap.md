@@ -75,7 +75,7 @@ Brackets give [days·impact 1-5·data/licence]; **today** = one day on the curre
 - **Trees and grass.** Canopy backlight, occlusion, warm tint, near fade, alpha-to-coverage [2d·4; unverified: BACKLIGHT on Mobile]; mown verges, textured swaying field clumps, fade ring [2.5d·3·CC0 textures].
 - **Sound on by default.** Bus tree, cabin low-pass, procedural tyre/wind/gravel [2d·4]; engine cabin/exterior A/B, limiter stutter, pops [2d·3]; squeal, stones, rumble strips, diff whine [2.5d·3; unverified: rumble strips on a surveyed highway].
 - **A head, not a weld.** Lagged head motion, partial horizon lock, gaze lead, micro-vibration, slider, physics interpolation on [1.75d·4]; FOV 67→55 with seat sliders [1d·3; unverified: eye height].
-- **Roads and horizons.** Asphalt normals, wheel-path wear, wet roads once precipitation is parsed [4d·4·Poly Haven CC0]; far forest skirt [5d·4·CC BY 4.0; unverified]; far buildings past 700 m [4-6d·4·ODbL].
+- **Roads and horizons.** Asphalt normals, wheel-path wear (lane wear on road ribbons is on the road-wear branch; still to do: lane-frame wear where there is no ribbon, as on field tiles and the bundled start), wet roads once precipitation is parsed [4d·4·Poly Haven CC0]; far forest skirt [5d·4·CC BY 4.0; unverified]; far buildings past 700 m [4-6d·4·ODbL].
 
 ## Honest limits
 

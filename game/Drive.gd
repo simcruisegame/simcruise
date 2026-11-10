@@ -204,8 +204,6 @@ func _ready():
   preload("res://CarFinish.gd").new().build(self) # player car, its likeness pass, wheels, lamps, shade and parked cars
  vehicle.add_child(cockpit)
  add_child(camera);camera.current=true;camera.near=.055;camera.far=56000 if regional_terrain.enabled else 1100;camera.fov=62
- # Compile the road ribbon's ground-shader pipelines (UV2 + colour) before the first ribbon is in view.
- preload("res://RoadSurface.gd").prewarm(camera,preload("res://terrain.gdshader"))
  driving_preferences.open()
  vehicle.set_manual(driving_preferences.values.manual)
  street_detail.enabled=driving_preferences.values.street_photos
