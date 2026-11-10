@@ -135,6 +135,10 @@ A 1925 Chicago bungalow, a 1958 California ranch and a 2005 Texas brick two-stor
 3. Add discrete features: expansion joints at NBI bridge ends, manholes from city asset layers, and rumble strips on rural interstates.
 4. The roadmap's slip-dependent tyre curve and contact-patch shape cast.
 
+### Update: the road is its own surface
+
+The biggest realism gap on mountain roads was not the profile but how it was stored. The helper fits a smooth, banked profile along each road, but only the terrain grid reached the game, and 3.9 m planar triangles cannot follow a banked hairpin; the tyres felt every facet. The helper now exports the profile itself and the game drives on a ribbon built from it (`RoadSurface.gd`). Roads are engineered objects, so the rule generalises to every paved road: fit the profile, bank it to the curve, build the road from that, and let the ground meet the road.
+
 ## 7. Hyper-detail without the cost: tricks from science, cinema and magic
 
 | Idea | Where it comes from | What it means here | Status |

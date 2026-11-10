@@ -54,7 +54,7 @@ LightingCheck:0 DaylightWeatherCheck:0 HeadCameraCheck:0 HudLevelCheck:0 RoadNoi
 VegetationCheck:0 RoadProfile:0 RoadBankMeshCheck:0 CrownArrivalOrder:0 SignalControlCheck:0
 StorefrontCheck:0 ObservedPaintCheck:0 PhotoFacadeCheck:0 LandmarkRoof:0
 HistoricAnchorageCheck:0 SustainedSurfaceCheck:0 DriftHold:60 BumpDrive:60 CarTrack:60
-AmbientCheck:0"
+AmbientCheck:0 SBend:60"
 
 fps_for() {
   for entry in $default_suite; do
@@ -69,7 +69,16 @@ if [ $# -gt 0 ]; then names="$*"; else names=$(for e in $default_suite; do echo 
 # changed) and new textures or models from a merge are otherwise missing, which
 # makes every check that loads the game fail to compile.
 [ -d game/.godot ] || echo "Importing the project (first run: 1-3 minutes)..."
+# The editor import re-saves some scripts with "convert indent on save", which
+# turns 4-space indentation into tabs and breaks scripts that indent with spaces.
+# Keep a copy of every script and put back any the import rewrote.
+scripts_backup="$logs/scripts-before-import"
+rm -rf "$scripts_backup"; mkdir -p "$scripts_backup"
+(cd game && find . -name '*.gd' -not -path './.godot/*' | while read -r f; do mkdir -p "$scripts_backup/$(dirname "$f")"; cp -p "$f" "$scripts_backup/$f"; done)
 run_godot 900 "$logs/import.log" --headless --editor --path game --import
+(cd "$scripts_backup" && find . -name '*.gd') | while read -r f; do
+  if ! cmp -s "$scripts_backup/$f" "game/$f"; then cp -p "$scripts_backup/$f" "game/$f"; echo "restored game/${f#./} after the editor import rewrote it"; fi
+done
 if grep -q "SCRIPT ERROR\|Parse Error" "$logs/import.log" 2>/dev/null; then
   echo "import reported script errors; see $logs/import.log"
 fi

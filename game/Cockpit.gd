@@ -5,6 +5,7 @@ const DRIVER_LAYER := 4
 const EYE := Vector3(-.347, 1.009, .503)
 const SIGHT := Vector3(-.347, -2.00, -23.5)
 const DRIVER_FOV := 67.0
+var driver_fov := DRIVER_FOV   # set by Drive.gd from ViewLens.gd
 # Driver head model. The eye is no longer welded to the chassis: a critically
 # damped spring (natural frequency HEAD_OMEGA, damping ratio 1) moves it against
 # the felt body acceleration, braking adds a small nose-down pitch, the gaze
@@ -156,7 +157,7 @@ func set_view(active: bool, camera: Camera3D, car, signed_speed: float, dt: floa
  visible = active and cabin != null
  camera.set_cull_mask_value(2, not visible)
  camera.set_cull_mask_value(3, visible)
- camera.fov = DRIVER_FOV if visible else 62.0
+ camera.fov = driver_fov if visible else 62.0
  if not visible:
   mirror_elapsed = 1.0
   return

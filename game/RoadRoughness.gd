@@ -17,7 +17,8 @@ extends RefCounted
 ## its wavelength. RMS height is IRI × 2.5 mm, which puts a good highway near
 ## 3 mm and a worn residential street near 1 cm.
 ##
-## Disabled with --smooth-roads (A/B and for checks that want the old surface).
+## Off by default; --rough-roads turns it on. It stays off until real measured
+## roughness (HPMS IRI per section) replaces the class estimate.
 
 const CLASS_IRI := {"motorway":1.0,"trunk":1.2,"motorway_link":1.3,"trunk_link":1.4,"primary":1.6,"primary_link":1.7,"secondary":1.9,"secondary_link":1.9,"tertiary":2.2,"tertiary_link":2.2,"unclassified":2.8,"residential":2.6,"living_street":2.6,"service":3.2,"track":6.5}
 const UNPAVED_IRI := 6.0
@@ -33,7 +34,9 @@ var region := FastNoiseLite.new()
 var norm := 0.
 
 func _init() -> void:
- enabled = not "--smooth-roads" in OS.get_cmdline_user_args()
+ # Off by default: the profile is estimated from road class, not measured,
+ # and real roads must drive smooth. --rough-roads turns it on (for HPMS work).
+ enabled = "--rough-roads" in OS.get_cmdline_user_args()
  noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
  noise.seed = 8608
  noise.frequency = 1.

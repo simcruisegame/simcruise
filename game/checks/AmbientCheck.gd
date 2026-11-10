@@ -31,6 +31,7 @@ func _initialize() -> void:
  expect(absf(placed.position.x + placed.size.x * .5) < .001 and absf(placed.position.z + placed.size.z * .5) < .001, "car not centred")
 
  var rough = load("res://RoadRoughness.gd").new()
+ rough.enabled = true   # off in game by default; the formula is still checked
  var rms := {}
  var peak := 0.
  for iri in [1.0, 2.6, 6.5]:

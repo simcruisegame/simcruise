@@ -148,8 +148,10 @@ func walk(route:Array,side:float)->PackedVector2Array:
   acc+=l
  return out
 
-# The ground collider is the concave shape that spans the whole tile.
+# Every concave collider of the tile: the ground and, where RoadSurface.gd built
+# them, the road ribbons above it. A wheel ray meets the highest face.
 func ground_faces(tile,side:float)->PackedVector3Array:
+ var out=PackedVector3Array();var has_ground=false
  for body in tile.get_children():
   if not body is StaticBody3D:continue
   for col in body.get_children():
@@ -158,8 +160,9 @@ func ground_faces(tile,side:float)->PackedVector3Array:
    if faces.is_empty():continue
    var box=AABB(faces[0],Vector3.ZERO)
    for v in faces:box=box.expand(v)
-   if box.size.x>side*.9 and box.size.z>side*.9:return faces
- return PackedVector3Array()
+   if box.size.x>side*.9 and box.size.z>side*.9:has_ground=true;out.append_array(faces)
+   elif tile.road_surface!=null and box.size.y<400.:out.append_array(faces)
+ return out if has_ground else PackedVector3Array()
 
 func index_faces(faces:PackedVector3Array,bin:float)->Dictionary:
  var grid={}
@@ -175,14 +178,17 @@ func index_faces(faces:PackedVector3Array,bin:float)->Dictionary:
  return grid
 
 func height_on_faces(p:Vector2,faces:PackedVector3Array,index:Dictionary,bin:float)->float:
+ var best=NAN
  for f in index.get(Vector2i(floori(p.x/bin),floori(p.y/bin)),[]):
   var a=faces[f];var b=faces[f+1];var c=faces[f+2]
   var ab=Vector2(b.x-a.x,b.z-a.z);var ac=Vector2(c.x-a.x,c.z-a.z);var ap=p-Vector2(a.x,a.z)
   var det=ab.cross(ac)
   if absf(det)<1e-9:continue
   var u=ap.cross(ac)/det;var v=ab.cross(ap)/det
-  if u>=-1e-5 and v>=-1e-5 and u+v<=1.+1e-5:return a.y+u*(b.y-a.y)+v*(c.y-a.y)
- return NAN
+  if u>=-1e-5 and v>=-1e-5 and u+v<=1.+1e-5:
+   var h=a.y+u*(b.y-a.y)+v*(c.y-a.y)
+   if is_nan(best) or h>best:best=h
+ return best
 
 func blank()->Dictionary:return {"m":0.,"n":0,"max":0.,"creases":0,"step":0.,"ss":0.,"hist":[0,0,0,0,0,0,0]}
 
