@@ -12,8 +12,8 @@ extends RefCounted
 ## helper fits along the road changes by at most ~0.17°/m.
 ##
 ## So the helper exports each road's fitted profile (helper/road-grade.mjs,
-## road_surface: stations every 2 m with height, cross slope and a smoothed
-## tangent) and this builds, per road, a ribbon from it:
+## road_surface: stations every 2 m with height, cross slope, paved width and a
+## smoothed tangent) and this builds, per road, a ribbon from it:
 ##   * the carriageway at the profile height with its superelevation, plus a
 ##     1 m shoulder that drops 4 cm, like a paved edge;
 ##   * drawn with the tile's own ground material and UVs (position / side), so
@@ -35,10 +35,14 @@ const BIN := 8.
 var quads: Array = []         # [a, b, c, d] Vector3, tile metres (a,b at station i; c,d at i+1)
 var bins := {}                # Vector2i -> [quad index]
 var active := false
-var lines: Array = []         # per road: cls, half width, sections (5 cross-section points per station; GuardRails.gd)
+# Per road: cls, halves (paved half width at each station; a chain can join
+# roads of different widths) and sections (5 cross-section points per station:
+# shoulder edge, paved edge, centre, paved edge, shoulder edge). GuardRails.gd
+# places rails from each station's own shoulder edge, never a chain-wide width.
+var lines: Array = []
 # Lane frame for the drawn surface (GroundFinish.gdshaderinc lane_wear): per
-# built chain its half width, lane width, cross-section offsets, distance
-# along (m) and centre per station; per quad [chain, station, offset index].
+# built chain its half width, distance along (m) and centre per station, and
+# its class; per quad [chain, station, offset index].
 var lane_chains: Array = []
 var quad_lane: Array = []
 const LANE_FLAG := 1000.      # added to the lateral offset in UV2; the ground mesh has no UV2
@@ -58,6 +62,17 @@ static func lane_fit(half: float) -> Vector2:
  if n < 1.:return Vector2(0., half * 2.)
  return Vector2(n, minf(LANE_M, half / n))
 
+## Lateral offset (m, left positive) of cross-section point k (0..4: shoulder
+## edge, paved edge, centre, paved edge, shoulder edge) for half width `half`,
+## as build() places them.
+static func lateral_offset(k: int, half: float) -> float:
+ match k:
+  0:return -(half + SHOULDER_M)
+  1:return -half
+  2:return 0.
+  3:return half
+ return half + SHOULDER_M
+
 static func enabled() -> bool:
  return not "--grid-roads" in OS.get_cmdline_user_args()
 
@@ -71,6 +86,9 @@ static func for_tile(tile) -> RefCounted:
 # Major roads first: at an intersection the minor road meets the major road's
 # surface (its ribbon snaps where they overlap, and the correction fades out
 # along the minor road over JOIN_FADE_M, so there is no step at the edge).
+# Ribbons of one class meet the same way, the longer first. Where two banked
+# roads overlap (a couplet splitting from its approach) the helper has already
+# run their superelevation out, so their cross slopes agree there.
 const RANK := {"motorway":7,"trunk":6,"primary":5,"secondary":4,"tertiary":3,"minor":2,"residential":2,"unclassified":2}
 const JOIN_FADE_M := 15.
 
@@ -80,24 +98,28 @@ func build(rows: Array, side: float) -> void:
   var pts: Array = chain.get("pts", [])
   if pts.size() < 2:continue
   var half := float(chain.get("w", 6.)) * .5
-  var offsets := [-(half + SHOULDER_M), -half, 0., half, half + SHOULDER_M]
   var sections := []
   var centres := []
+  var halves := PackedFloat32Array()
   for row in pts:
+   # Per-station width (a chain can join roads of different widths); older rows have none.
+   var half_i: float = float(row[6]) * .5 if row.size() > 6 else half
+   halves.append(half_i)
+   var offsets := [-(half_i + SHOULDER_M), -half_i, 0., half_i, half_i + SHOULDER_M]
    var c := Vector2(float(row[0]), float(row[1])) * side
    centres.append(c)
    var z := float(row[2]);var e := float(row[3])
    var n := Vector2(-float(row[5]), float(row[4]))      # left normal (helper convention)
    var section := []
    for L in offsets:
-    var lateral: float = clampf(L, -half, half)
+    var lateral: float = clampf(L, -half_i, half_i)
     var h: float = z - e * lateral
-    if absf(L) > half:h -= SHOULDER_DROP_M
+    if absf(L) > half_i:h -= SHOULDER_DROP_M
     var p: Vector2 = c + n * L
     section.append(Vector3(p.x, h, p.y))
    sections.append(section)
-  chains.append({"rank":RANK.get(str(chain.get("cls","")),1)*100000+pts.size(),"sections":sections,"half":half,"offsets":offsets,"centres":centres,"cls":str(chain.get("cls",""))})
-  lines.append({"cls":str(chain.get("cls","")),"half":half,"sections":sections})
+  chains.append({"rank":RANK.get(str(chain.get("cls","")),1)*100000+pts.size(),"sections":sections,"halves":halves,"centres":centres,"cls":str(chain.get("cls",""))})
+  lines.append({"cls":str(chain.get("cls","")),"halves":halves,"sections":sections})
  chains.sort_custom(func(a, b): return a.rank > b.rank)
  for chain in chains:
   var sections: Array = chain.sections
@@ -109,11 +131,10 @@ func build(rows: Array, side: float) -> void:
   along[0] = float(absi(hash(Vector2i((chain.centres[0] as Vector2).round()))) % 1800)
   for i in range(1, sections.size()):
    along[i] = along[i-1] + Vector2(sections[i][2].x, sections[i][2].z).distance_to(Vector2(sections[i-1][2].x, sections[i-1][2].z))
-  # Lanes are laid out from the centreline, fitted inside the carriageway
-  # (lane_fit); a road narrower than two lanes is one centred lane.
+  # Lanes are laid out from the centreline and fitted inside the carriageway
+  # at each station (lane_fit of that station's half width, see mesh()).
   var ci := lane_chains.size()
-  var fit := lane_fit(chain.half)
-  lane_chains.append({"half":chain.half,"lane_w":fit.y,"per_side":fit.x,"offsets":chain.offsets,"along":along,"centres":chain.centres,"cls":chain.cls})
+  lane_chains.append({"halves":chain.halves,"along":along,"centres":chain.centres,"cls":chain.cls})
   for i in range(1, sections.size()):
    var prev: Array = sections[i-1];var section: Array = sections[i]
    if Vector2(prev[2].x, prev[2].z).distance_to(Vector2(section[2].x, section[2].z)) >= 8.:continue
@@ -216,15 +237,27 @@ func mesh(mat: Material, side: float, tile = null) -> ArrayMesh:
  var wear := []
  var samples := 0
  for lc in lane_chains:
-  var w := PackedFloat32Array();w.resize(lc.centres.size())
-  if forced >= 0.:
-   w.fill(forced)
-  else:
+  # Per station: lane width / 8 m, condition, half width / 16 m, lanes per side / 4.
+  var halves: PackedFloat32Array = lc.halves
+  var frame := PackedColorArray();frame.resize(halves.size())
+  for i in halves.size():
    # Every station (2 m apart) is evaluated, so a street change of any
-   # length along the ribbon is drawn where the tyres feel it.
-   for i in w.size():w[i] = condition(tile, lc.centres[i], lc.cls)
-   samples += w.size()
-  wear.append(w)
+   # length along the ribbon is drawn where the tyres feel it, and the lanes
+   # follow the paved width where a chain joins roads of different widths.
+   var fit := lane_fit(halves[i])
+   var cond := forced if forced >= 0. else condition(tile, lc.centres[i], lc.cls)
+   frame[i] = Color(fit.y / 8., cond, halves[i] / 16., fit.x / 4.)
+  if forced < 0.:samples += halves.size()
+  wear.append(frame)
+ var flag := 0. if plain else LANE_FLAG
+ # UV2.x of the five cross-section points of every station (+ the flag).
+ var laterals := []
+ for lc in lane_chains:
+  var halves: PackedFloat32Array = lc.halves
+  var lat := PackedFloat32Array();lat.resize(halves.size() * 5)
+  for i in halves.size():
+   for k in 5:lat[i * 5 + k] = lateral_offset(k, halves[i]) + flag
+  laterals.append(lat)
  mesh_stats = {"condition_ms":(Time.get_ticks_usec() - started) / 1000., "condition_samples":samples}
  started = Time.get_ticks_usec()
  # Packed arrays filled in one pass and handed to SurfaceTool for the normals:
@@ -235,11 +268,10 @@ func mesh(mat: Material, side: float, tile = null) -> ArrayMesh:
  var uvs := PackedVector2Array();uvs.resize(count)
  var uv2s := PackedVector2Array();uv2s.resize(count)
  var colours := PackedColorArray();colours.resize(count)
- var flag := 0. if plain else LANE_FLAG
  var inv := 1. / side
  var n := 0
  var last_ci := -1
- var w: PackedFloat32Array;var along: PackedFloat32Array;var offsets: Array;var fixed := Color()
+ var frame: PackedColorArray;var along: PackedFloat32Array;var lat: PackedFloat32Array
  for qi in quads.size():
   var q: Array = quads[qi]
   var ql: Array = quad_lane[qi]
@@ -247,21 +279,21 @@ func mesh(mat: Material, side: float, tile = null) -> ArrayMesh:
   if ci != last_ci:
    # Quads of one chain are consecutive: look its frame up once.
    var lc: Dictionary = lane_chains[ci]
-   last_ci = ci;w = wear[ci];along = lc.along;offsets = lc.offsets
-   fixed = Color(lc.lane_w / 8., 0., lc.half / 16., lc.per_side / 4.)
-  # a, b at station i-1 and offsets k, k+1; c, d at station i and offsets k+1, k (see build()).
-  var l0: float = float(offsets[k]) + flag;var l1: float = float(offsets[k + 1]) + flag
+   last_ci = ci;frame = wear[ci];along = lc.along;lat = laterals[ci]
+  # a, b at station i-1 and offsets k, k+1; c, d at station i and offsets k+1, k
+  # (see build()); each station has its own half width.
+  var p0 := (i - 1) * 5 + k;var p1 := i * 5 + k
+  var a0: float = lat[p0];var b0: float = lat[p0 + 1];var c1: float = lat[p1 + 1];var d1: float = lat[p1]
   var s0: float = along[i - 1];var s1: float = along[i]
-  var c0 := Color(fixed.r, w[i - 1], fixed.b, fixed.a)
-  var c1 := Color(fixed.r, w[i], fixed.b, fixed.a)
+  var f0 := frame[i - 1];var f1 := frame[i]
   var a: Vector3 = q[0];var b: Vector3 = q[1];var c: Vector3 = q[2];var d: Vector3 = q[3]
   # Godot front faces wind clockwise seen from the front (above): a c b, a d c.
-  verts[n] = a;uvs[n] = Vector2(a.x, a.z) * inv;uv2s[n] = Vector2(l0, s0);colours[n] = c0
-  verts[n+1] = c;uvs[n+1] = Vector2(c.x, c.z) * inv;uv2s[n+1] = Vector2(l1, s1);colours[n+1] = c1
-  verts[n+2] = b;uvs[n+2] = Vector2(b.x, b.z) * inv;uv2s[n+2] = Vector2(l1, s0);colours[n+2] = c0
-  verts[n+3] = a;uvs[n+3] = uvs[n];uv2s[n+3] = uv2s[n];colours[n+3] = c0
-  verts[n+4] = d;uvs[n+4] = Vector2(d.x, d.z) * inv;uv2s[n+4] = Vector2(l0, s1);colours[n+4] = c1
-  verts[n+5] = c;uvs[n+5] = uvs[n+1];uv2s[n+5] = uv2s[n+1];colours[n+5] = c1
+  verts[n] = a;uvs[n] = Vector2(a.x, a.z) * inv;uv2s[n] = Vector2(a0, s0);colours[n] = f0
+  verts[n+1] = c;uvs[n+1] = Vector2(c.x, c.z) * inv;uv2s[n+1] = Vector2(c1, s1);colours[n+1] = f1
+  verts[n+2] = b;uvs[n+2] = Vector2(b.x, b.z) * inv;uv2s[n+2] = Vector2(b0, s0);colours[n+2] = f0
+  verts[n+3] = a;uvs[n+3] = uvs[n];uv2s[n+3] = uv2s[n];colours[n+3] = f0
+  verts[n+4] = d;uvs[n+4] = Vector2(d.x, d.z) * inv;uv2s[n+4] = Vector2(d1, s1);colours[n+4] = f1
+  verts[n+5] = c;uvs[n+5] = uvs[n+1];uv2s[n+5] = uv2s[n+1];colours[n+5] = f1
   n += 6
  var arrays := []
  arrays.resize(Mesh.ARRAY_MAX)

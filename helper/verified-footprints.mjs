@@ -4,7 +4,7 @@ import earcut from 'earcut';
 import surveys from './footprint-surveys.json' with {type:'json'};
 import corroborated from './corroborated-outlines.json' with {type:'json'};
 
-export const roadWidths={motorway:19,trunk:16,primary:12,secondary:11,tertiary:10,minor:8,service:4.6,track:3};
+import {roadWidths} from './road-widths.mjs';
 const eps=1e-12;
 const maxInputs=2000;
 const key=(x,y)=>x+'-'+y;
@@ -63,7 +63,7 @@ function occupied(layers,candidate,x,y,side){
    if(!near(candidate.box,[fb[0]/q-sx,fb[1]/q-sy,fb[2]/q-sx,fb[3]/q-sy],padding))continue;
    // Check all building parts, hidden buildings and outer rings, including
    // shapes owned by another game tile. For roads use the game's full width.
-   const width=roadWidths[f.properties.class];
+   const width=closed?0:roadWidths.of(f);
    if(!closed && (!width || f.properties.brunnel==='tunnel'))continue;
    const lines=closed?classifyRings(f.loadGeometry()).map(poly=>poly[0]):f.loadGeometry();
    for(const line of lines){

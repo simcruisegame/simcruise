@@ -85,7 +85,8 @@ func _initialize():
 # The bundled Miami tiles carry no road profile, so no ribbon is built from
 # them. This builds two synthetic ribbons (RoadSurface.gd) and checks the lane
 # frame mesh() hands the ground shader: lane_fit() never overhangs the
-# carriageway, every vertex is flagged and carries its chain's lane layout,
+# carriageway, every vertex is flagged and carries its own lateral offset and
+# the lane layout of its station's width (one ribbon narrows from 14 to 10 m),
 # the street condition follows the street under every 2 m station (a 6 m
 # street with another name inside a chain included), and two chains do not
 # start their distance along at the same value. Prints one RIBBON line.
@@ -105,7 +106,11 @@ func ribbon_lane_frame()->int:
   var pts=[]
   for i in 251:
    var c:Vector2=spec[2]+spec[3]*2.*i
-   pts.append([c.x/side,c.y/side,10.,0.,spec[3].x,spec[3].y])
+   var row=[c.x/side,c.y/side,10.,0.,spec[3].x,spec[3].y]
+   # Alpha carries a per-station width (14 m, then 10 m from x = 400 m), as
+   # the helper exports where a chain joins roads of different widths.
+   if spec[0]=="primary":row.append(14. if c.x<399. else 10.)
+   pts.append(row)
   rows.append({"cls":spec[0],"w":spec[1],"pts":pts})
  # Streets under the ribbons as WorldTile.road_index() files them: Alpha with a
  # 6 m "Short Bridge" inside it, and Bravo across.
@@ -134,10 +139,19 @@ func ribbon_lane_frame()->int:
  for v in verts.size():
   var p=verts[v]
   if uv2[v].x<SURFACE.LANE_FLAG*.5:errors.append("vertex %d not flagged"%v);break
+  # Which ribbon a vertex belongs to, from where it is (Alpha runs along
+  # z = 300 m, Bravo along x = 300 m); the crossing itself is ambiguous.
+  var near_alpha=absf(p.z-300.)<=8.25;var near_bravo=absf(p.x-300.)<=4.05
+  if near_alpha==near_bravo:continue
+  var on_alpha=near_alpha
+  var half=(7. if p.x<399. else 5.) if on_alpha else 2.8
   # Vertex colour is stored as 8-bit unorm (truncated): compare within one step.
-  var on_alpha=absf(colours[v].b*16.-7.)<.07
-  var fit=SURFACE.lane_fit(7. if on_alpha else 2.8)
-  if absf(colours[v].r*8.-fit.y)>.035 or absf(colours[v].a*4.-fit.x)>.02:errors.append("vertex %d lane layout %s, expected %s"%[v,colours[v],fit]);break
+  var fit=SURFACE.lane_fit(half)
+  if absf(colours[v].r*8.-fit.y)>.035 or absf(colours[v].a*4.-fit.x)>.02 or absf(colours[v].b*16.-half)>.07:
+   errors.append("vertex %d at %s lane layout %s, expected lanes %s half %.1f"%[v,p,colours[v],fit,half]);break
+  # UV2.x is the vertex's own lateral offset from the centreline (left positive).
+  var lateral=(p.z-300.) if on_alpha else (300.-p.x)
+  if absf(uv2[v].x-SURFACE.LANE_FLAG-lateral)>2e-3:errors.append("vertex %d at %s lateral %.3f, placed at %.3f"%[v,p,uv2[v].x-SURFACE.LANE_FLAG,lateral]);break
   var station=Vector2(p.x,p.z) if absf(uv2[v].x-SURFACE.LANE_FLAG)<1e-3 else Vector2.ZERO
   # Where the two streets cross both are 0 m away and float noise picks one.
   if station!=Vector2.ZERO and station.distance_to(Vector2(300,300))>.5:
