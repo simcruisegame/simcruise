@@ -30,29 +30,33 @@ function authoredWeight(wx,wy){
  }
  const t=clamp(d/1.25,0,1);return t*t*(3-2*t);
 }
+// A failure that a retry would meet again: no product, an unreadable layout, a
+// window over the read budget. Anything else (a timeout, a provider pause, a
+// 5xx, a pinned product that changed) is transient: see measuredGround.
+function lasting(message){const e=Error(message);e.lasting=true;return e}
 async function patch(file,bounds,cache,read,budget){
  const url=ROOT+'/'+file+'/USGS_13_'+file+'.tif';
  const missing=path.join(cache,'usgs-dem-miss-'+file);
- if(Date.now()-(fs.statSync(missing,{throwIfNoEntry:false})?.mtimeMs??0)<7*DAY)throw Error('No USGS elevation product');
+ if(Date.now()-(fs.statSync(missing,{throwIfNoEntry:false})?.mtimeMs??0)<7*DAY)throw lasting('No USGS elevation product');
  // The current product can be replaced in place. Keep its ETag together with
  // the header in one atomic cache entry, and pin all subsequent Range reads.
  let tagged;
  try{tagged=await read('usgs-dem-head-'+file,url,14*DAY,[0,HEADER-1],5500,HEADER,{includeETag:true});}
  catch(err){
-  if(/returned (404|403)/.test(String(err)))fs.writeFileSync(missing,'unavailable');
+  if(/returned (404|403)/.test(String(err))){fs.writeFileSync(missing,'unavailable');throw lasting(err.message)}
   throw err;
  }
  const line=tagged.indexOf(10),etag=tagged.subarray(0,line).toString();
- if(line<2||line>128||!/^"[a-f\d]{32}(?:-\d+)?"$/i.test(etag))throw Error('Invalid USGS product identity');
+ if(line<2||line>128||!/^"[a-f\d]{32}(?:-\d+)?"$/i.test(etag))throw lasting('Invalid USGS product identity');
  const head=tagged.subarray(line+1),version=etag.slice(1,-1);
  const memo=new Map();
  const source={fetch:slices=>Promise.all(slices.map(({offset,length})=>{
-  if(!Number.isSafeInteger(offset)||!Number.isSafeInteger(length)||length<=0||offset<0)throw Error('Invalid TIFF range');
+  if(!Number.isSafeInteger(offset)||!Number.isSafeInteger(length)||length<=0||offset<0)throw lasting('Invalid TIFF range');
   if(offset+length<=head.length)return bufferCopy(head.subarray(offset,offset+length));
   const id='usgs-dem-data-'+file+'-'+version+'-'+offset+'-'+length;
   if(!memo.has(id)){
    budget.bytes+=length;budget.ranges+=1;
-   if(length>1500000||budget.bytes>5800000||budget.ranges>10)throw Error('USGS elevation window exceeds read budget');
+   if(length>1500000||budget.bytes>5800000||budget.ranges>10)throw lasting('USGS elevation window exceeds read budget');
    memo.set(id,read(id,url,180*DAY,[offset,offset+length-1],6000,length,{ifMatch:etag}).then(bufferCopy).catch(err=>{
     if(/returned 412|product changed/.test(String(err))){
      const filePath=path.join(cache,'usgs-dem-head-'+file);
@@ -66,11 +70,11 @@ async function patch(file,bounds,cache,read,budget){
  }))};
  const raster=await (await GeoTIFF.fromSource(source)).getImage();
  const keys=raster.getGeoKeys(),[west,north]=raster.getOrigin(),[dx,dy]=raster.getResolution();
- if(keys.GeographicTypeGeoKey!==4269||keys.GTRasterTypeGeoKey!==1||!(dx>0&&dx<.001&&dy<0&&dy>-.001))throw Error('Unsupported USGS elevation reference');
+ if(keys.GeographicTypeGeoKey!==4269||keys.GTRasterTypeGeoKey!==1||!(dx>0&&dx<.001&&dy<0&&dy>-.001))throw lasting('Unsupported USGS elevation reference');
  const u=lon=>(lon-west)/dx-.5,v=lat=>(lat-north)/dy-.5;
  const [left,bottom,right,top]=bounds;
  const x0=Math.floor(u(left)),y0=Math.floor(v(top)),x1=Math.floor(u(right))+2,y1=Math.floor(v(bottom))+2;
- if(x0<0||y0<0||x1>raster.getWidth()||y1>raster.getHeight()||(x1-x0)*(y1-y0)>90000)throw Error('Incomplete USGS product window');
+ if(x0<0||y0<0||x1>raster.getWidth()||y1>raster.getHeight()||(x1-x0)*(y1-y0)>90000)throw lasting('Incomplete USGS product window');
  const values=await raster.readRasters({window:[x0,y0,x1,y1],samples:[0],interleave:true});
  const stride=x1-x0,nodata=raster.getGDALNoData();
  const sample=(lon,lat)=>{
@@ -104,5 +108,35 @@ export async function measuredGround(X,Y,cache,read){
   if(!maps.size)return null;
   return {source:'USGS 3DEP 1/3 arc-second',products:[...maps.keys()],versions:Object.fromEntries([...maps].map(([id,f])=>[id,f.etag])),weight:authoredWeight,
    sample:(x,y)=>{const lon=longitude(x),lat=latitude(y);return maps.get(degree(lon,lat))?.(lon,lat)??null;}};
- }catch{return null;}
+ }catch(error){
+  // Without 3DEP this tile would stand on the coarse Terrarium field while its
+  // neighbours use 3DEP: a step of decimetres at the shared edge (Bozeman MT,
+  // 0.39 m). A transient failure is reported so the caller rejects the tile
+  // and the game retries it; a lasting one keeps Terrarium for the whole tile.
+  if(error?.lasting)return null;
+  return {unavailable:true,reason:String(error?.message??error).slice(0,160)};
+ }
+}
+
+// The caller of measuredGround: a tile whose 3DEP read failed for a transient
+// reason is rejected (this throws, the helper exits 1 and the game retries the
+// tile in 15 s) instead of being built on Terrarium beside 3DEP neighbours, a
+// seam step (Bozeman MT, 0.39 m). After ELEVATION_TRIES rejections within
+// RETRY_WINDOW_MS the tile is built on Terrarium after all (road_grade says
+// so in elevation_fallback), so a long outage cannot leave a hole in the world.
+// Returns the measured ground to build on, or null for Terrarium.
+export const ELEVATION_TRIES=3,RETRY_WINDOW_MS=20*60000;
+export function elevationGate(cache,X,Y,measured,now=Date.now()){
+ const marker=path.join(cache,'.source-state','elevation-retry-'+X+'-'+Y+'.json');
+ if(!measured?.unavailable){
+  if(measured)fs.rmSync(marker,{force:true});
+  return measured;
+ }
+ let tries=[];
+ try{tries=JSON.parse(fs.readFileSync(marker,'utf8'))}catch{}
+ tries=(Array.isArray(tries)?tries:[]).filter(t=>Number.isFinite(t)&&now-t>=0&&now-t<RETRY_WINDOW_MS);
+ tries.push(now);
+ try{fs.mkdirSync(path.dirname(marker),{recursive:true});fs.writeFileSync(marker,JSON.stringify(tries))}catch{}
+ if(tries.length<=ELEVATION_TRIES)throw Error('Elevation source unavailable ('+measured.reason+'); retry the tile');
+ return null;
 }

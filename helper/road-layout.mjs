@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
+import {referenceWidths} from './road-widths.mjs';
 
 const day=86400000, lifetime=28*day, span=40075016.68557849/65536;
 const host='https://services6.arcgis.com/Do88DoK2xjTUCXd1/ArcGIS/rest/services/OSM_NA_Highways/FeatureServer/0/query';
@@ -76,8 +77,11 @@ function projection(p,line){
  return best;
 }
 function need(r){return major.has(r[0])&&Boolean(r[1])&&r[2]&&r[4]>=7.3&&r[5]!=='unpaved';}
+// Signs each road's geometry and the reference width of its class (not its own
+// width, which can be narrower: road-widths.mjs); SurveyOutcropGround.gd
+// road_signature() is the same function.
 export function laneRoadSignature(roads){
- const rows=roads.map(r=>Math.round(r[4]*100)+'|'+r[3].map(p=>Math.round(p[0]*1e6)+'/'+Math.round(p[1]*1e6)).join(',')).sort();
+ const rows=roads.map(r=>Math.round((Object.hasOwn(referenceWidths,r[0])?referenceWidths[r[0]]:r[4])*100)+'|'+r[3].map(p=>Math.round(p[0]*1e6)+'/'+Math.round(p[1]*1e6)).join(',')).sort();
  return createHash('sha256').update(rows.join('\n')).digest('hex');
 }
 export function matchedLaneSpans(x,y,roads,obs){

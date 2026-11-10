@@ -88,6 +88,18 @@ function clipSegment(ax,ay,bx,by,x0,y0,x1,y1){
  return [ax+t0*dx,ay+t0*dy,ax+t1*dx,ay+t1*dy];
 }
 
+// A line is near a box when any of its segments enters it, not only when a
+// vertex lies inside: a straight road can cross a whole tile (or its apron)
+// between two vertices far outside it (Leakey TX, RR 337).
+export function crossesBox(pts,x0,y0,x1,y1){
+ for(let k=0;k<pts.length;k++){
+  const [x,y]=pts[k];
+  if(x>=x0&&x<=x1&&y>=y0&&y<=y1)return true;
+  if(k&&clipSegment(pts[k-1][0],pts[k-1][1],x,y,x0,y0,x1,y1))return true;
+ }
+ return false;
+}
+
 // Lines of one z14 tile in metres relative to the requesting tile's parent.
 // kind: 'bench' (paved, at grade), 'protected' (bridge, tunnel, layer != 0).
 function tileLines(tile,widths,ox,oy,scale,clipToOwn){
@@ -100,7 +112,7 @@ function tileLines(tile,widths,ox,oy,scale,clipToOwn){
   const protectedRoad=p.brunnel==='bridge'||p.brunnel==='tunnel'||Number(p.layer??0)!==0||p.class==='ferry';
   const elevatedRoad=(p.brunnel==='bridge'||Number(p.layer??0)>0)&&(PAVED.has(p.class)||['service','track','busway'].includes(p.class));
   if(!protectedRoad&&(!PAVED.has(p.class)||LOOSE.has(p.surface)))continue;
-  const width=widths[p.class]??8,f=size/feature.extent;
+  const width=(widths.of?widths.of(feature):widths[p.class])??8,f=size/feature.extent;
   for(const line of feature.loadGeometry()){
    let piece=[];
    const bridge=protectedRoad&&p.brunnel!=='tunnel'&&(PAVED.has(p.class)||['service','track'].includes(p.class))&&(p.brunnel==='bridge'||Number(p.layer??0)>0);
@@ -289,11 +301,24 @@ function profileAt(profile,s){
 // the drivable ribbon from these instead of from the terrain grid, whose
 // 3.9 m triangles cannot follow a banked hairpin (checks/RoadProfile.gd).
 // Rows: [x, y] in tile units (0..1 like roads), z m, e (cross slope, + lowers
-// the side the left normal points to), tx, ty.
-const SURFACE_APRON=6;
+// the side the left normal points to), tx, ty, w (paved width at the station, m).
+// A chain can join roads of different widths (a one-way carriageway continuing
+// as a two-way road); w changes linearly across a 20 m window centred on the
+// joint (WIDTH_TAPER = 10 m on each side), and the row's own w is the widest
+// part, as before.
+const SURFACE_APRON=6,WIDTH_TAPER=10;
+function widthAlong(parts){
+ if(parts.every(p=>p.piece.width===parts[0].piece.width)){const w=parts[0].piece.width;return ()=>w}
+ // Mean width of the parts over [s - WIDTH_TAPER, s + WIDTH_TAPER].
+ return s=>{
+  let sum=0,n=0;
+  for(const p of parts){const o=Math.min(s+WIDTH_TAPER,p.offset+p.length)-Math.max(s-WIDTH_TAPER,p.offset);if(o>0){sum+=o*p.piece.width;n+=o}}
+  return n>0?sum/n:parts[s<=0?0:parts.length-1].piece.width;
+ };
+}
 function roadSurface(chains,{tx0,ty0,scale}){
  const out=[];
- for(const {cls,width,profile} of chains){
+ for(const {cls,width,widthAt,profile} of chains){
   if(LOOSE.has(cls))continue;
   const rows=[];let run=[];
   const flush=()=>{if(run.length>=2)rows.push(run);run=[]};
@@ -304,7 +329,7 @@ function roadSurface(chains,{tx0,ty0,scale}){
    const [z,e,tx,ty]=profileAt(profile,profile.S[i]);
    if(!Number.isFinite(z)){flush();continue}
    const r=(v,k)=>Math.round(v*k)/k;
-   run.push([r((x-tx0)/scale,1e6),r((y-ty0)/scale,1e6),r(z,1e3),r(e,1e4),r(tx,1e4),r(ty,1e4)]);
+   run.push([r((x-tx0)/scale,1e6),r((y-ty0)/scale,1e6),r(z,1e3),r(e,1e4),r(tx,1e4),r(ty,1e4),r(widthAt(profile.S[i]),100)]);
   }
   flush();
   for(const pts of rows)out.push({cls,w:Math.round(width*100)/100,pts});
@@ -340,7 +365,7 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
  const tx0=(X-4*mx)*scale,ty0=(Y-4*my)*scale,tx1=tx0+scale,ty1=ty0+scale;
  const inside=(x,y)=>x>=tx0-SAMPLE_APRON&&x<=tx1+SAMPLE_APRON&&y>=ty0-SAMPLE_APRON&&y<=ty1+SAMPLE_APRON;
 
- const near=(pts,margin)=>pts.some(([x,y])=>x>=tx0-margin&&x<=tx1+margin&&y>=ty0-margin&&y<=ty1+margin);
+ const near=(pts,margin)=>crossesBox(pts,tx0-margin,ty0-margin,tx1+margin,ty1+margin);
  // Road pieces: this parent clipped to itself; a neighbour parent is read only
  // when a road of this parent runs into it near this tile (its buffer shows it).
  const own=tileLines(tile,widths,0,0,scale,true);
@@ -353,7 +378,7 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
   // Region of the neighbour that this tile's samples can reach.
   const rx0=Math.max(nx0,tx0-need),ry0=Math.max(ny0,ty0-need),rx1=Math.min(nx1,tx1+need),ry1=Math.min(ny1,ty1+need);
   if(rx0>=rx1||ry0>=ry1)continue;
-  const crosses=unclipped.some(l=>(!l.protectedRoad||l.bridge)&&l.pts.some(([x,y])=>x>=rx0&&x<=rx1&&y>=ry0&&y<=ry1));
+  const crosses=unclipped.some(l=>(!l.protectedRoad||l.bridge)&&crossesBox(l.pts,rx0,ry0,rx1,ry1));
   if(crosses)neighbours.push([dx,dy]);
  }
  let pieces=own;
@@ -406,15 +431,16 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
     const k=x+','+y;if(!roads.has(k))roads.set(k,[]);roads.get(k).push(seg);
    }
  };
- const cell=scale/FINE,terminals=[],surfaceChains=[];
+ const cell=scale/FINE,terminals=[],surfaceChains=[],banked=[];
  chains.forEach((parts,id)=>{
   const cls=parts[0].piece.cls,width=Math.max(...parts.map(p=>p.piece.width));
   const ends=[parts[0].reversed?parts[0].piece.pts[parts[0].piece.pts.length-1]:parts[0].piece.pts[0],
    parts[parts.length-1].reversed?parts[parts.length-1].piece.pts[0]:parts[parts.length-1].piece.pts[parts[parts.length-1].piece.pts.length-1]];
   const bridgeAt=ends.map(a=>bridgeEnds.some(b=>Math.hypot(a[0]-b[0],a[1]-b[1])<=3));
   const profile=chainProfile(parts,sample,inside,designSpeed(cls),bridgeAt);
-  const half=width/2,bench=half+Math.max(1.5,1.2*cell);
-  surfaceChains.push({cls,width,profile});
+  const widthAt=widthAlong(parts);
+  surfaceChains.push({cls,width,widthAt,profile});
+  banked.push({id,profile,widthAt,banked:designSpeed(cls)>0});
   const total=parts.reduce((sum,p)=>sum+p.length,0);
   // Chain ends: a bridge deck starts at the bench height where its approach ends.
   for(const [part,atStart] of [[parts[0],true],[parts[parts.length-1],false]]){
@@ -425,11 +451,13 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
   }
   for(const part of parts){
    const {piece,s,length,reversed,offset}=part;
+   // Each part is benched to its own width (a chain can join a one-way carriageway to a wider two-way road).
+   const bench=piece.width/2+Math.max(1.5,1.2*cell);
    for(let k=1;k<piece.pts.length;k++){
     const a=piece.pts[k-1],b=piece.pts[k],l=s[k]-s[k-1];
     if(l<.01)continue;
     const sa=offset+(reversed?length-s[k-1]:s[k-1]),sb=offset+(reversed?length-s[k]:s[k]);
-    addSegment({chain:id,profile,ax:a[0],ay:a[1],bx:b[0],by:b[1],l,sa,sb,total,bench,reach:bench+BATTER_REACH});
+    addSegment({chain:id,profile,ax:a[0],ay:a[1],bx:b[0],by:b[1],l,sa,sb,total,bench,half:piece.width/2,banked:designSpeed(cls)>0,reach:bench+BATTER_REACH});
    }
   }
  });
@@ -441,6 +469,7 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
   }
  }
  summary.bench.roads=chains.length;
+ superelevationRunout(banked,roads);
 
  // Coarse ground: the source surface.
  const coarse=[];
@@ -636,6 +665,53 @@ async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,w
  return rows;
 }
 function profileAtHeight(profile,s){return gaussianLinear(profile.S,profile.Z,profile.W,s)+fixAt(profile,s)}
+
+// Superelevation run-out where banked roads meet. Two banked chains whose
+// footprints touch (a couplet splitting from its approach, a ramp joining, two
+// highways crossing at grade) are one paved area there, but each was banked
+// for its own curve: where their cross slopes disagree, the higher edge of one
+// stands above the other (Eureka CA, US-101: 0.35 m). As at an at-grade
+// junction on a real road, the bank runs out: a station's superelevation is
+// scaled down by how much its cross-slope vector differs from the other road's
+// (fully at a difference of RUNOUT_SLOPE), fading back in over RUNOUT_M past
+// the footprints' edges. Carriageways banked alike, side by side, keep theirs.
+// Unbanked roads (designSpeed 0) meet banked ones by RoadSurface.gd join().
+const RUNOUT_M=20,RUNOUT_SLOPE=.04,RUNOUT_SHOULDER=1.2;
+function superelevationRunout(banked,roads){
+ const factors=[];
+ for(const {id,profile,widthAt,banked:own} of banked){
+  const F=new Float64Array(profile.S.length).fill(1);
+  factors.push(F);
+  if(!own)continue;
+  for(let i=0;i<profile.S.length;i++){
+   const x=profile.X[i],y=profile.Y[i],e=profile.E[i];
+   const nx=-profile.TY[i],ny=profile.TX[i];
+   const near=new Map();
+   for(const sgm of roads.get(Math.floor(x/BIN)+','+Math.floor(y/BIN))??[]){
+    if(sgm.structure||!sgm.banked||sgm.chain===id)continue;
+    const q=segmentDistance(sgm,x,y);
+    const edge=q.d-widthAt(profile.S[i])/2-sgm.half-2*RUNOUT_SHOULDER;
+    if(edge>=RUNOUT_M)continue;
+    const prior=near.get(sgm.chain);
+    if(!prior||edge<prior.edge)near.set(sgm.chain,{edge,sgm,q});
+   }
+   for(const {edge,sgm,q} of near.values()){
+    const k=nearestStation(sgm.profile.S,sgm.sa+(sgm.sb-sgm.sa)*q.t);
+    const e2=sgm.profile.E[k],n2x=-sgm.profile.TY[k],n2y=sgm.profile.TX[k];
+    // Cross-slope vectors (the surface falls along e times the left normal).
+    const conflict=Math.min(1,Math.hypot(e*nx-e2*n2x,e*ny-e2*n2y)/RUNOUT_SLOPE);
+    const t=Math.max(0,Math.min(1,edge/RUNOUT_M)),reach=1-t*t*(3-2*t);
+    F[i]=Math.min(F[i],1-conflict*reach);
+   }
+  }
+ }
+ banked.forEach(({profile},c)=>{for(let i=0;i<profile.E.length;i++)profile.E[i]*=factors[c][i]});
+}
+function nearestStation(S,s){
+ let lo=0,hi=S.length-1;
+ while(hi-lo>1){const m=(lo+hi)>>1;if(S[m]<s)lo=m;else hi=m}
+ return Math.abs(S[lo]-s)<=Math.abs(S[hi]-s)?lo:hi;
+}
 
 // Distance from (x,y) to a segment, its parameter, and which side it lies on.
 function segmentDistance(sgm,x,y){
