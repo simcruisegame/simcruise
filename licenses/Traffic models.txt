@@ -3,3 +3,10 @@ Each is used under the licence named; trademarks, if any, are not licensed.
 
 mustang65-05f2a294: "1965 Ford Mustang Convertible" by Kristian LaGrange (https://sketchfab.com/kristian123), CC BY 4.0, https://sketchfab.com/3d-models/1965-ford-mustang-convertible-05f2a294087541ab82f681136d134344
 c8-790c40cc: "2019 Chevrolet Corvette C8 Stingray" by Hari Prasath R (https://sketchfab.com/Haris3D), CC BY 4.0, https://sketchfab.com/3d-models/2019-chevrolet-corvette-c8-stingray-790c40ccff6843eab0b7b4bd18421ff8
+accord18-54c22744: "2018 Honda Accord" by roflowhale (https://sketchfab.com/roflowhale), CC BY 4.0, https://sketchfab.com/3d-models/2018-honda-accord-54c227442c4b42dfbaa25e474ad9d736
+crv25-91c66738: "2025 Honda CR-V 1.5 VTEC Turbo CVT" by Palma123 JAAT (https://sketchfab.com/palma123.jaat), CC BY 4.0, https://sketchfab.com/3d-models/2025-honda-cr-v-15-vtec-turbo-cvt-91c6673859444597bf006a0ef8570005
+f150raptor18-096aa1ba: "2018 Ford F-150 Raptor" by Galaxy Car Showroom (https://sketchfab.com/adrianaflak09), CC BY 4.0, https://sketchfab.com/3d-models/2018-ford-f-150-raptor-096aa1ba46984eeeb196b75f4d213a0a
+grandcherokee13-74686a75: "2013 Jeep Grand Cherokee SRT8" by Galaxy Car Showroom (https://sketchfab.com/adrianaflak09), CC BY 4.0, https://sketchfab.com/3d-models/2013-jeep-grand-cherokee-srt8-74686a75e26146a19337724a7e1d458a
+tahoe-39b86984: "Chevrolet Tahoe Suv" by maznalamri80 (https://sketchfab.com/maznalamri80), CC BY 4.0, https://sketchfab.com/3d-models/chevrolet-tahoe-suv-39b86984238941b0b6a46da6a8c31907
+odyssey-175ce6fb: "Honda Odessey" by MattDoesBlender (https://sketchfab.com/MattDoesBlender), CC BY 4.0, https://sketchfab.com/3d-models/honda-odessey-175ce6fbbb11469ab068965ce4854554
+model3-3a602469: "Tesla M3 model" by wintrez (https://sketchfab.com/wintrez), CC BY 4.0, https://sketchfab.com/3d-models/tesla-m3-model-3a602469d7874d1397efa67182198705

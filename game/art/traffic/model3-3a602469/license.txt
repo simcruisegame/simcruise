@@ -1,0 +1,11 @@
+Model Information:
+* title:	Tesla M3 model
+* source:	https://sketchfab.com/3d-models/tesla-m3-model-3a602469d7874d1397efa67182198705
+* author:	wintrez (https://sketchfab.com/wintrez)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Tesla M3 model" (https://sketchfab.com/3d-models/tesla-m3-model-3a602469d7874d1397efa67182198705) by wintrez (https://sketchfab.com/wintrez) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
