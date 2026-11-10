@@ -1018,7 +1018,9 @@ func survey_building(b,idx,observed={},measured={}):
   floors=clampi(int(reported),1,mini(3,maxi(1,floori((eave-base)/2.15))))
  var storey_height=(eave-base)/floors
  var finishes=preload("res://ObservedBuildings.gd")
- var wall=finishes.material(self,observed,"wall","siding"+str(id%4));var pts=[]
+ # About one house in four is brick (siding12-15); the rest are painted lap siding.
+ var wall_key="siding"+str(id%16) if materials.has("siding15") else "siding"+str(id%4)
+ var wall=finishes.material(self,observed,"wall",wall_key);var pts=[]
  for ring in b[0]:
   for i in ring.size():
    var a=point(ring[i]);var d=point(ring[(i+1)%ring.size()]);pts.append(a)
