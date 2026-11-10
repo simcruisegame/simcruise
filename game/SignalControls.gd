@@ -122,7 +122,7 @@ static func _approach(draw,tile,center:Vector2,row:Dictionary,other_width:float)
  return true
 
 static func install(tile,records:Array) -> Dictionary:
- var result={"records":records.size(),"crossings":0,"approaches":0,"observed_nodes":{}}
+ var result={"records":records.size(),"crossings":0,"approaches":0,"observed_nodes":{},"points":[]}
  if tile.has_node("MappedIntersectionSignals") or not tile.capture.record.is_empty() or records.is_empty():return result
  var matches=match_records(tile.side,records,crossings(tile,records),tile.info.get("street_objects",{}).get("signals",[]))
  if matches.is_empty():return result
@@ -141,6 +141,7 @@ static func install(tile,records:Array) -> Dictionary:
    result.crossings+=1
    result.approaches+=arms
    result.observed_nodes[point.osm]=arms
+   result.points.append(point.at) # tile-local, for TrafficDirector signal stops
  if result.approaches:
   draw.finish_geometry()
   tile.add_child(draw)

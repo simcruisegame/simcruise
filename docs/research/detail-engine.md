@@ -48,7 +48,7 @@ No local generative model on an 8 GB RTX 2070 Super Max-Q can produce textures w
 - Windows come from a procedural grid shader driven by floor count and width, not from a diffusion bitmap.
 - An F-key provenance view (also `--provenance`) colours every surface: observed untinted, derived blue, library yellow, generated magenta.
 
-**6. NPCs and traffic** stay algorithmic: HPMS AADT for traffic volume, signals, and VAT pedestrians. A generative model adds nothing per frame there.
+**6. NPCs and traffic** stay algorithmic: HPMS AADT for traffic volume, signals, and VAT pedestrians. A generative model adds nothing per frame there. Traffic behaviour now uses the Intelligent Driver Model with persona parameters (`TrafficDirector.gd`); the only generative step is an optional, once-per-area local-LLM label of the place's traffic character (CPU-only Ollama, 2 s timeout, rule-based fallback), never on the frame path. Measured on this machine: qwen3:4b CPU-only answers a warm request in about 3-4 s and a cold one only after a 4-22 s load, so with the 2 s timeout the rule-based character is what normally applies.
 
 ## Models and tools
 
