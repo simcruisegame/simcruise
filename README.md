@@ -21,7 +21,7 @@
 
 ## About
 
-SimCruise puts you behind the wheel anywhere in the United States. Roads, terrain, buildings and trees are generated on the fly from open public data (OpenStreetMap, USGS, USDA, NOAA, NASA, Overture and more), and the car is a physically modelled 1999 Mazda MX-5 Miata calibrated against published road-test numbers.
+SimCruise puts you behind the wheel anywhere in the United States. Roads, terrain, buildings and trees are generated on the fly from open public data (OpenStreetMap, USGS, USDA, NOAA, NASA, Overture and more), and every car is physically modelled and calibrated against published road-test numbers: the 1999 Mazda MX-5 Miata it started with, a 1965 Ford Mustang 289, a Corvette Stingray (C8) and four more.
 
 No account, no API keys, no subscription, no telemetry. The game talks directly to open data services and caches what it fetches on your disk.
 
@@ -46,8 +46,11 @@ No account, no API keys, no subscription, no telemetry. The game talks directly 
 
 - **Drive anywhere in the US.** Search a place, street or coordinates; the road network streams in around you as you drive.
 - **Real-world data.** Lidar-measured roofs and road camber, USGS elevation and aerial imagery, building heights, tree canopy, traffic signals, live weather from the nearest METAR station.
-- **A car that drives like the real one.** Suspension, tyres, engine, five-speed gearbox, clutch and limited-slip differential, held to Car and Driver's 0–60 mph, braking and skidpad figures by automated tests.
-- **Manual or automatic**, keyboard or Xbox controller, cockpit, chase and scenic cameras, and a full-screen road atlas.
+- **Cars that drive like the real ones.** Suspension, tyres, engine, gearbox, clutch and differentials from published specifications, held to magazine 0–60 mph, braking and skidpad figures by automated tests, plus an S-bend transient test. Seven cars, including a 1965 Mustang and a Corvette C8 with real CC BY models from Sketchfab ([docs/cars.md](docs/cars.md)).
+- **Roads built like real roads.** Every paved road is a smooth, banked surface built from a fitted engineering profile rather than raw elevation data, minor roads meet major ones at intersections, and guard rails stand where the ground drops away, as highway design rules require.
+- **A living, lived-in world.** Traffic on the mapped streets, flocks of birds, houses with siding, brick and shingled roofs in real US colours, ground textures that never repeat, and a car that collects road grime as you drive and is washed by real rain.
+- **Manual or automatic**, keyboard or Xbox controller, cockpit, chase and scenic cameras, a natural 45° driver lens (or true-to-screen), and a full-screen road atlas.
+- **Graphics presets** (Low to Ultra) chosen from your graphics card, with resolution that adapts to keep the frame rate (F4).
 - **Open data, open code.** Every data source is free and keyless, and its licence is recorded in [`licenses/`](licenses/).
 
 ## Download
