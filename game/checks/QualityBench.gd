@@ -12,6 +12,7 @@ var current := ""
 var clock := 0.
 var rows := []
 var report := {}
+var place = null    # Vector3(lon, lat, bearing) from --place=
 
 func _ready():
  game = get_parent()
@@ -23,6 +24,10 @@ func _ready():
  if "--mute" in args and game.sound_enabled:game.toggle_sound.call_deferred()
  for a in args:
   if a.begins_with("--only="):queue = Array(a.trim_prefix("--only=").split(",", false))
+  # --place=lon,lat,bearing measures a streamed place (e.g. road ribbons).
+  if a.begins_with("--place="):
+   var p := a.trim_prefix("--place=").split(",")
+   place = Vector3(float(p[0]), float(p[1]), float(p[2]))
  RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
  report["adapter"] = RenderingServer.get_video_adapter_name()
  report["api"] = RenderingServer.get_current_rendering_driver_name() + " " + RenderingServer.get_video_adapter_api_version()
@@ -35,7 +40,11 @@ func _ready():
  report["auto_level"] = game.graphics.detect(RenderingServer.get_video_adapter_name(), RenderingServer.get_video_adapter_type())
 
 func _process(dt):
- if not game.ready_drive or game.tiles.size() < 4 or game.job:return
+ if not game.ready_drive or game.tiles.size() < 4 or game.job or not game.jump.is_empty():return
+ if place != null:
+  # Jump only once the start place has loaded, so the start cannot override it.
+  game.choose_place(place.x, place.y, "Quality bench", "", place.z);place = null;clock = 0.
+  return
  if game.hud.root.visible:game.hud.root.visible = false
  game.view = 0
  clock += dt

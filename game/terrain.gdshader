@@ -136,6 +136,29 @@ void fragment() {
  float verge_edge = edge_metres(mapped_asphalt(textureLod(surface_map, UV, coverage_lod(mask_texels, meters, 8.0)).rgb), 8.0);
  float paths = wheel_paths(lane_edge);
  float age = aerial_asphalt_age(wear.b, aerial, UV);
+ // On a road ribbon the lane frame is known (GroundFinish lane_wear): wheel
+ // paths and the oil strip sit at real lane offsets, and crack seals and
+ // patches follow the street's condition.
+ bool ribbon = UV2.x > LANE_FLAG * 0.5;
+ float seal = 0.0;
+ float lane_tone = 1.0;
+ if (ribbon) {
+  float lateral = UV2.x - LANE_FLAG;
+  float along = UV2.y;
+  float oil; float patch_tone;
+  lane_wear(lateral, along, COLOR.r * 8.0, COLOR.b * 16.0, COLOR.g,
+            fwidth(lateral), fwidth(along), paths, oil, seal, patch_tone);
+  // Wear varies along the lane: broad grit for the paths, lane-aligned
+  // streaks for drips (stretched along the direction of travel).
+  float streak = dot(texture(grit, vec2(along / 6.0, lateral / 0.7)).rgb, LUMA);
+  paths *= clamp(0.80 + (broad - 0.224) * 3.0, 0.55, 1.20) * mix(0.75, 1.0, COLOR.g);
+  float drip = oil * mix(0.09, 0.24, COLOR.g) * clamp(0.55 + (streak - 0.224) * 5.0, 0.15, 1.45);
+  // Tyres scrub the binder off the wheel paths of an older road (lighter,
+  // exposed aggregate); worn_asphalt() below adds the age-dependent part.
+  lane_tone = (1.0 - drip) * (1.0 + patch_tone) * (1.0 + paths * mix(0.03, 0.11, COLOR.g));
+  // The texture's own sealed cracks follow the condition too.
+  wear.g *= mix(0.35, 1.2, COLOR.g);
+ }
  paved = worn_asphalt(paved, paths, age);
  float mown = smoothstep(-6.0, -1.5, verge_edge) * green * (1.0 - trees);
  ground = mown_turf(ground, lawn_blades, value, mown, near_view);
@@ -152,6 +175,10 @@ void fragment() {
   paved=mix(paved,observed_paved,influence*photo_strength.x*.88);
   ground=observed_tone(ground,photo_green,0.12,influence*photo_strength.y*green*(1.-trees)*0.5);
  }
+ // Lane wear after the observed tone, which would otherwise replace it.
+ // Rubberised sealant: near black when fresh, greying as it ages.
+ paved *= lane_tone;
+ paved = mix(paved, paved * mix(0.42, 0.68, age), seal);
  bool land = paint.g > paint.r * 1.3 && paint.g > paint.b * 1.3;
  // Identify the #484a49 vector centerline surface without affecting water,
  // unpaved tracks, painted markings, curbs or sidewalks.
@@ -190,7 +217,7 @@ void fragment() {
  }
  mineral_weight*=float(land)*(1.-road)*(1.-loose_cover)*(1.-path_cover);
  ALBEDO = color;
- ROUGHNESS = mix(mix(0.96, 0.93, mown), asphalt_roughness(fine, broad, vec3(wear.r, wear.g, age), paths), road);
+ ROUGHNESS = mix(mix(0.96, 0.93, mown), asphalt_roughness(fine, broad, vec3(wear.r, wear.g, age), paths) - seal * 0.06, road);
  ROUGHNESS=mix(ROUGHNESS,mineral.b,mineral_weight);
  SPECULAR = mix(0.19, 0.30, road);
  vec3 shading_normal = NORMAL;

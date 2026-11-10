@@ -36,6 +36,13 @@ var quads: Array = []         # [a, b, c, d] Vector3, tile metres (a,b at statio
 var bins := {}                # Vector2i -> [quad index]
 var active := false
 var lines: Array = []         # per road: cls, half width, sections (5 cross-section points per station; GuardRails.gd)
+# Lane frame for the drawn surface (GroundFinish.gdshaderinc lane_wear): per
+# built chain its half width, lane width, cross-section offsets, distance
+# along (m) and centre per station; per quad [chain, station, offset index].
+var lane_chains: Array = []
+var quad_lane: Array = []
+const LANE_FLAG := 1000.      # added to the lateral offset in UV2; the ground mesh has no UV2
+const LANE_M := 3.6           # a US travel lane (AASHTO 12 ft)
 
 static func enabled() -> bool:
  return not "--grid-roads" in OS.get_cmdline_user_args()
@@ -61,8 +68,10 @@ func build(rows: Array, side: float) -> void:
   var half := float(chain.get("w", 6.)) * .5
   var offsets := [-(half + SHOULDER_M), -half, 0., half, half + SHOULDER_M]
   var sections := []
+  var centres := []
   for row in pts:
    var c := Vector2(float(row[0]), float(row[1])) * side
+   centres.append(c)
    var z := float(row[2]);var e := float(row[3])
    var n := Vector2(-float(row[5]), float(row[4]))      # left normal (helper convention)
    var section := []
@@ -73,17 +82,25 @@ func build(rows: Array, side: float) -> void:
     var p: Vector2 = c + n * L
     section.append(Vector3(p.x, h, p.y))
    sections.append(section)
-  chains.append({"rank":RANK.get(str(chain.get("cls","")),1)*100000+pts.size(),"sections":sections})
+  chains.append({"rank":RANK.get(str(chain.get("cls","")),1)*100000+pts.size(),"sections":sections,"half":half,"offsets":offsets,"centres":centres,"cls":str(chain.get("cls",""))})
   lines.append({"cls":str(chain.get("cls","")),"half":half,"sections":sections})
  chains.sort_custom(func(a, b): return a.rank > b.rank)
  for chain in chains:
   var sections: Array = chain.sections
   if active:join(sections)
+  var along := PackedFloat32Array();along.resize(sections.size())
+  for i in range(1, sections.size()):
+   along[i] = along[i-1] + Vector2(sections[i][2].x, sections[i][2].z).distance_to(Vector2(sections[i-1][2].x, sections[i-1][2].z))
+  # Lanes are laid out from the centreline (the shader fits as many per side
+  # as the width allows); a road narrower than two lanes is one centred lane.
+  var ci := lane_chains.size()
+  lane_chains.append({"half":chain.half,"lane_w":LANE_M if chain.half >= LANE_M * .75 else chain.half * 2.,"offsets":chain.offsets,"along":along,"centres":chain.centres,"cls":chain.cls})
   for i in range(1, sections.size()):
    var prev: Array = sections[i-1];var section: Array = sections[i]
    if Vector2(prev[2].x, prev[2].z).distance_to(Vector2(section[2].x, section[2].z)) >= 8.:continue
    for k in section.size() - 1:
     add_quad(prev[k], prev[k+1], section[k+1], section[k])
+    quad_lane.append([ci, i, k])
   active = not quads.is_empty()
 
 ## Snap a lower-ranked ribbon onto the ribbons already built where they
@@ -158,13 +175,44 @@ func lower_grid(h: Array, n: int, side: float) -> int:
    if float(h[k]) > r - UNDER_M:h[k] = r - UNDER_M;moved += 1
  return moved
 
-func mesh(mat: Material, side: float) -> ArrayMesh:
+## Street condition, 0 (new) to 1 (worn), from the IRI that RoadRoughness.gd
+## gives the tyres here (class baseline × the stable per-street hash), so the
+## drawn wear matches the felt road when --rough-roads is on.
+## IRI 0.8 (new) maps to 0 and 3.3 (poor; FHWA "poor" starts at 2.7) to 1, so
+## a typical primary road (1.6) sits near 0.3 and a typical street near 0.65.
+## --road-condition=X forces X everywhere (A/B captures).
+static func condition(tile, p: Vector2, cls: String) -> float:
+ var value: float = ROUGHNESS.CLASS_IRI.get(cls, 2.4)
+ if tile != null and not tile.road_grid.is_empty():value = ROUGHNESS.iri(tile, p, 1.)
+ return clampf((value - .8) / 2.5, 0., 1.)
+const ROUGHNESS := preload("res://RoadRoughness.gd")
+
+func mesh(mat: Material, side: float, tile = null) -> ArrayMesh:
+ var forced := -1.
+ # --without-lane-wear leaves the flag off, so the shader keeps its old look (A/B).
+ var plain := "--without-lane-wear" in OS.get_cmdline_user_args()
+ for a in OS.get_cmdline_user_args():
+  if a.begins_with("--road-condition="):forced = clampf(a.trim_prefix("--road-condition=").to_float(), 0., 1.)
+ var wear := []
+ for lc in lane_chains:
+  var w := PackedFloat32Array();w.resize(lc.centres.size())
+  for i in w.size():w[i] = forced if forced >= 0. else condition(tile, lc.centres[i], lc.cls)
+  wear.append(w)
  var st := SurfaceTool.new()
  st.begin(Mesh.PRIMITIVE_TRIANGLES)
- for q in quads:
+ for qi in quads.size():
+  var q: Array = quads[qi]
+  var ql: Array = quad_lane[qi]
+  var lc: Dictionary = lane_chains[ql[0]]
+  var i: int = ql[1];var k: int = ql[2]
+  # Station and cross-section offset of a, b, c, d (see build()).
+  var at := [Vector2i(i - 1, k), Vector2i(i - 1, k + 1), Vector2i(i, k + 1), Vector2i(i, k)]
   # Godot front faces wind clockwise seen from the front (above).
-  for v in [q[0], q[2], q[1], q[0], q[3], q[2]]:
+  for idx in [0, 2, 1, 0, 3, 2]:
+   var v: Vector3 = q[idx];var s: Vector2i = at[idx]
    st.set_uv(Vector2(v.x, v.z) / side)
+   st.set_uv2(Vector2(float(lc.offsets[s.y]) + (0. if plain else LANE_FLAG), lc.along[s.x]))
+   st.set_color(Color(lc.lane_w / 8., wear[ql[0]][s.x], lc.half / 16., 1.))
    st.add_vertex(v)
  st.generate_normals()
  var m := st.commit()

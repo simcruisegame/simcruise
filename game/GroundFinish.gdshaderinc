@@ -82,6 +82,96 @@ vec3 worn_asphalt(vec3 paved, float paths, float age) {
  return paved * (1.0 + paths * lighten) * between;
 }
 
+// ---- Lane wear on the engineered road ribbon (RoadSurface.gd) --------------
+// Ribbon vertices carry their place in the road: UV2 = (lateral offset from the
+// centreline + LANE_FLAG metres, distance along the ribbon), COLOR = (lane width
+// / 8 m, condition 0 new .. 1 worn, half carriageway width / 16 m). The ground
+// mesh has no UV2, so its UV2.x stays far below the flag. The condition is the
+// street condition RoadRoughness.gd uses for the felt road (IRI from class and
+// a stable per-street hash), so a road that looks worn also rides worn.
+const float LANE_FLAG = 1000.0;
+
+float lane_hash(vec2 p) {
+ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+// A thin line of `width` metres at signed distance `dist`, `px` metres per
+// pixel across it. Below a pixel it stays one pixel wide and fades by the
+// width ratio, so it keeps its average darkening and never breaks into dashes.
+float thin_line(float dist, float width, float px) {
+ float w = max(width * 0.5, px * 0.75);
+ return (1.0 - smoothstep(w - px * 0.5, w + px * 0.5, abs(dist))) * (width * 0.5 / w);
+}
+
+// paths: tyre-polished wheel paths, oil: the drip strip between them, seal:
+// crack-seal cover (longitudinal paving joints, transverse cracks, patch
+// edges), patch_tone: relative albedo change inside patches.
+void lane_wear(float lateral, float along, float lane_w, float half_w, float condition,
+               float px_lat, float px_along,
+               out float paths, out float oil, out float seal, out float patch_tone) {
+ // Lanes are laid out from the centreline, lane_w wide, as many per side as
+ // fit; what is left to the edge is paved shoulder. A road narrower than two
+ // lanes is one centred lane (RoadSurface.gd then sends lane_w = 2 half_w).
+ bool single = lane_w > half_w * 1.5;
+ float per_side = single ? 0.5 : max(floor(half_w / lane_w + 0.25), 1.0);
+ float u = (lateral + (single ? half_w : 0.0)) / lane_w;
+ float lane = single ? 0.0 : clamp(floor(u), -per_side, per_side - 1.0);
+ float d = (u - lane - 0.5) * lane_w;               // metres from this lane's centre
+ float lanes_edge = single ? half_w : per_side * lane_w;
+ float inside = 1.0 - smoothstep(lanes_edge - 0.25, lanes_edge + 0.05, abs(lateral));
+ float carriageway = 1.0 - smoothstep(half_w - 0.25, half_w + 0.05, abs(lateral));
+ // Wheel paths sit about 0.9 m either side of the lane centre (half a
+ // 1.5-1.8 m track) and spread ~0.3 m with lateral wander.
+ float a = d - 0.9;
+ float b = d + 0.9;
+ paths = (exp(-a * a * 5.5) + exp(-b * b * 5.5)) * inside;
+ // Oil, coolant and rubber drip between the wheels.
+ oil = exp(-d * d * 8.0) * inside;
+
+ // Longitudinal paving joints between lanes (where the paver's passes meet),
+ // sealed where the road has aged; each 30 m run is sealed or not.
+ // The centreline joint, the lane lines and, where there is a shoulder, the
+ // lane-shoulder joint.
+ float kmax = per_side - (lanes_edge > half_w - 0.6 ? 1.0 : 0.0);
+ float k = clamp(round(u), -kmax, kmax);
+ float wobble = 0.05 * sin(along * 0.21 + k * 2.3) + 0.025 * sin(along * 0.83 + k);
+ float joint = single ? 0.0 : thin_line((u - k) * lane_w + wobble, 0.09, px_lat);
+ joint *= step(lane_hash(vec2(k, floor(along / 30.0))), condition * 1.4 - 0.15);
+
+ // Transverse (thermal and reflective) cracks, one chance per 9 m, sealed in
+ // overband strips (75-100 mm wide). They wander and skew; a third span the
+ // road, the rest stop at the centreline or cross one lane.
+ float cell = floor(along / 9.0);
+ float h1 = lane_hash(vec2(cell, 1.7));
+ float h2 = lane_hash(vec2(cell, 5.3));
+ float h3 = lane_hash(vec2(cell, 9.1));
+ float pos = cell * 9.0 + 2.0 + 5.0 * h2;
+ float bend = lateral * (h3 - 0.5) * 0.30 + 0.12 * sin(lateral * 0.9 + h3 * 6.0) + 0.04 * sin(lateral * 3.7 + h2 * 9.0);
+ float reach = h3 < 0.33 ? 1.0 : (h3 < 0.67 ? step(0.0, lateral * (h2 - 0.5))
+             : step(abs(lateral - sign(h2 - 0.5) * lane_w * 0.5), lane_w * 0.5));
+ float crack = thin_line(along - pos - bend, 0.08, px_along) * reach;
+ crack *= step(h1, condition * 0.75 - 0.1);
+
+ // Patches: a lane-wide or wheel-path repair, 2.5-8.5 m long, per lane every 23 m.
+ float pcell = floor(along / 23.0);
+ float p1 = lane_hash(vec2(lane + 17.0, pcell));
+ float p2 = lane_hash(vec2(lane + 31.0, pcell));
+ float p3 = lane_hash(vec2(lane + 47.0, pcell));
+ float p4 = lane_hash(vec2(lane + 59.0, pcell));
+ float x0 = pcell * 23.0 + 2.0 + 12.0 * p2;
+ float x1 = x0 + 2.5 + 6.0 * p3;
+ float y0 = p4 < 0.5 ? 0.15 - lane_w * 0.5 : (p4 < 0.75 ? 0.25 : 0.25 - 1.65);
+ float y1 = p4 < 0.5 ? lane_w * 0.5 - 0.15 : y0 + 1.4;
+ float edge = min(min(along - x0, x1 - along), min(d - y0, y1 - d));
+ float px = max(px_lat, px_along);
+ float present = step(p1, condition * condition * 0.55) * inside;
+ float repair = smoothstep(-px, px, edge) * present;
+ patch_tone = repair * (p2 < 0.6 ? -0.24 : 0.10);   // newer patches darker, older ones lighter
+ float outline = thin_line(edge, 0.08, px) * present;
+
+ seal = clamp(max(max(joint, crack) * carriageway, outline), 0.0, 1.0);
+}
+
 // Fresh asphalt is matte; polished wheel paths and the smoother broad patches
 // of old pavement lower the roughness toward a sheen at grazing sun angles.
 float asphalt_roughness(float fine, float broad, vec3 wear, float paths) {

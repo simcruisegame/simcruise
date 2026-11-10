@@ -527,7 +527,8 @@ func apply_recent(texture,soil=null):
 func ground_mesh(mat):
  terrain_material=mat
  if road_surface:
-  var ribbon=road_surface.mesh(mat,side);mesh_node(ribbon);collider(ribbon.create_trimesh_shape())
+  if road_grid.is_empty():road_index()   # street condition for the drawn lane wear
+  var ribbon=road_surface.mesh(mat,side,self);mesh_node(ribbon);collider(ribbon.create_trimesh_shape())
  preload("res://GroundFinish.gd").bind(mat,materials,info.id,side)
  mat.set_shader_parameter("recent_quadrant",Vector2(int(info.id[0])%4,int(info.id[1])%4))
  # A 128 grid is drawn adaptively: cells split only where the detail differs
@@ -859,7 +860,7 @@ func build(data:Dictionary,size_m:float,mats:Dictionary):
  road_survey=preload("res://RoadSurvey.gd").for_tile(self)
  paint_evidence=preload("res://PaintEvidence.gd").for_tile(self)
  road_layout=preload("res://RoadLayout.gd").for_tile(self)
- make_ground();road_index()
+ make_ground();if road_grid.is_empty():road_index()
  # Decks for mapped bridges; the ground under them stays the valley or road below.
  preload("res://BridgeDeck.gd").build(self)
  # Guard rails where the ground drops away beside a road ribbon (GuardRails.gd).
