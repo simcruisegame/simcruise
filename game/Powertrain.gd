@@ -125,13 +125,20 @@ var spring_load=[0.,0.,0.,0.]
 # passenger radial estimate; no transient force records for the OE 195/50R15.
 var SIDE_RELAXATION_M:float
 var rolling_slip = [0.,0.,0.,0.]
+var slip_ratio = [0.,0.,0.,0.]      # longitudinal slip per wheel, last substep
+var abs_release = [1.,1.,1.,1.]     # ABS pressure fraction per wheel
+var contact_rows := []
+func row_speed(i:int)->float:
+ return float(contact_rows[i][5]) if i<contact_rows.size() and not contact_rows[i].is_empty() else 0.
 
-func contact_slip(i: int, longitudinal: float, transverse: float, dt: float) -> float:
+func contact_slip(i: int, longitudinal: float, transverse: float, dt: float, fz: float = -1.) -> float:
  var speed := absf(longitudinal)
  var target := atan2(transverse,maxf(1.8,speed))
  # Below walking speed the existing regularized contact also handles static
  # friction. Blend continuously into the rolling-tire model as travel builds.
- var length_m := SIDE_RELAXATION_M*smoothstep(.8,3.5,speed)
+ # A lightly loaded tyre builds side force over a shorter distance.
+ var load_scale := pow(clampf(fz/spec.reference_corner_load_n,.25,2.5),spec.relaxation_load_exponent) if fz>0. else 1.
+ var length_m := SIDE_RELAXATION_M*load_scale*smoothstep(.8,3.5,speed)
  if length_m < .0001:
   rolling_slip[i]=target
   return target
@@ -282,7 +289,7 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
   if rpm>spec.upshift_rpm and gear<GEARS.size()-1 and absf(speed)*forward_ratio/R>spec.upshift_min_omega:next+=1
   elif rpm<spec.downshift_rpm and gear>0:next-=1
   if next!=gear:gear=next;shift_time=spec.shift_seconds;forward_ratio=GEARS[gear]*FINAL_DRIVE
- var net=[0.,0.,0.,0.];var side=[0.,0.,0.,0.]
+ var net=[0.,0.,0.,0.];var side=[0.,0.,0.,0.];contact_rows=points
  for i in 4:
   if points[i].is_empty():
    spring_load[i]=0
@@ -290,7 +297,7 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
    continue
   var row=points[i];var fz=float(row[2]);spring_load[i]=fz
   var slip_angle=0.
-  if fz>0:slip_angle=contact_slip(i,row[5],row[6],dt)
+  if fz>0:slip_angle=contact_slip(i,row[5],row[6],dt,fz)
   else:rolling_slip[i]=0.
   # Saturating slip-angle curve; a loaded outside tyre gains less grip per unit of load.
   var mu=clampf(static_mu*(1.-spec.load_sensitivity*(fz/spec.reference_corner_load_n-1)),spec.mu_min,spec.mu_max)*surface_grip[i]*float(spec.axle_grip[0 if i<2 else 1])
@@ -338,10 +345,23 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
   for i in 4:
    var wheel_t=drive_torque[i]
    var br=brake_amount*(spec.brake_front_nm if i<2 else spec.brake_rear_nm)
+   # ABS: a per-wheel pressure modulator. Past the peak slip it bleeds pressure
+   # fast; below it, it rebuilds more slowly, so each tyre hovers at its peak.
+   if spec.abs and br>0. and absf(row_speed(i))>1.5:
+    if slip_ratio[i]<-spec.slip_ratio_peak:abs_release[i]=maxf(.05,abs_release[i]-ds*30.)
+    else:abs_release[i]=minf(1.,abs_release[i]+ds*12.)
+    br*=abs_release[i]
+   else:abs_release[i]=1.
    if InputMap.has_action("parking_brake") and Input.is_action_pressed("parking_brake") and i>1:br=maxf(br,spec.parking_brake_nm)
    var spin=move_toward(omega[i]+wheel_t*ds/WHEEL_I,0.,br*ds/WHEEL_I);var row=points[i]
    if row.is_empty():omega[i]=spin;continue
-   var fz=float(row[2]);var fxmax=fz*float(row[7])
+   var fz=float(row[2])
+   # Slip-ratio curve: the friction circle holds its full size up to the peak
+   # slip and shrinks toward the sliding value as the wheel spins or locks, so a
+   # spinning rear tyre also loses side grip (combined slip, via the budget).
+   var kappa=(spin*R-float(row[5]))/maxf(absf(float(row[5])),5.)
+   slip_ratio[i]=kappa
+   var fxmax=fz*float(row[7])*(1.-spec.slip_ratio_falloff*smoothstep(spec.slip_ratio_peak,spec.slip_ratio_peak*3.5,absf(kappa)))
    # Solve wheel inertia and contact force together for stable rolling at low speed.
    var long_stiff=(fz*spec.longitudinal_stiffness)/maxf(1.5,absf(row[5]))
    var fx=long_stiff*(spin*R-float(row[5]))/(1.+long_stiff*R*R*ds/WHEEL_I)

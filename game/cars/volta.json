@@ -120,11 +120,13 @@
   "mass": "About 3627 lb for the RWD sedan.",
   "estimates": "Weight split, centre of gravity, inertia (scaled), spring and bar rates (1.5/1.7 Hz), dampers, regeneration, brakes, tyre grip (calibrated)."
  },
- "traction_control": false,
+ "traction_control": true,
  "model_scene": "res://art/cars/volta.glb",
  "driver_eye": [
   -0.37,
   1.14,
   -0.07
- ]
+ ],
+ "abs": true,
+ "tc_target_slip": 0.1
 }

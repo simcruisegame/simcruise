@@ -55,6 +55,14 @@ var slip_falloff_to := .65
 var camber_thrust := .48
 var longitudinal_stiffness := 12.
 var relaxation_m := .35
+# Longitudinal slip curve (Powertrain.gd): full grip up to the peak slip ratio,
+# then falling by slip_ratio_falloff toward a locked or spinning wheel. Radials
+# peak near 0.10 and keep about 80 % sliding; bias-ply tyres peak later and
+# softer (about 0.15, 0.25 lost).
+var slip_ratio_peak := .10
+var slip_ratio_falloff := .20
+var relaxation_load_exponent := .5  # relaxation length grows with load^n
+var abs := false                   # anti-lock brakes: release a wheel past the peak
 var wheel_inertia := 1.05
 var rolling_resistance := .012
 

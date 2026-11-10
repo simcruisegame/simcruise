@@ -157,11 +157,13 @@
   "gearing": "Six-speed ratios and final drive: published Si figures, unverified for 2022.",
   "estimates": "Weight split, centre of gravity, inertia (scaled), spring and bar rates (ride frequency 1.6/1.8 Hz), dampers, brakes, tyre grip (calibrated)."
  },
- "traction_control": false,
+ "traction_control": true,
  "model_scene": "res://art/cars/kestrel_s.glb",
  "driver_eye": [
   -0.36,
   1.14,
   -0.021
- ]
+ ],
+ "abs": true,
+ "tc_target_slip": 0.1
 }
