@@ -502,6 +502,14 @@ func install_lane_meshes(meshes:Array):
 # The worker owns this temporary tile. It never builds a collider or replaces
 # any driving, aerial imagery, tree, building or camera state.
 func prepare_lane_update(data:Dictionary,size_m:float,mats:Dictionary,observations:Array)->Dictionary:
+ adopt_observations(data,size_m,mats,observations)
+ road_layout=preload("res://RoadLayout.gd").for_tile(self)
+ if not road_layout:return {}
+ var surface=street_image()
+ paint_lane_marks()
+ return {"surface":ImageTexture.create_from_image(surface),"meshes":take_lane_meshes(),"layout":road_layout}
+
+func adopt_observations(data:Dictionary,size_m:float,mats:Dictionary,observations:Array):
  info=data
  side=size_m
  materials=mats
@@ -513,11 +521,20 @@ func prepare_lane_update(data:Dictionary,size_m:float,mats:Dictionary,observatio
  crossfall_surface=observations[4]
  # The live tile's road ribbon, so the repainted lines sit on the same surface.
  if observations.size()>5:road_surface=observations[5]
+
+# The mapped lane counts arrived after the tile was built (the helper answers
+# the tile from its cache and BuildingStream.gd fetches the rest): repaint the
+# inferred markings on the worker, on a temporary tile like the one above.
+func prepare_marking_update(data:Dictionary,size_m:float,mats:Dictionary,observations:Array)->Dictionary:
+ adopt_observations(data,size_m,mats,observations)
  road_layout=preload("res://RoadLayout.gd").for_tile(self)
- if not road_layout:return {}
- var surface=street_image()
  paint_lane_marks()
- return {"surface":ImageTexture.create_from_image(surface),"meshes":take_lane_meshes(),"layout":road_layout}
+ return {"meshes":take_lane_meshes(),"stats":info.get("lane_markings",{})}
+
+func install_marking_update(update:Dictionary):
+ if update.is_empty() or not lane_paint_layer:return
+ install_lane_meshes(update.meshes)
+ info["lane_markings"]=update.stats
 
 func install_lane_update(update:Dictionary):
  if update.is_empty() or not streaming_ground:return

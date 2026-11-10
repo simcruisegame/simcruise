@@ -5,8 +5,9 @@
 // OpenStreetMap `lanes`, `lanes:forward`, `lanes:backward`, `oneway` and
 // `maxspeed` tags for every major way near the tile from Esri's North America
 // OSM highways service (the same service road-layout.mjs already uses), and
-// matches each road segment of the tile to the nearest way that runs the same
-// way. The game (LaneMarkings.gd) turns the counts into MUTCD markings.
+// matches each road segment of the tile to the nearest way along it: parallel,
+// two-way for a two-way road, and one-way in the same direction for a one-way
+// road. The game (LaneMarkings.gd) turns the counts into MUTCD markings.
 //
 // The service has no `turn:lanes` field, so turn lanes are only seen as extra
 // lanes on the short approach ways that carry them.
@@ -30,6 +31,12 @@ const MATCH_M=6, ALIGN=.94, CELL=32;
 const group=(x,y)=>[x-(x%2),y-(y%2)];
 export const laneCountKey=(x,y)=>'lane-counts-v1-'+group(x,y).join('-');
 const validId=(x,y)=>[x,y].every(n=>Number.isInteger(n)&&n>=0&&n<65536);
+// Where the game leaves a tile's road rows for the `lane-counts` command (a
+// command line is too short for them on Windows); the helper deletes it.
+export function laneRoadsFile(dir,x,y){
+ if(!validId(x,y))throw Error('Invalid tile');
+ return path.join(dir,'lane-roads-'+x+'-'+y+'.json');
+}
 
 export function laneCountQuery(x,y){
  const [gx,gy]=group(x,y),half=span*32768;
@@ -75,6 +82,22 @@ export function decodeLaneWays(raw){
  }
  return ways;
 }
+// The cached ways around the tile without any request: {ways, snapshot}, or
+// 'unavailable' after a recent failed request, or null when not cached yet.
+// The tile command uses this so the lane query never delays the first
+// drivable tile; the game fetches missing counts in the background
+// (`lane-counts` command, BuildingStream.gd) and repaints.
+export function cachedLaneWays(x,y,dir){
+ if(!validId(x,y))return 'unavailable';
+ const key=laneCountKey(x,y),file=path.join(dir,key);
+ const negative=fs.statSync(file+'.miss',{throwIfNoEntry:false});
+ const stat=fs.statSync(file,{throwIfNoEntry:false});
+ if(stat&&Date.now()-stat.mtimeMs<lifetime){
+  try{return {ways:decodeLaneWays(fs.readFileSync(file,'utf8')),snapshot:new Date(stat.mtimeMs).toISOString()};}catch{}
+ }
+ if(negative&&Date.now()-negative.mtimeMs<6*3600000)return 'unavailable';
+ return null;
+}
 // Fetches (or reads the 28-day cache of) the ways around the tile; null when
 // the service cannot be reached, so the tile still builds with US defaults.
 export async function fetchLaneWays(x,y,dir,read){
@@ -117,6 +140,8 @@ export function matchLaneCounts(x,y,roads,ways){
  roads.forEach((road,index)=>{
   if(!LANE_CLASSES.has(road[0])||road[5]==='unpaved'||!Array.isArray(road[3]))return;
   const oneway=Number(road[1])!==0;
+  // Travel direction of a one-way tile road along its point order.
+  const travel=Number(road[1])<0?-1:1;
   const runs=[];
   for(let k=1;k<road[3].length;k++){
    const a=road[3][k-1].map(v=>v*side),b=road[3][k].map(v=>v*side);
@@ -132,6 +157,11 @@ export function matchLaneCounts(x,y,roads,ways){
     for(const id of grid.get(Math.floor(px/CELL)+','+Math.floor(py/CELL))??[]){
      const seg=segs[id],along=ux*seg.dx+uy*seg.dy;
      if(Math.abs(along)<ALIGN)continue;
+     // A one-way road takes only a one-way way that runs the same way (not
+     // the opposite carriageway, nor a cross street's mouth); a two-way road
+     // only a two-way way.
+     if(oneway!==(seg.way.oneway!==0))continue;
+     if(oneway&&along*travel*seg.way.oneway<0)continue;
      const t=Math.max(0,Math.min(seg.len,(px-seg.a[0])*seg.dx+(py-seg.a[1])*seg.dy));
      const d=Math.hypot(px-seg.a[0]-seg.dx*t,py-seg.a[1]-seg.dy*t);
      if(d<bestD){bestD=d;best={way:seg.way,sign:along>0?1:-1};}
@@ -139,11 +169,9 @@ export function matchLaneCounts(x,y,roads,ways){
     if(!best)continue;
     const w=best.way;let entry;
     if(oneway){
-     if(w.oneway===0)continue;
      entry=[w.lanes||w.forward,0,0,w.mph];
      if(entry[0])entry[1]=entry[0];
     }else{
-     if(w.oneway!==0)continue;
      const [f,bk]=best.sign>0?[w.forward,w.backward]:[w.backward,w.forward];
      entry=[w.lanes,f,bk,w.mph];
     }

@@ -3,7 +3,7 @@ import {fuseSky} from './sky-fusion.mjs';
 import {photoWeather} from './photo-weather.mjs';
 import {streamedRoofs} from './roof-stream.mjs';
 import {cachedLaneLayout,fetchLaneDistrict} from './road-layout.mjs';
-import {fetchLaneWays,matchLaneCounts} from './lane-counts.mjs';
+import {cachedLaneWays,fetchLaneWays,laneRoadsFile,matchLaneCounts} from './lane-counts.mjs';
 import {cachedBankSurface,fetchRoadBanks} from './bank-source.mjs';
 import {applyRoadBanks} from './road-banks.mjs';
 import {ridgeImagery} from './ridge-imagery.mjs';
@@ -74,13 +74,26 @@ async function photograph(mx,my){
   return {aerial:id,requests};
  }catch{fs.writeFileSync(miss,'');return {requests}}
 }
+// Lane counts for the tile command: from the cache only, so the lane query is
+// never on the first drivable tile's critical path. 'pending' tells the game
+// to fetch them in the background (the lane-counts command) and repaint;
+// --wait-lane-counts (tools, field tests) fetches them here instead.
+function laneWays(X,Y){
+ if(args.includes('--without-lane-counts'))return Promise.resolve('off');
+ if(args.includes('--wait-lane-counts'))return fetchLaneWays(X,Y,cache,readCached).catch(()=>null).then(w=>w??'unavailable');
+ return Promise.resolve(cachedLaneWays(X,Y,cache)??'pending');
+}
+function laneDocument(X,Y,roads,lane_ways){
+ if(lane_ways&&typeof lane_ways==='object')return {version:1,status:'checked',source:'OpenStreetMap contributors via Esri North America',snapshot:lane_ways.snapshot,roads:matchLaneCounts(X,Y,roads,lane_ways.ways)};
+ return {version:1,status:typeof lane_ways==='string'?lane_ways:'unavailable'};
+}
 async function chunk(X,Y){
  const mx=Math.floor(X/4),my=Math.floor(Y/4),ex=Math.floor(X/8),ey=Math.floor(Y/8);
  const meta=JSON.parse((await data('manifest','https://tiles.openfreemap.org/planet',day)).toString());
  const url=meta.tiles[0].replace('{z}','14').replace('{x}',mx).replace('{y}',my);
  const aerial_key=aerialSource(mx,my)?.key??'';
  const aerial=aerial_key&&fs.existsSync(path.join(cache,aerial_key))?aerial_key:'';
- const [buf,elev,street_objects,ground,mapped_rails,lane_ways]=await Promise.all([data('v-'+mx+'-'+my,url),data('h-'+ex+'-'+ey,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+ex+'/'+ey+'.png'),fetchObjects(X,Y,cache,readCached),measuredGround(X,Y,cache,readCached),(args.includes('--mapped-guard-rails')?mappedGuardRails(X,Y,cache,readCached).catch(()=>({status:'unavailable',rows:[]})):Promise.resolve({status:'off',rows:[]})),(args.includes('--without-lane-counts')?Promise.resolve(null):fetchLaneWays(X,Y,cache,readCached).catch(()=>null))]);
+ const [buf,elev,street_objects,ground,mapped_rails,lane_ways]=await Promise.all([data('v-'+mx+'-'+my,url),data('h-'+ex+'-'+ey,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+ex+'/'+ey+'.png'),fetchObjects(X,Y,cache,readCached),measuredGround(X,Y,cache,readCached),(args.includes('--mapped-guard-rails')?mappedGuardRails(X,Y,cache,readCached).catch(()=>({status:'unavailable',rows:[]})):Promise.resolve({status:'off',rows:[]})),laneWays(X,Y)]);
  const vector=buf[0]===31?gunzipSync(buf):buf;
  const tile=vectorTile(vector),dem=decode(elev);
  // A neighbouring z14 vector tile is read only when a road crosses into it near
@@ -122,7 +135,7 @@ async function chunk(X,Y){
  for(const name of ['landcover','park','water'])each(name,(f,conv)=>{if(f.type===3)land.push([name,f.properties.class||'',f.loadGeometry().map(r=>r.map(conv))])});
  each('poi',(f,conv)=>{if(f.type===1&&f.properties.name){const p=conv(f.loadGeometry()[0][0]);if(p.every(v=>v>=0&&v<1))pois.push([p,f.properties.name,String(f.properties.class||'')])}});
  // Mapped lane counts per road segment (lane-counts.mjs; markings in LaneMarkings.gd).
- const road_lanes=lane_ways?{version:1,status:'checked',source:'OpenStreetMap contributors via Esri North America',snapshot:lane_ways.snapshot,roads:matchLaneCounts(X,Y,roads,lane_ways.ways)}:{version:1,status:'unavailable'};
+ const road_lanes=laneDocument(X,Y,roads,lane_ways);
  return {id:[X,Y],aerial,aerial_key,street_objects,guard_rails:mapped_rails.rows,guard_rails_status:mapped_rails.status,live_canopy:true,footprint_survey:hasFootprintSurvey(X,Y)?buildingFingerprint(vector):'',...terrain,roads,road_lanes,pedestrian:pedestrianSurfaces(each,clip),buildings,land,pois,trees:[],requests};
 }
 try{
@@ -140,6 +153,17 @@ try{
    const roads=JSON.parse(Buffer.from(args[2],'base64').toString('utf8'));
    if(Array.isArray(roads))result.layout=cachedLaneLayout(x,y,roads,cache);
   }
+ }
+ else if(command==='lane-counts'){
+  // The tile's road rows come in a file the game wrote into the cache
+  // (laneRoadsFile); the reply is the tile's road_lanes document.
+  const x=+args[0],y=+args[1],file=laneRoadsFile(cache,x,y);
+  let roads=null;
+  try{roads=JSON.parse(fs.readFileSync(file,'utf8'));}catch{}
+  try{fs.unlinkSync(file);}catch{}
+  if(!Array.isArray(roads))throw Error('No road rows for the lane counts');
+  const ways=await fetchLaneWays(x,y,cache,readCached).catch(()=>null);
+  result={road_lanes:laneDocument(x,y,roads,ways??'unavailable'),requests};
  }
  else if(command==='road-banks'){result=await fetchRoadBanks(Number(args[0]),Number(args[1]),cache)}
  else if(command==='forest-form'){result={...await forestForm(Number(args[0]),Number(args[1]),cache,readCached),requests}}

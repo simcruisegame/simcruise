@@ -2,7 +2,10 @@
 // parsing, way decoding, and matching of tile road segments to mapped ways
 // (direction, one-way pairs, majority vote). No network.
 import assert from 'node:assert/strict';
-import {count,mph,onewayOf,decodeLaneWays,matchLaneCounts,laneCountKey,laneCountQuery} from '../helper/lane-counts.mjs';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {count,mph,onewayOf,decodeLaneWays,matchLaneCounts,laneCountKey,laneCountQuery,cachedLaneWays,laneRoadsFile} from '../helper/lane-counts.mjs';
 
 assert.equal(count('4'),4);assert.equal(count('2;3'),2);assert.equal(count(''),0);assert.equal(count('40'),0);assert.equal(count(null),0);
 assert.equal(mph('35 mph'),35);assert.equal(mph('50'),31,'plain numbers are km/h');assert.equal(mph('fast'),0);
@@ -47,4 +50,36 @@ assert.deepEqual(out.get(1),[[0,0,5,3,2,30]],'counts follow the tile road point 
 assert.deepEqual(out.get(2),[[0,0,2,2,0,35]],'one-way carriageway takes its own way, not the pair 12 m off');
 assert.deepEqual(out.get(3),[[0,0,3,3,0,0]]);
 assert.ok(!out.has(4)&&!out.has(5)&&!out.has(6));
+
+// A one-way road takes a one-way way running its own way, never a nearer one
+// running against it (the other carriageway, a side street's mouth), and
+// never a two-way way.
+const pair=decodeLaneWays(JSON.stringify({features:[
+ feature({oneway:'yes',lanes:'3'},[[side+50,301],[-50,301]]),           // westbound, 1 m off
+ feature({oneway:'yes',lanes:'2',maxspeed:'25 mph'},[[-50,305],[side+50,305]]),  // eastbound, 5 m off
+ feature({lanes:'4'},[[-50,402],[side+50,402]]),                         // two-way, 2 m off road F
+]}));
+const onewayRoads=[
+ ['primary',1,'East',[[0,u(300)],[1,u(300)]],12,'paved'],       // eastbound: the 5 m way
+ ['primary',-1,'West',[[0,u(302)],[1,u(302)]],12,'paved'],      // drawn east, travels west: the 1 m way
+ ['primary',1,'F',[[0,u(400)],[1,u(400)]],12,'paved'],          // one-way beside a two-way way: nothing
+];
+const dir=new Map(matchLaneCounts(X,Y,onewayRoads,pair));
+assert.deepEqual(dir.get(0),[[0,0,2,2,0,25]],'one-way takes the way running its own direction');
+assert.deepEqual(dir.get(1),[[0,0,3,3,0,0]],'oneway=-1 travels against the point order');
+assert.ok(!dir.has(2),'a one-way road never takes a two-way way');
+
+// The tile command reads the cache only: pending until the counts are fetched.
+const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'lane-counts-'));
+try{
+ assert.equal(cachedLaneWays(X,Y,tmp),null,'nothing cached: pending');
+ fs.writeFileSync(path.join(tmp,laneCountKey(X,Y)),raw);
+ const cached=cachedLaneWays(X,Y,tmp);
+ assert.equal(cached.ways.length,3,'cached ways are read without a request');
+ fs.unlinkSync(path.join(tmp,laneCountKey(X,Y)));
+ fs.writeFileSync(path.join(tmp,laneCountKey(X,Y)+'.miss'),'0');
+ assert.equal(cachedLaneWays(X,Y,tmp),'unavailable','a recent failed request is not retried at once');
+ assert.ok(laneRoadsFile(tmp,X,Y).startsWith(tmp));
+ assert.throws(()=>laneRoadsFile(tmp,-1,Y));
+}finally{fs.rmSync(tmp,{recursive:true,force:true});}
 console.log('lane-counts: all assertions passed');
