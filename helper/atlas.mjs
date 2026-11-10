@@ -74,6 +74,29 @@ async function photograph(mx,my){
   return {aerial:id,requests};
  }catch{fs.writeFileSync(miss,'');return {requests}}
 }
+const readTerrarium=(x,y)=>data('h-'+x+'-'+y,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+x+'/'+y+'.png');
+// Bridge end heights shared between the tiles a deck crosses (tiny local files).
+// Only the tile that contains an end writes it (road-grade.mjs bridgeDecks);
+// v1 records were written by any tile near the end and are not read.
+function bridgeMemo(meta,nested){
+ const file=key=>path.join(cache,'bridge-end-v2-'+key+'.json');
+ return {get:key=>{try{return JSON.parse(fs.readFileSync(file(key),'utf8')).z}catch{return undefined}},
+  set:(key,z)=>{try{fs.writeFileSync(file(key),JSON.stringify({z:Math.round(z*100)/100}))}catch{}},
+  // Grade the owning tile once so it records its ends; it does not ask further.
+  resolve:nested?null:async(ox,oy)=>{try{await gradeOwner(ox,oy,meta)}catch{}}};
+}
+// The road grading of tile X,Y, run only for the bridge-end records it writes.
+async function gradeOwner(X,Y,meta){
+ const mx=Math.floor(X/4),my=Math.floor(Y/4),ex=Math.floor(X/8),ey=Math.floor(Y/8);
+ const url=meta.tiles[0].replace('{z}','14').replace('{x}',mx).replace('{y}',my);
+ const [buf,elev,measured]=await Promise.all([data('v-'+mx+'-'+my,url),readTerrarium(ex,ey),measuredGround(X,Y,cache,readCached)]);
+ // A tile whose 3DEP read failed would measure on Terrarium: leave the end to
+ // the owner's own build.
+ if(measured?.unavailable)return;
+ const vector=buf[0]===31?gunzipSync(buf):buf;
+ const readVector=async(nx,ny)=>{const raw=await data('v-'+nx+'-'+ny,meta.tiles[0].replace('{z}','14').replace('{x}',nx).replace('{y}',ny));return vectorTile(raw[0]===31?gunzipSync(raw):raw)};
+ await streamedTerrain(X,Y,vectorTile(vector),decode(elev),widths,readTerrarium,measured,readVector,bridgeMemo(meta,true));
+}
 async function chunk(X,Y){
  const mx=Math.floor(X/4),my=Math.floor(Y/4),ex=Math.floor(X/8),ey=Math.floor(Y/8);
  const meta=JSON.parse((await data('manifest','https://tiles.openfreemap.org/planet',day)).toString());
@@ -87,10 +110,7 @@ async function chunk(X,Y){
  // A neighbouring z14 vector tile is read only when a road crosses into it near
  // this tile; the 3 × 3 ring would request it moments later anyway.
  const readVector=async(nx,ny)=>{const raw=await data('v-'+nx+'-'+ny,meta.tiles[0].replace('{z}','14').replace('{x}',nx).replace('{y}',ny));return vectorTile(raw[0]===31?gunzipSync(raw):raw)};
- // Bridge end heights shared between the tiles a deck crosses (tiny local files).
- const memo={get:key=>{try{return JSON.parse(fs.readFileSync(path.join(cache,'bridge-end-v1-'+key+'.json'),'utf8')).z}catch{return undefined}},
-  set:(key,z)=>{try{fs.writeFileSync(path.join(cache,'bridge-end-v1-'+key+'.json'),JSON.stringify({z:Math.round(z*100)/100}))}catch{}}};
- const terrain=await streamedTerrain(X,Y,tile,dem,widths,(x,y)=>data('h-'+x+'-'+y,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+x+'/'+y+'.png'),ground,readVector,memo);
+ const terrain=await streamedTerrain(X,Y,tile,dem,widths,readTerrarium,ground,readVector,bridgeMemo(meta,false));
  if(measured?.unavailable)terrain.road_grade.elevation_fallback=measured.reason;
  if(!args.includes('--without-road-banks'))applyRoadBanks(X,Y,tile,widths,terrain,cachedBankSurface(X,Y,cache));
  const roads=[],buildings=buildingRows(tile.layers.building,X,Y),land=[],pois=[];

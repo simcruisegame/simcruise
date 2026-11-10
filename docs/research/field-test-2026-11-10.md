@@ -59,6 +59,7 @@ The six testers drove 24 places with RoadDrive at a lateral target of 0.4 g and 
   - Ramp deck ends into the approach roads.
   - Give every road flagged as a bridge its own deck.
   - Add a validator that fails a tile when the two surfaces differ by more than 0.1 m along any road.
+- **Status (Unreleased):** B is fixed by `DrivableCorridor.gd` and checked by `checks/RoadClearance.gd`. For C, the Moab deck now has one height at its tile seams (each end is measured by the tile that contains it), approaches no longer dip into a deck where the DEM falls away under the abutment, and side-by-side carriageways keep their own heights; US-191 at Moab and the Hull Avenue route at Jerome drive through in both directions. The collider-vs-`height_at` gap, Allston, Stowe and Galena were not re-measured.
 
 **D. Overlapping road strips with different crossfall. Major, 4–6 places.**
 - **Evidence:** Vidalia has two 16 m trunk strips 12–16 m apart. The Eureka couplet split launches cars at 3–8 m/s. At the Millersburg and Guthrie corners a wheel lifts at 5 m/s; that cause is unverified.

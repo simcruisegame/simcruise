@@ -843,9 +843,6 @@ func apply_forest_form()->int:
  return changed
 
 func build(data:Dictionary,size_m:float,mats:Dictionary):
- # One-way carriageways and twin decks at their own widths, before anything
- # is built from the roads (RoadWidths.gd).
- preload("res://RoadWidths.gd").apply(data)
  preload("res://SurveyGroundPatch.gd").apply(data)
  preload("res://RoadBankMesh.gd").apply(data)
  info=data;side=size_m;materials=mats.duplicate();grid_steps=int(data.get("grid",32))
@@ -1000,13 +997,15 @@ var parked=[]
 #   * A road on a deck above the wall's top passes over it.
 # Per tile, info.building_walls_on_road counts the edges opened,
 # building_wall_open_m their opened length and building_wall_m all colliding
-# wall length. --without-road-clearance keeps every wall solid.
+# wall length; other props (fuel pumps) pass tally=false and are not counted.
+# CAR_CLEAR_M is an estimate from the car's size, not a measured value.
+# --without-road-clearance keeps every wall solid.
 const CAR_CLEAR_M=1.5
 # Solid parts of wall edge a-d as [t0, t1] fractions along it ([[0, 1]]: all).
-func wall_spans(a:Vector2,d:Vector2,top:float)->Array:
+func wall_spans(a:Vector2,d:Vector2,top:float,tally:=true)->Array:
  if not preload("res://DrivableCorridor.gd").enabled():return [[0.,1.]]
  var length=a.distance_to(d)
- info["building_wall_m"]=float(info.get("building_wall_m",0.))+length
+ if tally:info["building_wall_m"]=float(info.get("building_wall_m",0.))+length
  if segments.is_empty() or length<.02:return [[0.,1.]]
  if road_grid.is_empty():road_index()
  # road_index files each segment under every bin within its half width + 2.2 m,
@@ -1051,8 +1050,9 @@ func wall_spans(a:Vector2,d:Vector2,top:float)->Array:
  if at<1.:solid.append([at,1.])
  # Slivers under 5 cm are not worth a collider.
  solid=solid.filter(func(s):return (s[1]-s[0])*length>=.05)
- info["building_walls_on_road"]=int(info.get("building_walls_on_road",0))+1
- info["building_wall_open_m"]=float(info.get("building_wall_open_m",0.))+opened*length
+ if tally:
+  info["building_walls_on_road"]=int(info.get("building_walls_on_road",0))+1
+  info["building_wall_open_m"]=float(info.get("building_wall_open_m",0.))+opened*length
  return solid
 
 # The point at fraction t of a-d, exactly a or d at the ends.
@@ -1061,9 +1061,10 @@ static func along(a:Vector2,d:Vector2,t:float)->Vector2:
  if t>=1.:return d
  return a.lerp(d,t)
 
-# True when any part of the wall a-d stands in a car's path (wall_spans).
+# True when any part of a prop's face a-d (a fuel pump) stands in a car's path
+# (wall_spans; not counted with the building walls).
 func wall_on_road(a:Vector2,d:Vector2,top:float)->bool:
- var spans=wall_spans(a,d,top)
+ var spans=wall_spans(a,d,top,false)
  return spans.size()!=1 or spans[0][0]>0. or spans[0][1]<1.
 
 func collider(shape,label:="Ground"):

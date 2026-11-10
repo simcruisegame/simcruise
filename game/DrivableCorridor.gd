@@ -9,8 +9,10 @@ extends RefCounted
 ## parapets of the twin US-191 decks stood in each other. Clipping them is
 ## right, but it did not change either field-test drive (checks/RoadDrive.gd,
 ## identical with and without it). At Moab the car rolled where one-way
-## carriageways built at two-way widths overlapped (RoadWidths.gd) and stops at
-## a deck height step at a tile seam (problem C).
+## carriageways built at two-way widths overlapped (fixed by the helper's
+## one-way widths, helper/road-widths.mjs) and stopped at a deck height step
+## at a tile seam and at approaches that dipped into the deck (fixed in
+## helper/road-grade.mjs bridgeDecks and chainProfile).
 ##
 ## The corridor is the union of, all with their surface height:
 ##   * every road ribbon (RoadSurface.gd): its carriageway half width plus
@@ -72,11 +74,12 @@ func build(tile) -> void:
   var lines: Array = tile.road_surface.lines
   for li in lines.size():
    var sections: Array = lines[li].sections
-   var half: float = lines[li].half
+   # Each station's own paved half width (RoadSurface.gd halves).
+   var halves: PackedFloat32Array = lines[li].halves
    for i in range(1, sections.size()):
     var a: Vector3 = sections[i-1][2];var b: Vector3 = sections[i][2]
     if Vector2(a.x, a.z).distance_to(Vector2(b.x, b.z)) >= 8.:continue
-    add(a, b, half + MARGIN_M, "L%d" % li, i)
+    add(a, b, maxf(halves[i-1], halves[i]) + MARGIN_M, "L%d" % li, i)
  # Decks, with their shoulders, at the deck height.
  var bridges: Array = tile.info.get("bridges", [])
  for bi in bridges.size():

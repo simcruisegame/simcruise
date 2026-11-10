@@ -100,7 +100,7 @@ static func deck(tile,path:PackedVector3Array,width:float,cls:String,oneway:bool
  var outer=half+PARAPET_W
  var station=0.
  # Parapets never stand on another road: where one would (a road joining at
- # the deck end, or a deck the data still overlaps after RoadWidths.gd) the
+ # the deck end, or a twin deck the mapped centrelines put too close) the
  # deck edge keeps only its fascia (DrivableCorridor.gd). Each clipped metre
  # is counted in info.bridge_parapet_clipped_m: a stopgap that marks deck
  # data at odds with the road, not real bridge geometry.

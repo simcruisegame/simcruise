@@ -382,7 +382,7 @@ static func inferred_runs(tile) -> Array:
 static func clip(tile, runs: Array) -> Array:
  var corridor = CORRIDOR.for_tile(tile)
  var out := []
- var before := 0.;var after := 0.;var ends := 0
+ var before := 0.;var after := 0.;var ends := 0;var terminal_m := 0.
  for run in runs:
   var pts: PackedVector3Array = run.pts
   var stations: PackedInt32Array = run.get("stations", PackedInt32Array())
@@ -412,12 +412,19 @@ static func clip(tile, runs: Array) -> Array:
    if length(piece) >= MIN_PIECE_M:
     var r: Dictionary = run.duplicate()
     r["pts"] = piece;r["stations"] = dense_stations.slice(k, j + 1)
-    ends += terminals(tile, r, corridor)
-    after += length(r.pts)
+    # Kept length before the terminals: their flare moves points sideways
+    # and lengthens the run, which is not rail put back on the road.
+    after += length(piece)
+    var made := terminals(tile, r, corridor)
+    ends += made
+    terminal_m += minf(TERMINAL_M, length(piece) * .5) * made
     out.append(r)
    k = j + 1
+ # Rail removed from the corridor (cut out, or dropped as a short leftover),
+ # and separately the length of rail given a turned-down terminal.
  tile.info["guard_rail_clipped_m"] = snappedf(before - after, .1)
  tile.info["guard_rail_terminals"] = ends
+ tile.info["guard_rail_terminal_m"] = snappedf(terminal_m, .1)
  return out
 
 ## Turned-down terminals: over the last TERMINAL_M (or half a short run) the

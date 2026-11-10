@@ -5,11 +5,10 @@ extends SceneTree
 ##     [--classes=motorway,trunk,primary,secondary,tertiary,minor] [--step=1] [--strict] [--without-road-clearance]
 ##
 ## With no --dir it checks the bundled Miami Beach block (game/data, the offline
-## start; default suite). --without-road-clearance builds every tile exactly as
-## before this clearance work (rails, parapets and building walls unclipped,
-## helper road widths, decks and parapets in the tile's shared Structures
-## collider): the before measurement, and the
-## same drive as main in checks/RoadDrive.gd.
+## start; default suite). --without-road-clearance builds rails, parapets and
+## building walls unclipped, with decks and parapets in the tile's shared
+## Structures collider: the before measurement. (It does not undo the ribbon
+## join rule in RoadSurface.gd, which applies either way.)
 ## Tiles are the helper's `atlas tile CACHE X Y` output saved as X_Y.json (any
 ## folder; the same files checks/RoadDrive.gd drives). They are built with
 ## WorldTile exactly as the streamer builds them and placed side by side. Then a
@@ -40,16 +39,19 @@ extends SceneTree
 ## (at most 60, or --lines=N), one summary, exit 1 when any WALL hit is on a failing class.
 ## A "data" line sums what the clearance changed: building wall edges opened and
 ## their length against all colliding wall length (WorldTile.wall_spans), rail
-## and parapet metres clipped, one-way roads narrowed and twin decks narrowed
-## (RoadWidths.gd). Exit 1 too when the openings pass MAX_WALL_OPEN (1 %) of the
-## wall length (the bundled Miami Beach start: 0.43 %).
+## and parapet metres removed from the corridor, and the rail length that became
+## turned-down terminals (counted apart: a terminal is rail kept, not removed).
+## Exit 1 too when the openings pass MAX_WALL_OPEN (1 %) of the wall length (the
+## bundled Miami Beach start: 0.43 %). MAX_WALL_OPEN is a guard chosen for this
+## check, not a measured value.
 ##
 ## What a pass means: this is a static box sweep along the mapped centrelines.
 ## It proves that no rail, parapet or wall stands in a car-sized box on a road;
 ## it does not drive anything. A tile can pass here and still stop or roll a car
 ## on a step, a bank or a deck end (STEP and SURFACE lines, field-test problems
 ## C and D); only checks/RoadDrive.gd measures that. In the default suite it
-## costs about 25-35 s (the bundled 24 tiles are built and swept once).
+## costs about 25-50 s (the bundled 24 tiles are built and swept once; more on
+## a loaded machine).
 const TILE=preload("res://WorldTile.gd")
 const EARTH=40075016.68557849
 const BOX:=Vector3(1.8,1.2,4.4)   # width, height, length
@@ -214,15 +216,17 @@ func sweep():
  for b in by_body:bodies.append("%s=%d"%[b,by_body[b]])
  print("RESULT clearance: wall_hits=%d wall_m=%.0f wall_bodies={%s} wall_hits_service_track=%d building_lane_hits=%d step_hits=%d surface_hits=%d"%[walls_fail,walls_m,", ".join(bodies),walls_other,buildings,steps,surface])
  # What the clearance changed in the data, summed over the tiles: building
- # wall openings (WorldTile.wall_spans), clipped rails and parapets, narrowed
- # one-way roads and twin decks (RoadWidths.gd).
+ # wall openings (WorldTile.wall_spans), clipped rails and parapets, rail
+ # length given terminals (GuardRails.clip).
  var sums={}
- for key in ["building_walls_on_road","building_wall_open_m","building_wall_m","guard_rail_clipped_m","bridge_parapet_clipped_m","road_oneway_narrowed","bridge_twin_narrowed"]:
+ for key in ["building_walls_on_road","building_wall_open_m","building_wall_m","guard_rail_clipped_m","guard_rail_terminals","guard_rail_terminal_m","bridge_parapet_clipped_m"]:
   var total=0.
   for id in tiles:total+=float(tiles[id].info.get(key,0.))
   sums[key]=total
  var open_share=sums.building_wall_open_m/sums.building_wall_m if sums.building_wall_m>0. else 0.
- print("ROADCLEARANCE data: wall_edges_opened=%d wall_open_m=%.0f of %.0f (%.2f %%) rail_clipped_m=%.0f parapet_clipped_m=%.0f oneway_roads_narrowed=%d twin_decks_narrowed=%d"%[sums.building_walls_on_road,sums.building_wall_open_m,sums.building_wall_m,open_share*100.,sums.guard_rail_clipped_m,sums.bridge_parapet_clipped_m,sums.road_oneway_narrowed,sums.bridge_twin_narrowed])
+ print("ROADCLEARANCE data: wall_edges_opened=%d wall_open_m=%.0f of %.0f (%.2f %%) rail_clipped_m=%.0f rail_terminals=%d terminal_m=%.0f parapet_clipped_m=%.0f"%[sums.building_walls_on_road,sums.building_wall_open_m,sums.building_wall_m,open_share*100.,sums.guard_rail_clipped_m,sums.guard_rail_terminals,sums.guard_rail_terminal_m,sums.bridge_parapet_clipped_m])
+ # A negative removal would mean the accounting counts something else.
+ if sums.guard_rail_clipped_m<-.05 or sums.bridge_parapet_clipped_m<-.05:print("ROADCLEARANCE FAIL negative clipped length");quit(1);return
  # No road swept is no evidence: the folder held no roads (or none inside).
  if swept.is_empty():print("ROADCLEARANCE swept no road; nothing was checked");quit(2);return
  # Openings are for a car's path only; a share above MAX_WALL_OPEN means the

@@ -84,7 +84,13 @@ func build(rows: Array, side: float) -> void:
     var p: Vector2 = c + n * L
     section.append(Vector3(p.x, h, p.y))
    sections.append(section)
-  chains.append({"rank":RANK.get(str(chain.get("cls","")),1)*100000+pts.size(),"sections":sections})
+  # A chain that joins parts of different classes ranks by its highest one
+  # (helper road-grade.mjs chainTop), then by the metres of that class it
+  # holds (top_m), so the through road is built first and lesser streets,
+  # and chains holding only a short piece of its class, join onto it. Rows
+  # without top_m (older helpers) rank by station count as before.
+  var length_key: int = mini(int(chain.get("top_m", pts.size())), 99999)
+  chains.append({"rank":RANK.get(str(chain.get("top",chain.get("cls",""))),1)*100000+length_key,"sections":sections})
   lines.append({"cls":str(chain.get("cls","")),"halves":halves,"sections":sections})
  chains.sort_custom(func(a, b): return a.rank > b.rank)
  for chain in chains:
@@ -98,7 +104,13 @@ func build(rows: Array, side: float) -> void:
   active = not quads.is_empty()
 
 ## Snap a lower-ranked ribbon onto the ribbons already built where they
-## overlap; the station-wise correction fades out over JOIN_FADE_M.
+## overlap; the station-wise correction fades out over JOIN_FADE_M. A station
+## joins only when its centreline lies on a built ribbon (an intersection, a
+## merge, a couplet split). Two roads side by side whose shoulders merely
+## overlap (the carriageways of a divided highway, a frontage road) keep their
+## own heights: snapping the whole cross-section there moved the northbound
+## US-191 carriageway at Moab UT 0.8 m down onto the southbound one, leaving a
+## 0.8 m step where it meets its bridge deck (a dead stop from 19 m/s).
 func join(sections: Array) -> void:
  var delta := PackedFloat32Array();delta.resize(sections.size())
  var covered := []
@@ -107,7 +119,8 @@ func join(sections: Array) -> void:
   for v in sections[i]:
    var hi := height(Vector2(v.x, v.z))
    if not is_nan(hi):sum += hi - v.y;count += 1
-  covered.append(count > 0)
+  var centre: Vector3 = sections[i][2]
+  covered.append(count > 0 and not is_nan(height(Vector2(centre.x, centre.z))))
   delta[i] = sum / count if count > 0 else 0.
  # Station spacing along this chain, for the fade.
  var station := PackedFloat32Array();station.resize(sections.size())

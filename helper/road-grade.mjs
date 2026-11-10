@@ -211,18 +211,24 @@ function gaussianLinear(S,Z,W,s){
 }
 
 // Samples, robust weights, profile and superelevation for one chain.
-function chainProfile(parts,sample,inside,designSpeed,bridgeAt=[false,false]){
+export function chainProfile(parts,sample,inside,designSpeed,bridgeAt=[false,false]){
  const rows=[];
- for(const part of parts){
+ parts.forEach((part,index)=>{
   const {piece,s,length,reversed,offset}=part;
   let seg=0;
-  for(let l=0;l<=length+1e-9;l+=STEP){
+  const at=l=>{
    while(seg<s.length-2&&l>s[seg+1])seg++;
    const a=piece.pts[seg],b=piece.pts[seg+1],t=(l-s[seg])/Math.max(s[seg+1]-s[seg],1e-9);
-   const x=a[0]+(b[0]-a[0])*t,y=a[1]+(b[1]-a[1])*t;
-   rows.push([offset+(reversed?length-l:l),x,y]);
-  }
- }
+   rows.push([offset+(reversed?length-l:l),a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t]);
+  };
+  let last=0;
+  for(let l=0;l<=length+1e-9;l+=STEP){at(l);last=l}
+  // A chain that ends at a bridge gets a station exactly at its end, so its
+  // ribbon reaches the deck (stations every STEP stopped up to 2 m short, a
+  // gap where the car dropped onto the bank under the abutment).
+  const end=reversed?(index===0&&bridgeAt[0]):(index===parts.length-1&&bridgeAt[1]);
+  if(end&&length-last>.05)at(length);
+ });
  rows.sort((p,q)=>p[0]-q[0]);
  const S=new Float64Array(rows.length),Z=new Float64Array(rows.length),W=new Float64Array(rows.length);
  rows.forEach((r,i)=>{S[i]=r[0];if(inside(r[1],r[2])){Z[i]=sample(r[1],r[2]);W[i]=Number.isFinite(Z[i])?1:0}});
@@ -259,23 +265,47 @@ function chainProfile(parts,sample,inside,designSpeed,bridgeAt=[false,false]){
  // one-sided wide fit undershoots that curve. Measure the end with a short
  // uniform fit over the last 25 m and blend the profile onto it over 30 m, so
  // the bench meets the deck (bridgeDecks reads the same corrected value).
+ // A bare-earth DEM can also fall away at the abutment instead (the bank of
+ // the river the bridge crosses, smoothed into the last 10-20 m of the road):
+ // at Moab UT both US-191 approaches then dropped 1.4 m over their last 12 m
+ // (11-12 % grades) into the Colorado River bridge, a kink that jolted a car at
+ // 4-6 g and stopped it dead. A road does not dip into a bridge (it crosses
+ // something lower), so the end is never put below the approach's own line,
+ // fitted over BRIDGE_LINE_M before the last 25 m and carried to the end, and
+ // samples of the last 25 m that lie below that line are not the road and get
+ // no weight: the profile then runs on at the approach grade, with no dip and
+ // no hump where a correction would meet it.
  const total=S.length?S[S.length-1]:0;
- for(const [atEnd,end] of [[bridgeAt[0],0],[bridgeAt[1],total]]){
-  if(!atEnd||S.length<8)continue;
+ const lineFit=(end,from,to)=>{
   let n=0,sx=0,sy=0,sxx=0,sxy=0;
   for(let i=0;i<S.length;i++){
    const d=Math.abs(S[i]-end);
-   if(d>25||!(W[i]>0))continue;
+   if(d<from||d>to||!(W[i]>0))continue;
    const x=S[i]-end;n++;sx+=x;sy+=Z[i];sxx+=x*x;sxy+=x*Z[i];
   }
-  if(n<5)continue;
+  if(n<5)return null;
   const det=n*sxx-sx*sx;
-  const short=Math.abs(det)>1e-9?(sy*sxx-sx*sxy)/det:sy/n;
+  if(Math.abs(det)<=1e-9)return {a:sy/n,b:0};
+  return {a:(sy*sxx-sx*sxy)/det,b:(n*sxy-sx*sy)/det};
+ };
+ for(const [atEnd,end] of [[bridgeAt[0],0],[bridgeAt[1],total]]){
+  if(!atEnd||S.length<8)continue;
+  const short=lineFit(end,0,25);
+  if(!short)continue;
+  const line=lineFit(end,25,25+BRIDGE_LINE_M);
+  if(line&&line.a>short.a){
+   for(let i=0;i<S.length;i++){
+    const x=S[i]-end;
+    if(Math.abs(x)<=25&&Z[i]<line.a+line.b*x-BRIDGE_DIP_M)R[i]=0;
+   }
+  }
+  const top=line?Math.max(short.a,line.a):short.a;
   const wide=gaussianLinear(S,Z,R,end);
-  if(Number.isFinite(short)&&Number.isFinite(wide))profile.fix.push({end,delta:short-wide});
+  if(Number.isFinite(wide))profile.fix.push({end,delta:top-wide});
  }
  return profile;
 }
+const BRIDGE_LINE_M=50,BRIDGE_DIP_M=.1;
 const FIX_SPAN=30;
 function fixAt(profile,s){
  let d=0;
@@ -313,7 +343,7 @@ function widthAlong(parts){
 }
 function roadSurface(chains,{tx0,ty0,scale}){
  const out=[];
- for(const {cls,width,widthAt,profile} of chains){
+ for(const {cls,top,topM,width,widthAt,profile} of chains){
   if(LOOSE.has(cls))continue;
   const rows=[];let run=[];
   const flush=()=>{if(run.length>=2)rows.push(run);run=[]};
@@ -327,9 +357,34 @@ function roadSurface(chains,{tx0,ty0,scale}){
    run.push([r((x-tx0)/scale,1e6),r((y-ty0)/scale,1e6),r(z,1e3),r(e,1e4),r(tx,1e4),r(ty,1e4),r(widthAt(profile.S[i]),100)]);
   }
   flush();
-  for(const pts of rows)out.push({cls,w:Math.round(width*100)/100,pts});
+  for(const pts of rows)out.push(top!==cls?{cls,top,top_m:topM,w:Math.round(width*100)/100,pts}:{cls,top_m:topM,w:Math.round(width*100)/100,pts});
  }
  return out;
+}
+
+// A chain can join parts of different classes (a street that changes class at
+// a junction). Its class (design speed, guard rails) is the class with the
+// most length, ties to the first part; it was the first part's class. Its
+// `top` class is the highest class of any part and `top_m` the metres of that
+// class in it, and RoadSurface.gd builds and joins ribbons in that order (a
+// chain with a short primary piece ranks below an all-primary road it
+// crosses), so a through road is never snapped onto a lesser street that
+// ends on it: at Jerome AZ, Hull Avenue (primary, 10 %
+// grade) was in a chain of class "minor", ranked below Diaz Street, and was
+// flattened onto that street's level end section across it, a 0.55 m step
+// in the drive line (RoadDrive jolts of 7-9 g at station 171-172).
+const CLASS_RANK={motorway:7,trunk:6,primary:5,secondary:4,tertiary:3,minor:2,residential:2,unclassified:2};
+export function chainClass(parts){
+ const length=new Map();
+ for(const p of parts)length.set(p.piece.cls,(length.get(p.piece.cls)??0)+p.length);
+ let best=parts[0].piece.cls;
+ for(const [cls,l] of length)if(l>length.get(best))best=cls;
+ return best;
+}
+export function chainTop(parts){
+ let top=chainClass(parts);
+ for(const p of parts)if((CLASS_RANK[p.piece.cls]??1)>(CLASS_RANK[top]??1))top=p.piece.cls;
+ return top;
 }
 
 // Design speed for superelevation, km/h. Low-speed streets keep a normal crown
@@ -428,13 +483,14 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
  };
  const cell=scale/FINE,terminals=[],surfaceChains=[],banked=[];
  chains.forEach((parts,id)=>{
-  const cls=parts[0].piece.cls,width=Math.max(...parts.map(p=>p.piece.width));
+  const cls=chainClass(parts),width=Math.max(...parts.map(p=>p.piece.width));
   const ends=[parts[0].reversed?parts[0].piece.pts[parts[0].piece.pts.length-1]:parts[0].piece.pts[0],
    parts[parts.length-1].reversed?parts[parts.length-1].piece.pts[0]:parts[parts.length-1].piece.pts[parts[parts.length-1].piece.pts.length-1]];
   const bridgeAt=ends.map(a=>bridgeEnds.some(b=>Math.hypot(a[0]-b[0],a[1]-b[1])<=3));
   const profile=chainProfile(parts,sample,inside,designSpeed(cls),bridgeAt);
   const widthAt=widthAlong(parts);
-  surfaceChains.push({cls,width,widthAt,profile});
+  const top=chainTop(parts);
+  surfaceChains.push({cls,top,topM:Math.round(parts.reduce((m,p)=>m+(p.piece.cls===top?p.length:0),0)),width,widthAt,profile});
   banked.push({id,profile,widthAt,banked:designSpeed(cls)>0});
   const total=parts.reduce((sum,p)=>sum+p.length,0);
   // Chain ends: a bridge deck starts at the bench height where its approach ends.
@@ -444,6 +500,17 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
    const end=atStart?(part.reversed?pts[pts.length-1]:pts[0]):(part.reversed?pts[0]:pts[pts.length-1]);
    terminals.push({x:end[0],y:end[1],profile,station:atStart?0:total,cls,name:part.piece.name});
   }
+  // A deck can also start at a joint inside a chain: the two one-way
+  // carriageways of a road chained tip to tip where they meet a two-way deck
+  // (Jerome AZ, Hull Avenue: the deck end was 0.26 m above the ribbon through
+  // that joint, measured from another road, and stopped a car from 11 m/s).
+  // The joint's station on this chain measures the deck end there too.
+  parts.forEach((part,k)=>{
+   if(k===0)return;
+   const pts=part.piece.pts,start=part.reversed?pts[pts.length-1]:pts[0];
+   if(bridgeEnds.some(b=>Math.hypot(start[0]-b[0],start[1]-b[1])<=3))
+    terminals.push({x:start[0],y:start[1],profile,station:part.offset,cls,name:part.piece.name});
+  });
   for(const part of parts){
    const {piece,s,length,reversed,offset}=part;
    // Each part is benched to its own width (a chain can join a one-way carriageway to a wider two-way road).
@@ -559,7 +626,9 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
  }
  summary.conditioned=summary.bench.vertices;
  const worldKey=(x,y)=>{const [wx,wy]=toWorld(x,y);return Math.round(wx*2e4)+'-'+Math.round(wy*2e4)};
- const bridges=await bridgeDecks(structures.filter(p=>p.bridge),terminals,sample,inside,{tx0,ty0,scale},memo,worldKey);
+ // The z16 tile a point lies in (world tile units, floored).
+ const ownerOf=(x,y)=>{const [wx,wy]=toWorld(x,y);return [Math.floor(Math.round(wx*2e4)/2e4),Math.floor(Math.round(wy*2e4)/2e4)]};
+ const bridges=await bridgeDecks(structures.filter(p=>p.bridge),terminals,sample,inside,{tx0,ty0,scale},memo,worldKey,ownerOf,[X,Y]);
  summary.bench.bridges=bridges.length;
  return {h,grid:FINE,road_grade:summary,bridges,road_surface:roadSurface(surfaceChains,{tx0,ty0,scale})};
 }
@@ -569,7 +638,18 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
 // without an approach in reach takes the ground there; a bridge with neither
 // end known is left out. Rows: [class, name, points in tile units clipped to
 // the tile, width, deck height per point, layer].
-async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,worldKey){
+//
+// Every tile a deck crosses must give it the same profile, or the deck steps at
+// the tile seam (Moab UT, US-191 over the Colorado: 0.24 m, which stopped a
+// car dead from 20 m/s). A tile measures an end well only when the end lies in
+// it: its approach profile is fitted on this tile's own 3DEP read, and a
+// neighbour's fit of the same approach near the edge of its read differed by
+// 0.53 m. So each end belongs to the z16 tile that contains it (`owner`): that
+// tile measures it (approach profile, else the ground) and records it in the
+// cache (memo); every other tile reads the record and, when there is none yet,
+// asks the owner to grade itself first (memo.resolve). The deck height then
+// does not depend on which tile was built first.
+export async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,worldKey,ownerOf=null,self=null){
  const rows=[];
  for(const parts of chainPieces(pieces)){
   const pts=[];
@@ -582,19 +662,31 @@ async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,w
   if(pts.length<2)continue;
   const s=arcLength(pts),length=s[s.length-1];
   if(length<2)continue;
-  // An end measured here (its approach profile has data) is remembered in the
-  // cache, so a tile too far from that end to measure it uses the same height.
+  // An end is measured by the tile that owns it and remembered in the cache;
+  // other tiles use that record (see above).
   const endHeight=async(p)=>{
    let best=null;
    for(const t of terminals){const d=Math.hypot(t.x-p[0],t.y-p[1]);if(d<=3&&(!best||d<best.d))best={d,t}}
    const key=worldKey(p[0],p[1]);
-   if(best){
-    const z=Math.round(profileAtHeight(best.t.profile,best.t.station)*100)/100;
-    if(Number.isFinite(z)&&inside(p[0],p[1])){memo?.set(key,z);return z}
+   const measure=()=>{
+    if(best){
+     const z=Math.round(profileAtHeight(best.t.profile,best.t.station)*100)/100;
+     if(Number.isFinite(z)&&inside(p[0],p[1]))return z;
+    }
+    if(!inside(p[0],p[1]))return NaN;
+    const g=sample(p[0],p[1]);
+    return Number.isFinite(g)?Math.round(g*100)/100:NaN;
+   };
+   const owner=ownerOf?.(p[0],p[1]);
+   if(!owner||!self||(owner[0]===self[0]&&owner[1]===self[1])){
+    const z=measure();
+    if(Number.isFinite(z)){if(owner)memo?.set(key,z);return z}
    }
-   const known=memo?.get(key);
+   let known=memo?.get(key);
+   if(!Number.isFinite(known)&&owner&&memo?.resolve){await memo.resolve(owner[0],owner[1]);known=memo.get(key)}
    if(Number.isFinite(known))return known;
-   return inside(p[0],p[1])?sample(p[0],p[1]):NaN;
+   // The owner could not be graded (no data offline): measure here as before.
+   return measure();
   };
   let za=await endHeight(pts[0]),zb=await endHeight(pts[pts.length-1]);
   if(!Number.isFinite(za)&&!Number.isFinite(zb))continue;
@@ -621,7 +713,7 @@ async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,w
  }
  return rows;
 }
-function profileAtHeight(profile,s){return gaussianLinear(profile.S,profile.Z,profile.W,s)+fixAt(profile,s)}
+export function profileAtHeight(profile,s){return gaussianLinear(profile.S,profile.Z,profile.W,s)+fixAt(profile,s)}
 
 // Superelevation run-out where banked roads meet. Two banked chains whose
 // footprints touch (a couplet splitting from its approach, a ramp joining, two
