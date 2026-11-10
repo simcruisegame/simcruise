@@ -22,14 +22,16 @@ Drive.gd, WorldTile.gd, Powertrain.gd …    one process per job, no server     
 
 Calibration is a headless test, `game/checks/Track.gd`, run at a fixed 60 Hz on a flat pad. Its targets follow the numbers Car and Driver's 1999 road test and Mazda's specifications give for this car:
 
-| Measure | Target | SimCruise (commit 2f1d1cf) | Band that must hold |
+| Measure | Target | SimCruise (November 2026, main) | Band that must hold |
 |---|---|---|---|
-| 0–60 mph | 7.97 s | 7.95 s | ± 0.10 s |
-| 70–0 mph braking | 173 ft | 173.0 ft | ± 3 ft |
+| 0–60 mph | 7.97 s | 7.99 s | ± 0.10 s |
+| 70–0 mph braking | 173 ft | 172.9 ft | ± 3 ft |
 | 300 ft skidpad | 0.89 g | 0.885 g | ± 0.01 g |
 | Turning circle (`TurningCircle.gd`, outer front tyre) | 30.2 ft | 30.4–30.6 ft | ≤ 0.20 m error |
 
 Three magazine numbers and the suspension spec are what "feels like a Miata" rests on; there is no public tyre, dyno or damper data for this exact car, and the roadmap says so.
+
+Stability is gated by `game/checks/LiftOff.gd`: every car is held on a 40 m circle at 0.3, 0.5 and 0.7 g, then lifts off or trail-brakes at 0.15 g with the wheel frozen (after ISO 9816 and ISO 7975), and must not spin at 0.3–0.5 g. The automatic gearbox selects reverse (or forward) only below 0.45 m/s, as a real selector's reverse inhibitor does; see [cars.md](cars.md#lift-off-and-trail-braking). Longitudinal tyre grip follows a slip-ratio curve (full grip to 10 % slip, then falling toward a locked or spinning wheel), so a spinning tyre also loses side grip; ABS holds each braked tyre at its peak slip in either direction of travel, and traction control trims torque toward the peak with a filtered, rate-limited cut (`TractionControlCheck`, `CombinedSlip` and `AbsReverse` gate it).
 
 **Rendering.** Godot's Mobile renderer (Metal on macOS, Vulkan on Windows; on an Optimus laptop it opens the discrete GPU). `GraphicsQuality.gd` picks Low, Medium, High or Ultra from the adapter (F4 switches): render scale, MSAA, shadow atlas and reach (up to 4096 px and 260 m), mesh LOD that coarsens with speed, adaptive resolution that follows measured GPU time, traffic and bird counts, and how often the car's reflection probe refreshes. With the Forward+ renderer (`--rendering-method forward_plus`) High and Ultra add SSAO, SSIL, volumetric fog, glow and FSR 2, and Ultra SDFGI; it is not the default because it roughly doubles GPU time for a modest gain. Surfaces: ground textures use stochastic hex tiling (no visible repeats), houses use world-space lap siding or brick and shingled roofs over the aerial roof colour, and the 1999 car has flake paint and road grime that builds with distance. The original setup, for reference: 2× MSAA at 0.9 render scale, a filmic tonemap, one `DirectionalLight3D` sun with a 2048-pixel shadow map reaching 85 m, and a Poly Haven HDR panorama sky. With Weather on, the METAR cloud cover swaps in a procedural overcast sky and sets fog density from reported visibility; a dated street photograph can also reconstruct an archived sky from NOAA satellite cloud masks. The sun is currently fixed to a June afternoon everywhere; real-time sun, longer shadows and a single sun (the sky panorama's own sun still adds unshadowed light, which is the washed-out look) are the first items on the visual roadmap. The Mobile renderer has no SSAO, SSR, global illumination or volumetric fog, so everything is lit directly.
 
