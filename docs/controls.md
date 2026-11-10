@@ -7,7 +7,7 @@ The game opens in the cockpit on a random road from a pool of 36 verified US dri
 | Action | Keyboard | Xbox controller |
 |---|---|---|
 | Accelerate | W or ↑ | Right trigger |
-| Brake, then reverse once stopped | S or ↓ | Left trigger |
+| Brake, then reverse once stopped (below about 1 mph; a trigger pressed too lightly to brake coasts) | S or ↓ | Left trigger |
 | Steer | A / D or ← / → | Left stick |
 | Full brake (service brake) | Space | — |
 | Parking brake, rear wheels | H (hold) | A (hold) |

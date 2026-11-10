@@ -44,6 +44,7 @@ var done=false
 var settle=0
 var speed_i=0.
 var bridge_pieces=[]
+var on_stop=[false,false,false,false]
 
 func _initialize():
  var args=OS.get_cmdline_user_args()
@@ -94,9 +95,12 @@ func _initialize():
  # Start 15 m in: a route often begins exactly at the edge of the loaded tiles.
  station=15.
  var p=Vector2(route[15].x,route[15].z);var q=Vector2(route[23].x,route[23].z);var dir=(q-p).normalized()
+ # Set the car down at its static ride height plus 5 cm: dropping a soft
+ # car from 0.35 m bounced it onto its bump stops before the run began.
  # On a bridge the car starts on the deck (INF: the top surface), elsewhere on
  # the road layer, never on a deck passing over the start.
- car.restart(Vector3(p.x,ground(p,INF if on_bridge(p) else NAN)+.35,p.y),atan2(-dir.x,-dir.y))
+ var ride=car.R+car.spec.static_length_m-car.spec.mount_height_m+.05
+ car.restart(Vector3(p.x,ground(p,INF if on_bridge(p) else NAN)+ride,p.y),atan2(-dir.x,-dir.y))
  print("ROADDRIVE start tile %s" % [origin+Vector2i(floori(p.x/side),floori(p.y/side))])
  print("ROADDRIVE route %.2f km over %d tiles · target %.1f m/s · lateral %.2f g"%[route[-1].y/1000.,tiles.size(),target_speed,lateral_g])
 
@@ -195,7 +199,7 @@ func _physics_process(dt):
  var slide=absf(v.dot(b.x))
  if slide>1.:gas*=clampf(1.-(slide-1.)/1.5,0.,1.);speed_i=0.
  car.drive(dt,gas,brake,turn,false)
- if OS.has_environment("ROADDRIVE_TRACE") and tick%6==0 and station>=int(OS.get_environment("ROADDRIVE_TRACE").split("-")[0]) and station<=int(OS.get_environment("ROADDRIVE_TRACE").split("-")[1]):print("TRACE st %d want %.1f v %.1f gas %.2f brk %.2f turn %.2f yawrate %.2f lat %.2f cross %.1f contacts %d"%[station,want,speed,gas,brake,turn,car.angular_velocity.y,v.dot(b.x),cross,car.wheel_contact])
+ if OS.has_environment("ROADDRIVE_TRACE") and tick%6==0 and station>=int(OS.get_environment("ROADDRIVE_TRACE").split("-")[0]) and station<=int(OS.get_environment("ROADDRIVE_TRACE").split("-")[1]):print("TRACE st %d want %.1f v %.1f gas %.2f brk %.2f turn %.2f yawrate %.2f lat %.2f cross %.1f contacts %d"%[station,want,speed,gas,brake,turn,car.angular_velocity.y,v.dot(b.x),cross,car.wheel_contact]+wheel_trace(speed))
  if OS.has_environment("ROADDRIVE_DEBUG") and tick%60==0 and tick<=600:print("DBG drive station %d want %.1f speed %.2f gas %.2f brake %.2f turn %.2f gear %s rpm %d"%[station,want,speed,gas,brake,turn,car.gear_text(),car.rpm])
  # Observations.
  stats.seconds+=dt
@@ -216,11 +220,22 @@ func _physics_process(dt):
   if vert_g>1.:stats.jolt_10+=1;event("jolt %.1f g"%vert_g)
   stats.max_up_mps=maxf(stats.max_up_mps,v.y-0.)
  for i in 4:
-  if car.spring_load[i]>0. and car.connected_wheels[i].position.y>car.MOUNTS[i].y-car.spec.min_travel_m-.002:stats.bump_stop+=1
+  var stop:bool=car.spring_load[i]>0. and car.connected_wheels[i].position.y>car.MOUNTS[i].y-car.spec.min_travel_m-.002
+  if stop:stats.bump_stop+=1
+  if stop and not on_stop[i]:event("bump stop wheel %d, load %.0f N"%[i,car.spring_load[i]])
+  on_stop[i]=stop
  if car.roof_down:
   if stats.roof==0:event("roof down")
   stats.roof+=1
  return false
+
+# ROADDRIVE_WHEELS=1 appends each tyre's load (N), slip angle (deg) and
+# longitudinal slip, and the gear, to every TRACE line.
+func wheel_trace(speed:float)->String:
+ if not OS.has_environment("ROADDRIVE_WHEELS"):return ""
+ var s=" gear %s"%car.gear_text()
+ for i in 4:s+=" | fz %.0f a %.1f k %.3f"%[car.spring_load[i],rad_to_deg(car.rolling_slip[i]),(car.omega[i]*car.R-speed)/maxf(absf(speed),1.)]
+ return s
 
 # One line per event (not per frame), capped, with where it happened.
 var events_printed=0
