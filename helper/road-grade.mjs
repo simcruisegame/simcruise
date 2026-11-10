@@ -204,7 +204,12 @@ function chainProfile(parts,sample,inside,designSpeed,bridgeAt=[false,false]){
  for(const part of parts){
   const {piece,s,length,reversed,offset}=part;
   let seg=0;
-  for(let l=0;l<=length+1e-9;l+=STEP){
+  // Every 2 m, and the piece's exact end: without it a chain stopped up to 2 m
+  // short of where it meets a bridge deck, leaving a gap the tyres fell into.
+  const stations=[];
+  for(let l=0;l<=length+1e-9;l+=STEP)stations.push(l);
+  if(length-stations[stations.length-1]>.05)stations.push(length);
+  for(const l of stations){
    while(seg<s.length-2&&l>s[seg+1])seg++;
    const a=piece.pts[seg],b=piece.pts[seg+1],t=(l-s[seg])/Math.max(s[seg+1]-s[seg],1e-9);
    const x=a[0]+(b[0]-a[0])*t,y=a[1]+(b[1]-a[1])*t;
@@ -530,26 +535,60 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
  }
  summary.conditioned=summary.bench.vertices;
  const worldKey=(x,y)=>{const [wx,wy]=toWorld(x,y);return Math.round(wx*2e4)+'-'+Math.round(wy*2e4)};
- const bridges=await bridgeDecks(structures.filter(p=>p.bridge),terminals,sample,inside,{tx0,ty0,scale},memo,worldKey);
+ // A deck end with no approach measured near this tile (the middle tile of a
+ // long river bridge) reads the elevation model there directly, so every flagged
+ // bridge gets a deck instead of the car dropping into the river.
+ const far=new Map();
+ const farGround=async(x,y)=>{
+  const [wx,wy]=toWorld(x,y),px=wx*32-.5,py=wy*32-.5,ix=Math.floor(px),iy=Math.floor(py),fx=px-ix,fy=py-iy;
+  const at=async(i,j)=>{
+   const tx=Math.floor(i/SOURCE_SIZE),ty=Math.floor(j/SOURCE_SIZE),key=tx+','+ty;
+   if(!far.has(key))far.set(key,readDEM((tx+2**DEM_ZOOM)%2**DEM_ZOOM,limit(ty,0,2**DEM_ZOOM-1)).then(b=>decode(b)).catch(()=>null));
+   const im=await far.get(key);
+   if(!im||im.width!==SOURCE_SIZE)return NaN;
+   const k=((j-ty*SOURCE_SIZE)*im.width+i-tx*SOURCE_SIZE)*im.channels;
+   return im.data[k]*256+im.data[k+1]+im.data[k+2]/256-32768;
+  };
+  const a=(await at(ix,iy))*(1-fx)+(await at(ix+1,iy))*fx,b=(await at(ix,iy+1))*(1-fx)+(await at(ix+1,iy+1))*fx;
+  return a*(1-fy)+b*fy;
+ };
+ const bridges=await bridgeDecks(structures.filter(p=>p.bridge),terminals,sample,inside,{tx0,ty0,scale},memo,worldKey,roads,farGround);
  summary.bench.bridges=bridges.length;
  return {h,grid:FINE,road_grade:summary,bridges,road_surface:roadSurface(surfaceChains,{tx0,ty0,scale})};
 }
 
 // Bridge decks. Each bridge chain runs straight in profile between the bench
-// heights of the approaches it meets (a bare-earth DEM has no deck). An end
-// without an approach in reach takes the ground there; a bridge with neither
-// end known is left out. Rows: [class, name, points in tile units clipped to
-// the tile, width, deck height per point, layer].
-async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,worldKey){
+// heights of the approaches it meets (a bare-earth DEM has no deck). An end is
+// measured from the approach chain that ends there, else from any road bench
+// passing through it (a junction at the abutment), else from the cache, else
+// the ground; the game then fits the deck's last metres to the approach ribbon
+// it actually built (BridgeDeck.gd). Connected bridge pieces share one profile,
+// so a deck that changes class or turns sharply onto another (a ramp leaving a
+// bridge) meets it at the same height, but each keeps its own row, class and
+// width (before, a service bridge joined to a secondary one gave the secondary
+// road a 4.6 m service deck). Rows: [class, name, points in tile units clipped
+// to the tile, width, deck height per point, layer, oneway].
+const BRIDGE_TURN=.5; // cos 60°: a sharper joint starts a new deck row
+async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,worldKey,roads=new Map(),farGround=null){
  const rows=[];
+ const benchAt=p=>{
+  let best=null;
+  for(const sgm of roads.get(Math.floor(p[0]/BIN)+','+Math.floor(p[1]/BIN))??[]){
+   if(sgm.structure)continue;
+   const q=segmentDistance(sgm,p[0],p[1]);
+   if(q.d<=3.5&&(!best||q.d<best.q.d))best={sgm,q};
+  }
+  if(!best)return NaN;
+  return profileAtHeight(best.sgm.profile,best.sgm.sa+(best.sgm.sb-best.sgm.sa)*best.q.t);
+ };
  for(const parts of chainPieces(pieces)){
-  const pts=[];
-  for(const part of parts){
+  const pts=[],owner=[];
+  parts.forEach((part,i)=>{
    const p=part.reversed?part.piece.pts.slice().reverse():part.piece.pts;
    // Pieces clipped at a z14 edge by each side end a few centimetres apart; a
    // joint closer than 0.5 m is one point, or the deck gets a sideways sliver.
-   for(const q of p)if(!pts.length||Math.hypot(q[0]-pts[pts.length-1][0],q[1]-pts[pts.length-1][1])>.5)pts.push(q);
-  }
+   for(const q of p)if(!pts.length||Math.hypot(q[0]-pts[pts.length-1][0],q[1]-pts[pts.length-1][1])>.5){pts.push(q);owner.push(i)}
+  });
   if(pts.length<2)continue;
   const s=arcLength(pts),length=s[s.length-1];
   if(length<2)continue;
@@ -559,36 +598,57 @@ async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,w
    let best=null;
    for(const t of terminals){const d=Math.hypot(t.x-p[0],t.y-p[1]);if(d<=3&&(!best||d<best.d))best={d,t}}
    const key=worldKey(p[0],p[1]);
-   if(best){
-    const z=Math.round(profileAtHeight(best.t.profile,best.t.station)*100)/100;
-    if(Number.isFinite(z)&&inside(p[0],p[1])){memo?.set(key,z);return z}
+   if(inside(p[0],p[1])){
+    let z=best?profileAtHeight(best.t.profile,best.t.station):NaN;
+    if(!Number.isFinite(z))z=benchAt(p);
+    if(Number.isFinite(z)){z=Math.round(z*100)/100;memo?.set(key,z);return z}
    }
    const known=memo?.get(key);
    if(Number.isFinite(known))return known;
    return inside(p[0],p[1])?sample(p[0],p[1]):NaN;
   };
   let za=await endHeight(pts[0]),zb=await endHeight(pts[pts.length-1]);
+  if(!Number.isFinite(za)&&!Number.isFinite(zb)&&farGround){
+   // Neither end is near this tile: the middle of a long bridge.
+   za=await farGround(pts[0][0],pts[0][1]);zb=await farGround(pts[pts.length-1][0],pts[pts.length-1][1]);
+  }
   if(!Number.isFinite(za)&&!Number.isFinite(zb))continue;
   if(!Number.isFinite(za))za=zb;
   if(!Number.isFinite(zb))zb=za;
   const z=s.map(l=>za+(zb-za)*l/length);
-  // Clip to this tile, interpolating the deck height at the cut.
-  const out=[],heights=[],x1=tx0+scale,y1=ty0+scale;
-  const flush=()=>{if(out.length>=2){const p=parts[0].piece;rows.push([p.cls,p.name,out.slice(),p.width,heights.slice(),p.layer,p.oneway?1:0])}out.length=0;heights.length=0};
-  for(let k=1;k<pts.length;k++){
-   const c=clipSegment(pts[k-1][0],pts[k-1][1],pts[k][0],pts[k][1],tx0,ty0,x1,y1);
-   if(!c){flush();continue}
-   const L=Math.hypot(pts[k][0]-pts[k-1][0],pts[k][1]-pts[k-1][1])||1;
-   const fa=Math.hypot(c[0]-pts[k-1][0],c[1]-pts[k-1][1])/L,fb=Math.hypot(c[2]-pts[k-1][0],c[3]-pts[k-1][1])/L;
-   const za2=z[k-1]+(z[k]-z[k-1])*fa,zb2=z[k-1]+(z[k]-z[k-1])*fb;
-   const u=v=>Math.round(v*1e5)/1e5;
-   const a=[u((c[0]-tx0)/scale),u((c[1]-ty0)/scale)],b=[u((c[2]-tx0)/scale),u((c[3]-ty0)/scale)];
-   const last=out[out.length-1];
-   if(!last||last[0]!==a[0]||last[1]!==a[1]){flush();out.push(a);heights.push(Math.round(za2*100)/100)}
-   out.push(b);heights.push(Math.round(zb2*100)/100);
-   if(fb<.999999)flush();
+  // Rows split where the class or width changes or the chain turns by more
+  // than 60°; the joint point belongs to both rows.
+  const groups=[];let from=0;
+  for(let j=1;j<pts.length-1;j++){
+   if(owner[j+1]===owner[j])continue;
+   // pts[j] is the joint: the last point of one part (the next part's first
+   // point was merged into it).
+   const A=parts[owner[j]].piece,B=parts[owner[j+1]].piece;
+   const ux=pts[j][0]-pts[j-1][0],uy=pts[j][1]-pts[j-1][1],vx=pts[j+1][0]-pts[j][0],vy=pts[j+1][1]-pts[j][1];
+   const turn=(ux*vx+uy*vy)/((Math.hypot(ux,uy)*Math.hypot(vx,vy))||1);
+   if(A.cls!==B.cls||A.width!==B.width||turn<BRIDGE_TURN){groups.push([from,j,owner[j]]);from=j}
   }
-  flush();
+  groups.push([from,pts.length-1,owner[pts.length-1]]);
+  for(const [g0,g1,ownerIndex] of groups){
+   const piece=parts[ownerIndex].piece;
+   // Clip to this tile, interpolating the deck height at the cut.
+   const out=[],heights=[],x1=tx0+scale,y1=ty0+scale;
+   const flush=()=>{if(out.length>=2)rows.push([piece.cls,piece.name,out.slice(),piece.width,heights.slice(),piece.layer,piece.oneway?1:0]);out.length=0;heights.length=0};
+   for(let k=g0+1;k<=g1;k++){
+    const c=clipSegment(pts[k-1][0],pts[k-1][1],pts[k][0],pts[k][1],tx0,ty0,x1,y1);
+    if(!c){flush();continue}
+    const L=Math.hypot(pts[k][0]-pts[k-1][0],pts[k][1]-pts[k-1][1])||1;
+    const fa=Math.hypot(c[0]-pts[k-1][0],c[1]-pts[k-1][1])/L,fb=Math.hypot(c[2]-pts[k-1][0],c[3]-pts[k-1][1])/L;
+    const za2=z[k-1]+(z[k]-z[k-1])*fa,zb2=z[k-1]+(z[k]-z[k-1])*fb;
+    const u=v=>Math.round(v*1e5)/1e5;
+    const a=[u((c[0]-tx0)/scale),u((c[1]-ty0)/scale)],b=[u((c[2]-tx0)/scale),u((c[3]-ty0)/scale)];
+    const last=out[out.length-1];
+    if(!last||last[0]!==a[0]||last[1]!==a[1]){flush();out.push(a);heights.push(Math.round(za2*100)/100)}
+    out.push(b);heights.push(Math.round(zb2*100)/100);
+    if(fb<.999999)flush();
+   }
+   flush();
+  }
  }
  return rows;
 }

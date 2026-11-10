@@ -36,33 +36,51 @@ var grid_steps=32
 var surveyed_outcrop
 var crossfall_surface
 var road_surface   # RoadSurface.gd ribbons, or null
+var deck_surface   # bridge deck driving surfaces (BridgeDeck.gd), a RoadSurface.gd quad index, or null
+var bridge_decks=[]   # decks BridgeDeck.prepare() fitted, drawn by BridgeDeck.build()
 # Triangles emitted by tri(), and the share spent on surveyed houses (survey_building).
 var drawn_triangles:=0
 var house_stats:=Vector2i.ZERO   # x houses, y triangles
 var house_fronts:=PackedVector3Array()   # front door and its outward normal, pairs (checks/RailView.gd)
-func height_at(p:Vector2)->float:
- if road_surface:
-  var on_road=road_surface.height(p)
-  if not is_nan(on_road):return on_road
+# Surface height at p (tile metres). Without near_y it is the ground layer: the
+# road ribbon where there is one, else the terrain (props, paint, buildings and
+# piers stand on it, never on a bridge above). With near_y it is what a wheel at
+# that height meets: the highest drivable surface (bridge deck, road ribbon or
+# terrain) no more than LAYER_REACH_M above near_y, else the lowest one; INF
+# gives the top surface. The deck and ribbon heights are the very quads their
+# colliders are built from, so this agrees with the tyres on and off bridges
+# (checks/RoadProfile.gd fails a tile where they differ by more than 0.1 m).
+const LAYER_REACH_M=1.
+func height_at(p:Vector2,near_y:=NAN)->float:
+ if is_nan(near_y):
+  if road_surface:
+   var on_road=road_surface.height(p)
+   if not is_nan(on_road):return on_road
+  return terrain_height(p)
+ # Every layer a wheel ray can meet, as the colliders hold them.
+ var layers=PackedFloat64Array([terrain_height(p)])
+ if road_surface:layers.append_array(road_surface.heights(p))
+ if deck_surface:layers.append_array(deck_surface.heights(p))
+ var best=NAN;var lowest=INF
+ for h in layers:
+  lowest=minf(lowest,h)
+  if h<=near_y+LAYER_REACH_M and (is_nan(best) or h>best):best=h
+ return lowest if is_nan(best) else best
+# The terrain alone, as its collider is built (no ribbon or deck).
+func terrain_height(p:Vector2)->float:
  var original=base_height(p)
  if crossfall_surface:return crossfall_surface.elevation(p,original)
  return surveyed_outcrop.elevation(p,original) if surveyed_outcrop else original
-# Deck height of a mapped bridge at p (tile metres), or NAN off every deck.
-# The terrain under a bridge is the valley, so placing the car, its shadow and
-# recovery use this first (BridgeDeck.gd builds the matching surface).
+# Deck height of a mapped bridge at p (tile metres), the highest where decks
+# overlap, or NAN off every deck. The terrain under a bridge is the valley, so
+# placing the car, its shadow and recovery use this first. It reads the deck's
+# own collider quads (BridgeDeck.gd), so it is exactly what the tyres meet.
 func deck_at(p:Vector2)->float:
- var best=NAN
- for row in info.get("bridges",[]):
-  var pts:Array=row[2];var heights:Array=row[4];var half=float(row[3])*.5+.6
-  for k in range(1,pts.size()):
-   var a=Vector2(pts[k-1][0],pts[k-1][1])*side;var b=Vector2(pts[k][0],pts[k][1])*side
-   var ab=b-a;var l2=ab.length_squared()
-   if l2<1e-4:continue
-   var t=clampf((p-a).dot(ab)/l2,0.,1.)
-   if p.distance_to(a+ab*t)>half:continue
-   var z=lerpf(float(heights[k-1]),float(heights[k]),t)
-   if is_nan(best) or z>best:best=z
- return best
+ return deck_surface.height(p) if deck_surface else NAN
+# base_height() reads the grid bilinearly, not on its triangles (a tile
+# without a measured grade source).
+func grid_bilinear()->bool:
+ return not info.get("road_grade",{}).has("source")
 func base_height(p:Vector2)->float:
  var g=(p/side*grid_steps).clamp(Vector2.ZERO,Vector2.ONE*grid_steps)
  var x=mini(int(g.x),grid_steps-1);var y=mini(int(g.y),grid_steps-1)
@@ -533,7 +551,7 @@ func apply_recent(texture,soil=null):
 func ground_mesh(mat):
  terrain_material=mat
  if road_surface:
-  var ribbon=road_surface.mesh(mat,side);mesh_node(ribbon);collider(ribbon.create_trimesh_shape())
+  var ribbon=road_surface.mesh(mat,side);mesh_node(ribbon);collider(ribbon.create_trimesh_shape(),"ribbon")
  preload("res://GroundFinish.gd").bind(mat,materials,info.id,side)
  mat.set_shader_parameter("recent_quadrant",Vector2(int(info.id[0])%4,int(info.id[1])%4))
  # A 128 grid is drawn adaptively: cells split only where the detail differs
@@ -547,7 +565,7 @@ func ground_mesh(mat):
    make_crossfall_ground(fine.surface_get_arrays(0),mat)
   else:
    mesh_node(fine)
-   collider(fine.create_trimesh_shape())
+   collider(fine.create_trimesh_shape(),"ground")
   return
  var plane=PlaneMesh.new();plane.size=Vector2(side,side);plane.subdivide_width=grid_steps-1;plane.subdivide_depth=grid_steps-1
  var ar=plane.get_mesh_arrays();var v:PackedVector3Array=ar[Mesh.ARRAY_VERTEX];var u=PackedVector2Array()
@@ -567,16 +585,16 @@ func ground_mesh(mat):
   make_crossfall_ground(ar,mat)
   return
  var ground=ArrayMesh.new();ground.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,ar);ground.surface_set_material(0,mat);mesh_node(ground)
- collider(ground.create_trimesh_shape())
+ collider(ground.create_trimesh_shape(),"ground")
 func make_crossfall_ground(arrays:Array,mat:ShaderMaterial)->void:
  var ground=ArrayMesh.new()
  ground.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,crossfall_surface.refine(self,arrays))
  if not crossfall_surface.active:crossfall_surface=null
- ground.surface_set_material(0,mat);mesh_node(ground);collider(ground.create_trimesh_shape())
+ ground.surface_set_material(0,mat);mesh_node(ground);collider(ground.create_trimesh_shape(),"ground")
 func make_outcrop_ground(arrays:Array,mat:ShaderMaterial)->void:
  var ground=ArrayMesh.new()
  ground.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,surveyed_outcrop.refine(self,arrays))
- ground.surface_set_material(0,mat);mesh_node(ground);collider(ground.create_trimesh_shape())
+ ground.surface_set_material(0,mat);mesh_node(ground);collider(ground.create_trimesh_shape(),"ground")
  preload("res://MeasuredGranite.gd").attach(self)
 var road_grid={}
 var has_mapped_unpaved=false
@@ -857,7 +875,10 @@ func build(data:Dictionary,size_m:float,mats:Dictionary):
  smooth_road_corridors()
  # Engineered road ribbons (RoadSurface.gd): the grid is pushed below them first.
  road_surface=preload("res://RoadSurface.gd").for_tile(self)
- if road_surface:info["road_surface_lowered"]=road_surface.lower_grid(info.h,grid_steps,side)
+ if road_surface:info["road_surface_lowered"]=road_surface.lower_grid(info.h,grid_steps,side,grid_bilinear())
+ # Bridge decks fitted to those ribbons; the grid under their driving surface
+ # is pushed below it too (BridgeDeck.gd).
+ preload("res://BridgeDeck.gd").prepare(self)
  surveyed_outcrop=preload("res://SurveyOutcropGround.gd").for_tile(self)
  if not surveyed_outcrop:crossfall_surface=preload("res://RoadCrossfallGround.gd").for_tile(self)
  capture.load_tile(self)
@@ -929,7 +950,7 @@ func replace_structure_layer(replacement):
 
 func finish_geometry():
  if collision_faces.size()>0:
-  var shape=ConcavePolygonShape3D.new();shape.backface_collision=true;shape.set_faces(collision_faces);collider(shape);collision_faces.clear()
+  var shape=ConcavePolygonShape3D.new();shape.backface_collision=true;shape.set_faces(collision_faces);collider(shape,"obstacles");collision_faces.clear()
  for st in batches.values():mesh_node(st.commit())
  batches.clear()
 
@@ -978,8 +999,13 @@ func street_details():
     parked.append([p,atan2(t.x,t.y)+(PI if signum<0 and seg[4]==0 else 0),rnd%5])
 var parked=[]
 
-func collider(shape):
- var immovable=StaticBody3D.new();var col=CollisionShape3D.new();col.shape=shape;immovable.add_child(col);add_child(immovable)
+# kind names what the collider is ("ground", "ribbon", "deck" for driving
+# surfaces, "obstacles" for walls, parapets and buildings) so checks can tell
+# the surface a wheel rolls on from things it hits (checks/RoadProfile.gd).
+func collider(shape,kind:=""):
+ var immovable=StaticBody3D.new();var col=CollisionShape3D.new();col.shape=shape
+ if kind!="":col.set_meta("surface",kind)
+ immovable.add_child(col);add_child(immovable)
 
 func roof_height(p,axis,offset,width,eave,rise):
  return eave+rise*clampf(1.-absf(p.dot(axis)-offset)/width,0,1)

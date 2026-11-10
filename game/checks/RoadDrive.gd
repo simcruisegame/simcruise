@@ -43,6 +43,7 @@ var off_run=0
 var done=false
 var settle=0
 var speed_i=0.
+var bridge_pieces=[]
 
 func _initialize():
  var args=OS.get_cmdline_user_args()
@@ -78,7 +79,9 @@ func _initialize():
    if road_name=="" and not str(road[0]) in classes:continue
    var pts=PackedVector2Array()
    for p in road[3]:pts.append(Vector2(p[0],p[1])*side+offset)
-   if pts.size()>=2:pieces.append(pts);road_width=float(road[4])
+   if pts.size()>=2:
+    pieces.append(pts);road_width=float(road[4])
+    if road.size()>6 and str(road[6])=="bridge":bridge_pieces.append(pts)
  build_route(pieces,reverse)
  if route.size()<50:print("ROADDRIVE no continuous route found (%d pieces)"%pieces.size());quit(2);return
  plan_speed()
@@ -91,7 +94,9 @@ func _initialize():
  # Start 15 m in: a route often begins exactly at the edge of the loaded tiles.
  station=15.
  var p=Vector2(route[15].x,route[15].z);var q=Vector2(route[23].x,route[23].z);var dir=(q-p).normalized()
- car.restart(Vector3(p.x,ground(p)+.35,p.y),atan2(-dir.x,-dir.y))
+ # On a bridge the car starts on the deck (INF: the top surface), elsewhere on
+ # the road layer, never on a deck passing over the start.
+ car.restart(Vector3(p.x,ground(p,INF if on_bridge(p) else NAN)+.35,p.y),atan2(-dir.x,-dir.y))
  print("ROADDRIVE start tile %s" % [origin+Vector2i(floori(p.x/side),floori(p.y/side))])
  print("ROADDRIVE route %.2f km over %d tiles · target %.1f m/s · lateral %.2f g"%[route[-1].y/1000.,tiles.size(),target_speed,lateral_g])
 
@@ -139,11 +144,20 @@ func plan_speed():
   plan[i]=minf(target_speed,sqrt(lateral_g*9.80665*radius))
  for i in range(route.size()-2,-1,-1):plan[i]=minf(plan[i],sqrt(plan[i+1]*plan[i+1]+2.*4.*1.))
 
-func ground(p:Vector2)->float:
+func on_bridge(p:Vector2)->bool:
+ for pts in bridge_pieces:
+  for k in range(1,pts.size()):
+   var a:Vector2=pts[k-1];var ab:Vector2=pts[k]-a;var l2=ab.length_squared()
+   if l2<1e-6:continue
+   if p.distance_to(a+ab*clampf((p-a).dot(ab)/l2,0.,1.))<1.:return true
+ return false
+
+# near_y: the layer a wheel at that height meets (INF: the top one, a bridge deck over a valley).
+func ground(p:Vector2,near_y:=NAN)->float:
  var id=origin+Vector2i(floori(p.x/side),floori(p.y/side))
  var tile=tiles.get(id)
  if tile==null:return 0.
- return tile.height_at(p-Vector2(id-origin)*side)
+ return tile.height_at(p-Vector2(id-origin)*side,near_y)
 
 func _physics_process(dt):
  if done:return false

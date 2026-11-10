@@ -9,6 +9,15 @@ extends SceneTree
 ## step ("creases"), their histogram, the largest vertical step and the smoothing cost. One
 ## table prints at the end; nothing prints per sample or per frame. --without-road-smoothing
 ## gives the before measurement on the same build.
+##
+## The one-surface gate. Each road is followed on its own level, as a wheel does: at every
+## step the collider height is the highest driving face (ground, ribbon or deck, never a
+## parapet or a building) within 1 m above the last one, so a road under an overpass stays
+## under it and a bridge road stays on its deck. height_at(p, near_y) must give the same
+## height within 0.1 m at every step of every road, and every metre of a road the map flags
+## as a bridge must be on a deck. Every real deck end is also driven from 6 m out to 6 m on
+## (largest step per 0.5 m and grade change per metre are reported). Exit 3 when the gate
+## fails (SURFACE FAIL), after the seam check's exit 2.
 const TILE=preload("res://WorldTile.gd")
 const EARTH=40075016.68557849
 # The bundled Miami Beach block (4 x 6 zoom-16 tiles), the offline start; --all gives the same set.
@@ -17,6 +26,7 @@ const BINS=[0.,.25,.5,1.,2.,4.,8.]
 const CREASE_DEG=.5
 const REFERENCE_MPS=20.1  # 45 mph: the vertical speed a crease imposes on a tyre is v·sin(Δθ)
 var step_m=1.
+var side_m=0.
 
 func _initialize():
  var args=OS.get_cmdline_user_args()
@@ -42,7 +52,7 @@ func _initialize():
   if not FileAccess.file_exists(path):tile_lines.append("%s missing"%id);failed+=1;continue
   var data=JSON.parse_string(FileAccess.get_file_as_string(path))
   if not data is Dictionary or not data.has("roads") or not data.has("h"):tile_lines.append("%s unreadable"%id);failed+=1;continue
-  if side==0.:side=EARTH/65536./cosh(PI*(1.-2.*(float(data.id[1])+.5)/65536.))
+  if side==0.:side=EARTH/65536./cosh(PI*(1.-2.*(float(data.id[1])+.5)/65536.));side_m=side
   var tile=TILE.new()
   var started=Time.get_ticks_usec()
   tile.build(data,side,mats)
@@ -51,24 +61,45 @@ func _initialize():
   if faces.is_empty():tile_lines.append("%s has no ground collider"%id);failed+=1;tile.free();continue
   var bin=side/float(data.get("grid",32))
   var index=index_faces(faces,bin)
-  var tile_max=0.;var tile_creases=0;var tile_km=0.;var gap=0.
+  var tile_max=0.;var tile_creases=0;var tile_km=0.;var gap=0.;var gap_where=""
   for road in data.roads:
    if not classes.is_empty() and not str(road[0]) in classes:continue
    var name=str(road[2]) if str(road[2])!="" else "(unnamed %s)"%road[0]
    var stations=walk(road[3],side)
    if stations.size()<3:continue
    var on_collider=PackedFloat64Array();var on_surface=PackedFloat64Array()
+   # Follow the road on its own level, as a wheel does: each station's collider
+   # height is the highest face within reach above the previous one, so a road
+   # under an overpass stays on the road and a bridge road stays on its deck.
+   var bridge=road.size()>6 and str(road[6])=="bridge"
+   var level=NAN
    for p in stations:
-    var z=height_on_faces(p,faces,index,bin);on_collider.append(z)
-    var s=tile.height_at(p);on_surface.append(s)
-    if not is_nan(z):gap=maxf(gap,absf(s-z))
+    var near=level
+    if is_nan(near):near=own_deck(tile,p,str(road[0])) if bridge else tile.height_at(p)
+    var z=height_on_faces(p,faces,index,bin,near+TILE.LAYER_REACH_M);on_collider.append(z)
+    var s=tile.height_at(p,near);on_surface.append(s)
+    if is_nan(z):continue
+    level=z
+    if absf(s-z)>gap:gap=absf(s-z);gap_where="%s at (%.1f, %.1f): collider %.2f m, height_at %.2f m"%[name,p.x,p.y,z,s]
+    if bridge:
+     # A road the map puts on a bridge must be driving on a deck.
+     bridge_m+=step_m
+     var on_deck=false
+     if tile.deck_surface!=null:
+      for h in tile.deck_surface.heights(p):on_deck=on_deck or absf(h-z)<=GAP_LIMIT_M
+     if not on_deck:
+      off_deck_m+=step_m
+      if off_deck.size()<12:off_deck.append("%s %s at (%.1f, %.1f), surface %.2f m, deck %s"%[id,name,p.x,p.y,z,"none" if tile.deck_surface==null or tile.deck_surface.heights(p).is_empty() else str(tile.deck_surface.heights(p))])
+   if gap>GAP_LIMIT_M and gap_tiles.find(id)<0:gap_tiles.append(id)
    var local=blank();accumulate(local,on_collider)
    merge(collider_rows,name,local)
    var surface=blank();accumulate(surface,on_surface)
    merge(surface_rows,name,surface)
    tile_creases+=local.creases;tile_max=maxf(tile_max,local.max);tile_km+=local.m/1000.
   var smoothing=tile.info.get("road_smoothing",{})
-  tile_lines.append("%s build %.0f ms · smoothing %s · %.2f km, max %.2f°/m, %d creases >%.1f°, height_at vs collider %.3f m"%[id,build_ms,JSON.stringify(smoothing) if not smoothing.is_empty() else "off",tile_km,tile_max,tile_creases,CREASE_DEG,gap])
+  tile_lines.append("%s build %.0f ms · smoothing %s · %.2f km, max %.2f°/m, %d creases >%.1f°, height_at vs collider %.3f m%s"%[id,build_ms,JSON.stringify(smoothing) if not smoothing.is_empty() else "off",tile_km,tile_max,tile_creases,CREASE_DEG,gap," (%s)"%gap_where if gap>GAP_LIMIT_M else ""])
+  worst_gap=maxf(worst_gap,gap)
+  bridge_ends(tile,data,faces,index,bin,id)
   edges[Vector2i(int(data.id[0]),int(data.id[1]))]=tile_edges(tile.info.h,int(data.get("grid",32)))
   raw_edges[Vector2i(int(data.id[0]),int(data.id[1]))]=tile_edges(raw_heights(data),int(data.get("grid",32)))
   tile.free()
@@ -78,7 +109,84 @@ func _initialize():
  report(surface_rows,"height_at() (camera, props and paint)")
  var seam=seams()
  print("SEAMS %d shared edges between built tiles · largest difference in the source data %.3f m · largest difference introduced by the build %.6f m"%[seam.count,seam.raw,seam.introduced])
- quit(2 if seam.introduced>1e-3 else (1 if failed>0 else 0))
+ # The one-surface gate: along every road the tyres' collider and height_at()
+ # must agree within 0.1 m, and a road mapped as a bridge must be on a deck.
+ print("SURFACE AGREEMENT largest collider vs height_at difference %.3f m (limit %.2f) · %d tiles over · bridge roads %.0f m, %.0f m not on a deck"%[worst_gap,GAP_LIMIT_M,gap_tiles.size(),bridge_m,off_deck_m])
+ for line in off_deck:print("  off deck "+line)
+ print("BRIDGE ENDS %d ends driven 6 m either side · largest step %.3f m per 0.5 m · largest grade change %.2f°/m · %d ends where the deck is not reached%s"%[ends.count,ends.step,ends.kink,ends.missed,(" (worst %s)"%ends.where) if ends.where!="" else ""])
+ for line in ends.missed_at.slice(0,12):print("  deck not reached "+line)
+ var surface_failed=worst_gap>GAP_LIMIT_M or off_deck_m>0. or ends.missed>0
+ if surface_failed:print("SURFACE FAIL")
+ quit(2 if seam.introduced>1e-3 else (3 if surface_failed else (1 if failed>0 else 0)))
+
+const GAP_LIMIT_M=.1
+var worst_gap=0.
+var gap_tiles=[]
+var bridge_m=0.
+var off_deck_m=0.
+var off_deck=[]
+var ends={"count":0,"step":0.,"kink":0.,"missed":0,"missed_at":[],"where":""}
+
+# Where a bridge road starts: on the fitted deck of its own class under p (two
+# decks can overlap there, a ramp above a street), else on the top surface.
+func own_deck(tile,p:Vector2,cls:String)->float:
+ for d in tile.bridge_decks:
+  if d.cls!=cls:continue
+  var h=preload("res://BridgeDeck.gd").polyline_height(d.path,p,d.width*.5)
+  if not is_nan(h):return h
+ return tile.height_at(p,INF)
+
+func on_other_row(rows:Array,self_row:Array,p:Vector2)->bool:
+ for row in rows:
+  if row==self_row:continue
+  var pts:Array=row[2]
+  for k in range(1,pts.size()):
+   var a=Vector2(pts[k-1][0],pts[k-1][1])*side_m;var b=Vector2(pts[k][0],pts[k][1])*side_m
+   var ab=b-a;var l2=ab.length_squared()
+   if l2<1e-6:continue
+   if p.distance_to(a+ab*clampf((p-a).dot(ab)/l2,0.,1.))<=1.:return true
+ return false
+
+# Drive across every real deck end (not a cut at the tile edge) from 6 m out on
+# the approach to 6 m onto the deck, on the collider as a wheel follows it.
+func bridge_ends(tile,data:Dictionary,faces:PackedVector3Array,index:Dictionary,bin:float,id:String)->void:
+ if tile.deck_surface==null:return
+ for row in data.get("bridges",[]):
+  var pts:Array=row[2]
+  if pts.size()<2:continue
+  for e in [0,pts.size()-1]:
+   var at=Vector2(pts[e][0],pts[e][1])*side_m
+   if at.x<=.05 or at.y<=.05 or at.x>=side_m-.05 or at.y>=side_m-.05:continue
+   var other=Vector2(pts[1 if e==0 else pts.size()-2][0],pts[1 if e==0 else pts.size()-2][1])*side_m
+   if other.distance_to(at)<.3:continue
+   # A joint with another deck row (one bridge split where its class or
+   # direction changes): straight on leads off the side of the other row.
+   if on_other_row(data.bridges,row,at):continue
+   var inward=(other-at).normalized()
+   var reach=minf(6.,other.distance_to(at)) if pts.size()==2 else 6.
+   var start=at-inward*6.
+   var level=tile.height_at(start)
+   var zs=PackedFloat64Array()
+   var d=-6.
+   while d<=reach+1e-6:
+    var z=height_on_faces(at+inward*d,faces,index,bin,level+TILE.LAYER_REACH_M)
+    if not is_nan(z):level=z
+    zs.append(level)
+    d+=.5
+   ends.count+=1
+   var deck_h=tile.deck_surface.heights(at+inward*reach)
+   var reached=false
+   for h in deck_h:reached=reached or absf(h-zs[-1])<=GAP_LIMIT_M
+   if not reached:
+    ends.missed+=1
+    ends.missed_at.append("%s %s end at (%.1f, %.1f): surface %.2f m, deck %s"%[id,str(row[0]),at.x,at.y,zs[-1],str(deck_h)])
+   for k in range(1,zs.size()):
+    var step=absf(zs[k]-zs[k-1])
+    if step>ends.step:ends.step=step;ends.where="%s %s end at (%.1f, %.1f)"%[id,str(row[0]),at.x,at.y]
+   # Grade change per metre between consecutive 1 m chords.
+   for k in range(4,zs.size(),1):
+    var g1=rad_to_deg(atan((zs[k]-zs[k-2])/1.));var g0=rad_to_deg(atan((zs[k-2]-zs[k-4])/1.))
+    ends.kink=maxf(ends.kink,absf(g1-g0))
 
 var edges={}
 var raw_edges={}
@@ -148,8 +256,11 @@ func walk(route:Array,side:float)->PackedVector2Array:
   acc+=l
  return out
 
-# Every concave collider of the tile: the ground and, where RoadSurface.gd built
-# them, the road ribbons above it. A wheel ray meets the highest face.
+# The tile's driving surfaces: the ground, the road ribbons (RoadSurface.gd) and
+# the bridge decks (BridgeDeck.gd), as WorldTile.collider() tags them. Walls,
+# parapets and buildings ("obstacles") are things a car hits, not surfaces it
+# rolls on. Untagged colliders keep the old rule: the tile-wide one is ground,
+# others count where a road ribbon exists.
 func ground_faces(tile,side:float)->PackedVector3Array:
  var out=PackedVector3Array();var has_ground=false
  for body in tile.get_children():
@@ -158,6 +269,11 @@ func ground_faces(tile,side:float)->PackedVector3Array:
    if not col is CollisionShape3D or not col.shape is ConcavePolygonShape3D:continue
    var faces:PackedVector3Array=col.shape.get_faces()
    if faces.is_empty():continue
+   var kind=str(col.get_meta("surface",""))
+   if kind=="obstacles":continue
+   if kind in ["ground","ribbon","deck"]:
+    out.append_array(faces);has_ground=has_ground or kind=="ground"
+    continue
    var box=AABB(faces[0],Vector3.ZERO)
    for v in faces:box=box.expand(v)
    if box.size.x>side*.9 and box.size.z>side*.9:has_ground=true;out.append_array(faces)
@@ -177,7 +293,9 @@ func index_faces(faces:PackedVector3Array,bin:float)->Dictionary:
     grid[key].append(f)
  return grid
 
-func height_on_faces(p:Vector2,faces:PackedVector3Array,index:Dictionary,bin:float)->float:
+# The highest face at p no higher than `below`: what a wheel ray cast down from
+# there meets (INF: the top face).
+func height_on_faces(p:Vector2,faces:PackedVector3Array,index:Dictionary,bin:float,below:=INF)->float:
  var best=NAN
  for f in index.get(Vector2i(floori(p.x/bin),floori(p.y/bin)),[]):
   var a=faces[f];var b=faces[f+1];var c=faces[f+2]
@@ -185,9 +303,9 @@ func height_on_faces(p:Vector2,faces:PackedVector3Array,index:Dictionary,bin:flo
   var det=ab.cross(ac)
   if absf(det)<1e-9:continue
   var u=ap.cross(ac)/det;var v=ab.cross(ap)/det
-  if u>=-1e-5 and v>=-1e-5 and u+v<=1.+1e-5:
+  if u>=-1e-4 and v>=-1e-4 and u+v<=1.+1e-4:
    var h=a.y+u*(b.y-a.y)+v*(c.y-a.y)
-   if is_nan(best) or h>best:best=h
+   if h<=below and (is_nan(best) or h>best):best=h
  return best
 
 func blank()->Dictionary:return {"m":0.,"n":0,"max":0.,"creases":0,"step":0.,"ss":0.,"hist":[0,0,0,0,0,0,0]}

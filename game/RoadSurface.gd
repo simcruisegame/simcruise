@@ -19,8 +19,10 @@ extends RefCounted
 ##   * drawn with the tile's own ground material and UVs (position / side), so
 ##     it looks exactly like the ground around it;
 ##   * a collider of its own, so wheel rays meet the ribbon, not the grid;
-##   * terrain grid nodes under the footprint pushed 0.3 m below it before the
-##     ground mesh is built, so faceted ground can never poke through;
+##   * terrain grid nodes under the footprint, and the ground triangles its
+##     edges pass over, pushed 6 cm below it before the ground mesh is built,
+##     so faceted ground can never poke through (lower_grid; bridge decks use
+##     the same index and the same pass, BridgeDeck.gd);
 ##   * height() answers for any point on the ribbon, so WorldTile.height_at()
 ##     (camera, paint, props, placing the car) agrees with the tyres.
 ## Every input is the helper's world-anchored profile, so neighbouring tiles
@@ -52,6 +54,8 @@ static func for_tile(tile) -> RefCounted:
 # along the minor road over JOIN_FADE_M, so there is no step at the edge).
 const RANK := {"motorway":7,"trunk":6,"primary":5,"secondary":4,"tertiary":3,"minor":2,"residential":2,"unclassified":2}
 const JOIN_FADE_M := 15.
+const JOIN_FADE_MAX_M := 60.
+const JOIN_GRADE := .04
 
 func build(rows: Array, side: float) -> void:
  var chains := []
@@ -106,7 +110,11 @@ func join(sections: Array) -> void:
   var best := 0.;var weight := 0.
   for j in sections.size():
    if not covered[j]:continue
-   var w := clampf(1. - absf(station[i] - station[j]) / JOIN_FADE_M, 0., 1.)
+   # The fade grows with the height it absorbs, so its steepest grade stays
+   # near 6 % (smoothstep: 1.5 · delta / length). A fixed 15 m fade took a
+   # 1.8 m snap onto a bridge approach in 12 m (Western Ave, Allston MA: 7-8 g).
+   var fade := clampf(absf(delta[j]) / JOIN_GRADE, JOIN_FADE_M, JOIN_FADE_MAX_M)
+   var w := clampf(1. - absf(station[i] - station[j]) / fade, 0., 1.)
    w = w * w * (3. - 2. * w)
    if w > weight:weight = w;best = delta[j]
   if weight <= 0.:continue
@@ -144,19 +152,90 @@ func height(p: Vector2) -> float:
   if not is_nan(h) and (is_nan(best) or h > best):best = h
  return best
 
-## Push terrain grid nodes that lie under the ribbon just below it (before the
-## ground mesh is built). Nodes beside the ribbon keep their height: the
-## shoulder slopes down to meet them, so there is no trench along the edge.
-func lower_grid(h: Array, n: int, side: float) -> int:
+## Every surface height at p (overlapping ribbons, or stacked bridge decks),
+## for picking the layer a wheel at a known height is on (WorldTile.height_at).
+func heights(p: Vector2) -> PackedFloat64Array:
+ var out := PackedFloat64Array()
+ for idx in bins.get(Vector2i(floori(p.x / BIN), floori(p.y / BIN)), []):
+  var q: Array = quads[idx]
+  var h := tri_height(p, q[0], q[1], q[2])
+  if is_nan(h):h = tri_height(p, q[0], q[2], q[3])
+  if not is_nan(h):out.append(h)
+ return out
+
+## Push the terrain grid just below the surface (before the ground mesh is
+## built), so faceted ground can never poke through it: first the nodes under
+## it, then every ground triangle the surface's edges pass over. Before, only
+## nodes under the ribbon moved, and a triangle reaching out to a higher node
+## beside a road in a cut stood up to 0.2 m above the shoulder and the lane
+## edge: a bump for the tyres, and the collider disagreed with height_at()
+## (checks/RoadProfile.gd). Where the ground triangle under an edge sample
+## stands above the surface, its corners drop by the least that brings it
+## UNDER_M below (weighted by how close each corner is to the sample), like the
+## ditch beside a cut; ground that is already below keeps its height. bilinear:
+## the grid is read bilinearly (base_height on a tile without a measured grade
+## source), so the four corners of the cell share the correction.
+const EDGE_SAMPLE_M := .5
+func lower_grid(h: Array, n: int, side: float, bilinear := false) -> int:
  var cell := side / n
- var moved := 0
+ var moved := {}
  for j in n + 1:
   for i in n + 1:
    var r := height(Vector2(i, j) * cell)
+   # A surface clipped at the tile edge (a deck row) ends exactly on the edge
+   # nodes; read it just inside, as the neighbour does from its side.
+   if is_nan(r) and (i == 0 or j == 0 or i == n or j == n):
+    r = height((Vector2(i, j) * cell).clamp(Vector2.ONE * .05, Vector2.ONE * (side - .05)))
    if is_nan(r):continue
    var k := j * (n + 1) + i
-   if float(h[k]) > r - UNDER_M:h[k] = r - UNDER_M;moved += 1
- return moved
+   if float(h[k]) > r - UNDER_M:h[k] = r - UNDER_M;moved[k] = true
+ # Long edges (where the ground beside a road in a cut rises) every ~1 m,
+ # station edges once per grid cell: the samples a ground triangle can peak at.
+ var along := clampf(cell * .3, EDGE_SAMPLE_M, 1.25)
+ for q in quads:
+  # Each quad's station edge (a-b) and both long edges (b-c, d-a); together
+  # the quads cover every edge of the surface.
+  for e in [[q[0], q[1], cell], [q[1], q[2], along], [q[3], q[0], along]]:
+   var a: Vector3 = e[0];var b: Vector3 = e[1]
+   var steps := maxi(1, ceili(Vector2(b.x - a.x, b.z - a.z).length() / e[2]))
+   for s in steps + 1:
+    var p := a.lerp(b, float(s) / steps)
+    _lower_cell(h, n, cell, p.x, p.z, p.y - UNDER_M, bilinear, moved)
+ return moved.size()
+
+func _lower_cell(h: Array, n: int, cell: float, x: float, z: float, limit: float, bilinear: bool, moved: Dictionary) -> void:
+ var gx := x / cell;var gz := z / cell
+ if gx < 0. or gz < 0. or gx > n or gz > n:return
+ var i := mini(int(gx), n - 1);var j := mini(int(gz), n - 1)
+ var u := gx - i;var v := gz - j
+ var k := j * (n + 1) + i
+ # Fast reject: the highest corner of the cell is already below the limit.
+ if maxf(maxf(float(h[k]), float(h[k + 1])), maxf(float(h[k + n + 1]), float(h[k + n + 2]))) <= limit:return
+ # The grid's triangles split each cell on its NE/SW diagonal (u + v = 1);
+ # corners and their interpolation weights at the sample.
+ var corners: Array;var weights: Array
+ if bilinear:
+  corners = [k, k + 1, k + n + 1, k + n + 2];weights = [(1. - u) * (1. - v), u * (1. - v), (1. - u) * v, u * v]
+ elif u + v <= 1.:
+  corners = [k, k + 1, k + n + 1];weights = [1. - u - v, u, v]
+ else:
+  corners = [k + n + 2, k + 1, k + n + 1];weights = [u + v - 1., 1. - v, 1. - u]
+ var g := 0.
+ for c in corners.size():g += float(h[corners[c]]) * weights[c]
+ var excess := g - limit
+ if excess <= 1e-4:return
+ # Tile-edge nodes are shared with the neighbour, which cannot see this tile's
+ # samples: only the node pass above moves them, as both tiles do. The others
+ # take the least-squares correction that brings g to the limit.
+ var norm := 0.
+ for c in corners.size():
+  var ci: int = corners[c] % (n + 1);var cj: int = corners[c] / (n + 1)
+  if ci == 0 or cj == 0 or ci == n or cj == n:weights[c] = 0.
+  norm += weights[c] * weights[c]
+ if norm < .05:return   # the sample is at a tile-edge node
+ for c in corners.size():
+  if weights[c] <= 0.:continue
+  h[corners[c]] = float(h[corners[c]]) - excess * weights[c] / norm;moved[corners[c]] = true
 
 func mesh(mat: Material, side: float) -> ArrayMesh:
  var st := SurfaceTool.new()
