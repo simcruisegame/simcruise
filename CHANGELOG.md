@@ -2,6 +2,15 @@
 
 Notable changes to SimCruise, newest first. The format follows [Keep a Changelog](https://keepachangelog.com/) and versions follow [Semantic Versioning](https://semver.org/). Dates are release dates, not the survey dates of the data a release uses. The release notes written for Sunday Driver 1.0.0 to 1.0.8 are preserved word for word in [docs/history.md](docs/history.md).
 
+## Unreleased
+
+- **Graphics presets** (`GraphicsQuality.gd`) — Low, Medium, High and Ultra, chosen automatically from the GPU the renderer opened (High on an RTX 2070 Super Max-Q, Low on integrated graphics), switched with **F4** and remembered. Mesh detail coarsens with speed, and on Low to High the 3D resolution follows measured GPU time, so dense towns drop resolution, not frames. Headless and QA runs keep `project.godot` as it was. `checks/QualityBench.gd` (`--quality-bench DIR`) measures each preset and saves captures.
+- **Moving traffic and birds** (`AmbientLife.gd`) — cars drive the mapped streets in the right-hand lane at class speeds, follow at two-second gaps, stop behind the player, turn at junctions and never appear close in plain view; the six nearest are solid. Each model is one MultiMesh (about 0.5–1 ms for 20 cars). Flocks of birds are animated entirely in a vertex shader.
+- **Road roughness** (`RoadRoughness.gd`) — each tyre rides a road profile sized by IRI from road class, per-street condition and a regional field (2.5 mm RMS on a new motorway, 6.5 mm on a typical street, 16 mm on gravel), applied to suspension travel and damper speed, never to the collider. `--smooth-roads` turns it off.
+- **Cars from Sketchfab** — `authoring/cars/sketchfab.mjs` searches Sketchfab, fetches CC0 or CC BY models with your own API token, refuses other licences and models named after a car maker, and records credits in `game/art/traffic/manifest.json` and `licenses/Traffic models.txt`. Traffic loads them, normalised to their stated length.
+- **`checks/AmbientCheck.gd`** (default suite) — GPU tier detection, model normalisation and roughness bands.
+- **`docs/research/real-world-detail.md`** — where the remaining realism comes from (house recipes from ACS, parcel and NSI data, NBI bridges, HPMS roughness, impostors, VRS) and the licence findings behind each source.
+
 ## SimCruise 1.1.0 (2026-11-09)
 
 Renamed from Sunday Driver. The work below follows the 8 November 2026 design-panel report kept as [docs/roadmap.md](docs/roadmap.md).

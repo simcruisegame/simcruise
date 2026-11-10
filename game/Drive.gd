@@ -104,6 +104,9 @@ var steering_wheel=[]   # [node, rest basis] on generated cars (CarBody.gd)
 const STEERING_RATIO:=14.5
 var lamp_on=false
 var shadow_plane=PlaneMesh.new()
+var ambient_life=preload("res://AmbientLife.gd").new()
+var roughness=preload("res://RoadRoughness.gd").new()
+var graphics=preload("res://GraphicsQuality.gd").new()
 func material(tex=null,color=Color.WHITE):
  var m=StandardMaterial3D.new();m.cull_mode=BaseMaterial3D.CULL_DISABLED;m.albedo_color=color;m.roughness=.86;m.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
  if tex:m.albedo_texture=tex
@@ -183,6 +186,10 @@ func _ready():
  spectral_ground.enabled=driving_preferences.values.spectral_ground or "--spectral-ground" in OS.get_cmdline_user_args()
  hud=HUD.new();add_child(hud);hud.build(self);hud.camera.connect(switch_view);hud.reset.connect(recover);hud.sound.connect(toggle_sound);hud.search_for.connect(search);hud.choose.connect(choose_place);hud.surprise.connect(surprise_me)
  hud.root.add_child(fps_label);fps_label.position=Vector2(18,58);fps_label.add_theme_font_size_override("font_size",15);fps_label.add_theme_constant_override("outline_size",5);fps_label.hide()
+ # Moving traffic and birds (AmbientLife.gd), then the graphics preset that sizes
+ # them (GraphicsQuality.gd; headless and QA runs keep project.godot as it is).
+ ambient_life.name="AmbientLife";ambient_life.game=self;add_child(ambient_life)
+ graphics.name="GraphicsQuality";add_child(graphics);graphics.setup(self)
  # The map helper ships beside the game executable (atlas.exe on Windows).
  var helper_name="atlas.exe" if OS.get_name()=="Windows" else "atlas"
  helper=OS.get_executable_path().get_base_dir().path_join(helper_name)
@@ -241,6 +248,7 @@ func _ready():
  if "--road-test" in OS.get_cmdline_user_args():add_child(preload("res://checks/DriveCheck.gd").new())
  if "--screenshots" in OS.get_cmdline_user_args():add_child(preload("res://checks/Screenshots.gd").new())
  if "--car-showcase" in OS.get_cmdline_user_args():add_child(preload("res://checks/CarShowcase.gd").new())
+ if "--quality-bench" in OS.get_cmdline_user_args():add_child(preload("res://checks/QualityBench.gd").new())
 # Tile workers create mesh/material resources. Joining one while the engine
 # is shutting down can deadlock against the rendering/main thread. Keep the
 # frame loop alive until pending work has returned; no new jobs are launched.
@@ -570,6 +578,7 @@ func _unhandled_key_input(e):
   KEY_R:recover()
   KEY_M:toggle_sound()
   KEY_F3:fps_label.visible=not fps_label.visible
+  KEY_F4:graphics.cycle()
 func _physics_process(dt):
  if closing:return
  if not ready_drive:return
@@ -602,6 +611,14 @@ func _physics_process(dt):
  for i in 4:
   var contact=vehicle.global_transform*vehicle.MOUNTS[i];var at=Vector2(contact.x,contact.z);var key=tile_id(at)
   vehicle.surface_grip[i]=tiles[key].wheel_grip(at-tile_offset(key)) if tiles.has(key) else .72
+  # Road roughness (RoadRoughness.gd): IRI from the road under this tyre, profile
+  # in absolute map metres so a rebase never moves a bump.
+  var bump=0.
+  if tiles.has(key) and roughness.enabled:
+   var iri=roughness.iri(tiles[key],at-tile_offset(key),vehicle.surface_grip[i])
+   bump=roughness.height(at+Vector2(origin)*side,iri)
+  vehicle.road_profile_rate[i]=clampf((bump-vehicle.road_profile[i])/dt,-.6,.6)
+  vehicle.road_profile[i]=bump
  velocity=vehicle.drive(dt,gas,brake,steer,Input.is_action_pressed("handbrake"),using_thumbstick);steering=vehicle.steering_input
  distance+=minf(3,pos.distance_to(actual));pos=actual;yaw=vehicle.rotation.y
  var forward=-vehicle.global_transform.basis.z;yaw=atan2(-forward.x,-forward.z)
@@ -689,7 +706,7 @@ func _process(dt):
    var rr=near[0][1];road_name=rr[2] if rr[2]!="" else "Local road"
   hud.refresh(roundi(absf(velocity)*2.23694),vehicle.gear_text()+" · "+str(roundi(vehicle.rpm))+" rpm",distance/1609.344,road_name,view)
   hud.update_drive_hint()
-  fps_label.text="%d FPS    %d active tiles    %d map requests"%[Engine.get_frames_per_second(),tiles.size(),calls];timer=0
+  fps_label.text="%d FPS    %d active tiles    %d map requests    %s"%[Engine.get_frames_per_second(),tiles.size(),calls,graphics.label()];timer=0
  if sound_enabled and engine_stream:
   var available=engine_stream.get_frames_available()
   if available>0:
@@ -718,7 +735,7 @@ func update_parked():
 # Keep native physics coordinates small even on a long road trip.
 func rebase(delta:Vector2i):
  var off=Vector2(delta)*side;var v=Vector3(off.x,0,off.y)
- origin+=delta;pos-=off;vehicle.position-=v;camera.position-=v;probe.position-=v;last_probe-=off
+ origin+=delta;pos-=off;vehicle.position-=v;camera.position-=v;probe.position-=v;last_probe-=off;ambient_life.rebase(v)
  vehicle.reset_physics_interpolation()
  for tile in tiles.values():tile.position-=v
  for car in traffic:car.position-=v

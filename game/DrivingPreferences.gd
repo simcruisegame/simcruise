@@ -12,7 +12,8 @@ extends RefCounted
 # check ever reads or writes the player's own records.
 #   car         : String id of a file in res://cars (CarSpec.gd)
 #   resume_place: String "lon,lat,title" to reopen after switching cars, used once
-const DEFAULTS := {"manual":false,"street_photos":true,"spectral_ground":false,"sound":true,"hud_level":1,"head_motion":1.0,"car":"nb1999","resume_place":""}
+#   quality     : String "auto", "low", "medium", "high" or "ultra" (GraphicsQuality.gd)
+const DEFAULTS := {"manual":false,"street_photos":true,"spectral_ground":false,"sound":true,"hud_level":1,"head_motion":1.0,"car":"nb1999","resume_place":"","quality":"auto"}
 const QA_FLAGS := ["--car-audit","--bethel-facade-ab","--survey-stops","--seam-check","--pad-steering","--building-check","--street-check","--reference","--us-check","--field-check","--profile-trees","--road-test"]
 var values := DEFAULTS.duplicate()
 var directory := ""
