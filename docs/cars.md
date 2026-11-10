@@ -46,7 +46,7 @@ The 1965 Mustang and the Corvette Stingray (C8, the physics formerly shipped as 
 
 ## Traffic models from Sketchfab
 
-The moving traffic (`game/AmbientLife.gd`) uses the parked-car models, the generated cars and any model listed in `game/art/traffic/manifest.json`. `authoring/cars/sketchfab.mjs` fills that manifest:
+Moving and parked traffic use only real models listed in `game/art/traffic/manifest.json`: 1965 Ford Mustang, Corvette Stingray C8, 2018 Honda Accord, 2025 Honda CR-V, 2018 Ford F-150 Raptor, 2013 Jeep Grand Cherokee, Chevrolet Tahoe, Honda Odyssey and Tesla Model 3 (all CC BY 4.0, credited in `licenses/Traffic models.txt`). The old low-poly sedan and pickup and the generated garage bodies are no longer used for traffic. Each merged model gets detail levels rebuilt at load, and `checks/TrafficLineup.gd` renders the fitted fleet in a row to check orientation (a model showing its tail from the front needs `"flip": true`). A model is accepted only if it looks at least as good as these; the Silverado (wheels missing) and Transit Connect (transparent materials) were rejected. `authoring/cars/sketchfab.mjs` fills that manifest:
 
 ```
 bun authoring/cars/sketchfab.mjs search "generic sedan"

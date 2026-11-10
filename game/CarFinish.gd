@@ -98,8 +98,16 @@ static func shade_and_traffic(game, shade_size:=Vector2(2.14,4.34)) -> void:
  game.shadow_plane.size=shade_size;game.shadow_plane.material=ink
  var shadow=MeshInstance3D.new();shadow.name="GroundShade";shadow.layers=2;shadow.mesh=game.shadow_plane;shadow.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;game.add_child(shadow)
  for i in 22:
-  var asset=preload("res://art/pickup.glb") if i%5==0 else preload("res://art/sedan.glb")
-  var prop=StaticBody3D.new();var look=asset.instantiate();prop.add_child(look);var shade=MeshInstance3D.new();shade.mesh=game.shadow_plane;shade.position.y=.035;shade.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;prop.add_child(shade);var hit=CollisionShape3D.new();var box=BoxShape3D.new();box.size=Vector3(1.68,1.12,4.12);hit.shape=box;hit.position.y=.70;prop.add_child(hit);prop.collision_layer=0;game.add_child(prop);prop.hide();game.traffic.append(prop)
+  # Parked cars come from the real traffic fleet (AmbientLife.fleet()); every
+  # fifth slot is a utility vehicle, as the old pickup slot was.
+  var prop=StaticBody3D.new();var look=MeshInstance3D.new()
+  var rows:Array=preload("res://AmbientLife.gd").fleet()
+  if not rows.is_empty():
+   var pool=rows.filter(func(r):return r[2]==(i%5==0))
+   if pool.is_empty():pool=rows
+   var row=pool[(i*7+3)%pool.size()]
+   look.mesh=row[0];look.transform=row[1]
+  prop.add_child(look);var shade=MeshInstance3D.new();shade.mesh=game.shadow_plane;shade.position.y=.035;shade.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;prop.add_child(shade);var hit=CollisionShape3D.new();var box=BoxShape3D.new();box.size=Vector3(1.68,1.12,4.12);hit.shape=box;hit.position.y=.70;prop.add_child(hit);prop.collision_layer=0;game.add_child(prop);prop.hide();game.traffic.append(prop)
 
 # ---------------------------------------------------------------------------
 func likeness() -> void:

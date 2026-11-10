@@ -23,7 +23,11 @@ extends Node3D
 ## Counts come from GraphicsQuality.gd presets; zero (headless and QA runs)
 ## builds nothing at all.
 
-const CAR_MODELS := ["res://art/sedan.glb","res://art/pickup.glb","res://art/sedan.glb","res://art/cars/kestrel_s.glb","res://art/cars/meridian_z.glb","res://art/cars/bison_xl.glb","res://art/cars/volta.glb","res://art/cars/tora_rs.glb"]
+# Traffic uses only real models (game/art/traffic/manifest.json, Sketchfab CC BY):
+# the old low-poly sedan/pickup and the generated garage bodies were retired
+# because they did not look as good. Utility kinds stand in for delivery vans.
+const CAR_MODELS := []
+const UTILITY_KINDS := ["f150raptor18", "tahoe", "odyssey", "grandcherokee13"]
 const DRIVABLE := ["motorway","trunk","primary","secondary","tertiary","residential","unclassified","living_street","motorway_link","trunk_link","primary_link","secondary_link","tertiary_link"]
 const SPEED := {"motorway":29.,"trunk":25.,"primary":17.,"secondary":15.,"tertiary":13.,"residential":10.,"unclassified":11.,"living_street":5.}
 const SPAWN_MIN := 45.
@@ -95,7 +99,7 @@ func build_models() -> void:
   node.visibility_range_end = 400.
   add_child(node)
   list.append([mm, fit])
-  if "pickup" in str(source.scene) or "bison" in str(source.scene):utility_models.append(parts.size())
+  if str(source.get("kind", "")) in UTILITY_KINDS:utility_models.append(parts.size())
   parts.append(list);model_bounds.append(fit * merged.get_aabb())
  for i in 6:
   var body := AnimatableBody3D.new();body.sync_to_physics = false
@@ -116,7 +120,25 @@ static func normalise(box: AABB, length_m: float, flip: bool) -> Transform3D:
  var b: AABB = scaled * box
  return Transform3D(scaled.basis, Vector3(-(b.position.x + b.size.x * .5), -b.position.y, -(b.position.z + b.size.z * .5)))
 
+static var merged_cache := {}
+
+## The real traffic fleet as [mesh, fit transform, utility] rows, built once
+## and shared by moving traffic and parked cars (CarFinish.gd).
+static func fleet() -> Array:
+ if merged_cache.has("__fleet"):return merged_cache["__fleet"]
+ var rows := []
+ if FileAccess.file_exists(TRAFFIC_MANIFEST):
+  var manifest = JSON.parse_string(FileAccess.get_file_as_string(TRAFFIC_MANIFEST))
+  if manifest is Dictionary:
+   for m in manifest.get("models", []):
+    var mesh := merged_mesh(str(m.get("scene", "")))
+    if mesh == null:continue
+    rows.append([mesh, normalise(mesh.get_aabb(), float(m.get("length_m", 4.7)), bool(m.get("flip", false))), str(m.get("kind", "")) in UTILITY_KINDS])
+ merged_cache["__fleet"] = rows
+ return rows
+
 static func merged_mesh(path: String) -> ArrayMesh:
+ if merged_cache.has(path):return merged_cache[path]
  if not ResourceLoader.exists(path):return null
  var packed = load(path)
  if not packed is PackedScene:return null
@@ -135,7 +157,16 @@ static func merged_mesh(path: String) -> ArrayMesh:
    st.set_material(mat)
    st.commit(merged)
  root.free()
- return merged if merged.get_surface_count() > 0 else null
+ if merged.get_surface_count() == 0:return null
+ # Merging drops the importer's detail levels; rebuild them (meshoptimizer via
+ # ImporterMesh) so a distant 300k-triangle car costs a few thousand.
+ var im := ImporterMesh.new()
+ for s in merged.get_surface_count():
+  im.add_surface(Mesh.PRIMITIVE_TRIANGLES, merged.surface_get_arrays(s), [], {}, merged.surface_get_material(s))
+ im.generate_lods(25., 60., [])
+ var lodded: ArrayMesh = im.get_mesh()
+ merged_cache[path] = lodded
+ return lodded
 
 static func relative(root: Node, node: Node) -> Transform3D:
  var t := Transform3D.IDENTITY
