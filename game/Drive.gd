@@ -403,6 +403,8 @@ func work(spec):
   # so a default install sends no requests to volunteer-run servers.
   if "--mapped-guard-rails" in OS.get_cmdline_user_args() and not "--without-guard-rails" in OS.get_cmdline_user_args():args.append("--mapped-guard-rails")
   if not road_banks.enabled:args.append("--without-road-banks")
+  # Mapped lane counts for the markings (helper/lane-counts.mjs); US defaults without.
+  if "--without-lane-counts" in OS.get_cmdline_user_args():args.append("--without-lane-counts")
   var out=[];var code=OS.execute(helper,args,out,true)
   if code or out.is_empty():return {"error":"Map download failed. Check the connection and retry."}
   raw=str(out[0])

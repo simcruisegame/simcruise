@@ -191,7 +191,7 @@ func tick(game):
   if layout_visits.size()>=96:layout_visits.erase(layout_visits.keys()[0])
   layout_visits[id]=now+6*3600000
   pending_id=id;pending_instance=tile.get_instance_id();layout_job=true;roof_job=false
-  var observations=[tile.paint_evidence,tile.measured_section,tile.road_survey,tile.surveyed_outcrop,tile.crossfall_surface]
+  var observations=[tile.paint_evidence,tile.measured_section,tile.road_survey,tile.surveyed_outcrop,tile.crossfall_surface,tile.road_surface]
   worker=Thread.new()
   worker.start(fetch_layout.bind(game.helper,game.cache,id,tile.info.duplicate(),game.side,tile.materials.duplicate(),observations))
   return

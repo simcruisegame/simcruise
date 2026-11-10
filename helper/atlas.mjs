@@ -3,6 +3,7 @@ import {fuseSky} from './sky-fusion.mjs';
 import {photoWeather} from './photo-weather.mjs';
 import {streamedRoofs} from './roof-stream.mjs';
 import {cachedLaneLayout,fetchLaneDistrict} from './road-layout.mjs';
+import {fetchLaneWays,matchLaneCounts} from './lane-counts.mjs';
 import {cachedBankSurface,fetchRoadBanks} from './bank-source.mjs';
 import {applyRoadBanks} from './road-banks.mjs';
 import {ridgeImagery} from './ridge-imagery.mjs';
@@ -79,7 +80,7 @@ async function chunk(X,Y){
  const url=meta.tiles[0].replace('{z}','14').replace('{x}',mx).replace('{y}',my);
  const aerial_key=aerialSource(mx,my)?.key??'';
  const aerial=aerial_key&&fs.existsSync(path.join(cache,aerial_key))?aerial_key:'';
- const [buf,elev,street_objects,ground,mapped_rails]=await Promise.all([data('v-'+mx+'-'+my,url),data('h-'+ex+'-'+ey,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+ex+'/'+ey+'.png'),fetchObjects(X,Y,cache,readCached),measuredGround(X,Y,cache,readCached),(args.includes('--mapped-guard-rails')?mappedGuardRails(X,Y,cache,readCached).catch(()=>({status:'unavailable',rows:[]})):Promise.resolve({status:'off',rows:[]}))]);
+ const [buf,elev,street_objects,ground,mapped_rails,lane_ways]=await Promise.all([data('v-'+mx+'-'+my,url),data('h-'+ex+'-'+ey,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+ex+'/'+ey+'.png'),fetchObjects(X,Y,cache,readCached),measuredGround(X,Y,cache,readCached),(args.includes('--mapped-guard-rails')?mappedGuardRails(X,Y,cache,readCached).catch(()=>({status:'unavailable',rows:[]})):Promise.resolve({status:'off',rows:[]})),(args.includes('--without-lane-counts')?Promise.resolve(null):fetchLaneWays(X,Y,cache,readCached).catch(()=>null))]);
  const vector=buf[0]===31?gunzipSync(buf):buf;
  const tile=vectorTile(vector),dem=decode(elev);
  // A neighbouring z14 vector tile is read only when a road crosses into it near
@@ -120,7 +121,9 @@ async function chunk(X,Y){
   }});
  for(const name of ['landcover','park','water'])each(name,(f,conv)=>{if(f.type===3)land.push([name,f.properties.class||'',f.loadGeometry().map(r=>r.map(conv))])});
  each('poi',(f,conv)=>{if(f.type===1&&f.properties.name){const p=conv(f.loadGeometry()[0][0]);if(p.every(v=>v>=0&&v<1))pois.push([p,f.properties.name,String(f.properties.class||'')])}});
- return {id:[X,Y],aerial,aerial_key,street_objects,guard_rails:mapped_rails.rows,guard_rails_status:mapped_rails.status,live_canopy:true,footprint_survey:hasFootprintSurvey(X,Y)?buildingFingerprint(vector):'',...terrain,roads,pedestrian:pedestrianSurfaces(each,clip),buildings,land,pois,trees:[],requests};
+ // Mapped lane counts per road segment (lane-counts.mjs; markings in LaneMarkings.gd).
+ const road_lanes=lane_ways?{version:1,status:'checked',source:'OpenStreetMap contributors via Esri North America',snapshot:lane_ways.snapshot,roads:matchLaneCounts(X,Y,roads,lane_ways.ways)}:{version:1,status:'unavailable'};
+ return {id:[X,Y],aerial,aerial_key,street_objects,guard_rails:mapped_rails.rows,guard_rails_status:mapped_rails.status,live_canopy:true,footprint_survey:hasFootprintSurvey(X,Y)?buildingFingerprint(vector):'',...terrain,roads,road_lanes,pedestrian:pedestrianSurfaces(each,clip),buildings,land,pois,trees:[],requests};
 }
 try{
  let result;

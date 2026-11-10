@@ -511,6 +511,8 @@ func prepare_lane_update(data:Dictionary,size_m:float,mats:Dictionary,observatio
  road_survey=observations[2]
  surveyed_outcrop=observations[3]
  crossfall_surface=observations[4]
+ # The live tile's road ribbon, so the repainted lines sit on the same surface.
+ if observations.size()>5:road_surface=observations[5]
  road_layout=preload("res://RoadLayout.gd").for_tile(self)
  if not road_layout:return {}
  var surface=street_image()
@@ -627,30 +629,10 @@ func surface_grip(p:Vector2):
    if seg[5]!="track":return 1.
    best=.76
  return best
+# MUTCD edge, centre and lane lines from the mapped lane counts, laid on the
+# road ribbon (LaneMarkings.gd). Measured paint keeps precedence there.
 func paint_lane_marks():
- for seg in segments:
-  if seg.size()>6 and seg[6]=="unpaved":continue
-  if seg[5] not in ["motorway","trunk","primary","secondary","tertiary"] or seg[3]<7.3:continue
-  var a:Vector2=seg[0];var b:Vector2=seg[1];var length=a.distance_to(b);if length<5:continue
-  var t=(b-a)/length;var n=Vector2(-t.y,t.x)
-  var offsets=[0.] if seg[4] else [-.115,.115]
-  var dash=3. if seg[4] else 5.;var step=9. if seg[4] else 5.
-  for off in offsets:
-   var k=2.5
-   while k<length-2.5:
-    var p=a+t*k+n*off;var q=a+t*minf(length-2.5,k+dash)+n*off;var l=n*.067
-    if paint_evidence!=null and seg[4] and seg[2]==paint_evidence.road_name:
-     for part in paint_evidence.remaining(p,q):
-      if part.size()>=2:raised_stripe("whitepaint",part[0],part[-1],l)
-    elif measured_section and seg[4] and seg[2]==measured_section.road_name:
-     for part in measured_section.remaining(p,q):
-      if part.size()>1:raised_stripe("whitepaint",part[0],part[-1],l)
-    elif road_layout and seg[4] and road_layout.applies(seg[2]):
-     for part in road_layout.remaining(p,q,seg[2]):raised_stripe("whitepaint",part[0],part[1],l)
-    elif road_survey and not seg[4]:
-     for part in road_survey.remaining(p,q):raised_stripe("yellowpaint",part[0],part[1],l)
-    else:raised_stripe("whitepaint" if seg[4] else "yellowpaint",p,q,l)
-    k+=step
+ info["lane_markings"]=preload("res://LaneMarkings.gd").paint(self)
 func raised_stripe(material_key:String,p:Vector2,q:Vector2,half_width:Vector2):
  quad(material_key,vert(p-half_width,height_at(p-half_width)+.048),vert(p+half_width,height_at(p+half_width)+.048),vert(q+half_width,height_at(q+half_width)+.048),vert(q-half_width,height_at(q-half_width)+.048),Vector3.UP)
 func nearest(p:Vector2,main_only=false,street=""):
