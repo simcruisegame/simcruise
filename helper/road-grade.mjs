@@ -535,24 +535,11 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
  }
  summary.conditioned=summary.bench.vertices;
  const worldKey=(x,y)=>{const [wx,wy]=toWorld(x,y);return Math.round(wx*2e4)+'-'+Math.round(wy*2e4)};
- // A deck end with no approach measured near this tile (the middle tile of a
- // long river bridge) reads the elevation model there directly, so every flagged
- // bridge gets a deck instead of the car dropping into the river.
- const far=new Map();
- const farGround=async(x,y)=>{
-  const [wx,wy]=toWorld(x,y),px=wx*32-.5,py=wy*32-.5,ix=Math.floor(px),iy=Math.floor(py),fx=px-ix,fy=py-iy;
-  const at=async(i,j)=>{
-   const tx=Math.floor(i/SOURCE_SIZE),ty=Math.floor(j/SOURCE_SIZE),key=tx+','+ty;
-   if(!far.has(key))far.set(key,readDEM((tx+2**DEM_ZOOM)%2**DEM_ZOOM,limit(ty,0,2**DEM_ZOOM-1)).then(b=>decode(b)).catch(()=>null));
-   const im=await far.get(key);
-   if(!im||im.width!==SOURCE_SIZE)return NaN;
-   const k=((j-ty*SOURCE_SIZE)*im.width+i-tx*SOURCE_SIZE)*im.channels;
-   return im.data[k]*256+im.data[k+1]+im.data[k+2]/256-32768;
-  };
-  const a=(await at(ix,iy))*(1-fx)+(await at(ix+1,iy))*fx,b=(await at(ix,iy+1))*(1-fx)+(await at(ix+1,iy+1))*fx;
-  return a*(1-fy)+b*fy;
- };
- const bridges=await bridgeDecks(structures.filter(p=>p.bridge),terminals,sample,inside,{tx0,ty0,scale},memo,worldKey,roads,farGround);
+ // A deck with neither end measured near this tile (the middle tiles of a long
+ // bridge) is left out. Reading the elevation model at the clipped ends put the
+ // Mackinac Bridge's mid-span decks at lake level, 2.4-5 m below the decks the
+ // tiles nearer the shores interpolated, so every such seam was a step.
+ const bridges=await bridgeDecks(structures.filter(p=>p.bridge),terminals,sample,inside,{tx0,ty0,scale},memo,worldKey,roads);
  summary.bench.bridges=bridges.length;
  return {h,grid:FINE,road_grade:summary,bridges,road_surface:roadSurface(surfaceChains,{tx0,ty0,scale})};
 }
@@ -569,7 +556,7 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
 // road a 4.6 m service deck). Rows: [class, name, points in tile units clipped
 // to the tile, width, deck height per point, layer, oneway].
 const BRIDGE_TURN=.5; // cos 60°: a sharper joint starts a new deck row
-async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,worldKey,roads=new Map(),farGround=null){
+async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,worldKey,roads=new Map()){
  const rows=[];
  const benchAt=p=>{
   let best=null;
@@ -608,10 +595,6 @@ async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,w
    return inside(p[0],p[1])?sample(p[0],p[1]):NaN;
   };
   let za=await endHeight(pts[0]),zb=await endHeight(pts[pts.length-1]);
-  if(!Number.isFinite(za)&&!Number.isFinite(zb)&&farGround){
-   // Neither end is near this tile: the middle of a long bridge.
-   za=await farGround(pts[0][0],pts[0][1]);zb=await farGround(pts[pts.length-1][0],pts[pts.length-1][1]);
-  }
   if(!Number.isFinite(za)&&!Number.isFinite(zb))continue;
   if(!Number.isFinite(za))za=zb;
   if(!Number.isFinite(zb))zb=za;

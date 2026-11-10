@@ -58,6 +58,7 @@ const JOIN_FADE_MAX_M := 60.
 const JOIN_GRADE := .04
 
 func build(rows: Array, side: float) -> void:
+ _side = side
  var chains := []
  for chain in rows:
   var pts: Array = chain.get("pts", [])
@@ -83,11 +84,19 @@ func build(rows: Array, side: float) -> void:
  for chain in chains:
   var sections: Array = chain.sections
   if active:join(sections)
+  # Distance along the chain, so lower_grid leaves the ground alone at its
+  # open ends (where a road without a ribbon, or the ground, carries on).
+  var along := PackedFloat32Array([0.])
+  for i in range(1, sections.size()):along.append(along[i-1] + Vector2(sections[i][2].x, sections[i][2].z).distance_to(Vector2(sections[i-1][2].x, sections[i-1][2].z)))
   for i in range(1, sections.size()):
    var prev: Array = sections[i-1];var section: Array = sections[i]
    if Vector2(prev[2].x, prev[2].z).distance_to(Vector2(section[2].x, section[2].z)) >= 8.:continue
+   var near_end := minf(along[i], along[-1] - along[i-1]) < END_CLEAR_M
+   # Edges lower_grid samples: the station edge a-b once per grid cell (not
+   # at the chain's first section), the long edges b-c and d-a densely.
+   var mask := (0 if near_end else EDGE_LONG << 2 | EDGE_LONG << 6) | (0 if i == 1 or near_end else EDGE_STATION)
    for k in section.size() - 1:
-    add_quad(prev[k], prev[k+1], section[k+1], section[k])
+    add_quad(prev[k], prev[k+1], section[k+1], section[k], mask, Vector2(prev[2].x, prev[2].z))
   active = not quads.is_empty()
 
 ## Snap a lower-ranked ribbon onto the ribbons already built where they
@@ -95,37 +104,107 @@ func build(rows: Array, side: float) -> void:
 func join(sections: Array) -> void:
  var delta := PackedFloat32Array();delta.resize(sections.size())
  var covered := []
+ var crossing := []
  for i in sections.size():
   var sum := 0.;var count := 0
+  # The centreline on another ribbon: a junction, joined whatever the
+  # difference. Only the edges overlapping: side by side (twin carriageways,
+  # a ramp merging) when the heights are close, or a road on another level
+  # (a street ending at the abutment of a bridge over a motorway) when not.
+  var c := Vector2(sections[i][2].x, sections[i][2].z)
+  var centre := not is_nan(height(c)) and not unshared(c)
+  crossing.append(centre)
   for v in sections[i]:
-   var hi := height(Vector2(v.x, v.z))
-   if not is_nan(hi):sum += hi - v.y;count += 1
+   var p := Vector2(v.x, v.z)
+   var hi := height(p) if centre else level(p, v.y)
+   if not is_nan(hi) and not unshared(p):sum += hi - v.y;count += 1
   covered.append(count > 0)
   delta[i] = sum / count if count > 0 else 0.
- # Station spacing along this chain, for the fade.
+ # Station spacing along this chain, for the fade, and each station's distance
+ # inside the tile edge.
  var station := PackedFloat32Array();station.resize(sections.size())
+ var edge := PackedFloat32Array()
+ for sec in sections:edge.append(minf(minf(sec[2].x, sec[2].z), minf(_side - sec[2].x, _side - sec[2].z)))
  for i in range(1, sections.size()):
   station[i] = station[i-1] + Vector2(sections[i][2].x, sections[i][2].z).distance_to(Vector2(sections[i-1][2].x, sections[i-1][2].z))
  for i in sections.size():
-  var best := 0.;var weight := 0.
+  var best := 0.;var weight := 0.;var sum_w := 0.
   for j in sections.size():
    if not covered[j]:continue
    # The fade grows with the height it absorbs, so its steepest grade stays
    # near 6 % (smoothstep: 1.5 · delta / length). A fixed 15 m fade took a
    # 1.8 m snap onto a bridge approach in 12 m (Western Ave, Allston MA: 7-8 g).
    var fade := clampf(absf(delta[j]) / JOIN_GRADE, JOIN_FADE_M, JOIN_FADE_MAX_M)
+   # A junction the neighbouring tile cannot see (more than the 6 m apron
+   # inside this tile) fades out before the tile edge: the neighbour builds
+   # the same road from the same profile but cannot join it there, so a fade
+   # reaching the seam left the two tiles' overlapping ribbons up to 0.6 m
+   # apart (a motorway ramp leaving Cambridge St 14 m from a seam, Allston MA:
+   # a dead stop at 20 m/s). A junction nearer the edge is in both tiles.
+   if edge[j] > SEAM_SHARED_M:fade = minf(fade, edge[j])
    var w := clampf(1. - absf(station[i] - station[j]) / fade, 0., 1.)
    w = w * w * (3. - 2. * w)
-   if w > weight:weight = w;best = delta[j]
+   # The correction is the weighted mean of the overlaps in reach, not the
+   # nearest one's: between two overlaps of different heights the nearest
+   # switched from one to the other in a single station (0.9 m in 2 m on
+   # Cambridge St beside a motorway ramp, Allston MA).
+   best += w * delta[j];sum_w += w
+   weight = maxf(weight, w)
   if weight <= 0.:continue
+  best /= sum_w
   for k in sections[i].size():
    var v: Vector3 = sections[i][k]
-   var hi := height(Vector2(v.x, v.z))
-   sections[i][k] = Vector3(v.x, hi if not is_nan(hi) else v.y + best * weight, v.z)
+   var y := v.y + best * weight
+   # At a junction the vertices on the other ribbon take its height. Side by
+   # side the whole section moves by the faded correction: snapping only the
+   # vertices that overlap tears a section between two levels.
+   var p := Vector2(v.x, v.z)
+   var hi := height(p) if crossing[i] and not unshared(p) else NAN
+   sections[i][k] = Vector3(v.x, hi if not is_nan(hi) else y, v.z)
+const SEAM_SHARED_M := 6.
+const SEAM_CLEAR_M := 15.
+var _side := 0.
+var axes := PackedVector2Array()   # per quad: its road's centreline at that station
 
-func add_quad(a: Vector3, b: Vector3, c: Vector3, d: Vector3) -> void:
+## Whether the ribbons covering p, near the tile edge, are ones the
+## neighbouring tile may not hold: each tile holds the helper's chains to 6 m
+## past its edges, so a ribbon whose centreline is further inside than that is
+## missing from the neighbour, even when its edge reaches the seam (a 19 m
+## motorway ramp beside Cambridge St, Allston MA). A ribbon joined onto it there
+## would part from the neighbour's copy at the seam (0.4-0.6 m, a dead stop at
+## 20 m/s), so near the edge only ribbons both tiles hold are joined.
+func unshared(p: Vector2) -> bool:
+ if minf(minf(p.x, p.y), minf(_side - p.x, _side - p.y)) >= SEAM_CLEAR_M:return false
+ var any := false
+ for idx in bins.get(Vector2i(floori(p.x / BIN), floori(p.y / BIN)), []):
+  var q: Array = quads[idx]
+  if is_nan(tri_height(p, q[0], q[1], q[2])) and is_nan(tri_height(p, q[0], q[2], q[3])):continue
+  any = true
+  var a := axes[idx]
+  if minf(minf(a.x, a.y), minf(_side - a.x, _side - a.y)) <= SEAM_SHARED_M:return false
+ return any
+
+## The ribbon height at p closest to y, when it is within JOIN_REACH_M of it
+## (else NAN): a ribbon further above or below is another level.
+const JOIN_REACH_M := 1.
+func level(p: Vector2, y: float) -> float:
+ var best := NAN
+ for h in heights(p):
+  if absf(h - y) <= JOIN_REACH_M and (is_nan(best) or absf(h - y) < absf(best - y)):best = h
+ return best
+
+## mask: which edges lower_grid samples, two bits per edge (a-b, b-c, c-d,
+## d-a from the low bits): 0 none, EDGE_LONG every ~1 m, EDGE_STATION once per
+## grid cell.
+const EDGE_LONG := 1
+const EDGE_STATION := 2
+const END_CLEAR_M := 4.
+var masks := PackedInt32Array()
+func add_quad(a: Vector3, b: Vector3, c: Vector3, d: Vector3, mask := EDGE_STATION | EDGE_LONG << 2 | EDGE_LONG << 6, axis := Vector2(NAN, NAN)) -> void:
  var idx := quads.size()
  quads.append([a, b, c, d])
+ masks.append(mask)
+ axes.append(Vector2((a.x + c.x) * .5, (a.z + c.z) * .5) if is_nan(axis.x) else axis)
  var lo := Vector2(minf(minf(a.x, b.x), minf(c.x, d.x)), minf(minf(a.z, b.z), minf(c.z, d.z)))
  var hi := Vector2(maxf(maxf(a.x, b.x), maxf(c.x, d.x)), maxf(maxf(a.z, b.z), maxf(c.z, d.z)))
  for x in range(floori(lo.x / BIN), floori(hi.x / BIN) + 1):
@@ -176,9 +255,39 @@ func heights(p: Vector2) -> PackedFloat64Array:
 ## the grid is read bilinearly (base_height on a tile without a measured grade
 ## source), so the four corners of the cell share the correction.
 const EDGE_SAMPLE_M := .5
-func lower_grid(h: Array, n: int, side: float, bilinear := false) -> int:
+## keep: roads without a ribbon (service roads, tracks) as [a, b, reach]
+## segments in tile metres (keep_segments): the ground they drive on is not
+## pushed down where they meet a ribbon's side, or a car on them would drop off
+## the ribbon edge into the dip (Anabel's Way and the fire station drive at
+## Stowe VT met VT-108 with 0.1-0.3 m steps).
+static func keep_segments(roads: Array, side: float) -> Dictionary:
+ var out := {}
+ for r in roads:
+  if not r is Array or r.size() < 5:continue
+  var ribbon: bool = RANK.has(str(r[0])) and not (r.size() > 5 and str(r[5]) == "unpaved")
+  if ribbon or (r.size() > 6 and str(r[6]) == "bridge"):continue
+  var reach := float(r[4]) * .5 + KEEP_MARGIN_M
+  var pts: Array = r[3]
+  for k in range(1, pts.size()):
+   var a := Vector2(float(pts[k-1][0]), float(pts[k-1][1])) * side;var b := Vector2(float(pts[k][0]), float(pts[k][1])) * side
+   var lo := a.min(b) - Vector2.ONE * reach;var hi := a.max(b) + Vector2.ONE * reach
+   for x in range(floori(lo.x / BIN), floori(hi.x / BIN) + 1):
+    for y in range(floori(lo.y / BIN), floori(hi.y / BIN) + 1):
+     var key := Vector2i(x, y)
+     if not out.has(key):out[key] = []
+     out[key].append([a, b, reach])
+ return out
+const KEEP_MARGIN_M := 1.5
+static func _kept(keep: Dictionary, p: Vector2) -> bool:
+ for seg in keep.get(Vector2i(floori(p.x / BIN), floori(p.y / BIN)), []):
+  if Geometry2D.get_closest_point_to_segment(p, seg[0], seg[1]).distance_to(p) <= seg[2]:return true
+ return false
+
+func lower_grid(h_in: Array, n: int, side: float, bilinear := false, keep := {}) -> int:
  var cell := side / n
  var moved := {}
+ # A packed copy: the edge pass reads the grid hundreds of thousands of times.
+ var h := PackedFloat64Array(h_in)
  for j in n + 1:
   for i in n + 1:
    var r := height(Vector2(i, j) * cell)
@@ -188,29 +297,45 @@ func lower_grid(h: Array, n: int, side: float, bilinear := false) -> int:
     r = height((Vector2(i, j) * cell).clamp(Vector2.ONE * .05, Vector2.ONE * (side - .05)))
    if is_nan(r):continue
    var k := j * (n + 1) + i
-   if float(h[k]) > r - UNDER_M:h[k] = r - UNDER_M;moved[k] = true
+   if h[k] > r - UNDER_M:h[k] = r - UNDER_M;moved[k] = true
  # Long edges (where the ground beside a road in a cut rises) every ~1 m,
  # station edges once per grid cell: the samples a ground triangle can peak at.
- var along := clampf(cell * .3, EDGE_SAMPLE_M, 1.25)
- for q in quads:
-  # Each quad's station edge (a-b) and both long edges (b-c, d-a); together
-  # the quads cover every edge of the surface.
-  for e in [[q[0], q[1], cell], [q[1], q[2], along], [q[3], q[0], along]]:
-   var a: Vector3 = e[0];var b: Vector3 = e[1]
-   var steps := maxi(1, ceili(Vector2(b.x - a.x, b.z - a.z).length() / e[2]))
-   for s in steps + 1:
-    var p := a.lerp(b, float(s) / steps)
-    _lower_cell(h, n, cell, p.x, p.z, p.y - UNDER_M, bilinear, moved)
+ # The quad's mask says which of its edges to sample (add_quad): never the
+ # open end of a ribbon or a deck, where the road carries on over the ground
+ # and a ground lowered there is a step down off the end.
+ var spacing := [0., clampf(cell * .3, EDGE_SAMPLE_M, 1.25), cell]
+ if not quads.is_empty():
+  for idx in quads.size():
+   var q: Array = quads[idx];var mask := masks[idx]
+   for e in 4:
+    var kind := (mask >> (2 * e)) & 3
+    if kind == 0:continue
+    var a: Vector3 = q[e];var b: Vector3 = q[(e + 1) % 4]
+    # Most edges lie wholly above the ground: skip them unless a grid node in
+    # the cells under the edge stands above its lower end.
+    var i0 := clampi(floori(minf(a.x, b.x) / cell), 0, n - 1);var i1 := clampi(floori(maxf(a.x, b.x) / cell), 0, n - 1)
+    var j0 := clampi(floori(minf(a.z, b.z) / cell), 0, n - 1);var j1 := clampi(floori(maxf(a.z, b.z) / cell), 0, n - 1)
+    var low := minf(a.y, b.y) - UNDER_M;var above := false
+    for j in range(j0, j1 + 2):
+     for i in range(i0, i1 + 2):
+      if h[j * (n + 1) + i] > low:above = true;break
+     if above:break
+    if not above:continue
+    var steps := maxi(1, ceili(Vector2(b.x - a.x, b.z - a.z).length() / spacing[kind]))
+    for s in steps + 1:
+     var p := a.lerp(b, float(s) / steps)
+     _lower_cell(h, n, cell, p.x, p.z, p.y - UNDER_M, bilinear, moved, keep)
+ for k in moved:h_in[k] = h[k]
  return moved.size()
 
-func _lower_cell(h: Array, n: int, cell: float, x: float, z: float, limit: float, bilinear: bool, moved: Dictionary) -> void:
+func _lower_cell(h: PackedFloat64Array, n: int, cell: float, x: float, z: float, limit: float, bilinear: bool, moved: Dictionary, keep: Dictionary) -> void:
  var gx := x / cell;var gz := z / cell
  if gx < 0. or gz < 0. or gx > n or gz > n:return
  var i := mini(int(gx), n - 1);var j := mini(int(gz), n - 1)
  var u := gx - i;var v := gz - j
  var k := j * (n + 1) + i
  # Fast reject: the highest corner of the cell is already below the limit.
- if maxf(maxf(float(h[k]), float(h[k + 1])), maxf(float(h[k + n + 1]), float(h[k + n + 2]))) <= limit:return
+ if maxf(maxf(h[k], h[k + 1]), maxf(h[k + n + 1], h[k + n + 2])) <= limit:return
  # The grid's triangles split each cell on its NE/SW diagonal (u + v = 1);
  # corners and their interpolation weights at the sample.
  var corners: Array;var weights: Array
@@ -224,6 +349,7 @@ func _lower_cell(h: Array, n: int, cell: float, x: float, z: float, limit: float
  for c in corners.size():g += float(h[corners[c]]) * weights[c]
  var excess := g - limit
  if excess <= 1e-4:return
+ if not keep.is_empty() and _kept(keep, Vector2(x, z)):return
  # Tile-edge nodes are shared with the neighbour, which cannot see this tile's
  # samples: only the node pass above moves them, as both tiles do. The others
  # take the least-squares correction that brings g to the limit.
@@ -233,9 +359,13 @@ func _lower_cell(h: Array, n: int, cell: float, x: float, z: float, limit: float
   if ci == 0 or cj == 0 or ci == n or cj == n:weights[c] = 0.
   norm += weights[c] * weights[c]
  if norm < .05:return   # the sample is at a tile-edge node
+ # No node drops by more than the triangle stands above the limit: beside a
+ # tile edge, where the edge node cannot move, the least-squares answer took
+ # the interior nodes down by up to three times that and dug a hole beside the
+ # road (a 0.35 m step where a service road meets VT-108, Stowe VT).
  for c in corners.size():
   if weights[c] <= 0.:continue
-  h[corners[c]] = float(h[corners[c]]) - excess * weights[c] / norm;moved[corners[c]] = true
+  h[corners[c]] = float(h[corners[c]]) - minf(excess * weights[c] / norm, excess);moved[corners[c]] = true
 
 func mesh(mat: Material, side: float) -> ArrayMesh:
  var st := SurfaceTool.new()

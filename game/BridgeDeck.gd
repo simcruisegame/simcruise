@@ -86,15 +86,19 @@ static func prepare(tile)->void:
  var owner=PackedInt32Array()
  for i in decks.size():
   var d=decks[i]
+  d["drive"]=with_apron(tile,d)
   d["quads"]=deck_quads(d)
-  for q in d.quads:index.add_quad(q[0],q[1],q[2],q[3]);owner.append(i)
+  var masks=edge_masks(tile,d)
+  for k in d.quads.size():
+   var q=d.quads[k]
+   index.add_quad(q[0],q[1],q[2],q[3],masks[k]);owner.append(i)
  if index.quads.is_empty():return
  index.active=true
  # Which deck each quad belongs to (drivable_at skips the deck asking).
  index.set_meta("owner",owner)
  tile.deck_surface=index
  tile.bridge_decks=decks
- tile.info["deck_lowered"]=index.lower_grid(tile.info.h,tile.grid_steps,tile.side,tile.grid_bilinear())
+ tile.info["deck_lowered"]=index.lower_grid(tile.info.h,tile.grid_steps,tile.side,tile.grid_bilinear(),tile.unribboned)
 
 # After the ground mesh: draw the prepared decks and build their collider from
 # the same quads deck_at() and height_at() read.
@@ -117,7 +121,7 @@ static func build(tile)->int:
 # The driving surface: one quad per path segment, the deck width plus shoulders,
 # tilted by the cross slope. Corners: a left, b left, b right, a right.
 static func deck_quads(d:Dictionary)->Array:
- var path:PackedVector3Array=d.path;var crossfall:PackedFloat64Array=d.crossfall
+ var path:PackedVector3Array=d.drive[0];var crossfall:PackedFloat64Array=d.drive[1]
  var n=normals(path);var half=d.width*.5+SHOULDER_M
  var out=[]
  for k in range(1,path.size()):
@@ -125,6 +129,57 @@ static func deck_quads(d:Dictionary)->Array:
   if Vector2(b.x-a.x,b.z-a.z).length()<.01:continue
   out.append([at(a,n[k-1],half,0,crossfall[k-1]),at(b,n[k],half,0,crossfall[k]),at(b,n[k],-half,0,crossfall[k]),at(a,n[k-1],-half,0,crossfall[k-1])])
  return out
+
+# The edges of each deck quad (left a-b, station b-c, right c-d, station d-a)
+# the ground is pushed below (RoadSurface.lower_grid): both sides along the
+# deck, and every station across it except a real deck end and the last 4 m
+# before it, where the deck meets its approach and a ground pushed down there
+# would be a step off the end. A cut at the tile edge is not an end.
+static func edge_masks(tile,d:Dictionary)->PackedInt32Array:
+ const RS=preload("res://RoadSurface.gd")
+ var path:PackedVector3Array=d.drive[0]
+ var s=stations(path);var L=s[-1]
+ var open_a=not on_tile_edge(tile,path[0]);var open_b=not on_tile_edge(tile,path[-1])
+ var out=PackedInt32Array()
+ for k in range(1,path.size()):
+  if Vector2(path[k].x-path[k-1].x,path[k].z-path[k-1].z).length()<.01:continue
+  var near_end=(open_a and s[k]<RS.END_CLEAR_M) or (open_b and L-s[k-1]<RS.END_CLEAR_M)
+  var mask=0
+  if not near_end:mask|=RS.EDGE_LONG|RS.EDGE_LONG<<4
+  if not (near_end or (open_b and k==path.size()-1)):mask|=RS.EDGE_STATION<<2
+  if k==1 and not open_a:mask|=RS.EDGE_STATION<<6
+  out.append(mask)
+ return out
+
+# The driving path and cross slopes: the drawn path, carried on past a cut at
+# the tile edge far enough to cover the edge. A deck row ends square to its
+# own direction, so where it crosses the edge at an angle a wedge of this tile
+# was covered only by the neighbour's deck: the ground there was neither under
+# a deck nor pushed down, and stood up to 1.5 m above it (Cambridge St, Allston
+# MA), and the two tiles lowered their shared edge nodes differently. The
+# apron continues the last segment's line and grade, as the neighbour's part
+# of the same deck does, and is only a driving surface (nothing is drawn on it).
+const APRON_MAX_M=4.
+static func with_apron(tile,d:Dictionary)->Array:
+ var path:PackedVector3Array=d.path.duplicate();var crossfall:PackedFloat64Array=d.crossfall.duplicate()
+ var half=d.width*.5+SHOULDER_M+PARAPET_W
+ for e in [0,1]:
+  var at_end=path[-1] if e==1 else path[0]
+  if not on_tile_edge(tile,at_end):continue
+  var inner=path[-2] if e==1 else path[1]
+  var dir=Vector2(at_end.x-inner.x,at_end.z-inner.z)
+  var run=dir.length()
+  if run<.01:continue
+  dir/=run
+  # How far the square end leaves the tile edge uncovered: half the width
+  # times the tangent of the angle between the deck and the edge's normal.
+  var across=absf(dir.x) if (at_end.x<=EDGE_EPS_M or at_end.x>=tile.side-EDGE_EPS_M) else absf(dir.y)
+  var apron=minf(APRON_MAX_M,half*sqrt(maxf(0.,1.-across*across))/maxf(across,.2)+.5)
+  var grade=(at_end.y-inner.y)/run
+  var p=Vector3(at_end.x+dir.x*apron,at_end.y+grade*apron,at_end.z+dir.y*apron)
+  if e==1:path.append(p);crossfall.append(crossfall[-1])
+  else:path.insert(0,p);crossfall.insert(0,crossfall[0])
+ return [path,crossfall]
 
 # Points no more than RESAMPLE_M apart, so a height correction has vertices to act on.
 static func resample(path:PackedVector3Array)->PackedVector3Array:

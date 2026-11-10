@@ -38,6 +38,7 @@ var crossfall_surface
 var road_surface   # RoadSurface.gd ribbons, or null
 var deck_surface   # bridge deck driving surfaces (BridgeDeck.gd), a RoadSurface.gd quad index, or null
 var bridge_decks=[]   # decks BridgeDeck.prepare() fitted, drawn by BridgeDeck.build()
+var unribboned={}   # roads without a ribbon, binned (RoadSurface.keep_segments)
 # Triangles emitted by tri(), and the share spent on surveyed houses (survey_building).
 var drawn_triangles:=0
 var house_stats:=Vector2i.ZERO   # x houses, y triangles
@@ -875,7 +876,9 @@ func build(data:Dictionary,size_m:float,mats:Dictionary):
  smooth_road_corridors()
  # Engineered road ribbons (RoadSurface.gd): the grid is pushed below them first.
  road_surface=preload("res://RoadSurface.gd").for_tile(self)
- if road_surface:info["road_surface_lowered"]=road_surface.lower_grid(info.h,grid_steps,side,grid_bilinear())
+ # Roads without a ribbon keep their ground where they meet one (RoadSurface.keep_segments).
+ unribboned=preload("res://RoadSurface.gd").keep_segments(info.get("roads",[]),side)
+ if road_surface:info["road_surface_lowered"]=road_surface.lower_grid(info.h,grid_steps,side,grid_bilinear(),unribboned)
  # Bridge decks fitted to those ribbons; the grid under their driving surface
  # is pushed below it too (BridgeDeck.gd).
  preload("res://BridgeDeck.gd").prepare(self)

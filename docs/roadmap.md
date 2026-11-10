@@ -17,7 +17,8 @@ What landed in 1.1 is in the [changelog](../CHANGELOG.md): road benches and brid
 2. **Volumetric tyres**: replace the single ray per wheel with a shape cast so kerbs, potholes and bridge joints are felt over the contact patch. Gate: `RoadDrive` jolt counts on the Dragon and I-180 do not rise.
 3. **Engine voices per car**: a V6, a V8 and an electric motor whine next to the four-cylinder; the electric car is silent today.
 4. **Tunnels**: carve the terrain along mapped tunnels instead of dropping them; roads currently end at portals.
-5. **Floating origin check**: confirm long drives do not jitter far from the session origin, and rebase the world if they do.
+5. **Long bridges and stacked interchanges**: the middle tiles of a bridge longer than the helper can follow (the Mackinac Bridge) have no deck, and where one end of an elevated viaduct is unknown the deck is flat, so its tiles can disagree at a seam (`RoadProfile` `DECK SEAMS`: 0.42 m on the Mass Pike viaduct in Allston MA). Where ramps and twin carriageways are drawn too wide they overlap decks and each other at different heights (Allston's Cambridge St: impacts and up to 19 g after the bridge fixes). Gate: `RoadProfile` passes on the Allston and Mackinac tiles and `RoadDrive` drives Cambridge St clean both ways.
+6. **Floating origin check**: confirm long drives do not jitter far from the session origin, and rebase the world if they do.
 
 **Places that look like the real place**
 1. **Forest floor under canopy**: aerial photographs show treetops, often leaf-off, so forest floors render pale blue-grey (seen at Deals Gap). Use the WRI/Meta canopy height already downloaded: where canopy stands over 3 m, draw litter and shade instead of the photograph. Gate: before/after captures at the same place and pinned sun.

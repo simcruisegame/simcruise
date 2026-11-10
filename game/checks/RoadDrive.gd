@@ -21,7 +21,8 @@ extends SceneTree
 ## ROADDRIVE_TRACE=FROM-TO prints driver state between those stations every 0.1 s;
 ## ROADDRIVE_PLAN=1 prints the speed plan; ROADDRIVE_DEBUG=1 prints the first 10 s.
 ## Each event (airtime, jolt above 1 g, leaving the road, roof down) prints once
-## with its tile and position, at most 40 lines.
+## with its tile and position, at most 40 lines (impacts, launches, departures,
+## rollovers and jolts of 3 g or more have 40 lines of their own).
 const TILE=preload("res://WorldTile.gd")
 const EARTH=40075016.68557849
 var car
@@ -239,9 +240,17 @@ func wheel_trace(speed:float)->String:
 
 # One line per event (not per frame), capped, with where it happened.
 var events_printed=0
+var serious_printed=0
 func event(what:String):
- if events_printed>=40:return
- events_printed+=1
+ # Impacts, launches, departures, rollovers and jolts of 3 g or more have a
+ # cap of their own, so a rough start cannot hide the crash at the end.
+ var serious=what.begins_with("impact") or what.begins_with("roof") or what.begins_with("off road") or what.begins_with("air (0") or (what.begins_with("jolt") and float(what.split(" ")[1])>=3.)
+ if serious:
+  if serious_printed>=40:return
+  serious_printed+=1
+ else:
+  if events_printed>=40:return
+  events_printed+=1
  var p=Vector2(car.global_position.x,car.global_position.z)
  var id=origin+Vector2i(floori(p.x/side),floori(p.y/side))
  var local=p-Vector2(id-origin)*side
@@ -252,7 +261,7 @@ func event(what:String):
   for h in root.get_world_3d().direct_space_state.intersect_shape(q,8):
    var owner=h.collider.get_parent();var tid="?"
    for k in tiles:if tiles[k]==owner or tiles[k]==owner.get_parent():tid=str(k)
-   print("  touching ",tid," ",h.collider.name," ",h.collider.get_child(0).shape.get_class()," car y %.2f"%car.global_position.y)
+   print("  touching ",tid," ",h.collider.name," ",h.collider.get_child(0).shape.get_class()," ",h.collider.get_child(0).get_meta("surface","")," car y %.2f"%car.global_position.y)
 
 func finish(reason:String):
  done=true

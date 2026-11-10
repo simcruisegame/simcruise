@@ -16,8 +16,9 @@ extends SceneTree
 ## under it and a bridge road stays on its deck. height_at(p, near_y) must give the same
 ## height within 0.1 m at every step of every road, and every metre of a road the map flags
 ## as a bridge must be on a deck. Every real deck end is also driven from 6 m out to 6 m on
-## (largest step per 0.5 m and grade change per metre are reported). Exit 3 when the gate
-## fails (SURFACE FAIL), after the seam check's exit 2.
+## (largest step per 0.5 m and grade change per metre are reported), and every deck cut at a
+## tile edge must meet the neighbour's part of the deck within 0.1 m (DECK SEAMS). Exit 3
+## when the gate fails (SURFACE FAIL), after the seam check's exit 2.
 const TILE=preload("res://WorldTile.gd")
 const EARTH=40075016.68557849
 # The bundled Miami Beach block (4 x 6 zoom-16 tiles), the offline start; --all gives the same set.
@@ -100,6 +101,11 @@ func _initialize():
   tile_lines.append("%s build %.0f ms · smoothing %s · %.2f km, max %.2f°/m, %d creases >%.1f°, height_at vs collider %.3f m%s"%[id,build_ms,JSON.stringify(smoothing) if not smoothing.is_empty() else "off",tile_km,tile_max,tile_creases,CREASE_DEG,gap," (%s)"%gap_where if gap>GAP_LIMIT_M else ""])
   worst_gap=maxf(worst_gap,gap)
   bridge_ends(tile,data,faces,index,bin,id)
+  # Deck ends cut at the tile edge, as built, for the deck seam check.
+  for d in tile.bridge_decks:
+   for e in [0,d.path.size()-1]:
+    var p:Vector3=d.path[e]
+    if preload("res://BridgeDeck.gd").on_tile_edge(tile,p):deck_cuts.append([Vector2(float(data.id[0]),float(data.id[1]))*side+Vector2(p.x,p.z),p.y,id])
   edges[Vector2i(int(data.id[0]),int(data.id[1]))]=tile_edges(tile.info.h,int(data.get("grid",32)))
   raw_edges[Vector2i(int(data.id[0]),int(data.id[1]))]=tile_edges(raw_heights(data),int(data.get("grid",32)))
   tile.free()
@@ -115,12 +121,37 @@ func _initialize():
  for line in off_deck:print("  off deck "+line)
  print("BRIDGE ENDS %d ends driven 6 m either side · largest step %.3f m per 0.5 m · largest grade change %.2f°/m · %d ends where the deck is not reached%s"%[ends.count,ends.step,ends.kink,ends.missed,(" (worst %s)"%ends.where) if ends.where!="" else ""])
  for line in ends.missed_at.slice(0,12):print("  deck not reached "+line)
- var surface_failed=worst_gap>GAP_LIMIT_M or off_deck_m>0. or ends.missed>0
+ # A deck cut at a tile edge must meet the neighbour's part of it at the same
+ # height. The seam check above reads only the ground grid, so a step between
+ # two tiles' decks (2.4-5 m on the Mackinac Bridge when mid-span decks took
+ # the elevation model's lake level) passed unseen.
+ var cut=deck_seams()
+ print("DECK SEAMS %d deck cuts matched across tile edges · largest step %.3f m%s · %d with no deck on the other side"%[cut.matched,cut.step,(" (%s)"%cut.where) if cut.where!="" else "",cut.lone])
+ var surface_failed=worst_gap>GAP_LIMIT_M or off_deck_m>0. or ends.missed>0 or cut.step>GAP_LIMIT_M
  if surface_failed:print("SURFACE FAIL")
  quit(2 if seam.introduced>1e-3 else (3 if surface_failed else (1 if failed>0 else 0)))
 
 const GAP_LIMIT_M=.1
 var worst_gap=0.
+var deck_cuts=[]   # [world xz, height, tile id] of every deck end on a tile edge
+
+# Match every deck cut with the other tiles' cuts within 0.5 m (the same point
+# of the same deck seen from both sides of the edge). A cut with no partner on
+# a loaded neighbour is counted: the deck ends in mid-air there.
+func deck_seams()->Dictionary:
+ var out={"matched":0,"step":0.,"where":"","lone":0}
+ for a in deck_cuts:
+  var best=-1;var best_d=.5
+  for b in range(deck_cuts.size()):
+   if deck_cuts[b][2]==a[2]:continue
+   var d=a[0].distance_to(deck_cuts[b][0])
+   if d<best_d:best_d=d;best=b
+  if best<0:
+   out.lone+=1;continue
+  out.matched+=1
+  var step=absf(a[1]-deck_cuts[best][1])
+  if step>out.step:out.step=step;out.where="%s / %s: %.2f vs %.2f m"%[a[2],deck_cuts[best][2],a[1],deck_cuts[best][1]]
+ return out
 var gap_tiles=[]
 var bridge_m=0.
 var off_deck_m=0.
