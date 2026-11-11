@@ -11,4 +11,3 @@ tahoe-39b86984: "Chevrolet Tahoe Suv" by maznalamri80 (https://sketchfab.com/maz
 odyssey-175ce6fb: "Honda Odessey" by MattDoesBlender (https://sketchfab.com/MattDoesBlender), CC BY 4.0, https://sketchfab.com/3d-models/honda-odessey-175ce6fbbb11469ab068965ce4854554
 model3-3a602469: "Tesla M3 model" by wintrez (https://sketchfab.com/wintrez), CC BY 4.0, https://sketchfab.com/3d-models/tesla-m3-model-3a602469d7874d1397efa67182198705
 miata_nb-5d103c56: "Mazda MX-5 (NB) convertible HQ interior" by Nieve5677 (https://sketchfab.com/niev), CC BY 4.0, https://sketchfab.com/3d-models/mazda-mx-5-nb-convertible-hq-interior-5d103c567bee4c61ad66f04562049933
-miata_nb-07fa2ea0: "Mazda MX-5 (NB)" by Nieve5677 (https://sketchfab.com/niev), CC BY 4.0, https://sketchfab.com/3d-models/mazda-mx-5-nb-07fa2ea039894c929805353ee03ec188

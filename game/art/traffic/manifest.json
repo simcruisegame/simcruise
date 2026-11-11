@@ -161,42 +161,6 @@
       "branded": [
         "tesla"
       ]
-    },
-    {
-      "id": "miata_nb-5d103c56",
-      "uid": "5d103c567bee4c61ad66f04562049933",
-      "kind": "miata_nb",
-      "length_m": 3.945,
-      "flip": false,
-      "scene": "res://art/traffic/miata_nb-5d103c56/scene.gltf",
-      "title": "Mazda MX-5 (NB) convertible HQ interior",
-      "author": "Nieve5677",
-      "author_url": "https://sketchfab.com/niev",
-      "licence": "CC BY 4.0",
-      "source_url": "https://sketchfab.com/3d-models/mazda-mx-5-nb-convertible-hq-interior-5d103c567bee4c61ad66f04562049933",
-      "faces": 1245134,
-      "fetched": "2026-11-11",
-      "branded": [
-        "mazda"
-      ]
-    },
-    {
-      "id": "miata_nb-07fa2ea0",
-      "uid": "07fa2ea039894c929805353ee03ec188",
-      "kind": "miata_nb",
-      "length_m": 3.945,
-      "flip": false,
-      "scene": "res://art/traffic/miata_nb-07fa2ea0/scene.gltf",
-      "title": "Mazda MX-5 (NB)",
-      "author": "Nieve5677",
-      "author_url": "https://sketchfab.com/niev",
-      "licence": "CC BY 4.0",
-      "source_url": "https://sketchfab.com/3d-models/mazda-mx-5-nb-07fa2ea039894c929805353ee03ec188",
-      "faces": 764947,
-      "fetched": "2026-11-11",
-      "branded": [
-        "mazda"
-      ]
     }
   ]
 }
