@@ -9,6 +9,7 @@ uniform bool imagery = false;
 uniform float meters = 480.0;
 uniform sampler2D road_edges : filter_linear, repeat_disable;
 uniform bool has_edges = false;
+uniform bool edge_capture = false;
 uniform bool has_section=false;
 uniform sampler2D section_map : filter_linear,repeat_disable;
 uniform vec4 section_box;
@@ -134,6 +135,8 @@ void fragment() {
  float mask_texels = float(textureSize(surface_map, 0).x);
  float lane_edge = edge_metres(mapped_asphalt(textureLod(surface_map, UV, coverage_lod(mask_texels, meters, 3.0)).rgb), 3.0);
  float verge_edge = edge_metres(mapped_asphalt(textureLod(surface_map, UV, coverage_lod(mask_texels, meters, 8.0)).rgb), 8.0);
+ // On the road ribbon the lateral position is exact (UV2, below).
+ if (UV2.y > 0.05) { lane_edge = clamp(UV2.y - abs(UV2.x), -3.0, 3.0); }
  float paths = wheel_paths(lane_edge);
  float age = aerial_asphalt_age(wear.b, aerial, UV);
  paved = worn_asphalt(paved, paths, age);
@@ -159,16 +162,61 @@ void fragment() {
  float road = (1.0 - smoothstep(0.012, 0.033, spread)) * (1.0 - smoothstep(0.10, 0.175, paint.g));
  vec3 other = paint * clamp(1.0 + (fine - 0.224) * 1.3, 0.84, 1.24);
  vec3 color = land ? ground : mix(other, paved, road);
- if (has_edges && imagery) {
-  vec2 edges = texture(road_edges, UV).rg;
-  if (edges.g > 0.03 && max(paint.r, paint.b) < 0.58) {
-   road = smoothstep(0.33, 0.67, edges.r);
-   color = mix(ground, paved, road);
-  }
+ // The road ribbon (RoadSurface.gd) owns the carriageway. Its UV2 is the
+ // signed lateral position in metres and the paved half width there (0 off
+ // the ribbon); COLOR.r is a mapped kerb on that side, COLOR.g a built-up
+ // street. Inside the paved half it is asphalt whatever the aerial photo or
+ // the semantic map say, with an edge as straight as the ribbon itself;
+ // painted markings in the semantic map stay. The photograph only tints the
+ // asphalt (aerial_pavement) and never moves the edge. Beyond it: a gravel
+ // shoulder on rural roads, a concrete gutter pan in front of a mapped kerb,
+ // the verge in town. The learned edge mask decides nothing here any more:
+ // on 1.9 m aerial pixels it turned shaded asphalt into dirt and wobbled the
+ // edge by a metre or two (docs/technical-overview.md, road edges).
+ float ribbon_half = UV2.y;
+ float carriage = 0.0;
+ float shoulder_road = 0.0;
+ float capture_gravel = 0.0;
+ if (ribbon_half > 0.05) {
+  float lat = abs(UV2.x);
+  float kerb = clamp(COLOR.r, 0.0, 1.0);
+  float town = clamp(COLOR.g, 0.0, 1.0);
+  float aa = max(fwidth(lat) * 0.75, 0.006);
+  // Unkerbed asphalt edges ravel by a few centimetres; a kerb's line is clean.
+  float ragged = (fine - 0.224) * 0.30 * (1.0 - kerb);
+  carriage = 1.0 - smoothstep(ribbon_half + ragged - aa, ribbon_half + ragged + aa, lat);
+  float marking = (1.0 - road) * step(0.58, max(paint.r, paint.b));
+  float beyond = lat - ribbon_half;
+  // Rural: compacted aggregate shoulder, 0.5-1.1 m, its outer edge broken up
+  // by the verge (grit noise), then the ground. In town without a mapped
+  // kerb the verge meets the asphalt.
+  float gravel_reach = 0.75 + (broad - 0.224) * 1.4 + (fine - 0.224) * 0.9;
+  float gravel = (1.0 - kerb) * (1.0 - town) * (1.0 - smoothstep(gravel_reach - 0.18, gravel_reach + 0.18, beyond));
+  // Soil and stray grass work into it, more toward the verge.
+  gravel *= mix(0.55, 1.0, smoothstep(0.16, 0.28, fine)) * (1.0 - 0.35 * smoothstep(0.15, gravel_reach, beyond));
+  vec3 chip = vec3(0.117, 0.108, 0.090) * clamp(0.47 + fine * 2.6 + broad * 0.53, 0.62, 1.54);
+  chip *= clamp(0.79 + value * 1.1, 0.76, 1.29);
+  // US curb and gutter: an 18 in concrete pan in front of the 6 in face
+  // (the face itself is Kerbs.gd geometry).
+  vec3 concrete = vec3(0.400, 0.392, 0.372) * clamp(0.80 + (fine - 0.224) * 1.6 + (broad - 0.224) * 0.9, 0.70, 1.22) * (0.86 + 0.14 * (1.0 - wear.b));
+  vec3 band = mix(ground, chip, gravel * (1.0 - steep));
+  band = mix(band, concrete, kerb);
+  shoulder_road = kerb * 0.6;
+  vec3 asphalt = mix(paved, other, marking);
+  // COLOR.b: this part of the shoulder lies on another road's carriageway (a junction).
+  carriage = max(carriage, smoothstep(0.25, 0.75, COLOR.b));
+  color = mix(band, asphalt, carriage);
+  capture_gravel = gravel * (1.0 - steep) * (1.0 - carriage);
+  road = mix(shoulder_road, 1.0 - marking, carriage);
  }
+ // What is drawn as pavement (edge_capture): the carriageway on the ribbon,
+ // painted markings included; the semantic map elsewhere.
+ float drawn = ribbon_half > 0.05 ? carriage : road;
  // Preserve mapped paving at the edge of the learned motor-road shoulder.
  float path_light = imagery ? clamp(0.19 + value * 0.37, 0.19, 0.43) : 0.27;
  vec3 path_paving = vec3(1.02, 1.00, 0.95) * path_light * clamp(1.0 + (fine - 0.224)*0.8, 0.83, 1.20);
+ path_cover *= 1.0 - carriage;
+ loose_cover *= 1.0 - carriage;
  color = mix(color, path_paving, path_cover);
  // Preserve local colour and broad variation in the overhead observation.
  // A diffuse fallback is needed while imagery is missing or covers vegetation.
@@ -178,12 +226,14 @@ void fragment() {
  vec3 loose_color=mix(dry_track,clamp(aerial*0.72,vec3(0.035),vec3(0.50)),visible_surface);
  color=mix(color,loose_color*clamp(1.0+(fine-0.224)*0.75+(broad-0.224)*0.25,0.86,1.18),loose_cover);
  road *= (1.0 - path_cover) * (1.0 - loose_cover);
+ drawn *= (1.0 - path_cover) * (1.0 - loose_cover);
  if (has_section) {
   vec2 position_in_section=(UV-section_box.xy)/section_box.zw;
   if (all(greaterThanEqual(position_in_section,vec2(0.))) && all(lessThan(position_in_section,vec2(1.)))) {
    vec2 survey=texture(section_map,position_in_section).rg;
    if(survey.g>.01){
     road=mix(road,survey.r/max(survey.g,.001),survey.g);
+    drawn=mix(drawn,clamp(survey.r/max(survey.g,.001),0.,1.),survey.g);
     color=mix(color,mix(ground,paved,clamp(survey.r/max(survey.g,.001),0.,1.)),survey.g);
    }
   }
@@ -201,4 +251,12 @@ void fragment() {
  float land_relief = fine * mix(0.009, 0.006, mown) + green * dot(grass, LUMA) * 0.016 + trees * dot(leaves, LUMA) * 0.024;
  land_relief=mix(land_relief,(mineral.g-.5)*.018,mineral_weight);
  NORMAL = relief_normal(VERTEX, shading_normal, mix(land_relief, fine * 0.004 - wear.g * 0.0015, road) * near_view);
+ if (edge_capture) {
+  // checks/RoadEdgeCheck.gd --capture: what this shader decided, unlit. Red
+  // is the pavement weight, green the road ribbon, blue the gravel shoulder.
+  ALBEDO = vec3(0.0);
+  SPECULAR = 0.0;
+  ROUGHNESS = 1.0;
+  EMISSION = vec3(drawn, ribbon_half > 0.05 ? 1.0 : 0.0, capture_gravel);
+ }
 }

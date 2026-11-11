@@ -2,6 +2,7 @@ extends Node3D
 const LIDAR_ROOF=preload("res://LidarRoof.gd")
 const JUNCTION=preload("res://Junction.gd")
 const HOUSE=preload("res://HouseRecipe.gd")
+const ROAD_SURFACE=preload("res://RoadSurface.gd")
 var info:Dictionary
 var side:float
 var batches={}
@@ -613,7 +614,16 @@ func wheel_grip(p:Vector2):
  if measured_section:
   var measured:float=measured_section.surface(p,side)
   if measured>=0.:return measured
- var base=surface_grip(p)
+ # The road ribbon owns the carriageway: RoadSurface.lateral() is the same
+ # position and edge treatment terrain.gdshader shades, so the tyres feel the
+ # asphalt they see. Its rural gravel shoulder is loose; a gutter pan is concrete.
+ if road_surface:
+  var across:Vector3=road_surface.lateral(p)
+  if not is_nan(across.x):
+   if absf(across.x)<=across.y or road_surface.shared(p) or capture.road_confidence(p/side)>.52:return 1.
+   if int(across.z)==ROAD_SURFACE.EDGE_RURAL:return .76
+   if int(across.z)==ROAD_SURFACE.EDGE_KERB:return 1.
+ var base=surface_grip(p,true)
  if not has_mapped_unpaved:return base
  var closest=INF
  var loose=false
@@ -630,11 +640,14 @@ func wheel_grip(p:Vector2):
  if not loose:return base
  return .76 if core else minf(base,.76)
 
-func surface_grip(p:Vector2):
+# Land-cover class at p: placement (Rangeland, Grove, Roadside, crowns) reads
+# it from the nearest texel; the wheels (wheel_grip, off the road ribbon) read
+# the learned mask bilinearly so grip does not step at 1.9 m texel edges.
+func surface_grip(p:Vector2,smooth:=false):
  if capture.road_confidence(p/side)>.52:return 1.
  if learned_edges:
-  var c=sample_surface(learned_edges,p)
-  if c.g>.03:return 1. if c.r>.5 else .65
+  var c=sample_bilinear(learned_edges,p) if smooth else sample_surface(learned_edges,p)
+  if c.g>.03:return lerpf(.65,1.,smoothstep(.4,.6,c.r)) if smooth else (1. if c.r>.5 else .65)
  if surface_mask:
   var c=sample_surface(surface_mask,p)
   if c.r>.55 or c.a>.86:return 1.
@@ -772,6 +785,12 @@ var unsurveyed_canopy := PackedInt32Array()
 var crowns_waiting_for_edges: Array = []
 func sample_surface(image:Image,p:Vector2)->Color:
  return image.get_pixel(clampi(floori(p.x/side*image.get_width()),0,image.get_width()-1),clampi(floori(p.y/side*image.get_height()),0,image.get_height()-1))
+func sample_bilinear(image:Image,p:Vector2)->Color:
+ var w=image.get_width();var h=image.get_height()
+ var x=clampf(p.x/side*w-.5,0.,w-1.);var y=clampf(p.y/side*h-.5,0.,h-1.)
+ var x0=floori(x);var y0=floori(y);var x1=mini(x0+1,w-1);var y1=mini(y0+1,h-1)
+ var fx=x-x0;var fy=y-y0
+ return image.get_pixel(x0,y0).lerp(image.get_pixel(x1,y0),fx).lerp(image.get_pixel(x0,y1).lerp(image.get_pixel(x1,y1),fx),fy)
 func foliage(p:Vector2,h:float,idx,dbh=0.0,species="",crown_width=0.0):
  var seed_id=absi(hash(Vector3i(roundi(p.x*8),roundi(p.y*8),idx)))
  var width=h*lerpf(.70,1.11,(seed_id%100)/100.)
@@ -869,6 +888,8 @@ func build(data:Dictionary,size_m:float,mats:Dictionary):
  preload("res://BridgeDeck.gd").build(self)
  # Guard rails where the ground drops away beside a road ribbon (GuardRails.gd).
  preload("res://GuardRails.gd").build(self)
+ # Curb and gutter where a sidewalk is mapped alongside a ribbon (Kerbs.gd).
+ info["kerbs"]=preload("res://Kerbs.gd").build(self)
  if not info.get("field",false):
   paint_lane_marks()
   if info.get("live_canopy",false):install_lane_meshes(take_lane_meshes())

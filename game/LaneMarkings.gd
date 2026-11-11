@@ -206,8 +206,12 @@ static func cross_section(cls: String, oneway: bool, lanes: Array, width: float,
  var edges: bool = cls in ARTERIAL or not town
  var ew: float = WIDE_M if cls in ARTERIAL else LINE_M
  if edges:
-  lines.append([right - ew * .5, "white", "solid", ew])
-  lines.append([-right + ew * .5, "yellow" if oneway else "white", "solid", ew])
+  # The edge line is on the asphalt: the road ribbon's paved half is the
+  # carriageway terrain.gdshader draws, its shoulder band is gravel, a gutter
+  # or the verge. Lanes that borrow the shoulder only narrow the edge gap.
+  var edge_at := minf(right, width * .5)
+  lines.append([edge_at - ew * .5, "white", "solid", ew])
+  lines.append([-edge_at + ew * .5, "yellow" if oneway else "white", "solid", ew])
  for k in range(1, f):lines.append([right - k * lane, "white", "dash", LINE_M])
  for k in range(1, b):lines.append([-right + k * lane, "white", "dash", LINE_M])
  var kind := ""

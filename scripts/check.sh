@@ -59,7 +59,7 @@ default_suite="Track:60 RideCheck:60 TurningCircle:60 Wall:30 KeyboardTap:60 Ste
 DifferentialCheck:60 RearDamperCheck:60 TireStep:60 SplitGrip:60 LockedBrakeTurn:60
 LightingCheck:0 DaylightWeatherCheck:0 HeadCameraCheck:0 HudLevelCheck:0 RoadNoiseCheck:0
 VegetationCheck:0 RoadProfile:0 RoadBankMeshCheck:0 CrownArrivalOrder:0 SignalControlCheck:0
-StorefrontCheck:0 ObservedPaintCheck:0 LaneMarkingCheck:0 PhotoFacadeCheck:0 LandmarkRoof:0
+StorefrontCheck:0 ObservedPaintCheck:0 LaneMarkingCheck:0 RoadEdgeCheck:0 PhotoFacadeCheck:0 LandmarkRoof:0
 HistoricAnchorageCheck:0 SustainedSurfaceCheck:0 DriftHold:60 BumpDrive:60 CarTrack:60
 AmbientCheck:0 TrafficCheck:0 SBend:60 LiftOff:60 TractionControlCheck:60 CombinedSlip:60 AbsReverse:60"
 

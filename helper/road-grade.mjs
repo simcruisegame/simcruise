@@ -195,13 +195,14 @@ function chainPieces(pieces){
  return chains;
 }
 
-function gaussianLinear(S,Z,W,s){
+function gaussianLinear(S,Z,W,s,sigma=SIGMA){
  let sw=0,swx=0,swy=0,swxx=0,swxy=0;
  let lo=0,hi=S.length;
- while(lo<hi){const m=(lo+hi)>>1;if(S[m]<s-WINDOW)lo=m+1;else hi=m}
- for(let i=lo;i<S.length&&S[i]<=s+WINDOW;i++){
+ const window=3*sigma;
+ while(lo<hi){const m=(lo+hi)>>1;if(S[m]<s-window)lo=m+1;else hi=m}
+ for(let i=lo;i<S.length&&S[i]<=s+window;i++){
   if(!(W[i]>0))continue;
-  const x=S[i]-s,w=W[i]*Math.exp(-.5*x*x/(SIGMA*SIGMA));
+  const x=S[i]-s,w=W[i]*Math.exp(-.5*x*x/(sigma*sigma));
   sw+=w;swx+=w*x;swy+=w*Z[i];swxx+=w*x*x;swxy+=w*x*Z[i];
  }
  if(sw<=1e-9)return NaN;
@@ -210,17 +211,90 @@ function gaussianLinear(S,Z,W,s){
  return (swy-swx*(sw*swxy-swx*swy)/det)/sw;
 }
 
+// ---------------------------------------------------------------------------
+// Plan-view centreline. A mapped road is a polyline whose vertices sit on the
+// centreline; between them the chords cut every curve and at each vertex the
+// direction jumps (a 10 m chord on a 30 m radius bend turns 19 degrees at
+// once). Ribbons, edge lines and guard rails built on the raw chords showed
+// every one of those corners. Here each vertex is rounded by a circular arc
+// tangent to both legs (a fillet: tangents joined by curves, as a highway is
+// laid out). Its tangent length T is at most half of each leg, so neighbouring
+// arcs meet at most at the chord midpoints and a densely mapped curve becomes
+// one smooth curve between its chords and its vertices, and at most
+// FILLET_MAX_M / tan(theta/4), so the road never moves more than FILLET_MAX_M
+// from a mapped vertex (the arc's distance from it is T tan(theta/4)): a
+// junction mapped on a vertex stays on it, and traffic, which follows the
+// chords, stays within that of the ribbon. Chain ends and joints where two
+// pieces do not share their end point keep their corner. The arc is a function
+// of the vertex and its two neighbours only, so two tiles that see the same
+// piece of road build the same curve.
+export const FILLET_MAX_M=1;
+// Vertices of a chain in chain order, each with its station (the same arc
+// length stations as chainProfile's rows) and its fillet.
+export function chainVertices(parts){
+ const V=[];
+ for(const part of parts){
+  const {piece,s,length,reversed,offset}=part,n=piece.pts.length;
+  for(let j=0;j<n;j++){
+   const k=reversed?n-1-j:j,p=piece.pts[k],station=offset+(reversed?length-s[k]:s[k]);
+   const last=V[V.length-1];
+   if(last&&Math.hypot(last.x-p[0],last.y-p[1])<.05){if(j===0)continue;if(station-last.s<.05)continue}
+   if(last&&j===0){last.hard=true;V.push({x:p[0],y:p[1],s:station,hard:true});continue}
+   V.push({x:p[0],y:p[1],s:station,hard:false});
+  }
+ }
+ if(V.length){V[0].hard=true;V[V.length-1].hard=true}
+ for(let i=0;i<V.length;i++){
+  const v=V[i];v.T=0;
+  if(v.hard||i===0||i===V.length-1)continue;
+  const p=V[i-1],q=V[i+1];
+  const ax=v.x-p.x,ay=v.y-p.y,bx=q.x-v.x,by=q.y-v.y,la=Math.hypot(ax,ay),lb=Math.hypot(bx,by);
+  if(la<1e-6||lb<1e-6||v.s-p.s<1e-6||q.s-v.s<1e-6)continue;
+  const cross=(ax*by-ay*bx)/(la*lb),dot=(ax*bx+ay*by)/(la*lb),theta=Math.atan2(Math.abs(cross),dot);
+  if(theta<1e-4||theta>2.6)continue;
+  v.T=Math.min(.5*la,.5*lb,FILLET_MAX_M/Math.tan(theta/4));
+  v.theta=theta;v.turn=Math.sign(cross);v.ax=ax/la;v.ay=ay/la;
+ }
+ return V;
+}
+// Point and unit tangent of a filleted chain at station s.
+export function chainPoint(V,s){
+ let lo=0,hi=V.length-1;
+ if(s<=V[0].s)hi=0;
+ else if(s>=V[hi].s)lo=hi;
+ else while(hi-lo>1){const m=(lo+hi)>>1;if(V[m].s<=s)lo=m;else hi=m}
+ const a=V[lo],b=V[Math.min(lo+1,V.length-1)],L=b.s-a.s;
+ if(a===b||L<1e-9){
+  const c=V[Math.max(lo-1,0)],d=V[Math.min(lo+1,V.length-1)];
+  const dx=(a===c?d.x-a.x:a.x-c.x),dy=(a===c?d.y-a.y:a.y-c.y),l=Math.hypot(dx,dy)||1;
+  return [a.x,a.y,dx/l,dy/l];
+ }
+ const u=Math.min(Math.max(s-a.s,0),L),dx=(b.x-a.x)/L,dy=(b.y-a.y)/L,l=Math.hypot(dx,dy)||1;
+ if(a.T>0&&u<a.T)return arcPoint(a,u);
+ if(b.T>0&&L-u<b.T)return arcPoint(b,u-L);
+ return [a.x+dx*u,a.y+dy*u,dx/l,dy/l];
+}
+// On the fillet of vertex v, w metres along the legs from the vertex
+// (negative before it). The arc runs from the tangent point T before the
+// vertex to the one T after it, turning by theta.
+function arcPoint(v,w){
+ const f=(Math.max(-v.T,Math.min(v.T,w))+v.T)/(2*v.T);
+ const R=v.T/Math.tan(v.theta/2),Ax=v.x-v.ax*v.T,Ay=v.y-v.ay*v.T;
+ const nx=-v.ay*v.turn,ny=v.ax*v.turn,Cx=Ax+nx*R,Cy=Ay+ny*R;
+ const phi=f*v.theta*v.turn,c=Math.cos(phi),sn=Math.sin(phi),rx=Ax-Cx,ry=Ay-Cy;
+ return [Cx+rx*c-ry*sn,Cy+rx*sn+ry*c,v.ax*c-v.ay*sn,v.ax*sn+v.ay*c];
+}
+
 // Samples, robust weights, profile and superelevation for one chain.
 function chainProfile(parts,sample,inside,designSpeed,bridgeAt=[false,false]){
  const rows=[];
+ const V=chainVertices(parts);
  for(const part of parts){
-  const {piece,s,length,reversed,offset}=part;
-  let seg=0;
+  const {length,reversed,offset}=part;
   for(let l=0;l<=length+1e-9;l+=STEP){
-   while(seg<s.length-2&&l>s[seg+1])seg++;
-   const a=piece.pts[seg],b=piece.pts[seg+1],t=(l-s[seg])/Math.max(s[seg+1]-s[seg],1e-9);
-   const x=a[0]+(b[0]-a[0])*t,y=a[1]+(b[1]-a[1])*t;
-   rows.push([offset+(reversed?length-l:l),x,y]);
+   const station=offset+(reversed?length-l:l);
+   const [x,y,tx,ty]=chainPoint(V,station);
+   rows.push([station,x,y,tx,ty]);
   }
  }
  rows.sort((p,q)=>p[0]-q[0]);
@@ -235,12 +309,9 @@ function chainProfile(parts,sample,inside,designSpeed,bridgeAt=[false,false]){
   R[i]=Math.abs(r)<1?(1-r*r)**2:0;
  }
  // Signed curvature from headings 10 m either side; superelevation toward the inside.
+ // The heading is the filleted centreline's own (chainPoint()).
  const E=new Float64Array(rows.length),ONES=new Float64Array(rows.length).fill(1);
- const heading=i=>{
-  const j=Math.min(rows.length-1,i+1),k=Math.max(0,i-1);
-  return Math.atan2(rows[j][2]-rows[k][2],rows[j][1]-rows[k][1]);
- };
- const H=rows.map((r,i)=>heading(i));
+ const H=rows.map(r=>Math.atan2(r[4],r[3]));
  for(let i=0;i<rows.length;i++){
   const j=Math.min(rows.length-1,i+5),k=Math.max(0,i-5),ds=S[j]-S[k];
   if(ds<4){E[i]=0;continue}
@@ -250,8 +321,9 @@ function chainProfile(parts,sample,inside,designSpeed,bridgeAt=[false,false]){
  }
  const smoothE=new Float64Array(rows.length);
  for(let i=0;i<rows.length;i++)smoothE[i]=gaussianLinear(S,E,ONES,S[i]);
- // Unit tangent along increasing station, so the side of the road and the
- // banking stay continuous around the sharp corners of simplified map lines.
+ // Unit tangent along increasing station: the centreline's own direction, so
+ // each cross-section is square to the road it is drawn on (profileAt()
+ // smooths it over TANGENT_SIGMA only, across the corners FILLET_MAX_M keeps).
  const TX=new Float64Array(rows.length),TY=new Float64Array(rows.length);
  for(let i=0;i<rows.length;i++){TX[i]=Math.cos(H[i]);TY[i]=Math.sin(H[i])}
  const profile={S,Z,W:R,E:smoothE,TX,TY,ONES,fix:[],X:rows.map(r=>r[1]),Y:rows.map(r=>r[2])};
@@ -276,7 +348,7 @@ function chainProfile(parts,sample,inside,designSpeed,bridgeAt=[false,false]){
  }
  return profile;
 }
-const FIX_SPAN=30;
+const FIX_SPAN=30,TANGENT_SIGMA=4;
 function fixAt(profile,s){
  let d=0;
  for(const f of profile.fix){const t=1-Math.min(Math.abs(s-f.end)/FIX_SPAN,1);d+=f.delta*t*t*(3-2*t)}
@@ -286,7 +358,7 @@ function fixAt(profile,s){
 // Height, superelevation and unit tangent of a chain's profile at station s.
 function profileAt(profile,s){
  const fix=fixAt(profile,s);
- const tx=gaussianLinear(profile.S,profile.TX,profile.ONES,s),ty=gaussianLinear(profile.S,profile.TY,profile.ONES,s),l=Math.hypot(tx,ty)||1;
+ const tx=gaussianLinear(profile.S,profile.TX,profile.ONES,s,TANGENT_SIGMA),ty=gaussianLinear(profile.S,profile.TY,profile.ONES,s,TANGENT_SIGMA),l=Math.hypot(tx,ty)||1;
  return [gaussianLinear(profile.S,profile.Z,profile.W,s)+fix,gaussianLinear(profile.S,profile.E,profile.ONES,s),tx/l,ty/l];
 }
 
@@ -341,7 +413,7 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
  const mx=Math.floor(X/4),my=Math.floor(Y/4),parent=2**VECTOR_ZOOM;
  const lat=Math.atan(Math.sinh(Math.PI*(1-2*(my+.5)/parent)));
  const scale=EARTH_METRES/65536*Math.cos(lat);
- const summary={version:2,conditioned:0,structureProtected:0,bench:{roads:0,vertices:0,neighbours:0}};
+ const summary={version:3,conditioned:0,structureProtected:0,bench:{roads:0,vertices:0,neighbours:0}};
  const raw=(wx,wy,countVertex=false)=>{
   const base=legacy(wx,wy);
   if(!measured)return base;

@@ -7,7 +7,7 @@ import os from 'node:os';import fs from 'node:fs';import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {roadWidth,roadWidths,referenceWidths,LANE_M} from '../helper/road-widths.mjs';
 import {laneRoadSignature} from '../helper/road-layout.mjs';
-import {crossesBox} from '../helper/road-grade.mjs';
+import {crossesBox,chainVertices,chainPoint,FILLET_MAX_M} from '../helper/road-grade.mjs';
 import {elevationGate,ELEVATION_TRIES,RETRY_WINDOW_MS} from '../helper/usgs-ground.mjs';
 import {trimSourceCache} from '../helper/cache-eviction.mjs';
 
@@ -84,5 +84,36 @@ try{
  assert.equal(fs.existsSync(fresh),true);
  assert.equal(fs.existsSync(other),true);
  assert.equal(fs.existsSync(lanes),false);
+
+ // The filleted centreline (road-grade.mjs chainVertices / chainPoint): no
+ // corner at any mapped vertex, never more than FILLET_MAX_M from one, chain
+ // ends exactly where they are mapped.
+ const part=(pts,offset=0,reversed=false)=>{const s=[0];for(let k=1;k<pts.length;k++)s.push(s[k-1]+Math.hypot(pts[k][0]-pts[k-1][0],pts[k][1]-pts[k-1][1]));return {piece:{pts},s,length:s[s.length-1],reversed,offset}};
+ const walkChain=(parts,step=.25)=>{
+  const V=chainVertices(parts),total=parts.reduce((sum,p)=>sum+p.length,0),out=[];
+  for(let st=0;st<=total+1e-9;st+=step)out.push(chainPoint(V,st));
+  return {V,out};
+ };
+ // Largest heading jump between consecutive samples beyond the steady turn
+ // of its neighbours (a corner), in degrees.
+ const corner=out=>{let worst=0;const h=out.map(p=>Math.atan2(p[3],p[2]));const d=[];for(let k=1;k<h.length;k++)d.push(Math.abs(Math.atan2(Math.sin(h[k]-h[k-1]),Math.cos(h[k]-h[k-1]))));for(let k=1;k+1<d.length;k++)worst=Math.max(worst,d[k]-Math.max(d[k-1],d[k+1]));return worst*180/Math.PI};
+ // A 30 m radius bend mapped every 10 m of arc: one smooth curve between its chords and its vertices.
+ const R=30,arc=[];for(let a=0;a<=Math.PI/2+1e-9;a+=10/R)arc.push([R*Math.cos(a),R*Math.sin(a)]);
+ const bend=walkChain([part(arc)]);
+ assert.ok(corner(bend.out)<.05,'bend corner '+corner(bend.out));
+ const sagitta=R*(1-Math.cos(5/R));
+ for(const p of bend.out){const r=Math.hypot(p[0],p[1]);assert.ok(r<=R+1e-6&&r>=R-sagitta-.05,'bend radius '+r)}
+ assert.deepEqual(bend.out[0].slice(0,2),arc[0]);
+ // A right-angle corner with 50 m legs: rounded, within FILLET_MAX_M of the mapped vertex.
+ const elbow=walkChain([part([[0,0],[50,0],[50,50]])]);
+ assert.ok(corner(elbow.out)<.05,'elbow corner '+corner(elbow.out));
+ const nearest=Math.min(...elbow.out.map(p=>Math.hypot(p[0]-50,p[1])));
+ assert.ok(nearest<=FILLET_MAX_M+1e-6&&nearest>FILLET_MAX_M*.9,'elbow distance '+nearest);
+ // Two pieces sharing an end point (a reversed one among them) are one curve;
+ // two that only meet within the chaining tolerance keep the joint as mapped.
+ const shared=walkChain([part([[0,0],[20,0]]),part([[40,10],[20,0]],20,true)]);
+ assert.ok(corner(shared.out)<.05,'shared joint corner '+corner(shared.out));
+ const loose=chainVertices([part([[0,0],[20,0]]),part([[21,0],[40,10]],20)]);
+ assert.ok(loose.every(v=>v.T===0),'a loose joint keeps its corner');
  console.log('road pipeline checks passed');
 }finally{fs.rmSync(temp,{recursive:true,force:true})}
