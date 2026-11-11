@@ -1,0 +1,116 @@
+// Copyright SimCruise contributors. All Rights Reserved.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Gameplay/SimCruiseVehicleControl.h"
+
+/**
+ * Driver-side input shaping: what a person's hands and feet do between the
+ * controller and the car's controls. Nothing here touches the contact forces,
+ * yaw inertia or grip; it only decides which rack angle and pedal positions a
+ * thumb or a key asks for, and how fast a hand can move the wheel.
+ *
+ * Ported from game/Powertrain.gd (available_steering, thumbstick_command,
+ * advance_steering, key_rack_rate) with the audited corrections of
+ * docs/research/plan-2026-11-10/04-pad-steering-pedals.md:
+ *  - the rack is a state in radians slewed in rad/s, not a fraction of a cap
+ *    that moves with speed, so a closing cap never makes the rack jump;
+ *  - countersteer allowance keyed on the front axle's velocity angle beta_f
+ *    alone (no yaw-rate state machine): toward sign(beta_f) the range opens to
+ *    |beta_f| + the limit slip surplus, never past the rack lock, and a hand
+ *    may move the rack that way at up to 40 deg/s;
+ *  - releasing the stick still returns to exactly zero (no self-centring aid);
+ *  - key pedals ramp (a foot is not a switch); triggers stay linear.
+ */
+namespace SimCruiseShaping
+{
+	constexpr double StandardGravity = 9.80665;
+	constexpr double LockBlendRad = 3.0 * UE_DOUBLE_PI / 180.0;
+	constexpr double SteerDeadBand = 0.01;
+	constexpr double PadApplyRatePerS = 2.75;   // fractions of the available rack per second
+	constexpr double PadReturnRatePerS = 4.4;
+	constexpr double KeyRackRateHighwayRadPerS = 12.0 * UE_DOUBLE_PI / 180.0;
+	constexpr double KeyReturnRateMinRadPerS = 24.0 * UE_DOUBLE_PI / 180.0;
+	constexpr double KeyReturnFactor = 1.6;
+	constexpr double PadCentreCorneringG = 0.89;
+	constexpr double CountersteerRateRadPerS = 40.0 * UE_DOUBLE_PI / 180.0;
+	constexpr double CountersteerMinBetaRad = 2.0 * UE_DOUBLE_PI / 180.0;
+	constexpr double BetaMinForwardSpeedMps = 5.0;
+
+	/** Quilez polynomial smooth minimum (Powertrain.smooth_min). */
+	SIMCRUISE_API double SmoothMin(double A, double B, double K);
+
+	/** Rack angle a full press asks for at this speed (Assisted map): the
+	 *  Ackermann angle for the assist lateral g plus the slip surplus at the
+	 *  limit, blended into the parking lock. */
+	SIMCRUISE_API double AvailableSteeringRad(const FSimCruiseVehicleSetup& Setup, double ForwardSpeedMps);
+
+	/** Front-axle velocity angle relative to the body (rad, positive = the front
+	 *  axle moving to the right). Zero below 5 m/s forward and in reverse,
+	 *  where the angle is noise or flips sign. */
+	SIMCRUISE_API double FrontAxleSlipAngleRad(const FSimCruiseVehicleSetup& Setup, double ForwardSpeedMps, double LateralSpeedMps, double YawRateRadPerS);
+
+	/** Range toward one side: Direction +1 right, -1 left. */
+	SIMCRUISE_API double RangeTowardRad(const FSimCruiseVehicleSetup& Setup, double ForwardSpeedMps, double BetaFrontRad, double Direction);
+
+	/** Stick-to-command: the centre of the stick's travel goes to ordinary
+	 *  lane corrections, the ends still reach the full range. Returns -1..1. */
+	SIMCRUISE_API double ThumbstickCommand(const FSimCruiseVehicleSetup& Setup, double Stick, double ForwardSpeedMps);
+
+	/** How fast a held key moves the rack, rad/s. */
+	SIMCRUISE_API double KeyRackRateRadPerS(const FSimCruiseVehicleSetup& Setup, double ForwardSpeedMps);
+
+	/** Move Current toward Target, unwinding through centre first at ReturnRate
+	 *  and spending only the remaining time at ApplyRate (Powertrain.advance_steering). */
+	SIMCRUISE_API double AdvanceSteering(double Current, double Target, double DeltaTimeS, double ApplyRate, double ReturnRate);
+
+	/** A key held (Pressed) or released moves the pedal at a foot's pace. */
+	SIMCRUISE_API double KeyPedal(double Current, bool bPressed, double RisePerS, double DeltaTimeS);
+	constexpr double KeyThrottleRisePerS = 3.0;
+	constexpr double KeyBrakeRisePerS = 2.5;
+	constexpr double KeyPedalReleasePerS = 8.0;
+	constexpr double ClutchPressPerS = 14.0;
+	constexpr double ClutchReleasePerS = 2.8;
+}
+
+/** Everything the shell knows about the controls in one frame. */
+struct FSimCruiseRawControls
+{
+	double PadSteer = 0.0;      // left stick X after its dead zone, -1..1
+	double KeySteer = 0.0;      // -1, 0 or 1
+	double PadThrottle = 0.0;   // right trigger after its dead zone
+	double PadBrake = 0.0;      // left trigger
+	bool bKeyThrottle = false;
+	bool bKeyBrake = false;
+	bool bFullServiceBrake = false;
+	bool bParkingBrake = false;
+	bool bClutch = false;
+};
+
+/** Stateful steering rack and pedal positions for one driver. */
+class SIMCRUISE_API FSimCruiseDriverShaper
+{
+public:
+	void Reset();
+
+	/** Advance by DeltaTimeS and return the command for the vehicle. Telemetry
+	 *  provides speed, lateral speed and yaw rate for the speed-aware limits. */
+	FSimCruiseDriverCommand Update(const FSimCruiseVehicleSetup& Setup, const FSimCruiseVehicleTelemetry& Telemetry,
+		const FSimCruiseRawControls& Raw, double DeltaTimeS);
+
+	double GetRackAngleRad() const { return RackRad; }
+	bool IsUsingThumbstick() const { return bUsingThumbstick; }
+	/** Last range toward each side (rad), for a telemetry readout. */
+	double GetRangeLeftRad() const { return RangeLeft; }
+	double GetRangeRightRad() const { return RangeRight; }
+
+private:
+	double RackRad = 0.0;
+	double KeyThrottle = 0.0;
+	double KeyBrake = 0.0;
+	double Clutch = 0.0;
+	double RangeLeft = 0.0;
+	double RangeRight = 0.0;
+	bool bUsingThumbstick = false;
+};
