@@ -31,6 +31,8 @@ Parked cars from Generic passenger car pack by Comrade1280, CC BY 4.0. Sedan and
 https://sketchfab.com/3d-models/20f9af9b8a404d5cb022ac6fe87f21f5
 https://creativecommons.org/licenses/by/4.0/
 Asphalt Floor and Kloofendal 48d Partly Cloudy from Poly Haven, CC0. https://polyhaven.com/license
+Grass Ground (data/art/ground/grass-detail.jpg, its diffuse map resized to 640 px) from Poly Haven, CC0. https://polyhaven.com/a/grass_ground
+Sandy Gravel 02 by Dario Barresi (data/art/ground/mineral-ground.png, maps resampled and packed) from Poly Haven, CC0. https://polyhaven.com/a/sandy_gravel_02
 Representative building facades from Free Urban Textures by Scouser, CC0.
 https://opengameart.org/content/free-urban-textures-buildings-apartments-shop-fronts
 Foliage derived from paramecij's vegetation base texture pack, CC0.

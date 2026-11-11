@@ -51,7 +51,7 @@ No account, no API keys, no subscription, no telemetry. The game talks directly 
 
 ## Running it
 
-There is no Unreal installer yet (Windows first; macOS when a Mac is available to build on). From source on Windows:
+**Windows:** download the zip from [Releases](https://github.com/simcruisegame/simcruise/releases), extract it and start `SimCruise.exe` (64-bit Windows 10 or 11, DirectX 12). macOS follows when a Mac is available to build on. From source on Windows:
 
 1. Install Unreal Engine 5.8, Visual Studio 2022 Build Tools with the C++ game workload, and [Bun](https://bun.com/) (for the map helper).
 2. Clone the repository and build the editor target (PowerShell, editor closed):

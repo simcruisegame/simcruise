@@ -212,8 +212,8 @@ position plus a per-tile anchor (`tile * size mod 64 m`), so textures run on
 across seams without half-precision UV loss. Ground: the aerial photograph
 with its highlights compressed toward street-level albedo, modulated by the
 Godot client's detail photographs per land-cover class (`data/art/ground/grass-detail.jpg`,
-`data/art/ground/mineral-ground.png`; their sources are not named in `Credits.txt`
-yet). Asphalt: Poly Haven Asphalt Floor
+`data/art/ground/mineral-ground.png`: Poly Haven Grass Ground and Sandy
+Gravel 02, both CC0). Asphalt: Poly Haven Asphalt Floor
 normalised to an aged-asphalt albedo with a luminance bump. Water: six
 directional waves, F0 0.02.
 
