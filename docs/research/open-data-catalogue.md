@@ -1,6 +1,6 @@
 # Open data catalogue for SimCruise (sweep 2)
 
-Free data that helps "drive anywhere in the US and it feels like I'm really driving there". Each domain had a scanner and a verifier, both checked on 2026-11-08. Figures are the verifier's corrected values. Sources from sweep 1 appear only where a better access path turned up.
+Free data that helps "drive anywhere in the US and it feels like I'm really driving there". Each domain had a scanner and a verifier, both checked on 2026-11-08. Figures are the verifier's corrected values. Sources from sweep 1 appear only where a better access path turned up. Sweep 3 ([more-data-2026-11.md](more-data-2026-11.md), 2026-11-10) adds measured costs and new sources: Overture street furniture, HPMS roughness and traffic, statewide 15 cm orthoimagery, climate normals and the traffic mix.
 
 - **Keyless**: the game can fetch it anonymously at runtime.
 - **Bake**: download once at authoring time and ship the result.

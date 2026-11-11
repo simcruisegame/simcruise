@@ -64,6 +64,7 @@ Brackets give [days·impact 1-5·data/licence]; **today** = one day on the curre
 - **Sharper ground nationwide.** USGS already serves 1024 px per z16 tile (16× today's texels), NAIP too; check texture memory first. [inside ortho item·3·public domain]
 - **Stop signs, crossings, lamps for free.** Already in the Overture tile fetched for traffic signals; parse them, build MUTCD signs; needs a hook for bundled tiles. [3.5-4d·4·ODbL runtime; FHWA art public domain]
 - **Speed limits, surfaces, lanes.** The Esri OSM replica we already query carries maxspeed on a quarter of city ways: R2-1 signs where known, finer grip. [3d·4 signs, 2 grip·ODbL runtime]
+- **Measured costs and designs (sweep 3, 10 November).** [research/more-data-2026-11.md](research/more-data-2026-11.md) measures what the three items above cost and adds helper designs for each. It also covers HPMS IRI and AADT, open 7.5-15 cm state orthoimagery (MassGIS, Indiana) and a traffic mix from NHTS. It found that the Overture tile reader's budget rejects dense downtown tiles today.
 - **Addresses, landmarks, businesses.** Census geocoder, per-state GNIS names [2d·3·public domain]; Overture places as plain-text storefront names, no logos, trademark call yours [3d·3-4·CDLA/Apache-2.0/CC0].
 - **Inventory, then later.** FHWA HPMS lanes, shoulders, medians, roughness [4d·3; unverified: AADT→traffic]; NWS forecast, METAR precipitation flags [1.5d·3]; public domain. Later, impact 3 each [unverified]: 1 m crown from 3DEP samples [4-5d], licence-reviewed city orthos [4d+legal], municipal registry [3d].
 
