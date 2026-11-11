@@ -190,6 +190,10 @@ struct SIMCRUISE_API FSimCruiseVehicleTelemetry
 	UPROPERTY(BlueprintReadOnly, Category = "SimCruise|Vehicle")
 	FString LastGearMessage;
 
+	/** Times the physics thread restored the car's mass properties after something else changed them (should stay 0). */
+	UPROPERTY(BlueprintReadOnly, Category = "SimCruise|Vehicle")
+	int32 MassPropertyRestores = 0;
+
 	/** Front left, front right, rear left, rear right. */
 	UPROPERTY(BlueprintReadOnly, Category = "SimCruise|Vehicle")
 	TArray<FSimCruiseWheelTelemetry> Wheels;

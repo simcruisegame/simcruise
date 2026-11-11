@@ -42,6 +42,12 @@ struct FSimCruiseVehiclePhysicsState
 	int64 Steps = 0;
 	double StepSecondsTotal = 0.0;
 	bool bActive = false;
+	/** The car's mass properties in Chaos units (kg, cm, kg cm^2), principal axes = body axes. */
+	double MassKg = 1.0;
+	FVector3d CenterOfMassCm = FVector3d::ZeroVector;
+	FVector3d InertiaKgCm2 = FVector3d::OneVector;
+	/** Times the physics thread put back mass properties the game thread had recomputed. */
+	int32 MassPropertyRestores = 0;
 
 	FSimCruiseVehiclePhysicsState()
 	{
@@ -106,6 +112,7 @@ namespace
 		T.FixedStepSeconds = DeltaTimeS;
 		T.MeanStepMicroseconds = S.Steps > 0 ? S.StepSecondsTotal / S.Steps * 1.0e6 : 0.0;
 		T.LastGearMessage = S.LastGearMessage;
+	T.MassPropertyRestores = S.MassPropertyRestores;
 		T.bAbsActive = false;
 		T.Wheels.SetNum(4);
 		for (int32 Index = 0; Index < 4; ++Index)
@@ -161,6 +168,34 @@ static void StepVehicleOnPhysicsThread(FSimCruiseVehiclePhysicsState& S, double 
 	}
 
 	const double StartSeconds = FPlatformTime::Seconds();
+
+	// The car file owns the body's mass properties. Anything that makes the
+	// game thread recompute them (welding an attached collider, rescaling the
+	// body, a mass override or physical material change) would otherwise
+	// silently swap in a uniform box's mass, centre and inertia.
+	{
+		const Chaos::TVec3<Chaos::FRealSingle> CurrentI = Handle->I();
+		const FVector3d Inertia(CurrentI.X, CurrentI.Y, CurrentI.Z);
+		if (!FMath::IsNearlyEqual(static_cast<double>(Handle->M()), S.MassKg, S.MassKg * 1.0e-6) ||
+			!FVector3d(Handle->CenterOfMass()).Equals(S.CenterOfMassCm, 1.0e-3) ||
+			!Inertia.Equals(S.InertiaKgCm2, S.InertiaKgCm2.GetMax() * 1.0e-5) ||
+			!FQuat4d(Handle->RotationOfMass()).Equals(FQuat4d::Identity, 1.0e-6))
+		{
+			if (S.MassPropertyRestores++ == 0)
+			{
+				UE_LOG(LogSimCruiseVehicle, Warning,
+					TEXT("%s: the vehicle body's mass properties were changed outside the vehicle (mass %.1f kg, expected %.1f); restoring the car's."),
+					*S.Sim.GetCar().Id, static_cast<double>(Handle->M()), S.MassKg);
+			}
+			Handle->SetM(S.MassKg);
+			Handle->SetInvM(1.0 / S.MassKg);
+			Handle->SetI(Chaos::TVec3<Chaos::FRealSingle>(S.InertiaKgCm2.X, S.InertiaKgCm2.Y, S.InertiaKgCm2.Z));
+			Handle->SetInvI(Chaos::TVec3<Chaos::FRealSingle>(1.0 / S.InertiaKgCm2.X, 1.0 / S.InertiaKgCm2.Y, 1.0 / S.InertiaKgCm2.Z));
+			Handle->SetCenterOfMass(S.CenterOfMassCm);
+			Handle->SetRotationOfMass(FQuat4d::Identity);
+		}
+	}
+
 	if (S.bPendingReset)
 	{
 		Handle->SetX(S.PendingResetTransform.GetLocation());
@@ -349,11 +384,14 @@ void USimCruiseVehicleMovementComponent::ConfigureBody()
 	}
 	Chaos::FRigidBodyHandle_External& External = Proxy->GetGameThreadAPI();
 	const FVector3d InertiaKgCm2 = S.Sim.GetPrincipalInertiaKgM2() * (SimCruiseUnits::CentimetresPerMetre * SimCruiseUnits::CentimetresPerMetre);
+	S.MassKg = Car.MassKg;
+	S.CenterOfMassCm = SimCruiseUnits::ToUnrealLength(S.Sim.GetCenterOfMassLocalM());
+	S.InertiaKgCm2 = InertiaKgCm2;
 	External.SetM(Car.MassKg);
 	External.SetInvM(1.0 / Car.MassKg);
 	External.SetI(Chaos::TVec3<Chaos::FRealSingle>(InertiaKgCm2.X, InertiaKgCm2.Y, InertiaKgCm2.Z));
 	External.SetInvI(Chaos::TVec3<Chaos::FRealSingle>(1.0 / InertiaKgCm2.X, 1.0 / InertiaKgCm2.Y, 1.0 / InertiaKgCm2.Z));
-	External.SetCenterOfMass(SimCruiseUnits::ToUnrealLength(S.Sim.GetCenterOfMassLocalM()));
+	External.SetCenterOfMass(S.CenterOfMassCm);
 	External.SetRotationOfMass(FQuat::Identity);
 	External.SetInertiaConditioningEnabled(false);
 	External.SetSleepType(Chaos::ESleepType::NeverSleep);
@@ -371,6 +409,11 @@ void USimCruiseVehicleMovementComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	ConfigureBody();
+	if (UPrimitiveComponent* Body = GetBodyComponent())
+	{
+		Body->OnComponentPhysicsStateChanged.AddUniqueDynamic(this, &USimCruiseVehicleMovementComponent::HandleBodyPhysicsStateChanged);
+		BoundBody = Body;
+	}
 
 	UWorld* World = GetWorld();
 	FPhysScene* Scene = World ? World->GetPhysicsScene() : nullptr;
@@ -389,8 +432,30 @@ void USimCruiseVehicleMovementComponent::BeginPlay()
 	}
 }
 
+void USimCruiseVehicleMovementComponent::HandleBodyPhysicsStateChanged(UPrimitiveComponent* ChangedComponent,
+	EComponentPhysicsStateChange StateChange)
+{
+	if (StateChange == EComponentPhysicsStateChange::Destroyed)
+	{
+		// The old particle is queued for deletion on the physics thread: stop
+		// stepping it before the next push reaches that thread.
+		FScopeLock Lock(&PhysicsState->Mutex);
+		PhysicsState->bActive = false;
+		PhysicsState->Proxy = nullptr;
+	}
+	else if (HasBegunPlay() && ChangedComponent == GetBodyComponent())
+	{
+		ConfigureBody();
+	}
+}
+
 void USimCruiseVehicleMovementComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (UPrimitiveComponent* Body = BoundBody.Get())
+	{
+		Body->OnComponentPhysicsStateChanged.RemoveDynamic(this, &USimCruiseVehicleMovementComponent::HandleBodyPhysicsStateChanged);
+	}
+	BoundBody.Reset();
 	{
 		FScopeLock Lock(&PhysicsState->Mutex);
 		PhysicsState->bActive = false;

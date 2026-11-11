@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "Engine/EngineTypes.h"
 #include "Templates/Function.h"
 #include "Vehicle/CarDefinition.h"
@@ -155,6 +156,16 @@ protected:
 private:
 	void ConfigureBody();
 	UPrimitiveComponent* GetBodyComponent() const;
+
+	/**
+	 * The root body's Chaos particle is replaced whenever its physics state is
+	 * recreated (collision switched off and on, a re-register): forget the old
+	 * particle before the physics thread can touch it, and configure the new one.
+	 */
+	UFUNCTION()
+	void HandleBodyPhysicsStateChanged(UPrimitiveComponent* ChangedComponent, EComponentPhysicsStateChange StateChange);
+
+	TWeakObjectPtr<UPrimitiveComponent> BoundBody;
 
 	TSharedPtr<FSimCruiseVehiclePhysicsState, ESPMode::ThreadSafe> PhysicsState;
 	FSimCruiseVehicleSimCallback* SimCallback = nullptr;

@@ -464,8 +464,12 @@ bool FSimCruiseCarDefinitionLoader::LoadById(const FString& CarId,
 	// Unreal calibration overlay: Content/Vehicle/Calibration/<id>.json replaces
 	// named fields of the canonical car file (estimated fields only, each with
 	// its reason in "_note"). SIMCRUISE_CALIBRATION_DIR points experiments at
-	// another folder instead.
-	FString OverlayDirectory = FPlatformMisc::GetEnvironmentVariable(TEXT("SIMCRUISE_CALIBRATION_DIR"));
+	// another folder instead (development builds only: a shipped car's physics
+	// does not change with the environment).
+	FString OverlayDirectory;
+#if !UE_BUILD_SHIPPING
+	OverlayDirectory = FPlatformMisc::GetEnvironmentVariable(TEXT("SIMCRUISE_CALIBRATION_DIR"));
+#endif
 	if (OverlayDirectory.IsEmpty())
 	{
 		OverlayDirectory = FPaths::Combine(FPaths::ProjectContentDir(), TEXT("Vehicle"), TEXT("Calibration"));

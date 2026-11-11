@@ -11,6 +11,7 @@
 #include "GameFramework/Actor.h"
 #include "PBDRigidsSolver.h"
 #include "Physics/Experimental/PhysScene_Chaos.h"
+#include "PhysicsEngine/BodyInstance.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicsProxy/SingleParticlePhysicsProxy.h"
 #include "Tests/VehicleBenchWorld.h"
@@ -199,6 +200,79 @@ bool FSimCruiseVehicleChaosBodyTest::RunTest(const FString& Parameters)
 		CheckBody(Mustang);
 		TestEqual(TEXT("the swapped car stands on four wheels"), Vehicle->GetVehicleTelemetry().WheelContactCount, 4);
 	}
+	return true;
+}
+
+/**
+ * The vehicle keeps working when the game thread replaces its Chaos particle
+ * (physics state recreated) or recomputes its mass properties (a weld, a
+ * rescale, a mass override): no stale particle is stepped, and the car file's
+ * mass, centre of mass and inertia stay in force on the physics thread.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseVehicleChaosBodyOwnershipTest, "SimCruise.Vehicle.Chaos.BodyOwnership", VehicleTestFlags)
+bool FSimCruiseVehicleChaosBodyOwnershipTest::RunTest(const FString& Parameters)
+{
+	FSimCruiseCarDefinition Car;
+	if (!SimCruiseLoadBenchCar(*this, TEXT("nb1999"), Car))
+	{
+		return false;
+	}
+	FSimCruiseVehicleBenchWorld Bench(SimCruiseShippingFixedStepS, 50.0);
+	ASimCruiseVehicle* Vehicle = Bench.SpawnVehicle(Car, FVector3d(0.0, 0.0, 0.05), nullptr);
+	if (!TestNotNull(TEXT("vehicle"), Vehicle))
+	{
+		return false;
+	}
+	const double Weight = Car.MassKg * -SimCruiseUnits::ToSILength(static_cast<double>(Bench.GetWorld()->GetGravityZ()));
+	auto TotalLoad = [Vehicle]()
+	{
+		double Load = 0.0;
+		for (const FSimCruiseWheelTelemetry& Wheel : Vehicle->GetVehicleTelemetry().Wheels)
+		{
+			Load += Wheel.LoadN;
+		}
+		return Load;
+	};
+	Bench.RunUntil([]() { return false; }, 1.0);
+	TestEqual(TEXT("settled on four wheels"), Vehicle->GetVehicleTelemetry().WheelContactCount, 4);
+
+	// Physics state recreated: a new particle, the old one queued for deletion.
+	Chaos::FSingleParticlePhysicsProxy* OldProxy = Vehicle->GetBody()->GetBodyInstance()->GetPhysicsActorHandle();
+	const int64 StepsBefore = Vehicle->GetVehicleTelemetry().PhysicsSteps;
+	Vehicle->GetBody()->RecreatePhysicsState();
+	Chaos::FSingleParticlePhysicsProxy* NewProxy = Vehicle->GetBody()->GetBodyInstance()->GetPhysicsActorHandle();
+	TestTrue(TEXT("the body got a new particle"), NewProxy != nullptr && NewProxy != OldProxy);
+	Bench.RunUntil([]() { return false; }, 1.0);
+	FSimCruiseVehicleTelemetry T = Vehicle->GetVehicleTelemetry();
+	const FString RecreateLine = FString::Printf(TEXT("BODYOWNERSHIP after the physics state was recreated: %lld more steps, %d wheels down, load %.0f of %.0f N, %d mass restores"),
+		T.PhysicsSteps - StepsBefore, T.WheelContactCount, TotalLoad(), Weight, T.MassPropertyRestores);
+	UE_LOG(LogTemp, Display, TEXT("%s"), *RecreateLine);
+	AddInfo(RecreateLine);
+	TestTrue(TEXT("the vehicle steps the new particle"), T.PhysicsSteps - StepsBefore > 300);
+	TestEqual(TEXT("four wheels down on the new particle"), T.WheelContactCount, 4);
+	TestEqual(TEXT("the new particle carries the car"), TotalLoad(), Weight, Weight * 0.01);
+	if (NewProxy != nullptr)
+	{
+		TestEqual(TEXT("the new particle has the car's mass"), static_cast<double>(NewProxy->GetGameThreadAPI().M()), Car.MassKg, 1.0e-6);
+	}
+
+	// The game thread recomputes mass properties (as a weld or rescale would): the car's stay in force.
+	AddExpectedMessagePlain(TEXT("mass properties were changed outside the vehicle"), ELogVerbosity::Warning,
+		EAutomationExpectedMessageFlags::Contains, 1);
+	FBodyInstance* BodyInstance = Vehicle->GetBody()->GetBodyInstance();
+	BodyInstance->SetMassOverride(500.0f, true);
+	BodyInstance->UpdateMassProperties();
+	TestEqual(TEXT("the game thread recomputed the body (box mass properties)"),
+		static_cast<double>(NewProxy ? NewProxy->GetGameThreadAPI().M() : 0.0), 500.0, 1.0e-3);
+	Bench.RunUntil([]() { return false; }, 1.5);
+	T = Vehicle->GetVehicleTelemetry();
+	const FString MassLine = FString::Printf(TEXT("BODYOWNERSHIP after a 500 kg mass override: load %.0f of %.0f N, %d mass restores"),
+		TotalLoad(), Weight, T.MassPropertyRestores);
+	UE_LOG(LogTemp, Display, TEXT("%s"), *MassLine);
+	AddInfo(MassLine);
+	TestTrue(TEXT("the physics thread restored the car's mass properties"), T.MassPropertyRestores >= 1);
+	TestEqual(TEXT("the tyres still carry the car's weight, not 500 kg"), TotalLoad(), Weight, Weight * 0.01);
+	TestEqual(TEXT("four wheels down"), T.WheelContactCount, 4);
 	return true;
 }
 
