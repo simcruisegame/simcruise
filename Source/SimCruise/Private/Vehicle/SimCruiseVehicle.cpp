@@ -27,15 +27,21 @@ ASimCruiseVehicle::ASimCruiseVehicle()
 
 void ASimCruiseVehicle::SetCarDefinition(const FSimCruiseCarDefinition& Car)
 {
+	// Shape first: a shape change can make Chaos recompute mass properties,
+	// which the movement component then sets from the car.
+	ApplyBodyShape(Car);
 	VehicleMovement->SetCarDefinition(Car);
 	CarId = Car.Id;
 	bHasDefinition = true;
-	ApplyBodyShape();
 }
 
 void ASimCruiseVehicle::ApplyBodyShape()
 {
-	const FSimCruiseCarDefinition& Car = VehicleMovement->GetCarDefinition();
+	ApplyBodyShape(VehicleMovement->GetCarDefinition());
+}
+
+void ASimCruiseVehicle::ApplyBodyShape(const FSimCruiseCarDefinition& Car)
+{
 	// Godot's collision_box is (width, height, length).
 	const FVector3d SizeM = FVector3d(Car.CollisionBoxSizeM.Z, Car.CollisionBoxSizeM.X, Car.CollisionBoxSizeM.Y);
 	Body->SetBoxExtent(SimCruiseUnits::ToUnrealLength(SizeM * 0.5), false);
@@ -51,6 +57,7 @@ void ASimCruiseVehicle::BeginPlay()
 {
 	if (!bHasDefinition && !CarId.IsEmpty())
 	{
+		// Before Super::BeginPlay, so the component configures the body after the shape is set.
 		bHasDefinition = VehicleMovement->LoadCarById(CarId);
 		ApplyBodyShape();
 	}

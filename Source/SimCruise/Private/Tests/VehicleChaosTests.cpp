@@ -166,24 +166,39 @@ bool FSimCruiseVehicleChaosBodyTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
-	Bench.RunUntil([]() { return false; }, 0.1);
-	Chaos::FSingleParticlePhysicsProxy* Proxy = Vehicle->GetBody()->GetBodyInstance()->GetPhysicsActorHandle();
-	if (!TestNotNull(TEXT("vehicle particle"), Proxy))
+	auto CheckBody = [this, Vehicle](const FSimCruiseCarDefinition& Expected)
 	{
-		return false;
+		Chaos::FSingleParticlePhysicsProxy* Proxy = Vehicle->GetBody()->GetBodyInstance()->GetPhysicsActorHandle();
+		if (!TestNotNull(TEXT("vehicle particle"), Proxy))
+		{
+			return;
+		}
+		const Chaos::FRigidBodyHandle_External& Body = Proxy->GetGameThreadAPI();
+		TestEqual(FString::Printf(TEXT("%s mass (kg)"), *Expected.Id), static_cast<double>(Body.M()), Expected.MassKg, 1.0e-6);
+		const FVector3d ExpectedInertia = SimCruiseUnits::GodotInertiaToUnrealAxes(Expected.InertiaKgM2) * 1.0e4;
+		const FVector3d Inertia(Body.I().X, Body.I().Y, Body.I().Z);
+		TestEqual(FString::Printf(TEXT("%s inertia (kg cm^2, roll pitch yaw)"), *Expected.Id), Inertia, ExpectedInertia, 1.0f);
+		const FVector3d ExpectedCentre = SimCruiseUnits::ToUnrealLength(FVector3d((Expected.FrontWeightFraction - 0.5) * Expected.WheelbaseM, 0.0,
+			Expected.CenterOfGravityHeightM - Expected.CollisionShapeCenterYM));
+		TestEqual(FString::Printf(TEXT("%s centre of mass (cm, body frame)"), *Expected.Id), FVector3d(Body.CenterOfMass()), ExpectedCentre, 1.0e-3f);
+		TestFalse(TEXT("inertia conditioning off"), Body.InertiaConditioningEnabled());
+		const FVector BoxExtent = Vehicle->GetBody()->GetUnscaledBoxExtent();
+		TestEqual(FString::Printf(TEXT("%s collision box from the car file (cm half extents)"), *Expected.Id), FVector3d(BoxExtent),
+			SimCruiseUnits::ToUnrealLength(FVector3d(Expected.CollisionBoxSizeM.Z, Expected.CollisionBoxSizeM.X, Expected.CollisionBoxSizeM.Y) * 0.5), 1.0e-3f);
+	};
+	Bench.RunUntil([]() { return false; }, 0.1);
+	CheckBody(Car);
+
+	// Swapping cars at runtime resizes the body and installs the new mass properties.
+	FSimCruiseCarDefinition Mustang;
+	if (SimCruiseLoadBenchCar(*this, TEXT("mustang65"), Mustang))
+	{
+		Vehicle->SetCarDefinition(Mustang);
+		Vehicle->ResetAt(FVector(0.0, 0.0, 5.0), 0.0f);
+		Bench.RunUntil([]() { return false; }, 0.5);
+		CheckBody(Mustang);
+		TestEqual(TEXT("the swapped car stands on four wheels"), Vehicle->GetVehicleTelemetry().WheelContactCount, 4);
 	}
-	const Chaos::FRigidBodyHandle_External& Body = Proxy->GetGameThreadAPI();
-	TestEqual(TEXT("mass (kg)"), static_cast<double>(Body.M()), Car.MassKg, 1.0e-6);
-	const FVector3d ExpectedInertia = SimCruiseUnits::GodotInertiaToUnrealAxes(Car.InertiaKgM2) * 1.0e4;
-	const FVector3d Inertia(Body.I().X, Body.I().Y, Body.I().Z);
-	TestEqual(TEXT("inertia (kg cm^2, roll pitch yaw)"), Inertia, ExpectedInertia, 1.0);
-	const FVector3d ExpectedCentre = SimCruiseUnits::ToUnrealLength(FVector3d((Car.FrontWeightFraction - 0.5) * Car.WheelbaseM, 0.0,
-		Car.CenterOfGravityHeightM - Car.CollisionShapeCenterYM));
-	TestEqual(TEXT("centre of mass (cm, body frame)"), FVector3d(Body.CenterOfMass()), ExpectedCentre, 1.0e-3f);
-	TestFalse(TEXT("inertia conditioning off"), Body.InertiaConditioningEnabled());
-	const FVector BoxExtent = Vehicle->GetBody()->GetUnscaledBoxExtent();
-	TestEqual(TEXT("collision box from the car file (cm half extents)"), FVector3d(BoxExtent),
-		SimCruiseUnits::ToUnrealLength(FVector3d(Car.CollisionBoxSizeM.Z, Car.CollisionBoxSizeM.X, Car.CollisionBoxSizeM.Y) * 0.5), 1.0e-3f);
 	return true;
 }
 

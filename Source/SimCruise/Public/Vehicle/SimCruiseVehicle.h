@@ -83,6 +83,7 @@ protected:
 
 private:
 	void ApplyBodyShape();
+	void ApplyBodyShape(const FSimCruiseCarDefinition& Car);
 
 	UPROPERTY(VisibleAnywhere, Category = "SimCruise|Vehicle")
 	TObjectPtr<UBoxComponent> Body;
