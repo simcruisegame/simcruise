@@ -21,7 +21,7 @@ The Unreal client starts in the 2001 roadster in Ocean Drive's lane, Miami Beach
 | Driver lens (natural, true to screen, wide) | F6 | — |
 | Head lamps on / off | L | — |
 | Recover to the nearest road | R | View |
-| Engine sound on / off | M | — |
+| Sound on / off (engine, tyres, road, wind) | M | — |
 | Road atlas, find a place | Tab, / | Menu, — |
 
 The engine sound is on at the start. The atlas and place search answer with a message until they are ported from the Godot client.

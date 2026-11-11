@@ -12,6 +12,7 @@
 
 class UBoxComponent;
 class USimCruiseEngineSoundComponent;
+class USimCruiseRoadNoiseComponent;
 class USimCruiseVehicleMovementComponent;
 class USpotLightComponent;
 
@@ -159,6 +160,10 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<USimCruiseEngineSoundComponent> EngineSound;
 
+	/** Tyres, road and wind (the driven car only, while sound is on). */
+	UPROPERTY(Transient)
+	TObjectPtr<USimCruiseRoadNoiseComponent> RoadNoise;
+
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<USpotLightComponent>> HeadLampLights;
 
@@ -173,5 +178,10 @@ private:
 	bool bManualRequested = false;
 	FString LastShownGearMessage;
 	bool bMirrorsLive = false;
-	void UpdateEngineSound(const struct FSimCruiseVehicleTelemetry& Telemetry, bool bInSeat);
+	void UpdateEngineSound(const struct FSimCruiseVehicleTelemetry& Telemetry, bool bInSeat, float DeltaSeconds);
+	void UpdateRoadNoise(const struct FSimCruiseVehicleTelemetry& Telemetry, bool bInSeat, bool bWant, float DeltaSeconds);
+	/** Road roughness for the road noise (RoadNoise.gd update_roughness). */
+	double Travel[4] = {};
+	bool bTravelKnown = false;
+	double TravelSlow = 0.0, Roughness = 0.0;
 };

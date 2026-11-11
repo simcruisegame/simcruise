@@ -33,5 +33,48 @@ int32 USimCruiseEngineSoundComponent::OnGenerateAudio(float* OutAudio, int32 Num
 		Inputs = Latest;
 	}
 	Synth.Render(OutAudio, NumSamples, Inputs);
+	if (!bCabinSet)
+	{
+		Cabin.Set(FSimCruiseRoadNoiseSynth::CabinCutoffHz, FSimCruiseInlineFourSynth::SampleRate);
+		bCabinSet = true;
+	}
+	for (int32 I = 0; I < NumSamples; ++I)
+	{
+		const float Filtered = Cabin.Process(OutAudio[I]);
+		if (Inputs.bCabin) OutAudio[I] = Filtered;
+	}
+	return NumSamples;
+}
+
+USimCruiseRoadNoiseComponent::USimCruiseRoadNoiseComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	NumChannels = 2;
+	bAllowSpatialization = false;
+	bAutoActivate = false;
+}
+
+void USimCruiseRoadNoiseComponent::SetRoadState(const FSimCruiseRoadNoiseSynth::FInputs& Inputs)
+{
+	FScopeLock Lock(&InputsLock);
+	Latest = Inputs;
+}
+
+bool USimCruiseRoadNoiseComponent::Init(int32& SampleRate)
+{
+	SampleRate = FSimCruiseRoadNoiseSynth::SampleRate;
+	NumChannels = 2;
+	return true;
+}
+
+int32 USimCruiseRoadNoiseComponent::OnGenerateAudio(float* OutAudio, int32 NumSamples)
+{
+	FSimCruiseRoadNoiseSynth::FInputs Inputs;
+	{
+		FScopeLock Lock(&InputsLock);
+		Inputs = Latest;
+	}
+	// NumSamples counts every channel's samples.
+	Synth.Render(OutAudio, NumSamples / 2, Inputs);
 	return NumSamples;
 }

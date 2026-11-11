@@ -25,6 +25,8 @@ namespace
 		TEXT("1: the player's car mirrors show the road behind (from the driver's seat: a 768x320 capture every third frame); 0: plain glass."));
 	TAutoConsoleVariable<int32> CVarEngineSound(TEXT("simcruise.Audio.Engine"), 1,
 		TEXT("1: the driven car's engine voice plays (M toggles sound); 0: silent."));
+	TAutoConsoleVariable<int32> CVarRoadNoise(TEXT("simcruise.Audio.Road"), 1,
+		TEXT("1: tyre, road and wind noise play for the driven car (M toggles sound); 0: silent."));
 	TAutoConsoleVariable<int32> CVarMirrorInterval(TEXT("simcruise.Mirrors.Interval"), 3,
 		TEXT("The mirror capture runs every Nth frame (1: every frame)."));
 	TAutoConsoleVariable<int32> CVarBeamPattern(TEXT("simcruise.Lamps.Pattern"), 1,
@@ -385,7 +387,7 @@ void ASimCruiseVehicle::Tick(float DeltaSeconds)
 	}
 	FSimCruiseVehicleTelemetry Telemetry;
 	VehicleMovement->CopyTelemetry(Telemetry);
-	UpdateEngineSound(Telemetry, bInSeat);
+	UpdateEngineSound(Telemetry, bInSeat, DeltaSeconds);
 	if (!Telemetry.LastGearMessage.IsEmpty() && Telemetry.LastGearMessage != LastShownGearMessage)
 	{
 		LastShownGearMessage = Telemetry.LastGearMessage;
@@ -398,14 +400,15 @@ void ASimCruiseVehicle::Tick(float DeltaSeconds)
 
 // --- Engine sound -------------------------------------------------------------
 
-void ASimCruiseVehicle::UpdateEngineSound(const FSimCruiseVehicleTelemetry& Telemetry, bool bInSeat)
+void ASimCruiseVehicle::UpdateEngineSound(const FSimCruiseVehicleTelemetry& Telemetry, bool bInSeat, float DeltaSeconds)
 {
 	const ASimCruisePlayerController* Player = Cast<ASimCruisePlayerController>(GetController());
 	const bool bElectric = VehicleMovement->GetCarDefinition().EngineKind == TEXT("electric");
 	// An electric car has no combustion sound (a motor voice is future work); headless
 	// runs have no audio device.
-	const bool bWant = Player && Player->IsSoundOn() && !bElectric && CVarEngineSound.GetValueOnGameThread() != 0
-		&& GetWorld() && GetWorld()->GetAudioDevice().IsValid();
+	const bool bSound = Player && Player->IsSoundOn() && GetWorld() && GetWorld()->GetAudioDevice().IsValid();
+	UpdateRoadNoise(Telemetry, bInSeat, bSound && CVarRoadNoise.GetValueOnGameThread() != 0, DeltaSeconds);
+	const bool bWant = bSound && !bElectric && CVarEngineSound.GetValueOnGameThread() != 0;
 	if (!bWant)
 	{
 		if (EngineSound && EngineSound->IsPlaying()) EngineSound->Stop();
@@ -431,6 +434,67 @@ void ASimCruiseVehicle::UpdateEngineSound(const FSimCruiseVehicleTelemetry& Tele
 	{
 		EngineSound->Start();
 		UE_LOG(LogSimCruiseVehiclePawn, Display, TEXT("Engine sound playing (inline-four voice, %d Hz, %s pickup)"), FSimCruiseInlineFourSynth::SampleRate, bInSeat ? TEXT("cabin") : TEXT("exterior"));
+	}
+}
+
+void ASimCruiseVehicle::UpdateRoadNoise(const FSimCruiseVehicleTelemetry& Telemetry, bool bInSeat, bool bWant, float DeltaSeconds)
+{
+	FSimCruiseDriveTelemetry Drive;
+	ToDriveTelemetry(VehicleMovement->GetCarDefinition(), Telemetry, Drive);
+	// Roughness: the suspension travel rate, high-passed so steady roll or dive does not
+	// read as a rough road; 0 smooth .. 1 rough (RoadNoise.gd update_roughness).
+	const double Dt = FMath::Max(static_cast<double>(DeltaSeconds), 1.0 / 240.0);
+	double Rate = 0.0;
+	for (int32 I = 0; I < 4; ++I)
+	{
+		const double Y = Drive.Wheels[I].SuspensionTravelM;
+		if (bTravelKnown) Rate += FMath::Min(1.5, FMath::Abs(Y - Travel[I]) / Dt);
+		Travel[I] = Y;
+	}
+	bTravelKnown = true;
+	Rate *= .25;
+	TravelSlow += (Rate - TravelSlow) * (1.0 - FMath::Exp(-Dt / .5));
+	Roughness += (FMath::Clamp((Rate - TravelSlow) / .35, 0.0, 1.0) - Roughness) * (1.0 - FMath::Exp(-Dt / .1));
+	if (!bWant)
+	{
+		if (RoadNoise && RoadNoise->IsPlaying()) RoadNoise->Stop();
+		return;
+	}
+	if (!RoadNoise)
+	{
+		RoadNoise = NewObject<USimCruiseRoadNoiseComponent>(this, TEXT("RoadNoise"));
+		RoadNoise->SetupAttachment(GetRootComponent());
+		RoadNoise->RegisterComponent();
+	}
+	const FSimCruiseCarDefinition& Car = VehicleMovement->GetCarDefinition();
+	FSimCruiseRoadNoiseSynth::FInputs In;
+	const double Speed = Drive.BodyVelocityMps.Size2D();
+	In.SpeedMps = Speed;
+	In.Bump = Roughness;
+	In.bCabin = bInSeat;
+	In.bTyres = true;
+	double Grip = 0.0;
+	int32 Contacts = 0;
+	// Slip angle counts as the car rolls (SimCruiseHaptics: none at a standstill).
+	const double LateralFeel = FMath::SmoothStep(SimCruiseHaptics::LateralFeelFromMps, SimCruiseHaptics::LateralFeelToMps, Speed);
+	for (int32 I = 0; I < 4; ++I)
+	{
+		const FSimCruiseDriveWheelTelemetry& W = Drive.Wheels[I];
+		Grip += W.bContact ? W.SurfaceGrip : 0.0;
+		Contacts += W.bContact ? 1 : 0;
+		FSimCruiseRoadNoiseSynth::FTyre& T = In.Tyres[I];
+		T.S = W.bContact ? SimCruiseHaptics::NormalizedSlip(W.SlipRatio, W.PeakSlipRatio, W.SlipAngleRad * LateralFeel, W.PeakSlipAngleRad) : 0.0;
+		T.Load = W.NormalLoadN / FMath::Max(Car.ReferenceCornerLoadN, 1.0);
+		// The contact patch slides at the ground speed times the combined slip.
+		T.Slide = Speed * FMath::Sqrt(FMath::Square(W.SlipRatio) + FMath::Square(FMath::Tan(FMath::Clamp(W.SlipAngleRad, -1.4, 1.4))));
+	}
+	In.Contact = Contacts / 4.0;
+	In.Grip = Contacts > 0 ? Grip / Contacts : 1.0;
+	RoadNoise->SetRoadState(In);
+	if (!RoadNoise->IsPlaying())
+	{
+		RoadNoise->Start();
+		UE_LOG(LogSimCruiseVehiclePawn, Display, TEXT("Road noise playing (tyres, road and wind, %d Hz stereo)"), FSimCruiseRoadNoiseSynth::SampleRate);
 	}
 }
 
