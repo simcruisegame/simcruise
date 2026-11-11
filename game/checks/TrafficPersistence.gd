@@ -13,7 +13,10 @@ extends SceneTree
 ## than 2 m + 3 v dt from where it was (no teleport), and no more than 0.5 m
 ## higher or lower. No car may first appear inside the view nearer than 260 m.
 ## Occlusion is not modelled, so a car hidden behind a building still counts as
-## in view: the check is stricter than the eye.
+## in view: the check is stricter than the eye. Headless, the visible rect
+## measures 1200 x 1200 (a narrower view across than a 16:9 window, so fewer
+## cars are in view) and Cockpit.gd builds no rear-view camera, so the mirror
+## rules are exercised only in a windowed run.
 ## Parked cars: a parking spot keeps its model for the whole drive.
 ## Windowed with PERSIST_SHOTS=/abs/dir it also saves the frames before and
 ## after (side by side) each of the first events seen through the windscreen,

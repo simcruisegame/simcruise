@@ -591,6 +591,11 @@ func dead_end(car: Dictionary, lane: Array) -> void:
 ## the road below rather than lifting it onto the deck (Drive.surface).
 const HEIGHT_STEP := 6.
 func height(car: Dictionary, p: Vector2, lane: Array, near_y: float) -> float:
+ # A ghost segment's tile is gone, and with it the ground: Drive.ground() off
+ # the loaded tiles answers the player's own height, which in hilly country is
+ # metres above or below this car. It keeps its own height instead.
+ if car.seg >= real_count and is_finite(near_y):
+  car.hy = [];return near_y
  var hy: Array = car.hy
  if hy.size() == 4 and car.s >= hy[0] and car.s <= hy[2]:
   return lerpf(hy[1], hy[3], (car.s - hy[0]) / maxf(hy[2] - hy[0], .001))

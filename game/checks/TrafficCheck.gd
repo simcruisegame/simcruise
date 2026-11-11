@@ -94,6 +94,8 @@ func graph_fixture() -> void:
  life.rebuild_graph()
  expect(lone.seg >= life.real_count and life.segs[lone.seg][0] == Vector2(0, 240), "a car in view on an unloading tile did not keep a ghost segment")
  expect(life.options(lone.seg, -1).is_empty(), "a ghost segment joins the graph")
+ # Off the loaded tiles there is no ground to sample: the car keeps its own height.
+ expect(is_equal_approx(life.height(lone, Vector2(20, 240), [Vector2(20, 240), Vector2.RIGHT, 200., 0.], 12.5), 12.5), "a car on a ghost segment does not keep its own height")
  life.views = []
  # Rebase: the origin moves one tile east; the car keeps its segment, shifted.
  g.tiles[Vector2i(0, 0)] = a

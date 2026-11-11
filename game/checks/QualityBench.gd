@@ -44,7 +44,7 @@ func _process(dt):
   next();return
  if clock > 1.5:
   var v := get_viewport().get_viewport_rid()
-  rows.append([dt*1000., RenderingServer.viewport_get_measured_render_time_gpu(v), Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), RenderingServer.viewport_get_measured_render_time_cpu(v), Performance.get_monitor(Performance.TIME_PROCESS)*1000., Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000.])
+  rows.append([dt*1000., RenderingServer.viewport_get_measured_render_time_gpu(v), Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), RenderingServer.viewport_get_measured_render_time_cpu(v), Performance.get_monitor(Performance.TIME_PROCESS)*1000., Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000., game.ambient_life.cost_us / 1000.])
  if clock < HOLD:return
  var img := get_viewport().get_texture().get_image()
  img.save_jpg(out.path_join("quality-%s.jpg" % current), .88)
@@ -55,7 +55,7 @@ func _process(dt):
  for car in game.ambient_life.cars:
   if car.seg >= 0:nearest.append(snappedf(Vector2(car.pos.x, car.pos.z).distance_to(game.pos), .1))
  nearest.sort()
- report[current] = {"frame_ms": median(0), "gpu_ms": median(1), "draw_calls": median(2), "render_cpu_ms": median(3), "process_ms": median(4), "ambient_ms": game.ambient_life.cost_us / 1000., "drive_process_ms": drive_ms, "physics_ms": median(5), "scale": game.graphics.scale, "moving_cars": cars, "car_distances_m": nearest.slice(0, 6), "graph_segments": game.ambient_life.segs.size(), "fps": Engine.get_frames_per_second(), "vsync": DisplayServer.window_get_vsync_mode()}
+ report[current] = {"frame_ms": median(0), "gpu_ms": median(1), "draw_calls": median(2), "render_cpu_ms": median(3), "process_ms": median(4), "ambient_ms": game.ambient_life.cost_us / 1000., "ambient_median_ms": median(6), "ambient_p95_ms": quantile(6, .95), "drive_process_ms": drive_ms, "physics_ms": median(5), "scale": game.graphics.scale, "moving_cars": cars, "car_distances_m": nearest.slice(0, 6), "graph_segments": game.ambient_life.segs.size(), "fps": Engine.get_frames_per_second(), "vsync": DisplayServer.window_get_vsync_mode()}
  next()
 
 var drive_ms := {}
@@ -72,10 +72,13 @@ func _physics_process(_dt):
  var t3 := Time.get_ticks_usec();game.nearest_world();drive_ms["nearest_world"] = (Time.get_ticks_usec()-t3)/1000.
 
 func median(col: int) -> float:
+ return quantile(col, .5)
+
+func quantile(col: int, q: float) -> float:
  var vals := []
  for r in rows:vals.append(r[col])
  vals.sort()
- return vals[vals.size()/2] if vals.size() else -1.
+ return vals[mini(int(vals.size() * q), vals.size() - 1)] if vals.size() else -1.
 
 func overview():
  # A drone's view straight down the street, 60 m up behind the car: proves the
