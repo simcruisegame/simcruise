@@ -75,6 +75,17 @@ namespace
 	}
 }
 
+const TCHAR* SimCruiseParkedCars::CarFor(uint8 Pick)
+{
+	FString Id = ParkedCarFor(Pick);
+	return UnfitCars.Contains(Id) ? TEXT("meridian_z") : ParkedCarFor(Pick);
+}
+
+FLinearColor SimCruiseParkedCars::ColourFor(uint8 Byte)
+{
+	return ParkedColourFor(Byte);
+}
+
 ASimCruiseWorldTile::ASimCruiseWorldTile()
 {
 	PrimaryActorTick.bCanEverTick = false;

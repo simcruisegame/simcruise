@@ -21,6 +21,13 @@ class USimCruiseWorldResources;
  * same triangles that are drawn. The actor sits at the tile's north-west
  * corner in the drive's local frame.
  */
+/** The cars that park (and drive): which model a random byte picks, and which body colour. */
+namespace SimCruiseParkedCars
+{
+	SIMCRUISE_API const TCHAR* CarFor(uint8 Pick);
+	SIMCRUISE_API FLinearColor ColourFor(uint8 Byte);
+}
+
 UCLASS(NotPlaceable, Transient)
 class SIMCRUISE_API ASimCruiseWorldTile : public AActor
 {

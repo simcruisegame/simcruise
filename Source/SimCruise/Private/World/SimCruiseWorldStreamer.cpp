@@ -1,6 +1,8 @@
 // Copyright SimCruise contributors. All Rights Reserved.
 
 #include "World/SimCruiseWorldStreamer.h"
+#include "World/SimCruiseTraffic.h"
+#include "Misc/App.h"
 
 #include "Async/Async.h"
 #include "Atlas/SimCruiseAtlasClient.h"
@@ -35,6 +37,14 @@ void ASimCruiseWorldStreamer::BeginPlay()
 	Config.MaxConcurrent = FMath::Max(1, MaxConcurrentBuilds);
 	Atlas = MakeShared<FSimCruiseAtlasClient, ESPMode::ThreadSafe>(Config);
 	Inbox = MakeShared<FInbox, ESPMode::ThreadSafe>();
+	// Moving traffic: scenery and obstacles, so drawn runs only (headless checks keep the roads empty).
+	if (FApp::CanEverRender() && GetWorld())
+	{
+		FActorSpawnParameters Params;
+		Params.ObjectFlags |= RF_Transient;
+		Traffic = GetWorld()->SpawnActor<ASimCruiseTraffic>(Params);
+		if (Traffic) Traffic->Streamer = this;
+	}
 	UE_LOG(LogSimCruiseWorld, Display, TEXT("World streamer ready; helper: %s; cache: %s"),
 		Config.IsConfigured() ? *Config.Executable : TEXT("(none: bundled tiles only)"), *Config.CacheDir);
 }

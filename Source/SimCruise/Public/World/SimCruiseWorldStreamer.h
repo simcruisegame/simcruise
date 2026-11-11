@@ -93,6 +93,10 @@ public:
 	/** How much the night lighting is on (0 day .. 1 night), from the sun's elevation. */
 	float GetLightsOn() const { return LightsOn; }
 
+	/** The moving traffic round the player (drawn runs only). */
+	UPROPERTY(Transient)
+	TObjectPtr<class ASimCruiseTraffic> Traffic;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
