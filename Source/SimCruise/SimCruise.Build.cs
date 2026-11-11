@@ -41,5 +41,12 @@ public class SimCruise : ModuleRules
 			"RHI",
 			"CinematicCamera"
 		});
+
+		// Environment: frame timing (RenderCore, RHI) for the graphics presets and perf sampler.
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"RenderCore",
+			"RHI"
+		});
 	}
 }
