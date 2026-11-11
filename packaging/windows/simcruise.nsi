@@ -1,7 +1,7 @@
 ; SimCruise Windows installer (NSIS 3). Built by scripts/build-windows.sh:
 ;   makensis -DVERSION=1.1.0 -DSTAGE=build/windows/stage -DOUTFILE=... packaging/windows/simcruise.nsi
 ; Installs per machine into Program Files, adds Start menu and optional desktop
-; shortcuts, an uninstaller and an "Apps & features" entry. The player's cache
+; shortcuts for all users, an uninstaller and an "Apps & features" entry. The player's cache
 ; and preferences live in %APPDATA%\Godot\app_userdata\SimCruise and are kept on
 ; uninstall unless the player ticks the box to remove them.
 Unicode true
@@ -26,7 +26,6 @@ Unicode true
 Name "${APP} ${VERSION}"
 OutFile "${OUTFILE}"
 InstallDir "$PROGRAMFILES64\${APP}"
-InstallDirRegKey HKLM "Software\${APP}" "InstallDir"
 RequestExecutionLevel admin
 SetCompressor /SOLID lzma
 ManifestDPIAware true
@@ -42,8 +41,9 @@ VIAddVersionKey "LegalCopyright" "MIT License; data and assets under their own l
 !define MUI_ICON "simcruise.ico"
 !define MUI_UNICON "simcruise.ico"
 !define MUI_ABORTWARNING
-!define MUI_FINISHPAGE_RUN "$INSTDIR\SimCruise.exe"
+!define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_TEXT "Play SimCruise now"
+!define MUI_FINISHPAGE_RUN_FUNCTION LaunchUnelevated
 !define MUI_FINISHPAGE_LINK "Project page, guides and bug reports"
 !define MUI_FINISHPAGE_LINK_LOCATION "${URL}"
 
@@ -64,10 +64,49 @@ Function .onInit
     Abort
   ${EndIf}
   SetRegView 64
+  ; A reinstall goes where the last install went (InstallDirRegKey cannot do
+  ; this: it is read before .onInit, in the 32-bit registry view). /D= wins.
+  ${If} $INSTDIR == "$PROGRAMFILES64\${APP}"
+    ReadRegStr $0 HKLM "Software\${APP}" "InstallDir"
+    ${If} $0 != ""
+      StrCpy $INSTDIR $0
+    ${EndIf}
+  ${EndIf}
+  ; Per-machine install: Start menu and desktop shortcuts for all users, so a
+  ; standard user who elevated with an administrator account still gets them.
+  SetShellVarContext all
+FunctionEnd
+
+Function un.onInit
+  SetRegView 64
+  SetShellVarContext all
+FunctionEnd
+
+; The installer runs elevated; starting the game from it directly would run the
+; game as administrator with that account's %APPDATA%. Explorer starts it as the
+; signed-in user instead.
+Function LaunchUnelevated
+  Exec '"$WINDIR\explorer.exe" "$INSTDIR\SimCruise.exe"'
+FunctionEnd
+
+; Earlier builds of this installer put the shortcuts in the installing
+; account's own Start menu and desktop; an upgrade or uninstall removes those.
+!macro REMOVE_USER_SHORTCUTS
+  SetShellVarContext current
+  Delete "$DESKTOP\${APP}.lnk"
+  RMDir /r "$SMPROGRAMS\${APP}"
+  SetShellVarContext all
+!macroend
+Function RemoveUserShortcuts
+  !insertmacro REMOVE_USER_SHORTCUTS
+FunctionEnd
+Function un.RemoveUserShortcuts
+  !insertmacro REMOVE_USER_SHORTCUTS
 FunctionEnd
 
 Section "SimCruise (required)" SecGame
   SectionIn RO
+  Call RemoveUserShortcuts
   SetOutPath "$INSTDIR"
   File "${STAGE}\SimCruise.exe"
   File "${STAGE}\atlas.exe"
@@ -102,7 +141,6 @@ SectionEnd
 
 Section "un.SimCruise" SecUnGame
   SectionIn RO
-  SetRegView 64
   Delete "$INSTDIR\SimCruise.exe"
   Delete "$INSTDIR\atlas.exe"
   Delete "$INSTDIR\LICENSE.txt"
@@ -113,13 +151,17 @@ Section "un.SimCruise" SecUnGame
   RMDir "$INSTDIR"
   Delete "$DESKTOP\${APP}.lnk"
   RMDir /r "$SMPROGRAMS\${APP}"
+  Call un.RemoveUserShortcuts
   DeleteRegKey HKLM "${UNINSTALL_KEY}"
   DeleteRegKey HKLM "Software\${APP}"
 SectionEnd
 
 Section /o "un.Map cache and settings" SecUnData
-  ; Godot keeps user data per user under %APPDATA%.
+  ; Godot keeps user data per user under %APPDATA% (here: the account the
+  ; uninstaller runs as).
+  SetShellVarContext current
   RMDir /r "$APPDATA\Godot\app_userdata\SimCruise"
+  SetShellVarContext all
 SectionEnd
 
 LangString DESC_Game ${LANG_ENGLISH} "The game and its map helper."

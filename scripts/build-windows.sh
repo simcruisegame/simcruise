@@ -51,7 +51,8 @@ sed 's/$/\r/' LICENSE > "$stage/LICENSE.txt"
 sed 's/$/\r/' > "$stage/README.txt" <<EOF
 SimCruise $version for Windows
 
-Start SimCruise from the Start menu or the desktop shortcut.
+Installed: start SimCruise from the Start menu or the desktop shortcut.
+Portable zip: run SimCruise.exe in this folder (keep atlas.exe beside it).
 Press / to search for a place, Tab for the road atlas, C to change camera.
 Controls and help: https://github.com/simcruisegame/simcruise#how-to-play
 

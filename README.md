@@ -57,7 +57,7 @@ No account, no API keys, no subscription, no telemetry. The game talks directly 
 
 Get the latest release from the [Releases](https://github.com/simcruisegame/simcruise/releases) page:
 
-- **macOS** (Apple Silicon, macOS 13 or newer): `SimCruise-<version>-macos-arm64.zip`. Double-click it to unzip, drag **SimCruise** to Applications, and the first time Control-click it and choose **Open**.
+- **macOS** (Apple Silicon, macOS 13 or newer): `SimCruise-<version>-macos-arm64.zip`. Double-click it to unzip and drag **SimCruise** to Applications. The first time, Control-click it and choose **Open** (macOS 13–14), or on macOS 15 and later allow it under System Settings → Privacy & Security → **Open Anyway**.
 - **Windows** (64-bit Windows 10 or 11): `SimCruise-<version>-windows-x64-setup.exe` (installer with Start menu entry and uninstaller), or the portable `SimCruise-<version>-windows-x64.zip`.
 
 You need an internet connection for places outside the bundled starter area: without one the game starts in a small neighbourhood that works offline, Ocean Drive and the Flamingo Park blocks of Miami Beach, Florida. The builds are not code-signed, so macOS and Windows warn on first launch; [docs/install.md](docs/install.md) shows how to open them and where the game stores its cache.

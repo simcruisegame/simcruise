@@ -52,7 +52,7 @@ Start-Process C:\Temp\SimCruiseTest\Uninstall.exe -ArgumentList '/S','_?=C:\Temp
 Remove-Item -Recurse C:\Temp\SimCruiseTest   # the uninstaller cannot delete itself when run with _?=
 ```
 
-The silent uninstall keeps `%APPDATA%\Godot\app_userdata\SimCruise` (the "Map cache and settings" box is off by default).
+The silent uninstall keeps `%APPDATA%\Godot\app_userdata\SimCruise` (the "Map cache and settings" box is off by default). The installer writes its uninstall entry to `HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall\SimCruise` (64-bit view), puts its shortcuts in the all-users Start menu (`%ProgramData%\Microsoft\Windows\Start Menu\Programs\SimCruise`) and desktop, reinstalls into the folder recorded in `HKLM\Software\SimCruise` unless `/D=` names another, and starts the game from its last page through Explorer, so the game never runs as administrator.
 
 ## Building the Mac app on Windows
 

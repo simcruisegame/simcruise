@@ -17,7 +17,7 @@ Requirements: a Mac with Apple Silicon (M1 or later) running macOS 13 Ventura or
 1. Download `SimCruise-<version>-macos-arm64.zip` from this repository's Releases page.
 2. Double-click the zip in Downloads (Safari may already have unzipped it). It becomes **SimCruise**, the app.
 3. Drag **SimCruise** into **Applications** in a Finder window.
-4. In Applications, Control-click (right-click) **SimCruise** and choose **Open** the first time; macOS shows a Gatekeeper warning, see below.
+4. Open **SimCruise** from Applications. The first launch shows a Gatekeeper warning: on macOS 13–14 Control-click (right-click) it and choose **Open**; on macOS 15 and later use **Open Anyway** in Privacy & Security (details below).
 
 The Mac app is built on Windows by the project's release script and checked there (architecture, signature hashes, bundle seal), but each release should be started on a Mac before it is published. If yours does not open, please open an issue with your macOS version and what the dialog says. A disk image (`.dmg`), when one is attached, installs the same way: open it and drag SimCruise onto the Applications shortcut.
 
@@ -41,7 +41,7 @@ Requirements: 64-bit Windows 10 or 11, a graphics card with Vulkan or Direct3D 1
 
 1. Download `SimCruise-<version>-windows-x64-setup.exe` from the Releases page.
 2. Run it. Windows SmartScreen may say "Windows protected your PC", because this free open-source build is not code-signed (signing needs a paid certificate). Click **More info**, then **Run anyway**.
-3. Follow the installer. It adds SimCruise to the Start menu, optionally to the desktop, and to **Settings → Apps** for uninstalling.
+3. Follow the installer. It needs administrator rights once (it installs into Program Files for everyone on the PC), adds SimCruise to the Start menu for all users, optionally to the desktop, and to **Settings → Apps** for uninstalling. A later version installs over it, in the same folder.
 
 Prefer no installer? Unzip `SimCruise-<version>-windows-x64.zip` anywhere and run `SimCruise.exe`; keep `atlas.exe` beside it.
 

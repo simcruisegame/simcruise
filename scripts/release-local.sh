@@ -57,7 +57,7 @@ notes=build/release-notes-$version.md
   # page they would resolve under /releases/tag/, so point them at the tag.
   printf '%s\n' "$changelog" | sed -E "s#\]\(([^)#:/][^):]*)\)#](https://github.com/$repo/blob/$tag/\1)#g"
   printf '\n## Downloads\n\n'
-  printf -- '- **macOS** (Apple Silicon, macOS 13 or newer): `%s`. Double-click to unzip, drag **SimCruise** to Applications, then Control-click it and choose **Open** the first time.\n' "$mac"
+  printf -- '- **macOS** (Apple Silicon, macOS 13 or newer): `%s`. Double-click to unzip and drag **SimCruise** to Applications. The first time, Control-click it and choose **Open** (macOS 13–14), or on macOS 15 and later click **Open Anyway** under System Settings → Privacy & Security.\n' "$mac"
   printf -- '- **Windows** 10/11 64-bit: `%s` (installer) or `%s` (portable: unzip and run `SimCruise.exe`).\n' "$setup" "$portable"
   printf '\nThe Mac app is signed ad hoc but not notarized, and the Windows build is not code-signed, so macOS Gatekeeper and Windows SmartScreen ask once before the first launch; the steps are in [docs/install.md](https://github.com/%s/blob/%s/docs/install.md).\n' "$repo" "$tag"
   printf '\n### SHA-256\n\n```\n'
