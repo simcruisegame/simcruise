@@ -1,0 +1,5 @@
+{
+	"_note": "Unreal calibration (vehicle physics core, 2026-11-11). The 70-0 stop is brake-torque limited: all four drums roll at about 5 % slip and none locks above 11 m/s, so the estimated drum torques set the distance. Godot's 60 Hz body step read 259.3 ft (0.3 ft inside the band); the converged 360 Hz model reads 257.8 ft (outside). Both estimated torques are scaled by 0.975 with the front:rear bias unchanged, which puts the stop at Car Life's measured 20 ft/s2 (0.62 g, 264 ft from 70 mph). Nothing published is changed.",
+	"brake_front_nm": 809.0,
+	"brake_rear_nm": 488.0
+}

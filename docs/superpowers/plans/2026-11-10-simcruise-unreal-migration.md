@@ -90,15 +90,15 @@
 - Consumes: `FSimCruiseCarDefinition` from Task 2 and a Chaos rigid-body component.
 - Produces: a fixed-step simulation component with four explicit wheel/contact states and a narrow force-application adapter to Chaos.
 
-**Progress:** The first ported physics slice lives in `SimCruiseVehicleDynamics.h` plus the suspension, tire, and powertrain model implementation files. It preserves the Godot spring/damper and anti-roll equations, relaxed slip-angle response, load-sensitive combined tire force with wheel inertia, and torque-bias differential splits in SI units. Chaos integration and a body-level vehicle component remain outstanding.
+**Progress:** The first ported physics slice lives in `SimCruiseVehicleDynamics.h` plus the suspension, tire, and powertrain model implementation files. It preserves the Godot spring/damper and anti-roll equations, relaxed slip-angle response, load-sensitive combined tire force with wheel inertia, and torque-bias differential splits in SI units. The vehicle core (branch `unreal/vehicle-core`) puts the full Powertrain.gd model on Chaos: `ASimCruiseVehicle` and `USimCruiseVehicleMovementComponent` run it in a Chaos sim callback on the physics thread at a fixed 360 Hz; see `docs/unreal-architecture.md`. The flat test pad is spawned at runtime by the automation benches, so no `Content/Maps/VehicleBench` map is needed.
 
 - [x] Port the spring-rate, damper, anti-roll, relaxed-slip, combined-tire-force, wheel-inertia, and FWD/RWD/AWD differential calculations as SI-unit model helpers.
 
-- [ ] Spike the installed engine's supported physics callback/substep path and prove per-wheel forces can be evaluated safely at the chosen rate before committing to that integration point.
-- [ ] Implement SI-unit suspension, wheel angular inertia, tire slip state, combined longitudinal/lateral grip with load sensitivity, transient relaxation, and aligning moment using a data-driven tire law.
-- [ ] Implement engine/motor, clutch/torque converter, gearbox, differential, service/parking brakes, ABS, traction control, aerodynamic drag, rolling resistance, and reverse-selection interlock from car data.
-- [ ] Keep contact and force calculations deterministic for the same definition, controls, initial conditions, and fixed-step sequence.
-- [ ] Verify force direction, unit conversion, static load balance, wheel contact, low-speed gear behavior, and bounded behavior under tire saturation before adding world complexity.
+- [x] Spike the installed engine's supported physics callback/substep path and prove per-wheel forces can be evaluated safely at the chosen rate before committing to that integration point. Done: Chaos `TSimCallbackObject::OnPreSimulate_Internal` at the async fixed step; `SimCruise.Vehicle.Chaos.ForceIntegration` and `Convergence.<car>` chose 360 Hz.
+- [ ] Implement SI-unit suspension, wheel angular inertia, tire slip state, combined longitudinal/lateral grip with load sensitivity, transient relaxation, and aligning moment using a data-driven tire law. Done except the aligning moment (next, with force feedback).
+- [x] Implement engine/motor, clutch/torque converter, gearbox, differential, service/parking brakes, ABS, traction control, aerodynamic drag, rolling resistance, and reverse-selection interlock from car data.
+- [x] Keep contact and force calculations deterministic for the same definition, controls, initial conditions, and fixed-step sequence.
+- [x] Verify force direction, unit conversion, static load balance, wheel contact, low-speed gear behavior, and bounded behavior under tire saturation before adding world complexity.
 
 ### Task 4: Calibrate retained cars against road-test evidence
 
@@ -111,11 +111,11 @@
 - Consumes: the vehicle component from Task 3 and the published targets and procedures in `docs/cars.md`.
 - Produces: reproducible calibration reports that identify source values, estimated values, tolerances, and open data gaps for each retained car.
 
-- [ ] Recreate the existing 0–60 mph, 70–0 mph, skidpad, reverse interlock, lift-off, and trail-braking procedures with matching starting conditions and measurement definitions.
-- [ ] Preserve the existing tolerance bands unless a primary source justifies a change; retain each car's documented exception/open item.
-- [ ] Add combined-slip, step-steer/S-bend, bump/contact, and timestep-convergence procedures where defensible real targets or stability criteria exist.
-- [ ] Tune only fields explicitly marked estimated; do not scale published engine torque or hide gaps behind a visual-feel adjustment.
-- [ ] Verify all three cars independently and record the data provenance and remaining unknowns in the report.
+- [x] Recreate the existing 0–60 mph, 70–0 mph, skidpad, reverse interlock, lift-off, and trail-braking procedures with matching starting conditions and measurement definitions.
+- [x] Preserve the existing tolerance bands unless a primary source justifies a change; retain each car's documented exception/open item.
+- [ ] Add combined-slip, step-steer/S-bend, bump/contact, and timestep-convergence procedures where defensible real targets or stability criteria exist. Timestep convergence done (`SimCruise.Vehicle.Convergence.<car>`); the others remain.
+- [x] Tune only fields explicitly marked estimated; do not scale published engine torque or hide gaps behind a visual-feel adjustment.
+- [x] Verify all three cars independently and record the data provenance and remaining unknowns in the report. Results and the one Unreal calibration overlay are in `docs/cars.md` ("The Unreal client's benches").
 
 ### Task 5: Connect Unreal to the existing atlas helper
 

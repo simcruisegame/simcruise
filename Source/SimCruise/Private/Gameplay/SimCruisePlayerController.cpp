@@ -1,0 +1,664 @@
+// Copyright SimCruise contributors. All Rights Reserved.
+
+#include "Gameplay/SimCruisePlayerController.h"
+
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
+#include "EnhancedPlayerInput.h"
+#include "Engine/LocalPlayer.h"
+#include "Engine/World.h"
+#include "GameFramework/Pawn.h"
+#include "Gameplay/SimCruiseGameMode.h"
+#include "Gameplay/SimCruiseHUD.h"
+#include "Gameplay/SimCruiseInputConfig.h"
+#include "Gameplay/SimCruisePlayerCameraManager.h"
+#include "HAL/IConsoleManager.h"
+#include "InputAction.h"
+#include "InputKeyEventArgs.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
+#include "Modules/ModuleManager.h"
+#include "UnrealClient.h"
+#include "Vehicle/SimCruiseVehicle.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogSimCruiseShell, Log, All);
+
+static TAutoConsoleVariable<float> CVarRumbleStrength(
+	TEXT("simcruise.Rumble.Strength"), 1.f,
+	TEXT("Pad rumble strength 0..1 (0 turns it off). Rumble reads tyre slip, ABS and road texture; it adds no force."));
+
+ASimCruisePlayerController::ASimCruisePlayerController()
+{
+	PlayerCameraManagerClass = ASimCruisePlayerCameraManager::StaticClass();
+	bShowMouseCursor = false;
+	bForceFeedbackEnabled = true;
+}
+
+void ASimCruisePlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+	RumbleBackend = FModuleManager::Get().IsModuleLoaded(TEXT("GameInputBase")) ? ESimCruiseRumbleBackend::GameInput : ESimCruiseRumbleBackend::XInput;
+	if (IsLocalController())
+	{
+		SetInputMode(FInputModeGameOnly());
+		ShowMessage(TEXT("RT or W to accelerate  ·  Y or C camera  ·  L3 or F2 HUD"), 6.f);
+		if (FParse::Param(FCommandLine::Get(), TEXT("SimCruiseShellSelfTest")))
+		{
+			SimCruiseShellSelfTest(1);
+		}
+		if (FParse::Param(FCommandLine::Get(), TEXT("SimCruiseShellCapture")))
+		{
+			SimCruiseShellCapture(1);
+		}
+	}
+}
+
+void ASimCruisePlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	StopRumble();
+	Super::EndPlay(EndPlayReason);
+}
+
+void ASimCruisePlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+	if (!InputConfig)
+	{
+		InputConfig = USimCruiseInputConfig::Create(this);
+	}
+	if (ULocalPlayer* Local = GetLocalPlayer())
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(Local))
+		{
+			Subsystem->AddMappingContext(InputConfig->DrivingContext, 0);
+		}
+	}
+	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(InputComponent);
+	if (!Input)
+	{
+		UE_LOG(LogSimCruiseShell, Error, TEXT("SimCruise needs Enhanced Input (DefaultInputComponentClass)."));
+		return;
+	}
+	Input->BindAction(InputConfig->ToggleTransmission, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnToggleTransmission);
+	Input->BindAction(InputConfig->ShiftUp, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnShiftUp);
+	Input->BindAction(InputConfig->ShiftDown, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnShiftDown);
+	Input->BindAction(InputConfig->StartEngine, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnStartEngine);
+	Input->BindAction(InputConfig->CycleCamera, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnCycleCamera);
+	Input->BindAction(InputConfig->CycleHud, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnCycleHud);
+	Input->BindAction(InputConfig->ToggleAtlas, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnToggleAtlas);
+	Input->BindAction(InputConfig->FindPlace, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnFindPlace);
+	Input->BindAction(InputConfig->Recover, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnRecover);
+	Input->BindAction(InputConfig->ToggleSound, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnToggleSound);
+	Input->BindAction(InputConfig->ToggleLights, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnToggleLights);
+	Input->BindAction(InputConfig->CycleLens, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnCycleLens);
+	Input->BindAction(InputConfig->ToggleStats, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnToggleStats);
+}
+
+void ASimCruisePlayerController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+	Shaper.Reset();
+	Haptics.Quiet();
+	if (InPawn)
+	{
+		// The command written this frame must reach the vehicle before it steps.
+		InPawn->AddTickPrerequisiteActor(this);
+	}
+	if (ISimCruiseVehicleControl* Vehicle = GetVehicle())
+	{
+		Setup = Vehicle->GetVehicleSetup();
+	}
+	if (ASimCruisePlayerCameraManager* Camera = GetSimCamera())
+	{
+		Camera->SnapNextFrame();
+	}
+}
+
+void ASimCruisePlayerController::OnUnPossess()
+{
+	// The released pawn no longer waits for this controller's command.
+	if (APawn* Previous = GetPawn())
+	{
+		Previous->RemoveTickPrerequisiteActor(this);
+	}
+	StopRumble();
+	Super::OnUnPossess();
+}
+
+ISimCruiseVehicleControl* ASimCruisePlayerController::GetVehicle() const
+{
+	return Cast<ISimCruiseVehicleControl>(GetPawn());
+}
+
+ASimCruiseHUD* ASimCruisePlayerController::GetSimHUD() const
+{
+	return Cast<ASimCruiseHUD>(MyHUD);
+}
+
+ASimCruisePlayerCameraManager* ASimCruisePlayerController::GetSimCamera() const
+{
+	return Cast<ASimCruisePlayerCameraManager>(PlayerCameraManager);
+}
+
+void ASimCruisePlayerController::ShowMessage(const FString& Text, float Seconds)
+{
+	UE_LOG(LogSimCruiseShell, Display, TEXT("%s"), *Text);
+	if (ASimCruiseHUD* Hud = GetSimHUD())
+	{
+		Hud->ShowMessage(Text, Seconds);
+	}
+	else
+	{
+		// The HUD arrives after BeginPlay; the start hint waits for it.
+		PendingMessage = Text;
+		PendingMessageSeconds = Seconds;
+	}
+}
+
+FSimCruiseRawControls ASimCruisePlayerController::ReadRawControls() const
+{
+	FSimCruiseRawControls Raw;
+	const UEnhancedPlayerInput* Input = Cast<UEnhancedPlayerInput>(PlayerInput);
+	if (!Input || !InputConfig)
+	{
+		return Raw;
+	}
+	auto Axis = [Input](const UInputAction* Action) { return static_cast<double>(Input->GetActionValue(Action).Get<float>()); };
+	auto Held = [Input](const UInputAction* Action) { return Input->GetActionValue(Action).Get<bool>(); };
+	Raw.PadSteer = Axis(InputConfig->SteerPad);
+	Raw.KeySteer = FMath::Clamp(Axis(InputConfig->SteerKey), -1.0, 1.0);
+	Raw.PadThrottle = FMath::Clamp(Axis(InputConfig->ThrottlePad), 0.0, 1.0);
+	Raw.PadBrake = FMath::Clamp(Axis(InputConfig->BrakePad), 0.0, 1.0);
+	Raw.bKeyThrottle = Held(InputConfig->ThrottleKey);
+	Raw.bKeyBrake = Held(InputConfig->BrakeKey);
+	Raw.bFullServiceBrake = Held(InputConfig->FullBrake);
+	Raw.bParkingBrake = Held(InputConfig->ParkingBrake);
+	Raw.bClutch = Held(InputConfig->Clutch);
+	return Raw;
+}
+
+void ASimCruisePlayerController::PlayerTick(float DeltaTime)
+{
+	Super::PlayerTick(DeltaTime);
+	if (!PendingMessage.IsEmpty())
+	{
+		if (ASimCruiseHUD* Hud = GetSimHUD())
+		{
+			Hud->ShowMessage(PendingMessage, PendingMessageSeconds);
+			PendingMessage.Reset();
+		}
+	}
+
+	ISimCruiseVehicleControl* Vehicle = GetVehicle();
+	if (!Vehicle)
+	{
+		StopRumble();
+		TickSelfTest(DeltaTime);
+		return;
+	}
+	Vehicle->GetVehicleTelemetry(Telemetry);
+	const FSimCruiseRawControls Raw = ReadRawControls();
+	if (FMath::Abs(Raw.PadSteer) > 0.0 || Raw.PadThrottle > 0.0 || Raw.PadBrake > 0.0)
+	{
+		bUsingGamepad = true;
+	}
+	else if (Raw.KeySteer != 0.0 || Raw.bKeyThrottle || Raw.bKeyBrake)
+	{
+		bUsingGamepad = false;
+	}
+	LastCommand = Shaper.Update(Setup, Telemetry, Raw, DeltaTime);
+	Vehicle->ApplyDriverCommand(LastCommand);
+	UpdateRumble(DeltaTime);
+	TickSelfTest(DeltaTime);
+	TickCapture(DeltaTime);
+}
+
+void ASimCruisePlayerController::UpdateRumble(float DeltaTime)
+{
+	const float Strength = FMath::Clamp(CVarRumbleStrength.GetValueOnGameThread(), 0.f, 1.f);
+	if (IsPaused() || Strength <= 0.f)
+	{
+		Haptics.Quiet();
+		StopRumble();
+		return;
+	}
+	LastRumble = Haptics.Sample(Telemetry, LastCommand.Throttle, LastCommand.Brake, DeltaTime);
+	const FForceFeedbackValues Values = SimCruiseHaptics::ToChannels(LastRumble, RumbleBackend);
+	const float Channel[4] = {Values.LeftLarge, Values.LeftSmall, Values.RightLarge, Values.RightSmall};
+	for (int32 I = 0; I < 4; ++I)
+	{
+		const float Intensity = Channel[I] * Strength;
+		const bool LL = I == 0, LS = I == 1, RL = I == 2, RS = I == 3;
+		if (Intensity > 0.001f)
+		{
+			RumbleHandles[I] = RumbleHandles[I] == 0
+				? PlayDynamicForceFeedback(Intensity, -1.f, LL, LS, RL, RS, EDynamicForceFeedbackAction::Start)
+				: PlayDynamicForceFeedback(Intensity, -1.f, LL, LS, RL, RS, EDynamicForceFeedbackAction::Update, RumbleHandles[I]);
+		}
+		else if (RumbleHandles[I] != 0)
+		{
+			PlayDynamicForceFeedback(0.f, 0.f, LL, LS, RL, RS, EDynamicForceFeedbackAction::Stop, RumbleHandles[I]);
+			RumbleHandles[I] = 0;
+		}
+	}
+}
+
+void ASimCruisePlayerController::StopRumble()
+{
+	for (int32 I = 0; I < 4; ++I)
+	{
+		if (RumbleHandles[I] != 0)
+		{
+			PlayDynamicForceFeedback(0.f, 0.f, I == 0, I == 1, I == 2, I == 3, EDynamicForceFeedbackAction::Stop, RumbleHandles[I]);
+			RumbleHandles[I] = 0;
+		}
+	}
+	LastRumble = FSimCruiseRumble();
+}
+
+void ASimCruisePlayerController::OnToggleTransmission()
+{
+	if (ISimCruiseVehicleControl* Vehicle = GetVehicle())
+	{
+		const bool bManual = !Telemetry.bManualTransmission;
+		Vehicle->SetManualTransmission(bManual);
+		ShowMessage(bManual ? TEXT("Manual · clutch + shift to select first gear") : TEXT("Automatic shifting"), 4.f);
+	}
+}
+
+void ASimCruisePlayerController::OnShiftUp()
+{
+	if (ISimCruiseVehicleControl* Vehicle = GetVehicle())
+	{
+		const FString Reply = Vehicle->RequestGearChange(1);
+		if (!Reply.IsEmpty()) { ShowMessage(Reply, 2.f); }
+	}
+}
+
+void ASimCruisePlayerController::OnShiftDown()
+{
+	if (ISimCruiseVehicleControl* Vehicle = GetVehicle())
+	{
+		const FString Reply = Vehicle->RequestGearChange(-1);
+		if (!Reply.IsEmpty()) { ShowMessage(Reply, 2.f); }
+	}
+}
+
+void ASimCruisePlayerController::OnStartEngine()
+{
+	if (ISimCruiseVehicleControl* Vehicle = GetVehicle())
+	{
+		Vehicle->RequestEngineStart();
+	}
+}
+
+void ASimCruisePlayerController::OnCycleCamera()
+{
+	if (ASimCruisePlayerCameraManager* Camera = GetSimCamera())
+	{
+		Camera->CycleView();
+		ShowMessage(ASimCruisePlayerCameraManager::ViewName(Camera->GetView()), 1.5f);
+	}
+}
+
+void ASimCruisePlayerController::OnCycleHud()
+{
+	if (ASimCruiseHUD* Hud = GetSimHUD())
+	{
+		Hud->CycleLevel();
+	}
+}
+
+void ASimCruisePlayerController::OnToggleAtlas()
+{
+	ShowMessage(TEXT("Road atlas is not ported to Unreal yet"), 2.5f);
+}
+
+void ASimCruisePlayerController::OnFindPlace()
+{
+	ShowMessage(TEXT("Place search is not ported to Unreal yet"), 2.5f);
+}
+
+void ASimCruisePlayerController::OnRecover()
+{
+	if (ASimCruiseGameMode* Mode = GetWorld() ? GetWorld()->GetAuthGameMode<ASimCruiseGameMode>() : nullptr)
+	{
+		Mode->RecoverVehicle(this);
+		Shaper.Reset();
+		Haptics.Quiet();
+		if (ASimCruisePlayerCameraManager* Camera = GetSimCamera())
+		{
+			Camera->SnapNextFrame();
+		}
+	}
+}
+
+void ASimCruisePlayerController::OnToggleSound()
+{
+	bSoundOn = !bSoundOn;
+	ShowMessage(bSoundOn ? TEXT("Sound on") : TEXT("Sound off"), 2.f);
+}
+
+void ASimCruisePlayerController::OnToggleLights()
+{
+	bLightsOn = !bLightsOn;
+	if (ASimCruiseVehicle* Car = Cast<ASimCruiseVehicle>(GetPawn()))
+	{
+		// Off returns the lamps to following the sun.
+		Car->bLampsOn = bLightsOn;
+	}
+	ShowMessage(bLightsOn ? TEXT("Lights on") : TEXT("Lights off"), 2.f);
+}
+
+void ASimCruisePlayerController::OnCycleLens()
+{
+	if (ASimCruisePlayerCameraManager* Camera = GetSimCamera())
+	{
+		Camera->CycleLens();
+		ShowMessage(FString::Printf(TEXT("Lens · %s"), SimCruiseLens::Label(Camera->GetLens())), 2.f);
+	}
+}
+
+void ASimCruisePlayerController::OnToggleStats()
+{
+	bStatsShown = !bStatsShown;
+	ConsoleCommand(TEXT("stat fps"));
+	ConsoleCommand(TEXT("stat unit"));
+}
+
+// --- Self-test -------------------------------------------------------------
+
+void ASimCruisePlayerController::SimCruiseShellSelfTest(int32 Quit)
+{
+	SelfTestStage = 0;
+	SelfTestClock = 0.f;
+	bSelfTestQuit = Quit != 0;
+	SelfTestFailure.Reset();
+	UE_LOG(LogSimCruiseShell, Display, TEXT("SimCruise shell self-test started"));
+}
+
+void ASimCruisePlayerController::InjectKey(const FKey& Key, bool bPressed)
+{
+	InputKey(FInputKeyEventArgs::CreateSimulated(Key, bPressed ? IE_Pressed : IE_Released, bPressed ? 1.f : 0.f));
+}
+
+void ASimCruisePlayerController::InjectAxis(const FKey& Key, float Value)
+{
+	InputKey(FInputKeyEventArgs::CreateSimulated(Key, IE_Axis, Value));
+}
+
+void ASimCruisePlayerController::TickSelfTest(float DeltaTime)
+{
+	if (SelfTestStage < 0)
+	{
+		return;
+	}
+	SelfTestClock += DeltaTime;
+	const double Rack = Shaper.GetRackAngleRad();
+	ASimCruisePlayerCameraManager* Camera = GetSimCamera();
+	ASimCruiseHUD* Hud = GetSimHUD();
+	auto Fail = [this](const FString& Why) { SelfTestFailure = Why; SelfTestStage = 100; };
+	auto Next = [this]() { ++SelfTestStage; SelfTestClock = 0.f; };
+
+	switch (SelfTestStage)
+	{
+	case 0: // settle; the vehicle must exist (a drive on the real place places it once the road is built)
+		if (SelfTestClock > 0.5f && HasVehicle())
+		{
+			Next();
+		}
+		else if (SelfTestClock > 300.f)
+		{
+			Fail(TEXT("no ISimCruiseVehicleControl pawn possessed"));
+		}
+		break;
+	case 1: // left stick, a third to the left
+		InjectAxis(EKeys::Gamepad_LeftX, -0.30f);
+		if (SelfTestClock > 0.5f)
+		{
+			if (!(Rack < 0.0) || !Shaper.IsUsingThumbstick()) { Fail(FString::Printf(TEXT("left stick routing: rack %.4f"), Rack)); break; }
+			Next();
+		}
+		break;
+	case 2:
+		InjectAxis(EKeys::Gamepad_LeftX, 0.30f);
+		if (SelfTestClock > 0.6f)
+		{
+			if (!(Rack > 0.0)) { Fail(FString::Printf(TEXT("right stick direction: rack %.4f"), Rack)); break; }
+			Next();
+		}
+		break;
+	case 3:
+		InjectAxis(EKeys::Gamepad_LeftX, 0.f);
+		if (SelfTestClock > 0.6f)
+		{
+			if (FMath::Abs(Rack) > 1e-4) { Fail(FString::Printf(TEXT("stick did not centre: rack %.5f"), Rack)); break; }
+			InjectKey(EKeys::A, true);
+			Next();
+		}
+		break;
+	case 4: // A held: full left lock at standstill
+		if (SelfTestClock > 1.6f)
+		{
+			const double Range = SimCruiseShaping::AvailableSteeringRad(Setup, Telemetry.BodyVelocityMps.X);
+			if (Rack > -0.95 * Range) { Fail(FString::Printf(TEXT("keyboard full lock: rack %.4f of %.4f"), Rack, Range)); break; }
+			InjectKey(EKeys::A, false);
+			Next();
+		}
+		break;
+	case 5:
+		if (SelfTestClock > 1.0f)
+		{
+			if (FMath::Abs(Rack) > 1e-4) { Fail(FString::Printf(TEXT("key release did not centre: rack %.5f"), Rack)); break; }
+			SelfTestViewBefore = Camera ? static_cast<int32>(Camera->GetView()) : -1;
+			SelfTestHudBefore = Hud ? static_cast<int32>(Hud->GetLevel()) : -1;
+			InjectKey(EKeys::Gamepad_FaceButton_Top, true);
+			InjectKey(EKeys::Gamepad_LeftThumbstick, true);
+			Next();
+		}
+		break;
+	case 6: // Y cycles the camera, L3 the HUD
+		if (SelfTestClock > 0.05f && SelfTestClock - DeltaTime <= 0.05f)
+		{
+			InjectKey(EKeys::Gamepad_FaceButton_Top, false);
+			InjectKey(EKeys::Gamepad_LeftThumbstick, false);
+		}
+		if (SelfTestClock > 0.2f)
+		{
+			const int32 ViewNow = Camera ? static_cast<int32>(Camera->GetView()) : -1;
+			const int32 HudNow = Hud ? static_cast<int32>(Hud->GetLevel()) : -1;
+			if (ViewNow != (SelfTestViewBefore + 1) % 3) { Fail(TEXT("Y did not cycle the camera")); break; }
+			if (HudNow != (SelfTestHudBefore + 1) % 3) { Fail(TEXT("L3 did not cycle the HUD")); break; }
+			InjectKey(EKeys::C, true);
+			InjectKey(EKeys::F2, true);
+			Next();
+		}
+		break;
+	case 7: // C and F2 do the same from the keyboard
+		if (SelfTestClock > 0.05f && SelfTestClock - DeltaTime <= 0.05f)
+		{
+			InjectKey(EKeys::C, false);
+			InjectKey(EKeys::F2, false);
+		}
+		if (SelfTestClock > 0.2f)
+		{
+			const int32 ViewNow = Camera ? static_cast<int32>(Camera->GetView()) : -1;
+			const int32 HudNow = Hud ? static_cast<int32>(Hud->GetLevel()) : -1;
+			if (ViewNow != (SelfTestViewBefore + 2) % 3) { Fail(TEXT("C did not cycle the camera")); break; }
+			if (HudNow != (SelfTestHudBefore + 2) % 3) { Fail(TEXT("F2 did not cycle the HUD")); break; }
+			Next();
+		}
+		break;
+	case 8: // right trigger: full throttle, linear (one axis sample per frame)
+		if (SelfTestClock > 0.25f)
+		{
+			if (LastCommand.Throttle < 0.99f) { Fail(FString::Printf(TEXT("right trigger throttle %.3f"), LastCommand.Throttle)); break; }
+			Next();
+		}
+		InjectAxis(EKeys::Gamepad_RightTriggerAxis, SelfTestStage == 8 ? 1.f : 0.f);
+		break;
+	case 9: // trigger released: the pedal returns at once
+		InjectAxis(EKeys::Gamepad_RightTriggerAxis, 0.f);
+		if (SelfTestClock > 0.2f)
+		{
+			if (LastCommand.Throttle > 0.f) { Fail(FString::Printf(TEXT("right trigger release %.3f"), LastCommand.Throttle)); break; }
+			InjectKey(EKeys::W, true);
+			Next();
+		}
+		break;
+	case 10: // W: the pedal ramps like a foot, 3/s
+		if (SelfTestClock >= 0.30f)
+		{
+			if (LastCommand.Throttle < 0.75f || LastCommand.Throttle > 0.99f) { Fail(FString::Printf(TEXT("W ramp after 0.3 s: %.3f"), LastCommand.Throttle)); break; }
+			InjectKey(EKeys::W, false);
+			Next();
+		}
+		break;
+	case 11: // left trigger half way: brake past the dead zone
+		if (SelfTestClock > 0.25f)
+		{
+			const float Expected = (0.5f - 0.04f) / 0.96f;
+			if (FMath::Abs(LastCommand.Brake - Expected) > 0.03f) { Fail(FString::Printf(TEXT("left trigger brake %.3f, expected %.3f"), LastCommand.Brake, Expected)); break; }
+			Next();
+		}
+		InjectAxis(EKeys::Gamepad_LeftTriggerAxis, SelfTestStage == 11 ? 0.5f : 0.f);
+		break;
+	case 12:
+		InjectAxis(EKeys::Gamepad_LeftTriggerAxis, 0.f);
+		if (SelfTestClock > 0.2f)
+		{
+			if (Camera) { Camera->SetView(ESimCruiseView::Driver); }
+			if (Hud) { Hud->SetLevel(ESimCruiseHudLevel::Glance); }
+			SelfTestStage = 100;
+		}
+		break;
+	default:
+		break;
+	}
+
+	if (SelfTestStage == 100)
+	{
+		const bool bPassed = SelfTestFailure.IsEmpty();
+		UE_LOG(LogSimCruiseShell, Display, TEXT("SIMCRUISE SHELL SELF-TEST %s %s"), bPassed ? TEXT("PASSED") : TEXT("FAILED"),
+			bPassed ? TEXT("stick both ways, exact centre, key full lock, Y/L3/C/F2, RT linear, W ramp, LT dead zone") : *SelfTestFailure);
+		SelfTestStage = -1;
+		if (bSelfTestQuit)
+		{
+			// A graceful exit always returns 0 on Windows (the code given to
+			// PostQuitMessage is dropped), so a failure exits forcibly with 1,
+			// as the automation command line does, after flushing the log.
+			if (bPassed)
+			{
+				FPlatformMisc::RequestExit(false, TEXT("SimCruiseShellSelfTest"));
+			}
+			else
+			{
+				FPlatformMisc::RequestExitWithStatus(true, 1, TEXT("SimCruiseShellSelfTest"));
+			}
+		}
+	}
+}
+
+// --- Documentation capture ---------------------------------------------------
+
+void ASimCruisePlayerController::SimCruiseShellCapture(int32 Quit)
+{
+	CaptureClock = 0.f;
+	CaptureShot = 0;
+	CaptureTraceTick = -1;
+	bCaptureQuit = Quit != 0;
+	UE_LOG(LogSimCruiseShell, Display, TEXT("SimCruise shell capture started"));
+}
+
+void ASimCruisePlayerController::TickCapture(float DeltaTime)
+{
+	if (CaptureClock < 0.f || !HasVehicle())
+	{
+		// The timeline starts when the car is on the road.
+		return;
+	}
+	CaptureClock += DeltaTime;
+	const float T = CaptureClock;
+	ASimCruisePlayerCameraManager* Camera = GetSimCamera();
+	ASimCruiseHUD* Hud = GetSimHUD();
+
+	// Timeline (s after Settle): 0-6 full throttle; 6-11 three-quarter throttle
+	// with the stick 60 % right; 11-11.3 lift, stick half right and a 0.3 s
+	// pull of the parking brake (A) to step the rear out; 11.3-12.5 answer
+	// the slide by aiming the front wheels along the front axle's travel
+	// beta_f (stick = beta_f / (|beta_f| + surplus); the countersteer
+	// allowance lets the rack follow past the speed cap); 12.5-16 hard
+	// braking until stopped. The 10 Hz slide trace records what happened.
+	const float Settle = 10.f;
+	const float S = T - Settle;
+	float Throttle = 0.f;
+	float Steer = 0.f;
+	float Brake = 0.f;
+	const double BetaFront = SimCruiseShaping::FrontAxleSlipAngleRad(Setup, Telemetry.BodyVelocityMps.X, Telemetry.BodyVelocityMps.Y, Telemetry.BodyAngularVelocityRadPerS.Z);
+	if (S > 0.f && S <= 6.f) { Throttle = 1.f; }
+	if (S > 6.f && S <= 11.f) { Throttle = 0.75f; Steer = 0.6f; }
+	if (S > 11.f && S <= 11.3f) { Steer = 0.5f; }
+	if (S > 11.3f && S <= 12.5f) { Steer = static_cast<float>(BetaFront / (FMath::Abs(BetaFront) + Setup.SteeringSlipLimitSurplusRad)); }
+	// A 10 Hz trace of the slide and its catch, for the record.
+	const int32 TraceTick = FMath::FloorToInt(S * 10.f);
+	if (S > 10.9f && S <= 13.5f && TraceTick != CaptureTraceTick)
+	{
+		CaptureTraceTick = TraceTick;
+		UE_LOG(LogSimCruiseShell, Display, TEXT("Slide trace t %.1f s: %.1f mph, stick %.2f, rack %.2f deg (range L %.2f R %.2f), front-axle slip %.1f deg, yaw rate %.1f deg/s"),
+			S, Telemetry.BodyVelocityMps.X * 2.236936, Steer, FMath::RadiansToDegrees(Shaper.GetRackAngleRad()),
+			FMath::RadiansToDegrees(Shaper.GetRangeLeftRad()), FMath::RadiansToDegrees(Shaper.GetRangeRightRad()),
+			FMath::RadiansToDegrees(BetaFront), FMath::RadiansToDegrees(Telemetry.BodyAngularVelocityRadPerS.Z));
+	}
+	// Stop whichever way the car is rolling: in automatic, LT brakes forward
+	// motion and RT brakes backward motion (Powertrain.drive semantics).
+	if (S > 12.5f && S <= 16.f && Telemetry.BodyVelocityMps.X > 0.5) { Brake = 1.f; }
+	if (S > 12.5f && S <= 16.f && Telemetry.BodyVelocityMps.X < -0.5) { Throttle = 1.f; }
+	InjectAxis(EKeys::Gamepad_RightTriggerAxis, Throttle);
+	InjectAxis(EKeys::Gamepad_LeftTriggerAxis, Brake);
+	InjectAxis(EKeys::Gamepad_LeftX, Steer);
+	const bool bParkingBrake = S > 11.f && S <= 11.3f;
+	if (bParkingBrake != bCaptureParkingBrake)
+	{
+		InjectKey(EKeys::Gamepad_FaceButton_Bottom, bParkingBrake);
+		bCaptureParkingBrake = bParkingBrake;
+	}
+
+	struct FShot { float Time; ESimCruiseView View; ESimCruiseHudLevel Level; const TCHAR* Name; };
+	static const FShot Shots[] = {
+		{Settle - 1.0f, ESimCruiseView::Driver, ESimCruiseHudLevel::Glance, TEXT("shell-driver-parked")},
+		{Settle + 5.5f, ESimCruiseView::Driver, ESimCruiseHudLevel::Glance, TEXT("shell-driver-accelerating")},
+		{Settle + 9.5f, ESimCruiseView::Chase, ESimCruiseHudLevel::Glance, TEXT("shell-chase-cornering")},
+		{Settle + 11.6f, ESimCruiseView::Chase, ESimCruiseHudLevel::Full, TEXT("shell-chase-sliding")},
+		{Settle + 13.5f, ESimCruiseView::Driver, ESimCruiseHudLevel::Full, TEXT("shell-driver-braking")},
+		{Settle + 17.5f, ESimCruiseView::Scenic, ESimCruiseHudLevel::Off, TEXT("shell-scenic-stopped")},
+	};
+	constexpr int32 ShotCount = UE_ARRAY_COUNT(Shots);
+	if (CaptureShot < ShotCount)
+	{
+		const FShot& Shot = Shots[CaptureShot];
+		// Switch the view a little early so the camera's lags settle.
+		if (T > Shot.Time - 1.5f && Camera && Camera->GetView() != Shot.View) { Camera->SetView(Shot.View); }
+		if (T > Shot.Time - 1.5f && Hud && Hud->GetLevel() != Shot.Level) { Hud->SetLevel(Shot.Level); }
+		if (T >= Shot.Time)
+		{
+			FScreenshotRequest::RequestScreenshot(FString(Shot.Name), true, false);
+			UE_LOG(LogSimCruiseShell, Display, TEXT("Capture %s at %.1f mph, rack %.2f deg (range L %.2f R %.2f), body slip %.1f deg, front-axle slip %.1f deg, chase swing %.1f deg, rumble low %.2f high %.2f LT %.2f RT %.2f"), Shot.Name,
+				Telemetry.BodyVelocityMps.X * 2.236936, FMath::RadiansToDegrees(Shaper.GetRackAngleRad()),
+				FMath::RadiansToDegrees(Shaper.GetRangeLeftRad()), FMath::RadiansToDegrees(Shaper.GetRangeRightRad()),
+				FMath::RadiansToDegrees(FMath::Atan2(Telemetry.BodyVelocityMps.Y, FMath::Abs(Telemetry.BodyVelocityMps.X) + 0.01)),
+				FMath::RadiansToDegrees(BetaFront),
+				Camera ? FMath::RadiansToDegrees(Camera->GetChaseFrame().GetSwingRad()) : 0.0,
+				LastRumble.LowFrequency, LastRumble.HighFrequency, LastRumble.LeftTrigger, LastRumble.RightTrigger);
+			++CaptureShot;
+		}
+	}
+	else if (T > Settle + 19.f)
+	{
+		CaptureClock = -1.f;
+		UE_LOG(LogSimCruiseShell, Display, TEXT("SimCruise shell capture finished"));
+		if (bCaptureQuit)
+		{
+			FPlatformMisc::RequestExit(false);
+		}
+	}
+}

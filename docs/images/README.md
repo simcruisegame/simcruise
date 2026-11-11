@@ -8,6 +8,7 @@
 | `i180-viaduct.jpg` | Chase view on the I-180 viaduct over the Cheyenne rail yard (a streamed bridge deck). |
 | `road-atlas.jpg` | The road atlas (Tab) around Deals Gap. |
 | `simcruise-wordmark.png`, `simcruise-icon-1024.png` | Logo, made by `authoring/logo/make_logo.py`. |
+| `unreal-nb1999-front-34-left.jpg`, `unreal-mustang65-front-34-left.jpg`, `unreal-meridian-z-rear-34-left.jpg`, `unreal-nb1999-wheel.jpg`, `unreal-mustang65-steer-driver.jpg` | The Unreal client's car turntable (`SimCruiseTurntableGameMode`, scalability 4, Lumen), 11 November 2026, scaled to 1200 px; see [unreal-building.md](../unreal-building.md). Car models CC BY 4.0 by their Sketchfab authors (`Credits.txt`). |
 
 ## Regenerating the screenshots
 
