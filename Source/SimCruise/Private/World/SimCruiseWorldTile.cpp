@@ -36,8 +36,8 @@ namespace
 	{
 		struct FShare { int32 UpTo; const TCHAR* Id; };
 		static const FShare Shares[] = {
-			{ 30, TEXT("nb1999") }, { 60, TEXT("mustang65") }, { 90, TEXT("meridian_z") }, { 130, TEXT("model3") },
-			{ 170, TEXT("grandcherokee13") }, { 210, TEXT("f150raptor18") }, { 256, TEXT("odyssey18") },
+			{ 25, TEXT("nb1999") }, { 50, TEXT("mustang65") }, { 75, TEXT("meridian_z") }, { 110, TEXT("model3") },
+			{ 145, TEXT("grandcherokee13") }, { 175, TEXT("f150raptor18") }, { 205, TEXT("odyssey18") }, { 256, TEXT("crv25") },
 		};
 		for (const FShare& Share : Shares)
 		{

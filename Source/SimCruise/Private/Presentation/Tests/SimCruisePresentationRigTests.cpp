@@ -220,7 +220,7 @@ bool FSimCruisePresentationRigParkedTest::RunTest(const FString& Parameters)
 	struct FCase { const TCHAR* Id; double LengthM; };
 	// Published overall lengths: Model 3 184.8 in, F-150 Raptor SuperCab 220.0 in,
 	// Grand Cherokee SRT8 (2013) 190.8 in, Odyssey (2018) 203.2 in.
-	const FCase Cases[] = { { TEXT("model3"), 4.694 }, { TEXT("f150raptor18"), 5.588 }, { TEXT("grandcherokee13"), 4.846 }, { TEXT("odyssey18"), 5.161 } };
+	const FCase Cases[] = { { TEXT("model3"), 4.694 }, { TEXT("f150raptor18"), 5.588 }, { TEXT("grandcherokee13"), 4.846 }, { TEXT("odyssey18"), 5.161 }, { TEXT("crv25"), 4.694 } };
 	for (const FCase& Case : Cases)
 	{
 		FString Error;
@@ -255,9 +255,9 @@ bool FSimCruisePresentationRigParkedTest::RunTest(const FString& Parameters)
 			for (const FVector3f& P : Section.Positions) { RearSum += P.X; ++RearCount; }
 		}
 		// The Odyssey's lamps are one textured material, front and back, drawn as authored.
-		if (RearCount == 0 && FCString::Strcmp(Case.Id, TEXT("odyssey18")) == 0)
+		if (RearCount == 0 && (FCString::Strcmp(Case.Id, TEXT("odyssey18")) == 0))
 		{
-			AddInfo(TEXT("odyssey18: lamps drawn as authored (one textured material front and back)"));
+			AddInfo(FString::Printf(TEXT("%s: lamps drawn as authored (one textured material)"), Case.Id));
 		}
 		else if (TestTrue(FString::Printf(TEXT("%s has rear-lamp surfaces"), Case.Id), RearCount > 0))
 		{

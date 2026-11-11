@@ -388,6 +388,20 @@
     "ban_Material": "tyre",
     "chrome_Mat": "chrome"
    }
+  },
+  "crv25": {
+   "model": "data/art/traffic/crv25-91c66738/scene.gltf",
+   "credit": "\"2025 Honda CR-V 1.5 VTEC Turbo CVT\" by Palma123 JAAT (https://sketchfab.com/3d-models/2025-honda-cr-v-15-vtec-turbo-cvt-91c6673859444597bf006a0ef8570005), CC BY 4.0",
+   "parked": {
+    "wheelbase_m": 2.700, "front_track_m": 1.623, "rear_track_m": 1.641, "tyre_radius_m": 0.370, "tyre_width_m": 0.235,
+    "source": "Honda CR-V (2023-2025) specifications: wheelbase 106.3 in, track 63.9 / 64.6 in, length 184.8 in; 235/60R18 tyres (radius 228.6 + 141 mm)."
+   },
+   "roles": {
+    "paintBlue": "paint",
+    "GlassClear": "glass",
+    "winshield": "glass",
+    "redLamp": "lamp_rear"
+   }
   }
  }
 }
