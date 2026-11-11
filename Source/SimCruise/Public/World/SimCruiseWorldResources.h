@@ -91,6 +91,14 @@ public:
 
 namespace SimCruiseWorldMaterials
 {
+	/**
+	 * A runtime static mesh from tile mesh buffers (positions cm, normals, colours, two UV
+	 * sets), one material slot per buffer. Editor builds run the full build (tangents,
+	 * a mesh distance field for Lumen), asynchronously unless bWaitForCompile; other builds
+	 * the fast build. Null if the build fails.
+	 */
+	SIMCRUISE_API UStaticMesh* BuildRuntimeMesh(const FName Name, const TArray<const FSimCruiseMeshData*>& Parts, bool bWaitForCompile, bool bFullBuild = true);
+
 	/** Asset path of a layer's material (/Game/World/Materials/M_SimCruise<Layer>). */
 	SIMCRUISE_API FString AssetPath(ESimCruiseTileLayer Layer);
 	SIMCRUISE_API FString LayerName(ESimCruiseTileLayer Layer);

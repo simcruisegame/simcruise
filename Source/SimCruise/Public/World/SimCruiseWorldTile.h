@@ -9,6 +9,7 @@
 
 class UProceduralMeshComponent;
 class UInstancedStaticMeshComponent;
+class UStaticMeshComponent;
 class UMaterialInstanceDynamic;
 class UTexture2D;
 class USimCruiseWorldResources;
@@ -58,6 +59,10 @@ public:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> Materials;
 
+	/** What is drawn: the tile's layers as one static mesh (null in headless runs). */
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMeshComponent> RenderMesh;
+
 	/** The tile's palms, one instanced component per shared palm mesh. */
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UInstancedStaticMeshComponent>> PalmComponents;
@@ -67,4 +72,6 @@ private:
 	TSharedPtr<FSimCruiseTileBuild> Build;
 	mutable bool bCollisionReady = false;
 	float LightsOn = 0.f;
+	/** Static mesh slot -> tile layer. */
+	TArray<int32> RenderSlots;
 };

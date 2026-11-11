@@ -6,6 +6,7 @@
 #include "World/SimCruiseRoadNetwork.h"
 
 struct FSimCruiseTileData;
+class FStaticMeshRenderData;
 
 /** Mesh layers of a tile; each becomes one section of the tile's mesh component. */
 enum class ESimCruiseTileLayer : uint8
@@ -99,6 +100,14 @@ struct SIMCRUISE_API FSimCruiseTileBuild
 	// Every top-surface vertex of every carriageway, tile cm (collision checks).
 	TArray<FVector> CarriagewayPoints;
 
+	/**
+	 * What is drawn, ready-made on the worker: the layers as one static mesh's render data
+	 * (vertex and index buffers, one section per non-empty layer; RenderSlots maps section
+	 * to layer). Null in headless runs.
+	 */
+	TUniquePtr<FStaticMeshRenderData> RenderData;
+	TArray<int32> RenderSlots;
+
 	/** Palms to instance on this tile. */
 	TArray<FSimCruisePalmInstance> PalmInstances;
 
@@ -135,6 +144,9 @@ namespace SimCruiseTileBuilder
 	 * bend tighter than the offset (the drawn edge never folds over itself).
 	 */
 	SIMCRUISE_API void UnfoldLine(TArray<FVector2d>& Line, const TArray<FVector2d>& Tangents);
+
+	/** A static mesh's render data from mesh buffers (any thread; one section per part, 2 UV sets, colours). */
+	SIMCRUISE_API TUniquePtr<FStaticMeshRenderData> MakeRenderData(const TArray<const FSimCruiseMeshData*>& Parts);
 
 	/** Ear-clip a simple polygon (any winding); false if it could not be clipped. */
 	SIMCRUISE_API bool Triangulate(const TArray<FVector2d>& Ring, TArray<int32>& OutIndices);

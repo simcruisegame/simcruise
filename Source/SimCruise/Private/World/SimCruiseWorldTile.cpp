@@ -8,6 +8,11 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "ProceduralMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Materials/Material.h"
+#include "StaticMeshResources.h"
+#include "Misc/App.h"
 #include "Engine/StaticMesh.h"
 #include "World/SimCruiseGeo.h"
 #include "World/SimCruiseWorldResources.h"
@@ -31,6 +36,40 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 	Mesh->bUseAsyncCooking = bAsyncCollision;
 	Mesh->ClearAllMeshSections();
 
+	// What is drawn: one static mesh of every layer (static draw path, so virtual shadow
+	// pages stay cached; in editor builds a mesh distance field, so Lumen sees the street in
+	// reflections and shaded sides). The procedural mesh keeps only the collision and is
+	// hidden once the static mesh is built. Headless runs draw nothing and skip it.
+	if (RenderMesh)
+	{
+		RenderMesh->DestroyComponent();
+		RenderMesh = nullptr;
+	}
+	RenderSlots.Reset();
+	if (Resources && InBuild->RenderData)
+	{
+		// The worker filled the buffers: here they only become a mesh and go to the GPU.
+		UStaticMesh* Static = NewObject<UStaticMesh>(this, *FString::Printf(TEXT("SM_SimCruiseTile_%d_%d"), TileId.X, TileId.Y), RF_Transient);
+		for (int32 Slot = 0; Slot < InBuild->RenderSlots.Num(); ++Slot)
+		{
+			Static->GetStaticMaterials().Add(FStaticMaterial(UMaterial::GetDefaultMaterial(MD_Surface), *FString::Printf(TEXT("Layer%d"), InBuild->RenderSlots[Slot])));
+		}
+		Static->SetRenderData(MoveTemp(InBuild->RenderData));
+		Static->InitResources();
+		Static->CalculateExtendedBounds();
+		RenderSlots = InBuild->RenderSlots;
+		RenderMesh = NewObject<UStaticMeshComponent>(this, TEXT("RenderMesh"));
+		RenderMesh->SetMobility(EComponentMobility::Movable);
+		RenderMesh->SetupAttachment(Mesh);
+		RenderMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		RenderMesh->SetCastShadow(true);
+		RenderMesh->SetStaticMesh(Static);
+		RenderMesh->RegisterComponent();
+		AddInstanceComponent(RenderMesh);
+		// Drawn by the static mesh: the procedural mesh keeps only the collision.
+		Mesh->SetVisibility(false, false);
+	}
+
 	const TArray<FVector2D> NoUV;
 	for (int32 i = 0; i < static_cast<int32>(ESimCruiseTileLayer::Count); ++i)
 	{
@@ -52,6 +91,12 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 		const ESimCruiseTileLayer Kind = static_cast<ESimCruiseTileLayer>(i);
 		const bool bCollision = Kind == ESimCruiseTileLayer::Terrain || Kind == ESimCruiseTileLayer::Asphalt || Kind == ESimCruiseTileLayer::Concrete
 			|| Kind == ESimCruiseTileLayer::Building || Kind == ESimCruiseTileLayer::Props;
+		if (RenderMesh && !bCollision)
+		{
+			// Drawn by the static mesh only.
+			Layer.Positions.Empty(); Layer.Normals.Empty(); Layer.Colors.Empty(); Layer.Indices.Empty(); Layer.UV0.Empty(); Layer.UV1.Empty();
+			continue;
+		}
 		const bool bUVs = Layer.UV0.Num() == Layer.Positions.Num() && Layer.UV1.Num() == Layer.Positions.Num();
 		Mesh->CreateMeshSection_LinearColor(i, Layer.Positions, Layer.Indices, Layer.Normals, bUVs ? Layer.UV0 : NoUV, bUVs ? Layer.UV1 : NoUV, NoUV, NoUV,
 			Layer.Colors, Tangents, bCollision, false);
@@ -123,6 +168,11 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 			MID->SetScalarParameterValue(TEXT("Lights"), LightsOn);
 			Materials.Add(MID);
 			Mesh->SetMaterial(i, MID);
+			const int32 Slot = RenderSlots.IndexOfByKey(i);
+			if (RenderMesh && Slot != INDEX_NONE)
+			{
+				RenderMesh->SetMaterial(Slot, MID);
+			}
 		}
 	}
 }

@@ -444,7 +444,7 @@ return col;
 		// The palms are instanced static meshes drawn with the props (bark) and foliage materials.
 		if (Layer == ESimCruiseTileLayer::Props || Layer == ESimCruiseTileLayer::Foliage)
 		{
-			Material->bUsedWithInstancedStaticMeshes = true;
+			Material->SetUsageByFlag(MATUSAGE_InstancedStaticMeshes, true);
 		}
 		Material->GetEditorOnlyData()->BaseColor.Connect(0, Custom);
 		Material->GetEditorOnlyData()->Roughness.Connect(1, Custom);
@@ -509,10 +509,9 @@ void USimCruiseWorldResources::Initialise()
 	}
 }
 
-namespace
+namespace SimCruiseWorldMaterials
 {
-	/** A runtime static mesh from tile mesh buffers (positions cm, normals, colours, two UV sets), one slot per buffer. */
-	UStaticMesh* BuildRuntimeMesh(const FName Name, const TArray<const FSimCruiseMeshData*>& Parts)
+	UStaticMesh* BuildRuntimeMesh(const FName Name, const TArray<const FSimCruiseMeshData*>& Parts, bool bWaitForCompile, bool bFullBuild)
 	{
 		FMeshDescription Description;
 		FStaticMeshAttributes Attributes(Description);
@@ -559,6 +558,8 @@ namespace
 		Params.bCommitMeshDescription = true;
 		Params.bAllowCpuAccess = false;
 #if WITH_EDITOR
+		if (bFullBuild)
+		{
 		// The full build keeps the authored normals and makes a mesh distance field (Lumen).
 		Params.bFastBuild = false;
 		Mesh->SetNumSourceModels(1);
@@ -569,9 +570,17 @@ namespace
 		Build.bGenerateLightmapUVs = false;
 		Build.bRemoveDegenerates = true;
 		Build.bUseFullPrecisionUVs = true;
+		}
+		else
+		{
+			Params.bFastBuild = true;
+			FStaticMeshOperations::ComputeTriangleTangentsAndNormals(Description);
+			FStaticMeshOperations::ComputeTangentsAndNormals(Description, EComputeNTBsFlags::Tangents | EComputeNTBsFlags::WeightedNTBs);
+		}
 #else
 		Params.bFastBuild = true;
-		FStaticMeshOperations::ComputeTangentsAndNormals(Description, EComputeNTBsFlags::Tangents | EComputeNTBsFlags::WeightedNTBs);
+		FStaticMeshOperations::ComputeTriangleTangentsAndNormals(Description);
+			FStaticMeshOperations::ComputeTangentsAndNormals(Description, EComputeNTBsFlags::Tangents | EComputeNTBsFlags::WeightedNTBs);
 #endif
 		TArray<const FMeshDescription*> Descriptions = { &Description };
 		if (!Mesh->BuildFromMeshDescriptions(Descriptions, Params))
@@ -579,7 +588,10 @@ namespace
 			return nullptr;
 		}
 #if WITH_EDITOR
-		FStaticMeshCompilingManager::Get().FinishCompilation({ Mesh });
+		if (bWaitForCompile)
+		{
+			FStaticMeshCompilingManager::Get().FinishCompilation({ Mesh });
+		}
 #endif
 		return Mesh;
 	}
@@ -595,7 +607,7 @@ void USimCruiseWorldResources::BuildPalmMeshes()
 	{
 		FSimCruiseMeshData Trunk, Fronds;
 		SimCruiseTileDetail::BuildPalmVariant(Variant, Trunk, Fronds);
-		UStaticMesh* Mesh = BuildRuntimeMesh(*FString::Printf(TEXT("SM_SimCruisePalm%d"), Variant), { &Trunk, &Fronds });
+		UStaticMesh* Mesh = SimCruiseWorldMaterials::BuildRuntimeMesh(*FString::Printf(TEXT("SM_SimCruisePalm%d"), Variant), { &Trunk, &Fronds }, true, true);
 		if (!Mesh)
 		{
 			UE_LOG(LogSimCruiseWorldResources, Error, TEXT("Palm variant %d did not build"), Variant);

@@ -121,7 +121,7 @@ namespace SimCruiseCarClock
 			UMaterial* Built = NewObject<UMaterial>(GetTransientPackage(), TEXT("M_SimCruiseCarClock"), RF_Transient);
 			// The display is a section of a Nanite cabin part: a material without Nanite usage
 			// sends the whole part to its coarse fallback mesh.
-			Built->bUsedWithNanite = true;
+			Built->SetUsageByFlag(MATUSAGE_Nanite, true);
 			UMaterialExpressionCustom* Custom = NewObject<UMaterialExpressionCustom>(Built);
 			Built->GetExpressionCollection().AddExpression(Custom);
 			Custom->OutputType = CMOT_Float3;

@@ -3,6 +3,8 @@
 #include "World/SimCruiseTileBuilder.h"
 
 #include "HAL/PlatformTime.h"
+#include "Misc/App.h"
+#include "StaticMeshResources.h"
 #include "World/SimCruiseGeo.h"
 #include "World/SimCruiseTileData.h"
 #include "World/SimCruiseTileDetail.h"
@@ -311,6 +313,73 @@ int32 FSimCruiseMeshData::Add(const FVector& P, const FVector& N, const FLinearC
 bool SimCruiseTileBuilder::Triangulate(const TArray<FVector2d>& Ring, TArray<int32>& OutIndices)
 {
 	return EarClip(Ring, OutIndices);
+}
+
+TUniquePtr<FStaticMeshRenderData> SimCruiseTileBuilder::MakeRenderData(const TArray<const FSimCruiseMeshData*>& Parts)
+{
+	int32 VertexCount = 0, IndexCount = 0;
+	for (const FSimCruiseMeshData* Part : Parts)
+	{
+		VertexCount += Part->Positions.Num();
+		IndexCount += Part->Indices.Num();
+	}
+	if (VertexCount == 0)
+	{
+		return nullptr;
+	}
+	TUniquePtr<FStaticMeshRenderData> Data = MakeUnique<FStaticMeshRenderData>();
+	Data->AllocateLODResources(1);
+	FStaticMeshLODResources& LOD = Data->LODResources[0];
+	// Built here, not loaded from the derived-data cache.
+	LOD.bBuffersInlined = true;
+	TArray<FStaticMeshBuildVertex> Vertices;
+	Vertices.Reserve(VertexCount);
+	TArray<uint32> Indices;
+	Indices.Reserve(IndexCount);
+	FBox Box(ForceInit);
+	for (int32 S = 0; S < Parts.Num(); ++S)
+	{
+		const FSimCruiseMeshData& Part = *Parts[S];
+		const uint32 Base = static_cast<uint32>(Vertices.Num());
+		const bool bUVs = Part.UV0.Num() == Part.Positions.Num() && Part.UV1.Num() == Part.Positions.Num();
+		for (int32 V = 0; V < Part.Positions.Num(); ++V)
+		{
+			FStaticMeshBuildVertex Vertex;
+			Vertex.Position = FVector3f(Part.Positions[V]);
+			const FVector N = Part.Normals[V];
+			// A tangent square to every normal (as the procedural sections had).
+			FVector T = FMath::Abs(N.Z) < 0.9 ? FVector::CrossProduct(FVector::UpVector, N).GetSafeNormal() : FVector::CrossProduct(N, FVector::RightVector).GetSafeNormal() * -1.0;
+			if (T.IsNearlyZero()) T = FVector::ForwardVector;
+			Vertex.TangentZ = FVector3f(N);
+			Vertex.TangentX = FVector3f(T);
+			Vertex.TangentY = FVector3f(FVector::CrossProduct(N, T));
+			Vertex.UVs[0] = bUVs ? FVector2f(Part.UV0[V]) : FVector2f::ZeroVector;
+			Vertex.UVs[1] = bUVs ? FVector2f(Part.UV1[V]) : FVector2f::ZeroVector;
+			Vertex.Color = Part.Colors.IsValidIndex(V) ? Part.Colors[V].ToFColor(false) : FColor::White;
+			Vertices.Add(Vertex);
+			Box += Part.Positions[V];
+		}
+		FStaticMeshSection& Section = LOD.Sections.AddDefaulted_GetRef();
+		Section.MaterialIndex = S;
+		Section.FirstIndex = Indices.Num();
+		Section.NumTriangles = Part.Indices.Num() / 3;
+		Section.MinVertexIndex = Base;
+		Section.MaxVertexIndex = Base + FMath::Max(Part.Positions.Num() - 1, 0);
+		Section.bEnableCollision = false;
+		Section.bCastShadow = true;
+		for (const int32 I : Part.Indices) Indices.Add(Base + static_cast<uint32>(I));
+	}
+	// GPU only: the CPU copies would stay in memory for nothing (collision is the procedural mesh's).
+	LOD.VertexBuffers.PositionVertexBuffer.Init(Vertices, false);
+	LOD.VertexBuffers.StaticMeshVertexBuffer.SetUseFullPrecisionUVs(true);
+	LOD.VertexBuffers.StaticMeshVertexBuffer.Init(Vertices, 2, false);
+	LOD.VertexBuffers.ColorVertexBuffer.Init(Vertices, false);
+	// The materials read the vertex colours (paint, stucco, gravel and gutter masks).
+	LOD.bHasColorVertexData = true;
+	LOD.IndexBuffer.SetIndices(Indices, EIndexBufferStride::Force32Bit);
+	Data->Bounds = FBoxSphereBounds(Box);
+	Data->ScreenSize[0].Default = 1.0f;
+	return Data;
 }
 
 int32 FSimCruiseMeshData::Add(const FVector& P, const FVector& N, const FLinearColor& C, const FVector2D& InUV0, const FVector2D& InUV1)
@@ -1025,6 +1094,21 @@ namespace SimCruiseTileBuilder
 					}
 				}
 			}
+		}
+
+		// The drawn mesh's GPU buffers, filled here so the game thread only uploads them.
+		if (FApp::CanEverRender())
+		{
+			TArray<const FSimCruiseMeshData*> Parts;
+			for (int32 i = 0; i < static_cast<int32>(ESimCruiseTileLayer::Count); ++i)
+			{
+				if (!B.Layers[i].IsEmpty())
+				{
+					Parts.Add(&B.Layers[i]);
+					B.RenderSlots.Add(i);
+				}
+			}
+			B.RenderData = MakeRenderData(Parts);
 		}
 
 		B.BuildMs = (FPlatformTime::Seconds() - Started) * 1000.0;

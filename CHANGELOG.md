@@ -4,6 +4,7 @@ Notable changes to SimCruise, newest first. The format follows [Keep a Changelog
 
 ## Unreleased
 
+- **Tiles draw as static meshes** (`World/SimCruiseTileBuilder`, `SimCruiseWorldTile`) — the street tiles' drawing moved from procedural meshes to static meshes built on the worker thread, so their shadows are cached: High in the driver's seat 70 to 76 fps on the target laptop, the chase view 85 to 91; collision is unchanged.
 - **City sky glow at night** (`Environment/SimCruiseEnvironment`, `World/SimCruiseWorldStreamer`) — over built-up places the night horizon glows faintly warm from the street lights, so palms and roofs stand out against it; it was black. Open country stays dark.
 - **The roadster's gauges light up at night** (`CarPresentation.json`) — the cluster's numerals and ticks and the console labels are backlit like the real panel; at night the dashboard was black.
 - **The dashboard clock tells the time** (`Presentation/SimCruiseCarClock`, `CarPresentation.json` `clock`) — the roadster's clock always read 2:15; it now shows the local time at the place you drive (12-hour, US time zones and daylight saving time).
