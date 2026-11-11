@@ -68,27 +68,22 @@ FSimCruisePresetSpec FSimCruiseGraphics::Spec(ESimCruiseGraphicsPreset Preset)
 	case ESimCruiseGraphicsPreset::Low:
 		Out.ScalabilityLevel = 0;
 		Out.ScreenPercentage = 50.0f;
-		Out.CloudViewSampleScale = 0.5f;
 		Out.bLumenGI = false;
 		Out.bLumenReflections = false;
 		break;
 	case ESimCruiseGraphicsPreset::Medium:
 		Out.ScalabilityLevel = 1;
 		Out.ScreenPercentage = 58.0f;
-		Out.CloudViewSampleScale = 0.75f;
 		Out.bLumenGI = true;
 		Out.bLumenReflections = false;
 		break;
 	case ESimCruiseGraphicsPreset::High:
 		Out.ScalabilityLevel = 2;
 		Out.ScreenPercentage = 67.0f;
-		Out.CloudViewSampleScale = 1.0f;
 		break;
 	case ESimCruiseGraphicsPreset::Ultra:
 		Out.ScalabilityLevel = 3;
 		Out.ScreenPercentage = 75.0f;
-		Out.CloudViewSampleScale = 1.0f;
-		Out.bCloudHalfResolution = true;
 		break;
 	}
 	return Out;

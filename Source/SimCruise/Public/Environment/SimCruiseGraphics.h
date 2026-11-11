@@ -22,10 +22,6 @@ struct SIMCRUISE_API FSimCruisePresetSpec
 	int32 ScalabilityLevel = 2;
 	/** 3D resolution before TSR upscales to the output, percent of the output's height. */
 	float ScreenPercentage = 67.0f;
-	/** Volumetric clouds: ray-march sample scale for the main view. */
-	float CloudViewSampleScale = 1.0f;
-	/** Volumetric clouds: render at reduced resolution (r.VolumetricCloud.ReflectionRaySampleMaxCount aside). */
-	bool bCloudHalfResolution = true;
 	/** Lumen reflections on (else the sky light and screen-space reflections). */
 	bool bLumenReflections = true;
 	/** Lumen global illumination on (else the sky light with distance-field AO). */
