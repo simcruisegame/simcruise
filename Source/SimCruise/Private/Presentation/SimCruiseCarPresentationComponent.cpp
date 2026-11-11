@@ -8,6 +8,16 @@
 #include "Presentation/SimCruiseCarAssets.h"
 #include "Presentation/SimCruiseCarMaterialLibrary.h"
 
+namespace SimCruisePresentationComponentPrivate
+{
+	/** The wanted name when it is free under Outer, else a numbered variant. */
+	FName FreeName(UObject* Outer, const UClass* Class, FName Wanted)
+	{
+		return StaticFindObjectFast(nullptr, Outer, Wanted) ? MakeUniqueObjectName(Outer, Class, Wanted) : Wanted;
+	}
+}
+using SimCruisePresentationComponentPrivate::FreeName;
+
 USimCruiseCarPresentationComponent::USimCruiseCarPresentationComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -40,7 +50,9 @@ FQuat USimCruiseCarPresentationComponent::SteeringWheelTurn(double AngleRad)
 FRotator USimCruiseCarPresentationComponent::SpinRotation(float SpinAngleRad)
 {
 	// Rolling forward moves the top of the wheel forward: a negative pitch about the axle (Y).
-	return FRotator(-FMath::RadiansToDegrees(SpinAngleRad), 0.0, 0.0);
+	// Wrapped to one turn so an accumulated angle keeps its precision in degrees.
+	const double Wrapped = FMath::Fmod(static_cast<double>(SpinAngleRad), UE_DOUBLE_TWO_PI);
+	return FRotator(-FMath::RadiansToDegrees(Wrapped), 0.0, 0.0);
 }
 
 void USimCruiseCarPresentationComponent::ClearParts()
@@ -89,7 +101,10 @@ UStaticMeshComponent* USimCruiseCarPresentationComponent::MakeMeshComponent(USce
 	{
 		return nullptr;
 	}
-	UStaticMeshComponent* Component = NewObject<UStaticMeshComponent>(GetOwner(), Name);
+	// Unique names: an actor may carry several cars, and a re-initialised car's
+	// old parts keep their names until garbage collection.
+	UObject* Outer = GetOwner() ? static_cast<UObject*>(GetOwner()) : static_cast<UObject*>(this);
+	UStaticMeshComponent* Component = NewObject<UStaticMeshComponent>(Outer, FreeName(Outer, UStaticMeshComponent::StaticClass(), Name));
 	Component->SetMobility(EComponentMobility::Movable);
 	Component->SetupAttachment(Parent);
 	Component->SetRelativeTransform(Relative);
@@ -137,7 +152,9 @@ bool USimCruiseCarPresentationComponent::InitializeForCar(const FString& InCarId
 	AddPart(this, Built->Body, FTransform::Identity);
 	for (int32 W = 0; W < 4; ++W)
 	{
-		USceneComponent* Knuckle = NewObject<USceneComponent>(GetOwner(), FName(*FString::Printf(TEXT("%s_knuckle"), *Built->Wheels[W].Name.ToString())));
+		UObject* Outer = GetOwner() ? static_cast<UObject*>(GetOwner()) : static_cast<UObject*>(this);
+		const FName KnuckleName(*FString::Printf(TEXT("%s_knuckle"), *Built->Wheels[W].Name.ToString()));
+		USceneComponent* Knuckle = NewObject<USceneComponent>(Outer, FreeName(Outer, USceneComponent::StaticClass(), KnuckleName));
 		Knuckle->SetMobility(EComponentMobility::Movable);
 		Knuckle->SetupAttachment(this);
 		Knuckle->SetRelativeTransform(FTransform(StaticHubs[W]));

@@ -458,6 +458,12 @@ namespace SimCruiseRigPrivate
 		return Ring;
 	}
 
+	/** +1 when the driver sits right of the centreline (right-hand drive), -1 when left (Godot frame, X right). */
+	double DriverSide(const FVector& EyeGodot)
+	{
+		return EyeGodot.X > 0.0 ? 1.0 : -1.0;
+	}
+
 	FRing BestRing(const TArray<FComponent>& Parts, const FVector* Eye, TArray<FString>* Debug = nullptr)
 	{
 		FRing Best;
@@ -474,7 +480,8 @@ namespace SimCruiseRigPrivate
 				}
 				continue;
 			}
-			if (Eye && (R.Centre.X > -0.08 || FMath::Abs(R.Centre.X - Eye->X) > 0.45)) continue;
+			// On the driver's side of the centreline (the eye's side: left-hand or right-hand drive) and in front of him.
+			if (Eye && (R.Centre.X * DriverSide(*Eye) < 0.08 || FMath::Abs(R.Centre.X - Eye->X) > 0.45)) continue;
 			const double Score = R.Quality * FMath::Pow(double(Part.Points.Num()), 0.25);
 			if (Score > BestScore)
 			{
@@ -570,7 +577,7 @@ namespace SimCruiseRigPrivate
 			}
 			if (FMath::CountBits(Union) < 13 || Weight <= 0.0) continue;
 			Centre /= Weight;
-			if (Centre.X > -0.08 || FMath::Abs(Centre.X - Eye.X) > 0.45) continue;
+			if (Centre.X * DriverSide(Eye) < 0.08 || FMath::Abs(Centre.X - Eye.X) > 0.45) continue;
 			if (!Best.bValid || Radius / Weight > Best.Radius)
 			{
 				Best.bValid = true;
@@ -1212,6 +1219,93 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 		Context.Note(FString::Printf(TEXT("badge '%s': %d triangles removed"), *Area.Note, Removed));
 	}
 
+	// 8b. Surfaces that change role: their triangles move to a copy of the
+	// author material with the new role, so they get their own instance.
+	auto GiveRole = [&Context, &Model, &OutCar](const TArray<FTriRef>& Taken, ESimCruiseCarMaterialRole Role)
+	{
+		// The steering destination is empty until step 9: use it as the hand-over bin.
+		MoveTris(Context, Taken, DestBody, DestSteering);
+		const int32 JobCount = Context.Jobs.Num();
+		for (int32 J = 0; J < JobCount; ++J)
+		{
+			if (Context.Jobs[J].Dest[DestSteering].Num() == 0) continue;
+			const int32 Source = Context.Jobs[J].MaterialIndex;
+			int32 Extra = INDEX_NONE;
+			for (int32 E = 0; E < OutCar.ExtraMaterials.Num(); ++E)
+			{
+				if (OutCar.ExtraMaterials[E].Source == Source && OutCar.ExtraMaterials[E].Role == Role) Extra = Model.Materials.Num() + E;
+			}
+			if (Extra == INDEX_NONE)
+			{
+				Extra = Model.Materials.Num() + OutCar.ExtraMaterials.Num();
+				OutCar.ExtraMaterials.Add({Source, Role});
+			}
+			FJob Copy = Context.Jobs[J];
+			for (TArray<uint32>& List : Copy.Dest) List.Reset();
+			Copy.Dest[DestBody] = MoveTemp(Context.Jobs[J].Dest[DestSteering]);
+			Context.Jobs[J].Dest[DestSteering].Reset();
+			Copy.MaterialIndex = Extra;
+			Copy.Role = Role;
+			Copy.MaterialName += FString(TEXT("#")) + SimCruiseCarMaterialRoles::ToString(Role);
+			Context.Jobs.Add(MoveTemp(Copy));
+		}
+	};
+
+	// Role areas from the profile: parts of an atlas material that are really
+	// another surface (a tail-lamp lens) take that role and can light.
+	for (const FSimCruiseRoleArea& Area : Profile.RoleAreas)
+	{
+		TArray<int32> Which;
+		for (int32 J = 0; J < Context.Jobs.Num(); ++J)
+		{
+			if (!Area.Material.IsEmpty() && Context.Jobs[J].MaterialName != Area.Material) continue;
+			if (Context.Jobs[J].Role == ESimCruiseCarMaterialRole::Hidden) continue;
+			if (Context.Jobs[J].Dest[DestBody].Num() > 0) Which.Add(J);
+		}
+		const FVector A = UnrealMToGodot(Area.Box.Min), B = UnrealMToGodot(Area.Box.Max);
+		const FBox Box(A.ComponentMin(B), A.ComponentMax(B));
+		const TArray<FComponent> Parts = ConnectedParts(Context, Which, DestBody, [&Box](const FVector& P) { return Box.IsInsideOrOn(P); });
+		TArray<FTriRef> Taken;
+		int32 TakenParts = 0;
+		for (const FComponent& Part : Parts)
+		{
+			if (Part.bClipped) continue;
+			Taken.Append(Part.Tris);
+			++TakenParts;
+			if (FParse::Param(FCommandLine::Get(), TEXT("SimCruiseRigDebug")))
+			{
+				FBox PartBox(ForceInit);
+				for (const FVector& P : Part.Points) PartBox += GodotToUnrealCm(P) / 100.0;
+				Context.Note(FString::Printf(TEXT("  role area part %s..%s, %d triangles"), *V3(PartBox.Min), *V3(PartBox.Max), Part.Tris.Num()));
+			}
+		}
+		GiveRole(Taken, Area.Role);
+		Context.Note(FString::Printf(TEXT("role area '%s': %d parts, %d triangles -> %s"), *Area.Note, TakenParts, Taken.Num(),
+			SimCruiseCarMaterialRoles::ToString(Area.Role)));
+	}
+
+	// White lenses behind the axles are reversing (and plate) lamps, not head
+	// lamps: they stay clear glass instead of lighting with the head lamps.
+	{
+		TArray<FTriRef> Reverse;
+		for (int32 J = 0; J < Context.Jobs.Num(); ++J)
+		{
+			const FJob& Job = Context.Jobs[J];
+			if (Job.Role != ESimCruiseCarMaterialRole::LampFront) continue;
+			const TArray<uint32>& List = Job.Dest[DestBody];
+			for (int32 K = 0; K + 2 < List.Num(); K += 3)
+			{
+				// Godot frame: +Z is rearward of the axle midpoint.
+				if (Job.Pos[List[K]].Z > 0.0 && Job.Pos[List[K + 1]].Z > 0.0 && Job.Pos[List[K + 2]].Z > 0.0) Reverse.Add({J, K});
+			}
+		}
+		if (Reverse.Num() > 0)
+		{
+			GiveRole(Reverse, ESimCruiseCarMaterialRole::Glass);
+			Context.Note(FString::Printf(TEXT("white lenses behind the axles (reversing lamps): %d triangles kept unlit"), Reverse.Num()));
+		}
+	}
+
 	// 9. The cabin steering wheel (cars/rig-infra find_steering_wheel).
 	FTransform SteeringPivotG = FTransform::Identity; // Godot frame basis+origin (as a plain matrix carrier)
 	FVector SteerCentre = FVector::ZeroVector, SteerN = FVector::ZeroVector, SteerUp = FVector::ZeroVector;
@@ -1277,7 +1371,11 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 			}
 			if (!Ring.bValid)
 			{
-				const FBox Region(FVector(-HalfW, HubY + 0.15, FrontZ - 0.1), FVector(-0.05, HubY + 1.65, FrontZ - 0.1 + (RearZ - FrontZ) * 0.6));
+				// The driver's half of the cabin (left for left-hand drive, right for right-hand drive).
+				const double Side = DriverSide(Eye);
+				const double InnerX = 0.05 * Side, OuterX = HalfW * Side;
+				const FBox Region(FVector(FMath::Min(InnerX, OuterX), HubY + 0.15, FrontZ - 0.1),
+					FVector(FMath::Max(InnerX, OuterX), HubY + 1.65, FrontZ - 0.1 + (RearZ - FrontZ) * 0.6));
 				const TArray<FComponent> Parts = ConnectedParts(Context, BodyJobs, DestBody, [&Region](const FVector& P) { return Region.IsInsideOrOn(P); });
 				TArray<FString> Debug;
 				Ring = BestRing(Parts, &Eye, FParse::Param(FCommandLine::Get(), TEXT("SimCruiseRigDebug")) ? &Debug : nullptr);

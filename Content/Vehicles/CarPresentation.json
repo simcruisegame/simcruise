@@ -35,7 +35,11 @@
    "tints": {
     "interior_plastic": "#2e2f30"
    },
-   "badges": ["mazda"]
+   "badges": [
+    "mazda",
+    {"note": "MX-5 lettering on the tail panel, left of the plate", "box": [[-2.08, -0.52, 0.5], [-1.78, -0.24, 0.72]]},
+    {"note": "mazda wordmark on the tail panel, right of the plate", "box": [[-2.08, 0.24, 0.5], [-1.78, 0.52, 0.72]]}
+   ]
   },
   "mustang65": {
    "model": "game/art/traffic/mustang65-05f2a294/scene.gltf",
@@ -62,6 +66,10 @@
     "ford",
     {"note": "FORD letters on the bonnet lip", "box": [[1.98, -0.4, 0.55], [2.2, 0.4, 1.05]]},
     {"note": "running-horse grille emblem", "box": [[2.0, -0.17, 0.53], [2.5, 0.17, 0.74]]}
+   ],
+   "role_areas": [
+    {"note": "left tail-lamp lens segments (in the body's texture atlas; the chrome bezel reaches outside the box and stays)", "role": "lamp_rear", "material": "surfaceShader9SG", "box": [[-2.45, -0.66, 0.645], [-2.3, -0.47, 0.778]]},
+    {"note": "right tail-lamp lens segments (in the body's texture atlas)", "role": "lamp_rear", "material": "surfaceShader9SG", "box": [[-2.45, 0.47, 0.645], [-2.3, 0.66, 0.778]]}
    ]
   },
   "meridian_z": {

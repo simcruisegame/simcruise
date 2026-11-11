@@ -245,6 +245,32 @@ bool SimCruisePresentationProfiles::Load(const FString& CarId, FSimCruiseCarPres
 			}
 		}
 	}
+	const TArray<TSharedPtr<FJsonValue>>* RoleAreas = nullptr;
+	if (Car->TryGetArrayField(TEXT("role_areas"), RoleAreas) && RoleAreas)
+	{
+		for (const TSharedPtr<FJsonValue>& Value : *RoleAreas)
+		{
+			const TSharedPtr<FJsonObject> Object = Value.IsValid() && Value->Type == EJson::Object ? Value->AsObject() : nullptr;
+			FString RoleName;
+			const TArray<TSharedPtr<FJsonValue>>* Box = nullptr;
+			FSimCruiseRoleArea Area;
+			if (!Object.IsValid() || !Object->TryGetStringField(TEXT("role"), RoleName) || !SimCruiseCarMaterialRoles::FromString(RoleName, Area.Role) ||
+				!Object->TryGetArrayField(TEXT("box"), Box) || !Box || Box->Num() != 2 ||
+				(*Box)[0]->AsArray().Num() != 3 || (*Box)[1]->AsArray().Num() != 3)
+			{
+				OutError = Where + TEXT(".role_areas: each area needs a known 'role' and a 'box' of two [x,y,z] corners");
+				return false;
+			}
+			Object->TryGetStringField(TEXT("note"), Area.Note);
+			Object->TryGetStringField(TEXT("material"), Area.Material);
+			const TArray<TSharedPtr<FJsonValue>>& First = (*Box)[0]->AsArray();
+			const TArray<TSharedPtr<FJsonValue>>& Second = (*Box)[1]->AsArray();
+			const FVector A(First[0]->AsNumber(), First[1]->AsNumber(), First[2]->AsNumber());
+			const FVector B(Second[0]->AsNumber(), Second[1]->AsNumber(), Second[2]->AsNumber());
+			Area.Box = FBox(A.ComponentMin(B), A.ComponentMax(B));
+			OutProfile.RoleAreas.Add(Area);
+		}
+	}
 	const TSharedPtr<FJsonObject>* Steering = nullptr;
 	if (Car->TryGetObjectField(TEXT("steering_wheel"), Steering) && Steering)
 	{

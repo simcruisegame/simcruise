@@ -15,6 +15,20 @@ struct FSimCruiseBadgeArea
 	FBox Box = FBox(ForceInit);
 };
 
+/**
+ * A box (vehicle frame, metres) whose wholly contained parts take another
+ * role: for models that draw several kinds of surface with one texture-atlas
+ * material (a tail-lamp lens inside the body's atlas cannot light otherwise).
+ */
+struct FSimCruiseRoleArea
+{
+	FString Note;
+	/** Only parts of this author material, or any material when empty. */
+	FString Material;
+	ESimCruiseCarMaterialRole Role = ESimCruiseCarMaterialRole::Authored;
+	FBox Box = FBox(ForceInit);
+};
+
 /** The finish a car's paint role is given. Colours are linear. */
 struct FSimCruisePaintFinish
 {
@@ -60,6 +74,7 @@ struct FSimCruiseCarPresentationProfile
 	/** Per-role base colour overrides (linear), e.g. cloth or interior plastic shade. */
 	TMap<ESimCruiseCarMaterialRole, FLinearColor> RoleTints;
 	TArray<FSimCruiseBadgeArea> BadgeAreas;
+	TArray<FSimCruiseRoleArea> RoleAreas;
 	/** Extra case-insensitive regex applied to surface labels to hide them. */
 	FString HidePattern;
 

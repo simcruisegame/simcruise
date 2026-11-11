@@ -91,6 +91,30 @@ namespace SimCruisePresentationTests
 				Centre.X > Eye.X + 0.2 && Centre.X < Eye.X + 0.8 && Centre.Z < Eye.Z && FMath::Abs(Centre.Y - Eye.Y) < 0.15);
 			Test.TestTrue(CarId + TEXT(" steering column points forward"), R.SteeringWheel.PartToVehicle.GetUnitAxis(EAxis::X).X > 0.5);
 		}
+		// Every car shows brake lamps, and they sit at the back: the check that
+		// the model faces forward and that its tail lamps can light.
+		double RearSum = 0.0, FrontSum = 0.0;
+		int32 RearCount = 0, FrontCount = 0;
+		for (const FSimCruiseRigSection& Section : R.Body.Sections)
+		{
+			const bool bRear = Section.Role == ESimCruiseCarMaterialRole::LampRear;
+			const bool bFront = Section.Role == ESimCruiseCarMaterialRole::LampFront;
+			if (!bRear && !bFront) continue;
+			for (const FVector3f& P : Section.Positions)
+			{
+				(bRear ? RearSum : FrontSum) += P.X;
+				++(bRear ? RearCount : FrontCount);
+			}
+		}
+		Test.TestTrue(CarId + TEXT(" has rear-lamp surfaces (brake lamps can light)"), RearCount > 0);
+		if (RearCount > 0)
+		{
+			Test.TestTrue(FString::Printf(TEXT("%s rear lamps behind the axles (mean x %.2f m)"), *CarId, RearSum / RearCount / 100.0), RearSum / RearCount < -100.0);
+		}
+		if (FrontCount > 0)
+		{
+			Test.TestTrue(FString::Printf(TEXT("%s head lamps ahead of the axles (mean x %.2f m)"), *CarId, FrontSum / FrontCount / 100.0), FrontSum / FrontCount > 100.0);
+		}
 		// Length within 4 % of the published overall length when the profile knows it.
 		Test.TestTrue(CarId + TEXT(" model is a car-sized object"), R.ModelLengthM > 3.5 && R.ModelLengthM < 5.2 && R.ModelWidthM > 1.5 && R.ModelWidthM < 2.2);
 	}

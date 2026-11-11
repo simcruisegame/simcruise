@@ -89,6 +89,16 @@ struct FSimCruiseRiggedCar
 	double ModelHeightM = 0.0;
 	int32 BadgeTrianglesRemoved = 0;
 	int32 HiddenSurfaces = 0;
+	/**
+	 * Materials the rig adds after the model's own (index Model.Materials.Num() + I):
+	 * copies of an author material given another role by a profile role area.
+	 */
+	struct FExtraMaterial
+	{
+		int32 Source = INDEX_NONE;
+		ESimCruiseCarMaterialRole Role = ESimCruiseCarMaterialRole::Authored;
+	};
+	TArray<FExtraMaterial> ExtraMaterials;
 	TArray<FString> Log;
 
 	int64 NumTriangles() const;

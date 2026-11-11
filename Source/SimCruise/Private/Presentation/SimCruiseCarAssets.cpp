@@ -62,7 +62,9 @@ namespace SimCruiseCarAssetsPrivate
 		Description.ReserveNewTriangles(TriangleCount);
 		Description.ReserveNewPolygonGroups(Sections.Num());
 
-		UStaticMesh* Mesh = NewObject<UStaticMesh>(GetTransientPackage(), FName(*Name), RF_Transient);
+		// Unique: a rebuilt car (after ClearCache) must not replace meshes still drawn by older parts.
+		UStaticMesh* Mesh = NewObject<UStaticMesh>(GetTransientPackage(),
+			StaticFindObjectFast(nullptr, GetTransientPackage(), FName(*Name)) ? MakeUniqueObjectName(GetTransientPackage(), UStaticMesh::StaticClass(), FName(*Name)) : FName(*Name), RF_Transient);
 		TArray<FVertexInstanceID> Instances;
 		for (int32 S = 0; S < Sections.Num(); ++S)
 		{
@@ -207,6 +209,13 @@ TSharedPtr<FSimCruiseBuiltCar> SimCruiseCarAssets::Get(const FString& CarId, FSt
 	{
 		OutError = FString::Printf(TEXT("%s: could not fit %s: %s"), *CarId, *ModelPath, *RigError);
 		return nullptr;
+	}
+	// Role areas split some author materials: their copies follow the model's own.
+	for (const FSimCruiseRiggedCar::FExtraMaterial& Extra : Rigged.ExtraMaterials)
+	{
+		FSimCruiseGltfMaterial Copy = Car->Model.Materials.IsValidIndex(Extra.Source) ? Car->Model.Materials[Extra.Source] : FSimCruiseGltfMaterial();
+		Copy.Name += FString(TEXT("#")) + SimCruiseCarMaterialRoles::ToString(Extra.Role);
+		Car->Model.Materials.Add(Copy);
 	}
 	// Geometry now lives in the rig parts; keep only materials and images.
 	Car->Model.Primitives.Empty();

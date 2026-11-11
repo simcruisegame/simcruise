@@ -26,7 +26,12 @@ struct SIMCRUISE_API FSimCruiseWheelVisualState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SimCruise|Presentation")
 	float CamberRad = 0.f;
 
-	/** Accumulated roll angle, radians, increasing when the car rolls forward. */
+	/**
+	 * Roll angle, radians, increasing when the car rolls forward. Providers
+	 * should keep it wrapped to one turn (e.g. FMath::Fmod with 2 pi): a float
+	 * accumulated over a long drive loses the precision a spinning wheel needs
+	 * (after an hour at 100 km/h it would step by about 0.03 rad).
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SimCruise|Presentation")
 	float SpinAngleRad = 0.f;
 

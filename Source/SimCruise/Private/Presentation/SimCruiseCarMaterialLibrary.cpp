@@ -615,11 +615,25 @@ UTexture2D* SimCruiseCarMaterials::LoadTexture(const FString& File, bool bSRGB, 
 		}
 	}
 #else
-	Texture = FImageUtils::ImportFileAsTexture2D(File);
-	if (Texture)
+	// Cooked games: an uncompressed transient texture. Normal maps get the same
+	// green flip (glTF +Y to DirectX) the editor path asks the texture build for.
+	FImage Image;
+	if (FImageUtils::LoadImage(*File, Image))
 	{
-		Texture->SRGB = bSRGB;
-		Texture->UpdateResource();
+		Image.ChangeFormat(ERawImageFormat::BGRA8, bSRGB ? EGammaSpace::sRGB : EGammaSpace::Linear);
+		if (bNormalMap)
+		{
+			for (FColor& Texel : Image.AsBGRA8())
+			{
+				Texel.G = 255 - Texel.G;
+			}
+		}
+		Texture = FImageUtils::CreateTexture2DFromImage(Image);
+		if (Texture)
+		{
+			Texture->SRGB = bSRGB;
+			Texture->UpdateResource();
+		}
 	}
 #endif
 	if (!Texture)
@@ -879,7 +893,10 @@ void SimCruiseCarMaterials::SetLampLevel(UMaterialInstanceDynamic* Lamp, ESimCru
 	// Luminance in cd/m2 (Unreal emissive 1 = 1 nit): tail lamps ~ 300,
 	// brake lamps ~ 6000 (filament behind a red lens, SAE J586 intensity over
 	// the lamp area), headlamps much brighter.
-	FLinearColor Colour(1.f, 0.05f, 0.02f);
+	// Signal red (SAE J578: x >= 0.65, y <= 0.33) lies outside the sRGB gamut;
+	// the nearest displayable colour is almost pure linear red. More green
+	// and blue tone-map a bright lens to salmon instead of red.
+	FLinearColor Colour(1.f, 0.012f, 0.004f);
 	float Nits = 0.f;
 	if (Role == R::LampRear)
 	{
