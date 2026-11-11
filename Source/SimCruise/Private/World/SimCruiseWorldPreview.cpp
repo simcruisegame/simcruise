@@ -26,6 +26,7 @@
 #include "UnrealClient.h"
 #include "World/SimCruiseWorldStreamer.h"
 #include "World/SimCruiseWorldSubsystem.h"
+#include "World/SimCruiseWorldTile.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSimCruisePreview, Log, All);
 
@@ -163,13 +164,27 @@ bool ASimCruiseWorldPreview::PlaceShot(const FString& Shot)
 		double Height = 12000.0;
 		if (Shot == TEXT("seam"))
 		{
-			// The tile corner nearest the start: four tiles meet there.
-			const FSimCruiseWorldFrame& Frame = Streamer->GetFrame();
-			const FVector2d T = Frame.WorldCmToTileCoord(FVector2d(StartCm.X, StartCm.Y));
-			const FVector2d Corner(FMath::RoundToDouble(T.X), FMath::RoundToDouble(T.Y));
-			const FVector2d C = Frame.TileCoordToWorldCm(Corner);
-			Over = FVector(C.X, C.Y, 0.0);
-			Height = 6000.0;
+			// Where Ocean Drive crosses a tile edge nearest the start: two tiles built that section.
+			double Best = TNumericLimits<double>::Max();
+			for (int32 dy = -1; dy <= 1; ++dy)
+			for (int32 dx = -1; dx <= 1; ++dx)
+			{
+				const ASimCruiseWorldTile* Tile = Streamer->GetTile(Streamer->GetFrame().TileAtWorldCm(StartCm) + FIntPoint(dx, dy));
+				if (!Tile || !Tile->GetBuild()) continue;
+				for (const FSimCruiseRibbon& Ribbon : Tile->GetBuild()->Roads.Ribbons)
+				{
+					if (Ribbon.Name != TEXT("Ocean Drive")) continue;
+					for (int32 End = 0; End < 2; ++End)
+					{
+						if (!(End == 0 ? Ribbon.bStartOnBoundary : Ribbon.bEndOnBoundary)) continue;
+						const FVector2d C = (End == 0 ? Ribbon.St[0] : Ribbon.St.Last()).C;
+						const FVector W = Tile->GetActorLocation() + FVector(C.X * 100.0, C.Y * 100.0, 0.0);
+						const double D = FVector::Dist2D(W, StartCm);
+						if (D < Best) { Best = D; Over = W; }
+					}
+				}
+			}
+			Height = 3500.0;
 		}
 		double Z = 0.0;
 		Streamer->SurfaceHeightAt(Over, Z);

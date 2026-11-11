@@ -27,7 +27,6 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 	Mesh->ClearAllMeshSections();
 
 	const TArray<FVector2D> NoUV;
-	const TArray<FProcMeshTangent> NoTangents;
 	for (int32 i = 0; i < static_cast<int32>(ESimCruiseTileLayer::Count); ++i)
 	{
 		FSimCruiseMeshData& Layer = InBuild->Layers[i];
@@ -35,9 +34,19 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 		{
 			continue;
 		}
+		// A tangent square to every normal: the default (1, 0, 0) degenerates on walls and
+		// curb faces that look along X, and the shading frame (and the normal) collapses.
+		TArray<FProcMeshTangent> Tangents;
+		Tangents.SetNumUninitialized(Layer.Normals.Num());
+		for (int32 v = 0; v < Layer.Normals.Num(); ++v)
+		{
+			const FVector& N = Layer.Normals[v];
+			const FVector T = FMath::Abs(N.Z) < 0.9 ? FVector::CrossProduct(FVector::UpVector, N).GetSafeNormal() : FVector::CrossProduct(N, FVector::RightVector).GetSafeNormal() * -1.0;
+			Tangents[v] = FProcMeshTangent(T.IsNearlyZero() ? FVector::ForwardVector : T, false);
+		}
 		const ESimCruiseTileLayer Kind = static_cast<ESimCruiseTileLayer>(i);
 		const bool bCollision = Kind == ESimCruiseTileLayer::Terrain || Kind == ESimCruiseTileLayer::Asphalt || Kind == ESimCruiseTileLayer::Concrete || Kind == ESimCruiseTileLayer::Building;
-		Mesh->CreateMeshSection_LinearColor(i, Layer.Positions, Layer.Indices, Layer.Normals, NoUV, Layer.Colors, NoTangents, bCollision, false);
+		Mesh->CreateMeshSection_LinearColor(i, Layer.Positions, Layer.Indices, Layer.Normals, NoUV, Layer.Colors, Tangents, bCollision, false);
 		// The game thread copy is gone once the section owns it.
 		Layer.Positions.Empty();
 		Layer.Normals.Empty();

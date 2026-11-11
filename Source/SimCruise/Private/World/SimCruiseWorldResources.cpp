@@ -62,8 +62,10 @@ mask.rgb = pow(mask.rgb, 1.0 / 2.2); // stored as an sRGB texture; alpha is line
 float3 photo = Texture2DSample(Aerial, AerialSampler, (Cell.xy + uv) * 0.25).rgb;
 float3 g1 = Texture2DSample(Grass, GrassSampler, m / 2.3).rgb / max(GrassMean.rgb, 0.001);
 float3 g2 = Texture2DSample(Grass, GrassSampler, m / 9.7 + 0.31).rgb / max(GrassMean.rgb, 0.001);
+// Two scales at an irrational ratio and a rotation, so the 512 px photograph never reads as a grid.
 float3 s1 = Texture2DSample(Sand, SandSampler, m / 2.9).rgb / max(SandMean.rgb, 0.001);
-float3 s2 = Texture2DSample(Sand, SandSampler, m / 13.0 + 0.17).rgb / max(SandMean.rgb, 0.001);
+float3 s2 = Texture2DSample(Sand, SandSampler, float2(m.x * 0.8 - m.y * 0.6, m.x * 0.6 + m.y * 0.8) / 7.37 + 0.17).rgb / max(SandMean.rgb, 0.001);
+s1 = lerp(float3(1.0, 1.0, 1.0), s1, 0.5);
 float3 p1 = Texture2DSample(Grain, GrainSampler, m / 3.1).rgb / max(GrainMean.rgb, 0.001);
 float3 p2 = Texture2DSample(Grain, GrainSampler, m / 23.0 + 0.53).rgb / max(GrainMean.rgb, 0.001);
 float veg = mask.r;
@@ -162,7 +164,7 @@ return lerp(float3(0.010, 0.040, 0.045), float3(0.012, 0.055, 0.055), VC.r);
 
 		const TCHAR* BuildingCode = TEXT(R"HLSL(
 const float3 W = float3(0.2126, 0.7152, 0.0722);
-float wall = VC.a;
+float wall = VA;
 float2 m = LP.xy * 0.01 + Anchor.xy;
 float z = LP.z * 0.01;
 float along = dot(LP.xy * 0.01, float2(-VN.y, VN.x));
@@ -192,11 +194,11 @@ return max(col, 0.0);
 			return Expression;
 		}
 
-		void AddInput(UMaterialExpressionCustom* Custom, const TCHAR* Name, UMaterialExpression* Expression)
+		void AddInput(UMaterialExpressionCustom* Custom, const TCHAR* Name, UMaterialExpression* Expression, int32 OutputIndex = 0)
 		{
 			FCustomInput Input;
 			Input.InputName = Name;
-			Input.Input.Connect(0, Expression);
+			Input.Input.Connect(OutputIndex, Expression);
 			Custom->Inputs.Add(Input);
 		}
 
@@ -241,7 +243,9 @@ return max(col, 0.0);
 
 		AddInput(Custom, TEXT("LP"), AddExpression<UMaterialExpressionLocalPosition>(Material));
 		AddInput(Custom, TEXT("VN"), AddExpression<UMaterialExpressionVertexNormalWS>(Material));
-		AddInput(Custom, TEXT("VC"), AddExpression<UMaterialExpressionVertexColor>(Material));
+		UMaterialExpressionVertexColor* VertexColor = AddExpression<UMaterialExpressionVertexColor>(Material);
+		AddInput(Custom, TEXT("VC"), VertexColor);          // RGB
+		AddInput(Custom, TEXT("VA"), VertexColor, 4);       // alpha (output 4)
 		AddInput(Custom, TEXT("Anchor"), VectorParam(Material, TEXT("Anchor"), FLinearColor(0, 0, 0, 0)));
 
 		switch (Layer)

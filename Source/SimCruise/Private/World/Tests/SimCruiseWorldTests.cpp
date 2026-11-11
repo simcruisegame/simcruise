@@ -478,7 +478,7 @@ bool FSimCruiseRoadEdgesTest::RunTest(const FString& Parameters)
 			}
 		}
 	}
-	AddInfo(FString::Printf(TEXT("%d edge segments; %d small back-and-forth kinks over 2 deg (10 on service ways); %d visible; worst %.2f deg"), Segments, Zigzags, Visible, WorstWiggle));
+	AddInfo(FString::Printf(TEXT("%d edge segments; %d small back-and-forth kinks (over 2 deg, 10 deg on service ways); %d visible; worst %.2f deg"), Segments, Zigzags, Visible, WorstWiggle));
 	TestTrue(TEXT("edges measured"), Segments > 10000);
 	TestEqual(TEXT("no visible zig-zag on any road edge"), Visible, 0);
 	TestTrue(FString::Printf(TEXT("small kinks are rare (%d per 100k segments)"), Zigzags * 100000 / FMath::Max(Segments, 1)), Zigzags * 10000 < Segments);
