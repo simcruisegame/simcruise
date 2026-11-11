@@ -67,6 +67,50 @@ int64 FSimCruiseRiggedCar::NumTriangles() const
 	return Count;
 }
 
+TArray<FVector> SimCruiseCarModelRig::HeadLampCentresCm(const FSimCruiseRiggedCar& Car)
+{
+	// Lenses ahead of the front axle (white lenses behind the axles are reversing lamps).
+	const double FrontAxleX = (Car.HubsCm[0].X + Car.HubsCm[1].X) * 0.5;
+	// Fog and driving lamps in the bumper often share the head lamps' lens
+	// material: keep the top lens band on each side (a head-lamp lens is under
+	// about 22 cm tall; bumper lamps sit lower than that below its top).
+	constexpr double LensBandCm = 22.0;
+	TArray<FVector> Points;
+	double TopZ[2] = {-UE_DOUBLE_BIG_NUMBER, -UE_DOUBLE_BIG_NUMBER};
+	for (const FSimCruiseRigSection& Section : Car.Body.Sections)
+	{
+		if (Section.Role != ESimCruiseCarMaterialRole::LampFront) continue;
+		for (const FVector3f& Local : Section.Positions)
+		{
+			const FVector P = Car.Body.PartToVehicle.TransformPosition(FVector(Local));
+			if (P.X > FrontAxleX)
+			{
+				Points.Add(P);
+				TopZ[P.Y < 0.0 ? 0 : 1] = FMath::Max(TopZ[P.Y < 0.0 ? 0 : 1], P.Z);
+			}
+		}
+	}
+	FBox Sides[2] = {FBox(ForceInit), FBox(ForceInit)};
+	for (const FVector& P : Points)
+	{
+		const int32 Side = P.Y < 0.0 ? 0 : 1;
+		if (P.Z > TopZ[Side] - LensBandCm)
+		{
+			Sides[Side] += P;
+		}
+	}
+	TArray<FVector> Centres;
+	if (!Sides[0].IsValid && !Sides[1].IsValid)
+	{
+		return Centres;
+	}
+	const FVector Left = Sides[0].IsValid ? Sides[0].GetCenter() : Sides[1].GetCenter() * FVector(1.0, -1.0, 1.0);
+	const FVector Right = Sides[1].IsValid ? Sides[1].GetCenter() : Sides[0].GetCenter() * FVector(1.0, -1.0, 1.0);
+	Centres.Add(Left);
+	Centres.Add(Right);
+	return Centres;
+}
+
 namespace SimCruiseRigPrivate
 {
 	// Destinations of a triangle.

@@ -81,6 +81,16 @@ public:
 	/** Recomputes sun, moon, sky and exposure now. */
 	void UpdateSky();
 
+	/**
+	 * Light that is not the sky's on the ground the viewer looks at, lux
+	 * (the player's own head lamps on the road ahead). It joins the sun, sky
+	 * and moon in the reference exposure, so at night the camera adapts to
+	 * the lit road the way a driver's eye or a dash camera does instead of
+	 * staying open for starlight. 0 = none.
+	 */
+	void SetArtificialIlluminanceLux(double Lux);
+	double GetArtificialIlluminanceLux() const { return ArtificialLux; }
+
 	/** Look development: a cloud material scalar or one of the named atmosphere/exposure knobs (see SimCruise.Env.Look). */
 	void SetLookParameter(FName Name, float Value);
 
@@ -194,6 +204,8 @@ private:
 	FVector SunDirection = FVector::UpVector;
 	FVector MoonDirection = FVector::UpVector;
 	float ReferenceEV100 = 15.0f;
+	double ArtificialLux = 0.0;
+	double NaturalGroundLuxFromMoon = 0.0;
 	float RoadWetness = 0.0f;
 	float SecondsSinceSkyUpdate = 0.0f;
 	double SimulatedSeconds = 0.0;

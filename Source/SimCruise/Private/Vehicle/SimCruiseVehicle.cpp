@@ -3,6 +3,7 @@
 #include "Vehicle/SimCruiseVehicle.h"
 
 #include "Components/BoxComponent.h"
+#include "Components/SpotLightComponent.h"
 #include "Engine/CollisionProfile.h"
 #include "Engine/World.h"
 #include "Environment/SimCruiseEnvironment.h"
@@ -97,7 +98,80 @@ bool ASimCruiseVehicle::AttachCarModel()
 	CarModel->SetWheelStateProvider(TScriptInterface<ISimCruiseWheelStateProvider>(this));
 	// Pose after this pawn's physics results are in.
 	CarModel->AddTickPrerequisiteActor(this);
+
+	// The low beams: real lights from the head-lamp lenses, so the road ahead is lit at night.
+	for (USpotLightComponent* Light : HeadLampLights)
+	{
+		if (Light)
+		{
+			Light->DestroyComponent();
+		}
+	}
+	HeadLampLights.Reset();
+	bHeadLampsShown = false;
+	TArray<FVector> Lamps = CarModel->GetHeadLampLocations();
+	if (Lamps.IsEmpty())
+	{
+		// No head-lamp surfaces on the model: the usual place, about 55 cm ahead of
+		// the front hubs, just inside their track and 30 cm above them.
+		const FVector FL = CarModel->GetStaticHubLocation(0), FR = CarModel->GetStaticHubLocation(1);
+		Lamps.Add(FL + FVector(55.0, 12.0, 30.0));
+		Lamps.Add(FR + FVector(55.0, -12.0, 30.0));
+		UE_LOG(LogSimCruiseVehiclePawn, Display, TEXT("%s: no head-lamp lenses on the model; beams placed from the hubs"), *CarId);
+	}
+	for (int32 I = 0; I < Lamps.Num(); ++I)
+	{
+		USpotLightComponent* Light = NewObject<USpotLightComponent>(this, *FString::Printf(TEXT("LowBeam%d"), I));
+		Light->SetMobility(EComponentMobility::Movable);
+		Light->SetupAttachment(CarModel);
+		// Just ahead of the lens: from inside the housing the body would shadow its own beam.
+		Light->SetRelativeLocation(Lamps[I] + FVector(18.0, 0.0, 0.0));
+		Light->SetRelativeRotation(FRotator(-LowBeamAimDownDeg, 0.0, 0.0));
+		Light->SetIntensityUnits(ELightUnits::Candelas);
+		Light->SetIntensity(static_cast<float>(LowBeamPeakCandela));
+		Light->SetInnerConeAngle(static_cast<float>(LowBeamCoreHalfAngleDeg));
+		Light->SetOuterConeAngle(static_cast<float>(LowBeamEdgeHalfAngleDeg));
+		// Where the beam falls to about a lux: sqrt(15000 cd / 1 lx) = 120 m.
+		Light->SetAttenuationRadius(static_cast<float>(SimCruiseUnits::ToUnrealLength(FMath::Sqrt(LowBeamPeakCandela))));
+		Light->SetSourceRadius(6.f);
+		Light->SetUseTemperature(true);
+		Light->SetTemperature(3200.f);
+		Light->SetCastShadows(true);
+		Light->SetVisibility(false);
+		Light->RegisterComponent();
+		AddInstanceComponent(Light);
+		HeadLampLights.Add(Light);
+	}
 	return true;
+}
+
+void ASimCruiseVehicle::UpdateHeadLamps()
+{
+	const bool bLit = AreLampsWanted();
+	if (bLit != bHeadLampsShown)
+	{
+		bHeadLampsShown = bLit;
+		for (USpotLightComponent* Light : HeadLampLights)
+		{
+			if (Light)
+			{
+				Light->SetVisibility(bLit);
+			}
+		}
+	}
+	// The player's eye adapts to the road his own lamps light.
+	if (IsPlayerControlled())
+	{
+		if (USimCruiseEnvironmentSubsystem* Subsystem = USimCruiseEnvironmentSubsystem::Get(GetWorld()))
+		{
+			if (ASimCruiseEnvironment* Environment = Subsystem->GetEnvironment())
+			{
+				const double Lux = bLit && !HeadLampLights.IsEmpty()
+					? HeadLampLights.Num() * LowBeamPeakCandela / FMath::Square(NightAdaptationDistanceM) : 0.0;
+				Environment->SetArtificialIlluminanceLux(Lux);
+			}
+		}
+	}
 }
 
 FSimCruiseVehicleTelemetry ASimCruiseVehicle::GetVehicleTelemetry() const
@@ -251,6 +325,7 @@ void ASimCruiseVehicle::ResetVehicle(const FTransform& WorldTransform)
 void ASimCruiseVehicle::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	UpdateHeadLamps();
 	FSimCruiseVehicleTelemetry Telemetry;
 	VehicleMovement->CopyTelemetry(Telemetry);
 	if (!Telemetry.LastGearMessage.IsEmpty() && Telemetry.LastGearMessage != LastShownGearMessage)

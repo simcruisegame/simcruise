@@ -178,6 +178,11 @@ void USimCruiseCarPresentationComponent::SetWheelStateProvider(TScriptInterface<
 	StateProvider = Provider;
 }
 
+TArray<FVector> USimCruiseCarPresentationComponent::GetHeadLampLocations() const
+{
+	return Built.IsValid() ? Built->HeadLampsCm : TArray<FVector>();
+}
+
 FVector USimCruiseCarPresentationComponent::GetStaticHubLocation(int32 Wheel) const
 {
 	return Wheel >= 0 && Wheel < 4 ? StaticHubs[Wheel] : FVector::ZeroVector;

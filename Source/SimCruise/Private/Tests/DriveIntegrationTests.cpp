@@ -6,7 +6,11 @@
 
 #include "Async/TaskGraphInterfaces.h"
 #include "Components/BoxComponent.h"
+#include "Components/SpotLightComponent.h"
 #include "Engine/World.h"
+#include "Environment/SimCruiseDaylightModel.h"
+#include "Environment/SimCruiseEnvironment.h"
+#include "Environment/SimCruiseEnvironmentSubsystem.h"
 #include "Gameplay/SimCruiseVehicleControl.h"
 #include "Presentation/SimCruiseCarPresentationComponent.h"
 #include "Tests/VehicleBenchWorld.h"
@@ -258,6 +262,80 @@ bool FSimCruiseDriveOceanDriveTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("still over a streamed tile"), Streamer->SurfaceHeightAt(Vehicle->GetActorLocation(), SurfaceZ));
 	TestTrue(FString::Printf(TEXT("still on the surface (body %.1f cm over it)"), Vehicle->GetActorLocation().Z - SurfaceZ),
 		FMath::Abs(Vehicle->GetActorLocation().Z - SurfaceZ - Car.CollisionShapeCenterYM * 100.0) < 10.0);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseDriveLowBeamsTest, "SimCruise.Drive.LowBeams", SimCruiseDriveTest::Flags)
+bool FSimCruiseDriveLowBeamsTest::RunTest(const FString& Parameters)
+{
+	// The exposure a driver adapts to at night: starlight alone, then a grey
+	// card 30 m ahead in the car's own low beams.
+	const double Dark = FSimCruiseDaylightModel::ReferenceEV100(-25.0, 0.1, 0.0);
+	const double BeamLux = 2.0 * ASimCruiseVehicle::LowBeamPeakCandela / FMath::Square(ASimCruiseVehicle::NightAdaptationDistanceM);
+	const double Lit = FSimCruiseDaylightModel::ReferenceEV100(-25.0, 0.1, BeamLux);
+	const double Noon = FSimCruiseDaylightModel::ReferenceEV100(60.0, 0.1, 0.0);
+	const double NoonLit = FSimCruiseDaylightModel::ReferenceEV100(60.0, 0.1, BeamLux);
+	AddInfo(FString::Printf(TEXT("DRIVE night EV100 %.1f; with the low beams (%.0f lx at %.0f m) %.1f; noon %.2f -> %.2f"),
+		Dark, BeamLux, ASimCruiseVehicle::NightAdaptationDistanceM, Lit, Noon, NoonLit));
+	TestTrue(TEXT("a moonless night is far below the lamp-lit road"), Dark < -5.0);
+	TestTrue(TEXT("the lamp-lit road meters like a dash camera at night (EV100 2..6)"), Lit > 2.0 && Lit < 6.0);
+	TestTrue(TEXT("lamps make no difference by day"), FMath::Abs(NoonLit - Noon) < 0.01);
+
+	FSimCruiseCarDefinition Car;
+	if (!SimCruiseLoadBenchCar(*this, TEXT("nb1999"), Car))
+	{
+		return false;
+	}
+	FSimCruiseVehicleBenchWorld Bench(SimCruiseShippingFixedStepS, 3000.0, false);
+	ASimCruiseVehicle* Vehicle = Bench.SpawnVehicle(Car, FVector3d(0.0, 0.0, 0.03), nullptr, true);
+	if (!TestNotNull(TEXT("vehicle"), Vehicle) || !TestTrue(TEXT("the car model builds"), Vehicle->AttachCarModel()))
+	{
+		return false;
+	}
+	const TArray<TObjectPtr<USpotLightComponent>>& Beams = Vehicle->GetHeadLampLights();
+	if (!TestEqual(TEXT("two low beams"), Beams.Num(), 2))
+	{
+		return false;
+	}
+	const FVector FrontHub = Vehicle->GetCarModel()->GetStaticHubLocation(0);
+	for (int32 I = 0; I < 2; ++I)
+	{
+		const USpotLightComponent* Beam = Beams[I];
+		const FTransform ToVehicle = Beam->GetComponentTransform().GetRelativeTransform(Vehicle->GetCarModel()->GetComponentTransform());
+		const FVector At = ToVehicle.GetLocation();
+		const FVector Axis = ToVehicle.GetUnitAxis(EAxis::X);
+		AddInfo(FString::Printf(TEXT("DRIVE low beam %d at %s cm, axis %s"), I, *At.ToString(), *Axis.ToString()));
+		TestTrue(TEXT("beam leaves ahead of the front hubs"), At.X > FrontHub.X + 40.0);
+		TestTrue(TEXT("left beam on the left, right on the right"), I == 0 ? At.Y < -25.0 : At.Y > 25.0);
+		TestTrue(TEXT("beam aimed forward and slightly down"), Axis.X > 0.99 && Axis.Z < 0.0 && Axis.Z > -0.05);
+		TestEqual(TEXT("photometric units"), Beam->IntensityUnits, ELightUnits::Candelas);
+	}
+	// The lamps follow the sun unless switched on: the bench world has the
+	// game's real sky, so pin its clock (Miami Beach, 11 November 2026).
+	ASimCruiseEnvironment* Sky = nullptr;
+	if (USimCruiseEnvironmentSubsystem* Environments = USimCruiseEnvironmentSubsystem::Get(Bench.GetWorld()))
+	{
+		Sky = Environments->GetEnvironment();
+	}
+	auto At = [&](const TCHAR* IsoUtc, bool bSwitch)
+	{
+		if (Sky)
+		{
+			FDateTime Utc;
+			FDateTime::ParseIso8601(IsoUtc, Utc);
+			Sky->SetPlace(25.78, -80.13);
+			Sky->SetUtcTime(Utc);
+		}
+		Vehicle->bLampsOn = bSwitch;
+		WaitSim(Bench, Vehicle->GetVehicleMovement(), 0.1);
+		return Beams[0]->IsVisible() && Beams[1]->IsVisible();
+	};
+	TestFalse(TEXT("beams dark by day with the switch off"), At(TEXT("2026-11-11T17:00:00Z"), false));
+	TestTrue(TEXT("beams lit by day with the switch on"), At(TEXT("2026-11-11T17:00:00Z"), true));
+	if (Sky)
+	{
+		TestTrue(TEXT("beams follow the sun: lit at night with the switch off"), At(TEXT("2026-11-11T05:00:00Z"), false));
+	}
 	return true;
 }
 

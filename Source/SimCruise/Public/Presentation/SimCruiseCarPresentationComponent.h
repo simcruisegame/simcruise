@@ -127,6 +127,9 @@ public:
 
 	/** Driver eye, component space, cm (from the car data). */
 	FVector GetDriverEye() const { return DriverEyeCm; }
+
+	/** Head-lamp beam origins (centres of the head-lamp lenses), component space, cm, left then right; empty when the model has none. */
+	TArray<FVector> GetHeadLampLocations() const;
 	/** Lines describing how the model was fitted (for logs and the turntable report). */
 	const TArray<FString>& GetRigLog() const { return RigLog; }
 

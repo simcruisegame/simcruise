@@ -115,6 +115,14 @@ namespace SimCruiseCarModelRig
 	SIMCRUISE_API bool Build(const FSimCruiseGltfModel& Model, const FSimCruiseCarPresentationProfile& Profile,
 		const FSimCruiseRigInputs& Inputs, FSimCruiseRiggedCar& OutCar, FString& OutError);
 
+	/**
+	 * Where the head-lamp beams leave the car: the centre of the lit head-lamp
+	 * lenses (LampFront surfaces ahead of the front axle) on each side, vehicle
+	 * frame, cm, left first. Empty when the model has no head-lamp surfaces;
+	 * one side found alone is mirrored.
+	 */
+	SIMCRUISE_API TArray<FVector> HeadLampCentresCm(const FSimCruiseRiggedCar& Car);
+
 	/** Godot vehicle frame (X right, Y up, Z rearward, metres) to Unreal (X forward, Y right, Z up, centimetres). */
 	inline FVector GodotToUnrealCm(const FVector& G) { return FVector(-G.Z, G.X, G.Y) * 100.0; }
 	inline FVector GodotToUnrealDir(const FVector& G) { return FVector(-G.Z, G.X, G.Y); }

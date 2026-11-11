@@ -45,6 +45,8 @@ struct FSimCruiseBuiltCar
 	bool bHasSteeringWheel = false;
 	FVector HubsCm[4];
 	FVector DriverEyeCm = FVector::ZeroVector;
+	/** Head-lamp beam origins, vehicle frame, cm, left then right (empty when unknown). */
+	TArray<FVector> HeadLampsCm;
 	double SteeringRatio = 15.0;
 	TArray<FString> Log;
 	double BuildSeconds = 0.0;

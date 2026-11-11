@@ -233,6 +233,11 @@ TSharedPtr<FSimCruiseBuiltCar> SimCruiseCarAssets::Get(const FString& CarId, FSt
 		BuildPart(*Car, Rigged.SteeringWheel, Car->SteeringWheel);
 	}
 	Car->DriverEyeCm = Inputs.DriverEyeM * 100.0;
+	Car->HeadLampsCm = SimCruiseCarModelRig::HeadLampCentresCm(Rigged);
+	for (const FVector& Lamp : Car->HeadLampsCm)
+	{
+		Car->Log.Add(FString::Printf(TEXT("head-lamp beam origin %s cm"), *Lamp.ToString()));
+	}
 	Car->SteeringRatio = Car->Profile.SteeringRatio;
 	Car->BuildSeconds = FPlatformTime::Seconds() - Start;
 	Car->Log.Add(FString::Printf(TEXT("built in %.1f s (body %d triangles%s)"), Car->BuildSeconds, Car->Body.Triangles,

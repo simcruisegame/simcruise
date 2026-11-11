@@ -12,6 +12,7 @@
 
 class UBoxComponent;
 class USimCruiseVehicleMovementComponent;
+class USpotLightComponent;
 
 /**
  * A drivable SimCruise car: a simulating Chaos box (the car's collision box
@@ -116,6 +117,24 @@ public:
 	/** Map the vehicle's telemetry to the car model's pose (exposed for tests). */
 	static void ToVisualState(const FSimCruiseCarDefinition& Car, const FSimCruiseVehicleTelemetry& In, FSimCruiseCarVisualState& Out);
 
+	/**
+	 * Low-beam photometry (a halogen H4 reflector lamp of the late 1990s):
+	 * peak intensity per lamp in candela, aimed this far below level, with
+	 * the bright core and the cone's edge as half angles, colour 3200 K.
+	 */
+	static constexpr double LowBeamPeakCandela = 15000.0;
+	static constexpr double LowBeamAimDownDeg = 1.5;
+	static constexpr double LowBeamCoreHalfAngleDeg = 8.0;
+	/** A real low beam spreads about 40 deg to each side at low intensity; a round cone this wide also spills upward (no cut-off yet). */
+	static constexpr double LowBeamEdgeHalfAngleDeg = 32.0;
+	/** Where the driver adapts at night: a grey card this far ahead, facing the car. */
+	static constexpr double NightAdaptationDistanceM = 30.0;
+
+	/** The beam lights (empty until AttachCarModel, or when the model has no head lamps). */
+	const TArray<TObjectPtr<USpotLightComponent>>& GetHeadLampLights() const { return HeadLampLights; }
+	/** Head and tail lamps lit this frame. */
+	bool AreLampsLit() const { return AreLampsWanted(); }
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
@@ -134,6 +153,12 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<USimCruiseCarPresentationComponent> CarModel;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<USpotLightComponent>> HeadLampLights;
+
+	void UpdateHeadLamps();
+	bool bHeadLampsShown = false;
 
 	bool bHasDefinition = false;
 	bool bManualRequested = false;

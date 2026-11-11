@@ -114,6 +114,25 @@ namespace SimCruisePresentationTests
 		if (FrontCount > 0)
 		{
 			Test.TestTrue(FString::Printf(TEXT("%s head lamps ahead of the axles (mean x %.2f m)"), *CarId, FrontSum / FrontCount / 100.0), FrontSum / FrontCount > 100.0);
+			// The low beams leave from the two lenses: one each side, ahead of the
+			// front hubs, outboard of the grille and inside the body, above the hubs.
+			const TArray<FVector> Beams = SimCruiseCarModelRig::HeadLampCentresCm(R);
+			const double FrontHubX = (R.HubsCm[0].X + R.HubsCm[1].X) * 0.5;
+			const double HubZ = (R.HubsCm[0].Z + R.HubsCm[1].Z) * 0.5;
+			if (Test.TestEqual(CarId + TEXT(" two head-lamp beam origins"), Beams.Num(), 2))
+			{
+				for (int32 Side = 0; Side < 2; ++Side)
+				{
+					const FVector& B = Beams[Side];
+					Test.AddInfo(FString::Printf(TEXT("%s head lamp %s at %s cm"), *CarId, Side == 0 ? TEXT("left") : TEXT("right"), *B.ToString()));
+					Test.TestTrue(FString::Printf(TEXT("%s head lamp %d on its side, outboard"), *CarId, Side),
+						(Side == 0 ? -B.Y : B.Y) > 25.0 && FMath::Abs(B.Y) < R.ModelWidthM * 50.0);
+					Test.TestTrue(FString::Printf(TEXT("%s head lamp %d ahead of the front hubs, inside the body"), *CarId, Side),
+						B.X > FrontHubX + 20.0 && B.X < FrontHubX + 150.0);
+					Test.TestTrue(FString::Printf(TEXT("%s head lamp %d above the hubs (%.0f cm)"), *CarId, Side, B.Z - HubZ),
+						B.Z > HubZ && B.Z < HubZ + 60.0);
+				}
+			}
 		}
 		// Length within 4 % of the published overall length when the profile knows it.
 		Test.TestTrue(CarId + TEXT(" model is a car-sized object"), R.ModelLengthM > 3.5 && R.ModelLengthM < 5.2 && R.ModelWidthM > 1.5 && R.ModelWidthM < 2.2);

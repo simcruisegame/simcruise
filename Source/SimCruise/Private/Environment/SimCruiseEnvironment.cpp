@@ -326,8 +326,24 @@ void ASimCruiseEnvironment::UpdateSky()
 		MoonLight->SetVisibility(bMoonUp && SunPosition.ApparentElevationDeg < 10.0);
 	}
 
-	const double MoonOnGround = bMoonUp ? MoonLux * FMath::Max(FMath::Sin(FMath::DegreesToRadians(MoonPosition.ApparentElevationDeg)), 0.0) : 0.0;
-	ReferenceEV100 = static_cast<float>(FSimCruiseDaylightModel::ReferenceEV100(SunPosition.ApparentElevationDeg, Weather.CloudCover, MoonOnGround));
+	NaturalGroundLuxFromMoon = bMoonUp ? MoonLux * FMath::Max(FMath::Sin(FMath::DegreesToRadians(MoonPosition.ApparentElevationDeg)), 0.0) : 0.0;
+	// The daylight model adds this term to the sky's illuminance: moonlight and any artificial light.
+	ReferenceEV100 = static_cast<float>(FSimCruiseDaylightModel::ReferenceEV100(SunPosition.ApparentElevationDeg, Weather.CloudCover,
+		NaturalGroundLuxFromMoon + ArtificialLux));
+	ApplyExposure();
+}
+
+void ASimCruiseEnvironment::SetArtificialIlluminanceLux(double Lux)
+{
+	Lux = FMath::Max(Lux, 0.0);
+	// Only a real change re-meters (lamps switching), not float noise.
+	if (FMath::Abs(Lux - ArtificialLux) <= 0.05 * FMath::Max(Lux, ArtificialLux) + 1.0e-3)
+	{
+		return;
+	}
+	ArtificialLux = Lux;
+	ReferenceEV100 = static_cast<float>(FSimCruiseDaylightModel::ReferenceEV100(SunPosition.ApparentElevationDeg, Weather.CloudCover,
+		NaturalGroundLuxFromMoon + ArtificialLux));
 	ApplyExposure();
 }
 
