@@ -69,6 +69,15 @@ namespace SimCruiseGroundMask
 	// R vegetation, G sand, B paved paths, A water.
 }
 
+/** One placed palm: a shared mesh variant, tile-local position (cm), yaw and scale. */
+struct FSimCruisePalmInstance
+{
+	FVector LocationCm = FVector::ZeroVector;
+	float YawDeg = 0.f;
+	float Scale = 1.f;
+	uint8 Variant = 0;
+};
+
 /** Everything one tile needs on the game thread; built off it. */
 struct SIMCRUISE_API FSimCruiseTileBuild
 {
@@ -89,6 +98,9 @@ struct SIMCRUISE_API FSimCruiseTileBuild
 
 	// Every top-surface vertex of every carriageway, tile cm (collision checks).
 	TArray<FVector> CarriagewayPoints;
+
+	/** Palms to instance on this tile. */
+	TArray<FSimCruisePalmInstance> PalmInstances;
 
 	/** Street-light sources (tile cm, the lamp head's lens centre) for the night light pool. */
 	TArray<FVector> LampPointsCm;

@@ -10,6 +10,8 @@
 class UMaterialInterface;
 class UMaterial;
 class UTexture2D;
+class UStaticMesh;
+class UMaterialInstanceDynamic;
 
 /**
  * Materials and shared textures of the streamed world.
@@ -62,11 +64,26 @@ public:
 	UPROPERTY()
 	TMap<FString, TObjectPtr<UTexture2D>> Aerials;
 
+	/**
+	 * The palm variants every tile instances (SimCruiseTileDetail::BuildPalmVariant):
+	 * static meshes built once at start, drawn through the static path so their virtual
+	 * shadow pages stay cached; a capsule round the bole is their collision.
+	 */
+	UPROPERTY()
+	TArray<TObjectPtr<UStaticMesh>> PalmMeshes;
+
+	/** The building material with the shared detail textures, for the palm trunks. */
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> PalmBarkMaterial;
+
 	/** Decode a JPEG or PNG file to BGRA8 (any thread). */
 	static bool DecodeImageFile(const FString& Path, TArray<FColor>& OutPixels, int32& OutWidth, int32& OutHeight);
 
 	/** A texture with a full box-filtered mip chain (game thread). */
 	static UTexture2D* CreateTexture(UObject* Outer, FName Name, const TArray<FColor>& Pixels, int32 Width, int32 Height, bool bSRGB, bool bWrap);
+
+	/** Builds PalmMeshes (game thread, after the materials and textures). */
+	void BuildPalmMeshes();
 
 	/** Mean linear colour of sRGB pixels. */
 	static FLinearColor MeanLinear(const TArray<FColor>& Pixels);

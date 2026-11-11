@@ -4,10 +4,14 @@
 
 #include "World/SimCruiseRoadNetwork.h"
 #include "World/SimCruiseTileData.h"
+#include "HAL/IConsoleManager.h"
 
 namespace
 {
 	namespace Kind = SimCruiseSurfaceKind;
+
+	TAutoConsoleVariable<int32> CVarPalms(TEXT("simcruise.World.Palms"), 1,
+		TEXT("1: plant palms where they grow (tiles built after the change). 0: none, for measuring their cost."));
 
 	FVector Cm3(const FVector2d& P, double Z) { return FVector(P.X * 100.0, P.Y * 100.0, Z * 100.0); }
 
@@ -415,16 +419,103 @@ namespace SimCruiseTileDetail
 		}
 	}
 
+	void BuildPalmVariant(int32 Variant, FSimCruiseMeshData& Trunks, FSimCruiseMeshData& Fronds)
+	{
+		// One coconut palm at the origin (cm), leaning toward +X. The variants differ in
+		// height, lean and frond seeds; each tile places them with its own yaw and scale.
+		const uint32 H = Hash(0x5A1Au, static_cast<uint32>(Variant) * 7919u + 13u);
+		const float Seed = static_cast<float>(Unit(Hash(H, 3)));
+		const double TrunkH = 8.0 + 8.0 * (Variant + 0.5) / PalmVariants;
+		const double LeanDeg = 4.0 + 12.0 * Unit(Hash(H, 5));
+		const FVector2d LeanDir(1.0, 0.0);
+		const FVector2d P(0.0, 0.0);
+		const double Z0 = -0.2;
+
+		// Trunk: a tapering, curving tube with a swollen bole.
+		constexpr int32 Sides = 6, Rings = 10;
+		auto Centre = [&](double U)
+		{
+			const double Bend = FMath::Tan(FMath::DegreesToRadians(LeanDeg)) * TrunkH * (U - 0.35 * U * U);
+			return FVector3d(P.X + LeanDir.X * Bend, P.Y + LeanDir.Y * Bend, Z0 + TrunkH * U);
+		};
+		auto Radius = [&](double U) { return 0.15 + 0.09 * FMath::Exp(-U * 18.0) - 0.03 * U; };
+		const FLinearColor BarkColour = FLinearColor::FromSRGBColor(FColor(178, 172, 160));
+		const int32 First = Trunks.Positions.Num();
+		for (int32 r = 0; r <= Rings; ++r)
+		{
+			const double U = r / static_cast<double>(Rings);
+			const FVector3d C = Centre(U);
+			for (int32 sd = 0; sd <= Sides; ++sd)
+			{
+				const double A = UE_DOUBLE_TWO_PI * sd / Sides;
+				const FVector Nrm(FMath::Cos(A), FMath::Sin(A), 0.0);
+				const FVector3d V = C + FVector3d(Nrm) * Radius(U);
+				Trunks.Add(FVector(V * 100.0), Nrm, BarkColour, FVector2D(sd / static_cast<double>(Sides), TrunkH * U), FVector2D(Kind::Bark, Seed));
+			}
+		}
+		for (int32 r = 0; r < Rings; ++r)
+		for (int32 sd = 0; sd < Sides; ++sd)
+		{
+			const int32 I0 = First + r * (Sides + 1) + sd, I1 = I0 + 1, I2 = I0 + Sides + 2, I3 = I0 + Sides + 1;
+			Trunks.Quad(I0, I1, I2, I3, Trunks.Normals[I0] + Trunks.Normals[I1]);
+		}
+
+		// Crown: 16 fronds, 4-5.5 m, arching then drooping, leaflets hanging in a V.
+		const FVector3d Crown = Centre(1.0);
+		constexpr int32 FrondCount = 16;
+		for (int32 f = 0; f < FrondCount; ++f)
+		{
+			const uint32 Hf = Hash(H, 100 + f);
+			const double Az = UE_DOUBLE_TWO_PI * (f + 0.4 * Unit(Hf)) / FrondCount;
+			const double Rise = FMath::DegreesToRadians(45.0 - 60.0 * (f % 3) / 2.0 + 10.0 * (Unit(Hash(Hf, 1)) - 0.5));
+			const double Length = 4.0 + 1.5 * Unit(Hash(Hf, 2));
+			const double Droop = FMath::DegreesToRadians(55.0 + 35.0 * Unit(Hash(Hf, 3)));
+			const FVector3d Out(FMath::Cos(Az), FMath::Sin(Az), 0.0);
+			const FVector3d Side(-FMath::Sin(Az), FMath::Cos(Az), 0.0);
+			// Older, lower fronds yellow and brown.
+			const bool bOld = (f % 3) == 2 && Unit(Hash(Hf, 4)) < 0.35;
+			const FLinearColor Leaf = bOld ? FLinearColor::FromSRGBColor(FColor(150, 132, 72)) : FLinearColor::FromSRGBColor(FColor(52, 84, 30)).Desaturate(0.1f * Unit(Hash(Hf, 5)));
+			constexpr int32 Segs = 5;
+			FVector3d Rachis[Segs + 1];
+			Rachis[0] = Crown;
+			for (int32 k = 1; k <= Segs; ++k)
+			{
+				const double S = (k - 0.5) / Segs;
+				const double Elev = Rise - Droop * S * S;
+				Rachis[k] = Rachis[k - 1] + (Out * FMath::Cos(Elev) + FVector3d(0, 0, 1) * FMath::Sin(Elev)) * (Length / Segs);
+			}
+			for (const double Wing : { -1.0, 1.0 })
+			{
+				const int32 Base = Fronds.Positions.Num();
+				for (int32 k = 0; k <= Segs; ++k)
+				{
+					const double S = k / static_cast<double>(Segs);
+					const double Width = 0.95 * FMath::Pow(FMath::Sin(UE_DOUBLE_PI * FMath::Clamp(S * 0.92 + 0.08, 0.0, 1.0)), 0.6);
+					const FVector3d Hang = (Side * Wing * FMath::Cos(FMath::DegreesToRadians(35.0)) - FVector3d(0, 0, 1) * FMath::Sin(FMath::DegreesToRadians(35.0)));
+					const FVector3d Tip = Rachis[k] + Hang * Width;
+					const FVector Up = FVector(FVector3d::CrossProduct(Hang, Rachis[FMath::Min(k + 1, Segs)] - Rachis[FMath::Max(k - 1, 0)]).GetSafeNormal() * -Wing);
+					const FVector Nrm = (Up.Z < 0.0 ? -Up : Up);
+					Fronds.Add(FVector(Rachis[k] * 100.0), Nrm, Leaf, FVector2D(S, 0.0), FVector2D(Kind::Frond, Seed + f * 0.0137f));
+					Fronds.Add(FVector(Tip * 100.0), Nrm, Leaf, FVector2D(S, Wing), FVector2D(Kind::Frond, Seed + f * 0.0137f));
+				}
+				for (int32 k = 0; k < Segs; ++k)
+				{
+					const int32 I0 = Base + 2 * k, I1 = I0 + 2, I2 = I0 + 3, I3 = I0 + 1;
+					Fronds.Quad(I0, I1, I2, I3, Fronds.Normals[I0]);
+				}
+			}
+		}
+	}
+
 	void BuildPalms(const FContext& X)
 	{
-		if (!IsCoconutPalmRegion(X.LatDeg, X.LonDeg)) return;
+		if (!IsCoconutPalmRegion(X.LatDeg, X.LonDeg) || CVarPalms.GetValueOnAnyThread() == 0) return;
 		FSimCruiseTileBuild& B = X.B;
 		const FSimCruiseRoadNetwork& Roads = B.Roads;
-		FSimCruiseMeshData& Trunks = B.Layer(ESimCruiseTileLayer::Props);
-		FSimCruiseMeshData& Fronds = B.Layer(ESimCruiseTileLayer::Foliage);
 
 		// Lummus Park and the city's lawns: coconut palms about 10 m apart, never on a
-		// path, a road or its first 2.5 m, in water or a building.
+		// path, a road or its first 2.5 m, in water or a building. Each is an instance of
+		// one of the shared palm meshes (USimCruiseWorldResources::PalmMeshes).
 		constexpr double Spacing = 10.5;
 		const int32 Cells = FMath::FloorToInt(X.Side / Spacing);
 		const uint32 TileHash = GetTypeHash(X.Data.Id);
@@ -438,90 +529,13 @@ namespace SimCruiseTileDetail
 			FSimCruiseRoadHit Hit;
 			if (Roads.FindCarriageway(P, Hit, INDEX_NONE, 2.5)) continue;
 			if (IsInsideBuilding(X.Data, X.Side, P)) continue;
-
-			const float Seed = static_cast<float>(Unit(Hash(H, 3)));
-			const double TrunkH = 7.0 + 9.0 * FMath::Pow(Unit(Hash(H, 4)), 0.8);
-			// Coconut palms lean, mostly away from the trade wind toward the land, and curve back up.
-			const double LeanDeg = 4.0 + 12.0 * Unit(Hash(H, 5));
-			const double LeanAz = FMath::DegreesToRadians(200.0 + 140.0 * Unit(Hash(H, 6)));
-			const FVector2d LeanDir(FMath::Cos(LeanAz), FMath::Sin(LeanAz));
-			const double Z0 = B.TerrainHeightAt(P) - 0.2;
-
-			// Trunk: a tapering, curving tube with a swollen bole.
-			constexpr int32 Sides = 6, Rings = 10;
-			auto Centre = [&](double U)
-			{
-				const double Bend = FMath::Tan(FMath::DegreesToRadians(LeanDeg)) * TrunkH * (U - 0.35 * U * U);
-				return FVector3d(P.X + LeanDir.X * Bend, P.Y + LeanDir.Y * Bend, Z0 + TrunkH * U);
-			};
-			auto Radius = [&](double U) { return 0.15 + 0.09 * FMath::Exp(-U * 18.0) - 0.03 * U; };
-			const FLinearColor BarkColour = FLinearColor::FromSRGBColor(FColor(178, 172, 160));
-			int32 First = Trunks.Positions.Num();
-			for (int32 r = 0; r <= Rings; ++r)
-			{
-				const double U = r / static_cast<double>(Rings);
-				const FVector3d C = Centre(U);
-				for (int32 s = 0; s <= Sides; ++s)
-				{
-					const double A = UE_DOUBLE_TWO_PI * s / Sides;
-					const FVector Nrm(FMath::Cos(A), FMath::Sin(A), 0.0);
-					const FVector3d V = C + FVector3d(Nrm) * Radius(U);
-					Trunks.Add(FVector(V * 100.0), Nrm, BarkColour, FVector2D(s / static_cast<double>(Sides), TrunkH * U), FVector2D(Kind::Bark, Seed));
-				}
-			}
-			for (int32 r = 0; r < Rings; ++r)
-			for (int32 s = 0; s < Sides; ++s)
-			{
-				const int32 I0 = First + r * (Sides + 1) + s, I1 = I0 + 1, I2 = I0 + Sides + 2, I3 = I0 + Sides + 1;
-				const FVector Facing = Trunks.Normals[I0] + Trunks.Normals[I1];
-				Trunks.Quad(I0, I1, I2, I3, Facing);
-			}
-
-			// Crown: 16 fronds, 4-5.5 m, arching then drooping, leaflets hanging in a V.
-			const FVector3d Crown = Centre(1.0);
-			const int32 FrondCount = 16;
-			for (int32 f = 0; f < FrondCount; ++f)
-			{
-				const uint32 Hf = Hash(H, 100 + f);
-				const double Az = UE_DOUBLE_TWO_PI * (f + 0.4 * Unit(Hf)) / FrondCount;
-				const double Rise = FMath::DegreesToRadians(45.0 - 60.0 * (f % 3) / 2.0 + 10.0 * (Unit(Hash(Hf, 1)) - 0.5));
-				const double Length = 4.0 + 1.5 * Unit(Hash(Hf, 2));
-				const double Droop = FMath::DegreesToRadians(55.0 + 35.0 * Unit(Hash(Hf, 3)));
-				const FVector3d Out(FMath::Cos(Az), FMath::Sin(Az), 0.0);
-				const FVector3d Side(-FMath::Sin(Az), FMath::Cos(Az), 0.0);
-				// Older, lower fronds yellow and brown.
-				const bool bOld = (f % 3) == 2 && Unit(Hash(Hf, 4)) < 0.35;
-				const FLinearColor Leaf = bOld ? FLinearColor::FromSRGBColor(FColor(150, 132, 72)) : FLinearColor::FromSRGBColor(FColor(52, 84, 30)).Desaturate(0.1f * Unit(Hash(Hf, 5)));
-				constexpr int32 Segs = 5;
-				FVector3d Rachis[Segs + 1];
-				Rachis[0] = Crown;
-				for (int32 k = 1; k <= Segs; ++k)
-				{
-					const double S = (k - 0.5) / Segs;
-					const double Elev = Rise - Droop * S * S;
-					Rachis[k] = Rachis[k - 1] + (Out * FMath::Cos(Elev) + FVector3d(0, 0, 1) * FMath::Sin(Elev)) * (Length / Segs);
-				}
-				for (const double Wing : { -1.0, 1.0 })
-				{
-					const int32 Base = Fronds.Positions.Num();
-					for (int32 k = 0; k <= Segs; ++k)
-					{
-						const double S = k / static_cast<double>(Segs);
-						const double Width = 0.95 * FMath::Pow(FMath::Sin(UE_DOUBLE_PI * FMath::Clamp(S * 0.92 + 0.08, 0.0, 1.0)), 0.6);
-						const FVector3d Hang = (Side * Wing * FMath::Cos(FMath::DegreesToRadians(35.0)) - FVector3d(0, 0, 1) * FMath::Sin(FMath::DegreesToRadians(35.0)));
-						const FVector3d Tip = Rachis[k] + Hang * Width;
-						const FVector Up = FVector(FVector3d::CrossProduct(Hang, Rachis[FMath::Min(k + 1, Segs)] - Rachis[FMath::Max(k - 1, 0)]).GetSafeNormal() * -Wing);
-						const FVector Nrm = (Up.Z < 0.0 ? -Up : Up);
-						Fronds.Add(FVector(Rachis[k] * 100.0), Nrm, Leaf, FVector2D(S, 0.0), FVector2D(Kind::Frond, Seed + f * 0.0137f));
-						Fronds.Add(FVector(Tip * 100.0), Nrm, Leaf, FVector2D(S, Wing), FVector2D(Kind::Frond, Seed + f * 0.0137f));
-					}
-					for (int32 k = 0; k < Segs; ++k)
-					{
-						const int32 I0 = Base + 2 * k, I1 = I0 + 2, I2 = I0 + 3, I3 = I0 + 1;
-						Fronds.Quad(I0, I1, I2, I3, Fronds.Normals[I0]);
-					}
-				}
-			}
+			// Coconut palms lean, mostly away from the trade wind toward the land.
+			FSimCruisePalmInstance Palm;
+			Palm.LocationCm = Cm3(P, B.TerrainHeightAt(P));
+			Palm.YawDeg = static_cast<float>(200.0 + 140.0 * Unit(Hash(H, 6)));
+			Palm.Scale = static_cast<float>(0.88 + 0.24 * Unit(Hash(H, 7)));
+			Palm.Variant = static_cast<uint8>(Hash(H, 4) % PalmVariants);
+			B.PalmInstances.Add(Palm);
 			++B.Palms;
 		}
 	}

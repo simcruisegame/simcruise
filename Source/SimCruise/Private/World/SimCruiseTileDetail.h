@@ -48,8 +48,14 @@ namespace SimCruiseTileDetail
 	/** Footprints extruded by the place's recipe into the Building layer. */
 	SIMCRUISE_API void BuildBuildings(const FContext& Context);
 
-	/** Coconut palms on the parks and lawns of the palm region (Props trunks, Foliage fronds). */
+	/** Coconut palms on the parks and lawns of the palm region, as instances (FSimCruiseTileBuild::PalmInstances). */
 	SIMCRUISE_API void BuildPalms(const FContext& Context);
+
+	/** Number of palm meshes the instances choose from. */
+	inline constexpr int32 PalmVariants = 6;
+
+	/** One palm variant at the origin (cm), leaning toward +X: trunk (building material kinds) and fronds (foliage). */
+	SIMCRUISE_API void BuildPalmVariant(int32 Variant, FSimCruiseMeshData& Trunk, FSimCruiseMeshData& Fronds);
 
 	/** Street lights behind the curbs of public streets (Props), with their lamp points for the night light pool. */
 	SIMCRUISE_API void BuildStreetLights(const FContext& Context);

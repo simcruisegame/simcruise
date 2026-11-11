@@ -7,6 +7,8 @@
 #include "Engine/Texture2D.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "ProceduralMeshComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 #include "World/SimCruiseGeo.h"
 #include "World/SimCruiseWorldResources.h"
 
@@ -60,6 +62,37 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 		Layer.Indices.Empty();
 		Layer.UV0.Empty();
 		Layer.UV1.Empty();
+	}
+
+	// Palms: one instanced component per variant on this tile.
+	for (UInstancedStaticMeshComponent* Old : PalmComponents)
+	{
+		if (Old) Old->DestroyComponent();
+	}
+	PalmComponents.Reset();
+	if (Resources && !InBuild->PalmInstances.IsEmpty())
+	{
+		for (int32 Variant = 0; Variant < Resources->PalmMeshes.Num(); ++Variant)
+		{
+			TArray<FTransform> Transforms;
+			for (const FSimCruisePalmInstance& Palm : InBuild->PalmInstances)
+			{
+				if (Palm.Variant != Variant) continue;
+				Transforms.Add(FTransform(FRotator(0.0, Palm.YawDeg, 0.0), Palm.LocationCm, FVector(Palm.Scale)));
+			}
+			if (Transforms.IsEmpty() || !Resources->PalmMeshes[Variant]) continue;
+			UInstancedStaticMeshComponent* Palms = NewObject<UInstancedStaticMeshComponent>(this, *FString::Printf(TEXT("Palms%d"), Variant));
+			Palms->SetMobility(EComponentMobility::Movable);
+			Palms->SetupAttachment(Mesh);
+			Palms->SetStaticMesh(Resources->PalmMeshes[Variant]);
+			Palms->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+			Palms->SetCastShadow(true);
+			Palms->RegisterComponent();
+			Palms->AddInstances(Transforms, false, false);
+			AddInstanceComponent(Palms);
+			PalmComponents.Add(Palms);
+		}
+		InBuild->PalmInstances.Empty();
 	}
 
 	if (Resources)

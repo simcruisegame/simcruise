@@ -8,6 +8,7 @@
 #include "SimCruiseWorldTile.generated.h"
 
 class UProceduralMeshComponent;
+class UInstancedStaticMeshComponent;
 class UMaterialInstanceDynamic;
 class UTexture2D;
 class USimCruiseWorldResources;
@@ -56,6 +57,10 @@ public:
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> Materials;
+
+	/** The tile's palms, one instanced component per shared palm mesh. */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UInstancedStaticMeshComponent>> PalmComponents;
 
 private:
 	FIntPoint TileId = FIntPoint::ZeroValue;

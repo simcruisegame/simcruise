@@ -13,6 +13,16 @@
 #include "TextureResource.h"
 #include "UObject/Package.h"
 #include "World/SimCruiseTileData.h"
+#include "World/SimCruiseTileDetail.h"
+#include "Engine/StaticMesh.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "MeshDescription.h"
+#include "PhysicsEngine/BodySetup.h"
+#include "StaticMeshAttributes.h"
+#include "StaticMeshOperations.h"
+#if WITH_EDITOR
+#include "StaticMeshCompiler.h"
+#endif
 
 #if WITH_EDITOR
 #include "Materials/MaterialExpressionConstant.h"
@@ -431,6 +441,11 @@ return col;
 			break;
 		}
 		Custom->RebuildOutputs();
+		// The palms are instanced static meshes drawn with the props (bark) and foliage materials.
+		if (Layer == ESimCruiseTileLayer::Props || Layer == ESimCruiseTileLayer::Foliage)
+		{
+			Material->bUsedWithInstancedStaticMeshes = true;
+		}
 		Material->GetEditorOnlyData()->BaseColor.Connect(0, Custom);
 		Material->GetEditorOnlyData()->Roughness.Connect(1, Custom);
 		Material->GetEditorOnlyData()->Normal.Connect(2, Custom);
@@ -487,6 +502,120 @@ void USimCruiseWorldResources::Initialise()
 	if (!AsphaltTexture) { AsphaltTexture = BlankTexture; AsphaltMean = MeanLinear(Grey); }
 	if (!GrassTexture) { GrassTexture = BlankTexture; GrassMean = MeanLinear(Grey); }
 	if (!SandTexture) { SandTexture = BlankTexture; SandMean = MeanLinear(Grey); }
+
+	if (FApp::CanEverRender())
+	{
+		BuildPalmMeshes();
+	}
+}
+
+namespace
+{
+	/** A runtime static mesh from tile mesh buffers (positions cm, normals, colours, two UV sets), one slot per buffer. */
+	UStaticMesh* BuildRuntimeMesh(const FName Name, const TArray<const FSimCruiseMeshData*>& Parts)
+	{
+		FMeshDescription Description;
+		FStaticMeshAttributes Attributes(Description);
+		Attributes.Register();
+		TVertexAttributesRef<FVector3f> Positions = Attributes.GetVertexPositions();
+		TVertexInstanceAttributesRef<FVector3f> Normals = Attributes.GetVertexInstanceNormals();
+		TVertexInstanceAttributesRef<FVector4f> Colors = Attributes.GetVertexInstanceColors();
+		TVertexInstanceAttributesRef<FVector2f> UVs = Attributes.GetVertexInstanceUVs();
+		UVs.SetNumChannels(2);
+		TPolygonGroupAttributesRef<FName> SlotNames = Attributes.GetPolygonGroupMaterialSlotNames();
+		UStaticMesh* Mesh = NewObject<UStaticMesh>(GetTransientPackage(), MakeUniqueObjectName(GetTransientPackage(), UStaticMesh::StaticClass(), Name), RF_Transient);
+		TArray<FVertexInstanceID> Instances;
+		for (int32 S = 0; S < Parts.Num(); ++S)
+		{
+			const FSimCruiseMeshData& Part = *Parts[S];
+			const FPolygonGroupID Group = Description.CreatePolygonGroup();
+			const FName Slot(*FString::Printf(TEXT("Slot%d"), S));
+			SlotNames[Group] = Slot;
+			Mesh->GetStaticMaterials().Add(FStaticMaterial(UMaterial::GetDefaultMaterial(MD_Surface), Slot));
+			Instances.SetNum(Part.Positions.Num());
+			for (int32 V = 0; V < Part.Positions.Num(); ++V)
+			{
+				const FVertexID Vertex = Description.CreateVertex();
+				Positions[Vertex] = FVector3f(Part.Positions[V]);
+				const FVertexInstanceID Instance = Description.CreateVertexInstance(Vertex);
+				Normals[Instance] = FVector3f(Part.Normals[V]);
+				const FLinearColor& C = Part.Colors[V];
+				Colors[Instance] = FVector4f(C.R, C.G, C.B, C.A);
+				UVs.Set(Instance, 0, FVector2f(Part.UV0.IsValidIndex(V) ? Part.UV0[V] : FVector2D::ZeroVector));
+				UVs.Set(Instance, 1, FVector2f(Part.UV1.IsValidIndex(V) ? Part.UV1[V] : FVector2D::ZeroVector));
+				Instances[V] = Instance;
+			}
+			for (int32 I = 0; I + 2 < Part.Indices.Num(); I += 3)
+			{
+				const int32 A = Part.Indices[I], B = Part.Indices[I + 1], C = Part.Indices[I + 2];
+				if (A == B || B == C || A == C) continue;
+				Description.CreateTriangle(Group, { Instances[A], Instances[B], Instances[C] });
+			}
+		}
+		UStaticMesh::FBuildMeshDescriptionsParams Params;
+		Params.bMarkPackageDirty = false;
+		Params.bUseHashAsGuid = true;
+		Params.bBuildSimpleCollision = false;
+		Params.bCommitMeshDescription = true;
+		Params.bAllowCpuAccess = false;
+#if WITH_EDITOR
+		// The full build keeps the authored normals and makes a mesh distance field (Lumen).
+		Params.bFastBuild = false;
+		Mesh->SetNumSourceModels(1);
+		FMeshBuildSettings& Build = Mesh->GetSourceModel(0).BuildSettings;
+		Build.bRecomputeNormals = false;
+		Build.bRecomputeTangents = true;
+		Build.bUseMikkTSpace = true;
+		Build.bGenerateLightmapUVs = false;
+		Build.bRemoveDegenerates = true;
+		Build.bUseFullPrecisionUVs = true;
+#else
+		Params.bFastBuild = true;
+		FStaticMeshOperations::ComputeTangentsAndNormals(Description, EComputeNTBsFlags::Tangents | EComputeNTBsFlags::WeightedNTBs);
+#endif
+		TArray<const FMeshDescription*> Descriptions = { &Description };
+		if (!Mesh->BuildFromMeshDescriptions(Descriptions, Params))
+		{
+			return nullptr;
+		}
+#if WITH_EDITOR
+		FStaticMeshCompilingManager::Get().FinishCompilation({ Mesh });
+#endif
+		return Mesh;
+	}
+}
+
+void USimCruiseWorldResources::BuildPalmMeshes()
+{
+	PalmBarkMaterial = UMaterialInstanceDynamic::Create(GetLayerMaterial(ESimCruiseTileLayer::Props), this);
+	PalmBarkMaterial->SetTextureParameterValue(TEXT("Grain"), AsphaltTexture);
+	PalmBarkMaterial->SetVectorParameterValue(TEXT("GrainMean"), AsphaltMean);
+	PalmMeshes.Reset();
+	for (int32 Variant = 0; Variant < SimCruiseTileDetail::PalmVariants; ++Variant)
+	{
+		FSimCruiseMeshData Trunk, Fronds;
+		SimCruiseTileDetail::BuildPalmVariant(Variant, Trunk, Fronds);
+		UStaticMesh* Mesh = BuildRuntimeMesh(*FString::Printf(TEXT("SM_SimCruisePalm%d"), Variant), { &Trunk, &Fronds });
+		if (!Mesh)
+		{
+			UE_LOG(LogSimCruiseWorldResources, Error, TEXT("Palm variant %d did not build"), Variant);
+			continue;
+		}
+		Mesh->SetMaterial(0, PalmBarkMaterial);
+		Mesh->SetMaterial(1, GetLayerMaterial(ESimCruiseTileLayer::Foliage));
+		// Collision: the bole and the lower trunk (the fronds are well above a car).
+		Mesh->CreateBodySetup();
+		if (UBodySetup* Body = Mesh->GetBodySetup())
+		{
+			Body->CollisionTraceFlag = CTF_UseSimpleAsComplex;
+			FKSphylElem Capsule(22.f, 260.f);
+			Capsule.Center = FVector(0.0, 0.0, 150.0);
+			Body->AggGeom.SphylElems.Add(Capsule);
+			Body->CreatePhysicsMeshes();
+		}
+		PalmMeshes.Add(Mesh);
+	}
+	UE_LOG(LogSimCruiseWorldResources, Display, TEXT("Built %d palm meshes"), PalmMeshes.Num());
 }
 
 UMaterialInterface* USimCruiseWorldResources::GetLayerMaterial(ESimCruiseTileLayer Layer) const
