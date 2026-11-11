@@ -17,7 +17,8 @@ public class SimCruise : ModuleRules
 			"EnhancedInput",
 			"Json",
 			"JsonUtilities",
-			"PhysicsCore"
+			"PhysicsCore",
+			"Chaos"
 		});
 	}
 }

@@ -185,6 +185,10 @@ struct FSimCruiseCarDefinition
 	// Source evidence is retained as a nested object and as the original text.
 	FString CalibrationOpen;
 	FString SourcesEstimates;
+	/** Unreal calibration overlay applied on top of the canonical file (Content/Vehicle/Calibration). */
+	FString CalibrationOverlayPath;
+	FString CalibrationOverlayChanges;
+	FString CalibrationOverlayNote;
 	TSharedPtr<FJsonObject> SourceAnnotations;
 	TSharedPtr<FJsonObject> ModelRigOptions;
 	TSharedPtr<FJsonObject> OriginalDocument;

@@ -10,7 +10,6 @@ namespace SimCruiseDynamics
 	{
 		constexpr double PoundsPerInchToNewtonsPerMeter = 175.126835;
 		constexpr double PoundsForceToNewtons = 4.4482216153;
-		constexpr double GravityMps2 = 9.80665;
 		constexpr double SteelShearModulusPa = 79.0e9;
 		constexpr double SteelYoungsModulusPa = 205.0e9;
 
@@ -90,8 +89,8 @@ namespace SimCruiseDynamics
 		const double TorsionLengthM = GetAxleValue(Car.AntiRollBarTorsionLengthMByAxle, AxleIndex);
 		const double ArmM = GetAxleValue(Car.AntiRollBarArmLengthMByAxle, AxleIndex);
 		const double LeverRatio = GetAxleValue(Car.AntiRollBarLeverRatioByAxle, AxleIndex, 1.0);
-		const double SecondMomentM4 = PI * FMath::Pow(DiameterM, 4.0) / 64.0;
-		if (SecondMomentM4 <= UE_DOUBLE_SMALL_NUMBER)
+		const double SecondMomentM4 = UE_DOUBLE_PI * FMath::Pow(DiameterM, 4.0) / 64.0;
+		if (SecondMomentM4 <= 0.0)
 		{
 			return 0.0;
 		}
@@ -101,7 +100,7 @@ namespace SimCruiseDynamics
 		const double BendingCompliance = 2.0 * FMath::Pow(ArmM, 3.0) /
 			(3.0 * SteelYoungsModulusPa * SecondMomentM4);
 		const double TotalCompliance = TorsionalCompliance + BendingCompliance;
-		return TotalCompliance > UE_DOUBLE_SMALL_NUMBER
+		return TotalCompliance > 0.0
 			? 0.82 * LeverRatio * LeverRatio / TotalCompliance
 			: 0.0;
 	}

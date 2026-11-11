@@ -404,6 +404,35 @@ namespace SimCruiseCarData
 	}
 }
 
+namespace SimCruiseCarData
+{
+	/** Physical fields a calibration overlay may set even when the car file leaves them at their default. */
+	static bool IsKnownOverlayField(const FString& Key)
+	{
+		static const TCHAR* const Fields[] = {
+			TEXT("mass_kg"), TEXT("front_weight"), TEXT("cg_height_m"), TEXT("inertia"), TEXT("angular_damp"),
+			TEXT("static_mu"), TEXT("lateral_grip_scale"), TEXT("load_sensitivity"), TEXT("reference_corner_load_n"), TEXT("axle_grip"),
+			TEXT("mu_min"), TEXT("mu_max"), TEXT("slip_stiffness"), TEXT("slip_falloff"), TEXT("slip_falloff_from"), TEXT("slip_falloff_to"),
+			TEXT("camber_thrust"), TEXT("longitudinal_stiffness"), TEXT("relaxation_m"), TEXT("slip_ratio_peak"), TEXT("slip_ratio_falloff"),
+			TEXT("relaxation_load_exponent"), TEXT("wheel_inertia"), TEXT("rolling_resistance"), TEXT("brake_front_nm"), TEXT("brake_rear_nm"),
+			TEXT("parking_brake_nm"), TEXT("drag_area_m2"), TEXT("engine_inertia"), TEXT("engine_friction_nm"), TEXT("engine_friction_per_rpm"),
+			TEXT("driveline_efficiency"), TEXT("shift_seconds"), TEXT("clutch_stiffness"), TEXT("clutch_capacity_nm"), TEXT("clutch_back_nm"),
+			TEXT("launch_rpm"), TEXT("launch_rpm_per_throttle"), TEXT("manual_clutch_stiffness"), TEXT("front_diff_bias"), TEXT("rear_diff_bias"),
+			TEXT("center_bias"), TEXT("tc_target_slip"), TEXT("tc_gain"), TEXT("wheel_rate_n_m"), TEXT("bar_rate_n_m"), TEXT("bump_gap_m"),
+			TEXT("bump_stiffness"), TEXT("static_camber_deg"), TEXT("camber_per_m"), TEXT("caster_deg"), TEXT("toe_per_wheel_deg"),
+			TEXT("unsprung_corner_kg"), TEXT("damper_ratio_rebound"), TEXT("damper_ratio_compression"), TEXT("damper_knee_mps"),
+			TEXT("damper_knee_slope") };
+		for (const TCHAR* Field : Fields)
+		{
+			if (Key == Field)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+}
+
 bool FSimCruiseCarDefinitionLoader::LoadById(const FString& CarId,
 	FSimCruiseCarDefinition& OutCar, FString& OutError)
 {
@@ -431,6 +460,61 @@ bool FSimCruiseCarDefinitionLoader::LoadById(const FString& CarId,
 		return SimCruiseCarData::Fail(OutError, CarPath, TEXT("field 'id'"),
 			FString::Printf(TEXT("does not match requested id '%s'"), *CarId));
 	}
+
+	// Unreal calibration overlay: Content/Vehicle/Calibration/<id>.json replaces
+	// named fields of the canonical car file (estimated fields only, each with
+	// its reason in "_note"). SIMCRUISE_CALIBRATION_DIR points experiments at
+	// another folder instead.
+	FString OverlayDirectory = FPlatformMisc::GetEnvironmentVariable(TEXT("SIMCRUISE_CALIBRATION_DIR"));
+	if (OverlayDirectory.IsEmpty())
+	{
+		OverlayDirectory = FPaths::Combine(FPaths::ProjectContentDir(), TEXT("Vehicle"), TEXT("Calibration"));
+	}
+	const FString OverlayPath = FPaths::Combine(OverlayDirectory, CarId + TEXT(".json"));
+	if (!FPaths::FileExists(OverlayPath))
+	{
+		return true;
+	}
+	FString OverlayText;
+	TSharedPtr<FJsonObject> Overlay;
+	if (!FFileHelper::LoadFileToString(OverlayText, *OverlayPath) ||
+		!FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(OverlayText), Overlay) || !Overlay.IsValid())
+	{
+		return SimCruiseCarData::Fail(OutError, OverlayPath, TEXT("JSON"), TEXT("calibration overlay could not be read"));
+	}
+	TSharedRef<FJsonObject> Merged = MakeShared<FJsonObject>(*OutCar.OriginalDocument);
+	TArray<FString> Changes;
+	for (const auto& Field : Overlay->Values)
+	{
+		const FString Key(*Field.Key);
+		if (Key.StartsWith(TEXT("_")))
+		{
+			continue;
+		}
+		if (!Merged->HasField(Key) && !SimCruiseCarData::IsKnownOverlayField(Key))
+		{
+			return SimCruiseCarData::Fail(OutError, OverlayPath, FString::Printf(TEXT("field '%s'"), *Key), TEXT("is not a car field"));
+		}
+		FString Before = TEXT("default");
+		if (const TSharedPtr<FJsonValue> Existing = Merged->TryGetField(Key))
+		{
+			Before = Existing->Type == EJson::Number ? FString::SanitizeFloat(Existing->AsNumber()) : TEXT("(value)");
+		}
+		const FString After = Field.Value->Type == EJson::Number ? FString::SanitizeFloat(Field.Value->AsNumber()) : TEXT("(value)");
+		Changes.Add(FString::Printf(TEXT("%s %s -> %s"), *Key, *Before, *After));
+		Merged->SetField(Key, Field.Value);
+	}
+	FString MergedText;
+	FJsonSerializer::Serialize(Merged, TJsonWriterFactory<>::Create(&MergedText));
+	const FString BaseText = OutCar.OriginalJson;
+	if (!ParseJson(MergedText, CarPath + TEXT(" + ") + OverlayPath, OutCar, OutError))
+	{
+		return false;
+	}
+	OutCar.OriginalJson = BaseText;
+	OutCar.CalibrationOverlayPath = OverlayPath;
+	OutCar.CalibrationOverlayChanges = FString::Join(Changes, TEXT("; "));
+	Overlay->TryGetStringField(TEXT("_note"), OutCar.CalibrationOverlayNote);
 	return true;
 }
 
