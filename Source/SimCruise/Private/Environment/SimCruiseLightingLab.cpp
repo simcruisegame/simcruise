@@ -163,7 +163,10 @@ UStaticMeshComponent* ASimCruiseLightingLab::AddShape(const FString& Name, UStat
 
 UStaticMeshComponent* ASimCruiseLightingLab::AddBox(const FString& Name, const FVector& CenterM, const FVector& SizeM, UMaterialInterface* Material, float YawDeg)
 {
-	static UStaticMesh* Cube = LoadMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
+	// Not cached in a function-local static: a raw UObject pointer there is invisible to the
+	// garbage collector and dangles once a later world no longer references the cube.
+	// LoadObject finds the already-loaded mesh, so this stays cheap.
+	UStaticMesh* Cube = LoadMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
 	// The engine cube is 100 units on a side, centred on its origin.
 	return AddShape(Name, Cube, CenterM, SizeM, Material, FRotator(0.0f, YawDeg, 0.0f));
 }
@@ -546,8 +549,16 @@ void ASimCruiseLightingLab::RunSteps(float DeltaSeconds)
 		{
 			bStepStarted = true;
 			bPerfRunning = true;
+			// The sampler outlives worlds (core ticker): reach the lab through a weak pointer so a
+			// window that ends after the lab is destroyed does not write to freed memory.
 			FSimCruisePerfSampler::Start(FString::Printf(TEXT("%s_%s"), *Step.Text, *CurrentView), Step.Seconds,
-				[this](const FSimCruisePerfStats&) { bPerfRunning = false; });
+				[WeakLab = TWeakObjectPtr<ASimCruiseLightingLab>(this)](const FSimCruisePerfStats&)
+				{
+					if (ASimCruiseLightingLab* Lab = WeakLab.Get())
+					{
+						Lab->bPerfRunning = false;
+					}
+				});
 			break;
 		}
 		if (!bPerfRunning)

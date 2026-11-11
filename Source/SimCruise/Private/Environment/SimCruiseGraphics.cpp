@@ -109,8 +109,9 @@ ESimCruiseGraphicsPreset FSimCruiseGraphics::AutoPick(const FString& AdapterName
 		{TEXT("rtx 50"), ESimCruiseGraphicsPreset::Ultra}, {TEXT("rtx 40"), ESimCruiseGraphicsPreset::Ultra},
 		{TEXT("rtx 3050"), ESimCruiseGraphicsPreset::Medium}, {TEXT("rtx 30"), ESimCruiseGraphicsPreset::Ultra},
 		{TEXT("rx 9"), ESimCruiseGraphicsPreset::Ultra}, {TEXT("rx 7"), ESimCruiseGraphicsPreset::Ultra},
-		// Measured: the RTX 2070 Super Max-Q holds High at 99 fps and Ultra at 67 fps in the lab
-		// street at 1080p, so the laptop part starts on High and the desktop 2070/2080 on Ultra.
+		// Measured: the RTX 2070 Super Max-Q holds High at 88-99 fps and Ultra at 65-72 fps in the
+		// lab street at 1080p (docs/unreal-architecture.md), with little margin for real places,
+		// so the laptop part starts on High and the desktop 2070/2080 on Ultra.
 		{TEXT("rtx 2080"), ESimCruiseGraphicsPreset::Ultra}, {TEXT("rtx 2070"), ESimCruiseGraphicsPreset::Ultra},
 		{TEXT("rtx 2060"), ESimCruiseGraphicsPreset::High}, {TEXT("rx 6"), ESimCruiseGraphicsPreset::Ultra},
 		{TEXT("arc"), ESimCruiseGraphicsPreset::Medium}, {TEXT("gtx 16"), ESimCruiseGraphicsPreset::Medium},

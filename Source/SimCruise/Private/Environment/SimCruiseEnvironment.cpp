@@ -8,6 +8,7 @@
 #include "Components/SkyAtmosphereComponent.h"
 #include "Components/SkyLightComponent.h"
 #include "Components/VolumetricCloudComponent.h"
+#include "Engine/Level.h"
 #include "EngineUtils.h"
 #include "Environment/SimCruiseDaylightModel.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -379,17 +380,35 @@ void ASimCruiseEnvironment::ApplyExposure()
 	S.ColorSaturation = FVector4(1.0, 1.0, 1.0, CameraSaturation * FMath::Lerp(1.0f, 0.35f, Night));
 }
 
-void ASimCruiseEnvironment::TakeOverLevelLighting()
+void ASimCruiseEnvironment::TakeOverLevelLighting(const ULevel* OnlyLevel)
 {
 	UWorld* World = GetWorld();
 	if (!World)
 	{
 		return;
 	}
-	int32 Disabled = 0;
-	for (TActorIterator<AActor> It(World); It; ++It)
+	TArray<AActor*> Candidates;
+	if (OnlyLevel)
 	{
-		AActor* Actor = *It;
+		Candidates.Reserve(OnlyLevel->Actors.Num());
+		for (AActor* Actor : OnlyLevel->Actors)
+		{
+			if (IsValid(Actor))
+			{
+				Candidates.Add(Actor);
+			}
+		}
+	}
+	else
+	{
+		for (TActorIterator<AActor> It(World); It; ++It)
+		{
+			Candidates.Add(*It);
+		}
+	}
+	int32 Disabled = 0;
+	for (AActor* Actor : Candidates)
+	{
 		if (Actor == this || Actor->IsA<ASimCruiseEnvironment>())
 		{
 			continue;
@@ -410,7 +429,8 @@ void ASimCruiseEnvironment::TakeOverLevelLighting()
 	}
 	if (Disabled > 0)
 	{
-		UE_LOG(LogSimCruiseEnvironment, Display, TEXT("SimCruise environment took over the level's lighting (%d components turned off)."), Disabled);
+		UE_LOG(LogSimCruiseEnvironment, Display, TEXT("SimCruise environment took over the level's lighting (%d components turned off%s)."), Disabled,
+			OnlyLevel ? *FString::Printf(TEXT(" in level %s"), *OnlyLevel->GetOuter()->GetName()) : TEXT(""));
 	}
 }
 

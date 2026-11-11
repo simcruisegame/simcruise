@@ -1,6 +1,11 @@
 // Copyright SimCruise contributors. All Rights Reserved.
 
+#include "Components/DirectionalLightComponent.h"
+#include "Engine/DirectionalLight.h"
+#include "Engine/Engine.h"
+#include "Engine/World.h"
 #include "Environment/SimCruiseDaylightModel.h"
+#include "Environment/SimCruiseEnvironment.h"
 #include "Environment/SimCruiseGraphics.h"
 #include "Environment/SimCruisePerfSampler.h"
 #include "Environment/SimCruiseSolarPosition.h"
@@ -271,6 +276,53 @@ bool FSimCruiseGraphicsAutoPickTest::RunTest(const FString&)
 	TestFalse(TEXT("unknown preset"), FSimCruiseGraphics::Parse(TEXT("insane"), Parsed));
 	TestEqual(TEXT("percentile"), FSimCruisePerfStats::Percentile({4.0, 1.0, 3.0, 2.0}, 50.0), 2.0);
 	TestEqual(TEXT("p95 of 20"), FSimCruisePerfStats::Percentile({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20}, 95.0), 19.0);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseSkyActorTest, "SimCruise.Environment.Sky.Actor", Flags)
+bool FSimCruiseSkyActorTest::RunTest(const FString&)
+{
+	// A throwaway game world with a level sun of its own, as a streamed map would bring.
+	UWorld* World = UWorld::CreateWorld(EWorldType::Game, false, TEXT("SimCruiseSkyActorTest"));
+	if (!TestNotNull(TEXT("world"), World))
+	{
+		return false;
+	}
+	FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
+	Context.SetCurrentWorld(World);
+
+	ADirectionalLight* LevelSun = World->SpawnActor<ADirectionalLight>();
+	ASimCruiseEnvironment* Env = World->SpawnActor<ASimCruiseEnvironment>();
+	if (TestNotNull(TEXT("level sun"), LevelSun) && TestNotNull(TEXT("environment"), Env))
+	{
+		// Clear noon on the taste-test day at Lummus Park.
+		Env->SetPlace(25.7770425, -80.1309641, 2.0);
+		Env->SetUtcTime(FDateTime(2025, 4, 24, 17, 19, 0));
+		const FSimCruiseSkyPosition Expected = FSimCruiseSolarPosition::Sun(25.7770425, -80.1309641, FDateTime(2025, 4, 24, 17, 19, 0));
+		const FVector ToSun = FSimCruiseSolarPosition::ToWorldDirection(Expected.AzimuthDeg, Expected.ApparentElevationDeg);
+		TestTrue(TEXT("sun direction follows the ephemeris"), Env->GetSunDirection().Equals(ToSun, 1e-6));
+		// A directional light shines along its forward axis, away from the sun.
+		TestTrue(TEXT("sun light shines from the sun"), Env->Sun->GetForwardVector().Equals(-ToSun, 1e-4));
+		TestTrue(FString::Printf(TEXT("sun light is extraterrestrial lux (%.0f)"), Env->Sun->Intensity), FMath::Abs(Env->Sun->Intensity - FSimCruiseDaylightModel::ExtraterrestrialSunLux(Expected.Distance)) < 1.0);
+		TestTrue(TEXT("sun casts shadows at noon"), Env->Sun->CastShadows);
+		TestFalse(TEXT("moon casts none while the sun is up"), Env->MoonLight->CastShadows);
+		TestTrue(FString::Printf(TEXT("noon reference EV100 %.2f"), Env->GetReferenceEV100()), Env->GetReferenceEV100() > 15.0f && Env->GetReferenceEV100() < 16.0f);
+
+		// The level's own sun is turned off, the environment's stays on; a level-scoped pass does the same.
+		Env->TakeOverLevelLighting(World->PersistentLevel);
+		TestFalse(TEXT("level sun turned off"), LevelSun->GetLightComponent()->IsVisible());
+		TestTrue(TEXT("environment sun kept"), Env->Sun->IsVisible());
+
+		// Night: the sun is switched off below -18 degrees; the moon takes the shadows when up.
+		Env->SetUtcTime(FDateTime(2025, 5, 13, 3, 0, 0));
+		TestFalse(TEXT("sun off at night"), Env->Sun->IsVisible());
+		TestFalse(TEXT("sun casts no shadows at night"), Env->Sun->CastShadows);
+		TestTrue(TEXT("full moon up casts the shadows"), Env->MoonLight->CastShadows && Env->MoonLight->IsVisible());
+		TestTrue(FString::Printf(TEXT("moonlight %.3f lx"), Env->MoonLight->Intensity), Env->MoonLight->Intensity > 0.2f && Env->MoonLight->Intensity < 0.4f);
+	}
+
+	GEngine->DestroyWorldContext(World);
+	World->DestroyWorld(false);
 	return true;
 }
 

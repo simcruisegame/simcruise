@@ -84,8 +84,11 @@ public:
 	/** Look development: a cloud material scalar or one of the named atmosphere/exposure knobs (see SimCruise.Env.Look). */
 	void SetLookParameter(FName Name, float Value);
 
-	/** Turns off any other sun, sky, cloud, fog or sky light already in the level. */
-	void TakeOverLevelLighting();
+	/**
+	 * Turns off any other sun, sky, cloud, fog or sky light in the world, or only in OnlyLevel
+	 * (a streamed level or World Partition cell that has just been added).
+	 */
+	void TakeOverLevelLighting(const ULevel* OnlyLevel = nullptr);
 
 	// Place and time
 

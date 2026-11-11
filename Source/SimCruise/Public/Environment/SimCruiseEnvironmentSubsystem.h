@@ -8,6 +8,7 @@
 
 class ASimCruiseEnvironment;
 class ASimCruiseLightingLab;
+class ULevel;
 
 /**
  * Gives every game world its SimCruise sky. When play begins it spawns one
@@ -30,6 +31,7 @@ class SIMCRUISE_API USimCruiseEnvironmentSubsystem : public UWorldSubsystem
 public:
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
+	virtual void Deinitialize() override;
 
 	UFUNCTION(BlueprintPure, Category = "SimCruise|Environment")
 	ASimCruiseEnvironment* GetEnvironment() const { return Environment; }
@@ -37,6 +39,11 @@ public:
 	static USimCruiseEnvironmentSubsystem* Get(const UWorld* World);
 
 private:
+	/** A streamed level or World Partition cell arrived: its own sky parts are turned off too. */
+	void HandleLevelAdded(ULevel* Level, UWorld* World);
+
+	FDelegateHandle LevelAddedHandle;
+
 	UPROPERTY(Transient)
 	TObjectPtr<ASimCruiseEnvironment> Environment;
 

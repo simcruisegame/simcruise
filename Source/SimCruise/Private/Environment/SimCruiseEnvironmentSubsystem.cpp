@@ -8,7 +8,9 @@
 #include "Environment/SimCruiseGraphics.h"
 #include "Environment/SimCruiseLightingLab.h"
 #include "Environment/SimCruisePerfSampler.h"
+#include "Engine/Level.h"
 #include "HAL/IConsoleManager.h"
+#include "Misc/App.h"
 #include "Misc/CommandLine.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
@@ -103,8 +105,14 @@ namespace
 		}
 		bApplied = true;
 		FString Choice = TEXT("auto");
-		FParse::Value(FCommandLine::Get(), TEXT("SimCruiseGraphics="), Choice);
+		const bool bExplicit = FParse::Value(FCommandLine::Get(), TEXT("SimCruiseGraphics="), Choice);
 		if (Choice.Equals(TEXT("keep"), ESearchCase::IgnoreCase))
+		{
+			return;
+		}
+		// Nothing to pick for without a renderer (-nullrhi tests, servers), and Play-In-Editor
+		// shares the editor's own scalability: there only an explicit preset is applied.
+		if (!bExplicit && (!FApp::CanEverRender() || GIsEditor))
 		{
 			return;
 		}
@@ -245,6 +253,24 @@ bool USimCruiseEnvironmentSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 	return Super::ShouldCreateSubsystem(Outer);
 }
 
+void USimCruiseEnvironmentSubsystem::Deinitialize()
+{
+	if (LevelAddedHandle.IsValid())
+	{
+		FWorldDelegates::LevelAddedToWorld.Remove(LevelAddedHandle);
+		LevelAddedHandle.Reset();
+	}
+	Super::Deinitialize();
+}
+
+void USimCruiseEnvironmentSubsystem::HandleLevelAdded(ULevel* Level, UWorld* World)
+{
+	if (Level && World == GetWorld() && IsValid(Environment))
+	{
+		Environment->TakeOverLevelLighting(Level);
+	}
+}
+
 USimCruiseEnvironmentSubsystem* USimCruiseEnvironmentSubsystem::Get(const UWorld* World)
 {
 	return World ? World->GetSubsystem<USimCruiseEnvironmentSubsystem>() : nullptr;
@@ -281,6 +307,10 @@ void USimCruiseEnvironmentSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 		return;
 	}
 	Environment->TakeOverLevelLighting();
+	if (!LevelAddedHandle.IsValid())
+	{
+		LevelAddedHandle = FWorldDelegates::LevelAddedToWorld.AddUObject(this, &USimCruiseEnvironmentSubsystem::HandleLevelAdded);
+	}
 	ApplyCommandLine(*Environment);
 	UE_LOG(LogSimCruiseEnvironmentSubsystem, Display, TEXT("SimCruise environment: %s"), *Environment->Describe());
 
