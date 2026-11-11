@@ -4,6 +4,7 @@
 
 #if WITH_DEV_AUTOMATION_TESTS
 
+#include "Presentation/SimCruiseCarClock.h"
 #include "Presentation/SimCruiseLowBeamPattern.h"
 #include "World/SimCruiseRoadNetwork.h"
 #include "World/SimCruiseTileDetail.h"
@@ -69,6 +70,23 @@ bool FSimCruiseRegionalDetailTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("and Honolulu"), IsCoconutPalmRegion(21.28, -157.83));
 	TestFalse(TEXT("not Orlando"), IsCoconutPalmRegion(28.54, -81.38));
 	TestFalse(TEXT("not Oatman"), IsCoconutPalmRegion(35.04, -114.37));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseCarClockTest, "SimCruise.Presentation.CarClock", WorldDetailTestFlags)
+bool FSimCruiseCarClockTest::RunTest(const FString& Parameters)
+{
+	using namespace SimCruiseCarClock;
+	auto At = [](const TCHAR* Iso) { FDateTime T; FDateTime::ParseIso8601(Iso, T); return T; };
+	TestEqual(TEXT("Miami Beach, November: EST"), Format12(LocalMinutes(At(TEXT("2026-11-11T16:00:00Z")), 25.78, -80.13)), FString(TEXT("11:00")));
+	TestEqual(TEXT("Miami Beach, July: EDT"), Format12(LocalMinutes(At(TEXT("2026-07-01T16:00:00Z")), 25.78, -80.13)), FString(TEXT("12:00")));
+	TestEqual(TEXT("Chicago, January: CST"), Format12(LocalMinutes(At(TEXT("2026-01-15T18:30:00Z")), 41.88, -87.63)), FString(TEXT("12:30")));
+	TestEqual(TEXT("Phoenix keeps MST in summer"), Format12(LocalMinutes(At(TEXT("2026-07-01T19:05:00Z")), 33.45, -112.07)), FString(TEXT("12:05")));
+	TestEqual(TEXT("Los Angeles, July: PDT"), Format12(LocalMinutes(At(TEXT("2026-07-01T19:05:00Z")), 34.05, -118.24)), FString(TEXT("12:05")));
+	TestEqual(TEXT("Honolulu: HST, no DST"), Format12(LocalMinutes(At(TEXT("2026-07-01T22:00:00Z")), 21.31, -157.86)), FString(TEXT("12:00")));
+	TestEqual(TEXT("Telluride in winter: MST"), Format12(LocalMinutes(At(TEXT("2026-02-01T07:00:00Z")), 37.94, -107.81)), FString(TEXT("12:00")));
+	TestEqual(TEXT("DST starts on the second Sunday of March"), Format12(LocalMinutes(At(TEXT("2026-03-08T07:30:00Z")), 25.78, -80.13)), FString(TEXT("3:30")));
+	TestEqual(TEXT("midnight shows 12"), Format12(0), FString(TEXT("12:00")));
 	return true;
 }
 

@@ -161,6 +161,26 @@ bool SimCruisePresentationProfiles::Load(const FString& CarId, FSimCruiseCarPres
 	}
 	Car->TryGetStringField(TEXT("hide_pattern"), OutProfile.HidePattern);
 
+	const TSharedPtr<FJsonObject>* ClockObject = nullptr;
+	if (Car->TryGetObjectField(TEXT("clock"), ClockObject) && ClockObject)
+	{
+		FSimCruiseClockSpec Clock;
+		const TArray<TSharedPtr<FJsonValue>>* Box = nullptr;
+		const TArray<TSharedPtr<FJsonValue>>* Clear = nullptr;
+		if (!(*ClockObject)->TryGetStringField(TEXT("material"), Clock.Material) || !(*ClockObject)->TryGetArrayField(TEXT("box"), Box) || Box->Num() != 4)
+		{
+			OutError = Where + TEXT(": clock needs 'material' and a four-number 'box'");
+			return false;
+		}
+		Clock.Box = FVector4((*Box)[0]->AsNumber(), (*Box)[1]->AsNumber(), (*Box)[2]->AsNumber(), (*Box)[3]->AsNumber());
+		if ((*ClockObject)->TryGetArrayField(TEXT("clear"), Clear) && Clear->Num() == 2)
+		{
+			Clock.Clear = FVector2D((*Clear)[0]->AsNumber(), (*Clear)[1]->AsNumber());
+		}
+		(*ClockObject)->TryGetBoolField(TEXT("flip_v"), Clock.bFlipV);
+		OutProfile.Clock = Clock;
+	}
+
 	const TSharedPtr<FJsonObject>* Paint = nullptr;
 	if (Car->TryGetObjectField(TEXT("paint"), Paint) && Paint)
 	{

@@ -52,6 +52,19 @@ struct FSimCruisePaintFinish
  * material roles, its paint, badge areas and steering-wheel ratio. Physics
  * data stays in data/cars/<id>.json; this file holds only how the car looks.
  */
+/** A dashboard clock drawn over the model's display texture (SimCruiseCarClock). */
+struct FSimCruiseClockSpec
+{
+	/** Author material name of the display that carries the painted time. */
+	FString Material;
+	/** The digits' box in the texture: u0, v0, u1, v1 (0..1, v down). */
+	FVector4 Box = FVector4(0.0, 0.0, 1.0, 1.0);
+	/** A texture point of plain LCD background. */
+	FVector2D Clear = FVector2D(0.5, 0.5);
+	/** The mesh shows the texture upside down. */
+	bool bFlipV = false;
+};
+
 struct FSimCruiseCarPresentationProfile
 {
 	FString CarId;
@@ -77,6 +90,9 @@ struct FSimCruiseCarPresentationProfile
 	TArray<FSimCruiseRoleArea> RoleAreas;
 	/** Extra case-insensitive regex applied to surface labels to hide them. */
 	FString HidePattern;
+
+	/** Set when the model's dashboard has a clock to drive. */
+	TOptional<FSimCruiseClockSpec> Clock;
 
 	/** Steering-wheel override: node-name substring, explicit rim (vehicle frame, metres) or none. */
 	FString SteeringWheelNode;

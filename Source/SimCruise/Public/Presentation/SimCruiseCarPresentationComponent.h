@@ -183,6 +183,12 @@ private:
 	double SteeringRatio = 15.0;
 	double SteeringWheelAngle = 0.0;
 	int32 LampLevel = -1;
+
+	/** The dashboard clock's material, when the profile has one; its minutes follow the place's local time. */
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> ClockMaterial;
+	int32 ClockMinutes = -1;
+	float ClockCheck = 0.f;
 	FString LastError;
 	TArray<FString> RigLog;
 };

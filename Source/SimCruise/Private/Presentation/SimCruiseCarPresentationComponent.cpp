@@ -1,6 +1,9 @@
 // Copyright SimCruise contributors. All Rights Reserved.
 
 #include "Presentation/SimCruiseCarPresentationComponent.h"
+#include "Environment/SimCruiseEnvironment.h"
+#include "Environment/SimCruiseEnvironmentSubsystem.h"
+#include "Presentation/SimCruiseCarClock.h"
 
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
@@ -82,6 +85,26 @@ UMaterialInstanceDynamic* USimCruiseCarPresentationComponent::MaterialFor(int32 
 	}
 	const ESimCruiseCarMaterialRole Role = Built->RoleOf(MaterialIndex);
 	UMaterialInstanceDynamic* MID = SimCruiseCarMaterials::MakeInstance(this, Role, Built->Model, MaterialIndex, Built->Profile);
+	// The dashboard clock: the display's own texture, with the real time drawn over the painted one.
+	const TOptional<FSimCruiseClockSpec>& Clock = Built->Profile.Clock;
+	if (MID && Clock.IsSet() && Built->Model.Materials.IsValidIndex(MaterialIndex) && Built->Model.Materials[MaterialIndex].Name == Clock->Material)
+	{
+		if (UMaterialInterface* ClockBase = SimCruiseCarClock::Get())
+		{
+			const FSimCruiseGltfMaterial& Author = Built->Model.Materials[MaterialIndex];
+			UTexture* Texture = Built->Model.ImageFiles.IsValidIndex(Author.BaseColorImage)
+				? SimCruiseCarMaterials::LoadTexture(Built->Model.ImageFiles[Author.BaseColorImage], true, false) : nullptr;
+			UMaterialInstanceDynamic* ClockMID = UMaterialInstanceDynamic::Create(ClockBase, this);
+			if (Texture) ClockMID->SetTextureParameterValue(TEXT("BaseTexture"), Texture);
+			ClockMID->SetVectorParameterValue(TEXT("BoxMin"), FLinearColor(Clock->Box.X, Clock->Box.Y, 0.f, 0.f));
+			ClockMID->SetVectorParameterValue(TEXT("BoxMax"), FLinearColor(Clock->Box.Z, Clock->Box.W, 0.f, 0.f));
+			ClockMID->SetVectorParameterValue(TEXT("Clear"), FLinearColor(Clock->Clear.X, Clock->Clear.Y, 0.f, 0.f));
+			ClockMID->SetScalarParameterValue(TEXT("FlipV"), Clock->bFlipV ? 1.f : 0.f);
+			MID = ClockMID;
+			ClockMaterial = ClockMID;
+			ClockMinutes = -1;
+		}
+	}
 	Materials.Add(MaterialIndex, MID);
 	if (Role == ESimCruiseCarMaterialRole::LampRear)
 	{
@@ -229,6 +252,23 @@ void USimCruiseCarPresentationComponent::ApplyVisualState(const FSimCruiseCarVis
 void USimCruiseCarPresentationComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	ClockCheck -= DeltaTime;
+	if (ClockMaterial && ClockCheck <= 0.f)
+	{
+		ClockCheck = 1.f;
+		if (const USimCruiseEnvironmentSubsystem* Subsystem = USimCruiseEnvironmentSubsystem::Get(GetWorld()))
+		{
+			if (const ASimCruiseEnvironment* Environment = Subsystem->GetEnvironment())
+			{
+				const int32 Minutes = SimCruiseCarClock::LocalMinutes(Environment->GetUtcTime(), Environment->LatitudeDeg, Environment->LongitudeDeg);
+				if (Minutes != ClockMinutes)
+				{
+					ClockMinutes = Minutes;
+					ClockMaterial->SetScalarParameterValue(TEXT("Minutes"), static_cast<float>(Minutes));
+				}
+			}
+		}
+	}
 	if (StateProvider.GetInterface())
 	{
 		FSimCruiseCarVisualState State;

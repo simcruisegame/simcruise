@@ -636,6 +636,10 @@ Items 1-6 and 9 of the list above were worked on; the captures are `docs/images/
 
 Still unreal after round 2, worst first: the buildings are still extruded footprints with every hotel the same recipe (no individual names, no vertical fins or porthole windows, no roof-top signs, no corner wraps), and their ground floors have no cafe tables or umbrellas; there are no people, parked cars or traffic; the palms' shaded sides read nearly black against the light (the runtime meshes have no distance fields for Lumen's sky occlusion) and the crowns are lighter and more see-through than real ones; the night sky is black where Miami Beach's sky glows orange-grey; lit windows sparkle with reflection noise; the cockpit items (7) are untouched.
 
+### The dashboard clock (11 November 2026)
+
+The NB's clock showed the "2:15" painted in its display texture. A car profile can now name a `clock`: the author material, the digits' box in the texture, a point of plain LCD background and whether the mesh shows the texture upside down (the NB's does: the texture says 5:12, and a seven-segment 5 upside down is a 2). `SimCruiseCarClock` replaces that material with one that clears the box and draws the local time in seven segments, 12-hour and right-aligned like the real clock, updated each minute from the environment's clock and place: US zones by their approximate boundaries, US daylight saving time except in Hawaii and Arizona (`SimCruise.Presentation.CarClock`). The material is flagged for Nanite: the display is a section of a Nanite cabin part, and without the flag the whole cabin part fell back to its coarse proxy. The radio's own display (another texture) still reads 2:15.
+
 ### Frame time on the drive (11 November 2026)
 
 RTX 2070 Super Max-Q, 1920x1080 full screen, parked at the Ocean Drive start at 11:00, `-SimCruiseDrivePerf`:

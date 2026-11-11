@@ -67,7 +67,22 @@
       ]
      ]
     }
-   ]
+   ],
+   "clock": {
+    "material": "display",
+    "box": [
+     0.586,
+     0.1,
+     0.962,
+     0.9
+    ],
+    "clear": [
+     0.3,
+     0.5
+    ],
+    "flip_v": true,
+    "source": "display_baseColor.png paints 5:12 between x 650-990 and y 15-112 of 1024 x 128; the dash shows it upside down (seven-segment 5 reads as 2), as 2:15. The NB clock is a 12-hour green LCD."
+   }
   },
   "nb1999": {
    "model": "data/art/traffic/miata_nb-5d103c56/scene.gltf",
@@ -135,7 +150,22 @@
       ]
      ]
     }
-   ]
+   ],
+   "clock": {
+    "material": "display",
+    "box": [
+     0.586,
+     0.1,
+     0.962,
+     0.9
+    ],
+    "clear": [
+     0.3,
+     0.5
+    ],
+    "flip_v": true,
+    "source": "display_baseColor.png paints 5:12 between x 650-990 and y 15-112 of 1024 x 128; the dash shows it upside down (seven-segment 5 reads as 2), as 2:15. The NB clock is a 12-hour green LCD."
+   }
   },
   "mustang65": {
    "model": "data/art/traffic/mustang65-05f2a294/scene.gltf",
