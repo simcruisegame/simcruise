@@ -1,6 +1,9 @@
 // Copyright SimCruise contributors. All Rights Reserved.
 
 #include "Async/ParallelFor.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "CollisionQueryParams.h"
+#include "Misc/Crc.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "GameFramework/WorldSettings.h"
@@ -98,6 +101,20 @@ namespace SimCruiseWorldTest
 	};
 }
 
+namespace SimCruiseWorldTest
+{
+	/**
+	 * Tick a streamer the way a frame would: one streaming step, then the game
+	 * thread's queued tasks (asynchronous collision cooking finishes there).
+	 */
+	void Pump(ASimCruiseWorldStreamer* Streamer)
+	{
+		Streamer->TickStreaming(0.016f);
+		FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
+		FPlatformProcess::Sleep(0.005f);
+	}
+}
+
 using namespace SimCruiseWorldTest;
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseTileMathTest, "SimCruise.World.TileMath", SimCruiseWorldTest::Flags)
@@ -191,13 +208,14 @@ bool FSimCruiseOfflineStartTest::RunTest(const FString& Parameters)
 	Streamer->StartAt(USimCruiseWorldSubsystem::BundledLon, USimCruiseWorldSubsystem::BundledLat, TEXT("test"));
 	const FVector Start = Streamer->GetFrame().LonLatToWorldCm(USimCruiseWorldSubsystem::BundledLon, USimCruiseWorldSubsystem::BundledLat);
 	const double T0 = FPlatformTime::Seconds();
-	int32 MaxTiles = 0;
+	int32 MaxTiles = 0, DrawnWithoutCollision = 0;
 	while (!Streamer->AreTilesReadyAround(Start, 1) && FPlatformTime::Seconds() - T0 < 120.0)
 	{
-		Streamer->TickStreaming(0.016f);
+		Pump(Streamer);
 		MaxTiles = FMath::Max(MaxTiles, Streamer->NumTiles());
-		FPlatformProcess::Sleep(0.005f);
+		DrawnWithoutCollision += Streamer->NumTiles() >= 9 && !Streamer->AreTilesReadyAround(Start, 1) ? 1 : 0;
 	}
+	AddInfo(FString::Printf(TEXT("frames with all 9 tiles installed but collision still cooking: %d"), DrawnWithoutCollision));
 	const double Seconds = FPlatformTime::Seconds() - T0;
 	TestTrue(FString::Printf(TEXT("3 x 3 tiles streamed offline (%d in %.1f s)"), Streamer->NumTiles(), Seconds), Streamer->AreTilesReadyAround(Start, 1));
 	TestTrue(TEXT("never more resident tiles than the bound"), MaxTiles <= 16);
@@ -207,6 +225,13 @@ bool FSimCruiseOfflineStartTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Ocean Drive found near the start"), Streamer->FindRoadPose(TEXT("Ocean Drive"), Start, 900.0, Pose, Rotation));
 	double Z = 0.0;
 	TestTrue(TEXT("surface height under the pose"), Streamer->SurfaceHeightAt(Pose, Z) && FMath::Abs(Z - Pose.Z) < 2.0);
+	// "Ready" means a car placed now lands on something: the physics scene has the road.
+	{
+		FHitResult Hit;
+		FCollisionQueryParams Params(SCENE_QUERY_STAT(SimCruiseOfflineStart), true);
+		const bool bHit = TestWorld.World->LineTraceSingleByChannel(Hit, Pose + FVector(0, 0, 300), Pose - FVector(0, 0, 300), ECC_WorldStatic, Params);
+		TestTrue(FString::Printf(TEXT("the road pose has collision when the ring reports ready (%.1f cm off)"), bHit ? Hit.ImpactPoint.Z - Pose.Z : 0.0), bHit && FMath::Abs(Hit.ImpactPoint.Z - Pose.Z) < 2.0);
+	}
 	AddInfo(FString::Printf(TEXT("Ocean Drive pose %s yaw %.1f, %d tiles"), *Pose.ToString(), Rotation.Yaw, Streamer->NumTiles()));
 	Streamer->Destroy();
 	return true;
@@ -543,6 +568,94 @@ bool FSimCruiseStaleJobsTest::RunTest(const FString& Parameters)
 		MaxResident = FMath::Max(MaxResident, M.NumResident());
 	}
 	TestTrue(FString::Printf(TEXT("resident tiles bounded (%d <= %d)"), MaxResident, M.MaxResident()), MaxResident <= M.MaxResident());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseRebaseTest, "SimCruise.World.Rebase", SimCruiseWorldTest::Flags)
+bool FSimCruiseRebaseTest::RunTest(const FString& Parameters)
+{
+	// The floating origin in a live streamer: a car past the rebase distance moves the
+	// origin by whole tiles once, every tile actor and the car move by the same offset,
+	// and the ground and collision under the car are where they were.
+	FTestWorld TestWorld;
+	ASimCruiseWorldStreamer* Streamer = TestWorld.World->SpawnActor<ASimCruiseWorldStreamer>();
+	Streamer->bUseHelper = false;
+	Streamer->StartAt(USimCruiseWorldSubsystem::BundledLon, USimCruiseWorldSubsystem::BundledLat, TEXT("rebase"));
+	const FVector Start = Streamer->GetFrame().LonLatToWorldCm(USimCruiseWorldSubsystem::BundledLon, USimCruiseWorldSubsystem::BundledLat);
+	const double T0 = FPlatformTime::Seconds();
+	while (!Streamer->AreTilesReadyAround(Start, 1) && FPlatformTime::Seconds() - T0 < 120.0) Pump(Streamer);
+	if (!TestTrue(TEXT("start ring ready"), Streamer->AreTilesReadyAround(Start, 1))) return false;
+
+	// The car in the western tile of the ring; a short rebase distance puts it past the limit.
+	const FIntPoint OriginBefore = Streamer->GetFrame().OriginTile;
+	const FIntPoint WestTile = OriginBefore + FIntPoint(-1, 0);
+	// The origin is the north-west corner of its tile: 10 % into the western tile is
+	// ~570 m out; after the rebase the car is ~280 m from the new origin.
+	FVector Car = Streamer->GetFrame().TileOriginCm(WestTile) + FVector(0.1, 0.5, 0.0) * Streamer->GetFrame().TileSizeCm();
+	Streamer->RebaseDistanceM = 500.0;
+	double GroundBefore = 0.0;
+	TestTrue(TEXT("ground under the car before"), Streamer->SurfaceHeightAt(Car, GroundBefore));
+	const FVector TileBefore = Streamer->GetTile(OriginBefore) ? Streamer->GetTile(OriginBefore)->GetActorLocation() : FVector::ZeroVector;
+	int32 Broadcasts = 0;
+	FVector Moved = FVector::ZeroVector;
+	Streamer->OnRebased.AddLambda([&](const FVector& Offset) { ++Broadcasts; Moved += Offset; Car += Offset; });
+	for (int32 i = 0; i < 5; ++i)
+	{
+		Streamer->SetFocus(Car, FVector::ZeroVector);
+		Pump(Streamer);
+	}
+	TestEqual(TEXT("one rebase, not one per frame"), Broadcasts, 1);
+	TestTrue(FString::Printf(TEXT("the origin moved to the car's tile (%s)"), *SimCruiseTileName(Streamer->GetFrame().OriginTile)), Streamer->GetFrame().OriginTile == WestTile);
+	TestTrue(FString::Printf(TEXT("the offset is one whole tile east (%s)"), *Moved.ToString()), FMath::IsNearlyEqual(Moved.X, Streamer->GetFrame().TileSizeCm(), 1e-3) && FMath::Abs(Moved.Y) < 1e-3 && FMath::Abs(Moved.Z) < 1e-3);
+	if (const ASimCruiseWorldTile* Tile = Streamer->GetTile(OriginBefore))
+	{
+		TestTrue(TEXT("tile actors move by the same offset"), Tile->GetActorLocation().Equals(TileBefore + Moved, 1e-3));
+	}
+	double GroundAfter = 0.0;
+	TestTrue(TEXT("ground under the car after"), Streamer->SurfaceHeightAt(Car, GroundAfter));
+	TestTrue(FString::Printf(TEXT("the car stands on the same ground (%.3f / %.3f cm)"), GroundBefore, GroundAfter), FMath::IsNearlyEqual(GroundBefore, GroundAfter, 0.01));
+	FHitResult Hit;
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(SimCruiseRebase), true);
+	const FVector Above(Car.X, Car.Y, GroundAfter + 500.0), Below(Car.X, Car.Y, GroundAfter - 500.0);
+	const bool bHit = TestWorld.World->LineTraceSingleByChannel(Hit, Above, Below, ECC_WorldStatic, Params);
+	TestTrue(FString::Printf(TEXT("collision moved with the tiles (%.2f cm off)"), bHit ? Hit.ImpactPoint.Z - GroundAfter : 0.0), bHit && FMath::Abs(Hit.ImpactPoint.Z - GroundAfter) < 2.0);
+	Streamer->Destroy();
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseBuildDeterminismTest, "SimCruise.World.BuildDeterminism", SimCruiseWorldTest::Flags)
+bool FSimCruiseBuildDeterminismTest::RunTest(const FString& Parameters)
+{
+	// The same tile with the same seam contracts builds bit-identical geometry, on any thread.
+	const double Side = MiamiTileSizeM();
+	FSimCruiseTileData Data, North;
+	FString Error;
+	if (!TestTrue(TEXT("tile loads"), SimCruiseTileData::LoadFile(SimCruiseTileData::BundledTilePath(FIntPoint(18180, 27908)), Data, Error))) return false;
+	if (!TestTrue(TEXT("neighbour loads"), SimCruiseTileData::LoadFile(SimCruiseTileData::BundledTilePath(FIntPoint(18180, 27907)), North, Error))) return false;
+	TSharedRef<FSimCruiseTileBuild> NorthBuild = SimCruiseTileBuilder::Build(North, Side);
+	const TArray<FSimCruiseSeamEnd> Contracts = SimCruiseTileBuilder::NeighbourContracts(FIntPoint(18180, 27908), Side, [&NorthBuild](const FIntPoint& T) -> const FSimCruiseTileBuild*
+	{
+		return T == FIntPoint(18180, 27907) ? &NorthBuild.Get() : nullptr;
+	});
+	TestTrue(FString::Printf(TEXT("the neighbour publishes seam contracts (%d)"), Contracts.Num()), Contracts.Num() > 0);
+	TSharedPtr<FSimCruiseTileBuild> Builds[2];
+	ParallelFor(2, [&](int32 Index)
+	{
+		Builds[Index] = SimCruiseTileBuilder::Build(Data, Side, Contracts);
+	});
+	auto Hash = [](const FSimCruiseTileBuild& Build)
+	{
+		uint32 H = 0;
+		for (const FSimCruiseMeshData& Layer : Build.Layers)
+		{
+			H = FCrc::MemCrc32(Layer.Positions.GetData(), Layer.Positions.Num() * sizeof(FVector), H);
+			H = FCrc::MemCrc32(Layer.Indices.GetData(), Layer.Indices.Num() * sizeof(int32), H);
+		}
+		return FCrc::MemCrc32(Build.TerrainHeights.GetData(), Build.TerrainHeights.Num() * sizeof(float), H);
+	};
+	const uint32 HA = Hash(*Builds[0]), HB = Hash(*Builds[1]);
+	TestEqual(FString::Printf(TEXT("two concurrent builds hash the same (%08x / %08x)"), HA, HB), HA, HB);
+	TestEqual(TEXT("same triangle count"), Builds[0]->NumTriangles(), Builds[1]->NumTriangles());
 	return true;
 }
 

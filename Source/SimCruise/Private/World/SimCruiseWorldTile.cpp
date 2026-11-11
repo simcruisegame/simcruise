@@ -2,6 +2,8 @@
 
 #include "World/SimCruiseWorldTile.h"
 
+#include "CollisionQueryParams.h"
+#include "Engine/HitResult.h"
 #include "Engine/Texture2D.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "ProceduralMeshComponent.h"
@@ -23,6 +25,7 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 {
 	Build = InBuild;
 	TileId = InBuild->Tile;
+	bCollisionReady = false;
 	Mesh->bUseAsyncCooking = bAsyncCollision;
 	Mesh->ClearAllMeshSections();
 
@@ -97,4 +100,19 @@ double ASimCruiseWorldTile::SurfaceHeightAt(const FVector2d& TileMetres) const
 		return Hit.Height;
 	}
 	return Build->TerrainHeightAt(TileMetres);
+}
+
+bool ASimCruiseWorldTile::IsCollisionReady() const
+{
+	if (bCollisionReady || !Build.IsValid() || !Mesh)
+	{
+		return bCollisionReady;
+	}
+	const double Half = Build->TileSizeM * 50.0;
+	const FVector Centre = GetActorLocation() + FVector(Half, Half, 0.0);
+	FHitResult Hit;
+	const FCollisionQueryParams Params(SCENE_QUERY_STAT(SimCruiseTileCollisionReady), true);
+	// +-10 km covers every US elevation; a hit means the cooked triangles are in the scene.
+	bCollisionReady = Mesh->LineTraceComponent(Hit, Centre + FVector(0.0, 0.0, 1.0e6), Centre - FVector(0.0, 0.0, 1.0e6), Params);
+	return bCollisionReady;
 }

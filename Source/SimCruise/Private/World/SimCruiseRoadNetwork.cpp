@@ -365,6 +365,33 @@ bool FSimCruiseRoadNetwork::IsMajorClass(const FString& Class)
 	return Class == TEXT("motorway") || Class == TEXT("trunk") || Class == TEXT("primary") || Class == TEXT("secondary") || Class == TEXT("tertiary");
 }
 
+namespace SimCruiseLanes
+{
+	double LaneWidthM(const FString& Class)
+	{
+		if (Class == TEXT("motorway") || Class == TEXT("trunk")) return 3.65;
+		if (Class == TEXT("primary")) return 3.5;
+		if (Class == TEXT("secondary")) return 3.35;
+		return 3.2;
+	}
+
+	double RightLaneCentreM(const FString& Class, double HalfW, int32 Travel)
+	{
+		const double Lane = LaneWidthM(Class);
+		if (Travel == 0)
+		{
+			// Lanes run outward from the centre line on each half.
+			const int32 PerDir = FMath::Clamp(FMath::FloorToInt((HalfW - 0.6) / Lane), 1, 3);
+			const double Lw = FMath::Max(0.5, FMath::Min(Lane, (HalfW - 0.3) / PerDir));
+			return (PerDir - 0.5) * Lw;
+		}
+		const double Travelled = 2.0 * HalfW;
+		const int32 Lanes = Travelled >= 2.0 * 2.75 + 0.6 ? 2 : 1;
+		const double Lw = FMath::Max(0.5, FMath::Min(Lane, (Travelled - 0.8) / Lanes));
+		return 0.5 * Lanes * Lw - 0.5 * Lw;
+	}
+}
+
 double FSimCruiseRibbon::CarriagewayHeight(int32 I, double L) const
 {
 	return St[I].Height(L);

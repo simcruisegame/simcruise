@@ -61,9 +61,15 @@ beyond the ring plus one are retired; at most 2 build at once and never two
 edge neighbours together (see seam contracts). Every job carries the
 generation of the place it was started for and a serial: a result for an
 older place, a tile no longer wanted or a superseded job is dropped. A
-failed tile waits 15 s. Tiles are read and built on worker threads; the game
-thread installs one finished tile per frame (mesh sections, collision,
-materials).
+failed tile waits 15 s. Tiles are read and built on worker threads (a helper
+result is parsed and built on the thread pool, never in the future's
+continuation, which can run on the game thread); the game thread installs one
+finished tile per frame (mesh sections, collision, materials). Collision is
+cooked asynchronously, so a tile is drawn a few frames before it can be hit:
+`AreTilesReadyAround` only reports a tile once a trace through its centre hits
+its collision, so a car placed after it lands on the road. Tiles of one
+zoom-14 photograph that build together run the helper's `aerial` command
+once; the others wait for that file.
 
 ### Roads (`World/SimCruiseRoadNetwork`)
 
@@ -117,7 +123,9 @@ materials).
   polygon for lakes. Pools are shaded through the land-cover mask.
 - Buildings: footprints and heights from the tile (walls, flat roof, collision)
   as a massing model until the Godot client's observed facades and LiDAR
-  roofs are ported.
+  roofs are ported. Wall colours come from one palette for every place, the
+  Godot client's 12 common US exterior paints and 4 brick colours
+  (`Drive.gd` `house_paints`, `bricks`), chosen per building by id.
 - Ground mask (1024 px per tile): vegetation, sand, paved paths, water.
 
 ### Materials and textures (`World/SimCruiseWorldResources`)
@@ -128,8 +136,10 @@ built in code; `-run=SimCruiseBuildWorldMaterials` saves them under
 in memory when the assets are absent. Detail is world-anchored: local
 position plus a per-tile anchor (`tile * size mod 64 m`), so textures run on
 across seams without half-precision UV loss. Ground: the aerial photograph
-with its highlights compressed toward street-level albedo, modulated by CC0
-detail photographs per land-cover class. Asphalt: Poly Haven Asphalt Floor
+with its highlights compressed toward street-level albedo, modulated by the
+Godot client's detail photographs per land-cover class (`game/data/grass-detail.jpg`,
+`game/data/mineral-ground.png`; their sources are not named in `Credits.txt`
+yet). Asphalt: Poly Haven Asphalt Floor
 normalised to an aged-asphalt albedo with a luminance bump. Water: six
 directional waves, F0 0.02.
 
@@ -153,11 +163,13 @@ directional waves, F0 0.02.
 | `Atlas.AsyncQueue` | issuing never blocks, at most 2 processes, queued and running jobs cancel promptly |
 | `World.TileMath` | lon/lat <-> tile <-> world round trips at six US places, rebasing keeps positions, Drive.gd tile size |
 | `World.TileParse` | bundled tile parses; malformed documents fail with the field named |
-| `World.OfflineStart` | the 3 x 3 ring of the bundled start streams with the helper switched off; Ocean Drive found and its surface height agrees |
+| `World.OfflineStart` | the 3 x 3 ring of the bundled start streams with the helper switched off; Ocean Drive found, its surface height agrees, and a trace at the spawn pose hits collision as soon as the ring reports ready |
 | `World.SeamContinuity` | all 24 bundled tiles built as a drive builds them: terrain, road heights and road edges equal across every seam (0.0 mm), every crossing road matched |
 | `World.RoadCollision` | collision under every carriageway vertex, equal to the drawn surface within 1 cm for 99.5 % |
-| `World.RoadEdges` | straight roads build straight edges (< 1 mm), sharp corners turn smoothly, no visible zig-zag on any bundled road edge |
+| `World.RoadEdges` | straight roads build straight edges (< 1 mm), sharp corners turn smoothly, no back-and-forth kink over 8 deg on a public road edge (16 deg on service ways); 10 smaller kinks remain, 9 of them on public roads (Alton Road, 6th Street, Washington Avenue, Jefferson Avenue, 16th Street; worst 7.7 deg), the worst one (15.8 deg) on a service way |
 | `World.StaleJobs` | older places, tiles left behind and superseded jobs are rejected; retries wait; resident tiles stay bounded |
+| `World.Rebase` | in a live streamer, a car past the rebase distance moves the origin once by one whole tile; tile actors, the car, the ground height and the collision under the car move together |
+| `World.BuildDeterminism` | the same tile with the same seam contracts, built twice concurrently, gives bit-identical geometry |
 
 ### What it looks like (10 November 2026, Cinematic scalability, preview rig lighting)
 
@@ -169,8 +181,11 @@ directional waves, F0 0.02.
 Against photographs of Ocean Drive the road surface, curbs, sidewalks and
 markings read right; the place does not yet: no palms or street trees, no
 parked cars, signals or street lights, massing buildings with a uniform
-window grid instead of the Art Deco facades, and a 2 m/px photograph as the
-ground. The seam view shows the road, curb and sidewalk running straight
+window grid instead of the Art Deco facades (their colours come from the
+general US palette, so Collins Avenue shows red brick that South Beach does
+not have), and a 2 m/px photograph as the ground. The ocean, Collins and
+aerial views were recaptured on 11 November after the palette change; the
+seam view is from 10 November. The seam view shows the road, curb and sidewalk running straight
 across the tile edge; the line in the ground there is where two zoom-14
 aerial photographs of different tone meet.
 
@@ -183,3 +198,12 @@ aerial photographs of different tone meet.
 - Tile builds take 1-9 s on a worker thread (junction refinement and terrain
   conditioning dominate); fine at driving speed, worth profiling.
 - Packaged builds need `game/data`, `game/art` and the helper staged.
+- A seam's exact position follows build order: the tile built first keeps its
+  own road ends (the two vector tiles disagree by 0.2-0.3 m) and the later one
+  takes them, so the same place can differ by that much between drives.
+- The sea surface is NAVD88 - 0.1 m everywhere (east-coast mean sea level);
+  on the Pacific coast mean sea level is closer to NAVD88 + 1 m.
+- Surfaces carry no physical materials yet: asphalt, concrete, terrain and
+  buildings have the same friction for the car's tyres.
+- Each collision section (terrain, asphalt, concrete, buildings) restarts the
+  asynchronous cook, so a dense tile cooks up to four times on a worker thread.

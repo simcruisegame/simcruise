@@ -109,7 +109,8 @@ bool ASimCruiseWorldStreamer::AreTilesReadyAround(const FVector& WorldCm, int32 
 	for (int32 dy = -Radius; dy <= Radius; ++dy)
 	for (int32 dx = -Radius; dx <= Radius; ++dx)
 	{
-		if (!GetTile(Centre + FIntPoint(dx, dy))) return false;
+		const ASimCruiseWorldTile* Tile = GetTile(Centre + FIntPoint(dx, dy));
+		if (!Tile || !Tile->IsCollisionReady()) return false;
 	}
 	return true;
 }
@@ -143,10 +144,10 @@ bool ASimCruiseWorldStreamer::FindRoadPose(const FString& RoadName, const FVecto
 				const FVector C = Origin + FVector(St.C.X * 100.0, St.C.Y * 100.0, 0.0);
 				const double D = FVector::Dist2D(C, NearWorldCm);
 				if (D >= Best) continue;
-				// Travel lane: one-way roads use their right lane, two-way roads the lane right of the centre.
+				// The rightmost travel lane, between the lines the markings draw.
 				const FVector2d Dir = St.Travel < 0 ? -St.T : St.T;
 				const FVector2d Right(-Dir.Y, Dir.X);
-				const double Offset = St.Travel == 0 ? 0.5 * FMath::Min(St.HalfW, 3.6) + 0.1 : 0.25 * St.HalfW;
+				const double Offset = SimCruiseLanes::RightLaneCentreM(Ribbon.Class, St.HalfW, St.Travel);
 				const FVector2d P = St.C + Right * Offset;
 				const double L = FVector2d::DotProduct(P - St.C, St.R);
 				const double H = Ribbon.CarriagewayHeight(i, L);
@@ -167,7 +168,6 @@ void ASimCruiseWorldStreamer::Launch(const FSimCruiseTileJobTicket& Ticket)
 	const double TileSizeM = Frame.TileSizeM;
 	TSet<FString> KnownAerials;
 	for (const auto& Pair : Resources->Aerials) KnownAerials.Add(Pair.Key);
-	KnownAerials.Append(AerialsInFlight);
 
 	// Seam contracts of the resident neighbours: this tile meets the roads they already built.
 	TArray<FSimCruiseSeamEnd> Contracts = SimCruiseTileBuilder::NeighbourContracts(Ticket.Tile, TileSizeM, [this](const FIntPoint& T) -> const FSimCruiseTileBuild*
@@ -189,15 +189,35 @@ void ASimCruiseWorldStreamer::Launch(const FSimCruiseTileJobTicket& Ticket)
 			if (Path.IsEmpty() && Client.IsValid())
 			{
 				const FString Cached = FPaths::Combine(Client->GetConfig().CacheDir, Data.AerialKey);
-				if (!IFileManager::Get().FileExists(*Cached))
+				// The tile command never fetches the photograph; the aerial command does (Drive.gd photo job).
+				// Tiles of one zoom-14 photograph often build together: one worker fetches, the others wait for it.
+				bool bClaimed = false;
+				while (!Box->bClosed && !IFileManager::Get().FileExists(*Cached))
 				{
-					// The tile command never fetches the photograph; the aerial command does (Drive.gd photo job).
-					const FIntPoint A = SimCruiseGeo::AerialTileOf(Data.Id);
-					FSimCruiseAtlasRequest Request;
-					Request.Command = TEXT("aerial");
-					Request.Args = { FString::FromInt(A.X), FString::FromInt(A.Y) };
-					Request.TimeoutSeconds = 60.0;
-					FSimCruiseAtlasClient::RunBlocking(Client->GetConfig(), Request, &Box->bClosed);
+					{
+						FScopeLock Guard(&Box->AerialLock);
+						if (!Box->AerialsFetching.Contains(Data.AerialKey))
+						{
+							Box->AerialsFetching.Add(Data.AerialKey);
+							bClaimed = true;
+						}
+					}
+					if (bClaimed) break;
+					FPlatformProcess::Sleep(0.05f);
+				}
+				if (bClaimed)
+				{
+					if (!IFileManager::Get().FileExists(*Cached))
+					{
+						const FIntPoint A = SimCruiseGeo::AerialTileOf(Data.Id);
+						FSimCruiseAtlasRequest Request;
+						Request.Command = TEXT("aerial");
+						Request.Args = { FString::FromInt(A.X), FString::FromInt(A.Y) };
+						Request.TimeoutSeconds = 60.0;
+						FSimCruiseAtlasClient::RunBlocking(Client->GetConfig(), Request, &Box->bClosed);
+					}
+					FScopeLock Guard(&Box->AerialLock);
+					Box->AerialsFetching.Remove(Data.AerialKey);
 				}
 				if (IFileManager::Get().FileExists(*Cached)) Path = Cached;
 			}
@@ -231,6 +251,9 @@ void ASimCruiseWorldStreamer::Launch(const FSimCruiseTileJobTicket& Ticket)
 		return;
 	}
 	TSharedRef<FSimCruiseAtlasJob, ESPMode::ThreadSafe> Job = Client->RequestTile(Ticket.Tile);
+	// The continuation runs where the promise is fulfilled: the helper's worker thread, under
+	// the client's lock for a cancel, or right here on the game thread if the job already
+	// finished. Parsing and the multi-second build therefore go to the thread pool.
 	Job->Future.Next([BuildFrom, Fail](FSimCruiseAtlasResult Result)
 	{
 		if (!Result.IsOk() || !Result.Json.IsValid() || Result.Json->Type != EJson::Object)
@@ -238,10 +261,13 @@ void ASimCruiseWorldStreamer::Launch(const FSimCruiseTileJobTicket& Ticket)
 			Fail(Result.Describe());
 			return;
 		}
-		FSimCruiseTileData Data;
-		FString Error;
-		if (!SimCruiseTileData::ParseObject(Result.Json->AsObject(), Data, Error)) { Fail(Error); return; }
-		BuildFrom(MoveTemp(Data));
+		Async(EAsyncExecution::ThreadPool, [BuildFrom, Fail, Json = MoveTemp(Result.Json)]()
+		{
+			FSimCruiseTileData Data;
+			FString Error;
+			if (!SimCruiseTileData::ParseObject(Json->AsObject(), Data, Error)) { Fail(Error); return; }
+			BuildFrom(MoveTemp(Data));
+		});
 	});
 }
 
@@ -284,7 +310,9 @@ void ASimCruiseWorldStreamer::TickStreaming(float DeltaSeconds)
 	FVector Velocity;
 	FVector Focus = CurrentFocus(Velocity);
 
-	if (FVector::Dist2D(Focus, FVector::ZeroVector) > RebaseDistanceM * 100.0)
+	// The origin is a tile corner, so a rebase distance under a tile diagonal would ask
+	// for the tile the origin is already on: never broadcast a zero offset.
+	if (FVector::Dist2D(Focus, FVector::ZeroVector) > RebaseDistanceM * 100.0 && Frame.TileAtWorldCm(Focus) != Frame.OriginTile)
 	{
 		Rebase(Frame.TileAtWorldCm(Focus));
 		Focus = CurrentFocus(Velocity);

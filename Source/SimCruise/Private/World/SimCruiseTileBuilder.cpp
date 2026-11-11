@@ -801,11 +801,20 @@ namespace SimCruiseTileBuilder
 		// observed facades and roofs of the Godot client are ported (docs/unreal-architecture.md).
 		{
 			FSimCruiseMeshData& Mesh = B.Layer(ESimCruiseTileLayer::Building);
-			// Painted stucco of the Miami Beach Art Deco district and plain render elsewhere (linear albedo).
-			static const FLinearColor Palette[] = {
-				FLinearColor(0.62f, 0.60f, 0.55f), FLinearColor(0.70f, 0.48f, 0.46f), FLinearColor(0.47f, 0.62f, 0.55f),
-				FLinearColor(0.70f, 0.62f, 0.40f), FLinearColor(0.46f, 0.56f, 0.66f), FLinearColor(0.68f, 0.54f, 0.42f),
-				FLinearColor(0.50f, 0.49f, 0.47f), FLinearColor(0.66f, 0.64f, 0.60f) };
+			// One palette for every place (no regional special case): the Godot client's
+			// 12 common US exterior paints and 4 brick colours (Drive.gd house_paints and
+			// bricks, sRGB), chosen per building by id, until observed facades are ported.
+			static const TArray<FLinearColor> Palette = []()
+			{
+				TArray<FLinearColor> Out;
+				for (const TCHAR* Hex : { TEXT("ece9e1"), TEXT("e2d9c4"), TEXT("c9cbc7"), TEXT("b8b1a2"), TEXT("c6b28d"), TEXT("a8b29a"),
+					TEXT("a8bbc7"), TEXT("6f8293"), TEXT("e4d397"), TEXT("8d8372"), TEXT("53575a"), TEXT("b9a48a"),
+					TEXT("8b4838"), TEXT("76503f"), TEXT("9f5a42"), TEXT("a98c6a") })
+				{
+					Out.Add(FLinearColor::FromSRGBColor(FColor::FromHex(Hex)));
+				}
+				return Out;
+			}();
 			for (int32 b = 0; b < Data.Buildings.Num(); ++b)
 			{
 				const FSimCruiseBuildingRow& Row = Data.Buildings[b];
@@ -829,7 +838,7 @@ namespace SimCruiseTileBuilder
 				const double Bottom = Row.MinHeightM > 0.5 ? Ground + Row.MinHeightM : Ground - 0.3;
 				if (Top <= Bottom + 0.5) continue;
 				const uint32 Seed = HashCombine(GetTypeHash(Data.Id), GetTypeHash(b));
-				FLinearColor Wall = Palette[Seed % UE_ARRAY_COUNT(Palette)];
+				FLinearColor Wall = Palette[Seed % static_cast<uint32>(Palette.Num())];
 				Wall.A = 1.f;
 				for (int32 i = 0; i < Ring.Num(); ++i)
 				{
@@ -867,13 +876,7 @@ namespace SimCruiseTileBuilder
 			const FLinearColor White(0.62f, 0.62f, 0.60f, 1.f);
 			const FLinearColor Yellow(0.70f, 0.48f, 0.08f, 1.f);
 			constexpr double DashM = 3.05, PeriodM = 12.2, LineM = 0.12, WideM = 0.15, DoubleGapM = 0.1;
-			auto LaneWidth = [](const FString& Class)
-			{
-				if (Class == TEXT("motorway") || Class == TEXT("trunk")) return 3.65;
-				if (Class == TEXT("primary")) return 3.5;
-				if (Class == TEXT("secondary")) return 3.35;
-				return 3.2;
-			};
+			auto LaneWidth = [](const FString& Class) { return SimCruiseLanes::LaneWidthM(Class); };
 			struct FLine { double L; double Width; bool bDashed; bool bYellow; };
 			for (int32 r = 0; r < Roads.Ribbons.Num(); ++r)
 			{

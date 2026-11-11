@@ -45,7 +45,7 @@ public:
 	int32 NumTiles() const { return Tiles.Num(); }
 	bool IsBusy() const;
 
-	/** All tiles within Radius of the tile holding WorldCm are installed. */
+	/** All tiles within Radius of the tile holding WorldCm are installed and their collision is in the physics scene. */
 	bool AreTilesReadyAround(const FVector& WorldCm, int32 Radius = 1) const;
 
 	/** Drivable surface height (world cm) under a world position; false where no tile is loaded. */
@@ -104,6 +104,10 @@ private:
 	{
 		TQueue<TSharedPtr<FResult, ESPMode::ThreadSafe>, EQueueMode::Mpsc> Queue;
 		std::atomic<bool> bClosed{ false };
+		// Aerial photographs being fetched by a worker: one helper run per photograph,
+		// never two processes writing the same cache file.
+		FCriticalSection AerialLock;
+		TSet<FString> AerialsFetching;
 	};
 
 	void Launch(const FSimCruiseTileJobTicket& Ticket);
@@ -116,7 +120,6 @@ private:
 	FSimCruiseTileManager Manager;
 	TSharedPtr<FSimCruiseAtlasClient, ESPMode::ThreadSafe> Atlas;
 	TSharedPtr<FInbox, ESPMode::ThreadSafe> Inbox;
-	TSet<FString> AerialsInFlight;
 
 	UPROPERTY(Transient)
 	TMap<FIntPoint, TObjectPtr<ASimCruiseWorldTile>> Tiles;

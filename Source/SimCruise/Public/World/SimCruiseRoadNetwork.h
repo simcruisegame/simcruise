@@ -97,6 +97,19 @@ struct FSimCruiseRibbon
 	double Length() const { return St.Num() ? St.Last().S - St[0].S : 0.0; }
 };
 
+/**
+ * US default lane layout of a carriageway (MUTCD markings as LaneMarkings.gd):
+ * the markings and the car's spawn pose share it, so a car placed "in the
+ * right lane" sits between the lines that are drawn.
+ */
+namespace SimCruiseLanes
+{
+	/** Lane width (m) by road class. */
+	SIMCRUISE_API double LaneWidthM(const FString& Class);
+	/** Signed lateral offset (m, + to the driver's right) of the rightmost travel lane's centre. */
+	SIMCRUISE_API double RightLaneCentreM(const FString& Class, double HalfW, int32 Travel);
+}
+
 /** Cross-section geometry beyond the paved edge (metres). */
 namespace SimCruiseRoadSection
 {
