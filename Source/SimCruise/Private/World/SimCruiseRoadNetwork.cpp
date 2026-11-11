@@ -375,20 +375,59 @@ namespace SimCruiseLanes
 		return 3.2;
 	}
 
-	double RightLaneCentreM(const FString& Class, double HalfW, int32 Travel)
+	FParking Parking(const FString& Class, double HalfW, int32 Travel, bool bKerbLeft, bool bKerbRight)
+	{
+		FParking Out;
+		const bool bStreet = Class == TEXT("secondary") || Class == TEXT("tertiary") || Class == TEXT("residential") || Class == TEXT("unclassified");
+		if (!bStreet)
+		{
+			return Out;
+		}
+		constexpr double ParkM = 2.4;
+		const double Width = 2.0 * HalfW;
+		if (Travel == 0)
+		{
+			if (bKerbLeft && bKerbRight && Width >= 2.0 * 3.0 + 2.0 * ParkM)
+			{
+				Out.Left = Out.Right = ParkM;
+			}
+			return Out;
+		}
+		// One-way streets park on either curb (on the right first).
+		const bool bDriverRightIsR = Travel > 0;
+		const bool bKerbDriverRight = bDriverRightIsR ? bKerbRight : bKerbLeft;
+		const bool bKerbDriverLeft = bDriverRightIsR ? bKerbLeft : bKerbRight;
+		if (bKerbLeft && bKerbRight && Width >= 3.0 + 2.0 * ParkM)
+		{
+			Out.Left = Out.Right = ParkM;
+		}
+		else if ((bKerbDriverRight || bKerbDriverLeft) && Width >= 3.0 + ParkM)
+		{
+			const bool bRightSide = bKerbDriverRight ? bDriverRightIsR : !bDriverRightIsR;
+			(bRightSide ? Out.Right : Out.Left) = ParkM;
+		}
+		return Out;
+	}
+
+	double RightLaneCentreM(const FString& Class, double HalfW, int32 Travel, const FParking& Park)
 	{
 		const double Lane = LaneWidthM(Class);
 		if (Travel == 0)
 		{
-			// Lanes run outward from the centre line on each half.
-			const int32 PerDir = FMath::Clamp(FMath::FloorToInt((HalfW - 0.6) / Lane), 1, 3);
-			const double Lw = FMath::Max(0.5, FMath::Min(Lane, (HalfW - 0.3) / PerDir));
+			// Lanes run outward from the centre line on each half, inside any parking lane.
+			const double Half = HalfW - Park.Right;
+			const int32 PerDir = FMath::Clamp(FMath::FloorToInt((Half - 0.6) / Lane), 1, 3);
+			const double Lw = FMath::Max(0.5, FMath::Min(Lane, (Half - 0.3) / PerDir));
 			return (PerDir - 0.5) * Lw;
 		}
-		const double Travelled = 2.0 * HalfW;
+		// Driver's frame: the parking on the driver's left and right.
+		const double LeftP = Travel > 0 ? Park.Left : Park.Right;
+		const double RightP = Travel > 0 ? Park.Right : Park.Left;
+		const double Travelled = 2.0 * HalfW - LeftP - RightP;
 		const int32 Lanes = Travelled >= 2.0 * 2.75 + 0.6 ? 2 : 1;
 		const double Lw = FMath::Max(0.5, FMath::Min(Lane, (Travelled - 0.8) / Lanes));
-		return 0.5 * Lanes * Lw - 0.5 * Lw;
+		const double Centre = 0.5 * (LeftP - RightP);
+		return Centre + 0.5 * Lanes * Lw - 0.5 * Lw;
 	}
 }
 

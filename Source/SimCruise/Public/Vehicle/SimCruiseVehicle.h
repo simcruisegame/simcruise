@@ -157,6 +157,10 @@ private:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<USpotLightComponent>> HeadLampLights;
 
+	/** Beam-pattern light functions taken off by simcruise.Lamps.Pattern 0, to put back. */
+	UPROPERTY(Transient)
+	TMap<TObjectPtr<USpotLightComponent>, TObjectPtr<UMaterialInterface>> BeamPatterns;
+
 	void UpdateHeadLamps();
 	bool bHeadLampsShown = false;
 

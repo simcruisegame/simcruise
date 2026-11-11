@@ -19,6 +19,7 @@
 #include "Materials/MaterialExpressionCustom.h"
 #include "Materials/MaterialExpressionLocalPosition.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
+#include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionTextureObjectParameter.h"
 #include "Materials/MaterialExpressionTime.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
@@ -40,6 +41,8 @@ namespace SimCruiseWorldMaterials
 		case ESimCruiseTileLayer::Paint: return TEXT("Paint");
 		case ESimCruiseTileLayer::Water: return TEXT("Water");
 		case ESimCruiseTileLayer::Building: return TEXT("Building");
+		case ESimCruiseTileLayer::Props: return TEXT("Props");
+		case ESimCruiseTileLayer::Foliage: return TEXT("Foliage");
 		default: return TEXT("Unknown");
 		}
 	}
@@ -73,14 +76,20 @@ float sand = mask.g * (1.0 - veg);
 float water = mask.a;
 float paved = mask.b * (1.0 - water);
 float bare = saturate(1.0 - veg - sand - paved);
-float3 classColor = float3(0.15, 0.14, 0.11) * bare + float3(0.06, 0.10, 0.03) * veg + float3(0.42, 0.37, 0.28) * sand + float3(0.27, 0.26, 0.24) * paved;
+float3 classColor = float3(0.15, 0.14, 0.11) * bare + float3(0.052, 0.088, 0.026) * veg + float3(0.50, 0.45, 0.35) * sand + float3(0.27, 0.26, 0.24) * paved;
 // The photograph is taken from above: white roofs, sand and glare. Ground seen from the
 // street is darker (grass ~0.1, concrete ~0.3, sand ~0.35 albedo), so highlights compress.
 float3 shot = photo * AerialGain;
 float sl = max(dot(shot, W), 0.0001);
 float target = sl < 0.16 ? sl : 0.16 + (sl - 0.16) * 0.4;
 shot *= target / sl;
-float3 baseColor = Cell.z > 0.5 ? shot : classColor;
+// The zoom-14 photograph is about 10 m a pixel: on lawns and sand its blur would be the
+// ground itself. There the land-cover colour (St. Augustine turf, Miami Beach's quartz and
+// shell sand) leads and the photograph only shades it.
+float classL = max(dot(classColor, W), 0.0001);
+float3 led = classColor * lerp(1.0, clamp(sl / classL, 0.6, 1.6), 0.35);
+float lead = saturate(0.8 * veg + 0.7 * sand);
+float3 baseColor = Cell.z > 0.5 ? lerp(shot, led, lead) : classColor;
 float3 grass = g1 * lerp(1.0, g2, 0.5);
 float3 detail = (p1 * lerp(1.0, p2, 0.4)) * (bare + paved) + grass * veg + s1 * lerp(1.0, s2, 0.6) * sand;
 float dl = dot(detail, W);
@@ -103,7 +112,7 @@ float ay = dot(Texture2DSample(Asphalt, AsphaltSampler, uv + float2(0.0, 0.0012)
 float macro = dot(Texture2DSample(Asphalt, AsphaltSampler, m / 23.0 + 0.41).rgb, W) / meanL;
 float macro2 = dot(Texture2DSample(Asphalt, AsphaltSampler, m / 61.0 + 0.77).rgb, W) / meanL;
 float v = lerp(1.0, macro, 0.30) * lerp(1.0, macro2, 0.25);
-float fine = lerp(1.0, a, 0.85);
+float fine = lerp(1.0, a, 0.45);
 float3 col = Tint.rgb * fine * v;
 float3 gravel = float3(0.26, 0.23, 0.19) * lerp(1.0, a, 1.0);
 col = lerp(col, gravel, VC.r);
@@ -162,28 +171,111 @@ Roughness = 0.04;
 return lerp(float3(0.010, 0.040, 0.045), float3(0.012, 0.055, 0.055), VC.r);
 )HLSL");
 
+		// Buildings, street furniture and palm trunks: one shader, branching on the surface
+		// kind in UV1.x (SimCruiseSurfaceKind); UV0 is (metres along the face, metres above
+		// the building's ground). Windows, shopfronts, stucco and neon are drawn here, not modelled.
 		const TCHAR* BuildingCode = TEXT(R"HLSL(
 const float3 W = float3(0.2126, 0.7152, 0.0722);
-float wall = VA;
-float2 m = LP.xy * 0.01 + Anchor.xy;
-float z = LP.z * 0.01;
-float along = dot(LP.xy * 0.01, float2(-VN.y, VN.x));
+float kind = round(UV1.x);
+float seed = UV1.y;
+float along = UV0.x;
+float h = UV0.y;
 float meanL = max(dot(GrainMean.rgb, W), 0.001);
-float2 uv = lerp(m, float2(along, z), wall) / 1.7;
-float grain = dot(Texture2DSample(Grain, GrainSampler, uv).rgb, W) / meanL;
-float stain = dot(Texture2DSample(Grain, GrainSampler, float2(along, z) / 23.0 + 0.37).rgb, W) / meanL;
-// Windows on a storey grid (3.3 m storeys, 3 m bays), none in the ground course.
-float2 cell = float2(frac(along / 3.0), frac((z + 0.4) / 3.3));
-float bay = step(0.2, cell.x) * step(cell.x, 0.8) * step(0.32, cell.y) * step(cell.y, 0.86);
-float window = bay * wall;
-float3 stucco = VC.rgb * lerp(1.0, grain, 0.12) * lerp(1.0, stain, 0.18);
-float3 roof = float3(0.40, 0.39, 0.37) * lerp(1.0, grain, 0.35);
-float3 col = lerp(roof, stucco, wall);
-float3 glass = float3(0.025, 0.03, 0.035) + 0.02 * frac(sin(dot(floor(float2(along / 3.0, (z + 0.4) / 3.3)), float2(12.9898, 78.233))) * 43758.5453);
-col = lerp(col, glass, window);
-Roughness = lerp(lerp(0.9, 0.82, wall), 0.06, window);
+float2 m = LP.xy * 0.01 + Anchor.xy;
+float vertical = 1.0 - saturate(abs(VN.z) * 2.0 - 0.5);
+float2 tuv = lerp(m, float2(along + seed * 37.0, h), vertical);
+float grain = dot(Texture2DSample(Grain, GrainSampler, tuv / 1.3).rgb, W) / meanL;
+float stain = dot(Texture2DSample(Grain, GrainSampler, float2(along * 0.11, h * 0.035) + seed * 5.3).rgb, W) / meanL;
+float3 stucco = VC.rgb * lerp(1.0, grain, 0.09) * lerp(1.0, stain, 0.12);
+stucco *= lerp(0.84, 1.0, saturate(h / 0.8));
+float3 col = stucco;
+float rough = 0.88;
+float metal = 0.0;
+float3 emis = float3(0.0, 0.0, 0.0);
+if (kind < 0.5 || abs(kind - 11.0) < 0.5)
+{
+	const float storey = 3.1;
+	float level = floor(max(h, 0.0) / storey);
+	float y = h - level * storey;
+	float bayW = 2.5 + 0.8 * frac(seed * 7.13);
+	float x = frac(along / bayW + 0.5) * bayW;
+	float winW = bayW * (0.46 + 0.16 * frac(seed * 3.71));
+	float x0 = 0.5 * (bayW - winW);
+	float y0 = 0.95, y1 = 2.42;
+	bool shop = kind > 10.5 && level < 0.5;
+	if (shop)
+	{
+		bayW = 3.6; x = frac(along / bayW + 0.5) * bayW; winW = 3.1; x0 = 0.25; y0 = 0.35; y1 = 2.65;
+	}
+	float inWin = step(x0, x) * step(x, x0 + winW) * step(y0, y) * step(y, y1) * step(0.0, h);
+	float edge = min(min(x - x0, x0 + winW - x), min(y - y0, y1 - y));
+	float frame = inWin * (1.0 - step(0.055, edge));
+	float mullion = inWin * step(abs(x - (x0 + 0.5 * winW)), 0.025) * (shop ? 0.0 : 1.0);
+	frame = saturate(frame + mullion);
+	float reveal = inWin * (1.0 - smoothstep(0.0, 0.14, y1 - y));
+	float2 cell = float2(floor(along / bayW + 0.5), level);
+	float r = frac(sin(dot(cell + seed * 17.0, float2(12.9898, 78.233))) * 43758.5453);
+	float3 glass = float3(0.018, 0.024, 0.03) * (0.8 + 0.5 * r);
+	if (shop) glass = lerp(float3(0.06, 0.055, 0.05), VC.rgb * 0.18, 0.4) * (0.7 + 0.6 * r); // a lit interior behind the reflection
+	glass = lerp(glass, VC.rgb * 0.22, step(0.72, r) * 0.55);
+	float pane = inWin * (1.0 - frame);
+	col = lerp(stucco, glass, pane);
+	col = lerp(col, float3(0.86, 0.86, 0.83), frame);
+	col *= 1.0 - 0.45 * reveal * (1.0 - frame);
+	rough = lerp(0.9, 0.04, pane);
+	float lit = shop ? step(r, 0.72) : step(r, 0.36);
+	rough = lerp(rough, 0.45, pane * lit * Lights); // a lit room shows its light, not a noisy mirror
+	// Shops: warm interiors, brighter toward the ceiling lights, a few closed for the night.
+	float depth = shop ? lerp(0.45, 1.0, saturate((y - y0) / (y1 - y0))) : 1.0;
+	emis = pane * lit * Lights * depth * lerp(float3(1.0, 0.72, 0.45), float3(1.0, 0.86, 0.7), frac(r * 3.3)) * (shop ? 1.5 + 2.5 * frac(r * 5.1) : 3.0 + 9.0 * frac(r * 9.7));
+}
+else if (kind < 1.5) { rough = 0.86; }
+else if (kind < 2.5) { col = VC.rgb * lerp(1.0, grain, 0.35); rough = 0.93; }
+else if (kind < 3.5) { col = VC.rgb * 0.55 + 0.35; rough = 0.25; emis = VC.rgb * (300.0 + 2500.0 * Lights); }
+else if (kind < 4.5)
+{
+	float bars = step(frac(along / 1.8), 0.035) + step(abs(h - 2.75), 0.04);
+	bars = saturate(bars);
+	col = lerp(float3(0.02, 0.026, 0.03), float3(0.8, 0.8, 0.77), bars);
+	rough = lerp(0.04, 0.5, bars);
+	emis = (1.0 - bars) * Lights * float3(1.0, 0.8, 0.55) * 5.0;
+}
+else if (kind < 5.5) { col = VC.rgb * lerp(1.0, grain, 0.25); rough = 0.5; }
+else if (kind < 6.5) { col = VC.rgb * lerp(1.0, grain, 0.12); rough = 0.42; metal = 0.6; }
+else if (kind < 7.5)
+{
+	float ring = smoothstep(0.7, 0.95, frac(h / 0.085 + 0.25 * sin(along * 6.2832)));
+	col = VC.rgb * lerp(1.0, grain, 0.3) * (1.0 - 0.32 * ring) * lerp(0.8, 1.0, saturate(h / 1.5));
+	rough = 0.95;
+}
+else if (kind < 8.5) { col = float3(0.8, 0.78, 0.72); rough = 0.2; emis = Lights * float3(1.0, 0.8, 0.58) * 9000.0; }
+else if (kind < 9.5) { col = float3(0.03, 0.045, 0.05); rough = 0.05; }
+Roughness = rough;
+Metal = metal;
+Emis = emis;
 Nrm = normalize(VN);
 return max(col, 0.0);
+)HLSL");
+
+		// Palm fronds: pinnate leaflets cut out of a V-shaped card, ragged and torn.
+		const TCHAR* FoliageCode = TEXT(R"HLSL(
+float s = UV0.x;
+float v = abs(UV0.y);
+float seed = UV1.y;
+float t = s * 90.0 - v * 7.0;
+float idx = floor(t);
+float r = frac(sin((idx + seed * 131.0) * 12.9898) * 43758.5453);
+float leaf = step(frac(t), 0.62 + 0.2 * r);
+float reach = 0.72 + 0.28 * r;
+float mask = leaf * step(v, reach) * step(0.03, r);
+mask = max(mask, step(v, 0.04) * step(s, 0.97));
+Mask = mask;
+float3 col = VC.rgb * (0.8 + 0.4 * r) * lerp(1.05, 0.85, v);
+col = lerp(col, float3(0.42, 0.36, 0.19), smoothstep(0.82, 1.0, v / reach) * 0.55);
+Sss = col * float3(0.8, 1.0, 0.35);
+Roughness = 0.55;
+Nrm = normalize(VN);
+return col;
 )HLSL");
 
 		template <typename T>
@@ -217,6 +309,13 @@ return max(col, 0.0);
 			P->ParameterName = Name;
 			P->DefaultValue = Default;
 			return P;
+		}
+
+		UMaterialExpression* TexCoord(UMaterial* Material, int32 Index)
+		{
+			UMaterialExpressionTextureCoordinate* T = AddExpression<UMaterialExpressionTextureCoordinate>(Material);
+			T->CoordinateIndex = Index;
+			return T;
 		}
 
 		UMaterialExpression* ScalarParam(UMaterial* Material, const TCHAR* Name, float Default)
@@ -273,7 +372,7 @@ return max(col, 0.0);
 			Custom->Code = AsphaltCode;
 			AddInput(Custom, TEXT("Asphalt"), TextureParam(Material, TEXT("Asphalt"), DefaultTexture));
 			AddInput(Custom, TEXT("AsphaltMean"), VectorParam(Material, TEXT("AsphaltMean"), FLinearColor(0.2f, 0.2f, 0.2f)));
-			AddInput(Custom, TEXT("Tint"), VectorParam(Material, TEXT("Tint"), FLinearColor(0.11f, 0.105f, 0.10f)));
+			AddInput(Custom, TEXT("Tint"), VectorParam(Material, TEXT("Tint"), FLinearColor(0.085f, 0.083f, 0.08f)));
 			AddInput(Custom, TEXT("Bump"), ScalarParam(Material, TEXT("Bump"), 0.25f));
 			break;
 		case ESimCruiseTileLayer::Concrete:
@@ -289,10 +388,36 @@ return max(col, 0.0);
 			AddInput(Custom, TEXT("GrainMean"), VectorParam(Material, TEXT("GrainMean"), FLinearColor(0.2f, 0.2f, 0.2f)));
 			break;
 		case ESimCruiseTileLayer::Building:
+		case ESimCruiseTileLayer::Props:
+		{
 			Custom->Code = BuildingCode;
+			Custom->AdditionalOutputs.Add({ FName(TEXT("Metal")), CMOT_Float1 });
+			Custom->AdditionalOutputs.Add({ FName(TEXT("Emis")), CMOT_Float3 });
 			AddInput(Custom, TEXT("Grain"), TextureParam(Material, TEXT("Grain"), DefaultTexture));
 			AddInput(Custom, TEXT("GrainMean"), VectorParam(Material, TEXT("GrainMean"), FLinearColor(0.2f, 0.2f, 0.2f)));
+			AddInput(Custom, TEXT("UV0"), TexCoord(Material, 0));
+			AddInput(Custom, TEXT("UV1"), TexCoord(Material, 1));
+			AddInput(Custom, TEXT("Lights"), ScalarParam(Material, TEXT("Lights"), 0.f));
+			Custom->RebuildOutputs();
+			Material->GetEditorOnlyData()->Metallic.Connect(3, Custom);
+			Material->GetEditorOnlyData()->EmissiveColor.Connect(4, Custom);
 			break;
+		}
+		case ESimCruiseTileLayer::Foliage:
+		{
+			Custom->Code = FoliageCode;
+			Custom->AdditionalOutputs.Add({ FName(TEXT("Mask")), CMOT_Float1 });
+			Custom->AdditionalOutputs.Add({ FName(TEXT("Sss")), CMOT_Float3 });
+			AddInput(Custom, TEXT("UV0"), TexCoord(Material, 0));
+			AddInput(Custom, TEXT("UV1"), TexCoord(Material, 1));
+			Material->BlendMode = BLEND_Masked;
+			Material->TwoSided = true;
+			Material->SetShadingModel(MSM_TwoSidedFoliage);
+			Custom->RebuildOutputs();
+			Material->GetEditorOnlyData()->OpacityMask.Connect(3, Custom);
+			Material->GetEditorOnlyData()->SubsurfaceColor.Connect(4, Custom);
+			break;
+		}
 		case ESimCruiseTileLayer::Water:
 		{
 			Custom->Code = WaterCode;

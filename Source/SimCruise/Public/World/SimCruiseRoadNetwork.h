@@ -106,8 +106,24 @@ namespace SimCruiseLanes
 {
 	/** Lane width (m) by road class. */
 	SIMCRUISE_API double LaneWidthM(const FString& Class);
+	/** Parallel parking lanes (m) on the station's left (-R) and right (+R) sides; 0 where there are none. */
+	struct FParking
+	{
+		double Left = 0.0;
+		double Right = 0.0;
+	};
+
+	/**
+	 * Built-up streets (a curb or a town edge) with room keep a 2.4 m (8 ft)
+	 * parallel parking lane at the edge (MUTCD 3B.19, NACTO): a two-way street on
+	 * both sides when 10.8 m or wider, a one-way street on both sides from 7.8 m
+	 * or on one side (the driver's right first) from 5.4 m. Arterials and above,
+	 * and rural roads, have none. The kerb flags mean "built-up edge".
+	 */
+	SIMCRUISE_API FParking Parking(const FString& Class, double HalfW, int32 Travel, bool bKerbLeft, bool bKerbRight);
+
 	/** Signed lateral offset (m, + to the driver's right) of the rightmost travel lane's centre. */
-	SIMCRUISE_API double RightLaneCentreM(const FString& Class, double HalfW, int32 Travel);
+	SIMCRUISE_API double RightLaneCentreM(const FString& Class, double HalfW, int32 Travel, const FParking& Parking = FParking());
 }
 
 /** Cross-section geometry beyond the paved edge (metres). */

@@ -16,8 +16,30 @@ enum class ESimCruiseTileLayer : uint8
 	Paint,
 	Water,
 	Building,
+	Props,      // street furniture and palm trunks (opaque, the building material's kinds)
+	Foliage,    // palm fronds (masked, two-sided)
 	Count
 };
+
+/**
+ * Surface kinds the building, props and foliage materials branch on (UV1.x).
+ * UV0 carries (metres along the face, metres above the building's ground).
+ */
+namespace SimCruiseSurfaceKind
+{
+	inline constexpr float Wall = 0.f;        // stucco with windows on the storey grid
+	inline constexpr float Trim = 1.f;        // plain stucco: eyebrows, bands, fins, soffits
+	inline constexpr float Roof = 2.f;
+	inline constexpr float Neon = 3.f;        // glowing tube, colour in the vertex colour
+	inline constexpr float Storefront = 4.f;  // ground-floor glass behind a porch
+	inline constexpr float Terrazzo = 5.f;    // porch floor and steps
+	inline constexpr float Metal = 6.f;       // painted or galvanised poles
+	inline constexpr float Bark = 7.f;        // palm trunk
+	inline constexpr float LampGlass = 8.f;   // luminaire lens, lit at night
+	inline constexpr float Railing = 9.f;     // balcony glass
+	inline constexpr float Frond = 10.f;      // palm leaf card
+	inline constexpr float WallFront = 11.f;  // a street facade: shopfront glass in the ground storey
+}
 
 /** Plain mesh buffers in tile-local centimetres (x east, y south, z up). */
 struct SIMCRUISE_API FSimCruiseMeshData
@@ -26,10 +48,15 @@ struct SIMCRUISE_API FSimCruiseMeshData
 	TArray<FVector> Normals;
 	TArray<FLinearColor> Colors;
 	TArray<int32> Indices;
+	/** Optional texture coordinates: empty, or one per position. */
+	TArray<FVector2D> UV0;
+	TArray<FVector2D> UV1;
 
 	bool IsEmpty() const { return Indices.Num() == 0; }
 	int32 NumTriangles() const { return Indices.Num() / 3; }
 	int32 Add(const FVector& P, const FVector& N, const FLinearColor& C = FLinearColor::White);
+	/** A vertex with both texture coordinates (layers that use them use them for every vertex). */
+	int32 Add(const FVector& P, const FVector& N, const FLinearColor& C, const FVector2D& InUV0, const FVector2D& InUV1);
 	/** Add a triangle whose front face looks along Facing (Unreal's winding). */
 	void Tri(int32 A, int32 B, int32 C, const FVector& Facing);
 	void Quad(int32 A, int32 B, int32 C, int32 D, const FVector& Facing) { Tri(A, B, C, Facing); Tri(A, C, D, Facing); }
@@ -63,9 +90,14 @@ struct SIMCRUISE_API FSimCruiseTileBuild
 	// Every top-surface vertex of every carriageway, tile cm (collision checks).
 	TArray<FVector> CarriagewayPoints;
 
+	/** Street-light sources (tile cm, the lamp head's lens centre) for the night light pool. */
+	TArray<FVector> LampPointsCm;
+
 	int32 ConditionedVertices = 0;
 	int32 MarkingQuads = 0;
 	int32 Buildings = 0;
+	int32 Palms = 0;
+	int32 StreetLights = 0;
 	double MinHeightM = 0.0;
 	double MaxHeightM = 0.0;
 	double BuildMs = 0.0;
@@ -91,6 +123,9 @@ namespace SimCruiseTileBuilder
 	 * bend tighter than the offset (the drawn edge never folds over itself).
 	 */
 	SIMCRUISE_API void UnfoldLine(TArray<FVector2d>& Line, const TArray<FVector2d>& Tangents);
+
+	/** Ear-clip a simple polygon (any winding); false if it could not be clipped. */
+	SIMCRUISE_API bool Triangulate(const TArray<FVector2d>& Ring, TArray<int32>& OutIndices);
 
 	/** World-anchored texture offset (m) for a tile: (tile * size) mod Period, so detail textures run on across seams. */
 	SIMCRUISE_API FVector2d TextureAnchorM(const FIntPoint& Tile, double TileSizeM, double PeriodM = 64.0);

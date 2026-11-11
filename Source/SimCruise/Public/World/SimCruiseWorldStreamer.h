@@ -10,6 +10,7 @@
 #include "SimCruiseWorldStreamer.generated.h"
 
 class ASimCruiseWorldTile;
+class USpotLightComponent;
 class FSimCruiseAtlasClient;
 class USimCruiseWorldResources;
 struct FSimCruiseTileBuild;
@@ -85,6 +86,13 @@ public:
 	UPROPERTY(Transient)
 	TObjectPtr<USimCruiseWorldResources> Resources;
 
+	/** Street lights that really light the road at night: the nearest lamp heads get one of these. */
+	UPROPERTY(EditAnywhere, Category = "SimCruise|World")
+	int32 StreetLightPoolSize = 24;
+
+	/** How much the night lighting is on (0 day .. 1 night), from the sun's elevation. */
+	float GetLightsOn() const { return LightsOn; }
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
@@ -115,6 +123,8 @@ private:
 	void Rebase(const FIntPoint& NewOrigin);
 	void RemoveTile(const FIntPoint& Tile);
 	FVector CurrentFocus(FVector& OutVelocity) const;
+	/** Windows, lenses and the street-light pool follow the sun (photocells switch near sunset). */
+	void UpdateNightLighting(float DeltaSeconds);
 
 	FSimCruiseWorldFrame Frame;
 	FString Title;
@@ -129,4 +139,9 @@ private:
 	FVector FocusCm = FVector::ZeroVector;
 	FVector FocusVelocity = FVector::ZeroVector;
 	bool bStarted = false;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<USpotLightComponent>> StreetLightPool;
+	float LightsOn = 0.f;
+	float NightLightingClock = 0.f;
 };

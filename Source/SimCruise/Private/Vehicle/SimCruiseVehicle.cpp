@@ -10,6 +10,17 @@
 #include "Environment/SimCruiseEnvironmentSubsystem.h"
 #include "Gameplay/SimCruiseHaptics.h"
 #include "Gameplay/SimCruisePlayerController.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Presentation/SimCruiseLowBeamPattern.h"
+#include "HAL/IConsoleManager.h"
+
+namespace
+{
+	TAutoConsoleVariable<float> CVarBeamScale(TEXT("simcruise.Lamps.BeamScale"), 1.f,
+		TEXT("Look development: multiplies the low beams' intensity (1 = the real 15 000 cd)."));
+	TAutoConsoleVariable<int32> CVarBeamPattern(TEXT("simcruise.Lamps.Pattern"), 1,
+		TEXT("1: the low beams carry their photometric pattern and cut-off (light function); 0: plain cones."));
+}
 #include "Vehicle/SimCruiseUnits.h"
 #include "Vehicle/SimCruiseVehicleMovementComponent.h"
 
@@ -137,6 +148,16 @@ bool ASimCruiseVehicle::AttachCarModel()
 		Light->SetUseTemperature(true);
 		Light->SetTemperature(3200.f);
 		Light->SetCastShadows(true);
+		// The beam pattern with its cut-off, so the lamps light the road and not the mirrors
+		// of oncoming drivers. Driving on the right, the curb is the lamp's right.
+		if (UMaterialInterface* Pattern = SimCruiseLowBeamPattern::Get())
+		{
+			UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create(Pattern, Light);
+			MID->SetScalarParameterValue(TEXT("TanOuter"), static_cast<float>(FMath::Tan(FMath::DegreesToRadians(LowBeamEdgeHalfAngleDeg))));
+			MID->SetScalarParameterValue(TEXT("AimDown"), static_cast<float>(LowBeamAimDownDeg));
+			Light->SetLightFunctionMaterial(MID);
+			Light->SetLightFunctionScale(FVector(1.0, 1.0, 1.0));
+		}
 		Light->SetVisibility(false);
 		Light->RegisterComponent();
 		AddInstanceComponent(Light);
@@ -156,6 +177,22 @@ void ASimCruiseVehicle::UpdateHeadLamps()
 			if (Light)
 			{
 				Light->SetVisibility(bLit);
+			}
+		}
+	}
+	// Look development switches (no cost unless they change).
+	{
+		const float Scale = FMath::Max(CVarBeamScale.GetValueOnGameThread(), 0.f);
+		const bool bPattern = CVarBeamPattern.GetValueOnGameThread() != 0;
+		for (USpotLightComponent* Light : HeadLampLights)
+		{
+			if (!Light) continue;
+			const float Want = static_cast<float>(LowBeamPeakCandela) * Scale;
+			if (!FMath::IsNearlyEqual(Light->Intensity, Want)) Light->SetIntensity(Want);
+			if (!bPattern && Light->LightFunctionMaterial) { BeamPatterns.Add(Light, Light->LightFunctionMaterial); Light->SetLightFunctionMaterial(nullptr); }
+			if (bPattern && !Light->LightFunctionMaterial)
+			{
+				if (TObjectPtr<UMaterialInterface>* Saved = BeamPatterns.Find(Light)) Light->SetLightFunctionMaterial(*Saved);
 			}
 		}
 	}

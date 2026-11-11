@@ -44,6 +44,10 @@ public:
 	 */
 	bool IsCollisionReady() const;
 
+	/** Night lighting of the tile's materials, 0..1: lit windows and street-light lenses (neon brightens). */
+	void SetLightsOn(float Amount);
+	float GetLightsOn() const { return LightsOn; }
+
 	UPROPERTY(VisibleAnywhere, Category = "SimCruise|World")
 	TObjectPtr<UProceduralMeshComponent> Mesh;
 
@@ -57,4 +61,5 @@ private:
 	FIntPoint TileId = FIntPoint::ZeroValue;
 	TSharedPtr<FSimCruiseTileBuild> Build;
 	mutable bool bCollisionReady = false;
+	float LightsOn = 0.f;
 };

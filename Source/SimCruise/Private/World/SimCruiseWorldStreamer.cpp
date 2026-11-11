@@ -5,6 +5,9 @@
 #include "Async/Async.h"
 #include "Atlas/SimCruiseAtlasClient.h"
 #include "Camera/PlayerCameraManager.h"
+#include "Components/SpotLightComponent.h"
+#include "Environment/SimCruiseEnvironment.h"
+#include "Environment/SimCruiseEnvironmentSubsystem.h"
 #include "Engine/World.h"
 #include "HAL/FileManager.h"
 #include "Kismet/GameplayStatics.h"
@@ -148,7 +151,9 @@ bool ASimCruiseWorldStreamer::FindRoadPose(const FString& RoadName, const FVecto
 				// The rightmost travel lane, between the lines the markings draw.
 				const FVector2d Dir = St.Travel < 0 ? -St.T : St.T;
 				const FVector2d Right(-Dir.Y, Dir.X);
-				const double Offset = SimCruiseLanes::RightLaneCentreM(Ribbon.Class, St.HalfW, St.Travel);
+				auto Kerbed = [&](int32 SideIndex) { return Ribbon.Sides[SideIndex].Edge.IsValidIndex(i) && Ribbon.Sides[SideIndex].Edge[i] != ESimCruiseRoadEdge::Rural; };
+				const SimCruiseLanes::FParking Park = SimCruiseLanes::Parking(Ribbon.Class, St.HalfW, St.Travel, Kerbed(0), Kerbed(1));
+				const double Offset = SimCruiseLanes::RightLaneCentreM(Ribbon.Class, St.HalfW, St.Travel, Park);
 				const FVector2d P = St.C + Right * Offset;
 				const double L = FVector2d::DotProduct(P - St.C, St.R);
 				const double H = Ribbon.CarriagewayHeight(i, L);
@@ -300,6 +305,105 @@ void ASimCruiseWorldStreamer::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	TickStreaming(DeltaSeconds);
+	UpdateNightLighting(DeltaSeconds);
+}
+
+void ASimCruiseWorldStreamer::UpdateNightLighting(float DeltaSeconds)
+{
+	NightLightingClock -= DeltaSeconds;
+	if (NightLightingClock > 0.f)
+	{
+		return;
+	}
+	NightLightingClock = 0.25f;
+
+	float SunElevationDeg = 45.f;
+	if (USimCruiseEnvironmentSubsystem* Subsystem = USimCruiseEnvironmentSubsystem::Get(GetWorld()))
+	{
+		if (const ASimCruiseEnvironment* Environment = Subsystem->GetEnvironment())
+		{
+			SunElevationDeg = static_cast<float>(Environment->GetSunPosition().ApparentElevationDeg);
+		}
+	}
+	// Photocells switch street lights at about 10-35 lx, near sunset; windows light through dusk.
+	const float Target = FMath::SmoothStep(0.f, 1.f, FMath::Clamp((2.f - SunElevationDeg) / 6.f, 0.f, 1.f));
+	LightsOn = Target;
+	for (const TPair<FIntPoint, TObjectPtr<ASimCruiseWorldTile>>& Pair : Tiles)
+	{
+		if (Pair.Value)
+		{
+			Pair.Value->SetLightsOn(LightsOn);
+		}
+	}
+
+	// The light pool: the nearest lamp heads to the car light the road (no shadows; LED cobra
+	// heads of about 9000 lm put roughly 1800 cd straight down, 3000 K in Miami Beach).
+	if (StreetLightPool.Num() != StreetLightPoolSize)
+	{
+		for (USpotLightComponent* Light : StreetLightPool)
+		{
+			if (Light) Light->DestroyComponent();
+		}
+		StreetLightPool.Reset();
+		if (!GetRootComponent())
+		{
+			USceneComponent* Root = NewObject<USceneComponent>(this, TEXT("Root"));
+			Root->SetMobility(EComponentMobility::Movable);
+			SetRootComponent(Root);
+			Root->RegisterComponent();
+		}
+		for (int32 i = 0; i < StreetLightPoolSize; ++i)
+		{
+			USpotLightComponent* Light = NewObject<USpotLightComponent>(this, *FString::Printf(TEXT("StreetLight%d"), i));
+			Light->SetMobility(EComponentMobility::Movable);
+			Light->SetupAttachment(GetRootComponent());
+			Light->SetIntensityUnits(ELightUnits::Candelas);
+			Light->SetIntensity(1800.f);
+			Light->SetInnerConeAngle(50.f);
+			Light->SetOuterConeAngle(74.f);
+			Light->SetAttenuationRadius(3200.f);
+			Light->SetSourceRadius(15.f);
+			Light->SetUseTemperature(true);
+			Light->SetTemperature(3000.f);
+			Light->SetCastShadows(false);
+			Light->SetVisibility(false);
+			Light->RegisterComponent();
+			AddInstanceComponent(Light);
+			StreetLightPool.Add(Light);
+		}
+	}
+	TArray<TPair<double, FVector>> Near;
+	if (LightsOn > 0.01f)
+	{
+		FVector Velocity;
+		const FVector Focus = CurrentFocus(Velocity);
+		for (const TPair<FIntPoint, TObjectPtr<ASimCruiseWorldTile>>& Pair : Tiles)
+		{
+			const ASimCruiseWorldTile* Tile = Pair.Value;
+			const FSimCruiseTileBuild* Build = Tile ? Tile->GetBuild() : nullptr;
+			if (!Build) continue;
+			const FVector Origin = Tile->GetActorLocation();
+			for (const FVector& P : Build->LampPointsCm)
+			{
+				const FVector W = Origin + P;
+				const double D = FVector::DistSquared2D(W, Focus);
+				if (D < FMath::Square(250.0 * 100.0)) Near.Add({ D, W });
+			}
+		}
+		Near.Sort([](const TPair<double, FVector>& A, const TPair<double, FVector>& B) { return A.Key < B.Key; });
+	}
+	for (int32 i = 0; i < StreetLightPool.Num(); ++i)
+	{
+		USpotLightComponent* Light = StreetLightPool[i];
+		if (!Light) continue;
+		const bool bUse = i < Near.Num();
+		Light->SetVisibility(bUse);
+		if (bUse)
+		{
+			Light->SetWorldLocationAndRotation(Near[i].Value, FRotator(-90.0, 0.0, 0.0));
+			Light->SetIntensity(1800.f * LightsOn);
+		}
+	}
 }
 
 void ASimCruiseWorldStreamer::TickStreaming(float DeltaSeconds)

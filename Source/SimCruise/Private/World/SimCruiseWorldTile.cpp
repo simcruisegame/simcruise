@@ -48,13 +48,18 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 			Tangents[v] = FProcMeshTangent(T.IsNearlyZero() ? FVector::ForwardVector : T, false);
 		}
 		const ESimCruiseTileLayer Kind = static_cast<ESimCruiseTileLayer>(i);
-		const bool bCollision = Kind == ESimCruiseTileLayer::Terrain || Kind == ESimCruiseTileLayer::Asphalt || Kind == ESimCruiseTileLayer::Concrete || Kind == ESimCruiseTileLayer::Building;
-		Mesh->CreateMeshSection_LinearColor(i, Layer.Positions, Layer.Indices, Layer.Normals, NoUV, Layer.Colors, Tangents, bCollision, false);
+		const bool bCollision = Kind == ESimCruiseTileLayer::Terrain || Kind == ESimCruiseTileLayer::Asphalt || Kind == ESimCruiseTileLayer::Concrete
+			|| Kind == ESimCruiseTileLayer::Building || Kind == ESimCruiseTileLayer::Props;
+		const bool bUVs = Layer.UV0.Num() == Layer.Positions.Num() && Layer.UV1.Num() == Layer.Positions.Num();
+		Mesh->CreateMeshSection_LinearColor(i, Layer.Positions, Layer.Indices, Layer.Normals, bUVs ? Layer.UV0 : NoUV, bUVs ? Layer.UV1 : NoUV, NoUV, NoUV,
+			Layer.Colors, Tangents, bCollision, false);
 		// The game thread copy is gone once the section owns it.
 		Layer.Positions.Empty();
 		Layer.Normals.Empty();
 		Layer.Colors.Empty();
 		Layer.Indices.Empty();
+		Layer.UV0.Empty();
+		Layer.UV1.Empty();
 	}
 
 	if (Resources)
@@ -82,8 +87,25 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 			MID->SetVectorParameterValue(TEXT("SandMean"), Resources->SandMean);
 			MID->SetVectorParameterValue(TEXT("GrainMean"), Resources->AsphaltMean);
 			MID->SetVectorParameterValue(TEXT("AsphaltMean"), Resources->AsphaltMean);
+			MID->SetScalarParameterValue(TEXT("Lights"), LightsOn);
 			Materials.Add(MID);
 			Mesh->SetMaterial(i, MID);
+		}
+	}
+}
+
+void ASimCruiseWorldTile::SetLightsOn(float Amount)
+{
+	if (FMath::Abs(Amount - LightsOn) < 0.01f)
+	{
+		return;
+	}
+	LightsOn = Amount;
+	for (UMaterialInstanceDynamic* MID : Materials)
+	{
+		if (MID)
+		{
+			MID->SetScalarParameterValue(TEXT("Lights"), Amount);
 		}
 	}
 }

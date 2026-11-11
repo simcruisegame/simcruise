@@ -3,7 +3,9 @@
 #include "World/SimCruiseTileBuilder.h"
 
 #include "HAL/PlatformTime.h"
+#include "World/SimCruiseGeo.h"
 #include "World/SimCruiseTileData.h"
+#include "World/SimCruiseTileDetail.h"
 
 namespace
 {
@@ -304,6 +306,18 @@ int32 FSimCruiseMeshData::Add(const FVector& P, const FVector& N, const FLinearC
 	Normals.Add(N);
 	Colors.Add(C);
 	return Positions.Num() - 1;
+}
+
+bool SimCruiseTileBuilder::Triangulate(const TArray<FVector2d>& Ring, TArray<int32>& OutIndices)
+{
+	return EarClip(Ring, OutIndices);
+}
+
+int32 FSimCruiseMeshData::Add(const FVector& P, const FVector& N, const FLinearColor& C, const FVector2D& InUV0, const FVector2D& InUV1)
+{
+	UV0.Add(InUV0);
+	UV1.Add(InUV1);
+	return Add(P, N, C);
 }
 
 void FSimCruiseMeshData::Tri(int32 A, int32 B, int32 C, const FVector& Facing)
@@ -795,79 +809,25 @@ namespace SimCruiseTileBuilder
 			}
 		}
 
-		// ---------------------------------------------------------------- buildings
-		// Footprints and heights from the tile (OpenStreetMap / Overture): walls and a flat
-		// roof, sitting on the lowest ground under the outline. A massing model until the
-		// observed facades and roofs of the Godot client are ported (docs/unreal-architecture.md).
+		// ---------------------------------------------------------------- buildings, palms, street lights
+		// Recipes by region on footprints and heights from the tile (OpenStreetMap / Overture),
+		// palms on the lawns where coconut palms grow, lights behind the curbs (SimCruiseTileDetail).
 		{
-			FSimCruiseMeshData& Mesh = B.Layer(ESimCruiseTileLayer::Building);
-			// One palette for every place (no regional special case): the Godot client's
-			// 12 common US exterior paints and 4 brick colours (Drive.gd house_paints and
-			// bricks, sRGB), chosen per building by id, until observed facades are ported.
-			static const TArray<FLinearColor> Palette = []()
+			double Lon = 0.0, Lat = 0.0;
+			SimCruiseGeo::TileToLonLat(FVector2d(Data.Id.X + 0.5, Data.Id.Y + 0.5), Lon, Lat);
+			auto Sample = [&](const FCoverage& Coverage, const FVector2d& P)
 			{
-				TArray<FLinearColor> Out;
-				for (const TCHAR* Hex : { TEXT("ece9e1"), TEXT("e2d9c4"), TEXT("c9cbc7"), TEXT("b8b1a2"), TEXT("c6b28d"), TEXT("a8b29a"),
-					TEXT("a8bbc7"), TEXT("6f8293"), TEXT("e4d397"), TEXT("8d8372"), TEXT("53575a"), TEXT("b9a48a"),
-					TEXT("8b4838"), TEXT("76503f"), TEXT("9f5a42"), TEXT("a98c6a") })
-				{
-					Out.Add(FLinearColor::FromSRGBColor(FColor::FromHex(Hex)));
-				}
-				return Out;
-			}();
-			for (int32 b = 0; b < Data.Buildings.Num(); ++b)
-			{
-				const FSimCruiseBuildingRow& Row = Data.Buildings[b];
-				TArray<FVector2d> Ring;
-				for (const FVector2d& U : Row.Ring)
-				{
-					const FVector2d P(FMath::Clamp(U.X, 0.0, 1.0) * Side, FMath::Clamp(U.Y, 0.0, 1.0) * Side);
-					if (Ring.Num() == 0 || FVector2d::Distance(Ring.Last(), P) > 0.05) Ring.Add(P);
-				}
-				if (Ring.Num() > 2 && FVector2d::Distance(Ring[0], Ring.Last()) < 0.05) Ring.Pop();
-				if (Ring.Num() < 3) continue;
-				double Area = 0.0, Ground = TNumericLimits<double>::Max();
-				for (int32 i = 0; i < Ring.Num(); ++i)
-				{
-					Area += Cross2(Ring[i], Ring[(i + 1) % Ring.Num()]);
-					Ground = FMath::Min(Ground, Data.HeightAtUnit(Ring[i] / Side));
-				}
-				if (FMath::Abs(Area) * 0.5 < 4.0) continue;
-				const double Sign = Area >= 0.0 ? 1.0 : -1.0;
-				const double Top = Ground + FMath::Clamp(Row.HeightM, 2.8, 650.0);
-				const double Bottom = Row.MinHeightM > 0.5 ? Ground + Row.MinHeightM : Ground - 0.3;
-				if (Top <= Bottom + 0.5) continue;
-				const uint32 Seed = HashCombine(GetTypeHash(Data.Id), GetTypeHash(b));
-				FLinearColor Wall = Palette[Seed % static_cast<uint32>(Palette.Num())];
-				Wall.A = 1.f;
-				for (int32 i = 0; i < Ring.Num(); ++i)
-				{
-					const FVector2d A = Ring[i], C = Ring[(i + 1) % Ring.Num()];
-					const FVector2d D = C - A;
-					if (D.SizeSquared() < 1e-4) continue;
-					const FVector2d Outward2 = FVector2d(D.Y, -D.X).GetSafeNormal() * Sign;
-					const FVector WallN(Outward2.X, Outward2.Y, 0.0);
-					const int32 I0 = Mesh.Add(Cm(A, Bottom), WallN, Wall), I1 = Mesh.Add(Cm(C, Bottom), WallN, Wall);
-					const int32 I2 = Mesh.Add(Cm(C, Top), WallN, Wall), I3 = Mesh.Add(Cm(A, Top), WallN, Wall);
-					Mesh.Quad(I0, I1, I2, I3, WallN);
-				}
-				TArray<int32> Tris;
-				const FLinearColor Roof(0.42f, 0.41f, 0.39f, 0.f);
-				const int32 Base = Mesh.Positions.Num();
-				for (const FVector2d& P : Ring) Mesh.Add(Cm(P, Top), FVector::UpVector, Roof);
-				if (EarClip(Ring, Tris))
-				{
-					for (int32 t = 0; t + 2 < Tris.Num(); t += 3) Mesh.Tri(Base + Tris[t], Base + Tris[t + 1], Base + Tris[t + 2], FVector::UpVector);
-				}
-				else
-				{
-					FVector2d Centre = FVector2d::ZeroVector;
-					for (const FVector2d& P : Ring) Centre += P;
-					const int32 Hub = Mesh.Add(Cm(Centre / Ring.Num(), Top), FVector::UpVector, Roof);
-					for (int32 i = 0; i < Ring.Num(); ++i) Mesh.Tri(Hub, Base + i, Base + (i + 1) % Ring.Num(), FVector::UpVector);
-				}
-				++B.Buildings;
-			}
+				const int32 X = FMath::Clamp(FMath::FloorToInt(P.X / Side * Coverage.Size), 0, Coverage.Size - 1);
+				const int32 Y = FMath::Clamp(FMath::FloorToInt(P.Y / Side * Coverage.Size), 0, Coverage.Size - 1);
+				return Coverage.Bits[Y * Coverage.Size + X] != 0;
+			};
+			SimCruiseTileDetail::FContext Context{ Data, B, Side, Lat, Lon,
+				[&](const FVector2d& P) { return Sample(Veg, P); },
+				[&](const FVector2d& P) { return Sample(Paved, P); },
+				[&](const FVector2d& P) { return Sample(Water, P); } };
+			SimCruiseTileDetail::BuildBuildings(Context);
+			SimCruiseTileDetail::BuildPalms(Context);
+			SimCruiseTileDetail::BuildStreetLights(Context);
 		}
 
 		// ---------------------------------------------------------------- markings
@@ -877,7 +837,16 @@ namespace SimCruiseTileBuilder
 			const FLinearColor Yellow(0.70f, 0.48f, 0.08f, 1.f);
 			constexpr double DashM = 3.05, PeriodM = 12.2, LineM = 0.12, WideM = 0.15, DoubleGapM = 0.1;
 			auto LaneWidth = [](const FString& Class) { return SimCruiseLanes::LaneWidthM(Class); };
-			struct FLine { double L; double Width; bool bDashed; bool bYellow; };
+			// A painted line: lateral offset and width, and, for dashes, the painted
+			// length in each period (MUTCD: 10 ft dashes in 40 ft; parking bay ticks of
+			// 4 in every 22 ft stall).
+			struct FLine { double L; double Width; bool bDashed; bool bYellow; double Dash; double Period; };
+			auto Ln = [](double L, double Width, bool bDashed, bool bYellow, double Dash = 3.05, double Period = 12.2) { return FLine{ L, Width, bDashed, bYellow, Dash, Period }; }; // DashM, PeriodM
+			constexpr double StallM = 6.7, TickM = 0.1, TickLengthM = 0.6;
+			auto Kerbed = [](const FSimCruiseRibbon& R, int32 SideIndex, int32 i)
+			{
+				return R.Sides[SideIndex].Edge.IsValidIndex(i) && R.Sides[SideIndex].Edge[i] != ESimCruiseRoadEdge::Rural;
+			};
 			for (int32 r = 0; r < Roads.Ribbons.Num(); ++r)
 			{
 				const FSimCruiseRibbon& Ribbon = Roads.Ribbons[r];
@@ -891,34 +860,50 @@ namespace SimCruiseTileBuilder
 				const FVector2d World0(static_cast<double>(Data.Id.X) * Side + Ribbon.St[0].C.X, static_cast<double>(Data.Id.Y) * Side + Ribbon.St[0].C.Y);
 				const double Anchor = FVector2d::DotProduct(World0, T0) * Canon;
 				auto Phase = [&](double S) { return Anchor + Canon * (S - Ribbon.St[0].S); };
-				auto LinesAt = [&](const FSimCruiseRibbonStation& St, TArray<FLine>& Out)
+				auto LinesAt = [&](int32 i, TArray<FLine>& Out)
 				{
+					const FSimCruiseRibbonStation& St = Ribbon.St[i];
 					Out.Reset();
+					const SimCruiseLanes::FParking Park = SimCruiseLanes::Parking(Ribbon.Class, St.HalfW, St.Travel, Kerbed(Ribbon, 0, i), Kerbed(Ribbon, 1, i));
 					const double Travelled = 2.0 * St.HalfW;
 					if (St.Travel == 0)
 					{
 						if (Travelled < 4.9) return;
-						const int32 PerDir = FMath::Clamp(FMath::FloorToInt((St.HalfW - 0.6) / Lane), 1, 3);
-						const double Lw = FMath::Min(Lane, (St.HalfW - 0.3) / PerDir);
+						const double Half = St.HalfW - Park.Right;
+						const int32 PerDir = FMath::Clamp(FMath::FloorToInt((Half - 0.6) / Lane), 1, 3);
+						const double Lw = FMath::Min(Lane, (Half - 0.3) / PerDir);
 						for (const double S : { -1.0, 1.0 })
 						{
-							Out.Add({ S * (0.5 * DoubleGapM + 0.5 * LineM), LineM, false, true });
-							for (int32 k = 1; k < PerDir; ++k) Out.Add({ S * k * Lw, LineM, true, false });
-							if (bArterial) Out.Add({ S * FMath::Min(PerDir * Lw + 0.1, St.HalfW - 0.2), WideM, false, false });
+							Out.Add(Ln(S * (0.5 * DoubleGapM + 0.5 * LineM), LineM, false, true));
+							for (int32 k = 1; k < PerDir; ++k) Out.Add(Ln(S * k * Lw, LineM, true, false));
+							if (bArterial) Out.Add(Ln(S * FMath::Min(PerDir * Lw + 0.1, St.HalfW - 0.2), WideM, false, false));
 						}
 					}
 					else
 					{
-						const int32 Lanes = Travelled >= 2.0 * 2.75 + 0.6 ? 2 : 1;
-						const double Lw = FMath::Min(Lane, (Travelled - 0.8) / Lanes);
+						const double LeftP = St.Travel > 0 ? Park.Left : Park.Right;
+						const double RightP = St.Travel > 0 ? Park.Right : Park.Left;
+						const double Width = Travelled - LeftP - RightP;
+						const int32 Lanes = Width >= 2.0 * 2.75 + 0.6 ? 2 : 1;
+						const double Lw = FMath::Min(Lane, (Width - 0.8) / Lanes);
 						const double Total = Lanes * Lw;
-						const double LeftL = -St.Travel * 0.5 * Total;   // the driver's left edge
-						for (int32 k = 1; k < Lanes; ++k) Out.Add({ LeftL + St.Travel * k * Lw, LineM, true, false });
+						const double Centre = 0.5 * (LeftP - RightP);                 // driver's frame
+						const double LeftL = St.Travel * (Centre - 0.5 * Total);       // the driver's left edge, station frame
+						for (int32 k = 1; k < Lanes; ++k) Out.Add(Ln(LeftL + St.Travel * k * Lw, LineM, true, false));
 						if (bArterial)
 						{
-							Out.Add({ LeftL, WideM, false, true });
-							Out.Add({ -LeftL, WideM, false, false });
+							Out.Add(Ln(LeftL, WideM, false, true));
+							Out.Add(Ln(LeftL + St.Travel * Total, WideM, false, false));
 						}
+					}
+					// The parking lane's line, and the stall ticks reaching from it toward the curb.
+					for (const double Sgn : { -1.0, 1.0 })
+					{
+						const double P = Sgn < 0.0 ? Park.Left : Park.Right;
+						if (P <= 0.0) continue;
+						const double L = Sgn * (St.HalfW - P);
+						Out.Add(Ln(L, LineM, false, false));
+						Out.Add(Ln(L + Sgn * (0.5 * TickLengthM + 0.5 * LineM), TickLengthM, true, false, TickM, StallM));
 					}
 				};
 				// A stripe stops where a road of higher rank, or one passing through, crosses it.
@@ -947,8 +932,8 @@ namespace SimCruiseTileBuilder
 					const FSimCruiseRibbonStation& A = Ribbon.St[i];
 					const FSimCruiseRibbonStation& Bs = Ribbon.St[i + 1];
 					if (A.Travel != Bs.Travel) continue;
-					LinesAt(A, LA);
-					LinesAt(Bs, LB);
+					LinesAt(i, LA);
+					LinesAt(i + 1, LB);
 					if (LA.Num() != LB.Num()) continue;
 					for (int32 l = 0; l < LA.Num(); ++l)
 					{
@@ -964,9 +949,9 @@ namespace SimCruiseTileBuilder
 							const double U0 = Phase(A.S), U1 = Phase(Bs.S);
 							const double Lo = FMath::Min(U0, U1), Hi = FMath::Max(U0, U1);
 							const double Span = FMath::Max(Hi - Lo, 1e-9);
-							for (double Start = FMath::FloorToDouble(Lo / PeriodM) * PeriodM; Start < Hi; Start += PeriodM)
+							for (double Start = FMath::FloorToDouble(Lo / Line.Period) * Line.Period; Start < Hi; Start += Line.Period)
 							{
-								const double D0 = FMath::Max(Start, Lo), D1 = FMath::Min(Start + DashM, Hi);
+								const double D0 = FMath::Max(Start, Lo), D1 = FMath::Min(Start + Line.Dash, Hi);
 								if (D1 <= D0) continue;
 								double T0p = (D0 - Lo) / Span, T1p = (D1 - Lo) / Span;
 								if (U1 < U0) { const double Tmp = 1.0 - T1p; T1p = 1.0 - T0p; T0p = Tmp; }
@@ -995,6 +980,48 @@ namespace SimCruiseTileBuilder
 							Paint.Quad(I0, I1, I2, I3, FVector::UpVector);
 							++B.MarkingQuads;
 						}
+					}
+				}
+
+				// Continental crosswalks on each approach to a junction in town (curbed
+				// streets): 24 in bars with 24 in gaps across the carriageway, 10 ft deep,
+				// set back 1 m from the crossing road (MUTCD 3B.18, FHWA high-visibility).
+				auto PointAt = [&](double S, double L, FVector& OutCm)
+				{
+					for (int32 k = 0; k + 1 < Ribbon.St.Num(); ++k)
+					{
+						const FSimCruiseRibbonStation& P0 = Ribbon.St[k];
+						const FSimCruiseRibbonStation& P1 = Ribbon.St[k + 1];
+						if (S < P0.S || S > P1.S) continue;
+						const double T = (S - P0.S) / FMath::Max(P1.S - P0.S, 1e-6);
+						const FVector2d C = FMath::Lerp(P0.C, P1.C, T);
+						const FVector2d R = FMath::Lerp(P0.R, P1.R, T).GetSafeNormal();
+						const double H = FMath::Lerp(Ribbon.CarriagewayHeight(k, L), Ribbon.CarriagewayHeight(k + 1, L), T) + MarkLiftM;
+						OutCm = Cm(C + R * L, H);
+						return true;
+					}
+					return false;
+				};
+				const bool bTownClass = !bArterial || Ribbon.Class == TEXT("primary");
+				for (int32 i = 0; bTownClass && i + 1 < Ribbon.St.Num(); ++i)
+				{
+					if (Cut[i] == Cut[i + 1]) continue;
+					const bool bBefore = Cut[i + 1] != 0;            // the junction starts at i + 1
+					const int32 Edge = bBefore ? i + 1 : i;
+					if (!(Kerbed(Ribbon, 0, Edge) || Kerbed(Ribbon, 1, Edge))) continue;
+					const double SCut = Ribbon.St[Edge].S;
+					const double Dir = bBefore ? -1.0 : 1.0;
+					const double S0 = SCut + Dir * 1.0, S1 = SCut + Dir * 4.05;
+					if (FMath::Min(S0, S1) < Ribbon.St[0].S || FMath::Max(S0, S1) > Ribbon.St.Last().S) continue;
+					const double HalfW = Ribbon.St[Edge].HalfW;
+					for (double L = -HalfW + 0.35; L + 0.6 <= HalfW - 0.2; L += 1.2)
+					{
+						FVector Q[4];
+						if (!PointAt(S0, L, Q[0]) || !PointAt(S0, L + 0.6, Q[1]) || !PointAt(S1, L + 0.6, Q[2]) || !PointAt(S1, L, Q[3])) continue;
+						const int32 I0 = Paint.Add(Q[0], FVector::UpVector, White), I1 = Paint.Add(Q[1], FVector::UpVector, White);
+						const int32 I2 = Paint.Add(Q[2], FVector::UpVector, White), I3 = Paint.Add(Q[3], FVector::UpVector, White);
+						Paint.Quad(I0, I1, I2, I3, FVector::UpVector);
+						++B.MarkingQuads;
 					}
 				}
 			}

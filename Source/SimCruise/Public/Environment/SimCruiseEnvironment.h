@@ -140,9 +140,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Exposure")
 	float ExposureCloseStops = -0.5f;
 
-	/** Exposure compensation, calibrated in the lighting lab against Ocean Drive photographs. */
+	/**
+	 * Exposure compensation. The lighting lab's +0.7 matched the brightness of phone photographs
+	 * of Ocean Drive, but phones hold the sky with HDR tone mapping and ours turned it milky
+	 * white; +0.2 with stronger highlight compression (DefaultEngine.ini LocalExposure) keeps
+	 * the street bright and the sky the deep blue of the reference frame (Panoramax 4b6d216b).
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Exposure")
-	float ExposureCompensation = 0.7f;
+	float ExposureCompensation = 0.2f;
 
 	/** Colour saturation of the camera rendering in daylight (1 = neutral); night desaturation multiplies it. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Exposure")
@@ -152,9 +157,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
 	FLinearColor GroundAlbedo = FLinearColor(0.12f, 0.12f, 0.11f);
 
-	/** Aerosol scale height, km (marine boundary layer about 1-1.5 km). */
+	/** Aerosol scale height, km: sea salt sits low in the marine boundary layer (about 0.5-1 km). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
-	float AerosolScaleHeightKm = 1.2f;
+	float AerosolScaleHeightKm = 0.7f;
 
 	/** Fraction of aerosol extinction that is scattering (maritime about 0.97, urban 0.85). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere")
