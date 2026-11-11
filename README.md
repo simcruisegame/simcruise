@@ -10,7 +10,7 @@
 <p align="center">
   <a href="https://github.com/simcruisegame/simcruise/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/simcruisegame/simcruise?include_prereleases&sort=semver"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/code-MIT-blue"></a>
-  <a href="https://godotengine.org/"><img alt="Made with Godot 4.7" src="https://img.shields.io/badge/Godot-4.7.2-478cbf?logo=godotengine&logoColor=white"></a>
+  <a href="https://www.unrealengine.com/"><img alt="Made with Unreal Engine 5.8" src="https://img.shields.io/badge/Unreal_Engine-5.8-0e1128?logo=unrealengine&logoColor=white"></a>
 </p>
 
 ---
@@ -25,76 +25,73 @@ SimCruise puts you behind the wheel anywhere in the United States. Roads, terrai
 
 No account, no API keys, no subscription, no telemetry. The game talks directly to open data services and caches what it fetches on your disk.
 
-<p align="center">
-  <a href="docs/how-it-works/index.html"><img src="docs/how-it-works/diagram.svg" alt="How SimCruise works: the Godot client streams map tiles through the atlas helper from public data layers, builds the world from them and drives the car on it" width="720"></a>
-</p>
+> **SimCruise moved to Unreal Engine 5.8 in November 2026.** The Godot client that made the 1.x releases is kept at the git tag [`godot-final`](https://github.com/simcruisegame/simcruise/tree/godot-final) (`git show godot-final:game/<file>`); everything below is about the Unreal client. The Unreal client drives the real car on a streamed Ocean Drive today; search, the atlas, traffic and installers are being ported (see [the migration ledger](docs/unreal-migration-ledger.md)).
 
 ## Screenshots
 
 | | |
 |---|---|
-| ![The Tail of the Dragon (US 129, Deals Gap NC) from the Miata's cockpit](docs/images/dragon-cockpit.jpg) | ![Capitol Avenue in Cheyenne, Wyoming, with the State Capitol at its end](docs/images/cheyenne-capitol.jpg) |
-| *Tail of the Dragon, US 129, Deals Gap NC* | *Capitol Avenue, Cheyenne WY* |
-| ![US 163 at Forrest Gump Point with Monument Valley on the horizon](docs/images/monument-valley.jpg) | ![The I-180 viaduct over the rail yard in Cheyenne](docs/images/i180-viaduct.jpg) |
-| *US 163 toward Monument Valley, UT* | *The I-180 viaduct, Cheyenne WY* |
+| ![Ocean Drive, Miami Beach, from behind the 2001 roadster: Lummus Park palms, Art Deco hotels, parking lanes](docs/images/unreal/round2-day-chase.jpg) | ![The same street at 20:30: street lights, lit windows and neon](docs/images/unreal/round2-night-chase.jpg) |
+| *Ocean Drive, Miami Beach, mid-morning* | *Ocean Drive at night* |
+| ![From the driver's seat](docs/images/unreal/round2-day-cockpit.jpg) | ![Straight down on the lane: parking lines and stall ticks](docs/images/unreal/round2-day-top.jpg) |
+| *Driver's seat* | *Top-down check of the road geometry* |
 
-![The road atlas around Deals Gap, North Carolina](docs/images/road-atlas.jpg)
-
-*Captured in game with `--screenshots` (see [docs/images/README.md](docs/images/README.md)). Map data © OpenStreetMap contributors.*
+*Captured with `-SimCruiseDriveCapture` (see [docs/unreal-building.md](docs/unreal-building.md#drive-captures)). Map data © OpenStreetMap contributors.*
 
 ## Features
 
-- **Drive anywhere in the US.** Search a place, street or coordinates; the road network streams in around you as you drive.
-- **Real-world data.** Lidar-measured roofs and road camber, USGS elevation and aerial imagery, building heights, tree canopy, traffic signals, live weather from the nearest METAR station.
-- **Cars that drive like the real ones.** Suspension, tyres, engine, gearbox, clutch and differentials from published specifications, held to magazine 0–60 mph, braking and skidpad figures by automated tests, plus S-bend, lift-off and trail-brake stability tests. Tyres peak and slide on a slip-ratio curve, and the cars that had ABS and traction control have them. Three cars: the 1999 roadster the game started with, and a 1965 Mustang and a Corvette C8 with real CC BY models from Sketchfab ([docs/cars.md](docs/cars.md)).
-- **Roads built like real roads.** Every paved road is a smooth, banked surface built from a fitted engineering profile rather than raw elevation data, one-way carriageways of divided highways and couplets are two lanes and their shoulders wide, lane, centre and edge lines are painted to US (MUTCD) rules from the mapped lane counts, minor roads meet major ones at intersections, and guard rails stand where the ground drops away, as highway design rules require.
-- **A living, lived-in world.** Traffic on the mapped streets, flocks of birds, houses with siding, brick and shingled roofs in real US colours, ground textures that never repeat, and a car that collects road grime as you drive and is washed by real rain.
-- **Manual or automatic**, keyboard or Xbox controller, cockpit, chase and scenic cameras, a natural 45° driver lens (or true-to-screen), and a full-screen road atlas.
-- **Graphics presets** (Low to Ultra) chosen from your graphics card, with resolution that adapts to keep the frame rate (F4).
+- **Real places from public data.** Roads, terrain, buildings, land cover and water come from OpenStreetMap, USGS and Overture through the keyless map helper, streamed in tiles around the car with a floating origin.
+- **Cars that drive like the real ones.** The physics runs on Chaos at a fixed 360 Hz with every wheel's contact, tyre slip, suspension, engine, clutch, gearbox and differential from published specifications, held to magazine 0–60 mph, 70–0 mph and skidpad figures by automated benches. The automatic changes gear with the pedal, as a real one does.
+- **Roads built like real roads.** Fitted ribbons with crown and curbs, MUTCD markings, parking lanes and crosswalks, street lights behind the curbs.
+- **The real sun and sky.** Sun and moon where they are at that place and time, physically based sky and exposure in real units, street lights and lit windows at night, low beams with a real cut-off. A drive starts in a morning sun; `-SimCruiseRealTime` follows your clock instead.
+- **Keyboard or Xbox controller**, with steering and pedal shaping that never fakes the physics, rumble from tyre slip, cockpit and chase cameras and a true-to-screen lens.
 - **Open data, open code.** Every data source is free and keyless, and its licence is recorded in [`licenses/`](licenses/).
 
-## Download
+## Running it
 
-Get the latest release from the [Releases](https://github.com/simcruisegame/simcruise/releases) page:
+There is no Unreal installer yet (Windows first; macOS when a Mac is available to build on). From source on Windows:
 
-- **macOS** (Apple Silicon, macOS 13 or newer): `SimCruise-<version>.dmg`, drag to Applications.
-- **Windows** (64-bit Windows 10 or 11): `SimCruise-<version>-windows-x64-setup.exe`, or the portable `.zip`.
+1. Install Unreal Engine 5.8, Visual Studio 2022 Build Tools with the C++ game workload, and [Bun](https://bun.com/) (for the map helper).
+2. Clone the repository and build the editor target (PowerShell, editor closed):
 
-You need an internet connection for places outside the bundled starter area: without one the game starts in a small neighbourhood that works offline, Ocean Drive and the Flamingo Park blocks of Miami Beach, Florida. The builds are not code-signed, so macOS and Windows warn on first launch; [docs/install.md](docs/install.md) shows how to open them and where the game stores its cache.
+   ```powershell
+   & 'C:\Program Files\Epic Games\UE_5.8\Engine\Build\BatchFiles\Build.bat' SimCruiseEditor Win64 Development -Project="$PWD\SimCruise.uproject" -WaitMutex
+   ```
 
-## How to play
+3. Drive:
 
-The game starts on a random road from a pool of 36 verified US drives (`game/data/start-pool.json`); offline, it starts in Miami Beach. Press `/` to search for a place and drive there, or press **Surprise me** in the search box for another random road.
+   ```powershell
+   & 'C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' "$PWD\SimCruise.uproject" -game
+   ```
+
+The game builds the bundled Ocean Drive start (no network needed) and puts you in the 2001 roadster in Ocean Drive's lane. Options (another car, a fixed time, graphics presets, captures) are in [docs/unreal-building.md](docs/unreal-building.md#drive-it).
 
 | Action | Keyboard | Xbox controller |
 |---|---|---|
 | Accelerate / brake | W / S | Right / left trigger |
 | Steer | A / D | Left stick |
 | Camera | C | Y |
-| Road atlas | Tab | Menu |
-| Find a place | / | — |
+| Manual gearbox | T | B |
 | Recover to the road | R | View |
 
-Every control, the manual gearbox and the atlas are described in [docs/controls.md](docs/controls.md).
+Every control is in [docs/controls.md](docs/controls.md).
 
-## Building from source
+To run the automated tests (vehicle benches, world, presentation, drive):
 
-You need [Godot 4.7.2](https://godotengine.org/download/archive/4.7.2-stable/) and [Bun](https://bun.com/).
-
-```sh
-git clone https://github.com/simcruisegame/simcruise.git
-cd simcruise
-sh scripts/play.sh   # compile the map helper, import the project and play
-```
-
-To work on the game, open `game/project.godot` in Godot and press F5. A step-by-step setup from a fresh Mac, and packaging the app and disk image, are in [docs/building.md](docs/building.md).
-
-To run the automated checks (physics calibration, rendering, data parsing):
-
-```sh
-sh scripts/check.sh          # headless Godot checks
+```powershell
+& 'C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe' "$PWD\SimCruise.uproject" -ExecCmds="Automation RunTests SimCruise;Quit" -unattended -nopause -nullrhi -nosplash -testexit="Automation Test Queue Empty"
 sh scripts/check-helper.sh   # map helper tests
 ```
+
+## Repository layout
+
+| Folder | Contents |
+|---|---|
+| `Source/SimCruise/` | The Unreal client (C++): vehicle physics, world streaming, car presentation, lighting, driving shell, tests |
+| `Config/`, `Content/` | Unreal project settings; car presentation profiles and calibration overlays |
+| `data/` | Engine-neutral data the client reads: `cars/` (car physics JSON), `art/traffic/` (glTF car models and their manifest), `art/ground/` (detail photographs), `tiles/` (the bundled offline start and its aerial photographs), `observed/` (helper fixtures) |
+| `helper/` | The map helper (Bun): fetches and converts public data into tiles |
+| `docs/` | Architecture, building, cars, research, the migration ledger |
 
 ## Contributing
 
@@ -109,11 +106,13 @@ Contributions are welcome: code, data sources, bug reports from places that look
 
 | Document | Contents |
 |---|---|
-| [Technical overview](docs/technical-overview.md) | Architecture, tile streaming, the car model, rendering, privacy |
+| [Technical overview](docs/technical-overview.md) | The Unreal client, the helper, tile streaming, the car model, rendering, privacy |
+| [Unreal architecture](docs/unreal-architecture.md) | Every subsystem of the Unreal client in detail, with what it looks like and what is missing |
+| [Building with Unreal](docs/unreal-building.md) | Build, run, options, captures, tests |
+| [Migration ledger](docs/unreal-migration-ledger.md) | Every Godot file and check, where it went in Unreal, and its status |
 | [Data sources and licences](docs/data-sources.md) | Every data layer, its source and licence |
 | [Controls](docs/controls.md) | Full control reference, manual gearbox, road atlas |
 | [Cars](docs/cars.md) | The garage, how cars are calibrated, adding a car |
-| [Building](docs/building.md) | Building the app and disk image |
 | [Roadmap](docs/roadmap.md) | What comes next and why |
 | [Changelog](CHANGELOG.md) | Changes by version |
 | [Studies](docs/studies.md) | Research notes behind individual features |
@@ -128,4 +127,4 @@ SimCruise was called *Sunday Driver* up to version 1.0.8; older notes still use 
 
 ## Credits
 
-Built with [Godot Engine](https://godotengine.org/), [Jolt Physics](https://github.com/jrouwe/JoltPhysics) and [Bun](https://bun.com/). Data from OpenStreetMap contributors, USGS, USDA, NOAA, NASA, the US Army Corps of Engineers, Overture Maps Foundation, Copernicus, WRI and Meta, and the state, county and city sources named in [Credits.txt](Credits.txt), together with the artists and photographers credited there.
+Built with [Unreal Engine](https://www.unrealengine.com/) and [Bun](https://bun.com/). The player car's model is "Mazda MX-5 (NB) convertible HQ interior" by [niev](https://sketchfab.com/niev), CC BY 4.0. Data from OpenStreetMap contributors, USGS, USDA, NOAA, NASA, the US Army Corps of Engineers, Overture Maps Foundation, Copernicus, WRI and Meta, and the state, county and city sources named in [Credits.txt](Credits.txt), together with the artists and photographers credited there.

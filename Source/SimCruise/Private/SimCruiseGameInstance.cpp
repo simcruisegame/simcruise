@@ -27,7 +27,7 @@ void USimCruiseGameInstance::Init()
 
 	if (CarDefinitions.IsEmpty())
 	{
-		UE_LOG(LogTemp, Error, TEXT("SimCruise found no valid car definitions under game/cars."));
+		UE_LOG(LogTemp, Error, TEXT("SimCruise found no valid car definitions under data/cars."));
 	}
 }
 

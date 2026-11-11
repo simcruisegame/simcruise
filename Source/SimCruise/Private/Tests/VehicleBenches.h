@@ -8,7 +8,7 @@
 
 #include "Vehicle/CarDefinition.h"
 
-/** Results of game/checks/CarTrack.gd's three tests. */
+/** Results of godot-final:game/checks/CarTrack.gd's three tests. */
 struct FSimCruiseCarTrackResult
 {
 	double ZeroToSixtyS = TNumericLimits<double>::Max();
@@ -35,7 +35,7 @@ struct FSimCruiseCarTrackResult
 FSimCruiseCarTrackResult SimCruiseRunCarTrack(const FSimCruiseCarDefinition& Car, double FixedStepS,
 	double MaxWheelSubstepS = 1.0 / 360.0, bool bAccelerationOnly = false);
 
-/** One case of game/checks/LiftOff.gd. */
+/** One case of godot-final:game/checks/LiftOff.gd. */
 struct FSimCruiseLiftOffCase
 {
 	double TargetG = 0.3;

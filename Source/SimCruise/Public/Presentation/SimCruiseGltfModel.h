@@ -6,10 +6,10 @@
 
 /**
  * A minimal, strict glTF 2.0 reader for the downloaded car models
- * (game/art/traffic/<id>/scene.gltf + scene.bin + textures/).
+ * (data/art/traffic/<id>/scene.gltf + scene.bin + textures/).
  *
  * It keeps the data in glTF's own space (right-handed, +Y up, metres) with
- * every node transform applied, so the car rig can port game/ModelRig.gd's
+ * every node transform applied, so the car rig can port godot-final:game/ModelRig.gd's
  * geometry logic line for line. Unreal's axes and centimetres are applied
  * only when the rig writes its parts (SimCruiseCarModelRig).
  *

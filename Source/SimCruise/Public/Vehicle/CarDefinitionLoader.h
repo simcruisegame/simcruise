@@ -5,11 +5,11 @@
 #include "CoreMinimal.h"
 #include "Vehicle/CarDefinition.h"
 
-/** Strict reader for the canonical game/cars/*.json files. */
+/** Strict reader for the canonical data/cars/*.json files. */
 class FSimCruiseCarDefinitionLoader
 {
 public:
-	/** Load a car by its canonical JSON id from the repository's game/cars folder. */
+	/** Load a car by its canonical JSON id from the repository's data/cars folder. */
 	static bool LoadById(const FString& CarId, FSimCruiseCarDefinition& OutCar, FString& OutError);
 
 	/** Load and validate one car JSON file, preserving its full source document. */

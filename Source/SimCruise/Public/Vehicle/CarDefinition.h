@@ -21,7 +21,7 @@ struct FSimCruiseDamperDynoPoint
 };
 
 /**
- * Complete native representation of game/cars/*.json.
+ * Complete native representation of data/cars/*.json.
  *
  * Field names carry their physical units. The original JSON text and parsed
  * document remain attached so source notes, future fields, numeric spelling,

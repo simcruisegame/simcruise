@@ -48,6 +48,15 @@ namespace
 		{
 			Env.SetUtcTime(Utc);
 		}
+		else if (FParse::Param(Cmd, TEXT("SimCruiseRealTime")))
+		{
+			Env.FollowSystemClock();
+		}
+		else
+		{
+			// Owner decision (11 Nov 2026): a drive starts in daylight, the real clock is an option.
+			Env.StartInDaylight();
+		}
 		float TimeScale = 1.0f;
 		if (FParse::Value(Cmd, TEXT("SimCruiseTimeScale="), TimeScale))
 		{

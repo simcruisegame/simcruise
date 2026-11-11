@@ -448,9 +448,9 @@ bool FSimCruiseCarDefinitionLoader::LoadById(const FString& CarId,
 	}
 	if (CarId.IsEmpty() || bContainsInvalidCharacter)
 	{
-		return SimCruiseCarData::Fail(OutError, TEXT("game/cars"), TEXT("car id"), TEXT("may contain only letters, digits, underscores, and hyphens"));
+		return SimCruiseCarData::Fail(OutError, TEXT("data/cars"), TEXT("car id"), TEXT("may contain only letters, digits, underscores, and hyphens"));
 	}
-	const FString CarPath = FPaths::Combine(FPaths::ProjectDir(), TEXT("game"), TEXT("cars"), CarId + TEXT(".json"));
+	const FString CarPath = FPaths::Combine(FPaths::ProjectDir(), TEXT("data"), TEXT("cars"), CarId + TEXT(".json"));
 	if (!LoadFromFile(CarPath, OutCar, OutError))
 	{
 		return false;
@@ -743,7 +743,7 @@ bool FSimCruiseCarDefinitionLoader::ParseJson(const FString& JsonText, const FSt
 
 TArray<FString> FSimCruiseCarDefinitionLoader::FindAvailableIds()
 {
-	const FString CarsDirectory = FPaths::Combine(FPaths::ProjectDir(), TEXT("game"), TEXT("cars"));
+	const FString CarsDirectory = FPaths::Combine(FPaths::ProjectDir(), TEXT("data"), TEXT("cars"));
 	TArray<FString> FileNames;
 	IFileManager::Get().FindFiles(FileNames, *(CarsDirectory / TEXT("*.json")), true, false);
 	for (FString& FileName : FileNames)

@@ -50,7 +50,7 @@ struct FSimCruisePaintFinish
  * Per-car presentation data read from Content/Vehicles/CarPresentation.json:
  * which downloaded model the car uses, how its author materials map to
  * material roles, its paint, badge areas and steering-wheel ratio. Physics
- * data stays in game/cars/<id>.json; this file holds only how the car looks.
+ * data stays in data/cars/<id>.json; this file holds only how the car looks.
  */
 struct FSimCruiseCarPresentationProfile
 {

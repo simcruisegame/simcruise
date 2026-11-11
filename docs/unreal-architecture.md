@@ -1,6 +1,6 @@
 # Unreal client architecture
 
-How the Unreal client is put together, one section per area. The Godot client under `game/` stays the behavioural and calibration reference until the Unreal client reaches parity; see the [rewrite design](superpowers/specs/2026-11-10-simcruise-unreal-rewrite-design.md) and the [migration plan](superpowers/plans/2026-11-10-simcruise-unreal-migration.md).
+How the Unreal client is put together, one section per area. The Godot client was the behavioural and calibration reference; since 11 November 2026 it lives only at the git tag `godot-final` (`git show godot-final:game/<file>`); see the [rewrite design](superpowers/specs/2026-11-10-simcruise-unreal-rewrite-design.md) and the [migration plan](superpowers/plans/2026-11-10-simcruise-unreal-migration.md).
 
 ## Vehicle physics core
 
@@ -10,8 +10,8 @@ Source: `Source/SimCruise/{Public,Private}/Vehicle/`, tests in `Source/SimCruise
 
 | Piece | What it is |
 |---|---|
-| `FSimCruiseCarDefinition`, `FSimCruiseCarDefinitionLoader` | The car file (`game/cars/<id>.json`, canonical) in C++, every field unit-labelled and validated, sources kept. An Unreal calibration overlay (`Content/Vehicle/Calibration/<id>.json`) may replace estimated fields; each overlay states its reason in `_note`, and the bench logs what it changed. |
-| `FSimCruiseVehicleSim` (`SimCruiseVehicleSim.h`) | The vehicle model, independent of any engine object: a faithful port of `game/Powertrain.gd` and `game/CarSuspension.gd`. Ray contacts, springs with installed preload, dampers (ratio with a knee, or a shaft-speed dyno table), anti-roll bars, bump stops, camber gain and caster, Ackermann steering with toe, relaxed slip angles with load-dependent relaxation length, the saturating slip-angle curve with camber thrust, the slip-ratio tyre curve with combined slip through a friction ellipse and load sensitivity, wheel inertia solved together with the contact force, locked-wheel sliding, engine torque curve with friction, idle governor and fuel cut, clutch (or converter, or dual clutch) with launch control, automatic (with the 0.45 m/s reverse inhibitor) and manual gearboxes with stalling, torque-sensing differentials (front, rear, centre), service and parking brakes, ABS and traction control on the cars that had them, aerodynamic drag and rolling resistance, plus Godot's steering maps (assisted keys, thumbstick shaping, direct). |
+| `FSimCruiseCarDefinition`, `FSimCruiseCarDefinitionLoader` | The car file (`data/cars/<id>.json`, canonical) in C++, every field unit-labelled and validated, sources kept. An Unreal calibration overlay (`Content/Vehicle/Calibration/<id>.json`) may replace estimated fields; each overlay states its reason in `_note`, and the bench logs what it changed. |
+| `FSimCruiseVehicleSim` (`SimCruiseVehicleSim.h`) | The vehicle model, independent of any engine object: a faithful port of `godot-final:game/Powertrain.gd` and `godot-final:game/CarSuspension.gd`. Ray contacts, springs with installed preload, dampers (ratio with a knee, or a shaft-speed dyno table), anti-roll bars, bump stops, camber gain and caster, Ackermann steering with toe, relaxed slip angles with load-dependent relaxation length, the saturating slip-angle curve with camber thrust, the slip-ratio tyre curve with combined slip through a friction ellipse and load sensitivity, wheel inertia solved together with the contact force, locked-wheel sliding, engine torque curve with friction, idle governor and fuel cut, clutch (or converter, or dual clutch) with launch control, automatic (with the 0.45 m/s reverse inhibitor) and manual gearboxes with stalling, torque-sensing differentials (front, rear, centre), service and parking brakes, ABS and traction control on the cars that had them, aerodynamic drag and rolling resistance, plus Godot's steering maps (assisted keys, thumbstick shaping, direct). |
 | `SimCruiseDynamics::*` (`SimCruiseVehicleDynamics.h`) | The per-stage formulas the model is made of (suspension load, bar and spring rates, relaxed slip angle, friction coefficient, lateral force, one longitudinal substep, engine curve, differential split), unit-tested on their own. |
 | `SimCruiseUnits` (`SimCruiseUnits.h`) | The only place SI meets Unreal: m to cm, N to kg·cm/s², N·m and kg·m² to their cm² forms, degrees, road-test units, and Godot's axes (X right, Y up, −Z forward) to Unreal's (X forward, Y right, Z up). |
 | `USimCruiseVehicleMovementComponent` | Puts the model on Chaos. Configures the root body from the car (mass, centre of mass, principal inertia in Unreal axes, Godot's damping, inertia conditioning off, never sleeps) and registers a Chaos sim callback that runs the model on the physics thread before every fixed step. Holds the controls, gearbox commands and telemetry behind one lock. |
@@ -76,12 +76,12 @@ Controls set on the game thread reach the physics thread on its next step; telem
 - Surface grip comes from `FSimCruiseGroundHit::SurfaceGrip` (1.0 on the bench); the world stream needs to supply Godot's per-tile wheel grip and road roughness (`RoadProfileM`, `RoadProfileRateMps` are in place).
 - Contacts are rays as in Godot; a wheel-radius sphere cast for curbs and potholes, and an aligning moment for force feedback, are next.
 - The ground query reads the game thread's scene-query structure from the physics thread, as Chaos Vehicles do; streamed road collision must therefore be in place before the car reaches it (the world stream's job).
-- Packaging: the car files (`game/cars/`) and calibration overlays (`Content/Vehicle/Calibration/*.json`) are loose JSON, which a cooked build does not stage by default; a packaged build needs them added to `DirectoriesToAlwaysStageAsNonUFS` (or moved into assets), or the Mustang loses its overlay. `SIMCRUISE_CALIBRATION_DIR` is read in development builds only.
+- Packaging: the car files (`data/cars/`) and calibration overlays (`Content/Vehicle/Calibration/*.json`) are loose JSON, which a cooked build does not stage by default; a packaged build needs them added to `DirectoriesToAlwaysStageAsNonUFS` (or moved into assets), or the Mustang loses its overlay. `SIMCRUISE_CALIBRATION_DIR` is read in development builds only.
 
 ## Real-world streaming (`Source/SimCruise/{Public,Private}/{Atlas,World}/`)
 
 The streaming layer turns the atlas helper's tile documents into the drivable
-place around the car. The Godot client (`game/Drive.gd`, `WorldTile.gd`,
+place around the car. The Godot client (`godot-final:game/Drive.gd`, `WorldTile.gd`,
 `RoadSurface.gd`, `Kerbs.gd`, `LaneMarkings.gd`) and the helper
 (`helper/road-grade.mjs`) are the behavioural reference; the design choices
 and their reasons are ported, not reinvented.
@@ -100,8 +100,8 @@ and their reasons are ported, not reinvented.
   Road rows are `[class, oneway, name, points, width m, surface?, "bridge"?]`.
 - The helper owns the network, rate limits, retries, provenance and its
   96 MB cache eviction. The Unreal client never opens a connection.
-- Offline start: `game/data/<x>_<y>.json` holds the 24 Miami Beach tiles and
-  `game/art/a-*.jpg` their photographs; a bundled tile is always read before
+- Offline start: `data/tiles/<x>_<y>.json` holds the 24 Miami Beach tiles and
+  `data/tiles/aerial/a-*.jpg` their photographs; a bundled tile is always read before
   the helper is asked.
 
 ### Atlas client (`Atlas/SimCruiseAtlasClient`)
@@ -211,8 +211,8 @@ in memory when the assets are absent. Detail is world-anchored: local
 position plus a per-tile anchor (`tile * size mod 64 m`), so textures run on
 across seams without half-precision UV loss. Ground: the aerial photograph
 with its highlights compressed toward street-level albedo, modulated by the
-Godot client's detail photographs per land-cover class (`game/data/grass-detail.jpg`,
-`game/data/mineral-ground.png`; their sources are not named in `Credits.txt`
+Godot client's detail photographs per land-cover class (`data/art/ground/grass-detail.jpg`,
+`data/art/ground/mineral-ground.png`; their sources are not named in `Credits.txt`
 yet). Asphalt: Poly Haven Asphalt Floor
 normalised to an aged-asphalt albedo with a luminance bump. Water: six
 directional waves, F0 0.02.
@@ -271,7 +271,7 @@ aerial photographs of different tone meet.
 - No trees, street furniture, signals or traffic; buildings are massing only.
 - Tile builds take 1-9 s on a worker thread (junction refinement and terrain
   conditioning dominate); fine at driving speed, worth profiling.
-- Packaged builds need `game/data`, `game/art` and the helper staged.
+- Packaged builds need `data/` and the helper staged.
 - A seam's exact position follows build order: the tile built first keeps its
   own road ends (the two vector tiles disagree by 0.2-0.3 m) and the later one
   takes them, so the same place can differ by that much between drives.
@@ -283,14 +283,14 @@ aerial photographs of different tone meet.
   asynchronous cook, so a dense tile cooks up to four times on a worker thread.
 ## Car presentation (`Source/SimCruise/{Public,Private}/Presentation/`, `Content/Vehicles/`)
 
-The visible car: the downloaded Sketchfab model of each car, fitted to the car's data, cut into moving parts and drawn with physically based materials. It replaces `game/ModelRig.gd`, `CarBody.gd` and the material parts of `CarFinish.gd`. Physics never reads anything from here.
+The visible car: the downloaded Sketchfab model of each car, fitted to the car's data, cut into moving parts and drawn with physically based materials. It replaces `godot-final:game/ModelRig.gd`, `CarBody.gd` and the material parts of `CarFinish.gd`. Physics never reads anything from here.
 
 ### Pipeline
 
 1. **glTF in at runtime** (`SimCruiseGltfModel`). A small, strict glTF 2.0 reader loads `scene.gltf` + `scene.bin` (or `.glb`) with every node transform applied, in glTF's own space. Unreal's Interchange glTF importer was not used: it is an editor import that writes `.uasset`s, and the rig needs the raw triangles anyway. The glTF stays the only source of truth, so nothing binary has to be merged.
 2. **Rig** (`SimCruiseCarModelRig`), a port of `ModelRig.gd` plus the `cars/rig-infra` steering-wheel search, working in the Godot vehicle frame so it can be compared line by line:
    - upright check; wheels by node name (`Front Left Wheel`, `wheel_fl` …) or by the four ground-contact patches, refined from the tyre surfaces (new) so the hub sits at the tyre's true centre and the model's real tyre radius is measured;
-   - front/back from the named wheels, else `game/art/traffic/manifest.json`'s `flip` when the model has an entry there, then the rear lamps overrule it (new: a model whose red lenses sit at the front end is turned round; the NB has no manifest entry and is placed by its lamps alone);
+   - front/back from the named wheels, else `data/art/traffic/manifest.json`'s `flip` when the model has an entry there, then the rear lamps overrule it (new: a model whose red lenses sit at the front end is turned round; the NB has no manifest entry and is placed by its lamps alone);
    - uniform scale to the car's wheelbase, then (new) a lateral fit so the model's mean track equals the car's (applied for misses of 1.5–10 %);
    - static ride: hubs at `mount_height_m - static_length_m`;
    - wheel cut by **connected parts** wholly inside a tyre cylinder (a suspension arm that reaches outside stays on the body); off-axis parts inboard of the wheel's centre plane, or parts with the caliper role, become the non-spinning **upright** (calipers steer and travel but do not spin);
@@ -361,7 +361,7 @@ The sun and moon are placed in an east-south-up frame: **+X east, +Y south, +Z u
 
 | Class | Job |
 |---|---|
-| `FSimCruiseSolarPosition` | Sun from latitude, longitude and a UTC instant with the NOAA solar-calculator algorithm (Meeus), about 0.01° (the test reproduces NREL's SPA reference case to 0.03°), with NOAA's refraction. Moon from Meeus chapter 47 (largest terms, about 0.1°) with topocentric parallax and the phase of chapter 48. `SunFractionalYear` keeps the Godot client's formula (`game/SurveyDaylight.gd` `solar_for_day`) for comparison: its Spencer declination runs about 0.45° low in late April. |
+| `FSimCruiseSolarPosition` | Sun from latitude, longitude and a UTC instant with the NOAA solar-calculator algorithm (Meeus), about 0.01° (the test reproduces NREL's SPA reference case to 0.03°), with NOAA's refraction. Moon from Meeus chapter 47 (largest terms, about 0.1°) with topocentric parallax and the phase of chapter 48. `SunFractionalYear` keeps the Godot client's formula (`godot-final:game/SurveyDaylight.gd` `solar_for_day`) for comparison: its Spencer declination runs about 0.45° low in late April. |
 | `FSimCruiseDaylightModel` | Photometry in SI units: extraterrestrial sun 1361 W/m² × 93.9 lm/W = 127.8 klx at 1 AU; IES clear / partly cloudy / overcast daylight for the horizontal illuminance; log-linear twilight (about 3.4 lx at -6°); Allen's lunar phase law (0.32 lx full moon above the air); ISO 2720 reflected-light EV100; Koschmieder visibility (2 % contrast). |
 | `FSimCruiseWeather`, `FSimCruiseWeatherConditions` | Reads the object `helper/conditions.mjs` writes (`cloud`, `visibility_m`, `wet`, `station`, …; an optional raw `wx` string splits rain from snow). A METAR "10SM" cap is not taken as measured haze. Road surface water rises with a 3-minute time constant in rain and dries with 15 minutes (proposal 18). Maps sky cover to the cloud material's coverage. |
 | `ASimCruiseEnvironment` | The sky actor: sun and moon directional lights (only one casts virtual shadow maps at a time), `SkyAtmosphere`, volumetric clouds, height fog, a sky light with real-time capture and cloud occlusion, and an unbound post-process volume for the camera. `SetPlace`, `SetUtcTime` / `FollowSystemClock` (default: the real clock), `TimeScale`, `SetWeather`, `GetRoadWetness`, `GetSunDirection`, `Describe`. |

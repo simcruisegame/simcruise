@@ -31,7 +31,7 @@ public:
 
 	ASimCruiseWorldStreamer* GetStreamer() const { return Streamer.Get(); }
 
-	/** The bundled offline place (game/StartPool.gd FALLBACK). */
+	/** The bundled offline place (godot-final:game/StartPool.gd FALLBACK). */
 	static constexpr double BundledLon = -80.13025;
 	static constexpr double BundledLat = 25.78000;
 

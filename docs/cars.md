@@ -1,18 +1,21 @@
 # Cars
 
-Every car in SimCruise is a JSON file in [`game/cars/`](../game/cars/). Powertrain, suspension, tyres, brakes and aerodynamics read their numbers from it through `game/CarSpec.gd`, so adding a car means writing data, not code. The physics is shared by all cars: `game/Powertrain.gd` (contacts, tyres, engine or motor, gearbox, differentials) and `game/CarSuspension.gd` (springs, anti-roll bars, dampers, limited-slip split).
+Every car in SimCruise is a JSON file in [`data/cars/`](../data/cars/). Powertrain, suspension, tyres, brakes and aerodynamics read their numbers from it through `godot-final:game/CarSpec.gd`, so adding a car means writing data, not code. The physics is shared by all cars: `godot-final:game/Powertrain.gd` (contacts, tyres, engine or motor, gearbox, differentials) and `godot-final:game/CarSuspension.gd` (springs, anti-roll bars, dampers, limited-slip split).
 
 ## The garage
 
-Three cars:
+Four cars; the player car is the 2001 roadster:
 
 | File | Name | Layout | Reference car | 0–60 mph | 70–0 mph | Skidpad |
 |---|---|---|---|---|---|---|
-| `nb1999.json` | 1999 Roadster Sport | front engine, rear drive, 5-speed manual | 1999 Mazda MX-5 Miata Sport | 7.99 s (7.97) | 172.9 ft (173) | 0.884 g (0.89) |
+| `nb2001.json` | 2001 Roadster (the default) | front engine, rear drive, 5-speed manual | 2001-05 Mazda MX-5 Miata (NB2), US LS | 7.75 s (7.8) | 172.9 ft (173§) | 0.875 g (0.89§) |
+| `nb1999.json` | 1999 Roadster Sport (calibration reference) | front engine, rear drive, 5-speed manual | 1999 Mazda MX-5 Miata Sport | 7.99 s (7.97) | 172.9 ft (173) | 0.884 g (0.89) |
 | `meridian_z.json` | Corvette Stingray Z51 (C8), formerly Meridian Z | mid-engine V8, rear drive, 8-speed dual clutch | 2020 Chevrolet Corvette Z51 | 3.55 s (2.8†) | 152.0 ft (148) | 1.025 g (1.03) |
 | `mustang65.json` | 1965 Mustang 289 | front engine, rear drive, 289 V8 four-barrel, 4-speed manual | 1965 Ford Mustang 289/210 | 9.00 s (8.9) | 259.3 ft (264‡) | 0.699 g (0.70*) |
 
-Results are from `checks/CarTrack.gd`; published targets in brackets (mostly Car and Driver instrumented tests, cited in each file's `sources`). \* estimated target. ‡ derived from Car Life's measured 20 ft/s² from 80 mph (drum brakes). † open item, stated in the file: the magazine omits a 1 ft rollout worth about 0.3 s on a launch this hard while the bench times from rest, and from pedal-down at idle, where the car's launch control holds the engine at launch speed before the brake is released (not modelled). Before the slip-ratio tyre curve (main on 10 November 2026) the same bench read 7.95, 3.60 and 9.00 s; the roadster's 0.04 s comes from the driveline fix below, not from its tyres.
+§ The NB2 row is the Unreal bench (`SimCruise.Vehicle.CarTrack.nb2001`). The downloaded model (niev, CC BY 4.0) is the 2001-05 NB2 facelift, so the player car is labelled as one (owner decision, 11 November 2026): the BP-Z3 engine with sequential valve timing (142 hp at 7000 rpm, 125 lb-ft at 5500 rpm, Mazda US specification), 2,387 lb curb weight; chassis, tyres, brakes and gearing carried over from the 1999 Sport. Its 0-60 target is the one published NB2 figure found (7.8 s, Consumer Guide); no published NB2 70-0 or skidpad was found, so the 1999 numbers stand in as stated open items. The NB2 body is stiffer than the NB1, which the simulation cannot show yet (no chassis compliance). Tyres carry no brand lettering (owner decision): the tyre material replaces every model's tyre texture with plain rubber.
+
+Other results are from `checks/CarTrack.gd` (Godot, tag `godot-final`); published targets in brackets (mostly Car and Driver instrumented tests, cited in each file's `sources`). \* estimated target. ‡ derived from Car Life's measured 20 ft/s² from 80 mph (drum brakes). † open item, stated in the file: the magazine omits a 1 ft rollout worth about 0.3 s on a launch this hard while the bench times from rest, and from pedal-down at idle, where the car's launch control holds the engine at launch speed before the brake is released (not modelled). Before the slip-ratio tyre curve (main on 10 November 2026) the same bench read 7.95, 3.60 and 9.00 s; the roadster's 0.04 s comes from the driveline fix below, not from its tyres.
 
 The 1999 roadster is the original car of the game and keeps its own detailed model (`CarFinish.gd`); the Corvette and the Mustang wear real models downloaded from Sketchfab (see below). Four cars whose bodies were generated in Blender, the Kestrel S (2022 Civic Si), Tora RS (2022 WRX), Volta (Model 3 RWD) and Bison XL (F-150 2.7 EcoBoost), were removed in November 2026 because their generated models did not look like real cars; their calibrated car files remain in the git history for when real models are found. A saved choice of one of them, or `--car=` with an id that no longer exists, opens the 1999 roadster (`checks/CarRoster.gd` checks this).
 
@@ -58,7 +61,7 @@ What is published is used as published: mass, weight split where the maker gives
 
 ## Models
 
-Each car file names its model in `model_scene` and the driver's eye point in `driver_eye`; `game/CarBody.gd` mounts the model, spins and steers the wheels, turns the steering wheel, lights the brake lamps and puts the camera in the driver's seat. The 1999 roadster keeps its detailed `CarFinish.gd` model and cockpit; the Corvette and the Mustang use downloaded models (below). Pick a car with **Car** in the road atlas (Tab); the drive reopens at the same place. `--car=<id>` selects one on the command line.
+Each car file names its model in `model_scene` and the driver's eye point in `driver_eye`; `godot-final:game/CarBody.gd` mounts the model, spins and steers the wheels, turns the steering wheel, lights the brake lamps and puts the camera in the driver's seat. The 1999 roadster keeps its detailed `CarFinish.gd` model and cockpit; the Corvette and the Mustang use downloaded models (below). Pick a car with **Car** in the road atlas (Tab); the drive reopens at the same place. `--car=<id>` selects one on the command line.
 
 ### The 1999 roadster against photographs
 
@@ -68,7 +71,7 @@ The Blender tooling that generated the retired cars' bodies (`authoring/cars/bui
 
 ## Real models from Sketchfab
 
-The 1965 Mustang and the Corvette Stingray (C8, the physics formerly shipped as Meridian Z) use downloaded models. A car file with `"model_rig": {"fit": true}` is fitted by `game/ModelRig.gd` when the car loads. It finds the four wheels, by name when the author separated them (the C8) or by cutting every triangle within a tyre radius of each ground-contact patch out of the body (the Mustang, whose wheels were merged into the body). It scales the model to the spec's wheelbase, turns it to face −Z, sets the hubs at static ride height, maps brake-lamp and glass materials, and hides badge surfaces. `checks/RigProbe.gd` prints what it found. Fitted sizes match the real cars: Mustang 4.62 m long (4.61 m real), C8 4.64 m (4.63 m).
+The 1965 Mustang and the Corvette Stingray (C8, the physics formerly shipped as Meridian Z) use downloaded models. A car file with `"model_rig": {"fit": true}` is fitted by `godot-final:game/ModelRig.gd` when the car loads. It finds the four wheels, by name when the author separated them (the C8) or by cutting every triangle within a tyre radius of each ground-contact patch out of the body (the Mustang, whose wheels were merged into the body). It scales the model to the spec's wheelbase, turns it to face −Z, sets the hubs at static ride height, maps brake-lamp and glass materials, and hides badge surfaces. `checks/RigProbe.gd` prints what it found. Fitted sizes match the real cars: Mustang 4.62 m long (4.61 m real), C8 4.64 m (4.63 m).
 
 ## Your own model for a car (private)
 
@@ -82,7 +85,7 @@ At start the game reads it at run time (no import), and `ModelRig.gd` fits it li
 
 ## Traffic models from Sketchfab
 
-Moving and parked traffic use only real models listed in `game/art/traffic/manifest.json`: 1965 Ford Mustang, Corvette Stingray C8, 2018 Honda Accord, 2025 Honda CR-V, 2018 Ford F-150 Raptor, 2013 Jeep Grand Cherokee, Chevrolet Tahoe, Honda Odyssey and Tesla Model 3 (all CC BY 4.0, credited in `licenses/Traffic models.txt`). The old low-poly sedan and pickup are no longer used for traffic, and the generated garage bodies have been removed from the game. Each merged model gets detail levels rebuilt at load, and `checks/TrafficLineup.gd` renders the fitted fleet in a row to check orientation (a model showing its tail from the front needs `"flip": true`). A model is accepted only if it looks at least as good as these; the Silverado (wheels missing) and Transit Connect (transparent materials) were rejected. `authoring/cars/sketchfab.mjs` fills that manifest:
+Moving and parked traffic use only real models listed in `data/art/traffic/manifest.json`: 1965 Ford Mustang, Corvette Stingray C8, 2018 Honda Accord, 2025 Honda CR-V, 2018 Ford F-150 Raptor, 2013 Jeep Grand Cherokee, Chevrolet Tahoe, Honda Odyssey and Tesla Model 3 (all CC BY 4.0, credited in `licenses/Traffic models.txt`). The old low-poly sedan and pickup are no longer used for traffic, and the generated garage bodies have been removed from the game. Each merged model gets detail levels rebuilt at load, and `checks/TrafficLineup.gd` renders the fitted fleet in a row to check orientation (a model showing its tail from the front needs `"flip": true`). A model is accepted only if it looks at least as good as these; the Silverado (wheels missing) and Transit Connect (transparent materials) were rejected. `authoring/cars/sketchfab.mjs` fills that manifest:
 
 ```
 bun authoring/cars/sketchfab.mjs search "generic sedan"
@@ -93,7 +96,7 @@ Only CC0 and CC BY models are accepted. Models with a car maker in the title are
 
 ## Adding a car
 
-1. Copy the closest file in `game/cars/` and change `id` (the file name), `name`, `make` and `body`.
+1. Copy the closest file in `data/cars/` and change `id` (the file name), `name`, `make` and `body`.
 2. Fill in what is published, with a source for each in `sources`. Prefer manufacturer specification sheets and instrumented magazine tests.
 3. Set the targets (`target_0_60_s`, `target_70_0_ft`, `target_skidpad_g`) from one instrumented test.
 4. Run `godot --headless --path game --fixed-fps 60 --script res://checks/CarTrack.gd -- --car=<id>` and adjust only the estimated fields until the car is inside its bands. `CARTRACK_TRACE=1` prints the launch every quarter second.
@@ -103,7 +106,7 @@ Use made-up names for real cars, and no manufacturer logos or badges.
 
 ## Fields
 
-`game/CarSpec.gd` lists every field with its unit and the 1999 car's value as the default; the main groups are mass and body, geometry, tyres, steering, brakes, aerodynamics, engine (`combustion` with a torque curve, or `electric` with peak torque, power and speed), gearbox and clutch, drivetrain (`rwd`, `fwd` or `awd` with a centre split and differential bias ratios; every car here is `rwd` and combustion, and the other layouts and the electric motor stay supported for future cars), suspension per axle, and the calibration targets. `axle_grip` gives staggered tyres their own grip per axle.
+`godot-final:game/CarSpec.gd` lists every field with its unit and the 1999 car's value as the default; the main groups are mass and body, geometry, tyres, steering, brakes, aerodynamics, engine (`combustion` with a torque curve, or `electric` with peak torque, power and speed), gearbox and clutch, drivetrain (`rwd`, `fwd` or `awd` with a centre split and differential bias ratios; every car here is `rwd` and combustion, and the other layouts and the electric motor stay supported for future cars), suspension per axle, and the calibration targets. `axle_grip` gives staggered tyres their own grip per axle.
 
 The tyre's longitudinal grip follows a slip-ratio curve: full grip (`static_mu`) up to `slip_ratio_peak` (0.10), falling by `slip_ratio_falloff` toward a locked or spinning wheel (reached at 3.5 × the peak). The Corvette, on radials and with ABS, sets 10 % (dry asphalt slides at 83–94 % of the peak: Wong, *Theory of Ground Vehicles*, table 1.3). The default is flat (0), and the 1999 roadster and the 1965 Mustang keep it: the roadster's only braking figure is a locked-wheel stop without ABS, which fixes the grip of a sliding tyre, and a fall-off would need an unmeasured peak above it (peak 1.07 sliding to 0.963 raised its trail-braking grip 5.3 %); for the Mustang an estimated bias-ply curve (peak 0.15, 25 % fall-off) made the full-throttle 0–60 10.7 s and 10 % made it 9.35 s against Car Life's 8.9 s.
 

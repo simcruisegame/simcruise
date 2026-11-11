@@ -9,7 +9,7 @@
  *
  * The atlas helper addresses the world in zoom-16 Web Mercator tiles
  * (65536 x 65536 for the planet; x grows east, y grows south), the same grid
- * game/Drive.gd uses. Everything inside a tile is in "tile units" (0..1 along
+ * godot-final:game/Drive.gd uses. Everything inside a tile is in "tile units" (0..1 along
  * each axis, (0,0) at the north-west corner), which is what every row of the
  * helper's tile JSON carries.
  *

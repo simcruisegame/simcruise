@@ -1,7 +1,7 @@
 // Optional OSM details from a shared, cacheable z14 neighbourhood.
 import fs from 'node:fs';
 import path from 'node:path';
-import honolulu from '../game/data/observed-honolulu.json' with {type:'json'};
+import honolulu from '../data/observed/observed-honolulu.json' with {type:'json'};
 export function streetObjects(elements,x,y){
  const project=p=>[(p.lon+180)/360*65536-x,(1-Math.asinh(Math.tan(p.lat*Math.PI/180))/Math.PI)*32768-y];
  const owned=p=>p[0]>=0&&p[0]<1&&p[1]>=0&&p[1]<1;

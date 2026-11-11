@@ -161,12 +161,15 @@ namespace
 	bool FSimCruiseVehicle##Kind##_##CarIdent::RunTest(const FString& Parameters) { return Run##Kind##Test(*this, TEXT(#CarIdent)); }
 
 SIMCRUISE_VEHICLE_BENCH(CarTrack, nb1999)
+SIMCRUISE_VEHICLE_BENCH(CarTrack, nb2001)
 SIMCRUISE_VEHICLE_BENCH(CarTrack, mustang65)
 SIMCRUISE_VEHICLE_BENCH(CarTrack, meridian_z)
 SIMCRUISE_VEHICLE_BENCH(LiftOff, nb1999)
+SIMCRUISE_VEHICLE_BENCH(LiftOff, nb2001)
 SIMCRUISE_VEHICLE_BENCH(LiftOff, mustang65)
 SIMCRUISE_VEHICLE_BENCH(LiftOff, meridian_z)
 SIMCRUISE_VEHICLE_BENCH(StaticLoad, nb1999)
+SIMCRUISE_VEHICLE_BENCH(StaticLoad, nb2001)
 SIMCRUISE_VEHICLE_BENCH(StaticLoad, mustang65)
 SIMCRUISE_VEHICLE_BENCH(StaticLoad, meridian_z)
 

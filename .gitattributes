@@ -1,15 +1,7 @@
 # Line endings: store text as LF, check out as-is on macOS and Linux.
 * text=auto
 *.sh text eol=lf
-*.gd text
-*.gdshader text
-*.gdshaderinc text
-*.gdinc text
-*.tscn text
-*.import text
-*.uid text
 *.cfg text
-*.godot text
 *.md text
 *.mjs text
 *.js text
@@ -45,7 +37,7 @@ licenses/lerc-NOTICE.txt -text
 # GitHub: hide vendored code and bulky data tiles from language statistics and collapsed diffs.
 helper/vendor/** linguist-vendored
 licenses/** linguist-documentation
-game/data/*.json linguist-generated
+data/tiles/*.json linguist-generated
 helper/coast-atlas.json linguist-generated
 helper/lidar-projects.json linguist-generated
 helper/photo-weather-stations.json linguist-generated

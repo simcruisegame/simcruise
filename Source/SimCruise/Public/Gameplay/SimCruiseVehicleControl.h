@@ -17,7 +17,7 @@
  *   Rack angle is the mean road-wheel steer angle of the front axle, radians,
  *   positive steering to the right (the stick's +X).
  *   Wheel index: 0 front left, 1 front right, 2 rear left, 3 rear right
- *   (the same order as game/Powertrain.gd MOUNTS).
+ *   (the same order as godot-final:game/Powertrain.gd MOUNTS).
  * Locations handed to the camera (driver eye) are in the pawn's local space
  * in centimetres, because that is where Unreal places a camera.
  *
@@ -95,7 +95,7 @@ struct FSimCruiseDriveTelemetry
 };
 
 /** Fixed facts about the mounted car that the shell shapes its controls and
- *  cameras around. All come from the car definition (game/cars/*.json). */
+ *  cameras around. All come from the car definition (data/cars/*.json). */
 struct FSimCruiseVehicleSetup
 {
 	FString CarId;
@@ -147,7 +147,7 @@ public:
 	virtual void ResetVehicle(const FTransform& WorldTransform) = 0;
 };
 
-/** Converts game/cars/*.json coordinates (Godot: +X right, +Y up, -Z forward,
+/** Converts data/cars/*.json coordinates (Godot: +X right, +Y up, -Z forward,
  *  metres) into pawn-local Unreal centimetres (+X forward, +Y right, +Z up). */
 inline FVector SimCruiseGodotToLocalCm(const FVector3d& GodotMetres)
 {

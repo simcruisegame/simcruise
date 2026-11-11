@@ -142,7 +142,7 @@ Build the `SimCruiseEditor` target, then:
 & 'C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' 'D:\simcruise\SimCruise.uproject' -game -windowed -ResX=1600 -ResY=900
 ```
 
-The game starts at the offline Miami Beach start: it builds the nine tiles around Ocean Drive from the bundled data (about 15 s, "Building Ocean Drive, Miami Beach · n of 9 tiles"), then puts you in the 1999 roadster in the right-hand lane of Ocean Drive, in the driver's seat, under the sun (or the moon and your own low beams) where they are in Miami Beach right now. Leave out `-windowed -ResX=1600 -ResY=900` for full screen.
+The game starts at the offline Miami Beach start: it builds the nine tiles around Ocean Drive from the bundled data (about 15 s, "Building Ocean Drive, Miami Beach · n of 9 tiles"), then puts you in the 2001 roadster in Ocean Drive's lane, in the driver's seat, in a morning sun: a drive starts at 10:00 local solar time at the place, today (owner decision, 11 November 2026). `-SimCruiseRealTime` follows your computer's clock instead (night included, with your own low beams). Leave out `-windowed -ResX=1600 -ResY=900` for full screen.
 
 Controls follow [controls.md](controls.md): on an Xbox pad, right trigger to accelerate, left trigger to brake, left stick to steer, Y camera, B manual gearbox, RB / X shift, View recover, L3 HUD; on the keyboard W/S/A/D, C camera, T manual, E/Q shift, R recover, F2 HUD, F6 lens, L lamps.
 
@@ -150,8 +150,9 @@ Options:
 
 | Argument | Effect |
 |---|---|
-| `-SimCruiseCar=mustang65` | Another car from `game/cars/` (`nb1999`, `mustang65`, `meridian_z`) |
-| `-SimCruiseUtc=2026-11-11T16:00:00Z` | Fix the clock (11:00 in Miami Beach) instead of the real time |
+| `-SimCruiseCar=mustang65` | Another car from `data/cars/` (`nb2001`, the default; `nb1999`, `mustang65`, `meridian_z`) |
+| `-SimCruiseUtc=2026-11-11T16:00:00Z` | Fix the clock (11:00 in Miami Beach) instead of the morning start |
+| `-SimCruiseRealTime` | Follow the computer's clock (the sun and moon where they are right now) |
 | `-SimCruiseGraphics=ultra` | Graphics preset (`low`, `medium`, `high`, `ultra`; default chosen from the GPU: High on the RTX 2070 Super Max-Q) |
 | `-SimCruiseStartRoad=<name>` | Start on another named road near the start |
 | `-SimCruiseStart=lat,lon` | Start somewhere else on the nearest public road (needs the atlas helper, see [building.md](building.md)) |
@@ -168,7 +169,7 @@ The defaults live in `Config/DefaultGame.ini` under `[/Script/SimCruise.SimCruis
   -SimCruiseDriveCapture -SimCruiseUtc=2026-11-11T16:00:00Z -SimCruiseGraphics=ultra
 ```
 
-Pictures go to `Saved/Screenshots/SimCruise/Drive/` (`-SimCruiseDriveCaptureOut=DIR` changes it), with one `SHOT` line per picture in the log; the whole run takes about a minute. Leave out `-SimCruiseUtc` to photograph the real time of day.
+Pictures go to `Saved/Screenshots/SimCruise/Drive/` (`-SimCruiseDriveCaptureOut=DIR` changes it), with one `SHOT` line per picture in the log; the whole run takes about a minute. Leave out `-SimCruiseUtc` to photograph the morning start, or add `-SimCruiseRealTime` for the real time of day.
 
 Console variables: `simcruise.Rumble.Strength` (0..1), `simcruise.Camera.HeadMotion` (0..1), `simcruise.Lens.ScreenHeightCm` and `simcruise.Lens.ViewDistanceCm` for the true-to-screen lens. For look development: `simcruise.Lamps.BeamScale` multiplies the low beams (1 = the real 15 000 cd) and `simcruise.Lamps.Pattern 0` takes their cut-off pattern off. They can be given at launch, for example `"-ExecCmds=simcruise.Lamps.BeamScale 6"` with `-SimCruiseDriveCapture`.
 

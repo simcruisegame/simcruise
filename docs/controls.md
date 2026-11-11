@@ -1,35 +1,34 @@
 # Playing SimCruise
 
-The game opens in the cockpit on a random road from a pool of 36 verified US drives (`game/data/start-pool.json`). If that road cannot load, for example offline, it tries three more and then starts in the bundled offline neighbourhood (Ocean Drive, Miami Beach). Press `/` (or click **Find a place**) and type a place name, a street with its town, or `latitude, longitude`; pick a result to load the nearest mapped road, or press **Surprise me** for another random road. Places worth trying: `Monument Valley · US 163, UT`, `Capitol Avenue · Cheyenne, WY`, `Princeton Road · Lancaster County, NE` (gravel), `Clay Center · Charleston, WV`, or the coordinates `40.808017, -96.675328` for a Nebraska street whose roofs are measured from public lidar as you drive. A new area needs a few seconds to stream; the horizon terrain can take longer on a first visit.
+The Unreal client starts in the 2001 roadster in Ocean Drive's lane, Miami Beach, in a morning sun (the bundled start: no network needed). The keys and buttons are one table in `Source/SimCruise/Private/Gameplay/SimCruiseInputConfig.cpp`, checked by the `SimCruise.Gameplay.Input` tests.
 
 ## Controls
 
 | Action | Keyboard | Xbox controller |
 |---|---|---|
-| Accelerate | W or ↑ | Right trigger |
-| Brake, then reverse once stopped (below about 1 mph; a trigger pressed too lightly to brake coasts) | S or ↓ | Left trigger |
-| Steer | A / D or ← / → | Left stick |
+| Accelerate | W or Up | Right trigger |
+| Brake, then reverse once stopped (below about 1 mph; a trigger pressed too lightly to brake coasts) | S or Down | Left trigger |
+| Steer | A / D or Left / Right | Left stick |
 | Full brake (service brake) | Space | — |
 | Parking brake, rear wheels | H (hold) | A (hold) |
-| Automatic ↔ manual gearbox | T | B |
+| Automatic / manual gearbox | T | B |
 | Clutch (manual mode) | Shift (hold) | LB (hold) |
 | Shift up / shift down (manual mode) | E / Q | RB / X |
 | Restart a stalled engine | I, with the clutch held | Right-stick click, with the clutch held |
-| Camera: chase, driver, scenic | C | Y |
+| Camera: driver's seat, chase | C | Y |
 | Hide or show the driving HUD | F2 | Left-stick click |
-| Frame rate, active tiles, map requests | F3 | — |
-| Graphics preset (Auto, Low, Medium, High, Ultra) | F4 | — |
-| Driver lens (natural 45°, true to screen, wide 67°) | F6 | — |
-| Engine sound on / off | M | — (HUD button) |
-| Head lamps on / off (1999 roadster) | L | — |
-| Road atlas open / close | Tab (Esc also closes) | Menu |
-| Atlas: zoom, recenter | + / −, mouse wheel, drag to pan, click to pin | D-pad up / down, A |
-| Minimap zoom | Mouse wheel over the minimap, its + / − buttons | D-pad up / down |
-| Find a place | / | — (HUD button; typing needs a keyboard) |
+| Frame time and stats | F3 | — |
+| Driver lens (natural, true to screen, wide) | F6 | — |
+| Head lamps on / off | L | — |
 | Recover to the nearest road | R | View |
+| Engine sound, road atlas, find a place | M, Tab, / | —, Menu, — |
 
-**Manual gearbox.** Press T (B) to take over the five-speed. Hold the clutch (Shift / LB), tap E (RB) for first, add throttle and let the clutch out. Shifts need the clutch; the gearbox refuses a gear that would over-rev the engine or change direction while rolling. If you stall, hold the clutch and press I (right-stick click). Automatic mode is an assist on the same simulated gearbox, not a different car. Your transmission choice is remembered on this Mac.
+The last row answers with a message until engine sound, the atlas and place search are ported from the Godot client.
 
-**Road atlas.** Tab opens a full-screen OpenStreetMap-based map. Drag to pan, scroll to zoom, click to pin a spot and load its nearest road. Its buttons switch **Car** (the 1999 roadster, the Corvette C8 and the 1965 Mustang in turn; the drive reopens at the same place), **Transmission**, **Street photos** (colour hints from licensed KartaView thumbnails near the road), **Imagery** (recent Sentinel-2 colour, with the capture date), **Weather** (nearest METAR observation drives clouds, visibility and fog) and **USDA ground cover**. **Source photo ↗** opens the credited photograph. **Compare Street View ↗** opens Google Maps in your browser at the pinned or current position so you can compare. **Source photo ↗** and **Compare Street View ↗** are the only two things in the game that open your browser, and both fire only when you click them.
+**Automatic gearbox.** It changes up early with a light pedal and holds each gear longer the deeper you press, kicks down when you floor it, never changes up while you brake and holds its gear through a corner.
 
-**Unreal client (in progress).** The Unreal build uses the same keys and buttons (one table in `SimCruiseInputConfig.cpp`, checked by the `SimCruise.Gameplay.Input` tests). Differences so far: the atlas, place search, engine sound and lamps answer with a message until they are ported; recover puts the car upright where it is; holding the left stick toward a slide opens extra opposite lock (up to the slide angle plus 5°) for catching it; the pad rumbles from tyre slip, the ABS pulse and road texture (`simcruise.Rumble.Strength` in the console), and with Windows GameInput the trigger motors carry wheelspin (RT) and locking or ABS (LT). See [unreal-architecture.md](unreal-architecture.md#driving-shell).
+**Manual gearbox.** Press T (B) to take over the five-speed. Hold the clutch (Shift / LB), tap E (RB) for first, add throttle and let the clutch out. Shifts need the clutch; the gearbox refuses a gear that would over-rev the engine, and a stalled engine restarts with I (right-stick click) while the clutch is held.
+
+**Steering on a pad.** Steering and pedal shaping (speed-sensitive range, filtering) shape your input but never the physics: the rack takes the shaped angle as given. Holding the stick toward a slide opens extra opposite lock (up to the slide angle plus 5 degrees) for catching it. The pad rumbles from tyre slip, the ABS pulse and road texture (`simcruise.Rumble.Strength` in the console); with Windows GameInput the trigger motors carry wheelspin (RT) and locking or ABS (LT).
+
+**Time of day.** A drive starts at 10:00 local solar time at the place. `-SimCruiseRealTime` follows your computer's clock instead and `-SimCruiseUtc=2026-11-12T01:30:00Z` fixes a moment; more launch options are in [unreal-building.md](unreal-building.md#drive-it).

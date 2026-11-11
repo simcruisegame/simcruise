@@ -32,11 +32,11 @@ namespace SimCruiseWorldTest
 		return FSimCruiseWorldFrame::ForPlace(USimCruiseWorldSubsystem::BundledLon, USimCruiseWorldSubsystem::BundledLat).TileSizeM;
 	}
 
-	/** Every bundled zoom-16 tile (game/data/<x>_<y>.json). */
+	/** Every bundled zoom-16 tile (data/tiles/<x>_<y>.json). */
 	TArray<FIntPoint> BundledTiles()
 	{
 		TArray<FString> Files;
-		IFileManager::Get().FindFiles(Files, *FPaths::Combine(SimCruiseTileData::RepositoryRoot(), TEXT("game"), TEXT("data"), TEXT("*_*.json")), true, false);
+		IFileManager::Get().FindFiles(Files, *FPaths::Combine(SimCruiseTileData::RepositoryRoot(), TEXT("data"), TEXT("tiles"), TEXT("*_*.json")), true, false);
 		TArray<FIntPoint> Out;
 		for (const FString& File : Files)
 		{

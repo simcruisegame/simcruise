@@ -46,9 +46,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "SimCruise|Environment")
 	void SetUtcTime(const FDateTime& Utc);
 
-	/** Follows the computer's clock (the default for ordinary play). */
+	/** Follows the computer's clock (-SimCruiseRealTime). */
 	UFUNCTION(BlueprintCallable, Category = "SimCruise|Environment")
 	void FollowSystemClock();
+
+	/**
+	 * The default start: today at 10:00 local solar time at the place (a morning sun
+	 * in the south-east at any longitude), then the clock runs at TimeScale. A later
+	 * SetPlace moves the morning to the new longitude until the clock is set otherwise.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "SimCruise|Environment")
+	void StartInDaylight();
+
+	/** 10:00 local mean solar time on the local date of Now at a longitude, in UTC. */
+	static FDateTime MorningUtc(double LongitudeDeg, const FDateTime& NowUtc, double LocalSolarHour = 10.0);
 
 	/** Applies observed or chosen weather: cloud cover, haze and fog, precipitation. */
 	UFUNCTION(BlueprintCallable, Category = "SimCruise|Environment")
@@ -119,6 +130,10 @@ public:
 	/** Follow the system clock; otherwise UtcTime advances by TimeScale per second. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Time")
 	bool bFollowSystemClock = true;
+
+	/** Started by StartInDaylight and not set otherwise since: a new place gets its own morning. */
+	UPROPERTY(VisibleAnywhere, Category = "Time")
+	bool bDaylightStart = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Time")
 	float TimeScale = 1.0f;

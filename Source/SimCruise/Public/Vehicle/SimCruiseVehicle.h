@@ -37,7 +37,7 @@ class SIMCRUISE_API ASimCruiseVehicle : public APawn, public ISimCruiseVehicleCo
 public:
 	ASimCruiseVehicle();
 
-	/** Car file id under game/cars, loaded at BeginPlay when no definition was set. */
+	/** Car file id under data/cars, loaded at BeginPlay when no definition was set. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SimCruise|Vehicle")
 	FString CarId = TEXT("nb1999");
 

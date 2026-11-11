@@ -387,7 +387,7 @@ namespace SimCruiseTileData
 
 	FString BundledTilePath(const FIntPoint& Tile)
 	{
-		return FPaths::Combine(RepositoryRoot(), TEXT("game"), TEXT("data"), FString::Printf(TEXT("%d_%d.json"), Tile.X, Tile.Y));
+		return FPaths::Combine(RepositoryRoot(), TEXT("data"), TEXT("tiles"), FString::Printf(TEXT("%d_%d.json"), Tile.X, Tile.Y));
 	}
 
 	bool HasBundledTile(const FIntPoint& Tile)
@@ -401,7 +401,7 @@ namespace SimCruiseTileData
 		{
 			return FString();
 		}
-		const FString Path = FPaths::Combine(RepositoryRoot(), TEXT("game"), TEXT("art"), AerialKey);
+		const FString Path = FPaths::Combine(RepositoryRoot(), TEXT("data"), TEXT("tiles"), TEXT("aerial"), AerialKey);
 		return IFileManager::Get().FileExists(*Path) ? Path : FString();
 	}
 }

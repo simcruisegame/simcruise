@@ -56,7 +56,7 @@ public:
 	void SetCarDefinition(const FSimCruiseCarDefinition& Car);
 	const FSimCruiseCarDefinition& GetCarDefinition() const;
 
-	/** Load game/cars/<CarId>.json and install it. */
+	/** Load data/cars/<CarId>.json and install it. */
 	UFUNCTION(BlueprintCallable, Category = "SimCruise|Vehicle")
 	bool LoadCarById(const FString& CarId);
 

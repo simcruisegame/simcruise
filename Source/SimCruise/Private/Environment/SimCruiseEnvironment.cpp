@@ -184,12 +184,34 @@ void ASimCruiseEnvironment::SetPlace(double InLatitudeDeg, double InLongitudeDeg
 	LatitudeDeg = FMath::Clamp(InLatitudeDeg, -90.0, 90.0);
 	LongitudeDeg = FMath::Wrap(InLongitudeDeg, -180.0, 180.0);
 	ElevationM = InElevationM;
+	if (bDaylightStart)
+	{
+		UtcTime = MorningUtc(LongitudeDeg, FDateTime::UtcNow());
+		SimulatedSeconds = 0.0;
+	}
 	ApplyAtmosphere();
+	UpdateSky();
+}
+
+FDateTime ASimCruiseEnvironment::MorningUtc(double LongitudeDeg, const FDateTime& NowUtc, double LocalSolarHour)
+{
+	const FTimespan Offset = FTimespan::FromHours(LongitudeDeg / 15.0);
+	const FDateTime LocalDate = (NowUtc + Offset).GetDate();
+	return LocalDate + FTimespan::FromHours(LocalSolarHour) - Offset;
+}
+
+void ASimCruiseEnvironment::StartInDaylight()
+{
+	bFollowSystemClock = false;
+	bDaylightStart = true;
+	UtcTime = MorningUtc(LongitudeDeg, FDateTime::UtcNow());
+	SimulatedSeconds = 0.0;
 	UpdateSky();
 }
 
 void ASimCruiseEnvironment::SetUtcTime(const FDateTime& Utc)
 {
+	bDaylightStart = false;
 	bFollowSystemClock = false;
 	UtcTime = Utc;
 	SimulatedSeconds = 0.0;
@@ -199,6 +221,7 @@ void ASimCruiseEnvironment::SetUtcTime(const FDateTime& Utc)
 void ASimCruiseEnvironment::FollowSystemClock()
 {
 	bFollowSystemClock = true;
+	bDaylightStart = false;
 	UtcTime = FDateTime::UtcNow();
 	UpdateSky();
 }

@@ -1,0 +1,186 @@
+{
+ "damper": [
+  "ratio",
+  "ratio"
+ ],
+ "damper_dyno": [
+  [],
+  []
+ ],
+ "damper_knee_mps": [
+  0.12,
+  0.12
+ ],
+ "damper_knee_slope": [
+  0.45,
+  0.45
+ ],
+ "_comment": "1965 Ford Mustang convertible, 289 four-barrel V8 (210 hp, early 1965), Ford four-speed, 3.00 axle, 6.50-14 bias-ply tyres, manual steering, drum brakes. Model: Sketchfab 1965 Ford Mustang Convertible by kristian123 (CC BY 4.0).",
+ "id": "mustang65",
+ "name": "1965 Mustang 289",
+ "make": "Ford",
+ "body": "convertible",
+ "seats": 4,
+ "mass_kg": 1310,
+ "front_weight": 0.56,
+ "cg_height_m": 0.53,
+ "inertia": [
+  1740,
+  2120,
+  610
+ ],
+ "collision_box": [
+  1.72,
+  0.55,
+  4.55
+ ],
+ "collision_box_y": 0.72,
+ "wheelbase_m": 2.743,
+ "track_front_m": 1.407,
+ "track_rear_m": 1.422,
+ "mount_height_m": 0.58,
+ "static_length_m": 0.217,
+ "unsprung_corner_kg": 45,
+ "wheel_rate_n_m": [
+  17300,
+  16900
+ ],
+ "reference_corner_load_n": 3213,
+ "max_contact_load_n": 13000,
+ "tire_width_m": 0.165,
+ "tire_aspect_ratio": 0.92,
+ "rim_in": 14,
+ "static_mu": 0.8,
+ "lateral_grip_scale": 1.07,
+ "mu_max": 1.05,
+ "axle_grip": [
+  1,
+  1
+ ],
+ "drag_area_m2": 0.85,
+ "parking_rack_deg": 33,
+ "road_reference_deg": 32,
+ "brake_front_nm": 830,
+ "brake_rear_nm": 500,
+ "parking_brake_nm": 900,
+ "engine": "combustion",
+ "torque_curve": [
+  [
+   800,
+   300
+  ],
+  [
+   1500,
+   360
+  ],
+  [
+   2000,
+   390
+  ],
+  [
+   2800,
+   407
+  ],
+  [
+   3500,
+   392
+  ],
+  [
+   4400,
+   340
+  ],
+  [
+   4800,
+   305
+  ],
+  [
+   5000,
+   285
+  ]
+ ],
+ "torque_past_curve_nm": 250,
+ "idle_rpm": 600,
+ "idle_omega": 63,
+ "governor_rpm": 625,
+ "fuel_cut_rpm": 5000,
+ "max_gear_rpm": 5200,
+ "engine_inertia": 0.32,
+ "max_omega": 560,
+ "gears": [
+  2.78,
+  1.93,
+  1.36,
+  1
+ ],
+ "reverse_ratio": 2.78,
+ "final_drive": 3,
+ "driveline_efficiency": 0.88,
+ "shift_seconds": 0.45,
+ "upshift_rpm": 4800,
+ "upshift_min_omega": 300,
+ "downshift_rpm": 1700,
+ "clutch_stiffness": 12,
+ "clutch_capacity_nm": 560,
+ "clutch_back_nm": 520,
+ "launch_rpm": 1800,
+ "launch_rpm_per_throttle": 1500,
+ "layout": "rwd",
+ "rear_diff_bias": 1,
+ "transmission": "manual",
+ "bar_rate_n_m": [
+  15000,
+  0
+ ],
+ "damper_ratio_rebound": [
+  0.35,
+  0.35
+ ],
+ "damper_ratio_compression": [
+  0.22,
+  0.22
+ ],
+ "static_camber_deg": [
+  0.5,
+  0
+ ],
+ "camber_per_m": [
+  8,
+  0
+ ],
+ "caster_deg": 1.5,
+ "toe_per_wheel_deg": 0.05,
+ "target_0_60_s": 8.9,
+ "target_70_0_ft": 264,
+ "target_skidpad_g": 0.7,
+ "sources": {
+  "calibration": "0-60 mph 8.9 s: Car Life, 289/210 hp four-speed (table at musclecarfacts.com/ford-mustang/337-1965-mustang); Road & Track's 210 hp four-speed: about 9 s, 16.5 s quarter mile (auto.howstuffworks.com/1965-1966-ford-mustang.htm). 70-0 mph 264 ft derived from Car Life's measured 20 ft/s2 (0.62 g) from 80 mph, drums with rear lock-up (tunnelram.net reprint of the 1965 Car Life Mustang special).",
+  "engine": "289 four-barrel: 210 bhp at 4400 rpm, 300 lb-ft at 2800 rpm (early 1965; 225 bhp / 305 lb-ft after the mid-year revision), per Car Life 1965; curve shape estimated.",
+  "gearing": "Ford four-speed wide ratios 2.78/1.93/1.36/1.00 (third gear 1.36 per Car Life), 3.00 axle per the Car Life test car.",
+  "chassis": "108 in wheelbase, 55.4/56 in track, 181.6 in long (Ford specifications via VIN decode); rear share under 45 % (Car Life); 21.7:1 manual steering, 3.73 turns.",
+  "tyres": "6.50-14 bias-ply (Car Life test car).",
+  "estimates": "Mass (convertible V8 about 2,890 lb), centre of gravity, inertia, spring rates (about 1.15/1.3 Hz), dampers, brake torques, tyre grip and the 0.70 g skidpad target (no period skidpad test found)."
+ },
+ "calibration_open": "Skidpad target 0.70 g is an estimate for 1965 bias-ply tyres, not a measurement.",
+ "traction_control": false,
+ "model_scene": "data/art/traffic/mustang65-05f2a294/scene.gltf",
+ "model_rig": {
+  "fit": true
+ },
+ "driver_eye": [
+  -0.37,
+  0.97,
+  0.28
+ ],
+ "coil_lb_in": [
+  0,
+  0
+ ],
+ "lever_ratio": [
+  1,
+  1
+ ],
+ "bar_diameter_m": [
+  0,
+  0
+ ]
+}

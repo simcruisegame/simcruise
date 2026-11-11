@@ -1,5 +1,8 @@
 # Installing SimCruise
 
+> The releases on the Releases page are the Godot 1.x client (source at the git tag `godot-final`). The Unreal client has no installer yet: build it from source as described in [unreal-building.md](unreal-building.md). Windows installers come first; macOS needs a Mac to build on.
+
+
 Downloads are on the [Releases page](https://github.com/simcruisegame/simcruise/releases). Every release has the same version number on both systems:
 
 | System | File | Type |

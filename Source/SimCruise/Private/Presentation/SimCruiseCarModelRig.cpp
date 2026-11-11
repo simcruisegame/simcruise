@@ -16,7 +16,7 @@
 #include "Vehicle/CarDefinition.h"
 
 // The rig works in the Godot vehicle frame (X right, Y up, Z rearward,
-// metres, right-handed) so it can follow game/ModelRig.gd and the
+// metres, right-handed) so it can follow godot-final:game/ModelRig.gd and the
 // cars/rig-infra steering-wheel search step by step; Unreal axes are applied
 // only when the parts are written out.
 
@@ -125,7 +125,7 @@ namespace SimCruiseRigPrivate
 
 	const TCHAR* WheelKeys[4] = {TEXT("wheel_fl"), TEXT("wheel_fr"), TEXT("wheel_rl"), TEXT("wheel_rr")};
 
-	// game/ModelRig.gd WHEEL_NAMES.
+	// godot-final:game/ModelRig.gd WHEEL_NAMES.
 	const TArray<TArray<FString>>& WheelAliases()
 	{
 		static const TArray<TArray<FString>> Aliases = {
@@ -636,7 +636,7 @@ namespace SimCruiseRigPrivate
 
 	bool ReadManifestFlip(const FString& ModelPath, TOptional<bool>& OutFlip)
 	{
-		// game/art/traffic/manifest.json: the traffic lineup's checked front-facing flag.
+		// data/art/traffic/manifest.json: the traffic lineup's checked front-facing flag.
 		const FString ModelDir = FPaths::GetPath(ModelPath);
 		const FString Manifest = FPaths::Combine(FPaths::GetPath(ModelDir), TEXT("manifest.json"));
 		FString Text;

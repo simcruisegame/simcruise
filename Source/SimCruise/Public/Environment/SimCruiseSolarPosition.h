@@ -71,7 +71,7 @@ public:
 
 	/**
 	 * The Godot client's fractional-year approximation (NOAA "General Solar Position
-	 * Calculations", game/SurveyDaylight.gd solar_for_day). Kept as the calibration
+	 * Calculations", godot-final:game/SurveyDaylight.gd solar_for_day). Kept as the calibration
 	 * reference the tests compare against; about 0.3 degree.
 	 */
 	static FSimCruiseSkyPosition SunFractionalYear(double LatitudeDeg, double LongitudeDeg, const FDateTime& Utc);

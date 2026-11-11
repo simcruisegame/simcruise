@@ -11,7 +11,7 @@
  * yaw inertia or grip; it only decides which rack angle and pedal positions a
  * thumb or a key asks for, and how fast a hand can move the wheel.
  *
- * Ported from game/Powertrain.gd (available_steering, thumbstick_command,
+ * Ported from godot-final:game/Powertrain.gd (available_steering, thumbstick_command,
  * advance_steering, key_rack_rate) with the audited corrections of
  * docs/research/plan-2026-11-10/04-pad-steering-pedals.md:
  *  - the rack is a state in radians slewed in rad/s, not a fraction of a cap

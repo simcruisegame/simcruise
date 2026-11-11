@@ -1,8 +1,8 @@
 {
- "_comment": "How each car looks in the Unreal client (Source/SimCruise/*/Presentation). Physics stays in game/cars/<id>.json. Boxes and points use the Unreal vehicle frame: X forward, Y right, Z up, metres, origin midway between the axles at the physics body origin. Colours are \"#rrggbb\" sRGB. Roles: see SimCruiseCarMaterialRoles.h. Every value that copies a real car names its source.",
+ "_comment": "How each car looks in the Unreal client (Source/SimCruise/*/Presentation). Physics stays in data/cars/<id>.json. Boxes and points use the Unreal vehicle frame: X forward, Y right, Z up, metres, origin midway between the axles at the physics body origin. Colours are \"#rrggbb\" sRGB. Roles: see SimCruiseCarMaterialRoles.h. Every value that copies a real car names its source.",
  "cars": {
-  "nb1999": {
-   "model": "game/art/traffic/miata_nb-5d103c56/scene.gltf",
+  "nb2001": {
+   "model": "data/art/traffic/miata_nb-5d103c56/scene.gltf",
    "credit": "\"Mazda MX-5 (NB) convertible HQ interior\" by Nieve5677 (https://sketchfab.com/niev), CC BY 4.0",
    "steering_ratio": 15.0,
    "steering_ratio_source": "15:1 overall, power rack, 2.6 turns lock to lock (GoAuto, 2001 MX-5 review; the NB power rack is the same 1999-2005).",
@@ -37,12 +37,108 @@
    },
    "badges": [
     "mazda",
-    {"note": "MX-5 lettering on the tail panel, left of the plate", "box": [[-2.08, -0.52, 0.5], [-1.78, -0.24, 0.72]]},
-    {"note": "mazda wordmark on the tail panel, right of the plate", "box": [[-2.08, 0.24, 0.5], [-1.78, 0.52, 0.72]]}
+    {
+     "note": "MX-5 lettering on the tail panel, left of the plate",
+     "box": [
+      [
+       -2.08,
+       -0.52,
+       0.5
+      ],
+      [
+       -1.78,
+       -0.24,
+       0.72
+      ]
+     ]
+    },
+    {
+     "note": "mazda wordmark on the tail panel, right of the plate",
+     "box": [
+      [
+       -2.08,
+       0.24,
+       0.5
+      ],
+      [
+       -1.78,
+       0.52,
+       0.72
+      ]
+     ]
+    }
+   ]
+  },
+  "nb1999": {
+   "model": "data/art/traffic/miata_nb-5d103c56/scene.gltf",
+   "credit": "\"Mazda MX-5 (NB) convertible HQ interior\" by Nieve5677 (https://sketchfab.com/niev), CC BY 4.0",
+   "steering_ratio": 15.0,
+   "steering_ratio_source": "15:1 overall, power rack, 2.6 turns lock to lock (GoAuto, 2001 MX-5 review; the NB power rack is the same 1999-2005).",
+   "paint": {
+    "name": "Emerald Mica (DU)",
+    "base": "#1f4a36",
+    "metallic": 0.35,
+    "base_roughness": 0.38,
+    "flake": 0.55,
+    "clear_coat_roughness": 0.035,
+    "orange_peel": 0.3,
+    "source": "1999 NB Emerald Mica, a mica green; matched by eye to the green 1999 cars in the taste references (Kevauto front/rear 4.28.18, DestinationFearFan 1999 Mazda MX-5 Miata), which read lighter and less blue than the Godot build's #0f3b2a."
+   },
+   "roles": {
+    "carpaint": "paint",
+    "material_20": "wheel_alloy",
+    "tire": "tyre",
+    "brakedisk": "brake_disc",
+    "windowglass": "glass",
+    "clearglass": "lamp_front",
+    "redglass": "lamp_rear",
+    "orangeglass": "lamp_amber",
+    "mirror": "mirror_glass",
+    "display": "gauge",
+    "LicPlate_black": "hidden",
+    "LicPlate_blue": "hidden",
+    "LicPlate_yellow": "hidden",
+    "LicPlate_white": "hidden"
+   },
+   "tints": {
+    "interior_plastic": "#2e2f30"
+   },
+   "badges": [
+    "mazda",
+    {
+     "note": "MX-5 lettering on the tail panel, left of the plate",
+     "box": [
+      [
+       -2.08,
+       -0.52,
+       0.5
+      ],
+      [
+       -1.78,
+       -0.24,
+       0.72
+      ]
+     ]
+    },
+    {
+     "note": "mazda wordmark on the tail panel, right of the plate",
+     "box": [
+      [
+       -2.08,
+       0.24,
+       0.5
+      ],
+      [
+       -1.78,
+       0.52,
+       0.72
+      ]
+     ]
+    }
    ]
   },
   "mustang65": {
-   "model": "game/art/traffic/mustang65-05f2a294/scene.gltf",
+   "model": "data/art/traffic/mustang65-05f2a294/scene.gltf",
    "credit": "\"1965 Ford Mustang Convertible\" by Kristian LaGrange (https://sketchfab.com/kristian123), CC BY 4.0",
    "steering_ratio": 21.7,
    "steering_ratio_source": "21.7:1 manual, 3.73 turns lock to lock (Ford specifications, as in chassis).",
@@ -64,16 +160,76 @@
    },
    "badges": [
     "ford",
-    {"note": "FORD letters on the bonnet lip", "box": [[1.98, -0.4, 0.55], [2.2, 0.4, 1.05]]},
-    {"note": "running-horse grille emblem", "box": [[2.0, -0.17, 0.53], [2.5, 0.17, 0.74]]}
+    {
+     "note": "FORD letters on the bonnet lip",
+     "box": [
+      [
+       1.98,
+       -0.4,
+       0.55
+      ],
+      [
+       2.2,
+       0.4,
+       1.05
+      ]
+     ]
+    },
+    {
+     "note": "running-horse grille emblem",
+     "box": [
+      [
+       2.0,
+       -0.17,
+       0.53
+      ],
+      [
+       2.5,
+       0.17,
+       0.74
+      ]
+     ]
+    }
    ],
    "role_areas": [
-    {"note": "left tail-lamp lens segments (in the body's texture atlas; the chrome bezel reaches outside the box and stays)", "role": "lamp_rear", "material": "surfaceShader9SG", "box": [[-2.45, -0.66, 0.645], [-2.3, -0.47, 0.778]]},
-    {"note": "right tail-lamp lens segments (in the body's texture atlas)", "role": "lamp_rear", "material": "surfaceShader9SG", "box": [[-2.45, 0.47, 0.645], [-2.3, 0.66, 0.778]]}
+    {
+     "note": "left tail-lamp lens segments (in the body's texture atlas; the chrome bezel reaches outside the box and stays)",
+     "role": "lamp_rear",
+     "material": "surfaceShader9SG",
+     "box": [
+      [
+       -2.45,
+       -0.66,
+       0.645
+      ],
+      [
+       -2.3,
+       -0.47,
+       0.778
+      ]
+     ]
+    },
+    {
+     "note": "right tail-lamp lens segments (in the body's texture atlas)",
+     "role": "lamp_rear",
+     "material": "surfaceShader9SG",
+     "box": [
+      [
+       -2.45,
+       0.47,
+       0.645
+      ],
+      [
+       -2.3,
+       0.66,
+       0.778
+      ]
+     ]
+    }
    ]
   },
   "meridian_z": {
-   "model": "game/art/traffic/c8-790c40cc/scene.gltf",
+   "model": "data/art/traffic/c8-790c40cc/scene.gltf",
    "credit": "\"2019 Chevrolet Corvette C8 Stingray\" by Hari Prasath R (https://sketchfab.com/Haris3D), CC BY 4.0",
    "steering_ratio": 15.7,
    "steering_ratio_source": "15.7:1, variable-ratio electric rack (Chevrolet, 2020 Corvette Stingray specifications; 16.25:1 on the C7).",
@@ -117,7 +273,9 @@
     "License_Plate": "plate",
     "License_Plate_Background": "plate"
    },
-   "badges": ["chevrolet"]
+   "badges": [
+    "chevrolet"
+   ]
   }
  }
 }

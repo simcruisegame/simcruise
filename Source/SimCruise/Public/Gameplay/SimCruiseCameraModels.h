@@ -14,7 +14,7 @@ enum class ESimCruiseView : uint8
 	Scenic = 2,
 };
 
-/** The driver's lens (game/ViewLens.gd): vertical field of view; the
+/** The driver's lens (godot-final:game/ViewLens.gd): vertical field of view; the
  *  horizontal angle follows the window's aspect ratio. */
 enum class ESimCruiseLens : uint8
 {
@@ -50,7 +50,7 @@ struct FSimCruiseEyePose
 };
 
 /**
- * Driver head model, ported from game/Cockpit.gd head_view(). The eye is not
+ * Driver head model, ported from godot-final:game/Cockpit.gd head_view(). The eye is not
  * welded to the chassis: a critically damped spring (9 rad/s) moves it against
  * the felt body acceleration (3 cm per g lateral, 2 cm per g longitudinal,
  * clamped), braking dips the gaze 1.5 deg per g, the gaze leads up to 4 deg
@@ -113,7 +113,7 @@ private:
  * 8 m/s forward, so the car is seen sideways in a drift. Reversing gives no
  * swing, a spin past 90 deg holds the last swing, and one 0.3 s lag smooths it
  * (plan-2026-11-10/15 corrected design (c)). Position offsets match
- * game/Drive.gd: chase 5.8 m behind, 1.94 m up, 1.92 m right easing to 0.35 m
+ * godot-final:game/Drive.gd: chase 5.8 m behind, 1.94 m up, 1.92 m right easing to 0.35 m
  * with speed, looking 3.9 m ahead at 0.70 m; scenic 7.2 m behind, 4.9 m right,
  * 3.45 m up.
  */

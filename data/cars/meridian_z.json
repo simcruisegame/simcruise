@@ -1,0 +1,190 @@
+{
+ "inertia": [
+  2093,
+  2334,
+  774
+ ],
+ "collision_box": [
+  1.81,
+  0.52,
+  4.33
+ ],
+ "collision_box_y": 0.63,
+ "mount_height_m": 0.5625,
+ "static_length_m": 0.217,
+ "unsprung_corner_kg": 35.0,
+ "wheel_rate_n_m": [
+  46711,
+  88124
+ ],
+ "reference_corner_load_n": 4055.0,
+ "max_contact_load_n": 22519,
+ "coil_lb_in": [
+  0.0,
+  0.0
+ ],
+ "lever_ratio": [
+  1.0,
+  1.0
+ ],
+ "bar_diameter_m": [
+  0.0,
+  0.0
+ ],
+ "damper": [
+  "ratio",
+  "ratio"
+ ],
+ "damper_dyno": [
+  [],
+  []
+ ],
+ "_comment": "Mid-engine V8 sports car with an eight-speed dual-clutch gearbox. Reference: 2020 Chevrolet Corvette Stingray Z51 ; model: Sketchfab 2019 Chevrolet Corvette C8 Stingray by Haris3D (CC BY 4.0).",
+ "id": "meridian_z",
+ "name": "Corvette Stingray Z51 (C8)",
+ "make": "Chevrolet",
+ "body": "coupe",
+ "seats": 2,
+ "mass_kg": 1654.0,
+ "front_weight": 0.4,
+ "cg_height_m": 0.45,
+ "wheelbase_m": 2.723,
+ "track_front_m": 1.648,
+ "track_rear_m": 1.598,
+ "tire_width_m": 0.305,
+ "tire_aspect_ratio": 0.3,
+ "rim_in": 20.0,
+ "static_mu": 0.92,
+ "lateral_grip_scale": 1.27,
+ "mu_max": 1.6,
+ "drag_area_m2": 0.65,
+ "parking_rack_deg": 34.0,
+ "road_reference_deg": 32.0,
+ "brake_front_nm": 3000.0,
+ "brake_rear_nm": 2600.0,
+ "parking_brake_nm": 1600.0,
+ "engine": "combustion",
+ "torque_curve": [
+  [
+   800,
+   400
+  ],
+  [
+   2000,
+   530
+  ],
+  [
+   3000,
+   580
+  ],
+  [
+   4000,
+   610
+  ],
+  [
+   5150,
+   637
+  ],
+  [
+   6000,
+   600
+  ],
+  [
+   6450,
+   546
+  ],
+  [
+   6600,
+   520
+  ]
+ ],
+ "torque_past_curve_nm": 480.0,
+ "idle_rpm": 700.0,
+ "idle_omega": 73.0,
+ "governor_rpm": 725.0,
+ "fuel_cut_rpm": 6600.0,
+ "max_gear_rpm": 6800.0,
+ "engine_inertia": 0.3,
+ "max_omega": 720.0,
+ "gears": [
+  2.905,
+  1.759,
+  1.419,
+  1.096,
+  0.879,
+  0.701,
+  0.576,
+  0.469
+ ],
+ "reverse_ratio": 2.75,
+ "final_drive": 5.17,
+ "driveline_efficiency": 0.9,
+ "shift_seconds": 0.08,
+ "upshift_rpm": 6400.0,
+ "upshift_min_omega": 600.0,
+ "downshift_rpm": 2200.0,
+ "clutch_stiffness": 14.0,
+ "clutch_capacity_nm": 850.0,
+ "clutch_back_nm": 800.0,
+ "launch_rpm": 1800.0,
+ "launch_rpm_per_throttle": 1200.0,
+ "layout": "rwd",
+ "rear_diff_bias": 3.0,
+ "transmission": "dct",
+ "bar_rate_n_m": [
+  35000.0,
+  25000.0
+ ],
+ "damper_ratio_rebound": [
+  0.55,
+  0.55
+ ],
+ "damper_ratio_compression": [
+  0.33,
+  0.33
+ ],
+ "damper_knee_mps": [
+  0.12,
+  0.12
+ ],
+ "damper_knee_slope": [
+  0.45,
+  0.45
+ ],
+ "static_camber_deg": [
+  -1.0,
+  -1.4
+ ],
+ "camber_per_m": [
+  22.0,
+  24.0
+ ],
+ "caster_deg": 7.0,
+ "toe_per_wheel_deg": 0.05,
+ "target_0_60_s": 2.8,
+ "target_70_0_ft": 148.0,
+ "target_skidpad_g": 1.03,
+ "sources": {
+  "calibration": "Car and Driver: 2.8 s to 60 mph and 149 ft from 70 mph (first test), 148 ft and 1.03 g (long-term 2021 Z51); 3647 lb measured; 40/60 weight split (Chevrolet).",
+  "engine": "495 hp at 6450 rpm, 470 lb-ft at 5150 rpm with the Z51 exhaust (Chevrolet); curve shape estimated.",
+  "gearing": "Eight-speed DCT ratios and 5.17 final drive: unverified.",
+  "tyres": "Staggered 245/35ZR19 front, 305/30ZR20 rear: the rear axle grips 25 % harder (axle_grip, estimate); the model uses one rolling radius, the rear's.",
+  "launch": "Automatic launch at 3000 rpm at full pedal (1800 + 1200 per unit of throttle; estimate, 580 Nm on this curve). The launch is tyre-limited with traction control on, so a higher speed only revs the engine longer before the clutch bites (4000 rpm: 3.61 s, 3000 rpm: 3.58 s on CarTrack).",
+  "estimates": "Centre of gravity, inertia (scaled, 15 % less yaw for the mid engine), spring and bar rates (2.0/2.2 Hz), dampers, launch, brakes, tyre grip (calibrated)."
+ },
+ "axle_grip": [
+  1.0,
+  1.5
+ ],
+ "traction_control": true,
+ "calibration_open": "0-60 mph 3.55 s against 2.8 s (3.60 s before the slip-ratio tyre curve): Car and Driver omits a 1 ft rollout (about 0.3 s on this launch) while the bench times from rest, and from pedal-down at idle, where the car's launch control holds the engine at launch speed before the brake is released (not modelled). Traction control holds the rear tyres at their peak slip.",
+ "model_scene": "data/art/traffic/c8-790c40cc/scene.gltf",
+ "model_rig": {"fit": true},
+ "driver_eye": [
+  -0.386,
+  0.95,
+  0.06
+ ],
+ "abs_enabled": true,
+ "slip_ratio_falloff": 0.1
+}

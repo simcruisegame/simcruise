@@ -93,8 +93,7 @@ try{
   assert.equal(gdLanes(roadWidth(cls,1,0)),2,cls+' one-way carriageway is painted with two lanes');
   assert.equal(gdLanes(roadWidth(cls,1,1)),1,cls+' ramp is painted with one lane');
  }
- const gd=fs.readFileSync(new URL('../game/LaneMarkings.gd',import.meta.url),'utf8');
- assert.match(gd,/const WIDTH_LANE_M := 3\.6\b/,'LaneMarkings.gd uses road-widths.mjs LANE_M');
- assert.match(gd,/const ONE_WAY_LANES := 2\b/,'LaneMarkings.gd uses road-widths.mjs ONE_WAY_LANES');
+ // The Godot client's LaneMarkings.gd (tag godot-final) was checked against these constants here;
+ // the Unreal client's lane layout is checked by SimCruise.World.ParkingLayout.
 }
 console.log('lane-counts: all assertions passed');

@@ -61,7 +61,7 @@ struct FSimCruiseBuiltCar
 namespace SimCruiseCarAssets
 {
 	/**
-	 * The built car for an id (game/cars/<id>.json + its presentation
+	 * The built car for an id (data/cars/<id>.json + its presentation
 	 * profile), from the cache or built now. Editor builds use the full mesh
 	 * build (Nanite for big parts, cached in the DDC); cooked games use the
 	 * fast runtime path.

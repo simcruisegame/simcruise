@@ -26,7 +26,7 @@ class ASimCruiseWorldStreamer;
  * placeholder single-track car is used.
  *
  * Command line:
- *   -SimCruiseCar=<id>             car file under game/cars (default StartCarId)
+ *   -SimCruiseCar=<id>             car file under data/cars (default StartCarId)
  *   -SimCruiseStart=lat,lon        start elsewhere (needs the atlas helper); nearest road
  *   -SimCruiseStartRoad=<name>     the road to start on near the start point
  *   -SimCruiseNoWorld              drive the loaded map instead (its player start)
@@ -59,7 +59,7 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = "SimCruise")
 	FSoftClassPath VehiclePawnClass;
 
-	/** The car a drive starts in (game/cars/<id>.json). */
+	/** The car a drive starts in (data/cars/<id>.json). */
 	UPROPERTY(config, EditAnywhere, Category = "SimCruise")
 	FString StartCarId = TEXT("nb1999");
 

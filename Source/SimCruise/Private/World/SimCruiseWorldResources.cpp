@@ -478,9 +478,9 @@ void USimCruiseWorldResources::Initialise()
 		OutMean = MeanLinear(Pixels);
 		return CreateTexture(this, Name, Pixels, W, H, true, true);
 	};
-	AsphaltTexture = LoadDetail(TEXT("game/art/asphalt.jpg"), TEXT("T_SimCruiseAsphalt"), AsphaltMean);
-	GrassTexture = LoadDetail(TEXT("game/data/grass-detail.jpg"), TEXT("T_SimCruiseGrass"), GrassMean);
-	SandTexture = LoadDetail(TEXT("game/data/mineral-ground.png"), TEXT("T_SimCruiseSand"), SandMean);
+	AsphaltTexture = LoadDetail(TEXT("data/art/ground/asphalt.jpg"), TEXT("T_SimCruiseAsphalt"), AsphaltMean);
+	GrassTexture = LoadDetail(TEXT("data/art/ground/grass-detail.jpg"), TEXT("T_SimCruiseGrass"), GrassMean);
+	SandTexture = LoadDetail(TEXT("data/art/ground/mineral-ground.png"), TEXT("T_SimCruiseSand"), SandMean);
 	TArray<FColor> Grey;
 	Grey.Init(FColor(128, 128, 128, 255), 4 * 4);
 	BlankTexture = CreateTexture(this, TEXT("T_SimCruiseBlank"), Grey, 4, 4, true, true);

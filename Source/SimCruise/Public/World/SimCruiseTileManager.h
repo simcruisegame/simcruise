@@ -7,7 +7,7 @@
 /**
  * Which tiles a drive needs, which jobs may run and which results may land.
  * Pure bookkeeping (no engine objects), so it is testable and the streamer
- * actor stays thin. Ported from game/Drive.gd stream():
+ * actor stays thin. Ported from godot-final:game/Drive.gd stream():
  *  - the ring of tiles around the car's tile is wanted, nearest first, with a
  *    look-ahead toward where the car will be in a few seconds;
  *  - tiles beyond the ring plus one tile of hysteresis are retired;

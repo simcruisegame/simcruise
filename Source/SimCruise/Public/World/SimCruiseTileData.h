@@ -6,7 +6,7 @@
 
 /**
  * Typed form of one zoom-16 tile document from the atlas helper
- * (helper/atlas.mjs `tile`, or a bundled game/data/<x>_<y>.json).
+ * (helper/atlas.mjs `tile`, or a bundled data/tiles/<x>_<y>.json).
  * Coordinates are tile units (0..1, north-west origin, y south) exactly as the
  * helper writes them; heights are metres.
  */
@@ -106,6 +106,6 @@ namespace SimCruiseTileData
 	SIMCRUISE_API FString RepositoryRoot();
 	SIMCRUISE_API FString BundledTilePath(const FIntPoint& Tile);
 	SIMCRUISE_API bool HasBundledTile(const FIntPoint& Tile);
-	/** Bundled zoom-14 aerial photograph (game/art/a-<x>-<y>.jpg), or empty. */
+	/** Bundled zoom-14 aerial photograph (data/tiles/aerial/a-<x>-<y>.jpg), or empty. */
 	SIMCRUISE_API FString BundledAerialPath(const FString& AerialKey);
 }

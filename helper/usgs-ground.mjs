@@ -10,7 +10,7 @@ const ROOT='https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/13/TIFF/cu
 const DAY=86400000;
 const HEADER=32768;
 // Zoom-16 tile ranges [x0,y0,x1,y1) of bundled base tiles whose terrain was authored
-// from a separate survey. The Miami Beach start in game/data was built by this same
+// from a separate survey. The Miami Beach start in data/tiles was built by this same
 // pipeline (USGS 3DEP over Terrarium), so no blending back to the legacy field is needed.
 const BUNDLED=[];
 const longitude=x=>x/65536*360-180;

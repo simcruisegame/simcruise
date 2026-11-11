@@ -23,8 +23,8 @@ class UTexture2D;
  * memory when the assets are absent, so a fresh checkout runs without them.
  *
  * Detail textures are the repository's licensed photographs (Credits.txt):
- * game/art/asphalt.jpg (Poly Haven Asphalt Floor, CC0), game/data/grass-detail.jpg
- * and game/data/mineral-ground.png (Poly Haven Sandy Gravel 02, CC0).
+ * data/art/ground/asphalt.jpg (Poly Haven Asphalt Floor, CC0), data/art/ground/grass-detail.jpg
+ * and data/art/ground/mineral-ground.png (Poly Haven Sandy Gravel 02, CC0).
  */
 UCLASS()
 class SIMCRUISE_API USimCruiseWorldResources : public UObject

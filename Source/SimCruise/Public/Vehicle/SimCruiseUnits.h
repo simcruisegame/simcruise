@@ -10,7 +10,7 @@
  * The vehicle model works in metres, kilograms, seconds, newtons and radians,
  * in Unreal's axes (X forward, Y right, Z up, left-handed). Chaos works in
  * centimetres, kilograms and seconds, so a force is kg·cm/s² and a torque or
- * inertia carries cm². Godot (the calibration reference in game/) is
+ * inertia carries cm². Godot (the calibration reference, tag godot-final) is
  * right-handed with Y up and -Z forward; car files store vectors in its axes.
  */
 namespace SimCruiseUnits

@@ -1,4 +1,4 @@
-Traffic models (game/art/traffic), fetched from Sketchfab with authoring/cars/sketchfab.mjs.
+Traffic models (data/art/traffic), fetched from Sketchfab with authoring/cars/sketchfab.mjs.
 Each is used under the licence named; trademarks, if any, are not licensed.
 
 mustang65-05f2a294: "1965 Ford Mustang Convertible" by Kristian LaGrange (https://sketchfab.com/kristian123), CC BY 4.0, https://sketchfab.com/3d-models/1965-ford-mustang-convertible-05f2a294087541ab82f681136d134344

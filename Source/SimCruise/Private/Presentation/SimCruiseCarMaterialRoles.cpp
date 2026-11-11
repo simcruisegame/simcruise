@@ -70,7 +70,7 @@ bool SimCruiseCarMaterialRoles::FromString(const FString& Name, ESimCruiseCarMat
 
 bool SimCruiseCarMaterialRoles::IsBadgeLabel(const FString& Label)
 {
-	// game/ModelRig.gd (cars/rig-infra) BADGE_PATTERN.
+	// godot-final:game/ModelRig.gd (cars/rig-infra) BADGE_PATTERN.
 	return Matches(Label, TEXT("badge|badging|logo|emblem|brand|invisible|unimportant"));
 }
 

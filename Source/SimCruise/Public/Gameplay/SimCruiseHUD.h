@@ -9,7 +9,7 @@
 
 class UFont;
 
-/** HUD levels, cycled with F2 or the left-stick click (game/Hud.gd).
+/** HUD levels, cycled with F2 or the left-stick click (godot-final:game/Hud.gd).
  *  Off: only prompts. Glance: a translucent speed tag and g-meter that fade
  *  while cruising. Full: an opaque strip with every readout and the hints. */
 enum class ESimCruiseHudLevel : uint8

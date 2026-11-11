@@ -12,7 +12,7 @@ import {selectSequence,streetSample} from '../helper/street-samples.mjs';
 const [x,y]=[17400,25200];
 const lat=Math.atan(Math.sinh(Math.PI*(1-2*(y+.5)/65536)))*180/Math.PI;
 const lon=(x+.5)/65536*360-180;
-const image=fs.readFileSync(new URL('../game/data/grass-detail.jpg',import.meta.url));
+const image=fs.readFileSync(new URL('../data/art/ground/grass-detail.jpg',import.meta.url));
 if(process.argv[2]==='worker'){
  const [directory,mode]=process.argv.slice(3);
  globalThis.fetch=async url=>{

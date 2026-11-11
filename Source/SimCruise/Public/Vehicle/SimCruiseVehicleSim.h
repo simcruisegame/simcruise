@@ -9,10 +9,10 @@
 /**
  * SimCruise vehicle dynamics, independent of any engine object.
  *
- * A faithful port of game/Powertrain.gd (contacts, springs, dampers, anti-roll
+ * A faithful port of godot-final:game/Powertrain.gd (contacts, springs, dampers, anti-roll
  * bars, relaxed slip angles, combined-slip slip-ratio tyres, engine, clutch,
  * gearbox, differentials, brakes with ABS, traction control, aero and rolling
- * resistance) and game/CarSuspension.gd. Everything is SI, in Unreal's axes:
+ * resistance) and godot-final:game/CarSuspension.gd. Everything is SI, in Unreal's axes:
  * X forward, Y right, Z up. A positive steer turns right.
  *
  * One Step() is one rigid-body interval: contact geometry, loads and slip

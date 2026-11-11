@@ -13,7 +13,7 @@
 // Licence gate: only CC0 and CC BY models are fetched, because only those can be
 // committed to an MIT repository and shipped inside the game. CC BY-SA, ND, NC
 // and Store/Editorial licences are refused. Every fetched model is recorded in
-// game/art/traffic/manifest.json with its author, licence and source URL, and
+// data/art/traffic/manifest.json with its author, licence and source URL, and
 // `credits` regenerates licenses/Traffic models.txt from that manifest.
 //
 // Trademarks are not licensed by Creative Commons (CC BY 4.0 §2(b)(2)). The
@@ -31,7 +31,7 @@ import { unzipSync } from "fflate";
 
 const API = "https://api.sketchfab.com/v3";
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")), "../..");
-const OUT = join(ROOT, "game/art/traffic");
+const OUT = join(ROOT, "data/art/traffic");
 const MANIFEST = join(OUT, "manifest.json");
 const ALLOWED = { cc0: "CC0 1.0", by: "CC BY 4.0" };
 const BRANDS = ["toyota","honda","ford","chevrolet","chevy","gmc","dodge","ram ","jeep","chrysler","cadillac","buick","lincoln","tesla","nissan","subaru","mazda","mitsubishi","hyundai","kia","volkswagen","vw ","audi","bmw","mercedes","porsche","ferrari","lamborghini","volvo","lexus","acura","infiniti","oldsmobile","pontiac","plymouth","jaguar","land rover","mini ","fiat","alfa","peugeot","renault","skoda","seat ","opel","lada","rivian","lucid"];
@@ -128,13 +128,13 @@ async function fetchModel() {
   mkdirSync(OUT, { recursive: true });
   writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2) + "\n");
   writeCredits(manifest);
-  console.log(`${model.name} by ${model.user.username} (${licence}) → game/art/traffic/${id}/`);
+  console.log(`${model.name} by ${model.user.username} (${licence}) → data/art/traffic/${id}/`);
   if (brands.length) console.log("Remember: remove badges, grille logos and lettering before committing.");
   console.log("Open the project once in Godot (or run --headless --import) so the glTF is imported.");
 }
 
 function writeCredits(manifest = readManifest()) {
-  const lines = ["Traffic models (game/art/traffic), fetched from Sketchfab with authoring/cars/sketchfab.mjs.", "Each is used under the licence named; trademarks, if any, are not licensed.", ""];
+  const lines = ["Traffic models (data/art/traffic), fetched from Sketchfab with authoring/cars/sketchfab.mjs.", "Each is used under the licence named; trademarks, if any, are not licensed.", ""];
   for (const m of manifest.models) lines.push(`${m.id}: "${m.title}" by ${m.author} (${m.author_url}), ${m.licence}, ${m.source_url}`);
   writeFileSync(join(ROOT, "licenses/Traffic models.txt"), lines.join("\n") + "\n");
 }
