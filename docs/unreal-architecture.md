@@ -636,6 +636,18 @@ Items 1-6 and 9 of the list above were worked on; the captures are `docs/images/
 
 Still unreal after round 2, worst first: the buildings are still extruded footprints with every hotel the same recipe (no individual names, no vertical fins or porthole windows, no roof-top signs, no corner wraps), and their ground floors have no cafe tables or umbrellas; there are no people, parked cars or traffic; the palms' shaded sides read nearly black against the light (the runtime meshes have no distance fields for Lumen's sky occlusion) and the crowns are lighter and more see-through than real ones; the night sky is black where Miami Beach's sky glows orange-grey; lit windows sparkle with reflection noise; the cockpit items (7) are untouched.
 
+### Frame time on the drive (11 November 2026)
+
+RTX 2070 Super Max-Q, 1920x1080 full screen, parked at the Ocean Drive start at 11:00, `-SimCruiseDrivePerf`:
+
+| Preset | Driver's seat | Chase view |
+|---|---|---|
+| Medium (58 %) | 94 fps, GPU 10.2 ms | 107 fps, GPU 8.9 ms |
+| High (67 %, the default here) | 70 fps, GPU 13.7 ms (p99 frame 17.7 ms) | 85 fps, GPU 11.3 ms |
+| Ultra (75 %) | 45 fps, GPU 21.5 ms | 59 fps, GPU 16.5 ms |
+
+Round 2's world first measured 62 fps at High in the seat. `ProfileGPU` put 2.1 ms of its 15 ms in the volumetric cloud shadow map (at 384 texels and 24 steps, for a 12 % cumulus sky); High now marches a 192-texel map in 12 steps over 20 km (100 m texels, the same as before over 50 km): 0.56 ms, with no visible difference. The rest of the High frame: Lumen diffuse GI 1.9 ms, virtual shadow maps 2.1 ms (1.0 ms of it the non-Nanite tile meshes), TSR 1.7 ms, volumetric clouds 0.85 ms, base pass 0.5 ms.
+
 ### Known gaps
 
 - The start is the rightmost lane's centre of Ocean Drive, which the bundled OpenStreetMap data draws one-way southbound.

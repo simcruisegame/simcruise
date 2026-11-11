@@ -7,6 +7,8 @@
 #include "Engine/World.h"
 #include "Environment/SimCruiseEnvironment.h"
 #include "Environment/SimCruiseEnvironmentSubsystem.h"
+#include "Environment/SimCruiseGraphics.h"
+#include "Environment/SimCruisePerfSampler.h"
 #include "GameFramework/Pawn.h"
 #include "Gameplay/SimCruiseGameMode.h"
 #include "Gameplay/SimCruiseHUD.h"
@@ -38,6 +40,17 @@ void ASimCruiseDriveCapture::BeginPlay()
 	FParse::Value(FCommandLine::Get(), TEXT("SimCruiseDriveCaptureOut="), OutputDir);
 	IFileManager::Get().MakeDirectory(*OutputDir, true);
 	StageStarted = FPlatformTime::Seconds();
+	FString Presets;
+	if (FParse::Value(FCommandLine::Get(), TEXT("SimCruiseDrivePerf="), Presets, false))
+	{
+		TArray<FString> Names;
+		Presets.ParseIntoArray(Names, TEXT(","));
+		for (const FString& Name : Names)
+		{
+			PerfSteps.Add(Name + TEXT(":driver"));
+			PerfSteps.Add(Name + TEXT(":chase"));
+		}
+	}
 	UE_LOG(LogSimCruiseDriveCapture, Display, TEXT("Drive capture: waiting for the car -> %s"), *OutputDir);
 }
 
@@ -124,6 +137,14 @@ void ASimCruiseDriveCapture::Tick(float DeltaSeconds)
 			SettleFrames = 0;
 			break;
 		}
+		if (++SettleFrames > 90 && Now - StageStarted > 8.0 && !PerfSteps.IsEmpty())
+		{
+			Stage = EStage::Perf;
+			PerfIndex = 0;
+			bPerfSampling = false;
+			StageStarted = Now;
+			break;
+		}
 		if (++SettleFrames > 90 && Now - StageStarted > 8.0)
 		{
 			Stage = EStage::Shots;
@@ -197,6 +218,59 @@ void ASimCruiseDriveCapture::Tick(float DeltaSeconds)
 		else if (Clock > 40.0f)
 		{
 			Finish();
+		}
+		break;
+	}
+	case EStage::Perf:
+	{
+		// Each step: apply the preset and view, let shaders, exposure and Lumen settle 6 s
+		// (longer while shaders compile), then sample 10 s. One "SimCruisePerf:" line each.
+		if (bPerfSampling)
+		{
+			break;
+		}
+		if (PerfIndex >= PerfSteps.Num() || !Player)
+		{
+			Finish();
+			break;
+		}
+		FString PresetName, View;
+		PerfSteps[PerfIndex].Split(TEXT(":"), &PresetName, &View);
+		ASimCruisePlayerCameraManager* Camera = Cast<ASimCruisePlayerCameraManager>(Player->PlayerCameraManager);
+		if (Clock == 0.f)
+		{
+			ESimCruiseGraphicsPreset Preset;
+			if (FSimCruiseGraphics::Parse(PresetName, Preset) && FSimCruiseGraphics::Current() != Preset)
+			{
+				FSimCruiseGraphics::Apply(Preset);
+			}
+			if (Camera) { Camera->SetView(View == TEXT("chase") ? ESimCruiseView::Chase : ESimCruiseView::Driver); }
+			if (ASimCruiseHUD* Hud = Cast<ASimCruiseHUD>(Player->GetHUD())) { Hud->SetLevel(ESimCruiseHudLevel::Off); }
+		}
+		Clock += DeltaSeconds;
+		if (bShadersBusy)
+		{
+			Clock = FMath::Min(Clock, 0.01f);
+			break;
+		}
+		if (Clock > 6.f)
+		{
+			bPerfSampling = true;
+			FSimCruisePerfSampler::Start(FString::Printf(TEXT("drive_%s_%s"), *PresetName, *View), 10.f,
+				[WeakThis = TWeakObjectPtr<ASimCruiseDriveCapture>(this)](const FSimCruisePerfStats&)
+				{
+					if (ASimCruiseDriveCapture* Self = WeakThis.Get())
+					{
+						// -SimCruiseDrivePerfProfile: a GPU pass breakdown of the frame after each window.
+						if (FParse::Param(FCommandLine::Get(), TEXT("SimCruiseDrivePerfProfile")))
+						{
+							if (APlayerController* P = Self->GetPlayer()) { P->ConsoleCommand(TEXT("ProfileGPU")); }
+						}
+						Self->bPerfSampling = false;
+						Self->Clock = 0.f;
+						++Self->PerfIndex;
+					}
+				});
 		}
 		break;
 	}

@@ -33,7 +33,7 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 private:
-	enum class EStage : uint8 { WaitCar, Settle, Shots, Done };
+	enum class EStage : uint8 { WaitCar, Settle, Shots, Perf, Done };
 
 	ASimCruisePlayerController* GetPlayer() const;
 	void Shoot(const FString& Name, bool bWithHud);
@@ -48,5 +48,10 @@ private:
 	float Clock = 0.f;
 	int32 SettleFrames = 0;
 	int32 NextShot = 0;
+
+	/** -SimCruiseDrivePerf=high,ultra: frame-time windows per preset and view, parked at the start. */
+	TArray<FString> PerfSteps;
+	int32 PerfIndex = 0;
+	bool bPerfSampling = false;
 	bool bTopView = false;
 };

@@ -173,6 +173,8 @@ Pictures go to `Saved/Screenshots/SimCruise/Drive/` (`-SimCruiseDriveCaptureOut=
 
 Console variables: `simcruise.Rumble.Strength` (0..1), `simcruise.Camera.HeadMotion` (0..1), `simcruise.Lens.ScreenHeightCm` and `simcruise.Lens.ViewDistanceCm` for the true-to-screen lens. For look development: `simcruise.Lamps.BeamScale` multiplies the low beams (1 = the real 15 000 cd) and `simcruise.Lamps.Pattern 0` takes their cut-off pattern off. They can be given at launch, for example `"-ExecCmds=simcruise.Lamps.BeamScale 6"` with `-SimCruiseDriveCapture`.
 
+Frame time on the drive: `-SimCruiseDrivePerf=medium,high,ultra` (with `-SimCruiseDriveCapture`, ideally `-fullscreen -ResX=1920 -ResY=1080`) waits for the car, then for each preset samples 10 s parked in the driver's seat and 10 s in the chase view, and logs one `SimCruisePerf:` line each (also appended to `Saved/Profiling/SimCruisePerf.csv`). `-SimCruiseDrivePerfProfile` adds a `ProfileGPU` pass breakdown after each window.
+
 Night captures: the same command with `-SimCruiseUtc=2026-11-12T01:30:00Z` (20:30 in Miami Beach).
 
 ## Tests

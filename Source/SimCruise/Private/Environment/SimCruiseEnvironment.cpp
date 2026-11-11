@@ -65,8 +65,9 @@ ASimCruiseEnvironment::ASimCruiseEnvironment()
 	Sun->bCastCloudShadows = true;
 	Sun->CloudShadowStrength = 1.0f;
 	Sun->CloudShadowOnSurfaceStrength = 1.0f;
-	// 50 km is beyond any visible ground; the scalability levels cap the 512-texel map at 192-384.
-	Sun->CloudShadowExtent = 50.0f;
+	// 20 km: the haze hides cloud shadows beyond it from the street, and the High preset's 192-texel map
+	// then has 100 m texels (DefaultScalability.ini).
+	Sun->CloudShadowExtent = 20.0f;
 	Sun->CloudShadowMapResolutionScale = 1.0f;
 	Sun->bCastShadowsOnClouds = true;
 	Sun->bCastShadowsOnAtmosphere = true;
