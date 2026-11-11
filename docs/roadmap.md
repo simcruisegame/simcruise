@@ -31,7 +31,7 @@ What landed in 1.1 is in the [changelog](../CHANGELOG.md): road benches and brid
 **Runs everywhere**
 1. **Quality presets** (Low, Medium, High, Ultra) with Low chosen automatically on 8 GB, small-GPU machines such as the MacBook Neo: render scale, shadow distance, canopy density, tile ring. Gate: `RenderCost` frame times on each preset.
 2. **Level of detail** for the generated cars and distant buildings; impostors past 700 m.
-3. **The Windows build tested on real Windows** before the first release that ships it (under Wine only the installer and the helper could be verified).
+3. **The Windows build tested on real Windows** before the first release that ships it (under Wine only the installer and the helper could be verified). The release workflow now builds it on a Windows runner and starts it headless (`scripts/smoke-windows.sh`: launch, helper, 600 offline frames); a drive on a real Windows PC with a GPU, through the installer, is still owed.
 
 **Ideas collected from contributors** (not yet scheduled): speed-based camera field of view and subtle lean, wet and dirt maps from live weather, in-editor authoring tools in place of the Python scripts, quadtree terrain level of detail.
 

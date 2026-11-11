@@ -96,6 +96,8 @@ sh scripts/check.sh          # headless Godot checks
 sh scripts/check-helper.sh   # map helper tests
 ```
 
+GitHub Actions runs `scripts/check.sh` on Linux for every pull request, and a version tag builds the Windows and macOS releases into a draft on the Releases page ([docs/building.md](docs/building.md#releasing)).
+
 ## Contributing
 
 Contributions are welcome: code, data sources, bug reports from places that look wrong, and documentation. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first. The short version: no keys or paid services, only freely licensed assets, and every change comes with a measurement.
@@ -113,7 +115,7 @@ Contributions are welcome: code, data sources, bug reports from places that look
 | [Data sources and licences](docs/data-sources.md) | Every data layer, its source and licence |
 | [Controls](docs/controls.md) | Full control reference, manual gearbox, road atlas |
 | [Cars](docs/cars.md) | The garage, how cars are calibrated, adding a car |
-| [Building](docs/building.md) | Building the app and disk image |
+| [Building](docs/building.md) | Building the Mac app and disk image, the Windows installer, and how releases are made |
 | [Roadmap](docs/roadmap.md) | What comes next and why |
 | [Changelog](CHANGELOG.md) | Changes by version |
 | [Studies](docs/studies.md) | Research notes behind individual features |
