@@ -24,6 +24,6 @@ Tested with Blender 5.2 LTS. A build takes about 20 seconds; an Eevee preview on
 
 **Game contract.** Origin on the ground midway between the axles, Blender +Y forward (Godot −Z). Nodes `wheel_fl/fr/rl/rr` (origin at the hub, spins), `wheel_*_upright` (disc and caliper, steers), `steering_wheel` (origin at the hub, local Godot Z along the column; `Drive.gd` turns it at a 14.5:1 ratio). Material `lamp_rear` becomes the brake lamps and `glass` is drawn tinted and transparent by `game/CarBody.gd`. Godot imports the models with embedded textures (`gltf/embedded_image_handling=3`).
 
-**Known limits.** Interior materials must stay plain: giving them an emission term made one shader variant stall compilation on the software renderer. The pickup's dash sits high in the driver view.
+**Known limits.** Interior materials must stay plain: giving them an emission term made one shader variant stall compilation on the software renderer. The one pickup built with it (the retired Bison XL) had its dash sitting high in the driver view.
 
 **Licence.** The scripts and every model they generate are original MIT work for SimCruise. Photographs were used only as measurement references (sources named in each design file); no photograph, logo or badge is copied into a model, and the cars keep fictional names.
