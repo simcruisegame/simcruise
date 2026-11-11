@@ -644,6 +644,10 @@ A tile's procedural mesh went through Unreal's dynamic draw path, which virtual 
 
 The building shader draws each window's state (lit or dark, tint) from a sin-hash of the window's cell and the building's seed. The seed arrives as a vertex attribute, constant per building but interpolated a few 1e-7 off across a triangle, and the hash amplifies it by about 1e7, so pixels of one window drew different numbers: half-lit, speckled windows at night, shown by elimination (not Lumen reflections, `r.Lumen.Reflections.Allow 0`; not Lumen GI, `r.Lumen.DiffuseIndirect.Allow 0`; still in a still frame). The shader now quantises the seed to 1/4096 before any hash, as does the palm frond shader. Lit interiors were 2-12 nits, so the pane's reflection of the dark street won; they are now shops 60-150 and rooms 15-45 cd/m2 (a shop lit to 500-1000 lux, a room to 100-300), with a lit pane rough (its light, not a mirror), and the porch storefronts 80. Window edges, frames and mullions are filtered with `fwidth`, fading to their average where thinner than a pixel.
 
+Art Deco street fronts are their own surface kinds (`DecoFront` 12 with shops, `DecoUpper` 13 above a porch), which the shader treats as facades and, at night, washes in coloured light: one uplight every 3.6 m (a cone widening 0.28 m + 0.2 m per metre of height), falling off over 5 m, about 310 lux at the base reflected by the stucco's albedo, in one of five colours (pink, violet, cyan, teal, warm white) on three hotels in five, from the building's seed. Reference: Ocean Drive at night is lit by its facades' coloured floodlights and neon more than by its street lights.
+
+![Ocean Drive at night: lit shops and coloured hotel fronts](images/unreal/round2-night-street.png)
+
 ![Before: speckled windows](images/unreal/round2-night-fronts-before.png)
 
 ![After: shop windows and rooms lit evenly](images/unreal/round2-night-fronts.png)

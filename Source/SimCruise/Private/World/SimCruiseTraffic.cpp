@@ -496,7 +496,7 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 	Car.SteerRad += (FMath::Clamp(Steer, -0.6, 0.6) - Car.SteerRad) * (1.0 - FMath::Exp(-Dt / 0.15));
 }
 
-bool ASimCruiseTraffic::Spawn(const FVector& FocusCm, const FVector& CameraCm, const FVector& CameraFwd, bool bAnywhere)
+bool ASimCruiseTraffic::Spawn(const FVector& FocusCm, const FVector& PlayerFwd, const FVector& CameraCm, const FVector& CameraFwd, bool bAnywhere)
 {
 	// A random lane position on a public road of a loaded tile, out of the driver's sight.
 	TArray<FIntPoint> TileIds;
@@ -527,6 +527,12 @@ bool ASimCruiseTraffic::Spawn(const FVector& FocusCm, const FVector& CameraCm, c
 		const FVector ToPose = Pose.LocationCm - CameraCm;
 		const bool bInSight = FVector::DotProduct(ToPose.GetSafeNormal(), CameraFwd) > 0.2 && ToPose.Size() < 160.0 * 100.0;
 		if (!bAnywhere && bInSight) continue;
+		// Never in the player's path just ahead (a car appearing there would be in the way
+		// before the driver could have seen it arrive).
+		const FVector2d Ahead(PlayerFwd.X, PlayerFwd.Y);
+		const FVector2d Rel((Pose.LocationCm.X - FocusCm.X) / 100.0, (Pose.LocationCm.Y - FocusCm.Y) / 100.0);
+		const double Along = FVector2d::DotProduct(Rel, Ahead.GetSafeNormal());
+		if (!Ahead.IsNearlyZero() && Along > 0.0 && Along < 150.0 && FMath::Abs(Rel.X * Ahead.GetSafeNormal().Y - Rel.Y * Ahead.GetSafeNormal().X) < 4.0) continue;
 		bool bCrowded = false;
 		for (const ASimCruiseTrafficCar* Other : Cars)
 		{
@@ -615,6 +621,6 @@ void ASimCruiseTraffic::Tick(float DeltaSeconds)
 	const int32 Want = FMath::Max(0, CVarTrafficCars.GetValueOnGameThread());
 	for (int32 Tries = 0; Tries < 2 && Cars.Num() < Want; ++Tries)
 	{
-		Spawn(Focus, CameraCm, CameraFwd, SinceStart < 3.0);
+		Spawn(Focus, Player->GetActorForwardVector(), CameraCm, CameraFwd, SinceStart < 3.0);
 	}
 }

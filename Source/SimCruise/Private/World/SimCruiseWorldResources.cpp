@@ -205,7 +205,7 @@ float3 col = stucco;
 float rough = 0.88;
 float metal = 0.0;
 float3 emis = float3(0.0, 0.0, 0.0);
-if (kind < 0.5 || abs(kind - 11.0) < 0.5)
+if (kind < 0.5 || (kind > 10.5 && kind < 13.5))
 {
 	const float storey = 3.1;
 	float level = floor(max(h, 0.0) / storey);
@@ -215,7 +215,7 @@ if (kind < 0.5 || abs(kind - 11.0) < 0.5)
 	float winW = bayW * (0.46 + 0.16 * frac(seed * 3.71));
 	float x0 = 0.5 * (bayW - winW);
 	float y0 = 0.95, y1 = 2.42;
-	bool shop = kind > 10.5 && level < 0.5;
+	bool shop = kind > 10.5 && kind < 12.5 && level < 0.5;
 	if (shop)
 	{
 		bayW = 3.6; x = frac(along / bayW + 0.5) * bayW; winW = 3.1; x0 = 0.25; y0 = 0.35; y1 = 2.65;
@@ -248,6 +248,20 @@ if (kind < 0.5 || abs(kind - 11.0) < 0.5)
 	// room 15-45; dimmer and the street's reflection in the pane (noisy at night) wins.
 	float depth = shop ? lerp(0.45, 1.0, saturate((y - y0) / (y1 - y0))) : 1.0;
 	emis = pane * lit * Lights * depth * lerp(float3(1.0, 0.72, 0.45), float3(1.0, 0.86, 0.7), frac(r * 3.3)) * (shop ? 60.0 + 90.0 * frac(r * 5.1) : 15.0 + 30.0 * frac(r * 9.7));
+	// Art Deco street fronts at night: coloured uplights at the foot of the facade, one
+	// every 3.6 m, washing the stucco (about 310 lux at the base, falling off upward), on
+	// three hotels in five; pink, violet, cyan, teal or warm white per hotel.
+	if (kind > 11.5)
+	{
+		float pick = frac(seed * 13.37);
+		float3 tints[5] = { float3(1.0, 0.22, 0.62), float3(0.55, 0.28, 1.0), float3(0.18, 0.75, 1.0), float3(0.15, 1.0, 0.72), float3(1.0, 0.72, 0.45) };
+		float3 wc = tints[(int)floor(frac(seed * 5.71) * 4.999)];
+		float fx = (frac(along / 3.6) - 0.5) * 3.6;
+		float spread = 0.28 + 0.2 * max(h, 0.0);
+		float cone = exp(-(fx * fx) / (spread * spread));
+		float fall = exp(-max(h, 0.0) / 5.0) * smoothstep(0.05, 0.5, h);
+		emis += step(pick, 0.6) * Lights * stucco * wc * 100.0 * cone * fall * (1.0 - pane);
+	}
 }
 else if (kind < 1.5) { rough = 0.86; }
 else if (kind < 2.5) { col = VC.rgb * lerp(1.0, grain, 0.35); rough = 0.93; }

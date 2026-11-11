@@ -290,7 +290,9 @@ namespace SimCruiseTileDetail
 				const bool bPorch = bDeco && Front[i] && Len >= 8.0 && Height >= 6.0 && bConvexA && bConvexC && PorchDepth >= 1.5 && Unit(Hash(H, 9)) < 0.8;
 
 				const double WallStart = bPorch ? Ground + FloorH : Bottom;
-				const float WallKind = (Front[i] && !bPorch) ? Kind::WallFront : Kind::Wall;
+				// Street fronts: shop glass in the ground storey, and on Art Deco hotels the
+				// coloured uplight wash that lights Ocean Drive at night.
+				const float WallKind = !Front[i] ? Kind::Wall : bPorch ? (bDeco ? Kind::DecoUpper : Kind::Wall) : (bDeco ? Kind::DecoFront : Kind::WallFront);
 				W.Panel(A, C, WallStart, Top + Parapet, N2, Wall, WallKind, Along0, Ground);
 				// The parapet's inside, seen from above and from taller neighbours.
 				W.Panel(C, A, Top, Top + Parapet, -N2, Wall, Kind::Trim, Along0, Ground);

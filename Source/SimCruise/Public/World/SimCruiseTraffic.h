@@ -136,7 +136,7 @@ private:
 
 	const FSimCruiseRibbon* GetRibbon(const FIntPoint& Tile, int32 Ribbon) const;
 	FPose PoseAt(const FIntPoint& Tile, int32 Ribbon, int32 Dir, double S) const;
-	bool Spawn(const FVector& FocusCm, const FVector& CameraCm, const FVector& CameraFwd, bool bAnywhere);
+	bool Spawn(const FVector& FocusCm, const FVector& PlayerFwd, const FVector& CameraCm, const FVector& CameraFwd, bool bAnywhere);
 	/** Picks the way on at DecisionS (a junction along the ribbon, or its end when bAtEnd). */
 	bool ChooseAt(ASimCruiseTrafficCar& Car, double DecisionS, bool bAtEnd) const;
 	void Advance(ASimCruiseTrafficCar& Car, double Dt, const FVector& PlayerCm, const FVector& PlayerVelCm);

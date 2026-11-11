@@ -40,6 +40,8 @@ namespace SimCruiseSurfaceKind
 	inline constexpr float Railing = 9.f;     // balcony glass
 	inline constexpr float Frond = 10.f;      // palm leaf card
 	inline constexpr float WallFront = 11.f;  // a street facade: shopfront glass in the ground storey
+	inline constexpr float DecoFront = 12.f;  // an Art Deco hotel's street facade with shops, washed in coloured light at night
+	inline constexpr float DecoUpper = 13.f;  // an Art Deco street facade above a porch, washed in coloured light at night
 }
 
 /** Plain mesh buffers in tile-local centimetres (x east, y south, z up). */
