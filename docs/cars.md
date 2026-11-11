@@ -36,6 +36,22 @@ The Miata's road spins in the November 2026 field test were not its chassis: the
 
 The NB's suspension travel is consistent with what owners measure: the car sits about 2 in (51 mm) above its bump stops (14 in to 12 in fender height, [Classic Motorsports forum](https://classicmotorsports.com/forum/grm/miata-bump-stop-question/172527/page1)); the file has 54 mm to the bump rubber and the hard stop 143 mm above ride height. The bump-stop ticks the field test counted on smooth roads came from `RoadDrive.gd` dropping the car from 0.35 m at the start and from the reverse-gear wheel hop; the drive now sets the car down at its ride height and prints where any bump stop is reached.
 
+### The Unreal client's benches
+
+The Unreal client (see [unreal-architecture.md](unreal-architecture.md#vehicle-physics-core)) runs the same procedures as automation tests on a runtime-spawned flat pad, with the physics on Chaos at a fixed 360 Hz (`SimCruise.Vehicle.CarTrack.<car>`, `LiftOff.<car>`, `StaticLoad.<car>`, `Convergence.<car>`; [unreal-building.md](unreal-building.md#automation-tests)). Results on 11 November 2026, against Godot 4.7.2 running `checks/CarTrack.gd` and `checks/LiftOff.gd` on the same day:
+
+| Car | Unreal 360 Hz | Unreal, Godot's 60 Hz scheme | Godot | Target |
+|---|---|---|---|---|
+| 1999 roadster | 7.97 s · 171.9 ft · 0.884 g | 7.99 s · 172.9 ft · 0.884 g | 7.99 s · 172.9 ft · 0.884 g | 7.97 s · 173 ft · 0.89 g |
+| 1965 Mustang | 8.95 s · 263.6 ft · 0.698 g | 9.01 s · 259.3 ft · 0.699 g (car file as is) | 9.00 s · 259.3 ft · 0.699 g | 8.9 s · 264‡ ft · 0.70\* g |
+| Corvette C8 | 3.46 s† · 150.1 ft · 1.024 g | 3.47 s · 151.7 ft · 1.025 g | 3.55 s† · 152.0 ft · 1.025 g | 2.8 s · 148 ft · 1.03 g |
+
+With Godot's own stepping (60 Hz contacts, six wheel substeps) the Unreal port reproduces Godot to the printed digit for the roadster and for the Mustang's stop and skidpad, and within 0.01 s for the Mustang's launch. The Corvette's Godot launch is 0.08 s slower because Godot's 60 Hz contact step lets its left and right tyre loads swap every tick under traction control, a numerical roll oscillation that costs grip; the Unreal model does not show it and from 120 Hz up every rate gives 3.46–3.47 s. The 360 Hz results are converged: 720 Hz moves none of them by a fifth of its band.
+
+LiftOff matches Godot case for case: the roadster's lift and trail-brake yaw-rate ratios are 1.01–1.07 and 0.99–1.13 at 0.3–0.5 g with at most 1.2° of sideslip, and 1.19 and 1.43 at 0.7 g with a 4.8° peak (Godot 1.19, 1.42, 4.8°); the Mustang finds no steady state at 0.7 g in both (its skidpad is 0.70 g); no car spins at a gated level and no automatic selects reverse while rolling. Static loads carry each car's weight with the file's front share to four digits, level, at the 217 mm static suspension length.
+
+One estimated value is calibrated differently in Unreal, through an overlay that leaves the canonical file alone: `Content/Vehicle/Calibration/mustang65.json` scales the Mustang's estimated drum torques by 0.975 (809 and 488 N·m, bias unchanged). Its 70–0 is brake-torque limited (no wheel locks above 11 m/s), and at the converged rate the original torques stop it in 257.8 ft, 1.2 ft outside the band (Godot's coarser step read 259.3 ft, 0.3 ft inside); 0.975 puts it at Car Life's measured 0.62 g. The bench logs every overlay field it applies.
+
 What is published is used as published: mass, weight split where the maker gives it, engine power and torque, gear ratios, tyre sizes, wheelbase and track. What is not published is estimated and labelled in `sources.estimates`: centre-of-gravity height, inertia (scaled from the 1999 car by mass and size), spring and anti-roll rates (from ride frequencies typical of the class), dampers, brake torque and the tyre model's grip. The tyre grip is the main calibration handle: braking distance sets the longitudinal grip (`static_mu`), the skidpad sets the lateral factor (`lateral_grip_scale`), and launch settings are only tuned inside realistic limits. Published torque is never scaled to make a number.
 
 ## Models
