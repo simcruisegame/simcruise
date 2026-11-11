@@ -121,7 +121,7 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 		UStaticMesh* Static = NewObject<UStaticMesh>(this, *FString::Printf(TEXT("SM_SimCruiseTile_%d_%d"), TileId.X, TileId.Y), RF_Transient);
 		for (int32 Slot = 0; Slot < InBuild->RenderSlots.Num(); ++Slot)
 		{
-			Static->GetStaticMaterials().Add(FStaticMaterial(UMaterial::GetDefaultMaterial(MD_Surface), *FString::Printf(TEXT("Layer%d"), InBuild->RenderSlots[Slot])));
+			Static->GetStaticMaterials().Add_GetRef(FStaticMaterial(UMaterial::GetDefaultMaterial(MD_Surface), *FString::Printf(TEXT("Layer%d"), InBuild->RenderSlots[Slot]))).UVChannelData = FMeshUVChannelInfo(1.f);
 		}
 		Static->SetRenderData(MoveTemp(InBuild->RenderData));
 		Static->InitResources();

@@ -76,8 +76,7 @@ int32 USimCruiseBuildWorldMaterialsCommandlet::Main(const FString& Params)
 		const FString Name = FPackageName::GetLongPackageAssetName(PackagePath);
 		UPackage* Package = CreatePackage(*PackagePath);
 		UMaterial* Saved = DuplicateObject<UMaterial>(Source, Package, *Name);
-		Saved->ClearFlags(RF_Transient);
-		Saved->SetFlags(RF_Public | RF_Standalone);
+		SimCruiseCarMaterials::PrepareSavedCopy(Saved);
 		Saved->PostEditChange();
 		Package->MarkPackageDirty();
 		const FString File = FPackageName::LongPackageNameToFilename(PackagePath, FPackageName::GetAssetPackageExtension());

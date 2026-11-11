@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Presentation/SimCruiseCarMaterialRoles.h"
 
+class UMaterial;
 class UMaterialInterface;
 class UMaterialInstanceDynamic;
 class UTexture2D;
@@ -61,5 +62,7 @@ namespace SimCruiseCarMaterials
 #if WITH_EDITOR
 	/** Save the generated masters as assets under /Game/Vehicles/Materials for cooking. */
 	SIMCRUISE_API bool SaveMasters(FString& OutReport);
+	/** Readies a duplicate of a code-built material for saving: no transient flag on it or anything inside it. */
+	SIMCRUISE_API void PrepareSavedCopy(UMaterial* Saved);
 #endif
 }

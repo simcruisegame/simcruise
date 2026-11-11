@@ -560,7 +560,7 @@ namespace SimCruiseWorldMaterials
 			const FPolygonGroupID Group = Description.CreatePolygonGroup();
 			const FName Slot(*FString::Printf(TEXT("Slot%d"), S));
 			SlotNames[Group] = Slot;
-			Mesh->GetStaticMaterials().Add(FStaticMaterial(UMaterial::GetDefaultMaterial(MD_Surface), Slot));
+			Mesh->GetStaticMaterials().Add_GetRef(FStaticMaterial(UMaterial::GetDefaultMaterial(MD_Surface), Slot)).UVChannelData = FMeshUVChannelInfo(1.f);
 			Instances.SetNum(Part.Positions.Num());
 			for (int32 V = 0; V < Part.Positions.Num(); ++V)
 			{
@@ -643,8 +643,15 @@ void USimCruiseWorldResources::BuildPalmMeshes()
 			UE_LOG(LogSimCruiseWorldResources, Error, TEXT("Palm variant %d did not build"), Variant);
 			continue;
 		}
-		Mesh->SetMaterial(0, PalmBarkMaterial);
-		Mesh->SetMaterial(1, GetLayerMaterial(ESimCruiseTileLayer::Foliage));
+		// UStaticMesh::SetMaterial is editor-only; a packaged build sets the slots directly
+		// (the mesh is not drawn yet, so its render proxy picks them up).
+		TArray<FStaticMaterial>& Slots = Mesh->GetStaticMaterials();
+		if (Slots.Num() < 2)
+		{
+			Slots.SetNum(2);
+		}
+		Slots[0].MaterialInterface = PalmBarkMaterial;
+		Slots[1].MaterialInterface = GetLayerMaterial(ESimCruiseTileLayer::Foliage);
 		// Collision: the bole and the lower trunk (the fronds are well above a car).
 		Mesh->CreateBodySetup();
 		if (UBodySetup* Body = Mesh->GetBodySetup())

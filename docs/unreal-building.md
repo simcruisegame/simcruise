@@ -22,6 +22,14 @@ After the editor target builds, open `D:\simcruise\SimCruise.uproject` in Unreal
 
 Build the `SimCruise` game target the same way when you need `-game` runs or a package. If any Unreal Editor with Live Coding is running on the machine (for any project), UnrealBuildTool refuses with "Unable to build while Live Coding is active"; add `-NoHotReloadFromIDE` to build a different checkout (a worktree) without closing it.
 
+## A Windows package
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\package.ps1
+```
+
+It saves the generated materials, runs `BuildCookRun` for Win64 Development (`-Configuration Shipping` for a release), and copies in what the game reads from disk instead of its .pak: `data\`, `Content\Vehicles\CarPresentation.json`, `Content\Vehicle\Calibration\` and `tools\atlas.exe` when present. Run `Saved\Package\Windows\SimCruise.exe`. A packaged game starts on the bundled Miami Beach streets without `-SimCruiseWorld` (`-SimCruiseNoWorld` opens it empty); `-SimCruiseStart=lat,lon` still needs the atlas helper.
+
 ## Automation tests
 
 Tests are Unreal automation tests named `SimCruise.<Area>.<Test>`. Run them headless:

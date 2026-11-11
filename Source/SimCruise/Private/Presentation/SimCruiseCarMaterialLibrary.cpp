@@ -18,6 +18,7 @@
 #include "Materials/MaterialExpressionConstant.h"
 #include "Materials/MaterialExpressionCustom.h"
 #include "Materials/MaterialExpressionLocalPosition.h"
+#include "Materials/MaterialExpressionTextureBase.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionTextureSampleParameter2D.h"
 #include "Materials/MaterialExpressionThinTranslucentMaterialOutput.h"
@@ -25,6 +26,7 @@
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionVertexNormalWS.h"
 #include "UObject/SavePackage.h"
+#include "UObject/UObjectHash.h"
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogSimCruiseCarMaterials, Log, All);
@@ -923,18 +925,53 @@ void SimCruiseCarMaterials::SetLampLevel(UMaterialInstanceDynamic* Lamp, ESimCru
 }
 
 #if WITH_EDITOR
+void SimCruiseCarMaterials::PrepareSavedCopy(UMaterial* Saved)
+{
+	// A copy of a transient material keeps RF_Transient on its expressions and editor-only
+	// data, which then never reach the file (the cook asserts on the missing EditorOnly).
+	Saved->ClearFlags(RF_Transient);
+	Saved->SetFlags(RF_Public | RF_Standalone);
+	ForEachObjectWithOuter(Saved, [](UObject* Inner) { Inner->ClearFlags(RF_Transient); }, /*bIncludeNestedObjects=*/ true);
+}
+
 bool SimCruiseCarMaterials::SaveMasters(FString& OutReport)
 {
 	using namespace SimCruiseCarMaterialsPrivate;
 	bool bOk = true;
+	// The mask samplers' default (a transient texture in the editor) is saved alongside, so
+	// the cooked masters reference an asset rather than /Engine/Transient.
+	UTexture* SavedWhite = nullptr;
+	{
+		const FString PackageName = TEXT("/Game/Vehicles/Materials/T_SimCruiseLinearWhite");
+		UPackage* Package = CreatePackage(*PackageName);
+		FImage Image(4, 4, ERawImageFormat::BGRA8, EGammaSpace::Linear);
+		FMemory::Memset(Image.RawData.GetData(), 0xFF, Image.RawData.Num());
+		SavedWhite = FImageUtils::CreateTexture(ETextureClass::TwoD, Image, Package, TEXT("T_SimCruiseLinearWhite"), RF_Public | RF_Standalone, false);
+		SavedWhite->SRGB = false;
+		SavedWhite->CompressionSettings = TC_Masks;
+		SavedWhite->PostEditChange();
+		FSavePackageArgs Args;
+		Args.TopLevelFlags = RF_Public | RF_Standalone;
+		const FString File = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
+		const bool bSaved = UPackage::SavePackage(Package, SavedWhite, *File, Args);
+		OutReport += FString::Printf(TEXT("%s %s\n"), bSaved ? TEXT("saved") : TEXT("FAILED"), *File);
+		bOk &= bSaved;
+	}
 	for (int32 Index = 0; Index < 3; ++Index)
 	{
 		const FString PackageName = FString::Printf(TEXT("/Game/Vehicles/Materials/%s"), MasterNames[Index]);
 		UPackage* Package = CreatePackage(*PackageName);
 		UMaterial* Built = Index == 2 ? BuildGlassMaster() : BuildSurfaceMaster(Index == 1);
 		UMaterial* Saved = DuplicateObject<UMaterial>(Built, Package, MasterNames[Index]);
-		Saved->ClearFlags(RF_Transient);
-		Saved->SetFlags(RF_Public | RF_Standalone);
+		PrepareSavedCopy(Saved);
+		for (UMaterialExpression* Expression : Saved->GetExpressions())
+		{
+			UMaterialExpressionTextureBase* Sampler = Cast<UMaterialExpressionTextureBase>(Expression);
+			if (Sampler && Sampler->Texture == LinearWhite())
+			{
+				Sampler->Texture = SavedWhite;
+			}
+		}
 		Saved->PostEditChange();
 		FSavePackageArgs Args;
 		Args.TopLevelFlags = RF_Public | RF_Standalone;

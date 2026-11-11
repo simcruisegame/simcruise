@@ -20,7 +20,13 @@ void USimCruiseWorldSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	const TCHAR* Cmd = FCommandLine::Get();
 	FString Start;
 	FString Preview;
+#if WITH_EDITOR
+	// Editor and uncooked -game runs (tests, the lighting lab) stay empty unless asked.
 	const bool bWorld = FParse::Param(Cmd, TEXT("SimCruiseWorld"));
+#else
+	// A packaged game is the drive itself: it starts on the bundled streets.
+	const bool bWorld = !FParse::Param(Cmd, TEXT("SimCruiseNoWorld"));
+#endif
 	const bool bStart = FParse::Value(Cmd, TEXT("SimCruiseStart="), Start, /*bShouldStopOnSeparator=*/ false);
 	const bool bPreview = FParse::Value(Cmd, TEXT("SimCruisePreview="), Preview, false);
 	if (!bWorld && !bStart && !bPreview)

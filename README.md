@@ -66,7 +66,7 @@ There is no Unreal installer yet (Windows first; macOS when a Mac is available t
    & 'C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' "$PWD\SimCruise.uproject" -game
    ```
 
-The game builds the bundled Ocean Drive start (no network needed) and puts you in the 2001 roadster in Ocean Drive's lane. Options (another car, a fixed time, graphics presets, captures) are in [docs/unreal-building.md](docs/unreal-building.md#drive-it).
+The game builds the bundled Ocean Drive start (no network needed) and puts you in the 2001 roadster in Ocean Drive's lane. To make a standalone Windows build instead (no editor needed to play it), run `powershell -ExecutionPolicy Bypass -File scripts\package.ps1` and start `Saved\Package\Windows\SimCruise.exe`. Options (another car, a fixed time, graphics presets, captures) are in [docs/unreal-building.md](docs/unreal-building.md#drive-it).
 
 | Action | Keyboard | Xbox controller |
 |---|---|---|
