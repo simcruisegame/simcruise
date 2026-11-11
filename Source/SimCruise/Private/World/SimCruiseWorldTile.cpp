@@ -14,8 +14,50 @@
 #include "StaticMeshResources.h"
 #include "Misc/App.h"
 #include "Engine/StaticMesh.h"
+#include "Components/BoxComponent.h"
+#include "Engine/World.h"
+#include "HAL/IConsoleManager.h"
+#include "Presentation/SimCruiseCarAssets.h"
+#include "Presentation/SimCruiseCarPresentationComponent.h"
 #include "World/SimCruiseGeo.h"
 #include "World/SimCruiseWorldResources.h"
+
+namespace
+{
+	TAutoConsoleVariable<int32> CVarParkedCars(TEXT("simcruise.World.ParkedCars"), 1,
+		TEXT("1: parked cars in the parking lanes' stalls (drawn runs only); 0: empty stalls."));
+
+	/** The cars that park: the bundled models with a fitted presentation (Ocean Drive: classics and sports cars). */
+	const TCHAR* ParkedCarFor(uint8 Pick)
+	{
+		return Pick < 90 ? TEXT("mustang65") : Pick < 170 ? TEXT("meridian_z") : TEXT("nb1999");
+	}
+
+	/**
+	 * Body colours in about the shares US cars have them (white 25 %, black 20 %, grey 18 %,
+	 * silver 11 %, blue 9 %, red 9 %, then green, orange and yellow), sRGB.
+	 */
+	FLinearColor ParkedColourFor(uint8 Byte)
+	{
+		struct FShade { int32 UpTo; FColor Colour; };
+		static const FShade Shades[] = {
+			{ 64, FColor(232, 232, 226) },  // white
+			{ 115, FColor(14, 14, 16) },    // black
+			{ 161, FColor(88, 91, 95) },    // grey
+			{ 189, FColor(167, 169, 171) }, // silver
+			{ 212, FColor(22, 52, 112) },   // blue
+			{ 235, FColor(150, 18, 22) },   // red
+			{ 245, FColor(31, 74, 54) },    // green
+			{ 251, FColor(205, 92, 20) },   // orange
+			{ 256, FColor(226, 182, 30) },  // yellow
+		};
+		for (const FShade& Shade : Shades)
+		{
+			if (Byte < Shade.UpTo) return FLinearColor(Shade.Colour);
+		}
+		return FLinearColor(Shades[0].Colour);
+	}
+}
 
 ASimCruiseWorldTile::ASimCruiseWorldTile()
 {
@@ -108,6 +150,19 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 		Layer.UV0.Empty();
 		Layer.UV1.Empty();
 	}
+
+	// Parked cars wait for PlaceParkedCars (drawn runs only: they are scenery and obstacles).
+	for (AActor* Old : ParkedCars)
+	{
+		if (Old) Old->Destroy();
+	}
+	ParkedCars.Reset();
+	ParkedWaiting.Reset();
+	if (Resources && CVarParkedCars.GetValueOnGameThread() != 0)
+	{
+		ParkedWaiting = MoveTemp(InBuild->ParkedCars);
+	}
+	InBuild->ParkedCars.Empty();
 
 	// Palms: one instanced component per variant on this tile.
 	for (UInstancedStaticMeshComponent* Old : PalmComponents)
@@ -220,4 +275,69 @@ bool ASimCruiseWorldTile::IsCollisionReady() const
 	// +-10 km covers every US elevation; a hit means the cooked triangles are in the scene.
 	bCollisionReady = Mesh->LineTraceComponent(Hit, Centre + FVector(0.0, 0.0, 1.0e6), Centre - FVector(0.0, 0.0, 1.0e6), Params);
 	return bCollisionReady;
+}
+
+int32 ASimCruiseWorldTile::PlaceParkedCars(int32 Budget)
+{
+	int32 Placed = 0;
+	UWorld* World = GetWorld();
+	while (Placed < Budget && !ParkedWaiting.IsEmpty() && World)
+	{
+		const FSimCruiseParkedCar Stall = ParkedWaiting.Pop(EAllowShrinking::No);
+		const FString CarId = ParkedCarFor(Stall.Pick);
+		FString Error;
+		const TSharedPtr<FSimCruiseBuiltCar> Built = SimCruiseCarAssets::Get(CarId, Error);
+		if (!Built.IsValid() || !Built->Body.Mesh.IsValid())
+		{
+			continue;
+		}
+		// The car's frame has its origin between the axles at the body's height; the tyres
+		// touch the ground a tyre radius under the hubs.
+		const double GroundInFrameCm = Built->HubsCm[0].Z - Built->TyreRadiusCm;
+		const FVector Location = GetActorTransform().TransformPosition(Stall.LocationCm - FVector(0.0, 0.0, GroundInFrameCm));
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		Params.ObjectFlags |= RF_Transient;
+		ASimCruiseCarPresentationActor* Car = World->SpawnActor<ASimCruiseCarPresentationActor>(Location, FRotator(0.0, Stall.YawDeg, 0.0), Params);
+		if (!Car)
+		{
+			continue;
+		}
+		if (!Car->Presentation->InitializeForCar(CarId))
+		{
+			Car->Destroy();
+			continue;
+		}
+		Car->Presentation->SetPaintColor(ParkedColourFor(Stall.Colour));
+		Car->Presentation->SetParked();
+		// Solid: a box round the body.
+		const FBox Body = Built->Body.Mesh->GetBoundingBox().TransformBy(Built->Body.PartToVehicle);
+		UBoxComponent* Box = NewObject<UBoxComponent>(Car, TEXT("Collision"));
+		Box->SetupAttachment(Car->Presentation);
+		Box->SetRelativeLocation(Body.GetCenter());
+		Box->SetBoxExtent(Body.GetExtent());
+		Box->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+		Box->SetMobility(EComponentMobility::Movable);
+		Box->RegisterComponent();
+		Car->AddInstanceComponent(Box);
+		Car->AttachToActor(this, FAttachmentTransformRules::KeepWorldTransform);
+		ParkedCars.Add(Car);
+		++Placed;
+		if (ParkedWaiting.IsEmpty())
+		{
+			UE_LOG(LogTemp, Display, TEXT("SimCruise tile %d_%d: %d parked cars"), TileId.X, TileId.Y, ParkedCars.Num());
+		}
+	}
+	return Placed;
+}
+
+void ASimCruiseWorldTile::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	for (AActor* Car : ParkedCars)
+	{
+		if (Car) Car->Destroy();
+	}
+	ParkedCars.Reset();
+	ParkedWaiting.Reset();
+	Super::EndPlay(EndPlayReason);
 }

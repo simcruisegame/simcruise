@@ -233,6 +233,7 @@ TSharedPtr<FSimCruiseBuiltCar> SimCruiseCarAssets::Get(const FString& CarId, FSt
 		BuildPart(*Car, Rigged.SteeringWheel, Car->SteeringWheel);
 	}
 	Car->DriverEyeCm = Inputs.DriverEyeM * 100.0;
+	Car->TyreRadiusCm = Inputs.TireRadiusM * 100.0;
 	Car->HeadLampsCm = SimCruiseCarModelRig::HeadLampCentresCm(Rigged);
 	Car->MirrorsCm = SimCruiseCarModelRig::MirrorCentresCm(Rigged);
 	for (const FVector4& Mirror : Car->MirrorsCm)

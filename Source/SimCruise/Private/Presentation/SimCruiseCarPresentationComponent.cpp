@@ -224,6 +224,92 @@ TArray<FVector> USimCruiseCarPresentationComponent::GetHeadLampLocations() const
 	return Built.IsValid() ? Built->HeadLampsCm : TArray<FVector>();
 }
 
+bool USimCruiseCarPresentationComponent::SetPaintColor(const FLinearColor& Linear)
+{
+	if (!Built.IsValid())
+	{
+		return false;
+	}
+	bool bAny = false;
+	for (const TPair<int32, TObjectPtr<UMaterialInstanceDynamic>>& Pair : Materials)
+	{
+		if (!Pair.Value || Built->RoleOf(Pair.Key) != ESimCruiseCarMaterialRole::Paint) continue;
+		const FSimCruiseGltfMaterial* Author = Built->Model.Materials.IsValidIndex(Pair.Key) ? &Built->Model.Materials[Pair.Key] : nullptr;
+		if (Author && Built->Model.ImageFiles.IsValidIndex(Author->BaseColorImage)) continue; // an atlas carries its own colour
+		Pair.Value->SetVectorParameterValue(TEXT("BaseColor"), Linear);
+		bAny = true;
+	}
+	return bAny;
+}
+
+void USimCruiseCarPresentationComponent::SetParked(float GlassNearCm, float GlassFarCm, float DrawDistanceCm)
+{
+	SetComponentTickEnabled(false);
+	if (!Built.IsValid())
+	{
+		return;
+	}
+	using R = ESimCruiseCarMaterialRole;
+	auto FarMaterial = [this](int32 MaterialIndex) -> UMaterialInstanceDynamic*
+	{
+		const R Role = Built->RoleOf(MaterialIndex);
+		FLinearColor Base(0.012f, 0.014f, 0.016f), Surface(0.f, 0.06f, 1.f, 0.02f);
+		if (Role == R::LampRear) Base = FLinearColor(0.22f, 0.006f, 0.005f);
+		else if (Role == R::LampAmber) Base = FLinearColor(0.45f, 0.16f, 0.01f);
+		else if (Role == R::LampFront) Base = FLinearColor(0.35f, 0.36f, 0.37f);
+		UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create(SimCruiseCarMaterials::GetMaster(ESimCruiseCarMaster::Opaque), this);
+		MID->SetVectorParameterValue(TEXT("BaseColor"), Base);
+		MID->SetVectorParameterValue(TEXT("Surface"), Surface);
+		MID->SetVectorParameterValue(TEXT("Detail"), FLinearColor(0.f, 0.f, 0.f, 1.f));
+		MID->SetVectorParameterValue(TEXT("TextureFlags"), FLinearColor(0.f, 0.f, 0.f, 0.f));
+		MID->SetVectorParameterValue(TEXT("Extra"), FLinearColor(0.f, 0.f, 0.f, 0.f));
+		MID->SetVectorParameterValue(TEXT("Emissive"), FLinearColor(0.f, 0.f, 0.f, 0.f));
+		return MID;
+	};
+	const FSimCruiseBuiltPart* AllParts[] = { &Built->Body, &Built->Wheels[0], &Built->Wheels[1], &Built->Wheels[2], &Built->Wheels[3],
+		&Built->Uprights[0], &Built->Uprights[1], &Built->Uprights[2], &Built->Uprights[3], &Built->SteeringWheel };
+	TArray<UStaticMeshComponent*> Existing;
+	for (USceneComponent* Component : Parts)
+	{
+		if (UStaticMeshComponent* Mesh = Cast<UStaticMeshComponent>(Component)) Existing.Add(Mesh);
+	}
+	for (UStaticMeshComponent* Part : Existing)
+	{
+		Part->SetCullDistance(DrawDistanceCm);
+		Part->bAffectDynamicIndirectLighting = false;
+		Part->bAffectDistanceFieldLighting = false;
+		const FSimCruiseBuiltPart* Glass = nullptr;
+		for (const FSimCruiseBuiltPart* P : AllParts)
+		{
+			if (P->Glass.IsValid() && P->Glass.Get() == Part->GetStaticMesh()) Glass = P;
+		}
+		if (Glass)
+		{
+			Part->SetCullDistance(GlassNearCm);
+			UObject* Outer = GetOwner() ? static_cast<UObject*>(GetOwner()) : static_cast<UObject*>(this);
+			UStaticMeshComponent* Far = NewObject<UStaticMeshComponent>(Outer, FreeName(Outer, UStaticMeshComponent::StaticClass(), FName(Part->GetName() + TEXT("_far"))));
+			Far->SetMobility(EComponentMobility::Movable);
+			Far->SetupAttachment(Part->GetAttachParent());
+			Far->SetRelativeTransform(Part->GetRelativeTransform());
+			Far->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Far->SetCanEverAffectNavigation(false);
+			Far->SetStaticMesh(Part->GetStaticMesh());
+			for (int32 Slot = 0; Slot < Glass->GlassMaterials.Num(); ++Slot)
+			{
+				Far->SetMaterial(Slot, FarMaterial(Glass->GlassMaterials[Slot]));
+			}
+			Far->SetCastShadow(false);
+			Far->MinDrawDistance = GlassNearCm;
+			Far->SetCullDistance(GlassFarCm);
+			Far->bAffectDynamicIndirectLighting = false;
+			Far->bAffectDistanceFieldLighting = false;
+			Far->RegisterComponent();
+			Parts.Add(Far);
+		}
+		Part->MarkRenderStateDirty();
+	}
+}
+
 FVector USimCruiseCarPresentationComponent::GetStaticHubLocation(int32 Wheel) const
 {
 	return Wheel >= 0 && Wheel < 4 ? StaticHubs[Wheel] : FVector::ZeroVector;

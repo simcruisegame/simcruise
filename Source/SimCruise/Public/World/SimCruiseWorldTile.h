@@ -46,6 +46,14 @@ public:
 	 */
 	bool IsCollisionReady() const;
 
+	/**
+	 * Places up to Budget of the tile's waiting parked cars (game thread, a few a frame so
+	 * a tile streaming in does not hitch); returns how many it placed.
+	 */
+	int32 PlaceParkedCars(int32 Budget);
+
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 	/** Night lighting of the tile's materials, 0..1: lit windows and street-light lenses (neon brightens). */
 	void SetLightsOn(float Amount);
 	float GetLightsOn() const { return LightsOn; }
@@ -67,11 +75,16 @@ public:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UInstancedStaticMeshComponent>> PalmComponents;
 
+	/** The tile's parked cars (attached, so they move with the floating origin). */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<AActor>> ParkedCars;
+
 private:
 	FIntPoint TileId = FIntPoint::ZeroValue;
 	TSharedPtr<FSimCruiseTileBuild> Build;
 	mutable bool bCollisionReady = false;
 	float LightsOn = 0.f;
+	TArray<FSimCruiseParkedCar> ParkedWaiting;
 	/** Static mesh slot -> tile layer. */
 	TArray<int32> RenderSlots;
 };

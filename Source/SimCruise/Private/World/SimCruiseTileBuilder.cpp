@@ -994,6 +994,17 @@ namespace SimCruiseTileBuilder
 						if (!bStemEnd) { Cut[i] = 1; break; }
 					}
 				}
+				// No parking within 12 m of a crossing (MUTCD: 20 ft from a crosswalk, which
+				// stands about 4 m off the crossing road's edge).
+				TArray<uint8> NearCut; NearCut.Init(0, Ribbon.St.Num());
+				for (int32 i = 0; i < Ribbon.St.Num(); ++i)
+				{
+					if (!Cut[i]) continue;
+					for (int32 j = 0; j < Ribbon.St.Num(); ++j)
+					{
+						if (FMath::Abs(Ribbon.St[j].S - Ribbon.St[i].S) < 12.0) NearCut[j] = 1;
+					}
+				}
 				TArray<FLine> LA, LB;
 				for (int32 i = 0; i + 1 < Ribbon.St.Num(); ++i)
 				{
@@ -1004,6 +1015,46 @@ namespace SimCruiseTileBuilder
 					LinesAt(i, LA);
 					LinesAt(i + 1, LB);
 					if (LA.Num() != LB.Num()) continue;
+
+					// Parked cars: one stall between each pair of ticks, a little over half of
+					// them taken (a stable hash of the stall's world position), a car 25 cm off
+					// the curb facing the traffic on its side.
+					if (!NearCut[i] && !NearCut[i + 1])
+					{
+						const SimCruiseLanes::FParking Park = SimCruiseLanes::Parking(Ribbon.Class, A.HalfW, A.Travel, Kerbed(Ribbon, 0, i), Kerbed(Ribbon, 1, i));
+						const double U0 = Phase(A.S), U1 = Phase(Bs.S);
+						const double Lo = FMath::Min(U0, U1), Hi = FMath::Max(U0, U1);
+						const double Mid = TickM + 0.5 * (StallM - TickM);
+						for (double U = FMath::CeilToDouble((Lo - Mid) / StallM) * StallM + Mid; U < Hi && FMath::Abs(U1 - U0) > 1e-6; U += StallM)
+						{
+							if (U < Lo) continue;
+							const double T = (U - U0) / (U1 - U0);
+							for (const double Sgn : { -1.0, 1.0 })
+							{
+								const double P = Sgn < 0.0 ? Park.Left : Park.Right;
+								if (P < 2.0) continue;
+								const FVector2d Cc = FMath::Lerp(A.C, Bs.C, T);
+								const FVector2d Rr = FMath::Lerp(A.R, Bs.R, T).GetSafeNormal();
+								const FVector2d Tt = FMath::Lerp(A.T, Bs.T, T).GetSafeNormal();
+								const double HalfW = FMath::Lerp(A.HalfW, Bs.HalfW, T);
+								const FVector2d WorldM(static_cast<double>(Data.Id.X) * Side + Cc.X, static_cast<double>(Data.Id.Y) * Side + Cc.Y);
+								uint32 Hash = HashCombine(GetTypeHash(FMath::RoundToInt64(WorldM.X * 2.0)), GetTypeHash(FMath::RoundToInt64(WorldM.Y * 2.0)));
+								Hash = HashCombine(Hash, GetTypeHash(static_cast<int32>(Sgn)));
+								Hash = Hash * 2654435761u ^ (Hash >> 15);
+								if ((Hash % 100u) >= 58u) continue;
+								const double OffCurb = 0.25 + 0.15 * static_cast<double>((Hash >> 8) & 0xFF) / 255.0;
+								const double L = Sgn * (HalfW - OffCurb - 0.9);
+								const double Hgt = FMath::Lerp(Ribbon.CarriagewayHeight(i, L), Ribbon.CarriagewayHeight(i + 1, L), T);
+								const FVector2d Heading = Tt * (A.Travel != 0 ? static_cast<double>(A.Travel) : Sgn);
+								FSimCruiseParkedCar Car;
+								Car.LocationCm = Cm(Cc + Rr * L, Hgt);
+								Car.YawDeg = static_cast<float>(FMath::RadiansToDegrees(FMath::Atan2(Heading.Y, Heading.X)) + (static_cast<double>((Hash >> 16) & 0xFF) / 255.0 - 0.5) * 3.0);
+								Car.Pick = static_cast<uint8>(Hash >> 24);
+								Car.Colour = static_cast<uint8>(Hash >> 4);
+								B.ParkedCars.Add(Car);
+							}
+						}
+					}
 					for (int32 l = 0; l < LA.Num(); ++l)
 					{
 						const FLine& Line = LA[l];

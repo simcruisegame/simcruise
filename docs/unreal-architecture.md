@@ -660,6 +660,18 @@ Cost at High: a capture with everything on was 4.7 ms (global distance field 0.7
 
 ![The rear-view and driver's door mirror enlarged](images/unreal/round2-mirrors-detail.png)
 
+### Parked cars (11 November 2026)
+
+The tile builder walks each parking lane between the painted stall ticks (one 6.7 m stall per pair, on the same world-anchored phase as the ticks) and keeps a little over half of the stalls (58 %, a hash of the stall's world position, so a stall is always taken or always free), none within 12 m of a crossing road (MUTCD: no parking within 20 ft of a crosswalk). A car stands 25-40 cm off the curb, facing the traffic on its side (on a one-way street, its direction), turned up to 1.5° off true. The tile places them three a frame across the tiles (`PlaceParkedCars`) as `ASimCruiseCarPresentationActor`s attached to the tile (so they ride the floating origin), each with a box round its body for collision; about 800 stand on the four Miami Beach tiles round the start.
+
+Which car: the bundled models that have a fitted presentation, Mustang 35 %, C8 31 %, NB 34 %, repainted in about the shares US cars come in (white 25 %, black 20 %, grey 18 %, silver 11 %, blue 9 %, red 9 %, a few green, orange and yellow); the Mustang's colour lives in its texture atlas and stays. A parked car draws less: no tick, nothing beyond 150 m, no part in Lumen's scene, and from 25 m its glass and lenses swap to an opaque copy (dark glossy glass, lenses in their colour) that itself stops at 80 m.
+
+Cost: in single profiled frames the parked cars add about 0.5 ms (Lumen card captures). Measured on 11 November while the laptop's GPU was held to 28 W (driver: software power cap), everything ran about 2.6 times slower than in the table below, so the cost is given relatively: no difference with the mirrors off or capturing every frame, and 10 % with the mirror capture every third frame, which is still to be explained at full power.
+
+![Ocean Drive with parked cars, chase view](images/unreal/round2-parked-chase.png)
+
+![From the driver's seat: parked cars both sides, and in the rear-view mirror](images/unreal/round2-parked-cockpit.png)
+
 ### Frame time on the drive (11 November 2026)
 
 RTX 2070 Super Max-Q, 1920x1080 full screen, parked at the Ocean Drive start at 11:00, `-SimCruiseDrivePerf`:

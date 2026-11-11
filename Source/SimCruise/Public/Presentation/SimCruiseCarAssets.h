@@ -44,6 +44,8 @@ struct FSimCruiseBuiltCar
 	FSimCruiseBuiltPart SteeringWheel;
 	bool bHasSteeringWheel = false;
 	FVector HubsCm[4];
+	/** The tyres' loaded radius (cm): the ground is this far under the hubs. */
+	double TyreRadiusCm = 30.0;
 	FVector DriverEyeCm = FVector::ZeroVector;
 	/** Head-lamp beam origins, vehicle frame, cm, left then right (empty when unknown). */
 	TArray<FVector> HeadLampsCm;

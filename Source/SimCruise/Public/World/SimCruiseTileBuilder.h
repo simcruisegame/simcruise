@@ -79,6 +79,16 @@ struct FSimCruisePalmInstance
 	uint8 Variant = 0;
 };
 
+/** A parked car: on the ground at a stall's centre (tile cm), facing the traffic beside it. */
+struct FSimCruiseParkedCar
+{
+	FVector LocationCm = FVector::ZeroVector;
+	float YawDeg = 0.f;
+	/** Stable random bytes for this stall: which car, and which colour. */
+	uint8 Pick = 0;
+	uint8 Colour = 0;
+};
+
 /** Everything one tile needs on the game thread; built off it. */
 struct SIMCRUISE_API FSimCruiseTileBuild
 {
@@ -110,6 +120,9 @@ struct SIMCRUISE_API FSimCruiseTileBuild
 
 	/** Palms to instance on this tile. */
 	TArray<FSimCruisePalmInstance> PalmInstances;
+
+	/** Parked cars in the painted stalls of parking lanes. */
+	TArray<FSimCruiseParkedCar> ParkedCars;
 
 	/** Street-light sources (tile cm, the lamp head's lens centre) for the night light pool. */
 	TArray<FVector> LampPointsCm;

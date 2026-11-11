@@ -306,6 +306,13 @@ void ASimCruiseWorldStreamer::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	TickStreaming(DeltaSeconds);
 	UpdateNightLighting(DeltaSeconds);
+	// Parked cars, three a frame across the tiles.
+	int32 Budget = 3;
+	for (const TPair<FIntPoint, TObjectPtr<ASimCruiseWorldTile>>& Pair : Tiles)
+	{
+		if (Budget <= 0) break;
+		if (Pair.Value) Budget -= Pair.Value->PlaceParkedCars(Budget);
+	}
 }
 
 void ASimCruiseWorldStreamer::UpdateNightLighting(float DeltaSeconds)

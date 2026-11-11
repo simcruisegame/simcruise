@@ -132,6 +132,21 @@ public:
 
 	/** Head-lamp beam origins (centres of the head-lamp lenses), component space, cm, left then right; empty when the model has none. */
 	TArray<FVector> GetHeadLampLocations() const;
+
+	/**
+	 * Repaints the body (Paint surfaces whose colour is a plain base colour, not a texture
+	 * atlas), linear colour; false when the car has no such surface.
+	 */
+	bool SetPaintColor(const FLinearColor& Linear);
+
+	/**
+	 * A parked car's cheaper drawing: no tick, nothing past DrawDistanceCm, no part in
+	 * Lumen's scene (it neither bounces nor blocks the sky's light), and beyond
+	 * GlassNearCm its glass and lenses swap to an opaque copy (dark glossy glass, lenses
+	 * in their colour) instead of two translucent passes each, itself gone past
+	 * GlassFarCm (a window there is a few pixels of the body's colour).
+	 */
+	void SetParked(float GlassNearCm = 2500.f, float GlassFarCm = 8000.f, float DrawDistanceCm = 15000.f);
 	/** Lines describing how the model was fitted (for logs and the turntable report). */
 	const TArray<FString>& GetRigLog() const { return RigLog; }
 
