@@ -48,7 +48,7 @@ const CHARACTERS := {
  "campus":[.45,.10,.05,.25,.15],
  "rural":[.52,.10,.20,.13,.05],
 }
-const RANK := {"motorway":6,"trunk":5,"primary":4,"secondary":3,"tertiary":2,"unclassified":1,"residential":0,"living_street":-1,
+const RANK := {"motorway":6,"trunk":5,"primary":4,"secondary":3,"tertiary":2,"unclassified":1,"residential":0,"minor":0,"living_street":-1,
  "motorway_link":3,"trunk_link":3,"primary_link":2,"secondary_link":2,"tertiary_link":1}
 # OpenMapTiles poi classes, grouped.
 const POI_GROUPS := {
@@ -59,7 +59,7 @@ const POI_GROUPS := {
  "care":["hospital","doctors","pharmacy","dentist","clinic","social_facility","nursing_home"],
  "auto":["fuel","car","car_repair","parking","bus","railway"],
 }
-const DELIVERY_ROADS := ["residential","unclassified","tertiary","living_street","secondary"]
+const DELIVERY_ROADS := ["residential","unclassified","minor","tertiary","living_street","secondary"]
 
 const MAX_BRAKE := 8.          # m/s², hard emergency stop on dry asphalt
 const DELTA := 4.              # IDM acceleration exponent
@@ -67,6 +67,7 @@ const CAR_LENGTH := 4.6
 const TICK := .25              # a quarter of the cars per tick: each car once a second
 const LOOK := 110.             # metres of route planned ahead
 const STOP_LINE := 3.          # stop bar this far before the cross road's near edge (a crosswalk)
+const DEAD_END_SPEED := 2.     # m/s at the end of a road: a three-point turn or a wait
 const YELLOW := 4.
 const ALL_RED := 2.
 const LLM_TIMEOUT := 2.
@@ -190,7 +191,7 @@ static func classify(roads: Dictionary, pois: Dictionary) -> String:
   n += int(pois[c])
   for g in POI_GROUPS:
    if c in POI_GROUPS[g]:groups[g] += int(pois[c])
- var res: float = share.call(["residential","living_street"])
+ var res: float = share.call(["residential","minor","living_street"])
  var major: float = share.call(["primary","secondary","trunk","primary_link","secondary_link","trunk_link"])
  var nf := maxf(float(n), 1.)
  if n < 4 and res < .35:return "rural"
@@ -262,7 +263,11 @@ func plan(car: Dictionary) -> void:
     signal_seen = true                    # only the first signal ahead counts
   if cum - car.s > LOOK:break
   var opts: Array = life.options(k, d)
-  if opts.is_empty():break
+  if opts.is_empty():
+   # The end of the road (a dead end, or the edge of the loaded map): slow to
+   # a crawl there, to turn round or to wait (AmbientLife.dead_end).
+   if turn_at == INF:turn_at = cum;turn_v = DEAD_END_SPEED
+   break
   # Keep the choices already made (a driver does not change their mind every
   # second); choose only beyond them.
   var o: Array = []

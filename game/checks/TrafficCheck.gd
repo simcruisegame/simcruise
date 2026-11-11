@@ -9,13 +9,101 @@ extends SceneTree
 ##  * Signals: the two approaches of a junction are never green together, and
 ##    every approach gets green within one cycle.
 ##  * The rule-based place character and persona mixes are sane.
+##  * The street graph (a two-tile fixture): minor streets are driven, roads join
+##    across a tile seam, and a car keeps its segment through a tile unload
+##    (or drives on along a ghost of it while in view) and through a rebase.
 ##   godot --headless --path game --script res://checks/TrafficCheck.gd
 var failures := []
 const D = preload("res://TrafficDirector.gd")
+const AmbientLife = preload("res://AmbientLife.gd")
 const LENGTH := 4.6
 
 func expect(ok: bool, what: String) -> void:
  if not ok:failures.append(what)
+
+class FakeTile:
+ var segments := []
+ var info := {}
+ var side := 480.
+
+class FakeGame:
+ var tiles := {}
+ var origin := Vector2i.ZERO
+ var side := 480.
+ var pos := Vector2.ZERO
+ func tile_offset(id: Vector2i) -> Vector2:return Vector2(id - origin) * side
+ func tile_id(p: Vector2) -> Vector2i:return origin + Vector2i((p / side).floor())
+
+## The street graph on two tiles in the helper's own format: a tertiary road
+## running east across the seam, a minor street north from a junction on it
+## and a minor dead end south. Checks that minor streets are driven, that the
+## road joins across the seam, and that a car keeps its segment (same key, same
+## place) through an unload of the other tile and through a rebase.
+func graph_fixture() -> void:
+ # Every road class the helper draws is driven except driveways and tracks.
+ var widths := FileAccess.get_file_as_string(ProjectSettings.globalize_path("res://").path_join("../helper/road-widths.mjs"))
+ var block := RegEx.create_from_string("referenceWidths=\\{([^}]*)\\}").search(widths)
+ expect(block != null, "referenceWidths not found in helper/road-widths.mjs")
+ if block:
+  for m in RegEx.create_from_string("(\\w+):").search_all(block.get_string(1)):
+   var c := m.get_string(1)
+   if c in ["service", "track"]:continue
+   expect(c in AmbientLife.DRIVABLE, "helper road class %s is not drivable" % c)
+ var life = AmbientLife.new()
+ var g := FakeGame.new()
+ life.game = g
+ var a := FakeTile.new()
+ a.segments = [
+  [Vector2(0, 240), Vector2(200, 240), "Main", 10., 0, "tertiary"],
+  [Vector2(200, 240), Vector2(480, 240), "Main", 10., 0, "tertiary"],
+  [Vector2(200, 240), Vector2(200, 0), "Elm", 8., 0, "minor"],
+  [Vector2(200, 240), Vector2(200, 400), "Oak", 8., 0, "minor"],
+  [Vector2(300, 240), Vector2(300, 300), "lot", 4.6, 0, "service"],
+ ]
+ var b := FakeTile.new()
+ b.segments = [[Vector2(0, 240), Vector2(300, 240), "Main", 10., 0, "tertiary"]]
+ g.tiles = {Vector2i(0, 0):a, Vector2i(1, 0):b}
+ life.rebuild_graph()
+ expect(life.segs.size() == 5, "graph has %d segments, expected 5 (service is not driven)" % life.segs.size())
+ var main0: int = life.key_index[Vector3i(0, 0, 0)]
+ var opts: Array = life.options(main0, 1)
+ var classes := []
+ for o in opts:classes.append(life.segs[o[0]][4])
+ expect("minor" in classes and "tertiary" in classes, "a tertiary road meeting minor streets offers %s" % [classes])
+ var main1: int = life.key_index[Vector3i(0, 0, 1)]
+ var across: Array = life.options(main1, 1)
+ expect(across.size() == 1 and life.seg_keys[across[0][0]] == Vector3i(1, 0, 0), "the road does not join across the tile seam")
+ expect(AmbientLife.density("primary") > 10. * AmbientLife.density("minor"), "an arterial does not carry far more cars per km than a side street")
+ # A car on the far tile with a route back across the seam, then the near tile unloads.
+ var on_b: int = life.key_index[Vector3i(1, 0, 0)]
+ var car := {"seg":on_b, "dir":-1, "s":50., "route":[[main1, -1], [main0, -1]], "pos":Vector3(680, 0, 240), "held":false, "gone":""}
+ var lone := {"seg":main0, "dir":1, "s":20., "route":[], "pos":Vector3(20, 0, 240), "held":false, "gone":""}
+ life.cars = [car, lone]
+ var before: Array = life.segs[car.seg].duplicate()
+ g.tiles.erase(Vector2i(0, 0))
+ life.rebuild_graph()
+ expect(car.seg >= 0 and life.seg_keys[car.seg] == Vector3i(1, 0, 0) and life.segs[car.seg][0] == before[0], "a car lost its segment when another tile unloaded")
+ expect(car.route.is_empty(), "a route through an unloaded tile was kept")
+ expect(lone.seg < 0 and lone.gone == "tile_unloaded", "an unseen car on an unloaded tile was not retired")
+ # In view, a car on an unloading tile drives on along a ghost of its segment.
+ g.tiles[Vector2i(0, 0)] = a
+ life.rebuild_graph()
+ lone.seg = life.key_index[Vector3i(0, 0, 0)];lone.gone = ""
+ life.views = [[Vector3.ZERO, [], 1e9]]          # everything is in view
+ g.tiles.erase(Vector2i(0, 0))
+ life.rebuild_graph()
+ expect(lone.seg >= life.real_count and life.segs[lone.seg][0] == Vector2(0, 240), "a car in view on an unloading tile did not keep a ghost segment")
+ expect(life.options(lone.seg, -1).is_empty(), "a ghost segment joins the graph")
+ life.views = []
+ # Rebase: the origin moves one tile east; the car keeps its segment, shifted.
+ g.tiles[Vector2i(0, 0)] = a
+ life.rebuild_graph()
+ g.origin += Vector2i(1, 0)
+ life.rebuild_graph()
+ expect(car.seg >= 0 and life.seg_keys[car.seg] == Vector3i(1, 0, 0) and life.segs[car.seg][0] == before[0] - Vector2(480, 0), "a rebase moved a car off its segment")
+ print("TRAFFIC graph %d segments, junction offers %s, seam joins, unload/ghost/rebase keep cars, retired %s" % [life.segs.size(), classes, life.retired])
+ life.director.free()
+ life.free()
 
 ## Follower starts at x 0 with speed v, a stopped car's rear bumper sits at
 ## `at`. Returns [min net gap, final net gap, final speed, peak braking].
@@ -129,6 +217,8 @@ func _initialize() -> void:
  var corner := D.turn_speed(0., 2.6)
  expect(corner > 4. and corner < 6., "right-angle turn speed %.1f m/s" % corner)
  expect(D.turn_speed(.8, 2.6) > 9., "gentle bend too slow")
+
+ graph_fixture()
 
  if failures.is_empty():
   print("TRAFFIC PASS")

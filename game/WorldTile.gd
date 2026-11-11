@@ -974,7 +974,7 @@ func street_details():
     var own=nearest(p,true);if own.size() and own[2]<wide-1.7:continue
     var rnd=absi(hash(Vector3i(info.id[0]+idx,info.id[1]+j,signum)))
     # Detail cars are pooled around the driver. More distant streets use the ground texture.
-    parked.append([p,atan2(t.x,t.y)+(PI if signum<0 and seg[4]==0 else 0),rnd%5])
+    parked.append([p,atan2(t.x,t.y)+(PI if signum<0 and seg[4]==0 else 0),rnd%5,rnd])
 var parked=[]
 
 func collider(shape):

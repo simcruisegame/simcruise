@@ -12,7 +12,18 @@ extends Node3D
 ## a second. Every model part is one MultiMesh, so 32 cars of seven
 ## models cost one draw call per part, not one per car. The few cars near the
 ## player also carry a moving collision box, so they cannot be driven through.
-## The street graph is rebuilt only when the set of loaded tiles changes.
+##
+## Persistence. A car in view never vanishes, teleports or pops in. The street
+## graph is rebuilt the moment the set of loaded tiles changes or the map
+## rebases (Drive.gd calls tiles_changed()), and every segment keeps a stable key
+## (tile id, index in that tile's segments), so each car, its planned route and
+## its signal stop carry straight over to the new graph. A car on a tile that
+## was just unloaded keeps driving on a copy of its segment ("ghost") and is
+## retired once nobody can see it. Cars are spawned only out of view (main
+## camera and, in the cockpit, the rear-view mirror) or beyond 400 m, and
+## despawned only out of view or beyond 600 m. A dead end makes a two-way
+## street's car turn round and a one-way street's car (or one at the edge of
+## the loaded map) wait until it is out of view.
 ##
 ## Birds. Each flock is one MultiMesh whose birds are animated entirely in the
 ## vertex shader, the way a drone light show flies pre-computed paths: every
@@ -28,11 +39,25 @@ extends Node3D
 # because they did not look as good. Utility kinds stand in for delivery vans.
 const CAR_MODELS := []
 const UTILITY_KINDS := ["f150raptor18", "tahoe", "odyssey", "grandcherokee13"]
-const DRIVABLE := ["motorway","trunk","primary","secondary","tertiary","residential","unclassified","living_street","motorway_link","trunk_link","primary_link","secondary_link","tertiary_link"]
-const SPEED := {"motorway":29.,"trunk":25.,"primary":17.,"secondary":15.,"tertiary":13.,"residential":10.,"unclassified":11.,"living_street":5.}
+# "minor" is the OpenMapTiles class of residential and unclassified streets
+# (helper/road-widths.mjs), the most common class in the tiles; "service" and
+# "track" (driveways, parking aisles, farm tracks) are not through routes.
+const DRIVABLE := ["motorway","trunk","primary","secondary","tertiary","minor","residential","unclassified","living_street","motorway_link","trunk_link","primary_link","secondary_link","tertiary_link"]
+const SPEED := {"motorway":29.,"trunk":25.,"primary":17.,"secondary":15.,"tertiary":13.,"minor":11.,"residential":10.,"unclassified":11.,"living_street":5.}
+# Where new cars appear: road length weighted by how many cars a kilometre of
+# that class carries. Traffic density is flow over speed; the flows are typical
+# urban daily volumes by functional class, in vehicles per day (interstate
+# 80 000, other freeway 50 000, principal arterial 25 000, minor arterial
+# 12 000, collector 6 000, local street 700), so a kilometre of arterial holds
+# about twenty times the cars of a kilometre of side street.
+const DAILY_FLOW := {"motorway":80000.,"trunk":50000.,"primary":25000.,"secondary":12000.,"tertiary":6000.,"minor":700.,"residential":700.,"unclassified":700.,"living_street":200.}
+const LINK_FLOW := 8000.
 const SPAWN_MIN := 45.
-const SPAWN_MAX := 260.
-const DESPAWN := 320.
+const SPAWN_MAX := 450.
+const SPAWN_IN_VIEW := 400.          # nearer than this a car may only appear out of view
+const DESPAWN := 320.                # out of view and further than this: retired
+const DESPAWN_HARD := 600.           # further than this: retired even in view
+const DRAW_RANGE := 650.
 const SOLID_RADIUS := 45.
 const FLOCK_COUNT := 3
 
@@ -44,6 +69,15 @@ var parts: Array = []                # per model: [[MultiMesh, Transform3D local
 var model_bounds: Array = []
 var segs: Array = []                 # world-space [a, b, width, oneway, class]
 var ends: Dictionary = {}            # Vector2i(round end) -> [[seg index, end 0/1], ...]
+var seg_keys: Array = []             # per segment: Vector3i(tile x, tile y, index in tile.segments)
+var seg_source: Array = []           # per segment: the tile's own segment array (tile metres)
+var key_index: Dictionary = {}       # Vector3i key -> segment index
+var real_count := 0                  # segments [0, real_count) are loaded; the rest are ghosts
+var spawn_cdf := PackedFloat32Array()
+var next_id := 1
+var retired := {}                    # reason -> count, for checks and the bench
+var u_turns := 0
+var views: Array = []                # [camera position, frustum planes, range] per active view
 var tile_signature := 0
 var graph_clock := 0.
 var rng := RandomNumberGenerator.new()
@@ -62,7 +96,9 @@ func configure(traffic_count: int, bird_count: int) -> void:
  if bird_target > 0 and flocks.is_empty():build_flocks()
  for f in flocks:
   f.node.multimesh.visible_instance_count = mini(f.node.multimesh.instance_count, bird_target / FLOCK_COUNT)
- while cars.size() > traffic_target:cars.pop_back()
+ # Fewer cars wanted (a lower preset): the surplus is retired out of view
+ # by step_traffic, never in front of the player; none at all clears at once.
+ if traffic_target <= 0:cars.clear()
  visible = traffic_target > 0 or bird_target > 0
 
 func _ready() -> void:
@@ -96,7 +132,9 @@ func build_models() -> void:
   var node := MultiMeshInstance3D.new()
   node.multimesh = mm
   node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-  node.visibility_range_end = 400.
+  # Past this a car is retired anyway. The range is measured to the centre of
+  # the box round every car of this model, so it must exceed the furthest car.
+  node.visibility_range_end = DRAW_RANGE
   add_child(node)
   list.append([mm, fit])
   if str(source.get("kind", "")) in UTILITY_KINDS:utility_models.append(parts.size())
@@ -150,14 +188,16 @@ static func merged_mesh(path: String) -> ArrayMesh:
   if mi.mesh == null or not mi.visible:continue
   var local: Transform3D = relative(root, mi)
   for s in mi.mesh.get_surface_count():
-   if merged.get_surface_count() >= 255:break
+   if merged.get_surface_count() >= 255:
+    push_warning("traffic model %s has more than 255 surfaces; the rest are dropped" % path);break
    var st := SurfaceTool.new()
    st.append_from(mi.mesh, s, local)
    var mat: Material = mi.get_surface_override_material(s) if s < mi.get_surface_override_material_count() and mi.get_surface_override_material(s) else mi.mesh.surface_get_material(s)
    st.set_material(mat)
    st.commit(merged)
  root.free()
- if merged.get_surface_count() == 0:return null
+ if merged.get_surface_count() == 0:
+  push_warning("traffic model %s has no visible mesh; it is left out of the fleet" % path);return null
  # Merging drops the importer's detail levels; rebuild them (meshoptimizer via
  # ImporterMesh) so a distant 300k-triangle car costs a few thousand.
  var im := ImporterMesh.new()
@@ -167,7 +207,7 @@ static func merged_mesh(path: String) -> ArrayMesh:
   # add_surface fail with "Invalid array format" and the car vanish).
   var arrays := merged.surface_get_arrays(s)
   for k in [Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2, Mesh.ARRAY_CUSTOM3, Mesh.ARRAY_BONES, Mesh.ARRAY_WEIGHTS]:arrays[k] = null
-  im.add_surface(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, merged.surface_get_material(s))
+  im.add_surface(merged.surface_get_primitive_type(s), arrays, [], {}, merged.surface_get_material(s))
  im.generate_lods(25., 60., [])
  var lodded: ArrayMesh = im.get_mesh()
  merged_cache[path] = lodded
@@ -181,22 +221,126 @@ static func relative(root: Node, node: Node) -> Transform3D:
   n = n.get_parent()
  return t
 
+## Called by Drive.gd whenever a tile is attached or unloaded and after a
+## rebase: the graph follows at once, so no car is ever left on a stale one.
+func tiles_changed() -> void:
+ if game == null:return
+ tile_signature = signature()
+ # Traffic off (headless and QA runs): build the graph when it is turned on.
+ if traffic_target <= 0 or parts.is_empty():
+  tile_signature = 0;return
+ rebuild_graph()
+ director.rebuild_signals()
+
+## A teleport to another place: every car goes (none of them is near the new
+## place), and the graph starts from nothing.
+func reset() -> void:
+ for car in cars:
+  if car.seg >= 0:retire(car, "jump")
+ segs = [];ends = {};seg_keys = [];seg_source = [];key_index = {};real_count = 0
+ spawn_cdf = PackedFloat32Array()
+ tile_signature = 0
+
+## The street graph from the loaded tiles, keeping every car where it is: the
+## old graph's segment keys carry each car's segment and planned route over to
+## the new one. Segment geometry is in tile metres plus the tile's offset, so a
+## rebase is the same rebuild and needs no shifting of its own.
 func rebuild_graph() -> void:
- segs.clear();ends.clear()
+ var old_keys := seg_keys
+ var old_source := seg_source
+ segs = [];ends = {};seg_keys = [];seg_source = [];key_index = {}
+ var weights := PackedFloat32Array()
+ var total := 0.
  for id in game.tiles:
   var tile = game.tiles[id]
   var o: Vector2 = game.tile_offset(id)
-  for seg in tile.segments:
+  var list: Array = tile.segments
+  for i in list.size():
+   var seg: Array = list[i]
    if seg.size() < 6 or not str(seg[5]) in DRIVABLE:continue
    if seg.size() > 6 and seg[6] == "unpaved":continue
-   var a: Vector2 = seg[0] + o;var b: Vector2 = seg[1] + o
-   if a.distance_squared_to(b) < 1.:continue
-   var k := segs.size()
-   segs.append([a, b, float(seg[3]), int(seg[4]) if seg[4] is int or seg[4] is float else (1 if seg[4] else 0), str(seg[5])])
-   for e in 2:
-    var key := Vector2i(((a if e == 0 else b) / 1.5).round())
-    if not ends.has(key):ends[key] = []
-    ends[key].append([k, e])
+   if seg[0].distance_squared_to(seg[1]) < 1.:continue
+   var k := add_segment(seg, o, Vector3i(id.x, id.y, i), true)
+   total += seg_length(k) * density(str(seg[5]))
+   weights.append(total)
+ real_count = segs.size()
+ spawn_cdf = weights
+ for car in cars:
+  if car.seg < 0:continue
+  if car.seg >= old_keys.size():
+   retire(car, "rebuild");continue
+  var key: Vector3i = old_keys[car.seg]
+  var k: int = key_index.get(key, -1)
+  if k < 0:
+   # Its tile was unloaded. Out of sight it simply goes; in sight it drives on
+   # along a copy of its segment and goes once nobody can see it.
+   if not seen(car.pos):
+    retire(car, "tile_unloaded");continue
+   k = add_segment(old_source[car.seg], game.tile_offset(Vector2i(key.x, key.y)), key, false)
+  car.seg = k
+  var route := []
+  for step in car.route:
+   if step[0] >= old_keys.size():break
+   var j: int = key_index.get(old_keys[step[0]], -1)
+   if j < 0 or j >= real_count:break
+   route.append([j, step[1]])
+  car.route = route
+
+## One segment into the graph; joinable segments can be turned onto at their
+## ends, ghosts (segments of unloaded tiles) cannot.
+func add_segment(seg: Array, o: Vector2, key: Vector3i, joinable: bool) -> int:
+ var a: Vector2 = seg[0] + o;var b: Vector2 = seg[1] + o
+ var k := segs.size()
+ segs.append([a, b, float(seg[3]), int(seg[4]) if seg[4] is int or seg[4] is float else (1 if seg[4] else 0), str(seg[5])])
+ seg_keys.append(key);seg_source.append(seg);key_index[key] = k
+ if joinable:
+  for e in 2:
+   var cell := Vector2i(((a if e == 0 else b) / 1.5).round())
+   if not ends.has(cell):ends[cell] = []
+   ends[cell].append([k, e])
+ return k
+
+## Cars per metre of a road class, relative (DAILY_FLOW over the class speed).
+static func density(road_class: String) -> float:
+ var flow: float = DAILY_FLOW.get(road_class, LINK_FLOW if road_class.ends_with("_link") else 700.)
+ return flow / float(SPEED.get(road_class, 12.))
+
+func retire(car: Dictionary, reason: String) -> void:
+ car.seg = -1;car.held = false;car.gone = reason
+ retired[reason] = int(retired.get(reason, 0)) + 1
+
+## The views a car can be seen in this frame: the main camera and, in the
+## cockpit, the rear-view mirror's camera.
+func update_views() -> void:
+ views.clear()
+ var cam = game.get("camera")
+ if cam is Camera3D and cam.is_inside_tree():
+  views.append([cam.global_position, cam.get_frustum(), minf(cam.far, DRAW_RANGE)])
+ var cockpit = game.get("cockpit")
+ if cockpit != null and cockpit.visible and cockpit.rear_camera is Camera3D and cockpit.rear_camera.is_inside_tree():
+  var rc: Camera3D = cockpit.rear_camera
+  views.append([rc.global_position, rc.get_frustum(), rc.far])
+
+## Whether a car at p (its ground point) shows in any view. A car whose centre
+## is just outside the frame still pokes into it, so the frame is widened by
+## 3 m; buildings are not considered, so a car behind one counts as seen.
+func seen(p: Vector3) -> bool:
+ var probe := p + Vector3.UP * .8
+ for v in views:
+  if probe.distance_to(v[0]) > float(v[2]) + 3.:continue
+  var inside := true
+  for plane in v[1]:
+   if plane.distance_to(probe) > 3.:
+    inside = false;break
+  if inside:return true
+ return false
+
+## Whether a road end at p is the edge of the loaded map rather than a real
+## dead end: the road may well go on in a tile that is not loaded.
+func at_map_edge(p: Vector2) -> bool:
+ for d in [Vector2.ZERO, Vector2(4, 0), Vector2(-4, 0), Vector2(0, 4), Vector2(0, -4)]:
+  if not game.tiles.has(game.tile_id(p + d)):return true
+ return false
 
 func signature() -> int:
  var h := 17
@@ -244,19 +388,27 @@ func next_segment(car: Dictionary) -> Array:
   car.route.clear()
  return director.choose(car, opts)
 
+## A new car somewhere on the loaded roads, picked by road length times the
+## class's traffic density, never where it could be seen appearing.
 func spawn(car: Dictionary) -> bool:
+ if real_count == 0 or spawn_cdf.is_empty():return false
  var player: Vector2 = game.pos
- var look := Vector2(-sin(game.yaw), -cos(game.yaw))
+ var total: float = spawn_cdf[spawn_cdf.size() - 1]
  for attempt in 24:
-  var k := rng.randi() % segs.size()
+  var k := mini(spawn_cdf.bsearch(rng.randf() * total), real_count - 1)
   var s: Array = segs[k]
   var t := rng.randf()
   var p: Vector2 = s[0].lerp(s[1], t)
   var d := p.distance_to(player)
   if d < SPAWN_MIN or d > SPAWN_MAX:continue
-  # Do not appear in plain view close ahead: pop-in is the one thing people notice.
-  if d < 140. and (p - player).normalized().dot(look) > .3:continue
+  # Pop-in is the one thing people notice: in view a car may appear only
+  # beyond SPAWN_IN_VIEW (the mirror counts as a view); out of view it appears
+  # within the despawn range, or it would be retired again at once.
+  if seen(Vector3(p.x, game.ground(p), p.y)):
+   if d < SPAWN_IN_VIEW:continue
+  elif d > DESPAWN - 20.:continue
   var dir: int = s[3] if s[3] != 0 else (1 if rng.randf() < .5 else -1)
+  car.id = next_id;next_id += 1;car.gone = "";car.held = false;car.snap = Vector2.ZERO
   car.seg = k;car.dir = dir;car.s = t * s[0].distance_to(s[1]) if dir > 0 else (1. - t) * s[0].distance_to(s[1])
   director.assign(car, SPEED.get(s[4], 12.))
   car.speed = car.cruise * .7                    # appears already moving with the traffic
@@ -282,20 +434,25 @@ func lane_point(car: Dictionary) -> Array:
 
 func step_traffic(dt: float) -> void:
  if game.tiles.is_empty():return
+ update_views()
  graph_clock -= dt
  if graph_clock <= 0.:
   graph_clock = 1.
-  var sig := signature()
-  if sig != tile_signature:
-   tile_signature = sig;rebuild_graph();director.rebuild_signals()
-   for car in cars:car.seg = -1             # positions are stale after a rebase or reload
+  # A safety net only: Drive.gd calls tiles_changed() on every attach, unload
+  # and rebase, and the rebuild keeps every car where it is.
+  if signature() != tile_signature:tiles_changed()
  if segs.is_empty():
   for list in parts:
    for part in list:part[0].visible_instance_count = 0
   return
  while cars.size() < traffic_target:
   var m := cars.size() % parts.size()
-  cars.append({"seg":-1,"dir":1,"s":0.,"speed":0.,"cruise":12.,"model":m,"base_model":m,"pos":Vector3.ZERO,"fwd":Vector2.UP,"route":[],"hy":[]})
+  cars.append({"seg":-1,"dir":1,"s":0.,"speed":0.,"cruise":12.,"model":m,"base_model":m,"pos":Vector3.ZERO,"fwd":Vector2.UP,"route":[],"hy":[],"id":0,"gone":"","held":false,"snap":Vector2.ZERO})
+ # Fewer cars wanted: the surplus leaves only where nobody sees it go.
+ var i_surplus := cars.size() - 1
+ while cars.size() > traffic_target and i_surplus >= 0:
+  if cars[i_surplus].seg < 0 or not seen(cars[i_surplus].pos):cars.remove_at(i_surplus)
+  i_surplus -= 1
  director.step(dt)
  var now: float = director.now
  var player := Vector3(game.pos.x, 0., game.pos.y)
@@ -305,7 +462,7 @@ func step_traffic(dt: float) -> void:
    if spawn(car):
     car.hy = []
     var l0 := lane_point(car)
-    car.pos = Vector3(l0[0].x, height(car, l0[0], l0), l0[0].y);car.fwd = l0[1]
+    car.pos = Vector3(l0[0].x, height(car, l0[0], l0, INF), l0[0].y);car.fwd = l0[1]
  # A snapshot of every car at the start of the step, in packed arrays: the
  # all-pairs leader search reads these instead of dictionaries.
  var n := cars.size()
@@ -377,39 +534,72 @@ func step_traffic(dt: float) -> void:
   car.lat = move_toward(car.lat, lat_goal, dt * .7)
   lane = lane_point(car)
   var guard := 0
+  var from: Vector2 = lane[0]
   while car.s > lane[2] and guard < 4:
    guard += 1
    var nxt := next_segment(car)
    if nxt.is_empty():
-    car.seg = -1;break                          # dead end or the edge of the loaded map
+    dead_end(car, lane)
+    lane = lane_point(car)
+    break
    var l: float = lane[2]
-   car.s -= l;car.seg = nxt[0];car.dir = nxt[1]
+   car.s -= l;car.seg = nxt[0];car.dir = nxt[1];car.held = false
    car.turn_at -= l;car.stop_at -= l;car.park_at -= l
    car.cruise = SPEED.get(segs[car.seg][4], 12.) * float(drv.speed)
    car.hy = []
    lane = lane_point(car)
-  if car.seg < 0:continue
-  var p2: Vector2 = lane[0]
+  # Segments meet only roughly (ends within 2.5 m, lane offsets by width):
+  # the step at a change of segment is taken up over the next second or so,
+  # never shown as a jump.
+  if guard > 0:car.snap += from - Vector2(lane[0])
+  car.snap *= exp(-dt * 2.5)
+  if car.snap.length_squared() < 1e-4:car.snap = Vector2.ZERO
+  var p2: Vector2 = lane[0] + car.snap
   var target_fwd: Vector2 = lane[1]
   car.fwd = car.fwd.slerp(target_fwd, minf(1., dt * 4.)) if car.fwd.length_squared() > .5 else target_fwd
-  car.pos = Vector3(p2.x, height(car, p2, lane), p2.y)
-  if Vector2(car.pos.x - player.x, car.pos.z - player.z).length() > DESPAWN:car.seg = -1
+  car.pos = Vector3(p2.x, height(car, lane[0], lane, car.pos.y), p2.y)
+  # Leave only unseen: far away, waiting at the end of the road, or on a
+  # segment whose tile has been unloaded. Very far cars go regardless.
+  var d := Vector2(car.pos.x - player.x, car.pos.z - player.z).length()
+  if d > DESPAWN_HARD:retire(car, "far")
+  elif (d > DESPAWN or car.held or car.seg >= real_count) and not seen(car.pos):
+   retire(car, "far" if d > DESPAWN else ("dead_end" if car.held else "tile_unloaded"))
  publish()
+
+## The end of the road with no way on. A two-way street's driver turns round
+## (the same spot on the road, now facing back; the drift back to its own lane
+## is the turn). On a one-way street, a ghost segment or at the edge of the
+## loaded map the car waits at the end; it moves on if the road ahead loads,
+## and step_traffic retires it once it is out of view.
+func dead_end(car: Dictionary, lane: Array) -> void:
+ var s: Array = segs[car.seg]
+ var end: Vector2 = s[1] if car.dir > 0 else s[0]
+ if s[3] == 0 and car.seg < real_count and not at_map_edge(end):
+  var over: float = car.s - float(lane[2])
+  car.dir = -car.dir;car.s = maxf(0., over);u_turns += 1
+  car.lat = -2. * float(s[2]) * .25 - car.lat
+  car.route = [];car.turn_at = INF;car.stop_at = INF;car.park_at = INF
+  car.speed = minf(car.speed, 3.)
+  car.hy = []
+  return
+ car.s = lane[2];car.speed = 0.;car.held = true
 
 ## Road height under a car. game.surface() follows the road ribbon and costs
 ## tens of microseconds, so it is sampled every HEIGHT_STEP metres along the
 ## lane and interpolated in between (the ribbon is smooth at that scale).
+## near_y is the car's height a frame ago: under a bridge it keeps the car on
+## the road below rather than lifting it onto the deck (Drive.surface).
 const HEIGHT_STEP := 6.
-func height(car: Dictionary, p: Vector2, lane: Array) -> float:
+func height(car: Dictionary, p: Vector2, lane: Array, near_y: float) -> float:
  var hy: Array = car.hy
  if hy.size() == 4 and car.s >= hy[0] and car.s <= hy[2]:
   return lerpf(hy[1], hy[3], (car.s - hy[0]) / maxf(hy[2] - hy[0], .001))
- var y0: float = game.surface(p)
+ var y0: float = game.surface(p, near_y)
  var s1: float = minf(car.s + HEIGHT_STEP, lane[2])
  if s1 - car.s < .5:
   car.hy = [];return y0
  var p1: Vector2 = p + lane[1] * (s1 - car.s)
- car.hy = [car.s, y0, s1, game.surface(p1)]
+ car.hy = [car.s, y0, s1, game.surface(p1, y0)]
  return y0
 
 func publish() -> void:
@@ -529,3 +719,7 @@ func rebase(offset: Vector3) -> void:
  for car in cars:car.pos -= offset
  for f in flocks:
   if f.center.is_finite():f.center -= offset;f.goal -= offset
+ # The camera moved with the map (Drive.rebase); the graph follows the new
+ # origin with every car on the same segment.
+ update_views()
+ tiles_changed()

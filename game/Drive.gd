@@ -455,6 +455,7 @@ func finish_job(result):
     jump={};hud.open_search();hud.results(HUD.preset_places(),"Could not verify a nearby matching road. Try another street, coordinates, or Surprise me.")
    return
   for old in tiles.values():remove_child(old);old.queue_free()
+  ambient_life.reset() # a new place: none of the old traffic belongs there
   tiles.clear();failures.clear();side=jump.side;origin=id;current_title=jump.title;distance=0;last_probe=Vector2(INF,INF);attach(id,t);move_to_road(nearest,Vector2.ZERO)
   if not recent_user_choice:recent_mode=t.info.get("live_canopy",false)
   jump={};start_chain=[];start_launch=false;ready_drive=true;hud.place.text=current_title;camera_snap=true
@@ -468,6 +469,7 @@ func attach(id,t):
  var entry=recent_cache.get(recent_key(id),{})
  if recent_mode and entry.has("texture"):t.apply_recent(entry.texture,entry.get("soil"))
  street_detail.apply_tile(id,t,side)
+ ambient_life.tiles_changed() # the traffic graph grows at once, with every car kept where it is
 func stream():
  if job:
   if job.is_alive():return
@@ -491,9 +493,11 @@ func stream():
    var predicted=pos+Vector2(vehicle.linear_velocity.x,vehicle.linear_velocity.z)*5.
    var score=gap*.4+predicted.distance_to(predicted.clamp(o,o+Vector2.ONE*side))*.6
    if gap<minf(400,side*.94) and score<best:next=id;best=score
+ var unloaded=false
  for id in tiles.keys():
   if absi(id.x-center.x)>1 or absi(id.y-center.y)>1:
-   var old=tiles[id];tiles.erase(id);remove_child(old);old.queue_free()
+   var old=tiles[id];tiles.erase(id);remove_child(old);old.queue_free();unloaded=true
+ if unloaded:ambient_life.tiles_changed() # traffic on the unloaded tiles goes only out of view
  if next!=null:launch({"kind":"tile","id":next,"side":side})
 func ground(p:Vector2):
  var id=tile_id(p)
@@ -772,29 +776,53 @@ func _process(dt):
    var buffer=engine_voice.render(available,vehicle.rpm,vehicle.sound_combustion,vehicle.sound_shaft_load,vehicle.stalled,view==1,vehicle.sound_throttle)
    engine_stream.push_buffer(buffer)
 
+# Parked cars: the nearest spots (WorldTile.parked: [point, yaw, rnd % 5, rnd])
+# get a car from the pooled props. A spot keeps its prop for as long as it
+# stays in range, and its model is a function of the spot alone (its hash picks
+# a fleet row; rnd % 5 == 0 is a pickup or van), so a parked car never changes
+# model or jumps to another spot while the player drives past.
+const PARK_RADIUS:=115.
+var parked_slots={}  # Vector3i(tile x, tile y, spot index) -> prop index
 func update_parked():
  var nearby=[]
  for id in tiles:
   var tile=tiles[id];var o=tile_offset(id)
-  for car in tile.parked:
+  for i in tile.parked.size():
+   var car=tile.parked[i];var key=Vector3i(id.x,id.y,i)
    var p=car[0]+o;var dd=p.distance_squared_to(pos)
-   if dd<115*115:nearby.append([dd,p,car[1],car[2]])
+   # A spot already shown keeps its car a little further out, so one on the edge does not flicker.
+   var reach=PARK_RADIUS+(10. if parked_slots.has(key) else 0.)
+   if dd<reach*reach:nearby.append([dd,p,car,key])
  nearby.sort_custom(func(a,b):return a[0]<b[0])
- # Assign fixed variants by coordinate so passing cars do not change model with distance.
- var used={}
- for candidate in nearby:
-  var want_pickup=candidate[3]==0
-  for i in traffic.size():
-   if used.has(i) or (i%5==0)!=want_pickup:continue
-   var node=traffic[i];var p=candidate[1];node.position=Vector3(p.x,ground(p)+.015,p.y);node.rotation.y=candidate[2];node.show();node.collision_layer=1;used[i]=true;break
-  if used.size()==traffic.size():break
+ var wanted={}
+ for candidate in nearby.slice(0,traffic.size()):wanted[candidate[3]]=true
+ var free=[]
+ for key in parked_slots.keys():
+  if not wanted.has(key):
+   var gone=traffic[parked_slots[key]];gone.hide();gone.collision_layer=0;parked_slots.erase(key)
+ var taken={}
+ for key in parked_slots:taken[parked_slots[key]]=true
  for i in traffic.size():
-  if not used.has(i):traffic[i].hide();traffic[i].collision_layer=0
+  if not taken.has(i):free.append(i)
+ var rows:Array=preload("res://AmbientLife.gd").fleet()
+ for candidate in nearby:
+  var key=candidate[3]
+  if parked_slots.has(key) or not wanted.has(key) or free.is_empty():continue
+  var spot=candidate[2];var node=traffic[free.pop_front()];var p=candidate[1]
+  if not rows.is_empty():
+   var rnd=int(spot[3]) if spot.size()>3 else absi(hash(key))
+   var pool=rows.filter(func(r):return r[2]==(spot[2]==0))
+   if pool.is_empty():pool=rows
+   var row=pool[(rnd/5)%pool.size()];var look=node.get_child(0);look.mesh=row[0];look.transform=row[1]
+  node.position=Vector3(p.x,ground(p)+.015,p.y);node.rotation.y=spot[1];node.show();node.collision_layer=1
+  parked_slots[key]=traffic.find(node)
 
 # Keep native physics coordinates small even on a long road trip.
 func rebase(delta:Vector2i):
  var off=Vector2(delta)*side;var v=Vector3(off.x,0,off.y)
- origin+=delta;pos-=off;vehicle.position-=v;camera.position-=v;probe.position-=v;last_probe-=off;ambient_life.rebase(v)
+ origin+=delta;pos-=off;vehicle.position-=v;camera.position-=v;probe.position-=v;last_probe-=off
+ if cockpit.rear_camera:cockpit.rear_camera.global_position-=v
+ ambient_life.rebase(v) # after the origin and cameras moved: traffic keeps every car on its segment
  vehicle.reset_physics_interpolation()
  for tile in tiles.values():tile.position-=v
  for car in traffic:car.position-=v
