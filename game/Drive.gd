@@ -83,7 +83,12 @@ var fps_label=Label.new()
 var engine=AudioStreamPlayer.new()
 var engine_stream
 var engine_voice
+var engine_feed=preload("res://AudioFeed.gd").new()
 var sound_enabled=false
+var road_noise
+# Pad rumble and the tyre audio's slip (Haptics.gd); built once the car is known.
+var haptics
+var window_focused=true
 var pitch_angle=0.0
 var current_title="Finding a road…"
 var start_mode=""       # "random" or "bundled"; empty: plan_start() reads the command line
@@ -251,7 +256,8 @@ func _ready():
  # Cockpit mix: RoadNoise creates the Engine / Road / Wind → Cabin → Master buses in
  # code (levels documented in RoadNoise.gd) and renders the tyre, wind and rumble
  # layers itself. Sound follows the remembered preference and defaults to on.
- var road_noise=preload("res://RoadNoise.gd").new();road_noise.name="RoadNoise";road_noise.game=self;add_child(road_noise)
+ haptics=preload("res://Haptics.gd").new(vehicle.spec)
+ road_noise=preload("res://RoadNoise.gd").new();road_noise.name="RoadNoise";road_noise.game=self;add_child(road_noise)
  engine.bus="Engine";engine.volume_db=road_noise.ENGINE_TRIM_DB
  if driving_preferences.values.sound:toggle_sound()
  # After switching cars the scene reloads where the player was.
@@ -279,6 +285,7 @@ func _ready():
  if "--profile-trees" in OS.get_cmdline_user_args():add_child(preload("res://checks/RenderCost.gd").new())
  if "--preference-check" in OS.get_cmdline_user_args():add_child(preload("res://checks/PreferenceCheck.gd").new())
  if "--road-test" in OS.get_cmdline_user_args():add_child(preload("res://checks/DriveCheck.gd").new())
+ if "--feel-stats" in OS.get_cmdline_user_args():add_child(preload("res://checks/FeelStats.gd").new())
  if "--screenshots" in OS.get_cmdline_user_args():add_child(preload("res://checks/Screenshots.gd").new())
  if "--car-showcase" in OS.get_cmdline_user_args():add_child(preload("res://checks/CarShowcase.gd").new())
  if "--quality-bench" in OS.get_cmdline_user_args():add_child(preload("res://checks/QualityBench.gd").new())
@@ -292,6 +299,7 @@ func request_game_close(code:int=0):
  closing=true
  close_code=code
  vehicle.freeze=true
+ if haptics:haptics.quiet()
  if hud:
   hud.atlas_map.close_map()
   hud.message("Closing SimCruise…")
@@ -301,7 +309,15 @@ func close_when_idle():
  for thread in pending:
   if thread and thread.is_alive():return
  get_tree().quit(close_code)
+# No rumble while another window has the focus.
+func _notification(what):
+ if what==NOTIFICATION_APPLICATION_FOCUS_OUT:
+  window_focused=false
+  if haptics:haptics.stop()
+ elif what==NOTIFICATION_APPLICATION_FOCUS_IN:window_focused=true
 func _exit_tree():
+ # XInput keeps a motor spinning after the game exits unless it is told to stop.
+ if haptics:haptics.quiet()
  archive_weather.shutdown()
  forest_stream.shutdown()
  road_banks.shutdown()
@@ -552,7 +568,7 @@ func toggle_sound():
   # Headless checks keep the mixer idle: the dummy audio driver never releases a
   # playing generator before quit, which the exit leak checker then reports.
   # The electric car has no combustion sound (a motor voice is future work).
-  if DisplayServer.get_name()!="headless" and not vehicle.electric():engine.play();engine_stream=engine.get_stream_playback()
+  if DisplayServer.get_name()!="headless" and not vehicle.electric():engine.play();engine_stream=engine.get_stream_playback();engine_feed.reset()
  else:
   engine.stop();engine_stream=null;engine_voice=null
 func _input(e):
@@ -642,7 +658,7 @@ func _physics_process(dt):
  if closing:return
  if not ready_drive:return
  if not jump.is_empty() or hud.modal.visible or hud.atlas_map.visible:
-  vehicle.freeze=true;return
+  vehicle.freeze=true;haptics.quiet();return
  var delta=Vector2i((pos/side).floor())
  if maxi(absi(delta.x),absi(delta.y))>=6:rebase(delta)
  var actual=Vector2(vehicle.position.x,vehicle.position.z);var id=tile_id(actual)
@@ -654,7 +670,7 @@ func _physics_process(dt):
    waiting_linear=vehicle.linear_velocity
    waiting_angular=vehicle.angular_velocity
   waiting_tile=required
-  vehicle.freeze=true
+  vehicle.freeze=true;haptics.quiet()
   if msg_time<=0:say("Loading the road ahead…",1)
   return
  vehicle.freeze=false
@@ -679,6 +695,10 @@ func _physics_process(dt):
   vehicle.road_profile_rate[i]=clampf((bump-vehicle.road_profile[i])/dt,-.6,.6)
   vehicle.road_profile[i]=bump
  velocity=vehicle.drive(dt,gas,brake,steer,Input.is_action_pressed("handbrake"),using_thumbstick);steering=vehicle.steering_input
+ # Pad rumble reads the tyres after the force substeps; it adds no force.
+ haptics.sample(vehicle,road_noise.roughness,dt)
+ if driving_preferences.values.rumble and window_focused:haptics.send(driving_preferences.values.rumble_strength,dt)
+ else:haptics.stop()
  distance+=minf(3,pos.distance_to(actual));pos=actual;yaw=vehicle.rotation.y
  var forward=-vehicle.global_transform.basis.z;yaw=atan2(-forward.x,-forward.z)
  if vehicle.position.y<ground(pos)-3:recover();return
@@ -767,7 +787,7 @@ func _process(dt):
   hud.update_drive_hint()
   fps_label.text="%d FPS    %d active tiles    %d map requests    %s    %s"%[Engine.get_frames_per_second(),tiles.size(),calls,graphics.label(),car_wear.label()];timer=0
  if sound_enabled and engine_stream:
-  var available=engine_stream.get_frames_available()
+  var available=engine_feed.frames_to_push(engine_stream)
   if available>0:
    var buffer=engine_voice.render(available,vehicle.rpm,vehicle.sound_combustion,vehicle.sound_shaft_load,vehicle.stalled,view==1,vehicle.sound_throttle)
    engine_stream.push_buffer(buffer)

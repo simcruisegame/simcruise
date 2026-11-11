@@ -48,6 +48,8 @@ var moving=false
 var hud_button
 var sound_pref_button
 var motion_slider:HSlider
+var rumble_button
+var rumble_slider:HSlider
 var place=Label.new()
 var speed=Label.new()
 var gear=Label.new()
@@ -138,9 +140,25 @@ func build_settings(g):
  motion_slider.tooltip_text="Driver view: 0 welds the camera to the chassis, 1 is the full head model"
  motion_slider.value=g.driving_preferences.values.head_motion;g.cockpit.head_motion=motion_slider.value
  motion_slider.value_changed.connect(set_head_motion);motion.add_child(motion_slider)
+ # Controller rumble (Haptics.gd): on or off, and the strength of both motors.
+ var rumble=HBoxContainer.new();rumble.add_theme_constant_override("separation",8);settings.add_child(rumble)
+ rumble_button=button("",toggle_rumble);rumble_button.tooltip_text="Xbox controller rumble from tyre slip, ABS, kerbs and the engine";rumble.add_child(rumble_button)
+ rumble_slider=HSlider.new();rumble_slider.min_value=0;rumble_slider.max_value=1;rumble_slider.step=.05;rumble_slider.custom_minimum_size=Vector2(110,0);rumble_slider.focus_mode=Control.FOCUS_NONE;rumble_slider.size_flags_vertical=Control.SIZE_SHRINK_CENTER
+ rumble_slider.tooltip_text="Rumble strength"
+ rumble_slider.value=g.driving_preferences.values.rumble_strength
+ rumble_slider.value_changed.connect(set_rumble_strength);rumble.add_child(rumble_slider)
+ show_rumble()
 func set_head_motion(value:float):
  game.cockpit.head_motion=value
  game.driving_preferences.remember("head_motion",float(value))
+func toggle_rumble():
+ game.driving_preferences.remember("rumble",not game.driving_preferences.values.rumble)
+ show_rumble()
+func set_rumble_strength(value:float):
+ game.driving_preferences.remember("rumble_strength",float(value))
+func show_rumble():
+ var on:bool=game.driving_preferences.values.rumble
+ rumble_button.text="Rumble · "+("On" if on else "Off");rumble_slider.editable=on
 func set_level(new_level:int,announce:=true):
  level=clampi(new_level,OFF,FULL);clean_view=level!=FULL
  var full=level==FULL

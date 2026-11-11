@@ -8,6 +8,8 @@ extends RefCounted
 #   manual, street_photos, spectral_ground, sound : bool
 #   hud_level   : int   0 Off · 1 Glance · 2 Full (Hud.gd)
 #   head_motion : float 0..1 scale of the driver head model (Cockpit.gd)
+#   rumble      : bool  Xbox controller rumble from the tyres, ABS and road (Haptics.gd)
+#   rumble_strength : float 0..1 scale of both rumble motors
 # SIMCRUISE_QA_PREFS_DIR points a headless check at an isolated directory, so no
 # check ever reads or writes the player's own records.
 #   car         : String id of a file in res://cars (CarSpec.gd)
@@ -16,7 +18,7 @@ extends RefCounted
 #   car_dirt    : float 0..1 road grime on the car (CarWear.gd)
 #   view_cm     : float  eye-to-screen distance for the "screen" lens
 #   quality     : String "auto", "low", "medium", "high" or "ultra" (GraphicsQuality.gd)
-const DEFAULTS := {"manual":false,"street_photos":true,"spectral_ground":false,"sound":true,"hud_level":1,"head_motion":1.0,"car":"nb1999","resume_place":"","quality":"auto","lens":"natural","view_cm":60.0,"car_dirt":0.15}
+const DEFAULTS := {"manual":false,"street_photos":true,"spectral_ground":false,"sound":true,"hud_level":1,"head_motion":1.0,"car":"nb1999","resume_place":"","quality":"auto","lens":"natural","view_cm":60.0,"car_dirt":0.15,"rumble":true,"rumble_strength":1.0}
 const QA_FLAGS := ["--car-audit","--bethel-facade-ab","--survey-stops","--seam-check","--pad-steering","--building-check","--street-check","--reference","--us-check","--field-check","--profile-trees","--road-test","--car-turntable"]
 var values := DEFAULTS.duplicate()
 var directory := ""
@@ -48,6 +50,7 @@ static func coerce(name: String, value):
   "head_motion":return clampf(value,0.,1.)
   "view_cm":return clampf(value,20.,300.)
   "car_dirt":return clampf(value,0.,1.)
+  "rumble_strength":return clampf(value,0.,1.)
  return value
 
 func remember(name: String, value) -> void:

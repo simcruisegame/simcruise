@@ -2,9 +2,9 @@ extends SceneTree
 ## Headless integration check for the cockpit stream. Loads the real Drive
 ## scene offline (no map helper) in the bundled Miami Beach start, then
 ## exercises the HUD levels (F2), the sound toggle (M), the audio bus tree and
-## cabin filter, the head-motion slider, the legend timeout and the driver
-## camera, writing every preference into SIMCRUISE_QA_PREFS_DIR. Prints once,
-## then closes the game.
+## cabin filter, the head-motion slider, the rumble toggle and strength, the
+## legend timeout and the driver camera, writing every preference into
+## SIMCRUISE_QA_PREFS_DIR. Prints once, then closes the game.
 ##   SIMCRUISE_QA_PREFS_DIR=/tmp/x godot --headless --path game --script res://checks/HudLevelCheck.gd
 var game
 var failures := []
@@ -89,6 +89,15 @@ func _process(dt):
    expect(game.sound_enabled and game.engine.playing == (DisplayServer.get_name() != "headless") and saved("sound") == true,"M did not restore the sound")
    hud.motion_slider.value = .5
    expect(is_equal_approx(game.cockpit.head_motion,.5) and is_equal_approx(float(saved("head_motion")),.5),"head motion slider did not reach the cockpit and the record")
+   # Controller rumble: on at full strength by default; the button and slider are remembered.
+   expect(game.driving_preferences.values.rumble == true and hud.rumble_slider.value == 1.0 and hud.rumble_button.text == "Rumble · On","rumble is not on at full strength by default")
+   expect(game.haptics != null and game.haptics.lateral_peak > 0.,"the game has no Haptics for its car")
+   hud.rumble_slider.value = .4
+   expect(is_equal_approx(float(saved("rumble_strength")),.4),"rumble strength slider was not remembered")
+   hud.rumble_button.pressed.emit()
+   expect(saved("rumble") == false and hud.rumble_button.text == "Rumble · Off" and not hud.rumble_slider.editable,"rumble off was not remembered")
+   hud.rumble_button.pressed.emit()
+   expect(saved("rumble") == true and hud.rumble_slider.editable,"rumble on was not remembered")
    hud.legend_time = 0.;hud.legend.visible = false
    key(KEY_C);advance()
   6:

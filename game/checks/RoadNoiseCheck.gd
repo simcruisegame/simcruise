@@ -39,6 +39,71 @@ func report(name: String, stats: Dictionary) -> Dictionary:
  if stats.peak >= .95:failures.append(name+": peak %.3f leaves no headroom"%stats.peak)
  return stats
 
+func db(rms: float) -> float:
+ return 20.*log(maxf(rms,1e-9))/log(10.)
+
+# Four tyres at the same normalised slip s, static load and sliding speed.
+func tyres(s: float, slide: float, load := 1.) -> PackedFloat32Array:
+ var out := PackedFloat32Array()
+ for i in 4:out.append_array([s,load,slide])
+ return out
+
+# The tyre layer alone, silent stretches as zeros.
+func tyre_render(noise, n: int, packed: PackedFloat32Array, paved := 1.) -> PackedVector2Array:
+ var out: PackedVector2Array = noise.render_tyres(n,packed,paved)
+ if out.size() == n:return out
+ out = PackedVector2Array();out.resize(n)
+ return out
+
+# Strongest frequency (Hz, 25 Hz steps from 100 to 4000) of the left channel, by Goertzel.
+func spectral_peak(samples: PackedVector2Array) -> float:
+ var best := 0.;var best_hz := 0.
+ var hz := 100.
+ while hz <= 4000.:
+  var w := TAU*hz/22050.;var c := 2.*cos(w);var s1 := 0.;var s2 := 0.
+  for x in samples:
+   var s0: float = x.x+c*s1-s2;s2 = s1;s1 = s0
+  var power := s1*s1+s2*s2-c*s1*s2
+  if power > best:best = power;best_hz = hz
+  hz += 25.
+ return best_hz
+
+## Tyre scrub and squeal (RoadNoise.render_tyres) from the normalised slip of
+## Haptics.gd: silent below the scrub onset, at least −22 dBFS just past the
+## plateau, a spectral peak in the 600-1600 Hz squeal band while sliding,
+## louder as slip grows, silent off pavement, and render_road unchanged
+## sample for sample when no tyre slips.
+func tyre_layer() -> void:
+ var noise = preload("res://RoadNoise.gd").new()
+ var levels := []
+ for s in [.5,.8,1.,1.1,1.5,2.]:
+  var stats := measure(func(n):return tyre_render(noise,n,tyres(s,3.+6.*maxf(s-1.,0.))))
+  report("tyres s %.1f"%s,stats);levels.append(stats.rms)
+ if db(levels[0]) >= -40.:failures.append("tyre layer audible at s 0.5 (%.1f dBFS)"%db(levels[0]))
+ if db(levels[3]) < -22.:failures.append("tyre layer only %.1f dBFS at s 1.1 (want ≥ −22)"%db(levels[3]))
+ for i in range(1,levels.size()):
+  if levels[i] < levels[i-1]*.97:failures.append("tyre layer quieter at a larger slip (%.1f → %.1f dBFS)"%[db(levels[i-1]),db(levels[i])])
+ var sliding := tyre_render(noise,8192,tyres(1.5,8.))
+ sliding = tyre_render(noise,8192,tyres(1.5,8.))
+ var peak_hz := spectral_peak(sliding)
+ print("ROADNOISE tyre squeal spectral peak %.0f Hz at s 1.5, 8 m/s sliding"%peak_hz)
+ if peak_hz < 600. or peak_hz > 1600.:failures.append("squeal peak %.0f Hz outside 600-1600 Hz"%peak_hz)
+ var gravel = preload("res://RoadNoise.gd").new()
+ var loose := measure(func(n):return gravel.render_road(n,20.,.76,.2,1.,tyres(2.,8.)))
+ var plain = preload("res://RoadNoise.gd").new()
+ var bare := measure(func(n):return plain.render_road(n,20.,.76,.2))
+ if absf(loose.rms-bare.rms) > 1e-6:failures.append("tyre layer sounds on gravel (%.4f vs %.4f rms)"%[loose.rms,bare.rms])
+ # No slip: the road layer is sample for sample what it was before.
+ var with_tyres = preload("res://RoadNoise.gd").new();var without = preload("res://RoadNoise.gd").new()
+ var same := true
+ for chunk in 12:
+  var a: PackedVector2Array = with_tyres.render_road(368,30.,1.,.1,1.,tyres(.3,1.))
+  var b: PackedVector2Array = without.render_road(368,30.,1.,.1)
+  if a != b:same = false
+ if not same:failures.append("render_road changed with the tyres below the scrub onset")
+ report("road asphalt 45 m/s tyres s 3",measure(func(n):return noise.render_road(n,45.,1.,1.,1.,tyres(3.,20.,2.))))
+ for node in [noise,gravel,plain,with_tyres,without]:node.free()
+
 func _initialize():
  var noise = preload("res://RoadNoise.gd").new()
  var asphalt := []
@@ -48,6 +113,7 @@ func _initialize():
  report("road verge 20 m/s rough",measure(func(n):return noise.render_road(n,20.,.65,.6)))
  report("road verge 45 m/s bump 1",measure(func(n):return noise.render_road(n,45.,.65,1.)))
  report("road airborne 30 m/s",measure(func(n):return noise.render_road(n,30.,1.,0.,0.)))
+ tyre_layer()
  var gusts := []
  for speed in [0.,15.,30.,45.]:
   gusts.append(report("wind %2d m/s"%int(speed),measure(func(n):return noise.render_wind(n,speed))).rms)
