@@ -23,7 +23,10 @@ namespace
 	const TCHAR* ClockCode = TEXT(R"HLSL(
 float3 bg = Texture2DSample(Tex, TexSampler, Clear.xy).rgb;
 float3 col = Texture2DSample(Tex, TexSampler, UV).rgb;
-float2 q = (UV - BoxMin.xy) / (BoxMax.xy - BoxMin.xy);
+// A mesh may map the texture more than once (wrapped): the box is tested in the first
+// copy, and a second display on the texture's wrapped copy (V below 0) can be a radio.
+float2 q = (frac(UV) - BoxMin.xy) / (BoxMax.xy - BoxMin.xy);
+const bool radio = RadioTenths > 0.5 && UV.y < 0.0;
 if (all(q >= 0.0) && all(q <= 1.0))
 {
 	col = bg;
@@ -33,8 +36,15 @@ if (all(q >= 0.0) && all(q <= 1.0))
 	int mm = m % 60;
 	int digits[4] = { h / 10, h % 10, mm / 10, mm % 10 };
 	// Cells across the box: tens of hours (narrow), hours, colon, tens of minutes, minutes.
-	const float x0[5] = { 0.00, 0.14, 0.40, 0.50, 0.76 };
-	const float x1[5] = { 0.10, 0.36, 0.46, 0.72, 0.98 };
+	float x0[5] = { 0.00, 0.14, 0.40, 0.50, 0.76 };
+	float x1[5] = { 0.10, 0.36, 0.46, 0.72, 0.98 };
+	if (radio)
+	{
+		// The tuned FM station: hundreds (narrow 1), tens, ones, a decimal point, tenths.
+		int f = (int)round(RadioTenths);
+		digits[0] = (f / 1000) % 10; digits[1] = (f / 100) % 10; digits[2] = (f / 10) % 10; digits[3] = f % 10;
+		x0[0] = 0.00; x1[0] = 0.10; x0[1] = 0.14; x1[1] = 0.36; x0[2] = 0.40; x1[2] = 0.62; x0[3] = 0.64; x1[3] = 0.72; x0[4] = 0.76; x1[4] = 0.98;
+	}
 	const int masks[10] = { 0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F };
 	float ink = 0.0;
 	for (int c = 0; c < 5; c++)
@@ -42,13 +52,18 @@ if (all(q >= 0.0) && all(q <= 1.0))
 		if (q.x < x0[c] || q.x > x1[c]) continue;
 		float2 p = float2((q.x - x0[c]) / (x1[c] - x0[c]), (q.y - 0.12) / 0.76);
 		if (p.y < 0.0 || p.y > 1.0) continue;
-		if (c == 2)
+		if (!radio && c == 2)
 		{
 			ink = max(ink, step(length((p - float2(0.5, 0.32)) * float2(1.0, 2.2)), 0.22));
 			ink = max(ink, step(length((p - float2(0.5, 0.68)) * float2(1.0, 2.2)), 0.22));
 			continue;
 		}
-		int d = c < 2 ? digits[c] : digits[c - 1];
+		if (radio && c == 3)
+		{
+			ink = max(ink, step(length((p - float2(0.5, 0.92)) * float2(1.0, 2.2)), 0.3));
+			continue;
+		}
+		int d = radio ? (c < 3 ? digits[c] : digits[3]) : (c < 2 ? digits[c] : digits[c - 1]);
 		if (c == 0) { if (d == 0) continue; p.x = 0.6 + p.x * 0.4; }
 		int mask = masks[d];
 		const float t = 0.09, tv = 0.13;
@@ -163,6 +178,7 @@ namespace SimCruiseCarClock
 			Input(TEXT("FlipV"), Scalar(TEXT("FlipV"), 0.f));
 			Input(TEXT("Minutes"), Scalar(TEXT("Minutes"), 615.f));
 			Input(TEXT("Backlight"), Scalar(TEXT("Backlight"), 25.f));
+			Input(TEXT("RadioTenths"), Scalar(TEXT("RadioTenths"), 0.f));
 			Custom->RebuildOutputs();
 			Built->GetEditorOnlyData()->BaseColor.Connect(0, Custom);
 			Built->GetEditorOnlyData()->EmissiveColor.Connect(1, Custom);

@@ -82,7 +82,8 @@
      0.5
     ],
     "flip_v": true,
-    "source": "display_baseColor.png paints 5:12 between x 650-990 and y 15-112 of 1024 x 128; the dash shows it upside down (seven-segment 5 reads as 2), as 2:15. The NB clock is a 12-hour green LCD."
+    "radio_mhz": 91.3,
+    "source": "display_baseColor.png paints 5:12 between x 650-990 and y 15-112 of 1024 x 128; the dash shows it upside down (seven-segment 5 reads as 2), as 2:15. The NB clock is a 12-hour green LCD. The same mesh maps the texture's wrapped copy (V -0.91..0) onto the radio's LCD, which the stock radio uses for the tuned station: WLRN, Miami's public radio, at 91.3 FM."
    },
    "roles_source": "'white' is the cluster's numerals and ticks and the console's labels (meshes only on the dash, x -9..47, y -83..-49 cm in the model): backlit like the real panel, 25 nits, which daylight in the cabin drowns and night shows."
   },
@@ -167,7 +168,8 @@
      0.5
     ],
     "flip_v": true,
-    "source": "display_baseColor.png paints 5:12 between x 650-990 and y 15-112 of 1024 x 128; the dash shows it upside down (seven-segment 5 reads as 2), as 2:15. The NB clock is a 12-hour green LCD."
+    "radio_mhz": 91.3,
+    "source": "display_baseColor.png paints 5:12 between x 650-990 and y 15-112 of 1024 x 128; the dash shows it upside down (seven-segment 5 reads as 2), as 2:15. The NB clock is a 12-hour green LCD. The same mesh maps the texture's wrapped copy (V -0.91..0) onto the radio's LCD, which the stock radio uses for the tuned station: WLRN, Miami's public radio, at 91.3 FM."
    },
    "roles_source": "'white' is the cluster's numerals and ticks and the console's labels (meshes only on the dash, x -9..47, y -83..-49 cm in the model): backlit like the real panel, 25 nits, which daylight in the cabin drowns and night shows."
   },

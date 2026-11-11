@@ -104,6 +104,7 @@ UMaterialInstanceDynamic* USimCruiseCarPresentationComponent::MaterialFor(int32 
 			ClockMID->SetVectorParameterValue(TEXT("BoxMax"), FLinearColor(Clock->Box.Z, Clock->Box.W, 0.f, 0.f));
 			ClockMID->SetVectorParameterValue(TEXT("Clear"), FLinearColor(Clock->Clear.X, Clock->Clear.Y, 0.f, 0.f));
 			ClockMID->SetScalarParameterValue(TEXT("FlipV"), Clock->bFlipV ? 1.f : 0.f);
+			ClockMID->SetScalarParameterValue(TEXT("RadioTenths"), static_cast<float>(FMath::RoundToInt(Clock->RadioMHz * 10.0)));
 			MID = ClockMID;
 			ClockMaterial = ClockMID;
 			ClockMinutes = -1;

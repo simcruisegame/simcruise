@@ -217,6 +217,7 @@ bool SimCruisePresentationProfiles::Load(const FString& CarId, FSimCruiseCarPres
 			Clock.Clear = FVector2D((*Clear)[0]->AsNumber(), (*Clear)[1]->AsNumber());
 		}
 		(*ClockObject)->TryGetBoolField(TEXT("flip_v"), Clock.bFlipV);
+		(*ClockObject)->TryGetNumberField(TEXT("radio_mhz"), Clock.RadioMHz);
 		OutProfile.Clock = Clock;
 	}
 

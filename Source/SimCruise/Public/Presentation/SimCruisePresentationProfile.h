@@ -63,6 +63,11 @@ struct FSimCruiseClockSpec
 	FVector2D Clear = FVector2D(0.5, 0.5);
 	/** The mesh shows the texture upside down. */
 	bool bFlipV = false;
+	/**
+	 * A radio display sharing the texture on its wrapped copy (V below 0): the FM station
+	 * it is tuned to, MHz (0: the copy shows the clock too).
+	 */
+	double RadioMHz = 0.0;
 };
 
 struct FSimCruiseCarPresentationProfile

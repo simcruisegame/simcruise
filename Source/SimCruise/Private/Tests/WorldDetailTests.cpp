@@ -5,6 +5,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Presentation/SimCruiseCarClock.h"
+#include "Presentation/SimCruisePresentationProfile.h"
 #include "Presentation/SimCruiseLowBeamPattern.h"
 #include "World/SimCruiseRoadNetwork.h"
 #include "World/SimCruiseTileDetail.h"
@@ -87,6 +88,13 @@ bool FSimCruiseCarClockTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Telluride in winter: MST"), Format12(LocalMinutes(At(TEXT("2026-02-01T07:00:00Z")), 37.94, -107.81)), FString(TEXT("12:00")));
 	TestEqual(TEXT("DST starts on the second Sunday of March"), Format12(LocalMinutes(At(TEXT("2026-03-08T07:30:00Z")), 25.78, -80.13)), FString(TEXT("3:30")));
 	TestEqual(TEXT("midnight shows 12"), Format12(0), FString(TEXT("12:00")));
+	// The NB's radio display shares the clock's texture and shows its station.
+	FSimCruiseCarPresentationProfile Nb;
+	FString Error;
+	if (TestTrue(TEXT("nb2001 profile loads"), SimCruisePresentationProfiles::Load(TEXT("nb2001"), Nb, Error)) && TestTrue(TEXT("nb2001 has a clock"), Nb.Clock.IsSet()))
+	{
+		TestNearlyEqual(TEXT("the radio is tuned to 91.3 FM"), Nb.Clock->RadioMHz, 91.3, 1e-6);
+	}
 	return true;
 }
 
