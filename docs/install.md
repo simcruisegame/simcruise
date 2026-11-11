@@ -8,7 +8,7 @@ Downloads are on the [Releases page](https://github.com/simcruisegame/simcruise/
 | Windows 10/11 (64-bit) | `SimCruise-<version>-windows-x64-setup.exe` | Installer with Start menu entry and uninstaller |
 | Windows 10/11 (64-bit) | `SimCruise-<version>-windows-x64.zip` | Portable folder: unzip and run `SimCruise.exe` |
 
-Each release lists SHA-256 checksums for its files in its notes and in `SHA256SUMS.txt`. To check a download, compare the list with `shasum -a 256 SimCruise-<version>.dmg` in Terminal on a Mac, or `certutil -hashfile SimCruise-<version>-windows-x64-setup.exe SHA256` in a Windows command prompt. The release files are built from the tagged source by the project's GitHub Actions workflow, not on anyone's own computer.
+Each release lists SHA-256 checksums for its files in its notes and in `SHA256SUMS.txt`. To check a download, compare the list with `shasum -a 256 SimCruise-<version>.dmg` in Terminal on a Mac, or `certutil -hashfile SimCruise-<version>-windows-x64-setup.exe SHA256` in a Windows command prompt. The release files are built from the tagged source on GitHub-hosted runners by the project's release workflow ([building.md](building.md#releasing)), not on a contributor's own computer.
 
 ## macOS
 

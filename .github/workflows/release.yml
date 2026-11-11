@@ -197,7 +197,10 @@ jobs:
       - name: Notes
         run: |
           {
-            cat dist/changelog.md
+            # Links in CHANGELOG.md are relative to the repository root; on the
+            # release page they would resolve under /releases/tag/, so point
+            # them at the tagged files.
+            sed -E "s#\]\(([^)#:/][^):]*)\)#](https://github.com/$GH_REPO/blob/$TAG/\1)#g" dist/changelog.md
             printf '\n## Downloads\n\n'
             printf -- '- **macOS** (Apple Silicon, macOS 13 or newer): `SimCruise-%s.dmg`\n' "$VERSION"
             printf -- '- **Windows** 10/11 64-bit: `SimCruise-%s-windows-x64-setup.exe` (installer) or `SimCruise-%s-windows-x64.zip` (portable)\n' "$VERSION" "$VERSION"

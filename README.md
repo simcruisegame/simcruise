@@ -96,7 +96,7 @@ sh scripts/check.sh          # headless Godot checks
 sh scripts/check-helper.sh   # map helper tests
 ```
 
-GitHub Actions runs `scripts/check.sh` on Linux for every pull request, and a version tag builds the Windows and macOS releases into a draft on the Releases page ([docs/building.md](docs/building.md#releasing)).
+GitHub Actions runs `scripts/check.sh` on Linux for pull requests and pushes to `main` that change more than documentation, and a version tag builds the Windows and macOS releases into a draft on the Releases page ([docs/building.md](docs/building.md#releasing)).
 
 ## Contributing
 

@@ -67,7 +67,7 @@ A runaway print loop once filled a disk with a multi-gigabyte log, so these are 
 | `lab/` | Measurement studies behind individual features, with their own READMEs, data and reproduction scripts. Older ones say "Sunday Driver". |
 | `licenses/`, `Credits.txt` | Per-source terms and attribution; `licenses/` ships inside the app. |
 | `scripts/` | `play.sh` (update and play), `build-macos.sh` (editor, app and dmg modes), `build-windows.sh` (installer and zip), `make-dmg.sh`, `install-godot.sh` (official Godot 4.7.2 and export templates, SHA-512 checked), `smoke-windows.sh` (headless start of a Windows build), `release-notes.sh` (a version's changelog entry), `check.sh` (Godot checks) and `check-helper.sh` (helper tests). `.github/workflows/` holds the Release (draft release from a `v*` tag) and Checks (`check.sh` on Linux) workflows. |
-| `.github/` | Issue and pull-request templates. |
+| `.github/` | Issue and pull-request templates, and the Release and Checks workflows in `workflows/`. |
 | `packaging/` | Platform packaging: the Windows NSIS installer script and icon. |
 | `docs/` | Player and developer documentation (install, controls, technical overview, data sources, building), the roadmap, history and architecture notes; `docs/images/` holds README images. |
 
@@ -88,7 +88,7 @@ If the hosted runners cannot be used, the same release can be made by hand:
 
 1. Builds the macOS disk image on an Apple Silicon Mac with `sh scripts/build-macos.sh dmg X.Y.Z` and its checksum with `shasum -a 256 build/SimCruise-X.Y.Z.dmg > build/SimCruise-X.Y.Z.dmg.sha256`.
 2. Builds the Windows installer and portable zip on any system with Godot 4.7.2, its export templates (`sh scripts/install-godot.sh DIR windows` fetches both), Bun and NSIS: `sh scripts/build-windows.sh X.Y.Z` (it writes `build/SHA256SUMS-windows.txt`); on Windows, `sh scripts/smoke-windows.sh` then starts the portable build headless.
-3. Starts each build once on its system, then attaches the disk image, the installer, the zip and the checksum files to a new GitHub Release for the tag, with the changelog section as its notes.
+3. Starts each build once on its system, writes one `SHA256SUMS.txt` for the disk image, the installer and the zip (`shasum -a 256` or `sha256sum`), and attaches the four files to a new GitHub Release for the tag, with the changelog section (`sh scripts/release-notes.sh X.Y.Z`) and the checksums as its notes, as the workflow does.
 
 ## Security
 
