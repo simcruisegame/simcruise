@@ -100,6 +100,12 @@ namespace
 			const FVector3d Right = C.Body.Rotation.RotateVector(FVector3d::UnitY());
 			const double Speed = C.Body.LinearVelocityMps.Dot(Forward);
 			const double OriginX = CarOrigin(C.Sim, C.Body).X;
+			// More than 5 g of deceleration is no tyre: the car struck something.
+			// (Not while settling, nor on the step after the restart teleport.)
+			if (State != 0 && State != 3 && (Last - Speed) > 5.0 * Gravity * Dt)
+			{
+				Result.bCollided = true;
+			}
 			switch (State)
 			{
 			case 0:

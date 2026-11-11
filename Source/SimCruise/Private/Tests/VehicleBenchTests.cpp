@@ -41,6 +41,7 @@ namespace
 		{
 			return false;
 		}
+		Test.TestFalse(TEXT("the car hit nothing on the bench pad"), R.bCollided);
 		const bool bAccel = FMath::Abs(R.ZeroToSixtyS - Car.TargetZeroToSixtySeconds) <= ZeroToSixtyBandS;
 		const bool bBrake = FMath::Abs(R.SeventyToZeroFt - Car.TargetSeventyToZeroFeet) <= SeventyToZeroBandFt;
 		const bool bSkid = FMath::Abs(R.SkidpadG - Car.TargetSkidpadG) <= SkidpadBandG;
@@ -179,22 +180,26 @@ bool FSimCruiseVehicleDeterminismTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
-	// The same car, controls and fixed steps must give the same state, bit for bit.
-	const FSimCruiseCarTrackResult A = SimCruiseRunCarTrack(Car, SimCruiseShippingFixedStepS, 1.0 / 360.0, true);
-	const FSimCruiseCarTrackResult B = SimCruiseRunCarTrack(Car, SimCruiseShippingFixedStepS, 1.0 / 360.0, true);
+	// The same car, controls and fixed steps must give the same state, bit for
+	// bit, through all three tests: the restart and the skidpad included, where
+	// anything else in the bench world (streamed tiles once) shows up first.
+	const FSimCruiseCarTrackResult A = SimCruiseRunCarTrack(Car, SimCruiseShippingFixedStepS);
+	const FSimCruiseCarTrackResult B = SimCruiseRunCarTrack(Car, SimCruiseShippingFixedStepS);
 	if (!TestTrue(TEXT("both runs completed"), A.bCompleted && B.bCompleted))
 	{
 		return false;
 	}
 	TestEqual(TEXT("0-60 identical"), A.ZeroToSixtyS, B.ZeroToSixtyS);
+	TestEqual(TEXT("70-0 identical"), A.SeventyToZeroFt, B.SeventyToZeroFt);
+	TestEqual(TEXT("skidpad identical"), A.SkidpadG, B.SkidpadG);
 	TestEqual(TEXT("fingerprint size"), A.Fingerprint.Num(), B.Fingerprint.Num());
 	int32 Mismatches = 0;
 	for (int32 Index = 0; Index < FMath::Min(A.Fingerprint.Num(), B.Fingerprint.Num()); ++Index)
 	{
 		Mismatches += A.Fingerprint[Index] != B.Fingerprint[Index] ? 1 : 0;
 	}
-	const FString Line = FString::Printf(TEXT("DETERMINISM two 0-60 runs: %.9f s and %.9f s, %d of %d state values differ"),
-		A.ZeroToSixtyS, B.ZeroToSixtyS, Mismatches, A.Fingerprint.Num());
+	const FString Line = FString::Printf(TEXT("DETERMINISM two CarTrack runs: 0-60 %.9f / %.9f s, skidpad %.9f / %.9f g, %d of %d state values differ"),
+		A.ZeroToSixtyS, B.ZeroToSixtyS, A.SkidpadG, B.SkidpadG, Mismatches, A.Fingerprint.Num());
 	UE_LOG(LogTemp, Display, TEXT("%s"), *Line);
 	AddInfo(Line);
 	TestEqual(TEXT("state identical after the run"), Mismatches, 0);
@@ -228,6 +233,7 @@ namespace
 		UE_LOG(LogTemp, Display, TEXT("%s"), *Line);
 		Test.AddInfo(Line);
 		Test.TestTrue(FString::Printf(TEXT("%s completed"), Rate.Label), R.bCompleted);
+		Test.TestFalse(FString::Printf(TEXT("%s hit nothing on the pad"), Rate.Label), R.bCollided);
 	}
 	// Halving the step from the shipping rate must move each result by less
 	// than a fifth of its calibration band.

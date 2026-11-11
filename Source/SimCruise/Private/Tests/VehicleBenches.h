@@ -16,6 +16,8 @@ struct FSimCruiseCarTrackResult
 	double SkidpadG = 0.0;
 	bool bCompleted = false;
 	bool bTimedOut = false;
+	/** The car stopped harder than tyres can (over 5 g): it hit something on the pad. */
+	bool bCollided = false;
 	double SimSeconds = 0.0;
 	int64 PhysicsSteps = 0;
 	double MeanStepMicroseconds = 0.0;

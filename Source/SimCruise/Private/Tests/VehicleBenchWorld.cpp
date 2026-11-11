@@ -8,6 +8,8 @@
 #include "Engine/CollisionProfile.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
+#include "GameFramework/GameModeBase.h"
+#include "GameFramework/WorldSettings.h"
 #include "PBDRigidsSolver.h"
 #include "Physics/Experimental/PhysScene_Chaos.h"
 #include "Vehicle/CarDefinitionLoader.h"
@@ -17,11 +19,32 @@
 FSimCruiseVehicleBenchWorld::FSimCruiseVehicleBenchWorld(double InFixedStepS, double GroundHalfSizeM, bool bSingleThreaded)
 	: FixedStepS(InFixedStepS)
 {
-	if (!Wrapper.CreateTestWorld(EWorldType::Game) || !Wrapper.BeginPlayInTestWorld())
+	if (!Wrapper.CreateTestWorld(EWorldType::Game))
+	{
+		return;
+	}
+	// The bench is an empty pad. Without this the project's SimCruiseGameMode
+	// starts the drive: it streams the Ocean Drive tiles (ground up to 4.5 m,
+	// kerbs, buildings) into the test world on worker threads, and the car
+	// sooner or later drives into whatever has landed, at a moment that
+	// depends on wall-clock time, not on the simulation.
+	if (AWorldSettings* Settings = Wrapper.GetTestWorld()->GetWorldSettings())
+	{
+		Settings->DefaultGameMode = AGameModeBase::StaticClass();
+	}
+	if (!Wrapper.BeginPlayInTestWorld())
 	{
 		return;
 	}
 	World = Wrapper.GetTestWorld();
+	const AGameModeBase* GameMode = World->GetAuthGameMode();
+	if (GameMode == nullptr || GameMode->GetClass() != AGameModeBase::StaticClass())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Vehicle bench: the test world runs %s instead of an empty game mode"),
+			GameMode ? *GameMode->GetClass()->GetName() : TEXT("no game mode"));
+		World = nullptr;
+		return;
+	}
 
 	FPhysScene* Scene = World->GetPhysicsScene();
 	Chaos::FPhysicsSolver* Solver = Scene ? Scene->GetSolver() : nullptr;
