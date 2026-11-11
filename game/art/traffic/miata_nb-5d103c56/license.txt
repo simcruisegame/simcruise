@@ -1,0 +1,11 @@
+Model Information:
+* title:	Mazda MX-5 (NB) convertible HQ interior
+* source:	https://sketchfab.com/3d-models/mazda-mx-5-nb-convertible-hq-interior-5d103c567bee4c61ad66f04562049933
+* author:	Nieve5677 (https://sketchfab.com/iori308408)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Mazda MX-5 (NB) convertible HQ interior" (https://sketchfab.com/3d-models/mazda-mx-5-nb-convertible-hq-interior-5d103c567bee4c61ad66f04562049933) by Nieve5677 (https://sketchfab.com/iori308408) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
