@@ -235,8 +235,12 @@ bool ASimCruiseGameMode::TryPlacePendingPlayers()
 
 	FVector Ground = StartCm;
 	FRotator Heading = FRotator::ZeroRotator;
-	const bool bOnRoad = (!StartRoadName.IsEmpty() && Stream->FindRoadPose(StartRoadName, StartCm, StartSearchRadiusM, Ground, Heading))
-		|| Stream->FindRoadPose(FString(), StartCm, StartSearchRadiusM, Ground, Heading);
+	const bool bNamed = !StartRoadName.IsEmpty() && Stream->FindRoadPose(StartRoadName, StartCm, StartSearchRadiusM, Ground, Heading);
+	if (!bNamed && !StartRoadName.IsEmpty())
+	{
+		UE_LOG(LogSimCruiseDrive, Warning, TEXT("No room to start on %s within %.0f m of the start; starting on the nearest road."), *StartRoadName, StartSearchRadiusM);
+	}
+	const bool bOnRoad = bNamed || Stream->FindRoadPose(FString(), StartCm, StartSearchRadiusM, Ground, Heading);
 	if (!bOnRoad)
 	{
 		double Z = 0.0;
@@ -253,7 +257,7 @@ bool ASimCruiseGameMode::TryPlacePendingPlayers()
 			if (APawn* Pawn = SpawnVehicleAt(Player, Ground, Heading))
 			{
 				UE_LOG(LogSimCruiseDrive, Display, TEXT("Car placed%s at %s heading %.1f deg after %.1f s"),
-					bOnRoad ? *FString::Printf(TEXT(" on %s"), StartRoadName.IsEmpty() ? TEXT("the nearest road") : *StartRoadName) : TEXT(""),
+					bOnRoad ? *FString::Printf(TEXT(" on %s"), bNamed ? *StartRoadName : TEXT("the nearest road")) : TEXT(""),
 					*Ground.ToString(), Heading.Yaw, FPlatformTime::Seconds() - WaitStartedSeconds);
 				if (ASimCruisePlayerController* SimPlayer = Cast<ASimCruisePlayerController>(Player))
 				{

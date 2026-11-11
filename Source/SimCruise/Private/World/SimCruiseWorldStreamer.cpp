@@ -152,20 +152,41 @@ bool ASimCruiseWorldStreamer::FindRoadPose(const FString& RoadName, const FVecto
 		{
 			// No name: any public road (service ways are driveways and parking aisles).
 			if (RoadName.IsEmpty() ? Ribbon.Class == TEXT("service") : !Ribbon.Name.Equals(RoadName, ESearchCase::IgnoreCase)) continue;
+			// Not in or next to a junction: a start there faces the crossing road (and the cars
+			// parked along its far side).
+			TArray<uint8> NearJunction;
+			NearJunction.Init(0, Ribbon.St.Num());
+			for (int32 j = 0; j < Ribbon.St.Num(); ++j)
+			{
+				const bool bCut = (Ribbon.Sides[0].Cut.IsValidIndex(j) && Ribbon.Sides[0].Cut[j]) || (Ribbon.Sides[1].Cut.IsValidIndex(j) && Ribbon.Sides[1].Cut[j]);
+				if (!bCut) continue;
+				for (int32 k = 0; k < Ribbon.St.Num(); ++k)
+				{
+					if (FMath::Abs(Ribbon.St[k].S - Ribbon.St[j].S) < 15.0) NearJunction[k] = 1;
+				}
+			}
 			for (int32 i = 1; i + 1 < Ribbon.St.Num(); ++i)
 			{
 				const FSimCruiseRibbonStation& St = Ribbon.St[i];
+				if (NearJunction[i]) continue;
 				const FVector C = Origin + FVector(St.C.X * 100.0, St.C.Y * 100.0, 0.0);
 				const double D = FVector::Dist2D(C, NearWorldCm);
 				if (D >= Best) continue;
-				// The rightmost travel lane, between the lines the markings draw.
-				const FVector2d Dir = St.Travel < 0 ? -St.T : St.T;
-				const FVector2d Right(-Dir.Y, Dir.X);
-				auto Kerbed = [&](int32 SideIndex) { return Ribbon.Sides[SideIndex].Edge.IsValidIndex(i) && Ribbon.Sides[SideIndex].Edge[i] != ESimCruiseRoadEdge::Rural; };
-				const SimCruiseLanes::FParking Park = SimCruiseLanes::Parking(Ribbon.Class, St.HalfW, St.Travel, Kerbed(0), Kerbed(1));
-				const double Offset = SimCruiseLanes::RightLaneCentreM(Ribbon.Class, St.HalfW, St.Travel, Park);
-				const FVector2d P = St.C + Right * Offset;
-				const double L = FVector2d::DotProduct(P - St.C, St.R);
+				// Facing the way traffic goes; on a two-way street, the way with more room before
+				// the next junction or the street's end (at least 25 m).
+				int32 Way = St.Travel < 0 ? -1 : 1;
+				bool bEnd = false;
+				double Room = FMath::Abs(SimCruiseTrafficModel::NextDecisionS(Ribbon, Way, St.S, -1e9, bEnd) - St.S);
+				if (St.Travel == 0)
+				{
+					const double Back = FMath::Abs(SimCruiseTrafficModel::NextDecisionS(Ribbon, -Way, St.S, -1e9, bEnd) - St.S);
+					if (Back > Room) { Way = -Way; Room = Back; }
+				}
+				if (Room < 25.0) continue;
+				const FVector2d Dir = St.T * static_cast<double>(Way);
+				// The lane the traffic drives in this direction, between the lines the markings draw.
+				const double L = SimCruiseTrafficModel::LaneOffsetM(Ribbon, i, Way);
+				const FVector2d P = St.C + St.R * L;
 				const double H = Ribbon.CarriagewayHeight(i, L);
 				OutLocationCm = Origin + FVector(P.X * 100.0, P.Y * 100.0, H * 100.0);
 				OutRotation = FRotator(0.0, FMath::RadiansToDegrees(FMath::Atan2(Dir.Y, Dir.X)), 0.0);
