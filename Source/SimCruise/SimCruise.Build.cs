@@ -19,5 +19,17 @@ public class SimCruise : ModuleRules
 			"JsonUtilities",
 			"PhysicsCore"
 		});
+
+		// Car presentation (Presentation/): runtime glTF meshes, textures and materials.
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"ImageCore",
+			"ImageWrapper",
+			"MeshDescription",
+			"StaticMeshDescription",
+			"RenderCore",
+			"RHI",
+			"CinematicCamera"
+		});
 	}
 }
