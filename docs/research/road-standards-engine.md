@@ -351,7 +351,7 @@ The decision is made **per side**. A street can be curbed on one side only, as w
 ### 6.4 Changes along a chain
 
 A chain can join ways with different profiles. Profiles are emitted per chain as `segments`: `[[s_from, s_to, profile_index]]`. The game interpolates strip widths across a transition length:
-- lane-count changes use the MUTCD taper, L = W x S below 45 mph and L = W x S at 45 mph or more, with the 30/60 m minimums;
+- lane-count changes use the MUTCD taper, L = W x S^2 / 60 below 45 mph and L = W x S at 45 mph or more (W in ft, S in mph, L in ft), with 30 m urban and 60 m rural floors (the MUTCD's centre-lane transition minimums, road-engineering.md 6.6);
 - other strip changes use a 1:50 width taper with a 30 m minimum (road-engineering.md 3.1);
 - curb-to-open transitions use a 3 ft curb end ramp plus a 10 m blend of the ground (FDOT Index 300).
 
@@ -409,7 +409,7 @@ SeamCheck gains a profile-equality assertion over the shared apron.
 | 70 | 622 (552) | 0.5 | 320 | 322 | 63 | 2.0 | 2.0e-5 | 0.50% |
 
 **How the columns are derived:**
-- **L_c.** The sourced rule is 15 V ft for V of 60 mph or less, and 30 V ft is desirable on high-speed controlled-access roads (road-engineering.md 5.6). The column uses 15 V ft (4.57 V m) throughout; above 60 mph it extends the same rule, and motorways may use 30 V ft. The value is "soft", because mapped rural curves are often shorter than new-construction practice: an arc shorter than L_c is lengthened only if the deviation stays within delta_max. A short arc is flattened only if its deflection is under 10 degrees and removing it keeps every vertex within delta_max. Large-deflection short curves are real corners (a hairpin) and stay. L_c is not applied to closed-section streets.
+- **L_c.** The sourced rule is 15 V ft on two-lane highways and expressways, and 30 V ft on fully access-controlled roads and interstates [IA-DM 2A] (road-engineering.md 5.6). The column uses 15 V ft (4.57 V m); motorways use 30 V ft (9.14 V m), equally soft. The value is "soft", because mapped rural curves are often shorter than new-construction practice: an arc shorter than L_c is lengthened only if the deviation stays within delta_max. A short arc is flattened only if its deflection is under 10 degrees and removing it keeps every vertex within delta_max. Large-deflection short curves are real corners (a hairpin) and stay. L_c is not applied to closed-section streets.
 - **Broken-back tangent:** 4.6 V m.
 - **L_s:** clamp(max(2 s x v, 0.0214 V_kmh^3 / (1.2 R)), sqrt(4.8 R), sqrt(24 R)). Only at 45 mph or more. Plain arcs below that, with G1 continuity.
 - **delta_max:** the largest allowed distance between the fit and an unpinned mapped vertex. It is a *SimCruise tolerance* (heuristic), set at about half a lane at speed and tight in towns, because curbs and mapped sidewalks are mapped relative to the line.
@@ -428,13 +428,22 @@ fitAlignment(chain, L):                      # L = limits(V, ctx) from 7.2
   merge seam joints to their midpoint; drop vertices < 0.5 m apart
   jitter filter: drop an unpinned vertex whose distance to the chord of its two
     neighbours is < 0.35 m (z14 quantisation, ~0.49 m step) and whose legs are
-    both < 40 m; repeat until stable (each pass is local; 3 passes max)
+    both < 40 m; repeat until stable (each pass is local; 3 passes max).
+    Within one pass never drop two neighbouring vertices: candidates are taken
+    in ascending chord distance (ties by station) and a dropped vertex blocks
+    its neighbours until the next pass. Otherwise a densely sampled tight
+    curve (5 m spacing on R = 50 m gives 0.25 m per vertex) is erased whole.
   # 2. straight blocks (closed sections, or V <= 45)
   for each run between consecutive pins with arc length <= 300 m:
     if every vertex is within max(0.5 m, 0.15 lane) of the pin-to-pin chord and
        the run's heading spread <= 2 deg: replace the run by the chord
   # 3. sub-threshold deflections
-  remove unpinned vertices whose deflection < L.theta_min (recompute after each removal)
+  remove unpinned vertices whose deflection < L.theta_min, smallest deflection first
+    (ties by station), recomputing the neighbours' deflections after each removal,
+    and only while every removed vertex stays within delta_max of the new chord.
+    The recompute matters: a gentle real curve sampled densely (0.8 deg per 10 m
+    vertex, R about 700 m) keeps its turn in the merged vertices instead of
+    being straightened; the delta_max guard stops long legs swallowing a bend.
   # 4. curve groups
   group = maximal run of consecutive unpinned vertices turning the same way whose
           interior legs are < max(30 m, 2 L_s); split any group longer than 400 m
@@ -447,11 +456,17 @@ fitAlignment(chain, L):                      # L = limits(V, ctx) from 7.2
             fits within half of each outer leg (shared with the neighbouring group)
     R_dev = largest R keeping every vertex of the group within delta_max
     R = min(max(R_fit, R_min), R_leg, R_dev)
+    if no R satisfies delta_max for a multi-vertex group (interior vertices both
+       inside and outside the arc): split the group at its worst vertex into two
+       arcs sharing a tangent point (a compound curve) and refit each; at most
+       2 splits, then accept and flag
     if R < R_min: group.forced = true; group.V_local = sqrt(127 R (e_max + f)) km/h
   # 5. consistency (design rules, road-engineering.md 5.6)
   same-turn neighbours with tangent < 4.6 V m -> merge into one group and refit (4)
   opposite-turn neighbours with tangent < runoff_tan(1) + runoff_tan(2):
-      both Delta >= 10 deg -> reverse curve with back-to-back spirals
+      both Delta >= 10 deg -> reverse curve with back-to-back spirals (below 45 mph:
+                               two arcs on a common tangent point, e passing
+                               through 0 there)
       else drop the smaller-Delta group if all its vertices stay within delta_max
   enforce compound ratio R_large <= 1.5 R_small (2.0 at ramps and loops) by
       raising the smaller R where R_leg/R_dev allow, else flag
@@ -751,7 +766,7 @@ Visual captures use Ultra (Forward+ where it is being evaluated), at 10 random p
 - LaneMarkings normal fix; offset clamp.
 - **New gate: `lab/check-alignment.mjs`**, on all fixtures plus synthetic cases:
   - **Heading continuity:** a jump of more than 0.5 degrees between 1 m samples fails, except at flagged junction corners.
-  - **Curvature continuity:** at 45 mph or more, |kappa_{i+1} - kappa_i| must be at most max(1.5 x dkappa_max(V) x ds, 1e-4) except at the ends of forced curves. Below 45 mph, kappa may step only at arc-to-tangent points.
+  - **Curvature continuity:** at 45 mph or more, |kappa_{i+1} - kappa_i| must be at most max(1.5 x dkappa_max(V) x ds, 1e-4) except at the ends of forced curves and of curves flagged spiral-less (step 6). Their count per km is reported. Below 45 mph, kappa may step only at arc-to-tangent points.
   - **Bound:** |kappa| at most 1 / R_min(V) unless the curve is flagged forced. Report forced curves per km, with a target under 1 per km outside mountain fixtures.
   - **Reversal rule:** at 30 mph or more, curvature may not change sign twice within 100 m, except at flagged reverse curves.
   - **Fidelity:** unpinned vertices within delta_max(V); pins within 0.05 / 0.10 m.

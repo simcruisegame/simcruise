@@ -108,8 +108,8 @@ OSM highway tags map roughly onto FHWA functional classes. The mapping is approx
 
 | OSM `highway` | FHWA class (typical) | Typical lane width, FHWA Tables 3-5/3-6 | Typical shoulder, outside / inside | AADT band, rural / urban [FHWA-FC] |
 |---|---|---|---|---|
-| motorway | Interstate / other freeway | 12 ft | 10-12 / 4-12 ft | >6,000 |
-| trunk | Other freeway-expressway, other principal arterial | 11-12 ft | 8-12 / 0-6 ft | >6,000 |
+| motorway | Interstate / other freeway | 12 ft | 10-12 / 4-12 ft | Interstate 12,000-34,000 / 35,000-129,000 |
+| trunk | Other freeway-expressway, other principal arterial | 11-12 ft | 8-12 / 0-6 ft | OFE 4,000-18,500 / 13,000-55,000 |
 | primary | Other principal arterial (often a US route) | 11-12 ft | 8-12 / 0 ft | 2,000-8,500 / 7,000-27,000 |
 | secondary | Minor arterial (often a state route) | 10-12 ft | 4-8 ft | 1,500-6,000 / 3,000-14,000 |
 | tertiary | Major collector (county road) | 10-12 ft | 1-6 ft | 300-2,600 / 1,100-6,300 |
@@ -255,7 +255,7 @@ Snow regions may continue the right shoulder in the lane plane, so snowplows do 
 
 | Line | Warrant | Source |
 |---|---|---|
-| Edge line | **Required** on paved freeways, expressways and rural arterials with a traveled way of 20 ft or more and ADT of 6,000 or more. **Should** be used on rural arterials and collectors 20 ft or wider with ADT of 3,000 or more. **May** be omitted where curbs, parking or other markings define the edge. Not carried through intersections or major driveways; not broken at minor driveways. | [MUTCD09 3B.07] (11th ed. renumbered, about 3B.09) |
+| Edge line | **Required** on paved freeways, expressways and rural arterials with a traveled way of 20 ft or more and ADT of 6,000 or more. **Should** be used on rural arterials and collectors 20 ft or wider with ADT of 3,000 or more. **May** be omitted where curbs, parking or other markings define the edge. Not carried through intersections or major driveways; not broken at minor driveways. | Warrants [MUTCD09 3B.07]; intersection and driveway rules [MUTCD09 3B.06] (11th ed. renumbered, about 3B.08-3B.09) |
 | Centreline | **Required** on urban arterials and collectors 20 ft or wider with ADT of 6,000 or more, and on any two-way road with 3 or more lanes. **Should** be used on urban arterials and collectors at 4,000 or more ADT, and on rural arterials and collectors 18 ft or wider at 3,000 or more. **May** be used on roads 16 ft or wider. | [MUTCD09 3B.01] |
 
 Colour and width:
@@ -570,7 +570,7 @@ Basis: grades [WS-DM 1220]; shoulders [IA-IM3210] low-volume values; slopes and 
 
 - **Washes:** dip crossings where washes cross. The MUTCD has a DIP warning sign, W8-2; frequency is a heuristic.
 - **Clear zone:** bladed or bare, free of shrubs inside the clear zone (heuristic from [FHWA-VEG] zones).
-- **Colour:** the asphalt must read clearly **darker** than the desert soil (soil albedo 0.25-0.35) [EPA-CP]. This is the fix for "road and desert the same colour".
+- **Colour:** the asphalt must read clearly **darker** than the desert soil (soil albedo about 0.25-0.35; a literature range, not from EPA-CP, still to be sourced, see 12). This is the fix for "road and desert the same colour".
 
 ### T9. Gravel road
 
@@ -719,15 +719,15 @@ In a clothoid, curvature changes linearly with distance, so the driver's steerin
 
 ### 5.6 Curve-sequence consistency (the anti-zig-zag rules)
 
-These rules come from [TX-RDM 4.7.1] [MO-EPG 230.1] [NE-HA] [MassDOT-PDDG 4]:
+These rules come from [TX-RDM 4.7.1] [IA-DM 2A] [MO-EPG 230.1] [NE-HA] [MassDOT-PDDG 4]:
 
 | Rule | Value |
 |---|---|
 | Compound curves | R_large no more than 1.5 x R_small; up to 2 x at intersections, loops and ramps |
-| Broken-back curves (same direction, short tangent between) | Avoid. The tangent must be at least 15 V ft (about 4.6 V m, V in mph); otherwise use one curve. |
-| Reverse curves | The tangent between them must hold both tangent-side runoff portions; otherwise join them with back-to-back spirals |
-| Minimum curve length | 15 V ft for V of 60 mph or less; 30 V ft desirable on high-speed controlled-access roads. For small deflections: 500 ft at 5 degrees, plus 100 ft for each degree less. |
-| Deflection that needs no curve | TxDOT 0.5 deg (high speed) / 1 deg (low speed); Nebraska 0.5 / 1; MoDOT 10 minutes (none needed at 1 deg or less when ADT is under 400) |
+| Broken-back curves (same direction, short tangent between) | Avoid. TxDOT recommends a tangent of at least 15 V ft (about 4.6 V m, V in mph); otherwise use one curve. A recommendation, not a design-exception trigger. |
+| Reverse curves | The tangent between them must hold both tangent-side runoff portions (Iowa: the sum of 70% of each curve's runoff); otherwise join them with back-to-back spirals |
+| Minimum curve length | 15 V ft on two-lane highways and expressways; 30 V ft on fully access-controlled roads and interstates, never below 15 V where 30 V cannot be reached [IA-DM 2A]. For small deflections: 500 ft at 5 degrees, plus 100 ft for each degree less (Green Book rule as reproduced in state manuals; not re-checked this session). |
+| Deflection that needs no curve | TxDOT 0.5 deg (high speed) / 1 deg (low speed); Nebraska 0.5 / 1; MoDOT 10 minutes (none needed at 1 deg or less when ADT is under 400); Iowa about 1.5 deg on two-lane roads and expressways, none allowed on interstates and access-controlled roads [IA-DM 2A] |
 
 **What this means for OSM data.** OSM position noise of 1-10 m shows up as 1-3 degree kinks. Under these rules a kink below the no-curve threshold is a **straight**, not a curve.
 
@@ -897,7 +897,7 @@ Parking and bike lanes make the **effective** turning radius larger than the cur
 - Use high-visibility markings except on stop-controlled approaches.
 - Consider a two-stage crossing with a median refuge where a crossing is longer than 80 ft.
 
-**Cross slope:** 2% or less, or 5% at signals, midblock crossings and driveways [PROWAG R302.5.2].
+**Cross slope inside the crosswalk** [PROWAG R302.5.2]: 1:48 (2.1%) at stop- or yield-controlled approaches; 1:20 (5%) at uncontrolled and at signalized or beacon approaches; at midblock and roundabout crossings, no more than the street grade.
 
 ### 6.4 Curb ramps and detectable warnings
 
@@ -944,7 +944,7 @@ The FDOT Exhibit 212-1 deceleration lengths could **not be read** this session. 
 - L = W x S for S of 45 mph or more.
 - L = W x S^2 / 60 below 45 mph.
 - W and L are in the same unit; S is in mph.
-- Minimum 100 ft urban, 200 ft rural.
+- MUTCD sets no minimum for lane-reduction tapers. The 100 ft urban / 200 ft rural minimum it gives for centre-lane (TWLTL) transitions [MUTCD09 3B.02] is used here as a generator floor (derived).
 - A shifting taper is L/2 [FDOT-FDM 212.6].
 
 **Turn-lane taper rates** (FDOT 2018, via search): 1:25 below 30 mph, 1:30 at 30-45 mph, 1:40 above 45 mph.
@@ -1054,12 +1054,12 @@ Measured albedo (linear) for each surface, with the sRGB grey from sRGB = 1.055 
 | PCC in service | 0.18-0.35, typically about 0.25 | about 0.54 |
 | Fresh chip seal | about the aggregate's albedo (0.20 in the San Jose study) | — |
 | Chip seal after about 5 years | about 0.12 | — |
-| Desert or bare soil | 0.25-0.35 | — |
+| Desert or bare soil | 0.25-0.35 (literature range; not in EPA-CP or LBNL-49283) | — |
 | Concrete curb, gutter and walk | 0.35-0.45 | — |
 
 Ageing works in opposite directions for the two materials. Asphalt gets **lighter** as the binder oxidises and the aggregate is exposed. Concrete gets **darker** from tyre marks, oil and dirt. Rain and hand-scrubbing barely change a soiled chip seal [LBNL-49283].
 
-Surface temperature falls about 4.5-6 C for each +0.1 of albedo [EPA-CP]. That figure can feed heat shimmer and the drying of a wet road.
+Surface temperature falls about 4 C (7 F) for each +0.1 of albedo (an LBNL estimate quoted in [EPA-CP]). EPA-CP also gives asphalt at about 0.05 new, rising to 0.15-0.20 with age (about 0.20 after seven years), and concrete at up to 0.40 new, falling to about 0.25 after five years. That figure can feed heat shimmer and the drying of a wet road.
 
 **Rule:**
 - Albedo = material(surface, age) ± 0.03 aerial modulation (stains and patches only).
@@ -1100,7 +1100,7 @@ Lifts and joints [AI-JOINT] [TX-PDM 7.2]:
 ### 7.4 Wheel paths and distress
 
 Wheel paths [FHWA-LTPP Fig. 136]:
-- The LTPP convention: each wheel path is 0.76 m wide, centred about 0.76 m and 2.9 m from the edge stripe of a 3.65 m lane. That spacing is truck-oriented.
+- The LTPP convention: each wheel path is 0.76 m wide, centred about 0.76 m and 2.9 m from the edge stripe of a 3.65 m lane. That spacing is truck-oriented. (Fig. 136 is a drawing; these dimensions were not confirmed from the manual's text. The text does confirm 0.75 m from the outside edge stripe as the outer wheel path for faulting measurements.)
 - For cars, use about ±0.8 m from the lane centre. This is an assumption.
 - Wheel paths gather polishing, bleeding (glossy black in hot climates) and fatigue cracking (pieces under 0.3 m).
 - The strip between the wheel paths collects oil drips. That is an observation only; no federal source quantifies it.
@@ -1611,7 +1611,7 @@ The engine design uses this list as its acceptance criteria.
 | TX-HIM | TxDOT Highway Illumination Manual, pole placement | PR |
 | TX-PDM | TxDOT Pavement Manual 7.2 | PR |
 | IA-IM3210 | Iowa DOT I.M. 3.210 (reproduces AASHTO Green Book 2018 Tables 5-5 and 6-5). https://www.iowadot.gov/local_systems/publications/im/3210.pdf | PR; C2 for the reproduced numbers |
-| IA-DM | Iowa DOT Design Manual: 2B Superelevation, 3G-1 Roadway Ditches, 8A-2 Clear Zones | PR |
+| IA-DM | Iowa DOT Design Manual: 2A Horizontal Alignment, 2B Superelevation, 3G-1 Roadway Ditches, 8A-2 Clear Zones. https://iowadot.gov/design-manual/chapter-2-alignments/2b-superelevation | PR |
 | IA-SW601 | Iowa DOT SW-601 | PR |
 | WS-DM | WSDOT Design Manual M 22-01.23 (Sept 2024): Ch. 1220 and 1250 | PR |
 | MO-EPG | MoDOT Engineering Policy Guide: 230.1, 606.1, 620.5, 645, 750.7, 822.1 | PR |
@@ -1691,3 +1691,7 @@ The engine design uses this list as its acceptance criteria.
    - utility pole spans;
    - ROW widths.
 6. **Gutter cross slope** varies by agency (5%, 6.25%, 8.33%). The default of 6% is a compromise.
+7. **Desert soil albedo** (0.25-0.35) needs a public source; it is the reference for the arid colour gate.
+8. **Relative gradient above 50 mph.** The table in 5.4 follows Iowa 2B, which holds 0.50% from 50 to 80 mph. Some manuals are reported to keep reducing it at high speed, which lengthens runoff; that was not verified this session. Check TxDOT and WSDOT before Stage 3.
+
+**Verification pass, 2026-11-10.** Checked against the live sources: FHWA-FC Tables 3-5 and 3-6 (lane and shoulder widths confirmed; motorway and trunk AADT bands corrected); IA-DM 2B (f_max, relative gradients, low-speed radii at e = 0 and 4%, e_max policy, 70/30 runoff split all confirmed); IA-DM 2A (minimum curve length corrected); TX-RDM 4.7.1 (15 V broken-back tangent and 1.5 / 2.0 compound ratios confirmed); PROWAG R302-R305 (widths, grades, 1:48 cross slope, ramps, 13.3% gutter grade change and domes confirmed; crosswalk cross slope corrected); MUTCD 2009 3B.01, 3B.06, 3B.07, 3B.09, 3B.16, 3B.18, 3F and 2C (warrants, tapers, stop lines, crosswalk bars, delineators, Tables 2C-4 to 2C-6 confirmed; taper minimum re-attributed); FHWA-HRT-17-026 (rumble strip dimensions, offsets and bicycle gaps confirmed); EPA-CP (asphalt and concrete albedo confirmed; temperature figure corrected; soil albedo found not to be from EPA-CP); LTPP DIM (crack severity widths, block size and edge-crack band confirmed).
