@@ -38,7 +38,7 @@ Visual changes come with captures (`-SimCruiseDriveCapture`, docs/unreal-buildin
 | `Config/`, `Content/` | Unreal project settings; car presentation profiles (`Content/Vehicles/CarPresentation.json`) and calibration overlays. |
 | `data/` | Engine-neutral data the client reads: car files, glTF car models, detail photographs, the bundled offline tiles, helper fixtures. |
 | `helper/` | The atlas helper: `atlas.mjs` dispatches jobs; each module owns one data source or layer; its JSON datasets and the vendored HDF5 reader (`helper/vendor/`) sit beside them. `scripts/build-macos.sh` compiles it to `tools/atlas`. |
-| `authoring/` | Asset validation and model-building tools (`check_assets.py`, `car-assets.json`). |
+| `authoring/` | Model tools: the Sketchfab intake helper (`cars/sketchfab.mjs`) and the Blender car pipeline (`cars/build_car.py`). |
 | `lab/` | Measurement studies behind individual features, with their own READMEs, data and reproduction scripts. Older ones say "Sunday Driver". |
 | `licenses/`, `Credits.txt` | Per-source terms and attribution; `licenses/` ships with the game. |
 | `scripts/` | `check-helper.sh` (map helper tests). |

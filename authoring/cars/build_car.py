@@ -1,6 +1,6 @@
 """Build a SimCruise car model in Blender from a design file (v3).
 
-    blender -b -P authoring/cars/build_car.py -- authoring/cars/designs/<id>.py game/art/cars/<id>.glb
+    blender -b -P authoring/cars/build_car.py -- authoring/cars/designs/<id>.py data/art/cars/<id>.glb
         [--render out.png --view three-quarter|side|front|rear|top|cabin|rear-three-quarter]
         [--camera cam.json --render out.png]      (match a reference photograph)
         [--fast]                                  (Workbench render, shape checks)
@@ -22,7 +22,7 @@ forward into Godot's -Z forward.
 Nodes: body, wheel_fl/fr/rl/rr (origin at the hub; spins), wheel_*_upright
 (disc and caliper; steers only), steering_wheel (origin at the hub, rotates
 about its local column axis). Materials named lamp_rear become brake lamps,
-glass is drawn tinted and transparent by game/CarBody.gd.
+glass is drawn tinted and transparent by the client (its material role comes from the name).
 
 Original MIT work for SimCruise. Shapes are measured from photographs and
 published dimensions of the reference cars; no logos or badges.

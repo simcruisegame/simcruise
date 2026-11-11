@@ -3,7 +3,7 @@ import {canopy} from '../helper/canopy.mjs';
 import {cartography} from '../helper/cartography.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
-const project=process.argv[2],cache=process.argv[3];const dir=path.join(project,'game/data');
+const project=process.argv[2],cache=process.argv[3];const dir=path.join(project,'data/tiles');
 const read=cacheReader(cache,()=>{});const normal=(k,url,ttl=30*86400000)=>read(k,url,ttl);
 const cells=fs.readdirSync(dir).filter(n=>/^\d+_\d+.json$/.test(n));
 let crownCount=0,area=0;

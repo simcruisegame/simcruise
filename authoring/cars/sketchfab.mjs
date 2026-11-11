@@ -119,7 +119,7 @@ async function fetchModel() {
   manifest.models = manifest.models.filter((m) => m.uid !== uid);
   manifest.models.push({
     id, uid, kind, length_m: length, flip: Boolean(flag("flip", false)),
-    scene: `res://art/traffic/${id}/scene.gltf`,
+    scene: `data/art/traffic/${id}/scene.gltf`,
     title: model.name, author: model.user.displayName || model.user.username,
     author_url: model.user.profileUrl, licence, source_url: model.viewerUrl,
     faces: model.faceCount, fetched: new Date().toISOString().slice(0, 10),

@@ -46,9 +46,8 @@ Choose **Find a place → Princeton Road · Lancaster County, NE** for the eastb
 The bundled Miami Beach start (Ocean Drive, Collins Avenue and the Flamingo Park blocks) was prepared ahead of time from the same public sources the streamer uses, so it loads with no network. Remote places derive from OpenStreetMap vectors served by OpenFreeMap, USGS 3DEP or Terrarium elevations and available public aerial imagery. The contiguous states use The National Map. Hawaii uses the 2021–2023 USDA NAIP survey, and parts of southeast Alaska use Forest Service orthophotos. Each optional 512-pixel regional image covers up to 16 playable tiles. Incomplete or blank regional mosaics fall back to terrain and the other available map layers. A bounded ~96 MiB cache of upstream assets feeds several smaller playable chunks without per-frame API calls. The cache is stored under the Godot app's user-data directory. Connected provider availability, map detail, and imagery dates vary. Building faces, estimated road widths, tree shapes and parked vehicles are representative unless explicitly sourced. Surveyed camber is available in selected districts. Grade-separated deck geometry, small pavement defects, traffic, wet surfaces and building-level photographic coverage still vary substantially or remain missing.
 
 ## Development and acceptance
-The source includes authoring/car-assets.json (Miata pivots, wheel parts, fixed lamps, credit and visual status) and authoring/check_assets.py. From the source root run:
+These notes describe the Godot client, which lives at the `godot-final` tag (its asset contract, `authoring/car-assets.json`, and `authoring/check_assets.py` are there too; the Unreal client fits downloaded models instead, see docs/cars.md). From a checkout of that tag:
 
-    python3 authoring/check_assets.py
     godot --headless --path game --fixed-fps 30 --script res://checks/Wall.gd
     "Sunday Driver.app/Contents/MacOS/Sunday Driver" -- --profile-trees
 
