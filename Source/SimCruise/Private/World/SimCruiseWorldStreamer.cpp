@@ -320,9 +320,21 @@ void ASimCruiseWorldStreamer::UpdateNightLighting(float DeltaSeconds)
 	float SunElevationDeg = 45.f;
 	if (USimCruiseEnvironmentSubsystem* Subsystem = USimCruiseEnvironmentSubsystem::Get(GetWorld()))
 	{
-		if (const ASimCruiseEnvironment* Environment = Subsystem->GetEnvironment())
+		if (ASimCruiseEnvironment* Environment = Subsystem->GetEnvironment())
 		{
 			SunElevationDeg = static_cast<float>(Environment->GetSunPosition().ApparentElevationDeg);
+			// Sky glow from the lit streets around: a built-up ring of tiles (Miami Beach has about
+			// 300 street lights in its nine) glows about 0.06 cd/m2 at the horizon, the bright end
+			// of measured big-city horizons; open country, none.
+			int32 Lamps = 0;
+			for (const TPair<FIntPoint, TObjectPtr<ASimCruiseWorldTile>>& Pair : Tiles)
+			{
+				if (const FSimCruiseTileBuild* Build = Pair.Value ? Pair.Value->GetBuild() : nullptr)
+				{
+					Lamps += Build->LampPointsCm.Num();
+				}
+			}
+			Environment->SetSkyGlowLuminance(0.06 * FMath::Clamp(Lamps / 300.0, 0.0, 1.0));
 		}
 	}
 	// Photocells switch street lights at about 10-35 lx, near sunset; windows light through dusk.

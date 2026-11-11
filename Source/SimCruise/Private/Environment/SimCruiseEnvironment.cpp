@@ -260,17 +260,49 @@ void ASimCruiseEnvironment::ApplyAtmosphere()
 	// Continental and marine aerosols scatter strongly forward (asymmetry g about 0.7-0.8).
 	Atmosphere->SetMieAnisotropy(0.76f);
 
-	if (HeightFog)
+	ApplyFog();
+}
+
+void ASimCruiseEnvironment::SetSkyGlowLuminance(double Nits)
+{
+	Nits = FMath::Max(Nits, 0.0);
+	if (FMath::Abs(Nits - SkyGlowNits) <= 0.05 * FMath::Max(Nits, SkyGlowNits) + 1.0e-5)
 	{
-		// Below the haze floor the rest of the Koschmieder extinction is mist/fog near the ground.
-		const double Total = FSimCruiseDaylightModel::ExtinctionPerKmForVisibility(VisibilityKm);
-		const double Haze = FSimCruiseDaylightModel::ExtinctionPerKmForVisibility(HazeVisibilityKm);
-		const double FogPerKm = FMath::Max(Total - Haze, 0.0);
-		// Unreal stores fog density x1000 per unreal unit (cm): density = sigma[1/km] / 100.
-		HeightFog->SetFogDensity(static_cast<float>(FogPerKm / 100.0));
-		HeightFog->SetFogHeightFalloff(static_cast<float>(10.0 / GroundFogScaleHeightM));
-		HeightFog->SetVolumetricFogExtinctionScale(1.0f);
+		return;
 	}
+	SkyGlowNits = Nits;
+	ApplyFog();
+}
+
+void ASimCruiseEnvironment::ApplyFog()
+{
+	if (!HeightFog)
+	{
+		return;
+	}
+	// Below the haze floor the rest of the Koschmieder extinction is mist/fog near the ground.
+	const double VisibilityKm = Weather.VisibilityM / 1000.0;
+	const double HazeVisibilityKm = FMath::Max(VisibilityKm, HazeFloorVisibilityKm);
+	const double Total = FSimCruiseDaylightModel::ExtinctionPerKmForVisibility(VisibilityKm);
+	const double Haze = FSimCruiseDaylightModel::ExtinctionPerKmForVisibility(HazeVisibilityKm);
+	const double FogPerKm = FMath::Max(Total - Haze, 0.0);
+
+	// A city's sky glow: light from the streets scattered back by the low air, brightest toward
+	// the horizon. Drawn as a thin, 1 km deep fog layer whose in-scattering is the glow's
+	// luminance: it lights the sky near the horizon and barely touches anything nearby (0.02/km).
+	// It shows once the sky is darker than it (after civil twilight).
+	const double Night = FMath::SmoothStep(0.0, 1.0, FMath::Clamp((-4.0 - SunPosition.ApparentElevationDeg) / 8.0, 0.0, 1.0));
+	const double Glow = SkyGlowNits * Night;
+	const double GlowPerKm = Glow > 1.0e-5 ? 0.02 : 0.0;
+
+	// Unreal stores fog density x1000 per unreal unit (cm): density = sigma[1/km] / 100.
+	HeightFog->SetFogDensity(static_cast<float>((FogPerKm + GlowPerKm) / 100.0));
+	HeightFog->SetFogHeightFalloff(static_cast<float>(10.0 / (FogPerKm > GlowPerKm ? GroundFogScaleHeightM : 1000.0)));
+	// Warm: high-pressure sodium and 3000 K LEDs.
+	HeightFog->SetFogInscatteringColor(FLinearColor(1.0f, 0.72f, 0.45f) * static_cast<float>(Glow));
+	// Volumetric fog (lit by the street lights and the moon) only for real mist: a glow layer alone costs nothing.
+	HeightFog->SetVolumetricFog(FogPerKm > 0.0);
+	HeightFog->SetVolumetricFogExtinctionScale(1.0f);
 }
 
 void ASimCruiseEnvironment::ApplyClouds()
@@ -349,6 +381,8 @@ void ASimCruiseEnvironment::UpdateSky()
 		MoonLight->SetCastShadows(!bSunUp && bMoonUp);
 		MoonLight->SetVisibility(bMoonUp && SunPosition.ApparentElevationDeg < 10.0);
 	}
+
+	ApplyFog();
 
 	NaturalGroundLuxFromMoon = bMoonUp ? MoonLux * FMath::Max(FMath::Sin(FMath::DegreesToRadians(MoonPosition.ApparentElevationDeg)), 0.0) : 0.0;
 	// The daylight model adds this term to the sky's illuminance: moonlight and any artificial light.

@@ -100,6 +100,13 @@ public:
 	 * staying open for starlight. 0 = none.
 	 */
 	void SetArtificialIlluminanceLux(double Lux);
+
+	/**
+	 * The city's sky glow at the horizon on a clear night, cd/m2 (0 in the country; the world
+	 * streamer sets it from the street lights it has built). Shown after civil twilight.
+	 */
+	void SetSkyGlowLuminance(double Nits);
+	double GetSkyGlowLuminance() const { return SkyGlowNits; }
 	double GetArtificialIlluminanceLux() const { return ArtificialLux; }
 
 	/** Look development: a cloud material scalar or one of the named atmosphere/exposure knobs (see SimCruise.Env.Look). */
@@ -211,6 +218,8 @@ protected:
 
 private:
 	void ApplyAtmosphere();
+	void ApplyFog();
+	double SkyGlowNits = 0.0;
 	void ApplyClouds();
 	void ApplyExposure();
 
