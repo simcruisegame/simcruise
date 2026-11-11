@@ -4,6 +4,7 @@ Notable changes to SimCruise, newest first. The format follows [Keep a Changelog
 
 ## Unreleased
 
+- **The roadster's gauges light up at night** (`CarPresentation.json`) — the cluster's numerals and ticks and the console labels are backlit like the real panel; at night the dashboard was black.
 - **The dashboard clock tells the time** (`Presentation/SimCruiseCarClock`, `CarPresentation.json` `clock`) — the roadster's clock always read 2:15; it now shows the local time at the place you drive (12-hour, US time zones and daylight saving time).
 - **Palms are instances of six shared meshes** (`World/SimCruiseTileDetail`, `SimCruiseWorldResources`, `SimCruiseWorldTile`) — about 107 000 fewer triangles in each Miami tile's mesh and collision, and the palms' shaded trunks now take the sky light (they read nearly black before). Frame time unchanged.
 - **Faster at High on the target laptop** (`Config/DefaultScalability.ini`, `Environment/SimCruiseEnvironment`, `Gameplay/SimCruiseDriveCapture`) — the drive is now measured (`-SimCruiseDrivePerf`, RTX 2070 Super Max-Q, 1080p): High went from 62 to 70 fps in the driver's seat by marching the cloud shadow map at 192 texels and 12 steps over 20 km instead of 384 and 24 over 50 km (2.1 to 0.56 ms, no visible change).

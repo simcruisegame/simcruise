@@ -30,7 +30,8 @@
     "LicPlate_black": "hidden",
     "LicPlate_blue": "hidden",
     "LicPlate_yellow": "hidden",
-    "LicPlate_white": "hidden"
+    "LicPlate_white": "hidden",
+    "white": "gauge"
    },
    "tints": {
     "interior_plastic": "#2e2f30"
@@ -82,7 +83,8 @@
     ],
     "flip_v": true,
     "source": "display_baseColor.png paints 5:12 between x 650-990 and y 15-112 of 1024 x 128; the dash shows it upside down (seven-segment 5 reads as 2), as 2:15. The NB clock is a 12-hour green LCD."
-   }
+   },
+   "roles_source": "'white' is the cluster's numerals and ticks and the console's labels (meshes only on the dash, x -9..47, y -83..-49 cm in the model): backlit like the real panel, 25 nits, which daylight in the cabin drowns and night shows."
   },
   "nb1999": {
    "model": "data/art/traffic/miata_nb-5d103c56/scene.gltf",
@@ -113,7 +115,8 @@
     "LicPlate_black": "hidden",
     "LicPlate_blue": "hidden",
     "LicPlate_yellow": "hidden",
-    "LicPlate_white": "hidden"
+    "LicPlate_white": "hidden",
+    "white": "gauge"
    },
    "tints": {
     "interior_plastic": "#2e2f30"
@@ -165,7 +168,8 @@
     ],
     "flip_v": true,
     "source": "display_baseColor.png paints 5:12 between x 650-990 and y 15-112 of 1024 x 128; the dash shows it upside down (seven-segment 5 reads as 2), as 2:15. The NB clock is a 12-hour green LCD."
-   }
+   },
+   "roles_source": "'white' is the cluster's numerals and ticks and the console's labels (meshes only on the dash, x -9..47, y -83..-49 cm in the model): backlit like the real panel, 25 nits, which daylight in the cabin drowns and night shows."
   },
   "mustang65": {
    "model": "data/art/traffic/mustang65-05f2a294/scene.gltf",
