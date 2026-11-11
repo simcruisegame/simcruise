@@ -1,11 +1,11 @@
 #!/bin/sh
-# Re-run the taste test's game captures (lab/taste/README.md).
+# Re-run the taste test's game captures (lab/taste/2026-11-10/README.md).
 #
 #   GODOT_BIN=/path/to/Godot_v4.7.2_console sh lab/taste/scripts/capture.sh /abs/out [renderer]
 #
 # renderer: mobile (default, the shipping renderer) or forward_plus.
 # Needs a window (captures read the viewport) and tools/atlas.exe (or tools/atlas)
-# built from helper/atlas.mjs; see the README. Writes:
+# built from helper/atlas.mjs; see that README. Writes:
 #   OUT/car/nb1999_*.jpg        CarTurntable, Ultra, with --lamps
 #   OUT/place/*.jpg + *.log     ReferencePose at fixed poses, Ultra
 set -u
