@@ -12,14 +12,16 @@ extends Node
 ##   engine  InlineFourSound clamps at 0.94; trim −6 dB, bus −6 dB → 0.236
 ##   road    tanh limited below 0.90 by construction (the tyre scrub and
 ##           squeal are mixed in before that limiter); bus −8 dB    → 0.358
-##   wind    tanh limited below 0.85 by construction; bus −10 dB   → 0.269
-##   worst-case sum 0.86 < 1.0, so Master cannot clip even if all three layers
+##   wind    tanh limited below 0.85 by construction; bus −30 dB   → 0.027
+##   worst-case sum 0.62 < 1.0, so Master cannot clip even if all three layers
 ##   peak on the same sample. Rolling at 30 m/s on asphalt the mix sits near
 ##   −20 dBFS RMS. checks/RoadNoiseCheck.gd measures each layer headless.
 ## Each generator keeps about 60 ms queued (AudioFeed.gd), not its full buffer.
 const RATE := 22050.
 const ENGINE_TRIM_DB := -6.
-const BUS_DB := {"Cabin":0.,"Engine":-6.,"Road":-8.,"Wind":-10.}
+# Wind is 30 dB down (it was −10 dB), at the owner's request on 10 November
+# 2026: it was too prominent. It is now only a faint hiss at highway speed.
+const BUS_DB := {"Cabin":0.,"Engine":-6.,"Road":-8.,"Wind":-30.}
 const CABIN_CUTOFF_HZ := 2400.
 # Surface classes from WorldTile.wheel_grip: 1.0 paved, .76 gravel or mapped
 # unpaved, .65 verge or field, .72 while a tile is still loading.
