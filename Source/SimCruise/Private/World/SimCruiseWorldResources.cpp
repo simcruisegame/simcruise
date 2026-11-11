@@ -340,9 +340,18 @@ if (rPane > 0.0)
 	// at the back (about 1000 at 5 m); the room's lamps, on in shops all day (a few closed at
 	// night) and in one home in three at night.
 	float dayLux = (5000.0 * exp(-hit.z / 3.0) + 400.0) * (t == ty && rd.y > 0.0 ? 0.55 : 1.0);
-	float lamp = rShop ? 700.0 * lerp(1.0, rLit, Lights) : 130.0 * rLit * Lights;
+	// Lamps differ room to room (a lit home 25-260 lux, log-uniform; one in eight only the cool
+	// flicker-free glow of a television, 6 lux), and one lamp under the ceiling in the middle of
+	// the room lights it unevenly (inverse square, normalised to its level 1.5 m away), so a
+	// lit window at night shows a room rather than a flat sheet of light.
+	// Shops and cafes run from a dim warm restaurant (about 175 lux) to bright retail (900).
+	float level = (rShop ? 700.0 : 130.0) * exp2(lerp(rShop ? -2.0 : -2.4, rShop ? 0.4 : 1.0, frac(rR * 41.3)));
 	float3 lampTint = lerp(float3(1.0, 0.72, 0.45), float3(1.0, 0.86, 0.7), frac(rR * 3.3));
-	float3 room = surf * shade * ((1.0 - Lights) * dayLux * float3(0.95, 1.0, 1.05) + lamp * lampTint) / 3.14159;
+	if (!rShop && frac(rR * 23.9) < 0.125) { level = 6.0; lampTint = float3(0.55, 0.7, 1.0); }
+	float lamp = rShop ? level * lerp(1.0, rLit, Lights) : level * rLit * Lights;
+	float3 toLamp = float3(0.5 * rBay, ceilH - 0.35, 0.5 * deep) - hit;
+	float near = rShop ? 1.0 : 2.25 / (dot(toLamp, toLamp) + 0.4); // a shop has rows of fixtures
+	float3 room = surf * shade * ((1.0 - Lights) * dayLux * float3(0.95, 1.0, 1.05) + lamp * near * lampTint) / 3.14159;
 	// Blinds or curtains just inside the glass (homes and offices, not shops).
 	float u = (rx - rX0) / rW, v = (ry - rY0) / (rY1 - rY0);
 	float cover = 0.0;
