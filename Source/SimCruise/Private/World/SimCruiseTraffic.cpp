@@ -2,6 +2,7 @@
 
 #include "World/SimCruiseTraffic.h"
 
+#include "Algo/BinarySearch.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Components/BoxComponent.h"
 #include "Engine/StaticMesh.h"
@@ -63,28 +64,48 @@ double SimCruiseTrafficModel::SpeedLimitMps(const FString& Class)
 	return 11.2;
 }
 
-double SimCruiseTrafficModel::LaneOffsetM(const FSimCruiseRibbon& Ribbon, int32 I, int32 Dir)
+namespace
 {
-	const FSimCruiseRibbonStation& St = Ribbon.St[I];
-	auto Kerbed = [&](int32 Side) { return Ribbon.Sides[Side].Edge.IsValidIndex(I) && Ribbon.Sides[Side].Edge[I] != ESimCruiseRoadEdge::Rural; };
-	const SimCruiseLanes::FParking Park = SimCruiseLanes::Parking(Ribbon.Class, St.HalfW, St.Travel, Kerbed(0), Kerbed(1));
-	if (St.Travel != 0)
+	/** Station I's parking, in the frame of a driver going Dir (Right is the driver's right). */
+	SimCruiseLanes::FParking DriverParking(const FSimCruiseRibbon& Ribbon, int32 I, int32 Dir, bool& bOneWay)
 	{
-		// One way: the marked layout, in the driver's frame (the driver's right is R * Travel).
-		return St.Travel * SimCruiseLanes::RightLaneCentreM(Ribbon.Class, St.HalfW, St.Travel, Park);
+		const FSimCruiseRibbonStation& St = Ribbon.St[I];
+		auto Kerbed = [&](int32 Side) { return Ribbon.Sides[Side].Edge.IsValidIndex(I) && Ribbon.Sides[Side].Edge[I] != ESimCruiseRoadEdge::Rural; };
+		const SimCruiseLanes::FParking Park = SimCruiseLanes::Parking(Ribbon.Class, St.HalfW, St.Travel, Kerbed(0), Kerbed(1));
+		bOneWay = St.Travel != 0;
+		if (bOneWay) return Park; // the one-way layout reads the station frame itself
+		SimCruiseLanes::FParking Driver;
+		Driver.Right = Dir > 0 ? Park.Right : Park.Left;
+		Driver.Left = Dir > 0 ? Park.Left : Park.Right;
+		return Driver;
 	}
-	// Two way: this direction's half, inside the parking lane on the driver's right.
-	SimCruiseLanes::FParking Driver;
-	Driver.Right = Dir > 0 ? Park.Right : Park.Left;
-	Driver.Left = Dir > 0 ? Park.Left : Park.Right;
-	return Dir * SimCruiseLanes::RightLaneCentreM(Ribbon.Class, St.HalfW, 0, Driver);
 }
 
-/**
- * The next place along the ribbon where a car chooses its way: the centre of the next
- * run of stations another carriageway crosses (FSimCruiseRibbonSide::Cut), beyond 2 m
- * ahead and not the junction just passed, or the ribbon's end (bEnd).
- */
+double SimCruiseTrafficModel::LaneOffsetM(const FSimCruiseRibbon& Ribbon, int32 I, int32 Dir, int32 Lane)
+{
+	const FSimCruiseRibbonStation& St = Ribbon.St[I];
+	bool bOneWay = false;
+	const SimCruiseLanes::FParking Park = DriverParking(Ribbon, I, Dir, bOneWay);
+	int32 Count = 1;
+	double Width = 3.0;
+	SimCruiseLanes::TravelLanes(Ribbon.Class, St.HalfW, St.Travel, Park, Count, Width);
+	// Lane k from the right lies k widths to the driver's left; the driver's right is R * Dir
+	// (on a one-way street Dir is its direction).
+	const int32 K = FMath::Clamp(Lane, 0, Count - 1);
+	const int32 Way = bOneWay ? St.Travel : Dir;
+	return Way * (SimCruiseLanes::RightLaneCentreM(Ribbon.Class, St.HalfW, St.Travel, Park) - K * Width);
+}
+
+int32 SimCruiseTrafficModel::LaneCount(const FSimCruiseRibbon& Ribbon, int32 I, int32 Dir)
+{
+	bool bOneWay = false;
+	const SimCruiseLanes::FParking Park = DriverParking(Ribbon, I, Dir, bOneWay);
+	int32 Count = 1;
+	double Width = 3.0;
+	SimCruiseLanes::TravelLanes(Ribbon.Class, Ribbon.St[I].HalfW, Ribbon.St[I].Travel, Park, Count, Width);
+	return FMath::Max(Count, 1);
+}
+
 double SimCruiseTrafficModel::NextDecisionS(const FSimCruiseRibbon& R, int32 Dir, double S, double SkipNearS, bool& bEnd)
 {
 	const int32 N = R.St.Num();
@@ -178,7 +199,7 @@ const FSimCruiseRibbon* ASimCruiseTraffic::GetRibbon(const FIntPoint& Tile, int3
 	return Build && Build->Roads.Ribbons.IsValidIndex(Ribbon) && Build->Roads.Ribbons[Ribbon].St.Num() >= 2 ? &Build->Roads.Ribbons[Ribbon] : nullptr;
 }
 
-ASimCruiseTraffic::FPose ASimCruiseTraffic::PoseAt(const FIntPoint& Tile, int32 RibbonIndex, int32 Dir, double S) const
+ASimCruiseTraffic::FPose ASimCruiseTraffic::PoseAt(const FIntPoint& Tile, int32 RibbonIndex, int32 Dir, double S, int32 Lane) const
 {
 	FPose Pose;
 	const FSimCruiseRibbon* R = GetRibbon(Tile, RibbonIndex);
@@ -195,7 +216,7 @@ ASimCruiseTraffic::FPose ASimCruiseTraffic::PoseAt(const FIntPoint& Tile, int32 
 	const FVector2d C = FMath::Lerp(St[Lo].C, St[Hi].C, T);
 	const FVector2d Rn = FMath::Lerp(St[Lo].R, St[Hi].R, T).GetSafeNormal();
 	const FVector2d Tn = FMath::Lerp(St[Lo].T, St[Hi].T, T).GetSafeNormal();
-	const double Offset = FMath::Lerp(SimCruiseTrafficModel::LaneOffsetM(*R, Lo, Dir), SimCruiseTrafficModel::LaneOffsetM(*R, Hi, Dir), T);
+	const double Offset = FMath::Lerp(SimCruiseTrafficModel::LaneOffsetM(*R, Lo, Dir, Lane), SimCruiseTrafficModel::LaneOffsetM(*R, Hi, Dir, Lane), T);
 	const double H = FMath::Lerp(R->CarriagewayHeight(Lo, Offset), R->CarriagewayHeight(Hi, Offset), T);
 	const FVector2d P = C + Rn * Offset;
 	const FVector Origin = Streamer->GetTile(Tile)->GetActorLocation();
@@ -315,7 +336,7 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 {
 	const FSimCruiseRibbon* R = GetRibbon(Car.Tile, Car.Ribbon);
 	if (!R) { Car.Ribbon = INDEX_NONE; return; }
-	const FPose Here = PoseAt(Car.Tile, Car.Ribbon, Car.Dir, Car.S);
+	const FPose Here = PoseAt(Car.Tile, Car.Ribbon, Car.Dir, Car.S, Car.Lane);
 	const FVector2d Fwd = Here.Heading;
 	// The car ahead in this lane (traffic or the player): bumper-to-bumper gap and closing speed.
 	double Gap = -1.0, Closing = 0.0;
@@ -463,37 +484,103 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 			Car.Ribbon = INDEX_NONE;
 			return;
 		}
-		const FPose Old = PoseAt(Car.Tile, Car.Ribbon, Car.Dir, Car.DecisionS);
+		const FPose Old = PoseAt(Car.Tile, Car.Ribbon, Car.Dir, Car.DecisionS, Car.Lane);
 		Car.Tile = Car.NextTile;
 		Car.Ribbon = Car.NextRibbon;
 		Car.Dir = Car.NextDir;
 		Car.S = Car.NextS + Car.Dir * Over;
+		const double Turned = Car.NextTurnDeg;
 		Car.bNextChosen = false;
 		Car.StopState = 0;
 		Car.LastDecisionS = -1e9;
 		++RibbonChanges;
-		const FPose New = PoseAt(Car.Tile, Car.Ribbon, Car.Dir, Car.S);
+		// Into the nearest lane of the new road: the right one after a right turn, the left
+		// one after a left turn (US practice); straight on, the same lane where it exists.
+		if (const FSimCruiseRibbon* NewR = GetRibbon(Car.Tile, Car.Ribbon))
+		{
+			const int32 Station = FMath::Clamp(Algo::LowerBound(NewR->St, Car.S, [](const FSimCruiseRibbonStation& St, double V) { return St.S < V; }), 0, NewR->St.Num() - 1);
+			const int32 Lanes = SimCruiseTrafficModel::LaneCount(*NewR, Station, Car.Dir);
+			Car.Lane = Turned > 30.0 ? 0 : Turned < -30.0 ? Lanes - 1 : FMath::Clamp(Car.Lane, 0, Lanes - 1);
+		}
+		const FPose New = PoseAt(Car.Tile, Car.Ribbon, Car.Dir, Car.S, Car.Lane);
 		if (!New.bValid) { Car.Ribbon = INDEX_NONE; return; }
 		Car.BlendCm += FVector(Old.LocationCm.X - New.LocationCm.X, Old.LocationCm.Y - New.LocationCm.Y, Old.LocationCm.Z - New.LocationCm.Z);
 		Car.BlendYawDeg = FRotator::NormalizeAxis(Car.BlendYawDeg + SignedAngleDeg(New.Heading, Old.Heading));
 	}
 
-	const FPose Now = PoseAt(Car.Tile, Car.Ribbon, Car.Dir, Car.S);
+	// Lanes: keep to one that exists here, take the turning lane in time, and pass a slow
+	// car on the left (else the right) when the next lane is clear.
+	{
+		const int32 Station = FMath::Clamp(Algo::LowerBound(R->St, Car.S, [](const FSimCruiseRibbonStation& St, double V) { return St.S < V; }), 0, R->St.Num() - 1);
+		const int32 Lanes = SimCruiseTrafficModel::LaneCount(*R, Station, Car.Dir);
+		int32 Want = FMath::Clamp(Car.Lane, 0, Lanes - 1);
+		Car.LaneChangeCooldownS = FMath::Max(0.0, Car.LaneChangeCooldownS - Dt);
+		const double ToDecision = Car.bNextChosen ? FMath::Abs(Car.DecisionS - Car.S) : 1e9;
+		if (Car.bNextChosen && FMath::Abs(Car.NextTurnDeg) > 30.0 && ToDecision < 80.0)
+		{
+			Want = Car.NextTurnDeg > 0.0 ? 0 : Lanes - 1; // positive turns are to the right (Unreal's Y is right)
+		}
+		else if (Lanes > 1 && Car.LaneChangeCooldownS <= 0.0 && ToDecision > 60.0 && Gap >= 0.0 && Gap < 35.0 && Closing > 1.0)
+		{
+			if (Car.Lane + 1 < Lanes && LaneClear(Car, Car.Lane + 1, PlayerCm)) Want = Car.Lane + 1;
+			else if (Car.Lane > 0 && LaneClear(Car, Car.Lane - 1, PlayerCm)) Want = Car.Lane - 1;
+		}
+		// One lane at a time, and only into a clear one (a lane that ends is left regardless).
+		if (Want != Car.Lane)
+		{
+			const int32 Step = Car.Lane + (Want > Car.Lane ? 1 : -1);
+			if (Car.Lane >= Lanes || Car.LaneChangeCooldownS <= 0.0 && LaneClear(Car, Step, PlayerCm))
+			{
+				const FPose From = PoseAt(Car.Tile, Car.Ribbon, Car.Dir, Car.S, Car.Lane);
+				const FPose To = PoseAt(Car.Tile, Car.Ribbon, Car.Dir, Car.S, Car.Lane >= Lanes ? Lanes - 1 : Step);
+				Car.LaneShiftCm += From.LocationCm - To.LocationCm;
+				Car.Lane = Car.Lane >= Lanes ? Lanes - 1 : Step;
+				Car.LaneChangeCooldownS = 6.0;
+				++LaneChanges;
+			}
+		}
+	}
+
+	const FPose Now = PoseAt(Car.Tile, Car.Ribbon, Car.Dir, Car.S, Car.Lane);
 	if (!Now.bValid) { Car.Ribbon = INDEX_NONE; return; }
 	const double Ease = FMath::Exp(-Dt / 0.7);
 	Car.BlendCm *= Ease;
 	Car.BlendYawDeg *= Ease;
+	// A lane change eases out over about 3 s (time constant 1 s), the car angled into it.
+	constexpr double LaneTau = 1.0;
+	Car.LaneShiftCm *= FMath::Exp(-Dt / LaneTau);
+	const FVector2d RightOfPath(-Now.Heading.Y, Now.Heading.X);
+	const double SideSpeed = -FVector2d::DotProduct(FVector2d(Car.LaneShiftCm.X, Car.LaneShiftCm.Y) / 100.0, RightOfPath) / LaneTau;
+	const double LaneYawDeg = FMath::RadiansToDegrees(FMath::Atan2(SideSpeed, FMath::Max(Car.Speed, 2.0)));
 	const double PrevYaw = Car.GetActorRotation().Yaw;
-	const double Yaw = FMath::RadiansToDegrees(FMath::Atan2(Now.Heading.Y, Now.Heading.X)) + Car.BlendYawDeg;
+	const double Yaw = FMath::RadiansToDegrees(FMath::Atan2(Now.Heading.Y, Now.Heading.X)) + Car.BlendYawDeg + LaneYawDeg;
 	// The car's origin is between the axles at the body's height: the tyres touch the road
 	// a tyre radius under the hubs.
 	const double GroundInFrameCm = Car.Presentation->GetStaticHubLocation(0).Z - Car.TyreRadiusCm;
-	Car.SetActorLocationAndRotation(Now.LocationCm + Car.BlendCm - FVector(0.0, 0.0, GroundInFrameCm), FRotator(0.0, Yaw, 0.0));
+	Car.SetActorLocationAndRotation(Now.LocationCm + Car.BlendCm + Car.LaneShiftCm - FVector(0.0, 0.0, GroundInFrameCm), FRotator(0.0, Yaw, 0.0));
 	// Wheels: rolling with the distance, steered by the yaw rate (bicycle model).
 	Car.Spin = FMath::Fmod(Car.Spin + Car.Speed * Dt / FMath::Max(Car.TyreRadiusCm / 100.0, 0.1), UE_DOUBLE_TWO_PI);
 	const double YawRate = FMath::DegreesToRadians(FRotator::NormalizeAxis(Yaw - PrevYaw)) / FMath::Max(Dt, 1e-3);
 	const double Steer = Car.Speed > 0.5 ? FMath::Atan(2.6 * YawRate / Car.Speed) : Car.SteerRad;
 	Car.SteerRad += (FMath::Clamp(Steer, -0.6, 0.6) - Car.SteerRad) * (1.0 - FMath::Exp(-Dt / 0.15));
+}
+
+bool ASimCruiseTraffic::LaneClear(const ASimCruiseTrafficCar& Car, int32 Lane, const FVector& PlayerCm) const
+{
+	const FPose Target = PoseAt(Car.Tile, Car.Ribbon, Car.Dir, Car.S, Lane);
+	if (!Target.bValid) return false;
+	auto Occupies = [&](const FVector& OtherCm)
+	{
+		const FVector2d D((OtherCm.X - Target.LocationCm.X) / 100.0, (OtherCm.Y - Target.LocationCm.Y) / 100.0);
+		const double Along = FVector2d::DotProduct(D, Target.Heading);
+		const double Across = FMath::Abs(D.X * Target.Heading.Y - D.Y * Target.Heading.X);
+		return Across < 1.6 && Along > -15.0 && Along < 25.0;
+	};
+	for (const ASimCruiseTrafficCar* Other : Cars)
+	{
+		if (Other && Other != &Car && Other->Ribbon != INDEX_NONE && Occupies(Other->GetActorLocation())) return false;
+	}
+	return !Occupies(PlayerCm);
 }
 
 bool ASimCruiseTraffic::Spawn(const FVector& FocusCm, const FVector& PlayerFwd, const FVector& CameraCm, const FVector& CameraFwd, bool bAnywhere)
@@ -520,7 +607,9 @@ bool ASimCruiseTraffic::Spawn(const FVector& FocusCm, const FVector& PlayerFwd, 
 		const double S = R.St[0].S + 10.0 + Unit(Random) * (R.Length() - 20.0);
 		const int32 Travel = R.St[R.St.Num() / 2].Travel;
 		const int32 Dir = Travel != 0 ? Travel : (Unit(Random) < 0.5 ? 1 : -1);
-		const FPose Pose = PoseAt(TileId, RibbonIndex, Dir, S);
+		const int32 SpawnStation = FMath::Clamp(Algo::LowerBound(R.St, S, [](const FSimCruiseRibbonStation& St, double V) { return St.S < V; }), 0, R.St.Num() - 1);
+		const int32 SpawnLane = static_cast<int32>(NextRandom(Random) % static_cast<uint32>(SimCruiseTrafficModel::LaneCount(R, SpawnStation, Dir)));
+		const FPose Pose = PoseAt(TileId, RibbonIndex, Dir, S, SpawnLane);
 		if (!Pose.bValid) continue;
 		const double Dist = FVector::Dist(Pose.LocationCm, FocusCm) / 100.0;
 		if (Dist < (bAnywhere ? 25.0 : SpawnMinM) || Dist > SpawnMaxM) continue;
@@ -556,6 +645,7 @@ bool ASimCruiseTraffic::Spawn(const FVector& FocusCm, const FVector& PlayerFwd, 
 		Car->Dir = Dir;
 		Car->S = S;
 		Car->Seed = NextRandom(Random) | 1u;
+		Car->Lane = SpawnLane;
 		Car->DesiredSpeed = SimCruiseTrafficModel::SpeedLimitMps(R.Class) * (0.9 + 0.2 * Unit(Random));
 		Car->Speed = Car->DesiredSpeed * 0.8;
 		Cars.Add(Car);
@@ -615,8 +705,8 @@ void ASimCruiseTraffic::Tick(float DeltaSeconds)
 				++WhyCount[FMath::Clamp(Car->Why, 0, 4)];
 			}
 		}
-		UE_LOG(LogTemp, Display, TEXT("SimCruise traffic: %d cars, %d moving, %d waiting at stops, %d standing elsewhere (lane %d, player %d, crossing %d, stop line %d, none %d), mean %.1f m/s, %d ribbon changes, %d spawned, %d stops passed"),
-			Cars.Num(), Moving, AtStops, Standing, WhyCount[1], WhyCount[2], WhyCount[3], WhyCount[4], WhyCount[0], Cars.Num() ? Sum / Cars.Num() : 0.0, RibbonChanges, Spawned, StopsPassed);
+		UE_LOG(LogTemp, Display, TEXT("SimCruise traffic: %d cars, %d moving, %d waiting at stops, %d standing elsewhere (lane %d, player %d, crossing %d, stop line %d, none %d), mean %.1f m/s, %d ribbon changes, %d lane changes, %d spawned, %d stops passed"),
+			Cars.Num(), Moving, AtStops, Standing, WhyCount[1], WhyCount[2], WhyCount[3], WhyCount[4], WhyCount[0], Cars.Num() ? Sum / Cars.Num() : 0.0, RibbonChanges, LaneChanges, Spawned, StopsPassed);
 	}
 	const int32 Want = FMath::Max(0, CVarTrafficCars.GetValueOnGameThread());
 	for (int32 Tries = 0; Tries < 2 && Cars.Num() < Want; ++Tries)

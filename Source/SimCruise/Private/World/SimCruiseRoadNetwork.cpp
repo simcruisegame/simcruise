@@ -409,6 +409,23 @@ namespace SimCruiseLanes
 		return Out;
 	}
 
+	void TravelLanes(const FString& Class, double HalfW, int32 Travel, const FParking& Park, int32& OutCount, double& OutWidthM)
+	{
+		const double Lane = LaneWidthM(Class);
+		if (Travel == 0)
+		{
+			const double Half = HalfW - Park.Right;
+			OutCount = FMath::Clamp(FMath::FloorToInt((Half - 0.6) / Lane), 1, 3);
+			OutWidthM = FMath::Max(0.5, FMath::Min(Lane, (Half - 0.3) / OutCount));
+			return;
+		}
+		const double LeftP = Travel > 0 ? Park.Left : Park.Right;
+		const double RightP = Travel > 0 ? Park.Right : Park.Left;
+		const double Travelled = 2.0 * HalfW - LeftP - RightP;
+		OutCount = Travelled >= 2.0 * 2.75 + 0.6 ? 2 : 1;
+		OutWidthM = FMath::Max(0.5, FMath::Min(Lane, (Travelled - 0.8) / OutCount));
+	}
+
 	double RightLaneCentreM(const FString& Class, double HalfW, int32 Travel, const FParking& Park)
 	{
 		const double Lane = LaneWidthM(Class);

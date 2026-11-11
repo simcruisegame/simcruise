@@ -29,7 +29,10 @@ namespace SimCruiseTrafficModel
 	 * driving the ribbon in direction Dir (+1 along S, -1 against), at station I: the
 	 * lane the markings draw, inside any parking lane on the driver's right.
 	 */
-	SIMCRUISE_API double LaneOffsetM(const FSimCruiseRibbon& Ribbon, int32 I, int32 Dir);
+	SIMCRUISE_API double LaneOffsetM(const FSimCruiseRibbon& Ribbon, int32 I, int32 Dir, int32 Lane = 0);
+
+	/** How many travel lanes a car driving the ribbon in Dir has at station I (at least 1). */
+	SIMCRUISE_API int32 LaneCount(const FSimCruiseRibbon& Ribbon, int32 I, int32 Dir);
 
 	/**
 	 * The next place along the ribbon (m, station S) where a car driving in Dir from S
@@ -94,6 +97,10 @@ public:
 	FVector JunctionCm = FVector::ZeroVector;
 	double StopBackM = 6.0;
 	double WaitS = 0.0;
+	/** Travel lane, counted from the right (0); a change eases sideways over about 3 s. */
+	int32 Lane = 0;
+	FVector LaneShiftCm = FVector::ZeroVector;
+	double LaneChangeCooldownS = 0.0;
 	/** What set the gap last frame: 0 nothing, 1 a car in the lane, 2 the player, 3 a crossing car, 4 a stop line. */
 	int32 Why = 0;
 	/** Where the chosen way on starts (m along the ribbon), whether that is the ribbon's end, and whether it is straight on. */
@@ -135,7 +142,9 @@ private:
 	};
 
 	const FSimCruiseRibbon* GetRibbon(const FIntPoint& Tile, int32 Ribbon) const;
-	FPose PoseAt(const FIntPoint& Tile, int32 Ribbon, int32 Dir, double S) const;
+	FPose PoseAt(const FIntPoint& Tile, int32 Ribbon, int32 Dir, double S, int32 Lane = 0) const;
+	/** Whether a car could move into Lane here: nobody within 15 m behind or 25 m ahead in it. */
+	bool LaneClear(const ASimCruiseTrafficCar& Car, int32 Lane, const FVector& PlayerCm) const;
 	bool Spawn(const FVector& FocusCm, const FVector& PlayerFwd, const FVector& CameraCm, const FVector& CameraFwd, bool bAnywhere);
 	/** Picks the way on at DecisionS (a junction along the ribbon, or its end when bAtEnd). */
 	bool ChooseAt(ASimCruiseTrafficCar& Car, double DecisionS, bool bAtEnd) const;
@@ -146,5 +155,5 @@ private:
 	uint32 Random = 0x5eed1234;
 	double SinceStart = 0.0;
 	double ReportClock = 5.0;
-	int32 RibbonChanges = 0, Spawned = 0, StopsPassed = 0;
+	int32 RibbonChanges = 0, Spawned = 0, StopsPassed = 0, LaneChanges = 0;
 };

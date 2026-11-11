@@ -138,6 +138,13 @@ namespace SimCruiseLanes
 
 	/** Signed lateral offset (m, + to the driver's right) of the rightmost travel lane's centre. */
 	SIMCRUISE_API double RightLaneCentreM(const FString& Class, double HalfW, int32 Travel, const FParking& Parking = FParking());
+
+	/**
+	 * The travel lanes a driver has in one direction, as the markings draw them: how many
+	 * and how wide (m). Travel and Parking as RightLaneCentreM; lane k from the right lies
+	 * k widths to the driver's left of RightLaneCentreM.
+	 */
+	SIMCRUISE_API void TravelLanes(const FString& Class, double HalfW, int32 Travel, const FParking& Parking, int32& OutCount, double& OutWidthM);
 }
 
 /** Cross-section geometry beyond the paved edge (metres). */

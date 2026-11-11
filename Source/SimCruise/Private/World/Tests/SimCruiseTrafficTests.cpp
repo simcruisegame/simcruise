@@ -115,6 +115,20 @@ bool FSimCruiseTrafficModelTest::RunTest(const FString& Parameters)
 		TestTrue(FString::Printf(TEXT("driving the other way: the same junction (%.1f m)"), Back), !bEnd && FMath::IsNearlyEqual(Back, 35.0));
 	}
 
+	// A wide two-way avenue (22 m, no parking: a primary road) has two lanes each way; the
+	// second lies one lane width nearer the centre line, and a lane past the last is the last.
+	{
+		const FSimCruiseRibbon Avenue = Straight(TEXT("primary"), 11.0, 0);
+		const int32 Lanes = SimCruiseTrafficModel::LaneCount(Avenue, 1, 1);
+		const double Right = SimCruiseTrafficModel::LaneOffsetM(Avenue, 1, 1, 0), Inner = SimCruiseTrafficModel::LaneOffsetM(Avenue, 1, 1, 1);
+		AddInfo(FString::Printf(TEXT("22 m avenue: %d lanes each way, right lane %.2f m, inner lane %.2f m"), Lanes, Right, Inner));
+		TestTrue(TEXT("two or more lanes each way"), Lanes >= 2);
+		TestTrue(TEXT("the inner lane nearer the centre line, still on the right half"), Inner > 0.5 && Inner < Right - 2.5);
+		TestNearlyEqual(TEXT("against the avenue: mirrored"), SimCruiseTrafficModel::LaneOffsetM(Avenue, 1, -1, 1), -Inner, 1e-6);
+		TestNearlyEqual(TEXT("a lane past the last is the last"), SimCruiseTrafficModel::LaneOffsetM(Avenue, 1, 1, 9), SimCruiseTrafficModel::LaneOffsetM(Avenue, 1, 1, Lanes - 1), 1e-6);
+		TestEqual(TEXT("a narrow residential street: one lane each way"), SimCruiseTrafficModel::LaneCount(Straight(TEXT("residential"), 6.0, 0), 1, 1), 1);
+	}
+
 	TestNearlyEqual(TEXT("residential streets at 25 mph"), SimCruiseTrafficModel::SpeedLimitMps(TEXT("residential")), 11.2, 0.05);
 	TestNearlyEqual(TEXT("motorways at 65 mph"), SimCruiseTrafficModel::SpeedLimitMps(TEXT("motorway")), 29.1, 0.05);
 	return true;
