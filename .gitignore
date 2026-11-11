@@ -18,3 +18,18 @@ build/
 .venv/
 *.dmg
 .claude/
+
+# Unreal Engine generated files
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+.vs/
+*.sln
+*.slnx
+*.VC.db
+*.VC.VC.opendb
+*.suo
+*.user
+*.opensdf
+*.sdf
