@@ -19,5 +19,14 @@ public class SimCruise : ModuleRules
 			"JsonUtilities",
 			"PhysicsCore"
 		});
+
+		// Real-world streaming (Atlas/, World/): runtime-built meshes, decoded
+		// aerial photographs and generated textures.
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"ProceduralMeshComponent",
+			"ImageWrapper",
+			"RenderCore"
+		});
 	}
 }
