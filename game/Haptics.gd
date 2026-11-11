@@ -10,7 +10,15 @@ extends RefCounted
 ##   alpha*  plateau_angle(): the slip angle where Powertrain's lateral law
 ##           tanh(alpha·k)·(1 − falloff·smoothstep(from, to, alpha)) first
 ##           reaches PLATEAU of its maximum (10.6° on the 1999 roadster, whose
-##           force peaks near 14° and is 1 % below that from 10° to 18°)
+##           force peaks near 14° and stays within 1 % of that from 11.5° to
+##           17.7°). checks/HapticsCheck.gd measures the front tyres' actual
+##           lateral force against alpha/alpha*, so a new tyre law that moves
+##           the peak fails there rather than silently shifting every threshold.
+## Why slip and not the friction-circle use (budget/fxmax in Powertrain): the
+## lateral law saturates at its ceiling and falls past ~14°, so a front tyre
+## sliding at 25° uses less of its circle than one at the peak; a use-based cue
+## would fade as understeer grows. Slip keeps rising into a slide, as tyre
+## scrub and squeal do.
 ## Motors (Godot: weak = the right, high-frequency motor; strong = the left,
 ## low-frequency one):
 ##   weak    front tyres (understeer scrub, a locking front), broken road and
@@ -26,8 +34,9 @@ extends RefCounted
 ## exposes only the two body motors (Input.start_joy_vibration). See
 ## docs/controls.md, "Rumble", for the path.
 const PLATEAU := .98
-# Rumble ramps: from the onset (about 90 % of the tyre's grip in use) to the
-# plateau, then on into a slide.
+# Rumble ramps: from the onset (92 % of the roadster's lateral grip in use) to
+# just past the plateau (s 1.15, 99 %), then on into a slide. slip_feel is 0.44
+# at s = 1.
 const S_ONSET := .75
 const S_LIMIT := 1.15
 const S_SLIDE := 2.5
@@ -38,8 +47,12 @@ const ABS_SLIP_SHARE := .3
 const ABS_RELEASED := .95       # Powertrain.abs_release below this: the modulator is acting
 # Road: on a windowed Kansas US-highway drive RoadNoise.roughness ran p50 0.01,
 # p90 0.44, p99 0.76 (joints and patches). Joints give a light texture on the
-# weak motor; only the larger hits (kerbs, potholes, the top few per cent)
-# reach the strong one.
+# weak motor; only the larger hits (above about p90: the heavier joints,
+# kerbs, potholes) reach the strong one. In the windowed --road-test drive
+# (Kansas, 226 trace samples above 20 m/s) the road alone, with every tyre
+# below the onset, put the strong motor above 0.05 in 11 % of them and the weak
+# above 0.1 in 19 %: a jointed highway is felt, not silent. To be confirmed on
+# a real pad.
 const KERB_GAIN := .8
 const KERB_FROM := .45
 const TEXTURE_GAIN := .2
