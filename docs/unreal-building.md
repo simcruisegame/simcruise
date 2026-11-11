@@ -179,7 +179,7 @@ Night captures: the same command with `-SimCruiseUtc=2026-11-12T01:30:00Z` (20:3
 
 ## Tests
 
-Automation tests are named `SimCruise.<Area>.<Test>`. Run them headless:
+Automation tests are named `SimCruise.<Area>.<Test>`. `scripts\check.ps1` builds and runs them all and exits 0 or 1 (see CONTRIBUTING.md); by hand, headless:
 
 ```powershell
 & 'C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe' 'D:\simcruise\SimCruise.uproject' -ExecCmds="Automation RunTests SimCruise;Quit" -unattended -nopause -nullrhi -nosplash -log -stdout -testexit="Automation Test Queue Empty"

@@ -20,14 +20,13 @@ Thanks for looking. Everyone taking part follows the [Code of Conduct](CODE_OF_C
 
 ## Running the tests
 
-Build the editor target with the editor closed, then run every SimCruise test headless (about 12 minutes):
+With the editor closed, build the editor target and run every SimCruise test headless (about 4 minutes on the reference laptop):
 
 ```powershell
-& 'C:\Program Files\Epic Games\UE_5.8\Engine\Build\BatchFiles\Build.bat' SimCruiseEditor Win64 Development -Project="$PWD\SimCruise.uproject" -WaitMutex
-& 'C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe' "$PWD\SimCruise.uproject" -ExecCmds="Automation RunTests SimCruise;Quit" -unattended -nopause -nullrhi -nosplash -testexit="Automation Test Queue Empty"
+powershell -ExecutionPolicy Bypass -File scripts\check.ps1
 ```
 
-`Automation RunTests SimCruise.Vehicle` (or any prefix) runs a part. Results are in `Saved/Logs`; the benches log one `CARTRACK`, `LIFTOFF`, `STATICLOAD` or `CONVERGENCE` line per car. The map helper's tests run with `sh scripts/check-helper.sh`. What each test checks is listed in [docs/unreal-building.md](docs/unreal-building.md#automation-tests) and [docs/unreal-architecture.md](docs/unreal-architecture.md).
+It fails (exit 1) on any failed test, on a filter no test matched, and on an error the game logged outside a test's expectations (an ensure, a fatal error, or an `Error` line from a `LogSimCruise*` category), and prints `N passed, N failed, N logged errors`. `-Filter SimCruise.Vehicle` (or any prefix) runs a part; `-NoBuild` skips the build; `-EngineDir` (or `UE_ROOT`) points at another engine install. The same run by hand is `UnrealEditor-Cmd.exe SimCruise.uproject -ExecCmds="Automation RunTests SimCruise;Quit" -unattended -nopause -nullrhi -nosplash -testexit="Automation Test Queue Empty"`. Results are in `Saved/Logs`; the benches log one `CARTRACK`, `LIFTOFF`, `STATICLOAD` or `CONVERGENCE` line per car. The map helper's tests run with `sh scripts/check-helper.sh`. What each test checks is listed in [docs/unreal-building.md](docs/unreal-building.md#automation-tests) and [docs/unreal-architecture.md](docs/unreal-architecture.md).
 
 Visual changes come with captures (`-SimCruiseDriveCapture`, docs/unreal-building.md) compared against licensed photographs of the place or car.
 

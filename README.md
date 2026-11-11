@@ -78,12 +78,14 @@ The game builds the bundled Ocean Drive start (no network needed) and puts you i
 
 Every control is in [docs/controls.md](docs/controls.md).
 
-To run the automated tests (vehicle benches, world, presentation, drive):
+To build and run the automated tests (vehicle benches, world, traffic, audio, presentation, drive), with the editor closed:
 
 ```powershell
-& 'C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe' "$PWD\SimCruise.uproject" -ExecCmds="Automation RunTests SimCruise;Quit" -unattended -nopause -nullrhi -nosplash -testexit="Automation Test Queue Empty"
+powershell -ExecutionPolicy Bypass -File scripts\check.ps1
 sh scripts/check-helper.sh   # map helper tests
 ```
+
+It prints each failure with its first errors and `CHECKS PASSED` or `CHECKS FAILED`, and exits 0 or 1; `-Filter SimCruise.Vehicle` runs a part, `-NoBuild` skips the build.
 
 ## Repository layout
 
