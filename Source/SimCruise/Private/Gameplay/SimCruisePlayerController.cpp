@@ -113,6 +113,17 @@ void ASimCruisePlayerController::OnPossess(APawn* InPawn)
 	}
 }
 
+void ASimCruisePlayerController::OnUnPossess()
+{
+	// The released pawn no longer waits for this controller's command.
+	if (APawn* Previous = GetPawn())
+	{
+		Previous->RemoveTickPrerequisiteActor(this);
+	}
+	StopRumble();
+	Super::OnUnPossess();
+}
+
 ISimCruiseVehicleControl* ASimCruisePlayerController::GetVehicle() const
 {
 	return Cast<ISimCruiseVehicleControl>(GetPawn());
@@ -524,7 +535,17 @@ void ASimCruisePlayerController::TickSelfTest(float DeltaTime)
 		SelfTestStage = -1;
 		if (bSelfTestQuit)
 		{
-			FPlatformMisc::RequestExitWithStatus(false, bPassed ? 0 : 1);
+			// A graceful exit always returns 0 on Windows (the code given to
+			// PostQuitMessage is dropped), so a failure exits forcibly with 1,
+			// as the automation command line does, after flushing the log.
+			if (bPassed)
+			{
+				FPlatformMisc::RequestExit(false, TEXT("SimCruiseShellSelfTest"));
+			}
+			else
+			{
+				FPlatformMisc::RequestExitWithStatus(true, 1, TEXT("SimCruiseShellSelfTest"));
+			}
 		}
 	}
 }
@@ -535,6 +556,7 @@ void ASimCruisePlayerController::SimCruiseShellCapture(int32 Quit)
 {
 	CaptureClock = 0.f;
 	CaptureShot = 0;
+	CaptureTraceTick = -1;
 	bCaptureQuit = Quit != 0;
 	UE_LOG(LogSimCruiseShell, Display, TEXT("SimCruise shell capture started"));
 }
@@ -551,17 +573,32 @@ void ASimCruisePlayerController::TickCapture(float DeltaTime)
 	ASimCruiseHUD* Hud = GetSimHUD();
 
 	// Timeline (s after Settle): 0-6 full throttle; 6-11 three-quarter throttle
-	// with the stick 60 % right; 11-12.5 lift, stick half right and a 0.3 s
-	// pull of the parking brake (A) to step the rear out; 12.5-16 hard
-	// braking until stopped.
+	// with the stick 60 % right; 11-11.3 lift, stick half right and a 0.3 s
+	// pull of the parking brake (A) to step the rear out; 11.3-12.5 answer
+	// the slide by aiming the front wheels along the front axle's travel
+	// beta_f (stick = beta_f / (|beta_f| + surplus); the countersteer
+	// allowance lets the rack follow past the speed cap); 12.5-16 hard
+	// braking until stopped. The 10 Hz slide trace records what happened.
 	const float Settle = 10.f;
 	const float S = T - Settle;
 	float Throttle = 0.f;
 	float Steer = 0.f;
 	float Brake = 0.f;
+	const double BetaFront = SimCruiseShaping::FrontAxleSlipAngleRad(Setup, Telemetry.BodyVelocityMps.X, Telemetry.BodyVelocityMps.Y, Telemetry.BodyAngularVelocityRadPerS.Z);
 	if (S > 0.f && S <= 6.f) { Throttle = 1.f; }
 	if (S > 6.f && S <= 11.f) { Throttle = 0.75f; Steer = 0.6f; }
-	if (S > 11.f && S <= 12.5f) { Steer = 0.5f; }
+	if (S > 11.f && S <= 11.3f) { Steer = 0.5f; }
+	if (S > 11.3f && S <= 12.5f) { Steer = static_cast<float>(BetaFront / (FMath::Abs(BetaFront) + Setup.SteeringSlipLimitSurplusRad)); }
+	// A 10 Hz trace of the slide and its catch, for the record.
+	const int32 TraceTick = FMath::FloorToInt(S * 10.f);
+	if (S > 10.9f && S <= 13.5f && TraceTick != CaptureTraceTick)
+	{
+		CaptureTraceTick = TraceTick;
+		UE_LOG(LogSimCruiseShell, Display, TEXT("Slide trace t %.1f s: %.1f mph, stick %.2f, rack %.2f deg (range L %.2f R %.2f), front-axle slip %.1f deg, yaw rate %.1f deg/s"),
+			S, Telemetry.BodyVelocityMps.X * 2.236936, Steer, FMath::RadiansToDegrees(Shaper.GetRackAngleRad()),
+			FMath::RadiansToDegrees(Shaper.GetRangeLeftRad()), FMath::RadiansToDegrees(Shaper.GetRangeRightRad()),
+			FMath::RadiansToDegrees(BetaFront), FMath::RadiansToDegrees(Telemetry.BodyAngularVelocityRadPerS.Z));
+	}
 	// Stop whichever way the car is rolling: in automatic, LT brakes forward
 	// motion and RT brakes backward motion (Powertrain.drive semantics).
 	if (S > 12.5f && S <= 16.f && Telemetry.BodyVelocityMps.X > 0.5) { Brake = 1.f; }
@@ -595,9 +632,11 @@ void ASimCruisePlayerController::TickCapture(float DeltaTime)
 		if (T >= Shot.Time)
 		{
 			FScreenshotRequest::RequestScreenshot(FString(Shot.Name), true, false);
-			UE_LOG(LogSimCruiseShell, Display, TEXT("Capture %s at %.1f mph, rack %.2f deg, body slip %.1f deg, chase swing %.1f deg, rumble low %.2f high %.2f LT %.2f RT %.2f"), Shot.Name,
+			UE_LOG(LogSimCruiseShell, Display, TEXT("Capture %s at %.1f mph, rack %.2f deg (range L %.2f R %.2f), body slip %.1f deg, front-axle slip %.1f deg, chase swing %.1f deg, rumble low %.2f high %.2f LT %.2f RT %.2f"), Shot.Name,
 				Telemetry.BodyVelocityMps.X * 2.236936, FMath::RadiansToDegrees(Shaper.GetRackAngleRad()),
+				FMath::RadiansToDegrees(Shaper.GetRangeLeftRad()), FMath::RadiansToDegrees(Shaper.GetRangeRightRad()),
 				FMath::RadiansToDegrees(FMath::Atan2(Telemetry.BodyVelocityMps.Y, FMath::Abs(Telemetry.BodyVelocityMps.X) + 0.01)),
+				FMath::RadiansToDegrees(BetaFront),
 				Camera ? FMath::RadiansToDegrees(Camera->GetChaseFrame().GetSwingRad()) : 0.0,
 				LastRumble.LowFrequency, LastRumble.HighFrequency, LastRumble.LeftTrigger, LastRumble.RightTrigger);
 			++CaptureShot;

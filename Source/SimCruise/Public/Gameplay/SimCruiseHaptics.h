@@ -66,6 +66,9 @@ namespace SimCruiseHaptics
 	constexpr double EngineGain = 0.06;
 	constexpr double TriggerGain = 0.8;
 	constexpr double DefaultPeakSlipAngleRad = 0.18;
+	/** Body speed (m/s) over which slip angles fade in as felt scrub. */
+	constexpr double LateralFeelFromMps = 0.5;
+	constexpr double LateralFeelToMps = 2.0;
 
 	/** Slip angle (rad) where the definition's lateral law
 	 *  tanh(alpha k)(1 - falloff smoothstep(from, to, alpha)) first reaches 98 %

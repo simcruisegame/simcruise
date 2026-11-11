@@ -93,6 +93,12 @@ FSimCruiseRumble FSimCruiseHapticsModel::Sample(const FSimCruiseVehicleTelemetry
 	double LockSlip = 0.0;   // any wheel turning slower under braking
 	bAbsActive = false;
 	double Loose = 0.0;
+	// A slip angle is only felt while the patch slides sideways, at about
+	// v sin(alpha): below walking pace a relaxed angle left over from a slide
+	// (or the noise of a near-zero velocity) is not scrub. Wheelspin is felt
+	// from standstill, so the slip ratio is not gated.
+	const double Speed = Telemetry.BodyVelocityMps.Size();
+	const double LateralFeel = FMath::SmoothStep(LateralFeelFromMps, LateralFeelToMps, Speed);
 	for (int32 I = 0; I < 4; ++I)
 	{
 		const FSimCruiseWheelTelemetry& Wheel = Telemetry.Wheels[I];
@@ -103,7 +109,7 @@ FSimCruiseRumble FSimCruiseHapticsModel::Sample(const FSimCruiseVehicleTelemetry
 			continue;
 		}
 		const double PeakAlpha = Wheel.PeakSlipAngleRad > 0.0 ? Wheel.PeakSlipAngleRad : DefaultPeakSlipAngleRad;
-		Slip[I] = NormalizedSlip(Wheel.SlipRatio, Wheel.PeakSlipRatio, Wheel.SlipAngleRad, PeakAlpha);
+		Slip[I] = NormalizedSlip(Wheel.SlipRatio, Wheel.PeakSlipRatio, Wheel.SlipAngleRad * LateralFeel, PeakAlpha);
 		const double Longitudinal = Wheel.SlipRatio / FMath::Max(Wheel.PeakSlipRatio, 0.001);
 		if (I < 2)
 		{
@@ -127,7 +133,6 @@ FSimCruiseRumble FSimCruiseHapticsModel::Sample(const FSimCruiseVehicleTelemetry
 	PulseTime = bAbsActive ? PulseTime + DeltaTimeS : 0.0;
 	Loose *= 0.25;
 
-	const double Speed = Telemetry.BodyVelocityMps.Size();
 	const double Engine = Telemetry.bElectric ? 0.0 : FMath::Clamp(Telemetry.EngineLoad, 0.0, 1.0);
 	const double Pulse = AbsPulse(bAbsActive, PulseTime);
 	FSimCruiseRumble Out = Motors(FrontSlip, RearSlip, Pulse, Telemetry.RoadRoughness, Loose, Speed, Engine, bAbsActive);

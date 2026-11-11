@@ -20,6 +20,13 @@
  *   (the same order as game/Powertrain.gd MOUNTS).
  * Locations handed to the camera (driver eye) are in the pawn's local space
  * in centimetres, because that is where Unreal places a camera.
+ *
+ * Threading: every call is made on the game thread. A vehicle that steps on
+ * the physics thread (Chaos async physics, substep callbacks) must hand the
+ * command over itself (for example as async input) and must answer
+ * GetVehicleTelemetry from its last published game-thread copy of the state,
+ * never by reading physics-thread data in place. Telemetry is read once per
+ * frame before the pawn ticks, so the shell shapes on state one frame old.
  */
 
 /** What the driver does with the controls this frame. Pedals are already

@@ -4,15 +4,18 @@
 
 #if WITH_DEV_AUTOMATION_TESTS
 
+#include "Engine/World.h"
 #include "Gameplay/SimCruiseCameraModels.h"
 #include "Gameplay/SimCruiseDriverShaping.h"
 #include "Gameplay/SimCruiseHaptics.h"
 #include "Gameplay/SimCruiseHUD.h"
 #include "Gameplay/SimCruiseInputConfig.h"
+#include "Gameplay/SimCruisePlaceholderVehicle.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
 #include "Vehicle/CarDefinition.h"
+#include "Vehicle/CarDefinitionLoader.h"
 
 namespace SimCruiseGameplayTest
 {
@@ -209,7 +212,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseCountersteerTest, "SimCruise.Gameplay
 bool FSimCruiseCountersteerTest::RunTest(const FString& Parameters)
 {
 	const FSimCruiseVehicleSetup Setup = Roadster();
-	// Rear stepping out to the right: the front axle travels 15 deg left of the nose.
+	// A right-hand corner whose rear has stepped out to the left: the car moves
+	// left of where its nose points, the front axle 15 deg left of the nose.
 	const double Beta = FMath::DegreesToRadians(-15.0);
 	const FSimCruiseVehicleTelemetry Slide = Moving(20.0, 20.0 * FMath::Tan(Beta), 0.0);
 	TestNearlyEqual(TEXT("beta_f"), SimCruiseShaping::FrontAxleSlipAngleRad(Setup, 20.0, Slide.BodyVelocityMps.Y, 0.0), Beta, 1e-9);
@@ -329,6 +333,19 @@ bool FSimCruiseHapticsTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("wheelspin is the strong motor"), Over.LowFrequency > 0.6f && Over.HighFrequency == 0.f);
 	TestTrue(TEXT("wheelspin in the throttle trigger"), Over.RightTrigger > 0.4f && Over.LeftTrigger == 0.f);
 
+	// Parked after a slide: a relaxed slip angle left on the tyres is not
+	// scrub, but wheelspin from standstill is felt.
+	FSimCruiseVehicleTelemetry Parked = Coast;
+	Parked.BodyVelocityMps = FVector(0.05, -0.05, 0.0);
+	for (FSimCruiseWheelTelemetry& Wheel : Parked.Wheels) { Wheel.SlipAngleRad = 0.6; }
+	FSimCruiseHapticsModel ParkedModel;
+	TestTrue(TEXT("a stopped car does not scrub"), ParkedModel.Sample(Parked, 0.0, 0.0, 1.0 / 60.0).IsQuiet());
+	FSimCruiseVehicleTelemetry Launch = Parked;
+	for (FSimCruiseWheelTelemetry& Wheel : Launch.Wheels) { Wheel.SlipAngleRad = 0.0; }
+	Launch.Wheels[2].bDriven = Launch.Wheels[3].bDriven = true;
+	Launch.Wheels[2].SlipRatio = Launch.Wheels[3].SlipRatio = 0.5;
+	TestTrue(TEXT("wheelspin from standstill is felt"), ParkedModel.Sample(Launch, 1.0, 0.0, 1.0 / 60.0).LowFrequency > 0.6f);
+
 	// ABS acting: the pulse, in the strong motor and the brake trigger.
 	FSimCruiseVehicleTelemetry Abs = Coast;
 	Abs.bServiceBrakeOn = true;
@@ -420,6 +437,155 @@ bool FSimCruiseChaseFrameTest::RunTest(const FString& Parameters)
 		Frame.Update(ESimCruiseView::Chase, FTransform::Identity, Drift, 1.0 / 60.0, false, Location, LookAt);
 	}
 	TestNearlyEqual(TEXT("steady drift: camera yaw - body yaw = 0.4 beta"), Frame.GetSwingRad(), 0.4 * Beta, 1e-4);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseHeadFrameRateTest, "SimCruise.Gameplay.Camera.HeadModelFrameRate", Flags)
+bool FSimCruiseHeadFrameRateTest::RunTest(const FString& Parameters)
+{
+	// The same 0.5 g turn must lean the head the same at 30, 60, 144 and
+	// 360 fps: the felt acceleration is differentiated over the real frame.
+	const FSimCruiseVehicleSetup Setup = Roadster();
+	const double G = SimCruiseShaping::StandardGravity;
+	for (const double Fps : {30.0, 60.0, 144.0, 360.0})
+	{
+		FSimCruiseHeadModel Head;
+		FVector Velocity(20.0, 0.0, 0.0);
+		const double Dt = 1.0 / Fps;
+		const int32 Frames = FMath::RoundToInt(3.0 * Fps);
+		for (int32 I = 0; I < Frames; ++I)
+		{
+			Velocity += FVector(0.0, -0.5 * G, 0.0) * Dt;
+			Head.Update(FTransform::Identity, Velocity, Setup, Moving(20.0), Dt);
+		}
+		TestNearlyEqual(FString::Printf(TEXT("0.5 g lean at %.0f fps"), Fps), Head.GetHeadOffsetM().Y, 0.015, 0.0005);
+		TestNearlyEqual(FString::Printf(TEXT("felt 0.5 g at %.0f fps"), Fps), Head.GetFeltSpecificForce().Y / G, -0.5, 0.01);
+	}
+	FSimCruiseGMeter Meter;
+	FVector Velocity(20.0, 0.0, 0.0);
+	for (int32 I = 0; I < 3 * 360; ++I)
+	{
+		Velocity += FVector(-0.8 * G, 0.0, 0.0) / 360.0;
+		Meter.Update(FTransform::Identity, Velocity, 1.0 / 360.0);
+	}
+	TestNearlyEqual(TEXT("g-meter reads 0.8 g braking at 360 fps"), Meter.Get().X, -0.8, 0.01);
+	const FVector2D Held = Meter.Get();
+	Meter.Update(FTransform::Identity, Velocity, 0.0);
+	TestTrue(TEXT("g-meter holds while paused"), Meter.Get().Equals(Held, 1e-9));
+	return true;
+}
+
+// --- Shell and vehicle together ---------------------------------------------
+
+namespace SimCruiseGameplayTest
+{
+	struct FSlideResult
+	{
+		double PeakBodySlipDeg = 0.0;
+		double FinalBodySlipDeg = 0.0;
+		double PeakRackBeyondCapDeg = 0.0;
+		double SteadyYawRate = 0.0;
+		double SteadyLateralSpeed = 0.0;
+		bool bSpun = false;
+	};
+
+	/** How the scripted driver answers a slide with the stick, toward the
+	 *  front axle's travel beta_f. Align: aim the wheels along beta_f
+	 *  (stick = beta_f / (|beta_f| + surplus)). Snap: full lock from 6 deg. */
+	enum class ECatch : uint8 { Align, Snap };
+
+	/** Drive the placeholder through the real shaper at 120 Hz frames: reach
+	 *  20 m/s, turn right, flick the parking brake 0.15 s, then catch the
+	 *  slide. bCapped clamps the rack to the speed cap, the pre-allowance
+	 *  behaviour. */
+	FSlideResult DriveSlide(UWorld* World, const FSimCruiseCarDefinition& Car, bool bCapped, ECatch Catch)
+	{
+		FSlideResult Result;
+		ASimCruisePlaceholderVehicle* Vehicle = World->SpawnActor<ASimCruisePlaceholderVehicle>();
+		Vehicle->SetCarDefinition(Car);
+		Vehicle->ResetVehicle(FTransform::Identity);
+		const FSimCruiseVehicleSetup Setup = Vehicle->GetVehicleSetup();
+		FSimCruiseDriverShaper Shaper;
+		FSimCruiseVehicleTelemetry T;
+		constexpr double Frame = 1.0 / 120.0;
+		auto Step = [&](const FSimCruiseRawControls& Raw)
+		{
+			Vehicle->GetVehicleTelemetry(T);
+			FSimCruiseDriverCommand Command = Shaper.Update(Setup, T, Raw, Frame);
+			const double Cap = SimCruiseShaping::AvailableSteeringRad(Setup, T.BodyVelocityMps.X);
+			if (bCapped)
+			{
+				Command.RackAngleRad = FMath::Clamp(Command.RackAngleRad, -Cap, Cap);
+			}
+			Result.PeakRackBeyondCapDeg = FMath::Max(Result.PeakRackBeyondCapDeg, FMath::RadiansToDegrees(FMath::Abs(Command.RackAngleRad) - Cap));
+			Vehicle->ApplyDriverCommand(Command);
+			Vehicle->StepPhysics(Frame * 0.5);
+			Vehicle->StepPhysics(Frame * 0.5);
+		};
+		FSimCruiseRawControls Raw;
+		Raw.PadThrottle = 1.0;
+		for (int32 I = 0; I < 20 * 120 && Vehicle->GetForwardSpeedMps() < 20.0; ++I) { Step(Raw); }
+		Raw.PadThrottle = 0.15;
+		Raw.PadSteer = 0.5;
+		for (int32 I = 0; I < 120; ++I) { Step(Raw); }
+		Result.SteadyYawRate = Vehicle->GetYawRateRadPerS();
+		Result.SteadyLateralSpeed = Vehicle->GetLateralSpeedMps();
+		Raw.PadThrottle = 0.0;
+		Raw.bParkingBrake = true;
+		for (int32 I = 0; I < 18; ++I) { Step(Raw); }
+		Raw.bParkingBrake = false;
+		for (int32 I = 0; I < 3 * 120; ++I)
+		{
+			const double BetaFront = SimCruiseShaping::FrontAxleSlipAngleRad(Setup, Vehicle->GetForwardSpeedMps(), Vehicle->GetLateralSpeedMps(), Vehicle->GetYawRateRadPerS());
+			Raw.PadSteer = Catch == ECatch::Snap
+				? FMath::Clamp(BetaFront / FMath::DegreesToRadians(6.0), -1.0, 1.0)
+				: BetaFront / (FMath::Abs(BetaFront) + Setup.SteeringSlipLimitSurplusRad);
+			Step(Raw);
+			const double BodySlip = FMath::RadiansToDegrees(FMath::Atan2(Vehicle->GetLateralSpeedMps(), FMath::Abs(Vehicle->GetForwardSpeedMps())));
+			Result.PeakBodySlipDeg = FMath::Max(Result.PeakBodySlipDeg, FMath::Abs(BodySlip));
+			Result.bSpun |= Vehicle->GetForwardSpeedMps() < 0.0 || FMath::Abs(BodySlip) > 90.0;
+		}
+		Result.FinalBodySlipDeg = FMath::RadiansToDegrees(FMath::Atan2(Vehicle->GetLateralSpeedMps(), FMath::Abs(Vehicle->GetForwardSpeedMps())));
+		Vehicle->Destroy();
+		return Result;
+	}
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseSlideCatchTest, "SimCruise.Gameplay.Loop.PlaceholderConventionsAndSlideCatch", Flags)
+bool FSimCruiseSlideCatchTest::RunTest(const FString& Parameters)
+{
+	FSimCruiseCarDefinition Car;
+	FString Error;
+	if (!FSimCruiseCarDefinitionLoader::LoadById(TEXT("nb1999"), Car, Error))
+	{
+		AddWarning(FString::Printf(TEXT("nb1999.json not loaded, using the built-in NB defaults: %s"), *Error));
+	}
+	UWorld* World = UWorld::CreateWorld(EWorldType::Game, false, TEXT("SimCruiseSlideCatch"));
+	const FSlideResult Free = DriveSlide(World, Car, false, ECatch::Align);
+	const FSlideResult Capped = DriveSlide(World, Car, true, ECatch::Align);
+	const FSlideResult Snap = DriveSlide(World, Car, false, ECatch::Snap);
+	const FSlideResult SnapCapped = DriveSlide(World, Car, true, ECatch::Snap);
+	World->DestroyWorld(false);
+
+	// Conventions across the seam: the stick right turns the car right (yaw
+	// rate positive in Unreal body axes); the shell and the vehicle agree.
+	TestTrue(TEXT("stick right yaws right"), Free.SteadyYawRate > 0.05);
+	AddInfo(FString::Printf(TEXT("Steady right turn at 20 m/s: yaw rate %.3f rad/s, lateral speed %.3f m/s"), Free.SteadyYawRate, Free.SteadyLateralSpeed));
+	auto Report = [this](const TCHAR* Name, const FSlideResult& R)
+	{
+		AddInfo(FString::Printf(TEXT("%s: peak body slip %.1f deg, final %.1f deg, rack up to %.1f deg past the speed cap, spun %s"),
+			Name, R.PeakBodySlipDeg, R.FinalBodySlipDeg, R.PeakRackBeyondCapDeg, R.bSpun ? TEXT("yes") : TEXT("no")));
+	};
+	Report(TEXT("Align the wheels with the travel, allowance"), Free);
+	Report(TEXT("Align the wheels with the travel, rack held to the speed cap"), Capped);
+	Report(TEXT("Snap to full lock, allowance"), Snap);
+	Report(TEXT("Snap to full lock, rack held to the speed cap"), SnapCapped);
+	// The allowance must actually open toward the slide in the loop.
+	// A gentle catch never needs it; a snap to full lock opens it (and, on
+	// this uncalibrated placeholder, overcorrects into a spin the capped rack
+	// prevents: the plan 04 SlideCatch gate belongs to the real vehicle).
+	TestTrue(TEXT("a full-lock countersteer goes past the speed cap"), Snap.PeakRackBeyondCapDeg > 1.0);
+	TestTrue(TEXT("the capped runs stay within the cap"), Capped.PeakRackBeyondCapDeg < 1e-6 && SnapCapped.PeakRackBeyondCapDeg < 1e-6);
 	return true;
 }
 

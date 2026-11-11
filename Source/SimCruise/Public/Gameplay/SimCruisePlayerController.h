@@ -33,6 +33,7 @@ public:
 	virtual void SetupInputComponent() override;
 	virtual void PlayerTick(float DeltaTime) override;
 	virtual void OnPossess(APawn* InPawn) override;
+	virtual void OnUnPossess() override;
 
 	bool HasVehicle() const { return GetVehicle() != nullptr; }
 	ISimCruiseVehicleControl* GetVehicle() const;
@@ -51,7 +52,8 @@ public:
 	/** Scripted end-to-end check of the input routing, like Godot's
 	 *  checks/PadSteer.gd: injects stick, key and trigger events through the
 	 *  real Enhanced Input stack and logs SIMCRUISE SHELL SELF-TEST PASSED/FAILED.
-	 *  With Quit=1 the game exits afterwards (exit code 0 / 1). */
+	 *  With Quit=1 the game exits afterwards: exit code 0 when it passes,
+	 *  1 (a forced exit after the log is flushed) when it fails. */
 	UFUNCTION(Exec)
 	void SimCruiseShellSelfTest(int32 Quit = 0);
 
@@ -114,6 +116,7 @@ private:
 	// Capture script state.
 	float CaptureClock = -1.f;
 	int32 CaptureShot = 0;
+	int32 CaptureTraceTick = -1;
 	bool bCaptureQuit = false;
 	bool bCaptureParkingBrake = false;
 };

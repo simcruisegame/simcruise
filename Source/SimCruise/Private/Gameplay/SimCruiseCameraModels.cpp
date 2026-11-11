@@ -76,6 +76,10 @@ void FSimCruiseHeadModel::Reset()
 FSimCruiseEyePose FSimCruiseHeadModel::Update(const FTransform& Body, const FVector& WorldVelocityMps, const FSimCruiseVehicleSetup& Setup,
 	const FSimCruiseVehicleTelemetry& Telemetry, double DeltaTimeS)
 {
+	// Differentiate over the frame's real duration (a clamped step would
+	// misstate the acceleration above 240 or below 20 fps); integrate the
+	// spring and filters over a clamped step so a hitch cannot destabilise them.
+	const double FrameS = FMath::Max(DeltaTimeS, 1e-4);
 	const double Dt = FMath::Clamp(DeltaTimeS, 1.0 / 240.0, 1.0 / 20.0);
 	if (!bStarted || FVector::Dist(WorldVelocityMps, PreviousVelocity) > 25.0)
 	{
@@ -86,7 +90,7 @@ FSimCruiseEyePose FSimCruiseHeadModel::Update(const FTransform& Body, const FVec
 			Travel[I] = Telemetry.Wheels[I].SuspensionTravelM;
 		}
 	}
-	const FVector Raw = (WorldVelocityMps - PreviousVelocity) / Dt;
+	const FVector Raw = (WorldVelocityMps - PreviousVelocity) / FrameS;
 	PreviousVelocity = WorldVelocityMps;
 
 	// Specific force the seat applies, in body axes: acceleration minus gravity.
@@ -122,7 +126,7 @@ FSimCruiseEyePose FSimCruiseHeadModel::Update(const FTransform& Body, const FVec
 	for (int32 I = 0; I < 4; ++I)
 	{
 		const double Y = Telemetry.Wheels[I].SuspensionTravelM;
-		Rate += FMath::Min(1.5, FMath::Abs(Y - Travel[I]) / Dt);
+		Rate += FMath::Min(1.5, FMath::Abs(Y - Travel[I]) / FrameS);
 		Travel[I] = Y;
 	}
 	Rate *= 0.25;
@@ -227,13 +231,18 @@ void FSimCruiseChaseFrame::Update(ESimCruiseView View, const FTransform& Body, c
 
 FVector2D FSimCruiseGMeter::Update(const FTransform& Body, const FVector& WorldVelocityMps, double DeltaTimeS)
 {
+	if (DeltaTimeS <= 0.0)
+	{
+		return Value;   // paused: hold the reading
+	}
+	const double FrameS = FMath::Max(DeltaTimeS, 1e-4);
 	const double Dt = FMath::Clamp(DeltaTimeS, 1.0 / 240.0, 1.0 / 20.0);
 	if (!bStarted || FVector::Dist(WorldVelocityMps, PreviousVelocity) > 25.0)
 	{
 		PreviousVelocity = WorldVelocityMps;
 		bStarted = true;
 	}
-	const FVector Raw = (WorldVelocityMps - PreviousVelocity) / Dt;
+	const FVector Raw = (WorldVelocityMps - PreviousVelocity) / FrameS;
 	PreviousVelocity = WorldVelocityMps;
 	const FVector Specific = Body.GetRotation().UnrotateVector(Raw + FVector(0.0, 0.0, G)).BoundToCube(30.0);
 	const FVector2D Sample(Specific.X / G, Specific.Y / G);

@@ -103,9 +103,11 @@ void ASimCruisePlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float 
 	if (UWorld* World = GetWorld())
 	{
 		FCollisionQueryParams Params(SCENE_QUERY_STAT(SimCruiseChaseCamera), false, Pawn);
-		// Never below the ground: 55 cm clearance, as Drive.gd keeps.
+		// Never below the ground: 55 cm clearance, as Drive.gd keeps. The probe
+		// starts only 2.5 m above the camera, Drive.surface()'s rule for decks:
+		// under an overpass the deck above must not lift the camera onto it.
 		FHitResult Ground;
-		if (World->LineTraceSingleByChannel(Ground, Goal + FVector(0.0, 0.0, 300.0), Goal - FVector(0.0, 0.0, 1000.0), ECC_Visibility, Params))
+		if (World->LineTraceSingleByChannel(Ground, Goal + FVector(0.0, 0.0, 250.0), Goal - FVector(0.0, 0.0, 1000.0), ECC_Visibility, Params))
 		{
 			Goal.Z = FMath::Max(Goal.Z, Ground.ImpactPoint.Z + 55.0);
 		}

@@ -50,10 +50,10 @@ Automation tests are named `SimCruise.<Area>.<Test>`. Run them headless:
 
 Results are in `Saved/Logs/SimCruise.log` (`Test Completed. Result={Success}` per test).
 
-The driving shell also has an end-to-end check that injects stick, key and trigger events through the real Enhanced Input stack in a headless game and prints `SIMCRUISE SHELL SELF-TEST PASSED` or `FAILED` with the reason:
+The driving shell also has an end-to-end check that injects stick, key and trigger events through the real Enhanced Input stack in a headless game and prints `SIMCRUISE SHELL SELF-TEST PASSED` or `FAILED` with the reason, then exits with 0 or 1:
 
 ```powershell
 & 'C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe' 'D:\simcruise\SimCruise.uproject' -game -nullrhi -unattended -nopause -nosplash -SimCruiseShellSelfTest
 ```
 
-Windowed captures for comparing against reality: add `-ExecCmds="Scalability 3" -SimCruiseShellCapture` to the windowed run above. A scripted drive (accelerate, corner, parking-brake slide, brake) saves six 1600 × 900 screenshots with the HUD to `Saved/Screenshots/WindowsEditor/` and logs speed, rack angle, body slip, chase swing and the four rumble levels at each, then quits.
+Windowed captures for comparing against reality: add `-ExecCmds="Scalability 3" -SimCruiseShellCapture` to the windowed run above. A scripted drive (accelerate, corner, parking-brake slide and its catch, brake) saves six 1600 × 900 screenshots with the HUD to `Saved/Screenshots/WindowsEditor/` and logs speed, rack angle and its range each way, body slip, front-axle slip, chase swing and the four rumble levels at each, plus a 10 Hz trace of the slide, then quits.

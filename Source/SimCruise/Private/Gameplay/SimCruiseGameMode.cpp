@@ -43,7 +43,11 @@ void ASimCruiseGameMode::RecoverVehicle(APlayerController* Player)
 	FVector Ground = Location;
 	FHitResult Hit;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(SimCruiseRecover), false, Pawn);
-	if (GetWorld()->LineTraceSingleByChannel(Hit, Location + FVector(0.0, 0.0, 2000.0), Location - FVector(0.0, 0.0, 20000.0), ECC_Visibility, Params))
+	// Probe from just above the car (3 m) first: under an overpass or a canopy
+	// a high start would land the car on the deck above. Only a car that has
+	// fallen below the surface needs the probe from high above.
+	if (GetWorld()->LineTraceSingleByChannel(Hit, Location + FVector(0.0, 0.0, 300.0), Location - FVector(0.0, 0.0, 20000.0), ECC_Visibility, Params)
+		|| GetWorld()->LineTraceSingleByChannel(Hit, Location + FVector(0.0, 0.0, 20000.0), Location - FVector(0.0, 0.0, 20000.0), ECC_Visibility, Params))
 	{
 		Ground = Hit.ImpactPoint;
 	}

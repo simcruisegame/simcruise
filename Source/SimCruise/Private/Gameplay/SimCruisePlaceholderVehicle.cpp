@@ -348,7 +348,10 @@ void ASimCruisePlaceholderVehicle::FollowGround(bool bSnap)
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(SimCruisePlaceholderGround), false, this);
 	double Heights[4];
 	int32 Hits = 0;
-	const double Reference = bSnap ? PlanarLocationCm.Z + 5000.0 : GroundZ + 150.0;
+	// A snap (spawn, reset) probes from 3 m above the given point first, so a
+	// reset under an overpass stays on the road below; only when that finds
+	// nothing does it look from 50 m up.
+	const double Reference = bSnap ? PlanarLocationCm.Z + 300.0 : GroundZ + 150.0;
 	for (int32 I = 0; I < 4; ++I)
 	{
 		const double Track = (I < 2 ? Car.FrontTrackM : Car.RearTrackM) * 100.0;
@@ -357,7 +360,8 @@ void ASimCruisePlaceholderVehicle::FollowGround(bool bSnap)
 		FHitResult Hit;
 		const FVector Start(XY.X, XY.Y, Reference);
 		const FVector End(XY.X, XY.Y, Reference - (bSnap ? 20000.0 : 1500.0));
-		if (World->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params))
+		if (World->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params)
+			|| (bSnap && World->LineTraceSingleByChannel(Hit, FVector(XY.X, XY.Y, PlanarLocationCm.Z + 5000.0), End, ECC_Visibility, Params)))
 		{
 			Heights[I] = Hit.ImpactPoint.Z;
 			++Hits;
