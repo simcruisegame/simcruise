@@ -48,6 +48,14 @@ Per car id: `model` (glTF path), `credit`, `steering_ratio` with its source, `pa
 
 `SimCruiseTurntableGameMode` on `/Engine/Maps/Entry` (or the `SimCruise.Turntable [ids|all] [dir]` console command in any world) lights an outdoor stage — physical sun 42° up and 215° from the nose as in the Godot taste test, sky atmosphere, volumetric clouds, real-time sky light, procedural asphalt — sets scalability 4 with Lumen GI and reflections, and photographs each car from eight angles plus the driver's seat, a wheel close-up, a steered front three-quarter, the steered cockpit and a braking rear three-quarter. Shots and `report.txt` (rig log, build time, mean frame time) go to `Saved/Screenshots/Turntable`. See `docs/unreal-building.md` for the command line.
 
+### What it looks like (turntable, 11 November 2026)
+
+![1999 roadster, front three-quarter](images/unreal-nb1999-front-34-left.jpg)
+![1965 Mustang, front three-quarter](images/unreal-mustang65-front-34-left.jpg)
+![Corvette C8, rear three-quarter](images/unreal-meridian-z-rear-34-left.jpg)
+![NB wheel: tyre, alloy, disc and caliper](images/unreal-nb1999-wheel.jpg)
+![Mustang cockpit with the wheel turned for 8 degrees of road-wheel lock](images/unreal-mustang65-steer-driver.jpg)
+
 ### Tests
 
 `SimCruise.Presentation.*`: glTF loading of all three models; the rig for each car (wheelbase, hubs, track and tyre within tolerance of the car data, wheels centred on hubs, steering wheel ahead of and below the eye, calipers on uprights for the C8, badge removal); role guessing; component conventions; building and posing the C8 in a world.
