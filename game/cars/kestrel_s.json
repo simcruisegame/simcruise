@@ -58,6 +58,7 @@
  "lateral_grip_scale": 1.035,
  "drag_area_m2": 0.63,
  "parking_rack_deg": 36.0,
+ "steering_ratio": 11.46,
  "road_reference_deg": 34.0,
  "brake_front_nm": 1900.0,
  "brake_rear_nm": 750.0,
@@ -152,6 +153,7 @@
  "target_70_0_ft": 160.0,
  "target_skidpad_g": 0.94,
  "sources": {
+  "steering": "Steering ratio 11.46:1, 2.17 turns lock to lock (Honda, 2022 Civic Si specifications).",
   "calibration": "Car and Driver test of the 2022 Civic Si as reported: 0-60 mph 6.8 s, 70-0 mph 160 ft, 0.94 g; curb weight 2937 lb.",
   "engine": "200 hp, 192 lb-ft (Honda); curve shape estimated.",
   "gearing": "Six-speed ratios and final drive: published Si figures, unverified for 2022.",

@@ -58,6 +58,7 @@
  "lateral_grip_scale": 1.0251,
  "drag_area_m2": 0.51,
  "parking_rack_deg": 35.0,
+ "steering_ratio": 10.3,
  "road_reference_deg": 33.0,
  "brake_front_nm": 2200.0,
  "brake_rear_nm": 1300.0,
@@ -115,6 +116,7 @@
  "target_70_0_ft": 165.0,
  "target_skidpad_g": 0.88,
  "sources": {
+  "steering": "Steering ratio about 10.3:1, an estimate: the owner's manual gives 2.0 turns lock to lock (Tesla Model 3 owner's manual, 2017-2023, specifications) and no ratio; 2.0 turns over this file's 35 degree rack lock each way is 10.3:1.",
   "calibration": "Car and Driver measured a current Model 3 Standard at 5.4 s to 60 mph and 0.88 g on 235/45R-18 all-season tyres. The 70-0 mph target (165 ft) is an estimate.",
   "motor": "About 286 hp quoted for the current Standard; 430 N\u00b7m motor torque and a 9.04 reduction are estimates from earlier RWD versions.",
   "mass": "About 3627 lb for the RWD sedan.",

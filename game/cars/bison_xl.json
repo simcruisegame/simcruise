@@ -59,6 +59,7 @@
  "load_sensitivity": 0.11,
  "drag_area_m2": 1.6,
  "parking_rack_deg": 33.0,
+ "steering_ratio": 17.2,
  "road_reference_deg": 31.0,
  "brake_front_nm": 3600.0,
  "brake_rear_nm": 2000.0,
@@ -165,6 +166,7 @@
  "target_70_0_ft": 190.0,
  "target_skidpad_g": 0.74,
  "sources": {
+  "steering": "Steering ratio 17.2:1, an estimate: Ford publishes 17.2:1 for the 2021 F-150 Raptor and no figure was found for the 2.7 EcoBoost SuperCrew.",
   "calibration": "Car and Driver measured 5.7 s to 60 mph in a 2.7 EcoBoost SuperCab 4x4, and 193 ft / 0.74 g in a 2021 F-150. The crew cab's extra weight is inside the \u00b10.15 s band; the 190 ft braking target splits the difference between pickup tests.",
   "engine": "325 hp, 400 lb-ft (Ford, 2018+); curve shape estimated.",
   "gearing": "10R80 ratios and a 3.55 axle (published).",

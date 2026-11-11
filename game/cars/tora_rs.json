@@ -58,6 +58,7 @@
  "lateral_grip_scale": 1.0055,
  "drag_area_m2": 0.73,
  "parking_rack_deg": 35.0,
+ "steering_ratio": 13.5,
  "road_reference_deg": 33.0,
  "brake_front_nm": 2200.0,
  "brake_rear_nm": 1200.0,
@@ -159,6 +160,7 @@
  "target_70_0_ft": 153.0,
  "target_skidpad_g": 0.95,
  "sources": {
+  "steering": "Steering ratio 13.5:1, 2.5 turns lock to lock (Subaru, 2022 WRX specifications).",
   "calibration": "2022 WRX as reported from Car and Driver: 0-60 mph 5.5 s, 70-0 mph 153 ft, 0.95 g; about 3350 lb.",
   "engine": "271 hp, 258 lb-ft from 2000-5200 rpm (Subaru); curve shape estimated.",
   "gearing": "Six-speed ratios and 4.111 final drive: unverified.",
