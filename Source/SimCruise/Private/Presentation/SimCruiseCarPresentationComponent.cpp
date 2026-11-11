@@ -4,6 +4,10 @@
 #include "Environment/SimCruiseEnvironment.h"
 #include "Environment/SimCruiseEnvironmentSubsystem.h"
 #include "Presentation/SimCruiseCarClock.h"
+#include "Presentation/SimCruiseCarMirror.h"
+#include "HAL/IConsoleManager.h"
+#include "Components/SceneCaptureComponent2D.h"
+#include "Engine/TextureRenderTarget2D.h"
 
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
@@ -103,6 +107,20 @@ UMaterialInstanceDynamic* USimCruiseCarPresentationComponent::MaterialFor(int32 
 			MID = ClockMID;
 			ClockMaterial = ClockMID;
 			ClockMinutes = -1;
+		}
+	}
+	// Mirror glass reflects the rearward capture.
+	if (Role == ESimCruiseCarMaterialRole::MirrorGlass)
+	{
+		if (UMaterialInterface* MirrorBase = SimCruiseCarMirror::Get())
+		{
+			MID = UMaterialInstanceDynamic::Create(MirrorBase, this);
+			if (MirrorTarget)
+			{
+				MID->SetTextureParameterValue(TEXT("Capture"), MirrorTarget);
+				MID->SetScalarParameterValue(TEXT("HasCapture"), 1.f);
+			}
+			MirrorMaterials.Add(MID);
 		}
 	}
 	Materials.Add(MaterialIndex, MID);
@@ -269,6 +287,45 @@ void USimCruiseCarPresentationComponent::TickComponent(float DeltaTime, ELevelTi
 			}
 		}
 	}
+	if (MirrorCapture && !MirrorMaterials.IsEmpty())
+	{
+		// Every third frame (about 25 Hz at the High preset): what a mirror shows is small and
+		// changes slowly next to the road ahead.
+		static IConsoleVariable* Interval = IConsoleManager::Get().FindConsoleVariable(TEXT("simcruise.Mirrors.Interval"));
+		const uint32 Every = static_cast<uint32>(FMath::Max(Interval ? Interval->GetInt() : 3, 1));
+		if (++MirrorFrame % Every == 0u)
+		{
+			MirrorCapture->CaptureSceneDeferred();
+		}
+		const FTransform Eye = MirrorCapture->GetComponentTransform();
+		const FVector Fwd = Eye.GetUnitAxis(EAxis::X), Right = Eye.GetUnitAxis(EAxis::Y), Up = Eye.GetUnitAxis(EAxis::Z);
+		// Each glass as the driver set it: the line from the eye to the mirror's centre
+		// reflects straight back (rear-view) or a little outward (door mirrors, the far one
+		// more), slightly down. The passenger-side glass is convex (US: about 1.3 m radius).
+		static const FVector Aims[3] = {
+			FVector(-1.0, -0.21, -0.05).GetSafeNormal(), FVector(-1.0, 0.0, -0.01).GetSafeNormal(), FVector(-1.0, 0.32, -0.06).GetSafeNormal()};
+		static const float Curvature[3] = {0.f, 0.f, 1.f / 130.f};
+		const FTransform& Car = GetComponentTransform();
+		// The eye is where the driver's camera (and the capture) sits.
+		const FVector EyeCm = Car.InverseTransformPosition(Eye.GetLocation());
+		for (UMaterialInstanceDynamic* Mirror : MirrorMaterials)
+		{
+			Mirror->SetVectorParameterValue(TEXT("Fwd"), FLinearColor(Fwd.X, Fwd.Y, Fwd.Z, 0.f));
+			Mirror->SetVectorParameterValue(TEXT("Right"), FLinearColor(Right.X, Right.Y, Right.Z, 0.f));
+			Mirror->SetVectorParameterValue(TEXT("Up"), FLinearColor(Up.X, Up.Y, Up.Z, 0.f));
+			for (int32 I = 0; I < 3 && Built.IsValid() && Built->MirrorsCm.IsValidIndex(I); ++I)
+			{
+				const FVector4& M = Built->MirrorsCm[I];
+				if (M.W <= 0.0) continue;
+				const FVector Centre(M);
+				const FVector Normal = ((EyeCm - Centre).GetSafeNormal() + Aims[I]).GetSafeNormal();
+				const FVector C = Car.TransformPosition(Centre), N = Car.TransformVectorNoScale(Normal);
+				Mirror->SetVectorParameterValue(*FString::Printf(TEXT("C%d"), I), FLinearColor(C.X, C.Y, C.Z, 0.f));
+				Mirror->SetVectorParameterValue(*FString::Printf(TEXT("N%d"), I), FLinearColor(N.X, N.Y, N.Z, 0.f));
+				Mirror->SetScalarParameterValue(*FString::Printf(TEXT("K%d"), I), Curvature[I]);
+			}
+		}
+	}
 	if (StateProvider.GetInterface())
 	{
 		FSimCruiseCarVisualState State;
@@ -276,6 +333,79 @@ void USimCruiseCarPresentationComponent::TickComponent(float DeltaTime, ELevelTi
 		{
 			ApplyVisualState(State);
 		}
+	}
+}
+
+void USimCruiseCarPresentationComponent::SetMirrorsLive(bool bLive, USceneComponent* Parent, const FVector& RelativeEyeCm)
+{
+	if (!bLive)
+	{
+		if (MirrorCapture) { MirrorCapture->DestroyComponent(); MirrorCapture = nullptr; }
+		for (UMaterialInstanceDynamic* Mirror : MirrorMaterials) { Mirror->SetScalarParameterValue(TEXT("HasCapture"), 0.f); }
+		return;
+	}
+	if (MirrorCapture || !Parent)
+	{
+		return;
+	}
+	// Wide enough for the three glasses (the door mirrors look outward, the passenger's is
+	// convex); 768 x 320 puts about 7.7 texels in each degree.
+	constexpr float FovDeg = 100.f;
+	constexpr int32 SizeX = 768, SizeY = 320;
+	if (!MirrorTarget)
+	{
+		MirrorTarget = NewObject<UTextureRenderTarget2D>(this);
+		MirrorTarget->RenderTargetFormat = RTF_RGBA16f;
+		MirrorTarget->ClearColor = FLinearColor::Black;
+		MirrorTarget->InitAutoFormat(SizeX, SizeY);
+		MirrorTarget->UpdateResourceImmediate(true);
+	}
+	MirrorCapture = NewObject<USceneCaptureComponent2D>(GetOwner() ? static_cast<UObject*>(GetOwner()) : static_cast<UObject*>(this), TEXT("MirrorCapture"));
+	MirrorCapture->SetupAttachment(Parent);
+	MirrorCapture->SetRelativeLocationAndRotation(RelativeEyeCm, FRotator(0.0, 180.0, 0.0));
+	MirrorCapture->FOVAngle = FovDeg;
+	// The camera sits in the driver's head: the seat and headrest would fill the view, so
+	// the car itself is left out (top down, a roadster's mirror sees the road over the deck).
+	if (AActor* Car = GetOwner())
+	{
+		MirrorCapture->HiddenActors.Add(Car);
+	}
+	MirrorCapture->TextureTarget = MirrorTarget;
+	MirrorCapture->CaptureSource = SCS_SceneColorHDR;
+	MirrorCapture->bCaptureEveryFrame = false;
+	MirrorCapture->bCaptureOnMovement = false;
+	MirrorCapture->bAlwaysPersistRenderingState = true;
+	// Cheap: no Lumen in the mirror view (direct light, sky light and fog are what it shows).
+	FPostProcessSettings& PP = MirrorCapture->PostProcessSettings;
+	PP.bOverride_DynamicGlobalIlluminationMethod = true;
+	PP.DynamicGlobalIlluminationMethod = EDynamicGlobalIlluminationMethod::None;
+	PP.bOverride_ReflectionMethod = true;
+	PP.ReflectionMethod = EReflectionMethod::None;
+	MirrorCapture->PostProcessBlendWeight = 1.f;
+	// Measured at High: 4.7 ms a capture with everything on. Off: the global distance field
+	// (0.75 ms: with Lumen off only distance-field AO and far shadows use it; virtual shadow
+	// maps cover the mirror's view), distance-field AO and shadows,
+	// the volumetric clouds with their shadow map (0.9 ms; the mirror's sky is the
+	// atmosphere alone); motion blur, bloom, volumetric fog and anti-aliasing. (Set as
+	// show-flag settings: registering the capture rebuilds its flags from them.)
+	TArray<FEngineShowFlagsSetting> Flags;
+	for (const TCHAR* Name : {TEXT("MotionBlur"), TEXT("Bloom"), TEXT("VolumetricFog"), TEXT("AntiAliasing"), TEXT("DistanceFieldAO"),
+		TEXT("RayTracedDistanceFieldShadows"), TEXT("Cloud"), TEXT("AmbientOcclusion"), TEXT("ContactShadows")})
+	{
+		FEngineShowFlagsSetting Flag;
+		Flag.ShowFlagName = Name;
+		Flag.Enabled = false;
+		Flags.Add(Flag);
+	}
+	MirrorCapture->SetShowFlagSettings(Flags);
+	MirrorCapture->RegisterComponent();
+	const float TanHalf = FMath::Tan(FMath::DegreesToRadians(FovDeg * 0.5f));
+	for (UMaterialInstanceDynamic* Mirror : MirrorMaterials)
+	{
+		Mirror->SetTextureParameterValue(TEXT("Capture"), MirrorTarget);
+		Mirror->SetScalarParameterValue(TEXT("HasCapture"), 1.f);
+		Mirror->SetScalarParameterValue(TEXT("TanHalf"), TanHalf);
+		Mirror->SetScalarParameterValue(TEXT("Aspect"), static_cast<float>(SizeX) / SizeY);
 	}
 }
 

@@ -234,6 +234,11 @@ TSharedPtr<FSimCruiseBuiltCar> SimCruiseCarAssets::Get(const FString& CarId, FSt
 	}
 	Car->DriverEyeCm = Inputs.DriverEyeM * 100.0;
 	Car->HeadLampsCm = SimCruiseCarModelRig::HeadLampCentresCm(Rigged);
+	Car->MirrorsCm = SimCruiseCarModelRig::MirrorCentresCm(Rigged);
+	for (const FVector4& Mirror : Car->MirrorsCm)
+	{
+		if (Mirror.W > 0.0) Car->Log.Add(FString::Printf(TEXT("mirror glass at %s cm"), *FVector(Mirror).ToString()));
+	}
 	for (const FVector& Lamp : Car->HeadLampsCm)
 	{
 		Car->Log.Add(FString::Printf(TEXT("head-lamp beam origin %s cm"), *Lamp.ToString()));

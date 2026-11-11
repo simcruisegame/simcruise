@@ -10,6 +10,8 @@
 
 class UStaticMeshComponent;
 class UMaterialInstanceDynamic;
+class USceneCaptureComponent2D;
+class UTextureRenderTarget2D;
 struct FSimCruiseBuiltCar;
 
 /** One road wheel as the physics sees it this frame (vehicle frame, Unreal axes). */
@@ -135,6 +137,13 @@ public:
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
+	/**
+	 * Mirrors that show the road: a 768 x 320 capture looking back from the driver's eye
+	 * (attached to Parent at RelativeEyeCm), refreshed every other frame, which the mirror
+	 * glass reflects into (SimCruiseCarMirror). Off: the glass shows a plain sky-grey.
+	 */
+	void SetMirrorsLive(bool bLive, USceneComponent* Parent = nullptr, const FVector& RelativeEyeCm = FVector::ZeroVector);
+
 	/** Steering-wheel angle for a pair of front steer angles (mean times the overall ratio). */
 	static double SteeringWheelAngleFor(double FrontLeftSteerRad, double FrontRightSteerRad, double Ratio);
 	/** Knuckle (steer, camber, travel) and spinner (roll) transforms relative to the static hub. */
@@ -187,6 +196,14 @@ private:
 	/** The dashboard clock's material, when the profile has one; its minutes follow the place's local time. */
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> ClockMaterial;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMaterialInstanceDynamic>> MirrorMaterials;
+	UPROPERTY(Transient)
+	TObjectPtr<USceneCaptureComponent2D> MirrorCapture;
+	UPROPERTY(Transient)
+	TObjectPtr<UTextureRenderTarget2D> MirrorTarget;
+	uint32 MirrorFrame = 0;
 	int32 ClockMinutes = -1;
 	float ClockCheck = 0.f;
 	FString LastError;

@@ -111,6 +111,27 @@ TArray<FVector> SimCruiseCarModelRig::HeadLampCentresCm(const FSimCruiseRiggedCa
 	return Centres;
 }
 
+TArray<FVector4> SimCruiseCarModelRig::MirrorCentresCm(const FSimCruiseRiggedCar& Car)
+{
+	constexpr double CentrelineCm = 30.0;
+	FBox Boxes[3] = {FBox(ForceInit), FBox(ForceInit), FBox(ForceInit)};
+	for (const FSimCruiseRigSection& Section : Car.Body.Sections)
+	{
+		if (Section.Role != ESimCruiseCarMaterialRole::MirrorGlass) continue;
+		for (const FVector3f& Local : Section.Positions)
+		{
+			const FVector P = Car.Body.PartToVehicle.TransformPosition(FVector(Local));
+			Boxes[FMath::Abs(P.Y) < CentrelineCm ? 1 : (P.Y < 0.0 ? 0 : 2)] += P;
+		}
+	}
+	TArray<FVector4> Centres;
+	for (const FBox& Box : Boxes)
+	{
+		Centres.Add(Box.IsValid ? FVector4(Box.GetCenter(), 1.0) : FVector4(0.0, 0.0, 0.0, 0.0));
+	}
+	return Centres;
+}
+
 namespace SimCruiseRigPrivate
 {
 	// Destinations of a triangle.

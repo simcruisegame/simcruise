@@ -47,6 +47,8 @@ struct FSimCruiseBuiltCar
 	FVector DriverEyeCm = FVector::ZeroVector;
 	/** Head-lamp beam origins, vehicle frame, cm, left then right (empty when unknown). */
 	TArray<FVector> HeadLampsCm;
+	/** Mirror glass centres: left door, rear-view, right door (W = 0 where the model has none). */
+	TArray<FVector4> MirrorsCm;
 	double SteeringRatio = 15.0;
 	TArray<FString> Log;
 	double BuildSeconds = 0.0;

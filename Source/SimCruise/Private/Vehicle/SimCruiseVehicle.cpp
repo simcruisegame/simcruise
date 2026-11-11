@@ -9,6 +9,7 @@
 #include "Environment/SimCruiseEnvironment.h"
 #include "Environment/SimCruiseEnvironmentSubsystem.h"
 #include "Gameplay/SimCruiseHaptics.h"
+#include "Gameplay/SimCruisePlayerCameraManager.h"
 #include "Gameplay/SimCruisePlayerController.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Presentation/SimCruiseLowBeamPattern.h"
@@ -18,6 +19,10 @@ namespace
 {
 	TAutoConsoleVariable<float> CVarBeamScale(TEXT("simcruise.Lamps.BeamScale"), 1.f,
 		TEXT("Look development: multiplies the low beams' intensity (1 = the real 15 000 cd)."));
+	TAutoConsoleVariable<int32> CVarMirrors(TEXT("simcruise.Mirrors"), 1,
+		TEXT("1: the player's car mirrors show the road behind (from the driver's seat: a 768x320 capture every third frame); 0: plain glass."));
+	TAutoConsoleVariable<int32> CVarMirrorInterval(TEXT("simcruise.Mirrors.Interval"), 3,
+		TEXT("The mirror capture runs every Nth frame (1: every frame)."));
 	TAutoConsoleVariable<int32> CVarBeamPattern(TEXT("simcruise.Lamps.Pattern"), 1,
 		TEXT("1: the low beams carry their photometric pattern and cut-off (light function); 0: plain cones."));
 }
@@ -363,6 +368,17 @@ void ASimCruiseVehicle::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	UpdateHeadLamps();
+	// Live mirrors for the car being driven, from the driver's seat (from outside they are
+	// a few pixels; parked and traffic cars never have them).
+	const APlayerController* PC = Cast<APlayerController>(GetController());
+	const ASimCruisePlayerCameraManager* Camera = PC ? Cast<ASimCruisePlayerCameraManager>(PC->PlayerCameraManager) : nullptr;
+	const bool bInSeat = !Camera || Camera->GetView() == ESimCruiseView::Driver;
+	const bool bWantMirrors = IsPlayerControlled() && bInSeat && CVarMirrors.GetValueOnGameThread() != 0 && CarModel;
+	if (bWantMirrors != bMirrorsLive && CarModel)
+	{
+		bMirrorsLive = bWantMirrors;
+		CarModel->SetMirrorsLive(bMirrorsLive, GetRootComponent(), GetVehicleSetup().DriverEyeLocalCm);
+	}
 	FSimCruiseVehicleTelemetry Telemetry;
 	VehicleMovement->CopyTelemetry(Telemetry);
 	if (!Telemetry.LastGearMessage.IsEmpty() && Telemetry.LastGearMessage != LastShownGearMessage)

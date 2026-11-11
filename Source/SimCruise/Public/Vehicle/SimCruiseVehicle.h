@@ -167,4 +167,5 @@ private:
 	bool bHasDefinition = false;
 	bool bManualRequested = false;
 	FString LastShownGearMessage;
+	bool bMirrorsLive = false;
 };

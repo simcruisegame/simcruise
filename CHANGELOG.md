@@ -4,6 +4,7 @@ Notable changes to SimCruise, newest first. The format follows [Keep a Changelog
 
 ## Unreleased
 
+- **The mirrors show the road behind** (`Presentation/SimCruiseCarMirror`, `SimCruiseCarPresentationComponent`, `Vehicle/SimCruiseVehicle`) — from the driver's seat the rear-view and both door mirrors reflect the street, set the way a driver sets them (the rear-view straight back, the door mirrors a little outward, the passenger's convex); they were flat pale blue. One 768 x 320 capture looks back from the driver's head every third frame: High in the seat 76 to 72 fps, the chase view unchanged (no capture there). `simcruise.Mirrors 0` turns them off.
 - **Tiles draw as static meshes** (`World/SimCruiseTileBuilder`, `SimCruiseWorldTile`) — the street tiles' drawing moved from procedural meshes to static meshes built on the worker thread, so their shadows are cached: High in the driver's seat 70 to 76 fps on the target laptop, the chase view 85 to 91; collision is unchanged.
 - **City sky glow at night** (`Environment/SimCruiseEnvironment`, `World/SimCruiseWorldStreamer`) — over built-up places the night horizon glows faintly warm from the street lights, so palms and roofs stand out against it; it was black. Open country stays dark.
 - **The roadster's gauges light up at night** (`CarPresentation.json`) — the cluster's numerals and ticks and the console labels are backlit like the real panel; at night the dashboard was black.

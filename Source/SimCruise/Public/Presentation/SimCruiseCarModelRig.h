@@ -123,6 +123,13 @@ namespace SimCruiseCarModelRig
 	 */
 	SIMCRUISE_API TArray<FVector> HeadLampCentresCm(const FSimCruiseRiggedCar& Car);
 
+	/**
+	 * The mirror glasses' centres (MirrorGlass surfaces), vehicle frame, cm: [0] the left
+	 * door mirror, [1] the rear-view mirror (within 30 cm of the centreline), [2] the right
+	 * door mirror; a mirror the model lacks is left invalid (W = 0, else W = 1).
+	 */
+	SIMCRUISE_API TArray<FVector4> MirrorCentresCm(const FSimCruiseRiggedCar& Car);
+
 	/** Godot vehicle frame (X right, Y up, Z rearward, metres) to Unreal (X forward, Y right, Z up, centimetres). */
 	inline FVector GodotToUnrealCm(const FVector& G) { return FVector(-G.Z, G.X, G.Y) * 100.0; }
 	inline FVector GodotToUnrealDir(const FVector& G) { return FVector(-G.Z, G.X, G.Y); }
