@@ -29,7 +29,7 @@ Chaos ticks asynchronously at a fixed step (`Config/DefaultEngine.ini`: `bTickPh
 5. add the summed force and its torque about the centre of mass to the particle (`AddForce`, `AddTorque`), converted to Unreal units;
 6. publish telemetry.
 
-`SimCruise.Vehicle.Chaos.ForceIntegration` proves the boundary: a known SI force and torque applied this way for 360 steps gives exactly `F·t/m` and `τ·t/I` (within float precision, 1.4e-6 of 0.55 m/s), one callback per step, every step the fixed interval. `SimCruise.Vehicle.Determinism` runs the same launch twice and compares 22 state values bit for bit (all equal).
+`SimCruise.Vehicle.Chaos.ForceIntegration` proves the boundary: a known SI force and torque applied this way for 360 steps gives exactly `F·t/m` and `τ·t/I` (within float precision, 1.4e-6 of 0.55 m/s), one callback per step, every step the fixed interval. `SimCruise.Vehicle.Determinism` runs the same launch twice and compares 22 state values bit for bit (all equal). That holds for a single-threaded solver with the controls applied by a physics-thread driver (`SetPhysicsThreadDriver`), as the benches do. Controls set from the game thread are picked up by whichever physics step runs next, so with Chaos on its own threads the step on which a pedal change lands can differ by up to a game frame between runs; replays and anything that must reproduce step for step drive the car from the physics thread.
 
 ### Why 360 Hz
 
@@ -52,6 +52,14 @@ Two Godot behaviours turned out to depend on the step and were fixed in the port
 
 The port also found a bug in the first Unreal helper: the anti-roll bar rate returned 0 for any bar whose second moment of area is under `UE_DOUBLE_SMALL_NUMBER` (1e-8 m⁴), which is every bar under about 21 mm, including the NB's 11 mm rear bar. That shifted the roll stiffness forward and cost the NB 0.022 g on the skidpad; `SimCruise.Vehicle.Model.SuspensionPreload` now checks both bars against CarSuspension.gd's formula.
 
+### Who owns the body
+
+The movement component owns the root body's Chaos particle and mass properties:
+
+- When the body's physics state is recreated (collision switched off and on, a re-register), the old particle is queued for deletion. The component listens to `OnComponentPhysicsStateChanged`: on *destroyed* it stops stepping the old particle at once, on *created* it configures the new one. Before this, the physics thread kept the old pointer and crashed on its next step (use after free); `SimCruise.Vehicle.Chaos.BodyOwnership` recreates the body mid-drive.
+- Anything that makes the game thread recompute the body's mass properties (welding an attached collider into the body, rescaling it, a mass override or physical-material change) would swap in a uniform box's mass, centre and inertia. The physics step compares the particle with the car's values every step and puts them back, logs a warning the first time, and counts it in `MassPropertyRestores` (telemetry; should stay 0). The game-thread copy of the particle keeps the recomputed values until the car is set again, so read mass from the car definition, not from the body. Presentation meshes attached to the pawn should have collision off: a welded collider also changes the body's collision shape, which the restore does not undo.
+- Lock order is vehicle lock, then physics scene lock: the physics step holds the vehicle lock across its four scene queries. Never call the vehicle's setters while holding a physics scene write lock.
+
 ### Interface for the driving shell
 
 On `ASimCruiseVehicle` (and the movement component), all game-thread calls:
@@ -68,3 +76,4 @@ Controls set on the game thread reach the physics thread on its next step; telem
 - Surface grip comes from `FSimCruiseGroundHit::SurfaceGrip` (1.0 on the bench); the world stream needs to supply Godot's per-tile wheel grip and road roughness (`RoadProfileM`, `RoadProfileRateMps` are in place).
 - Contacts are rays as in Godot; a wheel-radius sphere cast for curbs and potholes, and an aligning moment for force feedback, are next.
 - The ground query reads the game thread's scene-query structure from the physics thread, as Chaos Vehicles do; streamed road collision must therefore be in place before the car reaches it (the world stream's job).
+- Packaging: the car files (`game/cars/`) and calibration overlays (`Content/Vehicle/Calibration/*.json`) are loose JSON, which a cooked build does not stage by default; a packaged build needs them added to `DirectoriesToAlwaysStageAsNonUFS` (or moved into assets), or the Mustang loses its overlay. `SIMCRUISE_CALIBRATION_DIR` is read in development builds only.
