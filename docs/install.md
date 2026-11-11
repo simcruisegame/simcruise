@@ -4,19 +4,22 @@ Downloads are on the [Releases page](https://github.com/simcruisegame/simcruise/
 
 | System | File | Type |
 |---|---|---|
-| macOS (Apple Silicon) | `SimCruise-<version>.dmg` | Disk image: drag to Applications |
+| macOS (Apple Silicon) | `SimCruise-<version>-macos-arm64.zip` | The app, zipped: unzip and drag to Applications |
 | Windows 10/11 (64-bit) | `SimCruise-<version>-windows-x64-setup.exe` | Installer with Start menu entry and uninstaller |
 | Windows 10/11 (64-bit) | `SimCruise-<version>-windows-x64.zip` | Portable folder: unzip and run `SimCruise.exe` |
 
-Each release lists SHA-256 checksums for its files.
+Each release lists SHA-256 checksums for its files in its notes and in `SHA256SUMS.txt`. To check a download, compare the list with `shasum -a 256 SimCruise-<version>-macos-arm64.zip` in Terminal on a Mac, or `certutil -hashfile SimCruise-<version>-windows-x64-setup.exe SHA256` in a Windows command prompt. A maintainer builds all release files from the tagged source on one Windows PC with `scripts/release-local.sh`, using the official Godot 4.7.2 release and templates; the steps are in [building.md](building.md#releasing).
 
 ## macOS
 
 Requirements: a Mac with Apple Silicon (M1 or later) running macOS 13 Ventura or newer, a few hundred megabytes of disk for the app plus a cache that stays under roughly 100 MB, and an internet connection for the random start and any place outside the bundled offline neighbourhood (without one the game starts on Ocean Drive, Miami Beach). Intel Macs are not supported: the release executable is Apple Silicon only. An Xbox controller is optional (pair it in System Settings → Bluetooth).
 
-1. Download `SimCruise-<version>.dmg` from this repository's Releases page.
-2. Open the disk image and drag **SimCruise** onto the **Applications** shortcut beside it.
-3. Launch it from Applications. The first launch shows a Gatekeeper warning; see below.
+1. Download `SimCruise-<version>-macos-arm64.zip` from this repository's Releases page.
+2. Double-click the zip in Downloads (Safari may already have unzipped it). It becomes **SimCruise**, the app.
+3. Drag **SimCruise** into **Applications** in a Finder window.
+4. In Applications, Control-click (right-click) **SimCruise** and choose **Open** the first time; macOS shows a Gatekeeper warning, see below.
+
+The Mac app is built on Windows by the project's release script and checked there (architecture, signature hashes, bundle seal), but each release should be started on a Mac before it is published. If yours does not open, please open an issue with your macOS version and what the dialog says. A disk image (`.dmg`), when one is attached, installs the same way: open it and drag SimCruise onto the Applications shortcut.
 
 ### First launch and Gatekeeper
 
@@ -26,7 +29,7 @@ The app is signed *ad hoc* by the build script and is not notarized by Apple, be
 - **macOS 15 Sequoia and later:** double-click the app once and dismiss the warning, open **System Settings → Privacy & Security**, scroll to *Security*, click **Open Anyway** next to SimCruise, authenticate, and open the app again.
 - **Terminal:** `xattr -dr com.apple.quarantine /Applications/SimCruise.app` removes the download quarantine flag; the app then opens like any other.
 
-A copy of these instructions ships inside the disk image as `README-first-launch.txt`. If you build from source yourself there is no quarantine flag and no prompt.
+The release notes repeat the short version, and a disk image built on a Mac with `scripts/make-dmg.sh` carries these instructions as `README-first-launch.txt`. If you build from source yourself there is no quarantine flag and no prompt.
 
 ### Where it keeps things
 
