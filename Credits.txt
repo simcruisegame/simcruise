@@ -25,6 +25,8 @@ https://creativecommons.org/licenses/by-sa/4.0/
 https://commons.wikimedia.org/wiki/File:1999_Mazda_MX-5_Miata_Leather_Package_in_Highlight_Silver_Metallic,_Front_Right,_06-29-2023.jpg
 https://creativecommons.org/licenses/by-sa/4.0/
 Green NB Miata body, running gear, cabin and instrument graphics modeled for this demo. Mazda's brochure, workshop drawings and photographs of an original 1999 Sports Package were consulted for visual dimensions and gauge layout. See lab/miata/appearance/README.md.
+Unreal client player cars: "Mazda MX-5 (NB) convertible HQ interior" by Nieve5677 (https://sketchfab.com/niev), "1965 Ford Mustang Convertible" by Kristian LaGrange (https://sketchfab.com/kristian123) and "2019 Chevrolet Corvette C8 Stingray" by Hari Prasath R (https://sketchfab.com/Haris3D), each CC BY 4.0; fitted, rigged and re-materialled at run time, maker badges hidden. Details in licenses/Traffic models.txt.
+https://sketchfab.com/3d-models/mazda-mx-5-nb-convertible-hq-interior-5d103c567bee4c61ad66f04562049933
 Parked cars from Generic passenger car pack by Comrade1280, CC BY 4.0. Sedan and pickup isolated, recentered and textures resized.
 https://sketchfab.com/3d-models/20f9af9b8a404d5cb022ac6fe87f21f5
 https://creativecommons.org/licenses/by/4.0/
