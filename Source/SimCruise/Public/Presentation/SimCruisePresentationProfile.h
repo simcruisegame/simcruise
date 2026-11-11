@@ -102,6 +102,20 @@ struct FSimCruiseCarPresentationProfile
 	};
 	TOptional<FParkedDimensions> Parked;
 
+	/**
+	 * The engine's voice when it is not the default inline four: a cross-plane V8, the
+	 * bank of each firing event in firing order (0 the driver's side, whose pipe is
+	 * nearer), and how loud each bank's pipe reaches the listener.
+	 */
+	struct FEngineSound
+	{
+		TArray<int32> BankOfEvent;
+		double NearGain = 1.0;
+		double FarGain = 0.62;
+		FString Source;
+	};
+	TOptional<FEngineSound> EngineSound;
+
 	/** Set when the model's dashboard has a clock to drive. */
 	TOptional<FSimCruiseClockSpec> Clock;
 

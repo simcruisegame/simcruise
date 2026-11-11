@@ -10,6 +10,7 @@
 #include "Environment/SimCruiseEnvironmentSubsystem.h"
 #include "Gameplay/SimCruiseHaptics.h"
 #include "Audio/SimCruiseEngineSoundComponent.h"
+#include "Presentation/SimCruisePresentationProfile.h"
 #include "AudioDevice.h"
 #include "Gameplay/SimCruisePlayerCameraManager.h"
 #include "Gameplay/SimCruisePlayerController.h"
@@ -420,6 +421,14 @@ void ASimCruiseVehicle::UpdateEngineSound(const FSimCruiseVehicleTelemetry& Tele
 		EngineSound->SetupAttachment(GetRootComponent());
 		// The Godot mix: the Engine bus at -6 dB and its trim at -6 dB (RoadNoise.gd).
 		EngineSound->SetVolumeMultiplier(0.25f);
+		// The car's own engine layout (a V8's firing order), else the inline four.
+		if (const FSimCruiseCarPresentationProfile* Profile = CarModel ? CarModel->GetProfile() : nullptr)
+		{
+			if (Profile->EngineSound.IsSet())
+			{
+				EngineSound->ConfigureCrossPlaneV8(Profile->EngineSound->BankOfEvent, Profile->EngineSound->NearGain, Profile->EngineSound->FarGain);
+			}
+		}
 		EngineSound->RegisterComponent();
 	}
 	FSimCruiseInlineFourSynth::FInputs In;
@@ -433,7 +442,7 @@ void ASimCruiseVehicle::UpdateEngineSound(const FSimCruiseVehicleTelemetry& Tele
 	if (!EngineSound->IsPlaying())
 	{
 		EngineSound->Start();
-		UE_LOG(LogSimCruiseVehiclePawn, Display, TEXT("Engine sound playing (inline-four voice, %d Hz, %s pickup)"), FSimCruiseInlineFourSynth::SampleRate, bInSeat ? TEXT("cabin") : TEXT("exterior"));
+		UE_LOG(LogSimCruiseVehiclePawn, Display, TEXT("Engine sound playing (%s voice, %d Hz, %s pickup)"), EngineSound->IsV8() ? TEXT("cross-plane V8") : TEXT("inline-four"), FSimCruiseInlineFourSynth::SampleRate, bInSeat ? TEXT("cabin") : TEXT("exterior"));
 	}
 }
 

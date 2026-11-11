@@ -133,6 +133,9 @@ public:
 	/** Head-lamp beam origins (centres of the head-lamp lenses), component space, cm, left then right; empty when the model has none. */
 	TArray<FVector> GetHeadLampLocations() const;
 
+	/** The car's presentation profile (null before InitializeForCar succeeds). */
+	const struct FSimCruiseCarPresentationProfile* GetProfile() const;
+
 	/**
 	 * Repaints the body (Paint surfaces whose colour is a plain base colour, not a texture
 	 * atlas), linear colour; false when the car has no such surface.

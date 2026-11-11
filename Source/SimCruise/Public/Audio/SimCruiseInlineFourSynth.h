@@ -42,6 +42,17 @@ public:
 
 	FSimCruiseInlineFourSynth();
 
+	/**
+	 * Turn the voice into a cross-plane V8's: eight firing events per 720 crank degrees
+	 * (four a revolution), and the exhaust heard as each bank's pipe delivers it. A
+	 * cross-plane crank fires each bank at uneven intervals (90, 180 and 270 degrees), so
+	 * with one pipe nearer than the other (BankGains) the pulse train swells and sags once
+	 * an engine cycle: the V8's burble at half and quarter orders. BankOfEvent: the bank
+	 * (0 or 1) of each event in firing order.
+	 */
+	void ConfigureCrossPlaneV8(const TArray<int32>& BankOfEvent, double NearGain, double FarGain);
+	bool IsV8() const { return bV8; }
+
 	/** Mono samples at SampleRate, within +-0.94. Inputs are smoothed over 25 ms. */
 	void Render(float* Out, int32 Frames, const FInputs& In);
 
@@ -50,6 +61,9 @@ private:
 	static constexpr int32 Mask = Size - 1;
 
 	TArray<float> ExhaustLight, ExhaustLoad, Intake, PulseWindow;
+	/** V8: the exhaust over a whole engine cycle (720 degrees), eight events with their banks' gains. */
+	TArray<float> CycleLight, CycleLoad;
+	bool bV8 = false;
 	double Phase = 0.0, FiringHz = 0.0, Charge = 0.0, Pull = 0.0, Overrun = 0.0, Gain = 0.0;
 	int64 RandomState = 38791;
 	double NoiseLow = 0.0, NoiseSlow = 0.0, OutputLow = 0.0, Boom = 0.0, PulseGain = 1.0, Throttle = 0.0;

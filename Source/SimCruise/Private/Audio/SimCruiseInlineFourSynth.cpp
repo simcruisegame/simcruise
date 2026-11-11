@@ -36,6 +36,29 @@ FSimCruiseInlineFourSynth::FSimCruiseInlineFourSynth()
 	}
 }
 
+void FSimCruiseInlineFourSynth::ConfigureCrossPlaneV8(const TArray<int32>& BankOfEvent, double NearGain, double FarGain)
+{
+	if (BankOfEvent.Num() != 8) return;
+	CycleLight.SetNumUninitialized(Size + 1);
+	CycleLoad.SetNumUninitialized(Size + 1);
+	auto GainOf = [&](int32 Event) { return BankOfEvent[(Event + 8) % 8] == 0 ? NearGain : FarGain; };
+	for (int32 I = 0; I <= Size; ++I)
+	{
+		// Crank angle over the cycle; each event's pulse is one period of the event tables.
+		const double Angle = 720.0 * static_cast<double>(I % Size) / Size;
+		const int32 Event = FMath::FloorToInt(Angle / 90.0);
+		const double U = (Angle - 90.0 * Event) / 90.0;
+		// The bank's gain eases in over the first fifth of the event (no click at the edge).
+		const double G = FMath::Lerp(GainOf(Event - 1), GainOf(Event), FMath::SmoothStep(0.0, 0.2, U));
+		const double X = U * Size;
+		const int32 K = FMath::Min(static_cast<int32>(X), Size - 1);
+		const double T = X - K;
+		CycleLight[I] = static_cast<float>(G * FMath::Lerp(ExhaustLight[K], ExhaustLight[K + 1], T));
+		CycleLoad[I] = static_cast<float>(G * FMath::Lerp(ExhaustLoad[K], ExhaustLoad[K + 1], T));
+	}
+	bV8 = true;
+}
+
 void FSimCruiseInlineFourSynth::Render(float* Out, int32 Frames, const FInputs& In)
 {
 	if (Frames < 1)
@@ -48,7 +71,10 @@ void FSimCruiseInlineFourSynth::Render(float* Out, int32 Frames, const FInputs& 
 		return;
 	}
 	const double Rpm = In.Rpm;
-	const double TargetHz = FMath::Clamp(Rpm, 0.0, 7200.0) / 30.0;
+	// The phase runs over one firing period (inline four: two a revolution) or, for a V8,
+	// over the whole 720-degree cycle of eight events.
+	const double TargetHz = FMath::Clamp(Rpm, 0.0, 7200.0) / (bV8 ? 120.0 : 30.0);
+	const double SpeedHz = bV8 ? 215.0 / 4.0 : 215.0;
 	// The engine speed follows the physics continuously: rev limiter, shifts and stalls.
 	if (!bFired)
 	{
@@ -103,17 +129,30 @@ void FSimCruiseInlineFourSynth::Render(float* Out, int32 Frames, const FInputs& 
 			if (LimiterPhase < .42) CutTarget = .12;
 		}
 		CutGain += (CutTarget - CutGain) * CutSmoothing;
-		const int32 K = static_cast<int32>(Phase) & Mask;
-		const double T = Phase - FMath::FloorToDouble(Phase);
-		const double Quiet = FMath::Lerp(ExhaustLight[K], ExhaustLight[K + 1], T);
-		const double Loaded = FMath::Lerp(ExhaustLoad[K], ExhaustLoad[K + 1], T);
+		int32 K = static_cast<int32>(Phase) & Mask;
+		double T = Phase - FMath::FloorToDouble(Phase);
+		double Quiet, Loaded;
+		if (bV8)
+		{
+			Quiet = FMath::Lerp(CycleLight[K], CycleLight[K + 1], T);
+			Loaded = FMath::Lerp(CycleLoad[K], CycleLoad[K + 1], T);
+			// Intake and the breath window follow each event.
+			const double EventPhase = FMath::Fmod(Phase * 8.0, static_cast<double>(Size));
+			K = static_cast<int32>(EventPhase) & Mask;
+			T = EventPhase - FMath::FloorToDouble(EventPhase);
+		}
+		else
+		{
+			Quiet = FMath::Lerp(ExhaustLight[K], ExhaustLight[K + 1], T);
+			Loaded = FMath::Lerp(ExhaustLoad[K], ExhaustLoad[K + 1], T);
+		}
 		const double Air = FMath::Lerp(Intake[K], Intake[K + 1], T);
 		RandomState = (RandomState * 1664525 + 1013904223) & 0x7fffffff;
 		const double White = static_cast<double>(RandomState) / 1073741824.0 - 1.0;
 		NoiseLow += .32 * (White - NoiseLow);
 		NoiseSlow += .04 * (NoiseLow - NoiseSlow);
 		const double Breath = (NoiseLow - NoiseSlow) * PulseWindow[K];
-		const double Speed = FMath::Clamp(FiringHz / 215.0, 0.0, 1.0);
+		const double Speed = FMath::Clamp(FiringHz / SpeedHz, 0.0, 1.0);
 		const double Pulse = FMath::Lerp(Quiet, Loaded, Charge) * PulseGain * CutGain;
 		const double ExhaustLevel = (.17 + .34 * Charge + .14 * Pull + .08 * Speed - .045 * Overrun) * ExhaustPresence;
 		const double InletLevel = (.02 + .42 * Throttle * Charge) * (In.bCabin ? .50 : 1.0) * CutGain;

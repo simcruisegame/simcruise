@@ -160,4 +160,44 @@ bool FSimCruiseInlineFourTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseCrossPlaneV8Test, "SimCruise.Audio.CrossPlaneV8", Flags)
+bool FSimCruiseCrossPlaneV8Test::RunTest(const FString& Parameters)
+{
+	// The Ford 289 (firing order 1-5-4-2-6-3-7-8, 1-4 right bank) at a 900 rpm idle, outside.
+	const TArray<int32> Ford = { 1, 0, 1, 1, 0, 1, 0, 0 };
+	FSimCruiseInlineFourSynth V8;
+	V8.ConfigureCrossPlaneV8(Ford, 1.0, 0.62);
+	FSimCruiseInlineFourSynth::FInputs Idle;
+	Idle.Rpm = 900.0;
+	Idle.Combustion = 0.15;
+	Idle.ShaftLoad = 0.05;
+	Idle.bCabin = false;
+	const TArray<float> X = Render(V8, Idle, 3.0);
+	TArray<float> Steady(X.GetData() + Rate, X.Num() - Rate);
+	float Peak = 0.f;
+	for (const float V : X) Peak = FMath::Max(Peak, FMath::Abs(V));
+	TestTrue(FString::Printf(TEXT("output within +-0.94 (peak %.3f)"), Peak), Peak <= 0.94f);
+	// Four firings a revolution: the firing frequency is rpm / 15 (60 Hz at 900 rpm), twice
+	// an inline four's.
+	const double Firing = Idle.Rpm / 15.0, Cycle = Idle.Rpm / 120.0;
+	const double MFiring = Magnitude(Steady, Firing), MFourOrder = Magnitude(Steady, Idle.Rpm / 30.0);
+	AddInfo(FString::Printf(TEXT("V8 idle: %.1f Hz %.5f, the inline four's %.1f Hz %.5f"), Firing, MFiring, Idle.Rpm / 30.0, MFourOrder));
+	TestTrue(TEXT("the firing frequency is rpm / 15"), MFiring > 1.5 * MFourOrder);
+	// The burble: uneven bank pulses put energy at the engine-cycle orders between the
+	// firing harmonics (rpm / 120 apart); an evenly firing engine has none there.
+	double Between = 0.0;
+	for (int32 K = 1; K < 8; ++K) Between = FMath::Max(Between, Magnitude(Steady, Cycle * K));
+	AddInfo(FString::Printf(TEXT("strongest sub-firing cycle order: %.5f (%.0f %% of the firing order)"), Between, 100.0 * Between / MFiring));
+	TestTrue(TEXT("uneven: cycle orders below the firing frequency at least 5 % of it"), Between > 0.05 * MFiring);
+	// The same voice evenly fired (both pipes equal) loses the burble.
+	FSimCruiseInlineFourSynth Even;
+	Even.ConfigureCrossPlaneV8(Ford, 1.0, 1.0);
+	const TArray<float> E = Render(Even, Idle, 3.0);
+	TArray<float> EvenSteady(E.GetData() + Rate, E.Num() - Rate);
+	double EvenBetween = 0.0;
+	for (int32 K = 1; K < 8; ++K) EvenBetween = FMath::Max(EvenBetween, Magnitude(EvenSteady, Cycle * K));
+	TestTrue(FString::Printf(TEXT("equal pipes: no burble (%.5f)"), EvenBetween), EvenBetween < 0.25 * Between);
+	return true;
+}
+
 #endif

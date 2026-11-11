@@ -224,6 +224,11 @@ TArray<FVector> USimCruiseCarPresentationComponent::GetHeadLampLocations() const
 	return Built.IsValid() ? Built->HeadLampsCm : TArray<FVector>();
 }
 
+const FSimCruiseCarPresentationProfile* USimCruiseCarPresentationComponent::GetProfile() const
+{
+	return Built.IsValid() ? &Built->Profile : nullptr;
+}
+
 bool USimCruiseCarPresentationComponent::SetPaintColor(const FLinearColor& Linear)
 {
 	if (!Built.IsValid())

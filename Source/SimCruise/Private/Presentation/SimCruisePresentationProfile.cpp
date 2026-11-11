@@ -161,6 +161,26 @@ bool SimCruisePresentationProfiles::Load(const FString& CarId, FSimCruiseCarPres
 	}
 	Car->TryGetStringField(TEXT("hide_pattern"), OutProfile.HidePattern);
 
+	const TSharedPtr<FJsonObject>* SoundObject = nullptr;
+	if (Car->TryGetObjectField(TEXT("engine_sound"), SoundObject) && SoundObject)
+	{
+		FSimCruiseCarPresentationProfile::FEngineSound Sound;
+		const FJsonObject& J = **SoundObject;
+		FString Layout;
+		J.TryGetStringField(TEXT("layout"), Layout);
+		const TArray<TSharedPtr<FJsonValue>>* Banks = nullptr;
+		if (Layout != TEXT("v8_crossplane") || !J.TryGetArrayField(TEXT("bank_of_event"), Banks) || !Banks || Banks->Num() != 8)
+		{
+			OutError = Where + TEXT(": 'engine_sound' needs layout 'v8_crossplane' and 8 'bank_of_event' values (0 or 1)");
+			return false;
+		}
+		for (const TSharedPtr<FJsonValue>& V : *Banks) Sound.BankOfEvent.Add(FMath::Clamp(static_cast<int32>(V->AsNumber()), 0, 1));
+		J.TryGetNumberField(TEXT("near_gain"), Sound.NearGain);
+		J.TryGetNumberField(TEXT("far_gain"), Sound.FarGain);
+		J.TryGetStringField(TEXT("source"), Sound.Source);
+		OutProfile.EngineSound = Sound;
+	}
+
 	const TSharedPtr<FJsonObject>* ParkedObject = nullptr;
 	if (Car->TryGetObjectField(TEXT("parked"), ParkedObject) && ParkedObject)
 	{

@@ -173,6 +173,13 @@
   },
   "mustang65": {
    "model": "data/art/traffic/mustang65-05f2a294/scene.gltf",
+   "engine_sound": {
+    "layout": "v8_crossplane",
+    "bank_of_event": [1, 0, 1, 1, 0, 1, 0, 0],
+    "near_gain": 1.0,
+    "far_gain": 0.62,
+    "source": "Ford 289 V8: firing order 1-5-4-2-6-3-7-8, cylinders 1-4 on the right (passenger) bank and 5-8 on the left (Ford service manual numbering); dual exhausts, the driver's-side pipe nearer. Bank gains 1.0 / 0.62 are an estimate (no recording synchronised with rpm)."
+   },
    "credit": "\"1965 Ford Mustang Convertible\" by Kristian LaGrange (https://sketchfab.com/kristian123), CC BY 4.0",
    "steering_ratio": 21.7,
    "steering_ratio_source": "21.7:1 manual, 3.73 turns lock to lock (Ford specifications, as in chassis).",
@@ -264,6 +271,13 @@
   },
   "meridian_z": {
    "model": "data/art/traffic/c8-790c40cc/scene.gltf",
+   "engine_sound": {
+    "layout": "v8_crossplane",
+    "bank_of_event": [0, 1, 0, 1, 1, 0, 1, 0],
+    "near_gain": 1.0,
+    "far_gain": 0.62,
+    "source": "GM LT2 6.2 L V8: firing order 1-8-7-2-6-5-4-3, odd cylinders on the left (driver's side) bank and even on the right (GM numbering); quad tips, the driver's-side pair nearer. Bank gains 1.0 / 0.62 are an estimate (no recording synchronised with rpm)."
+   },
    "credit": "\"2019 Chevrolet Corvette C8 Stingray\" by Hari Prasath R (https://sketchfab.com/Haris3D), CC BY 4.0",
    "steering_ratio": 15.7,
    "steering_ratio_source": "15.7:1, variable-ratio electric rack (Chevrolet, 2020 Corvette Stingray specifications; 16.25:1 on the C7).",

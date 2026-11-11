@@ -24,6 +24,10 @@ public:
 	/** Game thread: the latest engine state (read by the next audio buffer). */
 	void SetEngineState(const FSimCruiseInlineFourSynth::FInputs& Inputs);
 
+	/** Before Start: a cross-plane V8's voice instead of the inline four (see FSimCruiseInlineFourSynth). */
+	void ConfigureCrossPlaneV8(const TArray<int32>& BankOfEvent, double NearGain, double FarGain) { Synth.ConfigureCrossPlaneV8(BankOfEvent, NearGain, FarGain); }
+	bool IsV8() const { return Synth.IsV8(); }
+
 protected:
 	virtual bool Init(int32& SampleRate) override;
 	virtual int32 OnGenerateAudio(float* OutAudio, int32 NumSamples) override;
