@@ -17,11 +17,11 @@
 		},
 		{
 			"Name": "ModelContextProtocol",
-			"Enabled": false
+			"Enabled": true
 		},
 		{
 			"Name": "AllToolsets",
-			"Enabled": false
+			"Enabled": true
 		}
 	]
 }
