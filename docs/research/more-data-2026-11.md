@@ -33,8 +33,8 @@ Priority (P) combines what the player sees or feels, how much of the US it cover
 | # | Source | Licence | Coverage | Access | Cost per km² and caching | What it fixes in the game | P | Status |
 |---|---|---|---|---|---|---|---|---|
 | 1 | [Overture base `infrastructure` + `land` layers](https://docs.overturemaps.org/schema/reference/base/infrastructure/) (OSM-derived): `street_lamp`, `utility_pole`, `power_pole`, `fence`, `wall`, `retaining_wall`, `hedge`, `guard_rail`, `jersey_barrier`, `crossing`, `pedestrian_crossing`, `kerb`, `stop`, `give_way`, `parking`, `parking_space`, `fire_hydrant`, `bollard`, `bus_stop`, `street_cabinet`, `tree`, `tree_row` | ODbL 1.0 (fetch at runtime, never bundle) | Worldwide. Dense in mapped US cities, near-empty in rural areas | PMTiles z13 range reads from `overturemaps-extras-us-west-2` (S3, no key); the reader exists in `overture-archive.mjs` | Measured: 3 KB/km² (rural IA), 23 KB/km² (Tempe), 73 KB/km² (Cambridge), up to 124 KB/km² (Chicago Loop). Free when `--signal-controls` already fetched the tile. Cache the raw range under the existing `ov-base-<release>-*` keys for 45 days; parse once per release into a small per-z13 JSON | Street lamps (and night light pools) at real positions; power and utility poles; fences, walls and hedges along lots; guard rails without Overpass; zebra and plain crosswalks at mapped crossings; stop bars on the right approach; parking-lot surfaces; hydrants and bollards; real tree positions with leaf type | **P1** | path (sweep 2 "lead") |
-| 2 | [FHWA HPMS per-state sections](https://geo.dot.gov/server/rest/services/Hosted/HPMS_FULL_VA_2025/FeatureServer/0) `HPMS_FULL_{ST}_{YEAR}` | US public domain (USDOT) | All 50 states plus DC and PR. Federal-aid roads in full; pavement items are measured on the full extent of interstates and the NHS, and on sample sections for other classes | Keyless FeatureServer query, PBF, 2,000 records per call | Measured: 1.8 KB/km² (freeway-only area); expect 5-20 KB/km² on an urban grid. HPMS is annual, so cache 180 days per state per 4 × 4 z14 group | Measured IRI, cracking, rutting and faulting drive `RoadRoughness.gd` (off today for want of this); surface type (asphalt or concrete) sets tyre noise; AADT, truck AADT, K and D factors set traffic density, truck share and peak direction; lane width, shoulder width and type, median type; posted speed where OSM lacks it | **P1** | path (sweep 2: 8 d; measured here) |
-| 3 | [Esri OSM North America highways replica](https://services6.arcgis.com/Do88DoK2xjTUCXd1/ArcGIS/rest/services/OSM_NA_Highways/FeatureServer/0), extra fields `surface`, `smoothness`, `lit`, `sidewalk`, `width`, `tracktype`, `incline` | ODbL 1.0 | US, Canada, Mexico | The query `lane-counts.mjs` already sends | No extra request: only extra attribute bytes in the cached `lane-counts-v1` response (re-key to v2) | Gravel vs paved on minor roads; lit streets get lamp spacing where no lamp points are mapped; sidewalk presence and side; mapped carriageway width ahead of the class guess in `road-widths.mjs` | **P1** | new |
+| 2 | [FHWA HPMS per-state sections](https://geo.dot.gov/server/rest/services/Hosted/HPMS_FULL_VA_2025/FeatureServer/0) `HPMS_FULL_{ST}_{YEAR}` | US public domain (USDOT) | All 50 states plus DC and PR. Federal-aid roads in full; pavement items are measured on the full extent of interstates and the NHS, and on sample sections for other classes | Keyless FeatureServer query, PBF, 2,000 records per call | Measured: 1.8 KB/km² (freeway-only area); expect 5-20 KB/km² on an urban grid. HPMS is annual, so cache 180 days per state per 4 × 4 z14 group | Measured IRI, cracking, rutting and faulting drive `RoadRoughness.gd` (off today for want of this); surface type (asphalt or concrete) sets tyre noise; AADT, truck AADT, K and D factors set traffic density, truck share and peak direction; lane width, shoulder width and type, median type (to calibrate class widths, not to change geometry per tile); posted speed where OSM lacks it | **P1** | path (sweep 2: 8 d; measured here) |
+| 3 | [Esri OSM North America highways replica](https://services6.arcgis.com/Do88DoK2xjTUCXd1/ArcGIS/rest/services/OSM_NA_Highways/FeatureServer/0), extra fields `surface`, `smoothness`, `lit`, `sidewalk`, `width`, `tracktype`, `incline` | ODbL 1.0 | US, Canada, Mexico | The query `lane-counts.mjs` already sends | No extra request: only extra attribute bytes in the cached `lane-counts-v1` response (re-key to v2) | Gravel vs paved on minor roads; lit streets get lamp spacing where no lamp points are mapped; sidewalk presence and side; mapped carriageway width to calibrate the class widths in `road-widths.mjs` offline (never per tile at runtime, see design 3) | **P1** | new |
 | 4 | [MassGIS 2025 aerial imagery](https://www.mass.gov/info-details/massgis-data-2025-aerial-imagery) (tile service `tiles.arcgis.com/tiles/hGdibHYSPO59RG1h/arcgis/rest/services/Massachusetts_Aerial_Imagery_2025/MapServer/tile/{z}/{y}/{x}`) | "No restrictions apply to these data" (MassGIS) | Massachusetts; 15 cm (7.5 cm Cape Cod); leaf-off, 18 Mar - 23 Apr 2025 | Keyless ArcGIS Online tile cache (Web Mercator, LOD 7-20, 256 px JPEG) | Measured: 16.6 KB per z19 tile, 313 tiles/km², so 5.2 MB/km² (2.0 MB/km² at z18). A ±60 m corridor along the road costs about 0.6 MB per road km at z19. Cache tiles 365 days; the flight does not change | Paint wear, patches, crack sealing, manholes, driveway aprons and kerb lines under the car; real parking-lot striping; leaf-off ground shows what is under the trees | **P1** | new |
 | 5 | [Indiana statewide orthoimagery](https://registry.opendata.aws/in-imagery/) (bucket `gisimageryingov`, `imagerycache/arcgiscache/CacheWebMercator_IndianaCurrentImagery/tile/L{zz}/R{row}C{col}.bundle`) | CC0 (AWS Open Data registry; IGIO) | Indiana; 6 in (3 in in some areas); 4-year county cycle, with archives back to 2005 | Public S3 with no signing. Compact Cache V2 bundles, 128 × 128 tiles each, read with HTTP Range: 8-byte index entry at `64 + 8·(r·128 + c)`, then the JPEG | Measured: 10.7 KB per z19 tile, 289 tiles/km², so 3.1 MB/km². Cache each bundle's 128 KB index once (one bundle covers about 56 km² at z19), then one range per tile, or one range per run of adjacent tiles | As row 4. COGs of the source tiles are also in the bucket (`imageryoptimized/statewide/{year}/`) for an exact-date look | **P1** | new |
 | 6 | Vermont VCGI 15 cm leaf-off cache (`maps.vcgi.vermont.gov/arcgis/rest/services/EGC_services/IMG_VCGI_CLR2023_WM_CACHE/ImageServer`, LOD to 19) | Service says "VCGI"; a VCGI post calls all state orthoimagery public domain **[secondary; confirm with VCGI]** | Vermont; 15 cm towns and villages, 30 cm elsewhere | Keyless cached ImageServer | About 5 MB/km² at z19, by analogy with row 4 (not measured) | As row 4 | Lead | new |
@@ -62,6 +62,7 @@ Each design follows the helper's existing pattern:
 - reads through the shared `read(key,url,ttl,range,timeout,size)` cache with a byte budget;
 - a miss file for cooldown;
 - parsed output cached per release;
+- every new cache key prefix (`sf-v1`, `hpms-v1`, `lane-counts-v2`, `ortho-`) added to the managed pattern in `cache-eviction.mjs`, which removes only the files it names;
 - a Godot consumer that draws or applies nothing when the status is not `available` (no guessing on top of missing data).
 
 ### 1. `helper/street-furniture.mjs`: Overture base infrastructure (P1, about 3 days)
@@ -70,7 +71,8 @@ Each design follows the helper's existing pattern:
 
 **Fetch.**
 - Share the z13 tile with `signal-controls.mjs` (same `archiveTile(mx,my,release,bounded,'base')` call and same `ov-base-<release>-<start>-<length>` range keys), so the two features download the tile once.
-- **Fix finding 2 first.** Raise `signalControls()`'s per-tile budget from 768 KiB to 2 MiB, and raise `archiveTile()`'s 1.2 MiB per-range cap to 2 MiB. With that change, the measured worst tile (Chicago Loop, 1.64 MB) fits.
+- **Fix finding 2 first.** Raise `signalControls()`'s per-tile budget from 768 KiB to 2 MiB, and raise `archiveTile()`'s 1.2 MiB per-range cap to 2 MiB. With that change, the measured worst tile fits. Whole fetches (header, leaf directory and tile, 3 ranges each), re-measured in review: Cambridge 0.95 MB, Denver 1.34 MB, Manhattan 1.55 MB, SF 1.65 MB, Chicago Loop 1.68 MB, all under 2 MiB (2.10 MB).
+- `archiveTile()` gives each range 3.5 s. A 1.64 MB range in 3.5 s needs about 3.8 Mbit/s, so scale the timeout with the range length (for example 3.5 s plus 2 s per MB) rather than keep one constant, or slow links will mark dense tiles unavailable.
 - Hold the decoded tile (up to 7.1 MB measured, inside the 10 MB gunzip cap) only while it is parsed.
 
 **Parse.** One pass over `infrastructure` and `land`. Keep a feature only when its `sources` names a single OSM record with ODbL, as `observedControl()` already requires. Write `sf-v1-<release>-<mx>-<my>.json` with:
@@ -88,12 +90,13 @@ Cap each list (for example 4,000 crossings and 6,000 barrier vertices per tile).
 **Game side.**
 - A new `StreetFurniture.gd`, built like `SignalControls.gd`, draws each tile's lists as MultiMeshes, one mesh per kind, with LOD fade.
 - Crosswalk paint is snapped to the road ribbon where the crossing node lies on a road. Stop bars go on the approach named by `direction`, using `TrafficDirector`'s stop-bar offset.
-- Lamps get an emissive head and, on High and Ultra, a light whose cone is cut off by the mount type.
+- `WorldTile.gd` `street_details()` already draws a mast for each `info.lamps` point (nothing in the helper fills that list today), so mapped lamps can feed that hook first.
+- Lamps get an emissive head and, on High and Ultra, a light whose cone is cut off by the mount type. A Cambridge tile holds 293 lamps, so real lights go only on the nearest few (for example 24, without shadows), and the frame time at `--quality=ultra` on the target GPU (RTX 2070 Super Max-Q) is measured at night downtown before this is on by default. The rest stay emissive only.
 - `GuardRails.gd` takes `barriers` of kind `guard_rail` or `jersey_barrier` ahead of its slope inference, as it already does for the Overpass rows.
 
 **Cost.** Free when `--signal-controls` is on. Otherwise 3-124 KB/km² (measured), once per release (about monthly) per 13 km² tile.
 
-**Check.** A headless check parses a stored Cambridge tile fixture (cut to the ODbL rows the test needs, kept under `game/checks/fixtures/` with a credit) and asserts the counts above. A second check asserts that a 1.64 MB range is accepted.
+**Check.** ODbL data is never committed to the repository (CONTRIBUTING.md), so the offline check (`lab/check_street_furniture.mjs` in `scripts/check-helper.sh`) parses synthetic features shaped like Overture's (`class`, `source_tags`, `sources`), as `lab/check_signal_controls.mjs` does, and asserts the kinds, the caps, the ODbL source filter and tile ownership. A second offline check asserts that a 1.64 MB range and a 1.68 MB tile pass the budgets. The Cambridge counts above become a live check outside `check-helper.sh`, like the other network tests.
 
 **Taste reality.** Compare lamp and pole positions with the KartaView or Panoramax frames that `street-samples.mjs` and `panoramax.mjs` already fetch for the tile. Compare zebra versus plain crossings with the same photos.
 
@@ -116,10 +119,13 @@ Cap each list (for example 4,000 crossings and 6,000 barrier vertices per tile).
 **Cache.** `hpms-v1-<ST>-<year>-<gx>-<gy>` for 180 days. HPMS is an annual submission. Negative results are cached for 7 days.
 
 **Match.** Snap HPMS sections to road ribbons, as `matchLaneCounts()` snaps lane ways: 6 m distance and a direction cosine of at least 0.94. Then write per ribbon station `{iri, surface, aadt, truck_share, k, d, posted}`. Leave stations HPMS does not cover empty. Do not interpolate IRI from neighbouring roads; roughness is local.
+- HPMS gives IRI in in/mi and `RoadRoughness.gd` works in m/km: divide by 63.36 (I-895's 97 in/mi is 1.53 m/km).
+- The profile's amplitude scales with IRI, so a jump in IRI (a section end, the edge of HPMS coverage, a tile whose query failed beside one whose query worked) would be a step in road height. Ramp IRI over about 20 m at every change, as the superelevation run-out does.
+- HPMS lane and shoulder widths do not change road geometry. `road-widths.mjs` takes widths from the vector tile alone so that both tiles of every seam agree whatever a network query answered (see its header); per-group HPMS answers would bring back the seam breaks the lane-count draft caused. They can calibrate the class reference widths offline.
 
 **Licence.** US public domain; credit FHWA HPMS in `licenses/Road Atlas.txt` and `Credits.txt`.
 
-**Check.** A fixture test confirms that I-895 near Richmond comes back with IRI 97, 6 lanes and AADT 16,583. The existing calibration bands must not move with `--smooth-roads`.
+**Check.** A fixture test (HPMS is public domain, so a recorded answer may be committed) confirms that I-895 near Richmond comes back with IRI 97, 6 lanes and AADT 16,583. The existing calibration bands must not move: roughness stays off in the check suite, as `--rough-roads` keeps it today.
 
 **Taste reality.** Build the road profile from IRI with ISO 8608 road classes and the quarter-car definition of IRI (Sayers 1995, TRR 1501). Drive a high-IRI and a low-IRI section with the same car and compare the vertical acceleration PSD with published ride-quality data for those IRI values.
 
@@ -128,16 +134,18 @@ Cap each list (for example 4,000 crossings and 6,000 barrier vertices per tile).
 **What it fixes.**
 - Gravel and dirt roads get their real surface (grip, dust, sound).
 - Lit streets get street lamps at the regional spacing where row 1 has no mapped lamps.
-- Sidewalks appear on the mapped side only.
-- Mapped `width` replaces the class guess in `road-widths.mjs` when it is between 3 and 40 m.
+- Sidewalk presence and side become known per road.
+- Mapped `width` gives a measured check on the class reference widths.
+
+**What it must not do.** Lane counts arrive in the background and are repainted, and a z14 group can be built while the query fails. `road-widths.mjs` therefore takes road widths from the vector tile alone, so both tiles of every seam agree (an earlier draft that widened roads from this same replica broke seam chaining and dropped survey data; see its header and the CHANGELOG). So mapped `width` and `sidewalk` must not change road, kerb or sidewalk geometry or colliders at runtime. Use `width` offline, over many places, to calibrate the class reference widths (a general method), and use `sidewalk` only in layers that are repainted and never collide. `surface` and `lit` change materials, grip and lamp placement only.
 
 **Change.**
-- Add `surface,smoothness,lit,sidewalk,width,tracktype` to `outFields` and bump the cache key to `lane-counts-v2-`.
+- Add `surface,smoothness,lit,sidewalk,width,tracktype` to `outFields` and bump the cache key to `lane-counts-v2-`. Add `lane-counts-v2` to the managed pattern in `cache-eviction.mjs` (it lists `lane-counts-v1` only), or the new files are never evicted.
 - In `decodeLaneWays()`, keep only whitelisted values:
   - `surface` ∈ {`asphalt`, `concrete`, `paved`, `paving_stones`, `sett`, `gravel`, `unpaved`, `dirt`, `compacted`, `ground`, `fine_gravel`};
   - `lit` ∈ {`yes`, `no`};
   - `sidewalk` ∈ {`both`, `left`, `right`, `no`, `separate`};
-  - `width` parsed to metres.
+  - `width` parsed to metres, kept only between 3 and 40 m.
 - Matched ways pass these values to the same per-road rows the game already repaints.
 
 **Cost.** None beyond a few bytes per way.
@@ -150,7 +158,7 @@ Cap each list (for example 4,000 crossings and 6,000 barrier vertices per tile).
 
 **What it fixes.** The ground under and just beside the car shows real paint, patches, crack sealing, manholes, kerbs and driveway aprons at 8-15 cm per pixel, instead of 1.8 m USGS pixels stretched over a procedural texture.
 
-**Sources.** An allow-list, never discovery at runtime. Each entry has:
+**Sources.** An allow-list, never discovery at runtime, built like the `sources` list in `regional-aerial.mjs` (code, credit, extent). Each entry has:
 - a code;
 - a licence string and credit;
 - a Web Mercator extent;
@@ -171,6 +179,10 @@ Entries:
 - `cache-eviction.mjs` evicts these first.
 
 **Game side.** `AerialPavement.gdshaderinc` samples a near-field 2048² atlas around the car when one is present and blends it in only on paved ground, so trees, cars and shadows in the photo never get painted onto open ground. It keeps the shader's existing colour transfer, so the photo's light matches the game sun. Leaf-off imagery (MassGIS, Vermont) is preferred for ground because canopy does not hide the road.
+
+**Design risks to solve before building.**
+- On paved ground the photo still holds parked and moving cars, building and tree shadows, and its own lane paint. The shader today uses aerial colour only as a bounded diffuse estimate and keeps high-frequency wear procedural for exactly this reason (its header). At 15 cm a photographed car or shadow would be painted onto the road under the player. The near-field layer needs the shader's existing neutral and even-light tests at the finer scale, and a mask for photographed paint so it never doubles `LaneMarkings.gd`.
+- Cost at Ultra on the target GPU: a 2048² RGBA8 atlas with mipmaps is about 22 MB of VRAM, which is small on 8 GB. Decoding tiles and rebuilding the atlas must run on a worker thread and upload at most a few times per second; measure the frame-time spikes at `--quality=ultra` before turning it on.
 
 **Check.** A unit test reads one Indiana tile from a bundle fixture header and index (no network) and decodes its JPEG. A capture at `--quality=ultra` on a Cambridge and an Indianapolis start gets a side-by-side with the same Panoramax frame.
 
@@ -197,12 +209,12 @@ Entries:
 ## Next after the top 5
 
 - **Sky climatology** (rows 10-11): a `helper/climate-normals.mjs` that picks the nearest normals station (bundled station list, tens of KB) and returns a cloud-class distribution for the date and hour. NASA POWER irradiance then sets sun and sky intensity for a dated photo comparison.
-- **Annual NLCD impervious and land cover** (row 12) for the paved share of lots and land cover in the simulated year, read like `forest-form.mjs` reads LANDFIRE.
+- **Annual NLCD impervious and land cover** (row 12) for the paved share of lots and land cover in the simulated year, read by COG range requests and decoded with the `geotiff` package that `forest-form.mjs` already uses for its LANDFIRE and NLCD answers (it reads NLCD through MRLC's WCS today, which is also the fallback named below).
 - **63-city tree inventory** (row 15) baked to one PMTiles, generalising `civic-trees.mjs`.
 
 ## Licence notes
 
-- Overture base and transportation rows are OSM-derived (ODbL). Fetch them at runtime and cache them per player, as `signal-controls.mjs` does, and never bundle them. Keep only rows whose `sources` cite OSM under ODbL, or add each other licence to the credits.
+- Overture base and transportation rows are OSM-derived (ODbL). Fetch them at runtime and cache them per player, as `signal-controls.mjs` does, and never bundle them or commit them, test fixtures included (use synthetic features). Keep only rows whose `sources` cite OSM under ODbL, or add each other licence to the credits.
 - MassGIS: "No restrictions apply to these data". Credit MassGIS anyway.
 - Indiana: CC0. Credit IGIO and IndianaMap as a courtesy.
 - NHTS, HPMS, NCEI normals and Annual NLCD: US public domain. The Annual NLCD copy is a community mirror of a requester-pays bucket. If it disappears, fall back to MRLC's own services, or to nothing.
