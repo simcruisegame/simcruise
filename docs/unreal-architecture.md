@@ -319,7 +319,7 @@ Look->InitializeForCar(TEXT("nb1999"));    // blocking on a car's first build
 Look->SetWheelStateProvider(this);         // polled every frame in TG_PostPhysics
 ```
 
-`FSimCruiseCarVisualState` per wheel (FL, FR, RL, RR): `SteerAngleRad` (+ left), `CamberRad` (+ top outboard), `SpinAngleRad` (+ rolling forward; keep it wrapped to one turn, since a float accumulated over a long drive loses the precision a spinning wheel needs), `SuspensionTravelCm` (+ bump); plus `bBrake` and `bLamps`. The component polls the provider on the game thread in `TG_PostPhysics`: a provider fed from the physics thread must hand over a copy of the last completed step (no reads of live physics-thread state). Part components get unique names, so one actor can carry several cars and a car can be re-initialised. The steering wheel turns by the mean front steer angle times the car's overall `steering_ratio` (anticlockwise for a left turn as the driver sees it). `GetStaticHubLocation`, `GetDriverEye` and `GetSteeringWheelRestTransform` give the cockpit camera and HUD what they need. The sign conventions are pinned by `SimCruise.Presentation.Component.Conventions`.
+`FSimCruiseCarVisualState` per wheel (FL, FR, RL, RR): `SteerAngleRad` (+ left), `CamberRad` (+ top outboard), `SpinAngleRad` (+ rolling forward; keep it wrapped to one turn, since a float accumulated over a long drive loses the precision a spinning wheel needs), `SuspensionTravelCm` (+ bump); plus `bBrake` and `bLamps`. The component polls the provider on the game thread in `TG_PostPhysics`: a provider fed from the physics thread must hand over a copy of the last completed step (no reads of live physics-thread state). Part components get unique names, so one actor can carry several cars and a car can be re-initialised. The steering wheel turns by the mean front steer angle times the car's overall `steering_ratio` (anticlockwise for a left turn as the driver sees it). `GetStaticHubLocation`, `GetDriverEye` and `GetSteeringWheelRestTransform` give the cockpit camera and HUD what they need. `GetHeadLampLocations` gives the vehicle its low-beam origins: per side, the centre of the head-lamp lens surfaces ahead of the front axle, keeping only the top 22 cm so bumper fog lamps that share the lens material do not pull it down (`SimCruiseCarModelRig::HeadLampCentresCm`; NB 61.8 cm over the ground at ±54 cm, Mustang 62 cm, C8 66 cm). The sign conventions are pinned by `SimCruise.Presentation.Component.Conventions`.
 
 ### Data: `Content/Vehicles/CarPresentation.json`
 
@@ -438,6 +438,10 @@ Compared at matching times of day with [Miami Beach - Hotels along Ocean Drive (
 
 Everything here runs on the game thread: the environment ticks in `TG_PrePhysics` and only sets component properties, which Unreal hands to the render thread itself. `GetRoadWetness()` is game-thread state; a tyre model stepping on the physics thread (Chaos async physics) must copy it into its per-step inputs on the game thread rather than read the actor. The perf sampler runs on the core ticker, which outlives worlds, so the lab reaches itself from its callback through a weak pointer.
 
+### Light that is not the sky's
+
+`ASimCruiseEnvironment::SetArtificialIlluminanceLux(lux)` adds light that is not the sky's to the reference exposure (it joins sun, sky and moon in `FSimCruiseDaylightModel::ReferenceEV100`). The player's car sets it while its low beams are on: two lamps of 15 000 cd seen by a grey card 30 m ahead, 33 lx, so a moonless night meters at EV100 3.9 (band 3.7..6.2) instead of -11, the way a driver's eye or a dash camera adapts to the lit road. By day it changes nothing (below 0.01 EV). A change under 5 % does not re-meter. Street lighting, when the world stream places it, belongs here too.
+
 ### Tests
 
 `SimCruise.Environment.*` (12 automation tests, headless with `-nullrhi`): `Sky.Actor` (an environment in a throwaway game world: the sun light points along the ephemeris direction at extraterrestrial lux, shadows move from sun to moon at night, the noon reference EV, a level's own sun turned off by the level-scoped takeover), `Solar.SpaReference` (NREL SPA case, zenith 50.11162°, azimuth 194.34024°, equation of time, declination), `Solar.GodotAgreement` (the taste test's Panoramax frame, the Godot formula within 0.75°, the almanac declination), `Solar.Calendar` (solstice declination, overhead sun on the tropic, equation of time in November and February, Miami solar noon, a night sun), `Solar.Refraction`, `Solar.WorldFrame`, `Moon.Meeus` (examples 47.a and 48.a, a full moon), `Daylight.Illuminance` (noon 95–125 klx and EV100 15–16, overcast, low sun, monotonic twilight, civil dusk, moonlight, the night display curve), `Daylight.Visibility`, `Weather.Conditions` (the helper's JSON, rain vs snow, the 10 SM cap, empty and invalid input), `Weather.RoadWetness` (time constants, frame-rate independence, cloud coverage knots), `Graphics.AutoPick` (tiers, laptop step-down, VRAM caps, parsing, percentiles).
@@ -551,3 +555,78 @@ The project config names the real Chaos car, `ASimCruiseVehicle`; without the se
 ### Not yet verified
 
 Rumble and trigger levels have not been felt on a physical Xbox pad; the captures prove the levels the model asks for, not how they feel. Since integration round 1 the shell drives the real vehicle on the streamed Ocean Drive (see "The drive"); its documentation pictures above are still from the placeholder on the OpenWorld template. The countersteer allowance has not passed plan 04's slide-catch gate (see above). The self-test's failure exit code follows the engine source (a forced exit with the code) and has not been triggered.
+
+## The drive (integration)
+
+Source: `Gameplay/SimCruiseGameMode`, `Vehicle/SimCruiseVehicle` (the seams), `Gameplay/SimCruiseDriveCapture`; tests in `Private/Tests/DriveIntegrationTests.cpp`. Integration round 1 (branch `unreal/round1`) joined the five streams: vehicle core, world, car presentation, lighting and the driving shell.
+
+### What a launch does
+
+`UnrealEditor.exe SimCruise.uproject -game` (no map argument) loads `/Engine/Maps/Entry`, an empty engine map, and `ASimCruiseGameMode`:
+
+1. `InitGame` decides that this is a drive on the real place (any game world, unless `-SimCruiseNoWorld` or the lighting lab's `-SimCruiseLab`). It has to be decided there: the local player logs in (`PostLogin` → `RestartPlayer`) while the map loads, before `StartPlay`, and is held from then on.
+2. `StartPlay` starts the world stream at the bundled Miami Beach start (25.78000, -80.13025; no network, no helper process) and puts the sun and moon at that latitude and longitude, at the real UTC time unless `-SimCruiseUtc=` pins it.
+3. Each frame the held player sees "Building Ocean Drive, Miami Beach · n of 9 tiles". When `AreTilesReadyAround(start, 1)` is true (all nine tiles built and their collision traced, 13–16 s on the i9-10885H), the car is spawned in the right-hand lane of `StartRoad` (`FindRoadPose`, the lane centre the markings use) facing its direction of travel, 3 cm up, and settles on its springs. After `StartTimeoutSeconds` (180 s) it is placed on whatever is there.
+4. From then on the game mode hands the car's position and velocity to the streamer every frame (`SetFocus`) and moves the car with the floating origin (`OnRebased`: a physics teleport that keeps the velocity, and a camera snap).
+
+| Setting (`Config/DefaultGame.ini`, `[/Script/SimCruise.SimCruiseGameMode]`) | Default | Command line |
+|---|---|---|
+| `VehiclePawnClass` | `/Script/SimCruise.SimCruiseVehicle` (the Chaos car); unset gives the shell's placeholder | — |
+| `StartCarId` | `nb1999` | `-SimCruiseCar=mustang65` |
+| `StartRoad` | `Ocean Drive` | `-SimCruiseStartRoad=<name>` |
+| — | bundled Miami Beach | `-SimCruiseStart=lat,lon` (nearest public road; needs the atlas helper) |
+| — | real clock | `-SimCruiseUtc=2026-11-11T16:00:00Z` |
+| — | auto-picked preset | `-SimCruiseGraphics=low`, `medium`, `high` or `ultra` |
+
+### The seams
+
+- **Shell → vehicle.** `ASimCruiseVehicle` implements `ISimCruiseVehicleControl`. `ApplyDriverCommand` passes the shaped pedals, clutch, parking brake and full service brake to the movement component in one locked write (`SetDriverControls`), with `bDirectRack`: the shell's shaper has already applied the steering rates, the speed cap and the countersteer allowance, so the physics step applies `RackAngleRad` as given and only stops it at the car's parking lock (the vehicle's own thumbstick shaping is bypassed, not doubled). `GetVehicleTelemetry` maps the vehicle's published copy of the last physics step (`ToDriveTelemetry`): body-frame velocity and yaw rate (new telemetry fields), rpm, gear, rack angle in radians, per-wheel contact, load, slip ratio, slip angle in radians, ABS (release under 0.95), driven wheels from the car file, suspension compression from full droop, and the tyre's 98 % plateau angle for the rumble. Gear refusals ("Hold the clutch to change gear") reach the driver's screen from the pawn's tick. `GetVehicleSetup` derives the shell's numbers from the car file (CG to front axle from the front weight share; braking g from the 70–0 mph distance; the driver's eye moved from the Godot origin to the body centre). The shell's structs were renamed `FSimCruiseDriveTelemetry` / `FSimCruiseDriveWheelTelemetry`: their old names collided with the vehicle's reflected telemetry structs.
+- **Vehicle → car model.** `AttachCarModel()` builds the downloaded model on the pawn (blocking the first time; the NB's Nanite body then comes from the DDC) and attaches it `CollisionShapeCenterYM` below the body centre, where the Godot car origin is. Every part has collision off, so nothing welds into the Chaos body. The pawn is the model's `ISimCruiseWheelStateProvider` (`ToVisualState`): the model's steer is positive left where the vehicle's is positive right; camber from the wheel's inclination with the side's sign; spin wrapped to one turn; bump = static strut length minus the current one. Brake lamps follow the service brake. Head and tail lamps follow the sun (on from 1° below the horizon) or the L key.
+- **Low beams.** Two spot lights leave from just ahead of the head-lamp lenses (`GetHeadLampLocations`): 15 000 cd peak each (a late-1990s halogen H4 reflector), aimed 1.5° down, a bright core of 8° and an edge of 32° half angle, 3200 K, shadowed, out to the 1 lx distance (122 m). While they are lit the player's car tells the environment about its light (`SetArtificialIlluminanceLux`, see "Light that is not the sky's"), so the camera adapts to the lit road instead of staying open for starlight.
+- **World → vehicle.** The car is placed only when the tiles under it have collision (`IsCollisionReady`), on `FindRoadPose`'s lane. Recover (R / View) uses `FindRoadPose` with no name: the nearest public road's right-hand lane within 250 m (service ways excluded), facing its travel, else upright on the ground below.
+- **Environment and other worlds.** The turntable destroys the real-sky environment (it has its own studio sun); the world preview adds its own sun only with `-SimCruiseNoEnvironment`.
+- **Rendering settings found at integration** (`Config/DefaultEngine.ini`, `[SystemSettings]`): `r.EyeAdaptation.CachedLightingPreExposure=7.5`, because the real sun meters EV100 13.6–15 and clipped Lumen's cached lighting and the sky capture with the engine's default of 4 (safe to EV 12; an on-screen warning said so); 7.5 covers EV -4.5 to 15.5. `r.Shadow.Virtual.AllowScreenOverflowMessages=0` hides the virtual shadow map's "non-Nanite marking job queue overflow" banner, which the large runtime tile meshes raise on wide views; the cost behind it is still there.
+- **Build.** Unity builds are off for the module: each stream keeps file-local helpers (`Tau`, `Smooth01`, test flags) in anonymous namespaces that collide when files are pasted together.
+
+### Captures
+
+`-SimCruiseDriveCapture` (`ASimCruiseDriveCapture`): once the car is on the road, the tiles around it are ready and no shaders are compiling, it waits 8 s for the springs, exposure, TSR, Lumen and the shadow pages to settle, then saves `drive-cockpit`, `drive-chase` and `drive-top` (straight down from 35 m, nose up) of the parked car, drives off at 45 % throttle through the real input stack (the right-trigger axis), saves `drive-cockpit-moving` and `drive-chase-moving` with the HUD at a glance, brakes to a stop and quits. Output: `Saved/Screenshots/SimCruise/Drive/` (`-SimCruiseDriveCaptureOut=DIR`); one `SHOT` log line per picture with speed, gear, rpm, wheels on the ground and the sky. `-SimCruiseKeepOpen` leaves the game running.
+
+![Ocean Drive from the driver's seat of the 1999 roadster, 11:00 EST](images/unreal/drive-cockpit.jpg)
+![The roadster at 30 mph on Ocean Drive, chase camera](images/unreal/drive-chase-moving.jpg)
+![Straight down on Ocean Drive: the car in the right-hand lane of the southbound carriageway](images/unreal/drive-top.jpg)
+![Ocean Drive before dawn under the low beams](images/unreal/drive-night-chase.jpg)
+
+### Tests (`SimCruise.Drive.*`)
+
+| Test | What it checks |
+|---|---|
+| `Mapping` | Vehicle telemetry to shell telemetry and to the model pose: signs (a right turn is negative model steer, lean to the right is negative camber on the left wheel), spin wrapped, bump, brake lamps, gear, radians, ABS per wheel, driven wheels, travel from droop, plateau angle |
+| `ShellControl` | The real car through `ISimCruiseVehicleControl` with threaded physics: eye inside the cabin on the left, four tyres down, throttle drives it (16.4 m/s after 4 s), the rack takes the shaped angle exactly and yaws right, the rack stops at the lock, brake lamps, recover pose and height |
+| `OceanDrive` | The bundled start ring streams with collision (9.5–13 s), Ocean Drive is found, the car rests on the streamed road at ride height (body centre 49.0 cm over the road against 46.0 static) and drives 16 m along the lane in 5 s at 40 % throttle with 0.05 m of drift and four wheels down |
+| `LowBeams` | Night EV100 -11.1 rises to 3.9 with the lamps, noon unchanged; two beams ahead of the front hubs, one each side, aimed forward and 1.5° down, in candela; off by day, on with the switch, on at night by the sun |
+
+The shell's `-SimCruiseShellSelfTest` now runs on the real car on Ocean Drive (it waits for the car to be placed) and passes.
+
+### What it looks like (11 November 2026, Ultra, 1600 × 900)
+
+Compared with photographs of Ocean Drive (South Beach, the Lummus Park side) and of 1999 NB roadsters. Most unreal first:
+
+1. **The buildings are boxes.** Ocean Drive is a row of 1930s Art Deco hotels: pastel stucco, eyebrow ledges, vertical fins, porches with tables and umbrellas, neon names. Here they are flat extruded footprints in a generic paint and brick palette with black square windows, no roof detail and no ground floors. This alone makes the place unrecognisable.
+2. **No palms, no people, no parked cars, no traffic.** Lummus Park's coconut palms line the whole east side, the west kerb is parked solid and the sidewalks are full. The street is empty and treeless.
+3. **The park and beach are a blurred aerial photograph.** The 2 m/px image is draped flat: grey-green smears with no grass, sand, low walls or paths, and its tone changes at photo boundaries.
+4. **Haze and sky.** The late-morning sky is milky white towards the horizon and the scene is washed out; Miami in November photographs as a deep blue sky with cumulus and hard, high-contrast light. Buildings 500 m away already fade into haze.
+5. **Night is too empty.** Under the low beams the road and the facades they reach are lit, but there are no street lights, lit windows or neon, so Ocean Drive at night (one of the brightest streets in Florida) is a black void around one beam. The beam is a round cone with no low-beam cut-off, so it lights facades above the horizon, and it has no structure.
+6. **Road surface.** The asphalt is too pale and its aggregate too coarse and contrasty (terrazzo-like white specks); real Ocean Drive asphalt is darker, patched, with tyre polish in the wheel paths. Only a dashed centre line: no edge lines, parking bays or crosswalks. The sidewalks are near-white with pink blotches from the aerial.
+7. **The cockpit.** The NB interior has the right shapes, but its plastics read as one flat blue-grey (shade lit by a blue sky, no white balance); the mirrors are flat pale blue instead of reflecting; the clock and radio always read 2:15; the gauges are unlit at night.
+8. **The car itself is closest to real.** Paint, wheels, glass, soft top and shadow read well in the turntable and chase views. Against a 1999 NB1: the model is an NB2 facelift (projector head lamps, different bumper) with a Nardi wheel; the lit lamps are flat glowing shapes; the tyres have no sidewall lettering; there are no number plates.
+9. **Motion.** At 45 % throttle the automatic holds first gear to 6250 rpm at 30 mph (the ported Godot gearbox changes up at 6700 rpm whatever the throttle; a driver or a real automatic changes up near 3000 rpm at part throttle), so a gentle pull-away screams.
+
+### Known gaps
+
+- The start is the rightmost lane's centre of Ocean Drive, which the bundled OpenStreetMap data draws one-way southbound with two lanes.
+- The low beams need a real beam pattern (an IES-style profile with the cut-off), and the world needs street lights, before night looks like the place.
+- Only the bundled start has been captured; `-SimCruiseStart=` needs the helper.
+- The drive's frame time at Ultra has not been measured (only the lighting lab's).
+- Plan 04's slide-catch gate for the countersteer allowance still has to be run on the real car.
+- `SimCruise.Vehicle.Convergence.mustang65` is flaky: over five runs on 11 November its 360 Hz skidpad was 0.698 g every time, but the 720 Hz reference read 0.699, 0.706, 0.686, 0.688 and 0.686 g, so the "converged within 0.004 g" check passed once and failed four times. The bench is meant to be deterministic (single-threaded solver, controls on the physics thread); the 720 Hz run is not, and needs looking into in the vehicle core. Nothing in the integration touches the bench's physics.

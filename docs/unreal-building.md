@@ -59,7 +59,7 @@ The whole `SimCruise.Vehicle` suite takes about 2.5 minutes on the i9-10885H. Se
 
 ## Drive the real place
 
-The streamed world starts from the command line (`docs/unreal-architecture.md`, real-world streaming):
+A plain `-game` launch drives the streamed world (see "Drive it" below). The world stream's own preview captures start from the command line (`docs/unreal-architecture.md`, real-world streaming):
 
 ```powershell
 & 'C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' 'D:\simcruise\SimCruise.uproject' /Engine/Maps/Entry -game -windowed -ResX=1600 -ResY=900 -SimCruiseWorld
@@ -136,13 +136,39 @@ Build the `SimCruise` game target the same way (replace `SimCruiseEditor` with `
 
 ## Drive it
 
-`Config/DefaultEngine.ini` sets `SimCruiseGameMode` as the global game mode, so any map becomes drivable. Until the world streams land, the default map is the engine's OpenWorld template:
+Build the `SimCruiseEditor` target, then:
 
 ```powershell
 & 'C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' 'D:\simcruise\SimCruise.uproject' -game -windowed -ResX=1600 -ResY=900
 ```
 
-Controls follow [controls.md](controls.md) (Xbox triggers and left stick, Y camera, B manual, RB / X shift, View recover, L3 HUD; W/S/A/D, C, T, E/Q, R, F2, F6 lens on the keyboard). The car is a placeholder until the vehicle pawn is plugged in through `[/Script/SimCruise.SimCruiseGameMode] VehiclePawnClass`; see [unreal-architecture.md](unreal-architecture.md#driving-shell).
+The game starts at the offline Miami Beach start: it builds the nine tiles around Ocean Drive from the bundled data (about 15 s, "Building Ocean Drive, Miami Beach · n of 9 tiles"), then puts you in the 1999 roadster in the right-hand lane of Ocean Drive, in the driver's seat, under the sun (or the moon and your own low beams) where they are in Miami Beach right now. Leave out `-windowed -ResX=1600 -ResY=900` for full screen.
+
+Controls follow [controls.md](controls.md): on an Xbox pad, right trigger to accelerate, left trigger to brake, left stick to steer, Y camera, B manual gearbox, RB / X shift, View recover, L3 HUD; on the keyboard W/S/A/D, C camera, T manual, E/Q shift, R recover, F2 HUD, F6 lens, L lamps.
+
+Options:
+
+| Argument | Effect |
+|---|---|
+| `-SimCruiseCar=mustang65` | Another car from `game/cars/` (`nb1999`, `mustang65`, `meridian_z`) |
+| `-SimCruiseUtc=2026-11-11T16:00:00Z` | Fix the clock (11:00 in Miami Beach) instead of the real time |
+| `-SimCruiseGraphics=ultra` | Graphics preset (`low`, `medium`, `high`, `ultra`; default chosen from the GPU: High on the RTX 2070 Super Max-Q) |
+| `-SimCruiseStartRoad=<name>` | Start on another named road near the start |
+| `-SimCruiseStart=lat,lon` | Start somewhere else on the nearest public road (needs the atlas helper, see [building.md](building.md)) |
+| `-SimCruiseNoWorld` | Drive the loaded map instead (its player start), as before the world stream |
+
+The defaults live in `Config/DefaultGame.ini` under `[/Script/SimCruise.SimCruiseGameMode]` (`VehiclePawnClass`, `StartCarId`, `StartRoad`); see [unreal-architecture.md](unreal-architecture.md#the-drive-integration).
+
+### Drive captures
+
+`-SimCruiseDriveCapture` photographs the drive and quits: the parked car from the driver's seat, from the chase camera and from straight above the road, then the car driving off (seat and chase, with the HUD). Highest settings, daylight:
+
+```powershell
+& 'C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' 'D:\simcruise\SimCruise.uproject' -game -windowed -ResX=1600 -ResY=900 -nosplash -unattended `
+  -SimCruiseDriveCapture -SimCruiseUtc=2026-11-11T16:00:00Z -SimCruiseGraphics=ultra
+```
+
+Pictures go to `Saved/Screenshots/SimCruise/Drive/` (`-SimCruiseDriveCaptureOut=DIR` changes it), with one `SHOT` line per picture in the log; the whole run takes about a minute. Leave out `-SimCruiseUtc` to photograph the real time of day.
 
 Console variables: `simcruise.Rumble.Strength` (0..1), `simcruise.Camera.HeadMotion` (0..1), `simcruise.Lens.ScreenHeightCm` and `simcruise.Lens.ViewDistanceCm` for the true-to-screen lens.
 
