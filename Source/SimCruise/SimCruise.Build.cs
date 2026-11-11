@@ -28,6 +28,8 @@ public class SimCruise : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
+			// Engine sound (Audio/): a procedural synth component.
+			"AudioMixer",
 			// Real-world streaming (Atlas/, World/): runtime-built meshes, decoded
 			// aerial photographs and generated textures.
 			"ProceduralMeshComponent",

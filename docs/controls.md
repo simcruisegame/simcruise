@@ -21,9 +21,10 @@ The Unreal client starts in the 2001 roadster in Ocean Drive's lane, Miami Beach
 | Driver lens (natural, true to screen, wide) | F6 | — |
 | Head lamps on / off | L | — |
 | Recover to the nearest road | R | View |
-| Engine sound, road atlas, find a place | M, Tab, / | —, Menu, — |
+| Engine sound on / off | M | — |
+| Road atlas, find a place | Tab, / | Menu, — |
 
-The last row answers with a message until engine sound, the atlas and place search are ported from the Godot client.
+The engine sound is on at the start. The atlas and place search answer with a message until they are ported from the Godot client.
 
 **Automatic gearbox.** It changes up early with a light pedal and holds each gear longer the deeper you press, kicks down when you floor it, never changes up while you brake and holds its gear through a corner.
 

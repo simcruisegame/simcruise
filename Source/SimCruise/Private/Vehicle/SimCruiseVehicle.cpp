@@ -9,6 +9,8 @@
 #include "Environment/SimCruiseEnvironment.h"
 #include "Environment/SimCruiseEnvironmentSubsystem.h"
 #include "Gameplay/SimCruiseHaptics.h"
+#include "Audio/SimCruiseEngineSoundComponent.h"
+#include "AudioDevice.h"
 #include "Gameplay/SimCruisePlayerCameraManager.h"
 #include "Gameplay/SimCruisePlayerController.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -21,6 +23,8 @@ namespace
 		TEXT("Look development: multiplies the low beams' intensity (1 = the real 15 000 cd)."));
 	TAutoConsoleVariable<int32> CVarMirrors(TEXT("simcruise.Mirrors"), 1,
 		TEXT("1: the player's car mirrors show the road behind (from the driver's seat: a 768x320 capture every third frame); 0: plain glass."));
+	TAutoConsoleVariable<int32> CVarEngineSound(TEXT("simcruise.Audio.Engine"), 1,
+		TEXT("1: the driven car's engine voice plays (M toggles sound); 0: silent."));
 	TAutoConsoleVariable<int32> CVarMirrorInterval(TEXT("simcruise.Mirrors.Interval"), 3,
 		TEXT("The mirror capture runs every Nth frame (1: every frame)."));
 	TAutoConsoleVariable<int32> CVarBeamPattern(TEXT("simcruise.Lamps.Pattern"), 1,
@@ -381,6 +385,7 @@ void ASimCruiseVehicle::Tick(float DeltaSeconds)
 	}
 	FSimCruiseVehicleTelemetry Telemetry;
 	VehicleMovement->CopyTelemetry(Telemetry);
+	UpdateEngineSound(Telemetry, bInSeat);
 	if (!Telemetry.LastGearMessage.IsEmpty() && Telemetry.LastGearMessage != LastShownGearMessage)
 	{
 		LastShownGearMessage = Telemetry.LastGearMessage;
@@ -388,6 +393,44 @@ void ASimCruiseVehicle::Tick(float DeltaSeconds)
 		{
 			Player->ShowMessage(Telemetry.LastGearMessage, 2.f);
 		}
+	}
+}
+
+// --- Engine sound -------------------------------------------------------------
+
+void ASimCruiseVehicle::UpdateEngineSound(const FSimCruiseVehicleTelemetry& Telemetry, bool bInSeat)
+{
+	const ASimCruisePlayerController* Player = Cast<ASimCruisePlayerController>(GetController());
+	const bool bElectric = VehicleMovement->GetCarDefinition().EngineKind == TEXT("electric");
+	// An electric car has no combustion sound (a motor voice is future work); headless
+	// runs have no audio device.
+	const bool bWant = Player && Player->IsSoundOn() && !bElectric && CVarEngineSound.GetValueOnGameThread() != 0
+		&& GetWorld() && GetWorld()->GetAudioDevice().IsValid();
+	if (!bWant)
+	{
+		if (EngineSound && EngineSound->IsPlaying()) EngineSound->Stop();
+		return;
+	}
+	if (!EngineSound)
+	{
+		EngineSound = NewObject<USimCruiseEngineSoundComponent>(this, TEXT("EngineSound"));
+		EngineSound->SetupAttachment(GetRootComponent());
+		// The Godot mix: the Engine bus at -6 dB and its trim at -6 dB (RoadNoise.gd).
+		EngineSound->SetVolumeMultiplier(0.25f);
+		EngineSound->RegisterComponent();
+	}
+	FSimCruiseInlineFourSynth::FInputs In;
+	In.Rpm = Telemetry.EngineRpm;
+	In.Combustion = Telemetry.SoundCombustion;
+	In.ShaftLoad = Telemetry.SoundShaftLoad;
+	In.Pedal = Telemetry.SoundThrottle;
+	In.bStalled = Telemetry.bStalled;
+	In.bCabin = bInSeat;
+	EngineSound->SetEngineState(In);
+	if (!EngineSound->IsPlaying())
+	{
+		EngineSound->Start();
+		UE_LOG(LogSimCruiseVehiclePawn, Display, TEXT("Engine sound playing (inline-four voice, %d Hz, %s pickup)"), FSimCruiseInlineFourSynth::SampleRate, bInSeat ? TEXT("cabin") : TEXT("exterior"));
 	}
 }
 

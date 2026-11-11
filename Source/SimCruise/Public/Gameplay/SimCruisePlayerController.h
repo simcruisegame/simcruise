@@ -85,6 +85,12 @@ private:
 	void OnFindPlace();
 	void OnRecover();
 	void OnToggleSound();
+
+public:
+	/** Engine sound on (M toggles it). */
+	bool IsSoundOn() const { return bSoundOn; }
+
+protected:
 	void OnToggleLights();
 	void OnCycleLens();
 	void OnToggleStats();

@@ -11,6 +11,7 @@
 #include "SimCruiseVehicle.generated.h"
 
 class UBoxComponent;
+class USimCruiseEngineSoundComponent;
 class USimCruiseVehicleMovementComponent;
 class USpotLightComponent;
 
@@ -154,6 +155,10 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<USimCruiseCarPresentationComponent> CarModel;
 
+	/** The engine's voice (the driven car only, while sound is on and an audio device exists). */
+	UPROPERTY(Transient)
+	TObjectPtr<USimCruiseEngineSoundComponent> EngineSound;
+
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<USpotLightComponent>> HeadLampLights;
 
@@ -168,4 +173,5 @@ private:
 	bool bManualRequested = false;
 	FString LastShownGearMessage;
 	bool bMirrorsLive = false;
+	void UpdateEngineSound(const struct FSimCruiseVehicleTelemetry& Telemetry, bool bInSeat);
 };
