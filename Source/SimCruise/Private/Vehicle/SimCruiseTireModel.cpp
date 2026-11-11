@@ -8,27 +8,158 @@
 
 namespace SimCruiseDynamics
 {
-	namespace
+	double SmoothStep(double Edge0, double Edge1, double Value)
 	{
-		double SmoothStep(double Edge0, double Edge1, double Value)
+		if (FMath::IsNearlyEqual(Edge0, Edge1))
 		{
-			if (Edge1 <= Edge0)
-			{
-				return Value >= Edge1 ? 1.0 : 0.0;
-			}
+			return Edge0 <= Edge1 ? (Value <= Edge0 ? 0.0 : 1.0) : (Value <= Edge1 ? 1.0 : 0.0);
+		}
+		const double Alpha = FMath::Clamp((Value - Edge0) / (Edge1 - Edge0), 0.0, 1.0);
+		return Alpha * Alpha * (3.0 - 2.0 * Alpha);
+	}
 
-			const double Alpha = FMath::Clamp((Value - Edge0) / (Edge1 - Edge0), 0.0, 1.0);
-			return Alpha * Alpha * (3.0 - 2.0 * Alpha);
+	double MoveToward(double Current, double Target, double MaxDelta)
+	{
+		if (FMath::Abs(Target - Current) <= MaxDelta)
+		{
+			return Target;
+		}
+		return Current + FMath::Sign(Target - Current) * MaxDelta;
+	}
+
+	double ComputeRelaxedSlipAngleRad(
+		const FSimCruiseCarDefinition& Car,
+		double ForwardSpeedMps,
+		double LateralSpeedMps,
+		double DeltaTimeS,
+		double NormalLoadN,
+		double& InOutRollingSlipAngleRad)
+	{
+		const double SpeedMps = FMath::Abs(ForwardSpeedMps);
+		const double TargetRad = FMath::Atan2(LateralSpeedMps, FMath::Max(1.8, SpeedMps));
+		// Below walking speed the regularised contact also handles static
+		// friction; blend into the rolling-tyre model as travel builds. A lightly
+		// loaded tyre builds side force over a shorter distance.
+		const double LoadScale = NormalLoadN > 0.0
+			? FMath::Pow(FMath::Clamp(NormalLoadN / FMath::Max(Car.ReferenceCornerLoadN, UE_DOUBLE_SMALL_NUMBER), 0.25, 2.5),
+				Car.RelaxationLoadExponent)
+			: 1.0;
+		const double LengthM = Car.TireRelaxationLengthM * LoadScale * SmoothStep(0.8, 3.5, SpeedMps);
+		if (LengthM < 0.0001)
+		{
+			InOutRollingSlipAngleRad = TargetRad;
+			return TargetRad;
+		}
+		const double Travelled = SpeedMps * DeltaTimeS / LengthM;
+		const double Fraction = 1.0 - FMath::Exp(-Travelled);
+		const double Change = TargetRad - InOutRollingSlipAngleRad;
+		InOutRollingSlipAngleRad += Change * Fraction;
+		// Interval mean of d(alpha)/ds = (target - alpha)/length, so the impulse
+		// over the interval is not advanced in time.
+		return TargetRad - Change * Fraction / Travelled;
+	}
+
+	double ComputeFrictionCoefficient(
+		const FSimCruiseCarDefinition& Car,
+		int32 AxleIndex,
+		double NormalLoadN,
+		double SurfaceGripMultiplier)
+	{
+		const double BaseMu = FMath::Clamp(
+			Car.PeakLongitudinalFrictionCoefficient *
+				(1.0 - Car.TireLoadSensitivityFraction *
+					(NormalLoadN / FMath::Max(Car.ReferenceCornerLoadN, UE_DOUBLE_SMALL_NUMBER) - 1.0)),
+			Car.MinimumFrictionCoefficient,
+			Car.MaximumFrictionCoefficient);
+		const double AxleGrip = Car.AxleGripMultiplier.IsValidIndex(AxleIndex) ? Car.AxleGripMultiplier[AxleIndex] : 1.0;
+		return BaseMu * SurfaceGripMultiplier * AxleGrip;
+	}
+
+	double ComputeLateralForceN(
+		const FSimCruiseCarDefinition& Car,
+		double NormalLoadN,
+		double FrictionCoefficient,
+		double SlipAngleRad,
+		double InclinationRad,
+		double ForwardSpeedMps)
+	{
+		const double Falloff = 1.0 - Car.SlipAngleFalloffFraction *
+			SmoothStep(Car.SlipAngleFalloffStartRad, Car.SlipAngleFalloffEndRad, FMath::Abs(SlipAngleRad));
+		double LateralN = -NormalLoadN * FrictionCoefficient * Car.LateralGripScale *
+			std::tanh(SlipAngleRad * Car.SlipAngleStiffnessPerRad) * Falloff;
+		LateralN += NormalLoadN * Car.CamberThrustCoefficientPerRad * InclinationRad *
+			FMath::Min(1.0, FMath::Abs(ForwardSpeedMps) / 3.0);
+		return LateralN;
+	}
+
+	FSimCruiseLongitudinalSubstepOutput SolveLongitudinalSubstep(
+		const FSimCruiseCarDefinition& Car,
+		const FSimCruiseLongitudinalSubstepInput& Input)
+	{
+		FSimCruiseLongitudinalSubstepOutput Out;
+		const double R = Input.TireRadiusM;
+		const double I = FMath::Max(Input.WheelInertiaKgM2, UE_DOUBLE_SMALL_NUMBER);
+		const double Ds = Input.SubstepS;
+		const double V = Input.ForwardSpeedMps;
+		const double Fz = Input.NormalLoadN;
+		const double Mu = Input.FrictionCoefficient;
+		const double LateralScale = FMath::Max(Car.LateralGripScale, UE_DOUBLE_SMALL_NUMBER);
+		const double Spin = Input.SpinAfterTorqueRadPerSecond;
+
+		// Slip-ratio curve: the friction circle holds its full size up to the
+		// peak slip and shrinks toward the sliding value as the wheel spins or
+		// locks, so a spinning tyre also loses side grip (combined slip, via the
+		// budget). The slip is the wheel's as it stands at the end of the last
+		// substep, where brake and contact impulses balance.
+		const double Kappa = (Input.StartAngularSpeedRadPerSecond * R - V) / FMath::Max(FMath::Abs(V), 5.0);
+		Out.SlipRatio = Kappa;
+		Out.TractionControlSlip = (Input.StartAngularSpeedRadPerSecond * R - V) / FMath::Max(FMath::Abs(V), 1.5);
+		// The force cannot fall before it has peaked: a grippy tyre on this
+		// linear stiffness reaches its full grip at mu/stiffness.
+		const double LongitudinalStiffness = FMath::Max(Car.LongitudinalSlipStiffness, UE_DOUBLE_SMALL_NUMBER);
+		Out.PeakSlipRatio = FMath::Max(Car.PeakSlipRatio, Mu / LongitudinalStiffness);
+		const double MaxForceN = Fz * Mu * (1.0 - Car.SlipRatioFalloffFraction *
+			SmoothStep(Out.PeakSlipRatio, Out.PeakSlipRatio * 3.5, FMath::Abs(Kappa)));
+
+		// Wheel inertia and contact force solved together for stable rolling.
+		const double EffectiveStiffness = (Fz * LongitudinalStiffness) / FMath::Max(1.5, FMath::Abs(V));
+		double Fx = EffectiveStiffness * (Spin * R - V) / (1.0 + EffectiveStiffness * R * R * Ds / I);
+		double Fy = Input.LateralForceN;
+		const double Budget = FMath::Sqrt(Fx * Fx + (Fy / LateralScale) * (Fy / LateralScale));
+		if (Budget > MaxForceN && Budget > 0.01)
+		{
+			Fx *= MaxForceN / Budget;
+			Fy *= MaxForceN / Budget;
+		}
+		Out.GripUseFraction = Fx / FMath::Max(Fz * Mu, 1.0);
+
+		// As a braked tyre stops rotating the tread slides with the contact
+		// patch velocity; blend in over the last 20 % before lock.
+		if (Input.BrakeTorqueNm > 0.0)
+		{
+			const double RollingFraction = FMath::Abs(Spin * R) / FMath::Max(0.10, FMath::Abs(V));
+			const double LockWeight = (1.0 - SmoothStep(0.0, 0.20, RollingFraction)) *
+				SmoothStep(1.5, 3.0, FMath::Sqrt(V * V + Input.LateralSpeedMps * Input.LateralSpeedMps));
+			if (LockWeight > 0.0)
+			{
+				const double SlideX = Spin * R - V;
+				const double SlideY = -Input.LateralSpeedMps;
+				const double Ellipse = FMath::Sqrt(SlideX * SlideX + (SlideY / LateralScale) * (SlideY / LateralScale));
+				const double Scale = MaxForceN / FMath::Max(Ellipse, 0.001);
+				Fx = FMath::Lerp(Fx, SlideX * Scale, LockWeight);
+				Fy = FMath::Lerp(Fy, SlideY * Scale, LockWeight);
+			}
 		}
 
-		double MoveToward(double Current, double Target, double MaxDelta)
+		double EndSpin = Spin - Fx * R * Ds / I;
+		if (Input.BrakeTorqueNm > 0.0 && FMath::Abs(Spin) < 1.0e-5 && FMath::Abs(Fx * R) <= Input.BrakeTorqueNm)
 		{
-			if (FMath::Abs(Target - Current) <= MaxDelta)
-			{
-				return Target;
-			}
-			return Current + FMath::Sign(Target - Current) * MaxDelta;
+			EndSpin = 0.0;
 		}
+		Out.LongitudinalForceN = Fx;
+		Out.LateralForceN = Fy;
+		Out.EndAngularSpeedRadPerSecond = EndSpin;
+		return Out;
 	}
 
 	FSimCruiseTireContactOutput SolveTireContact(
@@ -40,124 +171,47 @@ namespace SimCruiseDynamics
 		FSimCruiseTireContactOutput Result;
 		const double DeltaTimeS = FMath::Max(Input.DeltaTimeS, 0.0);
 		const double TireRadiusM = Input.TireRadiusM > 0.0 ? Input.TireRadiusM : Car.TireFreeRadiusM();
-		const double WheelInertiaKgM2 = Input.WheelInertiaKgM2 > 0.0
-			? Input.WheelInertiaKgM2
-			: Car.WheelRotationalInertiaKgM2;
-		const double SafeInertia = FMath::Max(WheelInertiaKgM2, UE_DOUBLE_SMALL_NUMBER);
-		const double SpeedMps = FMath::Abs(Input.ForwardSpeedMps);
-		const double LateralScale = FMath::Max(Car.LateralGripScale, UE_DOUBLE_SMALL_NUMBER);
-		const double SpinAfterDriveAndBrake = MoveToward(
-			Input.WheelAngularSpeedRadPerSecond + Input.DriveTorqueNm * DeltaTimeS / SafeInertia,
+		const double WheelInertiaKgM2 = FMath::Max(
+			Input.WheelInertiaKgM2 > 0.0 ? Input.WheelInertiaKgM2 : Car.WheelRotationalInertiaKgM2,
+			UE_DOUBLE_SMALL_NUMBER);
+		const double Spin = MoveToward(
+			Input.WheelAngularSpeedRadPerSecond + Input.DriveTorqueNm * DeltaTimeS / WheelInertiaKgM2,
 			0.0,
-			FMath::Max(Input.BrakeTorqueNm, 0.0) * DeltaTimeS / SafeInertia);
-
-		Result.EndWheelAngularSpeedRadPerSecond = SpinAfterDriveAndBrake;
+			FMath::Max(Input.BrakeTorqueNm, 0.0) * DeltaTimeS / WheelInertiaKgM2);
+		Result.EndWheelAngularSpeedRadPerSecond = Spin;
 		if (Input.NormalLoadN <= 0.0 || DeltaTimeS <= 0.0 || TireRadiusM <= 0.0)
 		{
 			InOutRollingSlipAngleRad = 0.0;
 			return Result;
 		}
 
-		const double TargetSlipAngleRad = FMath::Atan2(Input.LateralSpeedMps, FMath::Max(1.8, SpeedMps));
-		const double LoadScale = FMath::Pow(
-			FMath::Clamp(Input.NormalLoadN / FMath::Max(Car.ReferenceCornerLoadN, UE_DOUBLE_SMALL_NUMBER), 0.25, 2.5),
-			Car.RelaxationLoadExponent);
-		const double RelaxationLengthM = Car.TireRelaxationLengthM * LoadScale * SmoothStep(0.8, 3.5, SpeedMps);
-		double SlipAngleForThisStep = TargetSlipAngleRad;
-		if (RelaxationLengthM >= 0.0001)
-		{
-			const double TravelledFraction = SpeedMps * DeltaTimeS / RelaxationLengthM;
-			const double Fraction = 1.0 - FMath::Exp(-TravelledFraction);
-			const double SlipChange = TargetSlipAngleRad - InOutRollingSlipAngleRad;
-			InOutRollingSlipAngleRad += SlipChange * Fraction;
-			SlipAngleForThisStep = TargetSlipAngleRad - SlipChange * Fraction / TravelledFraction;
-		}
-		else
-		{
-			InOutRollingSlipAngleRad = TargetSlipAngleRad;
-		}
-		Result.RelaxedSlipAngleRad = SlipAngleForThisStep;
+		const double SlipAngle = ComputeRelaxedSlipAngleRad(
+			Car, Input.ForwardSpeedMps, Input.LateralSpeedMps, DeltaTimeS, Input.NormalLoadN, InOutRollingSlipAngleRad);
+		Result.RelaxedSlipAngleRad = SlipAngle;
+		const double Mu = ComputeFrictionCoefficient(Car, AxleIndex, Input.NormalLoadN, FMath::Max(Input.SurfaceGripMultiplier, 0.0));
+		const double Lateral = ComputeLateralForceN(
+			Car, Input.NormalLoadN, Mu, SlipAngle, -(Input.CamberAngleRad + Input.RoadLeanAngleRad), Input.ForwardSpeedMps);
 
-		const double BaseMu = FMath::Clamp(
-			Car.PeakLongitudinalFrictionCoefficient *
-				(1.0 - Car.TireLoadSensitivityFraction *
-					(Input.NormalLoadN / FMath::Max(Car.ReferenceCornerLoadN, UE_DOUBLE_SMALL_NUMBER) - 1.0)),
-			Car.MinimumFrictionCoefficient,
-			Car.MaximumFrictionCoefficient);
-		const double AxleGrip = Car.AxleGripMultiplier.IsValidIndex(AxleIndex)
-			? Car.AxleGripMultiplier[AxleIndex]
-			: 1.0;
-		const double Mu = BaseMu * FMath::Max(Input.SurfaceGripMultiplier, 0.0) * FMath::Max(AxleGrip, 0.0);
-		const double SlipAngleMagnitude = FMath::Abs(SlipAngleForThisStep);
-		const double SlipAngleFalloff = 1.0 - Car.SlipAngleFalloffFraction * SmoothStep(
-			Car.SlipAngleFalloffStartRad,
-			Car.SlipAngleFalloffEndRad,
-			SlipAngleMagnitude);
-		const double CamberThrust = Input.NormalLoadN * Car.CamberThrustCoefficientPerRad *
-			(Input.CamberAngleRad + Input.RoadLeanAngleRad) * FMath::Min(1.0, SpeedMps / 3.0);
-		const double LateralForceN = -Input.NormalLoadN * Mu * LateralScale *
-			std::tanh(SlipAngleForThisStep * Car.SlipAngleStiffnessPerRad) * SlipAngleFalloff - CamberThrust;
+		FSimCruiseLongitudinalSubstepInput Sub;
+		Sub.NormalLoadN = Input.NormalLoadN;
+		Sub.FrictionCoefficient = Mu;
+		Sub.ForwardSpeedMps = Input.ForwardSpeedMps;
+		Sub.LateralSpeedMps = Input.LateralSpeedMps;
+		Sub.LateralForceN = Lateral;
+		Sub.StartAngularSpeedRadPerSecond = Input.WheelAngularSpeedRadPerSecond;
+		Sub.SpinAfterTorqueRadPerSecond = Spin;
+		Sub.BrakeTorqueNm = FMath::Max(Input.BrakeTorqueNm, 0.0);
+		Sub.TireRadiusM = TireRadiusM;
+		Sub.WheelInertiaKgM2 = WheelInertiaKgM2;
+		Sub.SubstepS = DeltaTimeS;
+		const FSimCruiseLongitudinalSubstepOutput Out = SolveLongitudinalSubstep(Car, Sub);
 
-		const double LongitudinalSpeedDenominator = FMath::Max(FMath::Abs(Input.ForwardSpeedMps), 5.0);
-		const double SlipRatio = (SpinAfterDriveAndBrake * TireRadiusM - Input.ForwardSpeedMps) /
-			LongitudinalSpeedDenominator;
-		const double LongitudinalStiffness = FMath::Max(Car.LongitudinalSlipStiffness, UE_DOUBLE_SMALL_NUMBER);
-		const double PeakSlipRatio = FMath::Max(Car.PeakSlipRatio, Mu / LongitudinalStiffness);
-		const double LongitudinalFalloff = 1.0 - Car.SlipRatioFalloffFraction *
-			SmoothStep(PeakSlipRatio, PeakSlipRatio * 3.5, FMath::Abs(SlipRatio));
-		const double MaximumCombinedForceN = Input.NormalLoadN * Mu * FMath::Max(LongitudinalFalloff, 0.0);
-		const double EffectiveLongitudinalStiffness = Input.NormalLoadN * LongitudinalStiffness /
-			FMath::Max(1.5, FMath::Abs(Input.ForwardSpeedMps));
-		const double LongitudinalForceN = EffectiveLongitudinalStiffness *
-			(SpinAfterDriveAndBrake * TireRadiusM - Input.ForwardSpeedMps) /
-			(1.0 + EffectiveLongitudinalStiffness * TireRadiusM * TireRadiusM * DeltaTimeS / SafeInertia);
-		const double GripBudget = FMath::Sqrt(
-			LongitudinalForceN * LongitudinalForceN +
-			(LateralForceN / LateralScale) * (LateralForceN / LateralScale));
-		double FxN = LongitudinalForceN;
-		double FyN = LateralForceN;
-		if (GripBudget > MaximumCombinedForceN && GripBudget > UE_DOUBLE_SMALL_NUMBER)
-		{
-			const double Scale = MaximumCombinedForceN / GripBudget;
-			FxN *= Scale;
-			FyN *= Scale;
-		}
-
-		if (Input.BrakeTorqueNm > 0.0)
-		{
-			const double RollingFraction = FMath::Abs(SpinAfterDriveAndBrake * TireRadiusM) /
-				FMath::Max(0.10, FMath::Abs(Input.ForwardSpeedMps));
-			const double LockWeight = (1.0 - SmoothStep(0.0, 0.20, RollingFraction)) *
-				SmoothStep(1.5, 3.0, FMath::Sqrt(
-					Input.ForwardSpeedMps * Input.ForwardSpeedMps +
-					Input.LateralSpeedMps * Input.LateralSpeedMps));
-			if (LockWeight > 0.0)
-			{
-				const double SlideX = SpinAfterDriveAndBrake * TireRadiusM - Input.ForwardSpeedMps;
-				const double SlideY = -Input.LateralSpeedMps;
-				const double SlideBudget = FMath::Sqrt(SlideX * SlideX + (SlideY / LateralScale) * (SlideY / LateralScale));
-				if (SlideBudget > UE_DOUBLE_SMALL_NUMBER)
-				{
-					const double SlideScale = MaximumCombinedForceN / SlideBudget;
-					FxN = FMath::Lerp(FxN, SlideX * SlideScale, LockWeight);
-					FyN = FMath::Lerp(FyN, SlideY * SlideScale, LockWeight);
-				}
-			}
-		}
-
-		double EndSpin = SpinAfterDriveAndBrake - FxN * TireRadiusM * DeltaTimeS / SafeInertia;
-		if (Input.BrakeTorqueNm > 0.0 && FMath::IsNearlyZero(SpinAfterDriveAndBrake, 1.0e-6) &&
-			FMath::Abs(FxN * TireRadiusM) <= Input.BrakeTorqueNm)
-		{
-			EndSpin = 0.0;
-		}
-
-		Result.LongitudinalForceN = FxN;
-		Result.LateralForceN = FyN;
-		Result.EndWheelAngularSpeedRadPerSecond = EndSpin;
-		Result.LongitudinalSlipRatio = SlipRatio;
-		Result.PeakSlipRatio = PeakSlipRatio;
-		Result.GripUseFraction = FxN / FMath::Max(Input.NormalLoadN * Mu, 1.0);
+		Result.LongitudinalForceN = Out.LongitudinalForceN;
+		Result.LateralForceN = Out.LateralForceN;
+		Result.EndWheelAngularSpeedRadPerSecond = Out.EndAngularSpeedRadPerSecond;
+		Result.LongitudinalSlipRatio = Out.SlipRatio;
+		Result.PeakSlipRatio = Out.PeakSlipRatio;
+		Result.GripUseFraction = Out.GripUseFraction;
 		return Result;
 	}
 }

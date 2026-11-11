@@ -8,6 +8,7 @@ namespace SimCruiseDynamics
 {
 	namespace
 	{
+		/** Torque-sensing limited slip between two wheels (bias 1 = open). */
 		TPair<double, double> SplitAxleTorque(
 			double AxleTorqueNm,
 			double LeftWheelAngularSpeed,
@@ -31,33 +32,51 @@ namespace SimCruiseDynamics
 		}
 	}
 
-	TArray<double> SplitDriveTorqueToWheels(
+	double SampleEngineTorqueNm(const FSimCruiseCarDefinition& Car, double EngineSpeedRpm)
+	{
+		const TArray<FSimCruiseTorqueCurvePoint>& Curve = Car.EngineTorqueCurve;
+		for (int32 Index = 1; Index < Curve.Num(); ++Index)
+		{
+			if (EngineSpeedRpm <= Curve[Index].EngineSpeedRpm)
+			{
+				const FSimCruiseTorqueCurvePoint& Lower = Curve[Index - 1];
+				const FSimCruiseTorqueCurvePoint& Upper = Curve[Index];
+				const double Range = Upper.EngineSpeedRpm - Lower.EngineSpeedRpm;
+				const double Alpha = Range > UE_DOUBLE_SMALL_NUMBER
+					? FMath::Clamp((EngineSpeedRpm - Lower.EngineSpeedRpm) / Range, 0.0, 1.0)
+					: 0.0;
+				return FMath::Lerp(Lower.EngineTorqueNm, Upper.EngineTorqueNm, Alpha);
+			}
+		}
+		return Car.TorquePastCurveNm;
+	}
+
+	void SplitDriveTorqueToWheels(
 		const FSimCruiseCarDefinition& Car,
 		double AxleTorqueNm,
 		const double WheelAngularSpeedsRadPerSecond[4],
 		double DeltaTimeS,
-		bool bIsDriveTorque)
+		bool bIsDriveTorque,
+		double OutWheelTorquesNm[4])
 	{
-		TArray<double> WheelTorquesNm;
-		WheelTorquesNm.Init(0.0, 4);
+		for (int32 Index = 0; Index < 4; ++Index)
+		{
+			OutWheelTorquesNm[Index] = 0.0;
+		}
 		if (WheelAngularSpeedsRadPerSecond == nullptr)
 		{
-			return WheelTorquesNm;
+			return;
 		}
+		const double* W = WheelAngularSpeedsRadPerSecond;
+		const double I = Car.WheelRotationalInertiaKgM2;
 
 		if (Car.DrivetrainLayout == TEXT("fwd"))
 		{
-			const TPair<double, double> Front = SplitAxleTorque(
-				AxleTorqueNm,
-				WheelAngularSpeedsRadPerSecond[0],
-				WheelAngularSpeedsRadPerSecond[1],
-				Car.WheelRotationalInertiaKgM2,
-				DeltaTimeS,
-				bIsDriveTorque,
+			const TPair<double, double> Front = SplitAxleTorque(AxleTorqueNm, W[0], W[1], I, DeltaTimeS, bIsDriveTorque,
 				Car.FrontDifferentialBiasRatio);
-			WheelTorquesNm[0] = Front.Key;
-			WheelTorquesNm[1] = Front.Value;
-			return WheelTorquesNm;
+			OutWheelTorquesNm[0] = Front.Key;
+			OutWheelTorquesNm[1] = Front.Value;
+			return;
 		}
 
 		double RearTorqueNm = AxleTorqueNm;
@@ -67,39 +86,36 @@ namespace SimCruiseDynamics
 			RearTorqueNm = AxleTorqueNm * (1.0 - Car.AwdFrontTorqueShareFraction);
 			if (bIsDriveTorque && DeltaTimeS > 0.0 && Car.CenterDifferentialBiasRatio > 1.0)
 			{
+				// Limited-slip centre: torque moves toward the slower axle within the bias.
 				const double TransferLimitNm = FMath::Abs(AxleTorqueNm) * 0.5 *
 					(Car.CenterDifferentialBiasRatio - 1.0) / (Car.CenterDifferentialBiasRatio + 1.0);
-				const double AxleSpeedDifference =
-					(WheelAngularSpeedsRadPerSecond[2] + WheelAngularSpeedsRadPerSecond[3] -
-					 WheelAngularSpeedsRadPerSecond[0] - WheelAngularSpeedsRadPerSecond[1]) *
-					Car.WheelRotationalInertiaKgM2 / DeltaTimeS;
+				const double AxleSpeedDifference = (W[2] + W[3] - W[0] - W[1]) * I / DeltaTimeS;
 				const double TransferNm = FMath::Clamp(AxleSpeedDifference, -TransferLimitNm, TransferLimitNm);
 				FrontTorqueNm += TransferNm;
 				RearTorqueNm -= TransferNm;
 			}
 
-			const TPair<double, double> Front = SplitAxleTorque(
-				FrontTorqueNm,
-				WheelAngularSpeedsRadPerSecond[0],
-				WheelAngularSpeedsRadPerSecond[1],
-				Car.WheelRotationalInertiaKgM2,
-				DeltaTimeS,
-				bIsDriveTorque,
+			const TPair<double, double> Front = SplitAxleTorque(FrontTorqueNm, W[0], W[1], I, DeltaTimeS, bIsDriveTorque,
 				Car.FrontDifferentialBiasRatio);
-			WheelTorquesNm[0] = Front.Key;
-			WheelTorquesNm[1] = Front.Value;
+			OutWheelTorquesNm[0] = Front.Key;
+			OutWheelTorquesNm[1] = Front.Value;
 		}
 
-		const TPair<double, double> Rear = SplitAxleTorque(
-			RearTorqueNm,
-			WheelAngularSpeedsRadPerSecond[2],
-			WheelAngularSpeedsRadPerSecond[3],
-			Car.WheelRotationalInertiaKgM2,
-			DeltaTimeS,
-			bIsDriveTorque,
+		const TPair<double, double> Rear = SplitAxleTorque(RearTorqueNm, W[2], W[3], I, DeltaTimeS, bIsDriveTorque,
 			Car.RearDifferentialBiasRatio);
-		WheelTorquesNm[2] = Rear.Key;
-		WheelTorquesNm[3] = Rear.Value;
-		return WheelTorquesNm;
+		OutWheelTorquesNm[2] = Rear.Key;
+		OutWheelTorquesNm[3] = Rear.Value;
+	}
+
+	TArray<double> SplitDriveTorqueToWheels(
+		const FSimCruiseCarDefinition& Car,
+		double AxleTorqueNm,
+		const double WheelAngularSpeedsRadPerSecond[4],
+		double DeltaTimeS,
+		bool bIsDriveTorque)
+	{
+		double Torques[4];
+		SplitDriveTorqueToWheels(Car, AxleTorqueNm, WheelAngularSpeedsRadPerSecond, DeltaTimeS, bIsDriveTorque, Torques);
+		return TArray<double>(Torques, 4);
 	}
 }
