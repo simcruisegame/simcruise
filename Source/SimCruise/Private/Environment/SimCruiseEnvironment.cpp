@@ -288,16 +288,18 @@ void ASimCruiseEnvironment::ApplyFog()
 	const double FogPerKm = FMath::Max(Total - Haze, 0.0);
 
 	// A city's sky glow: light from the streets scattered back by the low air, brightest toward
-	// the horizon. Drawn as a thin, 1 km deep fog layer whose in-scattering is the glow's
-	// luminance: it lights the sky near the horizon and barely touches anything nearby (0.02/km).
-	// It shows once the sky is darker than it (after civil twilight).
+	// the horizon. Drawn as a fog layer whose in-scattering is the glow's luminance at the
+	// horizon; its optical depth straight up (0.1/km over a 1.6 km scale height, 0.16) sets the
+	// zenith to about 15 % of that: 9 mcd/m2 under a 0.06 cd/m2 horizon, a sky-quality-meter
+	// reading near 17.9 mag/arcsec2, as measured over Miami. Nearby it barely shows (3 % at
+	// 300 m). It shows once the sky is darker than it (after civil twilight).
 	const double Night = FMath::SmoothStep(0.0, 1.0, FMath::Clamp((-4.0 - SunPosition.ApparentElevationDeg) / 8.0, 0.0, 1.0));
 	const double Glow = SkyGlowNits * Night;
-	const double GlowPerKm = Glow > 1.0e-5 ? 0.02 : 0.0;
+	const double GlowPerKm = Glow > 1.0e-5 ? 0.1 : 0.0;
 
 	// Unreal stores fog density x1000 per unreal unit (cm): density = sigma[1/km] / 100.
 	HeightFog->SetFogDensity(static_cast<float>((FogPerKm + GlowPerKm) / 100.0));
-	HeightFog->SetFogHeightFalloff(static_cast<float>(10.0 / (FogPerKm > GlowPerKm ? GroundFogScaleHeightM : 1000.0)));
+	HeightFog->SetFogHeightFalloff(static_cast<float>(10.0 / (FogPerKm > GlowPerKm ? GroundFogScaleHeightM : 1600.0)));
 	// Warm: high-pressure sodium and 3000 K LEDs.
 	HeightFog->SetFogInscatteringColor(FLinearColor(1.0f, 0.72f, 0.45f) * static_cast<float>(Glow));
 	// Volumetric fog (lit by the street lights and the moon) only for real mist: a glow layer alone costs nothing.
