@@ -117,6 +117,7 @@ Contributions are welcome: code, data sources, bug reports from places that look
 | [Roadmap](docs/roadmap.md) | What comes next and why |
 | [Changelog](CHANGELOG.md) | Changes by version |
 | [Studies](docs/studies.md) | Research notes behind individual features |
+| [Taste test](lab/taste/2026-11-10/README.md) | The game rendered at the pose of licensed photographs, with ranked differences for the car and the place |
 | [Related projects](docs/related-projects.md) | Similar games and tools |
 
 ## License
