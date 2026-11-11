@@ -129,6 +129,11 @@ struct FSimCruiseCarDefinition
 	double AutomaticUpshiftSpeedRpm = 6700.0;
 	double AutomaticUpshiftMinimumEngineSpeedRadPerSecond = 590.0;
 	double AutomaticDownshiftSpeedRpm = 2100.0;
+	/** Shift map at a light pedal (0 = derived from upshift_rpm and the idle). */
+	double AutomaticLightUpshiftSpeedRpm = 0.0;
+	double AutomaticLightDownshiftSpeedRpm = 0.0;
+	/** Pedal-to-the-floor downshift threshold (0 = 62 % of upshift_rpm). */
+	double AutomaticKickdownSpeedRpm = 0.0;
 	double ClutchCouplingNmPerRadPerSecond = 12.0;
 	double ClutchCapacityNm = 210.0;
 	double ClutchBackTorqueNm = 200.0;

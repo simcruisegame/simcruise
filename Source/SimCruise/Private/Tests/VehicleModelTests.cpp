@@ -225,4 +225,85 @@ bool FSimCruiseVehicleModelGearboxTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseVehicleModelShiftMapTest, "SimCruise.Vehicle.Model.ShiftMap", VehicleTestFlags)
+bool FSimCruiseVehicleModelShiftMapTest::RunTest(const FString& Parameters)
+{
+	for (const TCHAR* CarId : BenchCars)
+	{
+		FSimCruiseCarDefinition Car;
+		if (!SimCruiseLoadBenchCar(*this, CarId, Car) || Car.ForwardGearRatios.Num() < 2)
+		{
+			continue;
+		}
+		const TArray<double>& Ratios = Car.ForwardGearRatios;
+		const double TyreRadiusM = Car.TireFreeRadiusM();
+		auto WheelOmega = [&](int32 Gear, double SpeedMps) { return SpeedMps * Ratios[Gear] * Car.FinalDriveRatio / TyreRadiusM; };
+		constexpr double RpmPerRadPerSecond = 60.0 / UE_DOUBLE_TWO_PI;
+
+		// The floor keeps the calibrated full-throttle point (0-60 is unchanged).
+		TestEqual(FString::Printf(TEXT("%s: floored upshift at upshift_rpm"), CarId),
+			SimCruiseDynamics::GetAutomaticShiftPoints(Car, 1.0).UpshiftRpm, Car.AutomaticUpshiftSpeedRpm, 1.0e-6);
+
+		// Accelerate gently through the gears at each pedal: record where first changes up.
+		double Previous = 0.0;
+		for (const double Pedal : { 0.15, 0.3, 0.45, 0.7, 1.0 })
+		{
+			int32 Gear = 0;
+			double FirstUpshiftRpm = 0.0;
+			for (double Speed = 0.5; Speed < 70.0 && FirstUpshiftRpm == 0.0; Speed += 0.02)
+			{
+				const double Omega = WheelOmega(Gear, Speed);
+				const int32 Next = SimCruiseDynamics::SelectAutomaticGear(Car, Gear, Omega * RpmPerRadPerSecond, Omega, Pedal, false);
+				if (Next > Gear)
+				{
+					FirstUpshiftRpm = Omega * RpmPerRadPerSecond;
+					// Straight after the change the lower engine speed must not ask for a downshift.
+					const double After = WheelOmega(Next, Speed);
+					TestEqual(FString::Printf(TEXT("%s: no hunting after the 1-2 change at pedal %.2f"), CarId, Pedal),
+						SimCruiseDynamics::SelectAutomaticGear(Car, Next, After * RpmPerRadPerSecond, After, Pedal, false), Next);
+				}
+			}
+			const FString Line = FString::Printf(TEXT("SHIFTMAP %-11s pedal %.2f: 1-2 at %.0f rpm, downshift below %.0f rpm"),
+				CarId, Pedal, FirstUpshiftRpm, SimCruiseDynamics::GetAutomaticShiftPoints(Car, Pedal).DownshiftRpm);
+			UE_LOG(LogTemp, Display, TEXT("%s"), *Line);
+			AddInfo(Line);
+			TestTrue(FString::Printf(TEXT("%s: changes up at pedal %.2f"), CarId, Pedal), FirstUpshiftRpm > 0.0);
+			TestTrue(FString::Printf(TEXT("%s: a deeper pedal holds first longer (%.2f)"), CarId, Pedal), FirstUpshiftRpm > Previous);
+			Previous = FirstUpshiftRpm;
+			if (Pedal <= 0.45)
+			{
+				// A real automatic at half pedal changes up near the torque peak, not at the redline.
+				TestTrue(FString::Printf(TEXT("%s: pedal %.2f changes up below 62 %% of upshift_rpm (%.0f rpm)"), CarId, Pedal, FirstUpshiftRpm),
+					FirstUpshiftRpm < Car.AutomaticUpshiftSpeedRpm * 0.62);
+			}
+		}
+
+		// Cruising in top at a light pedal holds the gear; flooring it kicks down.
+		const int32 Top = Ratios.Num() - 1;
+		const double CruiseSpeed = 2600.0 / RpmPerRadPerSecond / (Ratios[Top - 1] * Car.FinalDriveRatio / TyreRadiusM);
+		const double TopOmega = WheelOmega(Top, CruiseSpeed);
+		TestEqual(FString::Printf(TEXT("%s: light pedal holds top"), CarId),
+			SimCruiseDynamics::SelectAutomaticGear(Car, Top, TopOmega * RpmPerRadPerSecond, TopOmega, 0.2, false), Top);
+		TestEqual(FString::Printf(TEXT("%s: the floor kicks down"), CarId),
+			SimCruiseDynamics::SelectAutomaticGear(Car, Top, TopOmega * RpmPerRadPerSecond, TopOmega, 1.0, false), Top - 1);
+
+		// Mid-corner the gear holds: the part-throttle upshift waits until the car straightens.
+		const double CornerRpm = SimCruiseDynamics::GetAutomaticShiftPoints(Car, 0.3).UpshiftRpm * 1.15;
+		const double CornerOmega = CornerRpm / RpmPerRadPerSecond;
+		TestEqual(FString::Printf(TEXT("%s: part throttle changes up on the straight"), CarId),
+			SimCruiseDynamics::SelectAutomaticGear(Car, 1, CornerRpm, CornerOmega, 0.3, false, 0.05), 2);
+		TestEqual(FString::Printf(TEXT("%s: and holds the gear at 0.6 g"), CarId),
+			SimCruiseDynamics::SelectAutomaticGear(Car, 1, CornerRpm, CornerOmega, 0.3, false, 0.6), 1);
+
+		// Braking from high revs never changes up.
+		const double HighOmega = Car.AutomaticUpshiftSpeedRpm * 0.8 / RpmPerRadPerSecond;
+		TestEqual(FString::Printf(TEXT("%s: no upshift on the brakes"), CarId),
+			SimCruiseDynamics::SelectAutomaticGear(Car, 1, HighOmega * RpmPerRadPerSecond, HighOmega, 0.0, true), 1);
+		// Lifting at high revs changes up, as a real automatic does.
+		TestEqual(FString::Printf(TEXT("%s: lifting changes up"), CarId),
+			SimCruiseDynamics::SelectAutomaticGear(Car, 1, HighOmega * RpmPerRadPerSecond, HighOmega, 0.0, false), 2);
+	}
+	return true;
+}
+
 #endif

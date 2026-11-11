@@ -302,7 +302,6 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 	const double R = TireRadiusM;
 	const double I = WheelInertiaKgM2;
 	const double MassKg = Car.MassKg;
-	const int32 GearCount = Car.ForwardGearRatios.Num();
 
 	const FVector3d Forward = Body.Rotation.RotateVector(FVector3d::UnitX());
 	const FVector3d Right = Body.Rotation.RotateVector(FVector3d::UnitY());
@@ -493,16 +492,11 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 	State.ShiftTimeS = FMath::Max(0.0, State.ShiftTimeS - Dt);
 	if (!State.bManual && State.ShiftTimeS <= 0.0 && !State.bInReverse)
 	{
-		int32 Next = State.Gear;
-		if (State.EngineRpm > Car.AutomaticUpshiftSpeedRpm && State.Gear < GearCount - 1 &&
-			FMath::Abs(Speed) * ForwardRatio / R > Car.AutomaticUpshiftMinimumEngineSpeedRadPerSecond)
-		{
-			++Next;
-		}
-		else if (State.EngineRpm < Car.AutomaticDownshiftSpeedRpm && State.Gear > 0)
-		{
-			--Next;
-		}
+		// The shift map follows the pedal (Throttle is the driver's pedal here,
+		// before traction control trims it).
+		const int32 Next = SimCruiseDynamics::SelectAutomaticGear(Car, State.Gear, State.EngineRpm,
+			FMath::Abs(Speed) * ForwardRatio / R, Throttle, State.bServiceBrake || BrakeAmount > 0.01,
+			Speed * Omega.Z / SimCruiseDynamics::GravityMps2);
 		if (Next != State.Gear)
 		{
 			State.Gear = Next;

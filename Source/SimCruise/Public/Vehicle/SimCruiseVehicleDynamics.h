@@ -128,6 +128,34 @@ namespace SimCruiseDynamics
 		const FSimCruiseTireContactInput& Input,
 		double& InOutRollingSlipAngleRad);
 
+	/** Engine speeds at which the automatic changes gear for one pedal position. */
+	struct FShiftPoints
+	{
+		double UpshiftRpm = 0.0;
+		double DownshiftRpm = 0.0;
+	};
+
+	/**
+	 * The automatic's shift map, as a real transmission controller's: a light
+	 * pedal changes up early (about 2400 rpm in the roadster) and lets the
+	 * engine lug down before changing down; a deeper pedal holds each gear
+	 * longer; the floor runs to upshift_rpm and kicks down a gear whenever the
+	 * lower gear fits under it. PedalFraction is 0..1.
+	 */
+	FShiftPoints GetAutomaticShiftPoints(const FSimCruiseCarDefinition& Car, double PedalFraction);
+
+	/**
+	 * The gear the automatic wants next (0-based). WheelEngineOmega is the
+	 * engine speed the driven wheels imply in the current gear, so a slipping
+	 * launch or a locked wheel never triggers a change; no upshift while braking.
+	 * The downshift must land below 92 % of the upshift point, so it never hunts.
+	 * LateralG holds the gear through a corner, as real controllers do (a shift's
+	 * torque step mid-corner unsettles the car): above 0.3 g it changes only to
+	 * save the engine from the fuel cut or from lugging below the light-pedal point.
+	 */
+	int32 SelectAutomaticGear(const FSimCruiseCarDefinition& Car, int32 Gear, double EngineRpm,
+		double WheelEngineOmegaRadPerSecond, double PedalFraction, bool bBraking, double LateralG = 0.0);
+
 	/** Full-load crank torque from the car's curve (N·m). */
 	double SampleEngineTorqueNm(const FSimCruiseCarDefinition& Car, double EngineSpeedRpm);
 

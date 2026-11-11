@@ -643,6 +643,9 @@ bool FSimCruiseCarDefinitionLoader::ParseJson(const FString& JsonText, const FSt
 	SIMCRUISE_READ_NUMBER("upshift_rpm", AutomaticUpshiftSpeedRpm);
 	SIMCRUISE_READ_NUMBER("upshift_min_omega", AutomaticUpshiftMinimumEngineSpeedRadPerSecond);
 	SIMCRUISE_READ_NUMBER("downshift_rpm", AutomaticDownshiftSpeedRpm);
+	SIMCRUISE_READ_NUMBER("upshift_rpm_light", AutomaticLightUpshiftSpeedRpm);
+	SIMCRUISE_READ_NUMBER("downshift_rpm_light", AutomaticLightDownshiftSpeedRpm);
+	SIMCRUISE_READ_NUMBER("kickdown_rpm", AutomaticKickdownSpeedRpm);
 	SIMCRUISE_READ_NUMBER("clutch_stiffness", ClutchCouplingNmPerRadPerSecond);
 	SIMCRUISE_READ_NUMBER("clutch_capacity_nm", ClutchCapacityNm);
 	SIMCRUISE_READ_NUMBER("clutch_back_nm", ClutchBackTorqueNm);
