@@ -60,6 +60,13 @@ namespace SimCruiseTileDetail
 	/** Street lights behind the curbs of public streets (Props), with their lamp points for the night light pool. */
 	SIMCRUISE_API void BuildStreetLights(const FContext& Context);
 
+	/**
+	 * A US stop sign (MUTCD R1-1): a 30 in red octagon with a white border and STOP, its
+	 * bottom 7 ft above the ground (urban), on a galvanised square post at BaseM (tile
+	 * metres, ground at GroundZM), the face toward Facing (the approaching drivers).
+	 */
+	SIMCRUISE_API void AddStopSign(FSimCruiseMeshData& Props, const FVector2d& BaseM, double GroundZM, const FVector2d& Facing);
+
 	/** True when a point (tile metres) lies inside any building footprint of the tile. */
 	SIMCRUISE_API bool IsInsideBuilding(const FSimCruiseTileData& Data, double Side, const FVector2d& P);
 }

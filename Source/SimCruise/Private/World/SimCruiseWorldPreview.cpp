@@ -45,7 +45,7 @@ void ASimCruiseWorldPreview::Begin(ASimCruiseWorldStreamer* InStreamer, const FS
 	StartCm = Streamer ? Streamer->GetFrame().LonLatToWorldCm(USimCruiseWorldSubsystem::BundledLon, USimCruiseWorldSubsystem::BundledLat) : FVector::ZeroVector;
 	double Lat = 0.0, Lon = 0.0;
 	FString Start;
-	if (FParse::Value(FCommandLine::Get(), TEXT("SimCruiseStart="), Start))
+	if (FParse::Value(FCommandLine::Get(), TEXT("SimCruiseStart="), Start, /*bShouldStopOnSeparator=*/ false))
 	{
 		TArray<FString> Parts;
 		Start.ParseIntoArray(Parts, TEXT(","));

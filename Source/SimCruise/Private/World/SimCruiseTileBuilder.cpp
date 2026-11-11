@@ -1147,6 +1147,105 @@ namespace SimCruiseTileBuilder
 			}
 		}
 
+		// Stop lines and stop signs where an approach stops (the rule the traffic follows):
+		// an 18 in white bar across the approach lanes 4 ft before the crosswalk, and an
+		// R1-1 sign on the driver's right at the line.
+		{
+			FSimCruiseMeshData& Paint = B.Layer(ESimCruiseTileLayer::Paint);
+			FSimCruiseMeshData& Props = B.Layer(ESimCruiseTileLayer::Props);
+			const FLinearColor White(0.62f, 0.62f, 0.60f, 1.f);
+			auto Kerbed = [](const FSimCruiseRibbon& R, int32 SideIndex, int32 i)
+			{
+				return R.Sides[SideIndex].Edge.IsValidIndex(i) && R.Sides[SideIndex].Edge[i] != ESimCruiseRoadEdge::Rural;
+			};
+			for (int32 r = 0; r < Roads.Ribbons.Num(); ++r)
+			{
+				const FSimCruiseRibbon& Ribbon = Roads.Ribbons[r];
+				if (Ribbon.bService || Ribbon.Class == TEXT("service") || Ribbon.St.Num() < 3) continue;
+				// Where another public carriageway crosses this one's centre line.
+				TArray<uint8> Inside; Inside.Init(0, Ribbon.St.Num());
+				TArray<int32> CrossRank; CrossRank.Init(MIN_int32, Ribbon.St.Num());
+				for (int32 i = 0; i < Ribbon.St.Num(); ++i)
+				{
+					TArray<TPair<int32, int32>> Segs;
+					Roads.GatherSegments(Ribbon.St[i].C, 30.0, Segs);
+					for (const TPair<int32, int32>& Seg : Segs)
+					{
+						if (Seg.Key == r) continue;
+						const FSimCruiseRibbon& Other = Roads.Ribbons[Seg.Key];
+						if (Other.bService || Other.Class == TEXT("service") || !Other.St.IsValidIndex(Seg.Value + 1)) continue;
+						const FVector2d A = Other.St[Seg.Value].C, Bb = Other.St[Seg.Value + 1].C;
+						const double Tt = FMath::Clamp(FVector2d::DotProduct(Ribbon.St[i].C - A, Bb - A) / FMath::Max((Bb - A).SizeSquared(), 1e-9), 0.0, 1.0);
+						if (FVector2d::Distance(Ribbon.St[i].C, FMath::Lerp(A, Bb, Tt)) > Other.St[Seg.Value].HalfW) continue;
+						// Not this street carrying on in line with it.
+						if (FMath::Abs(FVector2d::DotProduct(Other.St[Seg.Value].T, Ribbon.St[i].T)) > 0.94 && Other.Name == Ribbon.Name) continue;
+						Inside[i] = 1;
+						CrossRank[i] = FMath::Max(CrossRank[i], Other.Rank);
+					}
+				}
+				for (int32 i = 0; i + 1 < Ribbon.St.Num(); ++i)
+				{
+					if (Inside[i] == Inside[i + 1]) continue;
+					const bool bEntering = Inside[i + 1] != 0;      // travelling +S enters at i + 1
+					const int32 Edge = bEntering ? i + 1 : i;
+					const int32 Approach = bEntering ? 1 : -1;
+					const FSimCruiseRibbonStation& E = Ribbon.St[Edge];
+					if (E.Travel != 0 && E.Travel != Approach) continue;
+					if (!SimCruiseLanes::ApproachStops(Ribbon.Rank, Ribbon.bMajor, CrossRank[Edge])) continue;
+					const double SLine = E.S - Approach * SimCruiseLanes::StopLineSetbackM;
+					const double SBack = SLine - Approach * 0.45;
+					if (FMath::Min(SLine, SBack) < Ribbon.St[0].S + 1.0 || FMath::Max(SLine, SBack) > Ribbon.St.Last().S - 1.0) continue;
+					// Station frame at the line.
+					int32 k = 0;
+					while (k + 2 < Ribbon.St.Num() && Ribbon.St[k + 1].S < SLine) ++k;
+					const FSimCruiseRibbonStation& P0 = Ribbon.St[k];
+					const FSimCruiseRibbonStation& P1 = Ribbon.St[k + 1];
+					const double T = FMath::Clamp((SLine - P0.S) / FMath::Max(P1.S - P0.S, 1e-6), 0.0, 1.0);
+					const double HalfW = FMath::Lerp(P0.HalfW, P1.HalfW, T);
+					const SimCruiseLanes::FParking Park = SimCruiseLanes::Parking(Ribbon.Class, HalfW, E.Travel, Kerbed(Ribbon, 0, k), Kerbed(Ribbon, 1, k));
+					// The approach lanes, in station frame (R): two way, the half on the driver's right.
+					double L0, L1;
+					if (E.Travel == 0)
+					{
+						L0 = Approach > 0 ? 0.15 : -(HalfW - Park.Left - 0.1);
+						L1 = Approach > 0 ? HalfW - Park.Right - 0.1 : -0.15;
+					}
+					else
+					{
+						L0 = -(HalfW - Park.Left - 0.1);
+						L1 = HalfW - Park.Right - 0.1;
+					}
+					if (L1 - L0 < 2.0) continue;
+					auto Point = [&](double S, double L)
+					{
+						int32 j = 0;
+						while (j + 2 < Ribbon.St.Num() && Ribbon.St[j + 1].S < S) ++j;
+						const double U = FMath::Clamp((S - Ribbon.St[j].S) / FMath::Max(Ribbon.St[j + 1].S - Ribbon.St[j].S, 1e-6), 0.0, 1.0);
+						const FVector2d C = FMath::Lerp(Ribbon.St[j].C, Ribbon.St[j + 1].C, U);
+						const FVector2d Rn = FMath::Lerp(Ribbon.St[j].R, Ribbon.St[j + 1].R, U).GetSafeNormal();
+						const double Hh = FMath::Lerp(Ribbon.CarriagewayHeight(j, L), Ribbon.CarriagewayHeight(j + 1, L), U) + MarkLiftM;
+						return Cm(C + Rn * L, Hh);
+					};
+					const int32 I0 = Paint.Add(Point(SBack, L0), FVector::UpVector, White), I1 = Paint.Add(Point(SBack, L1), FVector::UpVector, White);
+					const int32 I2 = Paint.Add(Point(SLine, L1), FVector::UpVector, White), I3 = Paint.Add(Point(SLine, L0), FVector::UpVector, White);
+					Paint.Quad(I0, I1, I2, I3, FVector::UpVector);
+					++B.MarkingQuads;
+					// The sign on the driver's right, behind the curb.
+					const double Sgn = static_cast<double>(Approach); // the driver's right is +R travelling +S
+					const int32 SideIndex = Sgn > 0.0 ? 1 : 0;
+					const bool bKerb = Ribbon.Sides[SideIndex].Edge.IsValidIndex(k) && Ribbon.Sides[SideIndex].Edge[k] == ESimCruiseRoadEdge::Kerb;
+					const FVector2d C = FMath::Lerp(P0.C, P1.C, T);
+					const FVector2d Rn = FMath::Lerp(P0.R, P1.R, T).GetSafeNormal();
+					const FVector2d Tn = FMath::Lerp(P0.T, P1.T, T).GetSafeNormal();
+					const double SignOut = HalfW + (bKerb ? SimCruiseRoadSection::GutterM + SimCruiseRoadSection::CurbBatterM + SimCruiseRoadSection::CurbTopM + 0.45 : SimCruiseRoadSection::TownEdgeM + 0.4);
+					const FVector2d Base2 = C + Rn * (Sgn * SignOut);
+					const double Ground = FMath::Lerp(P0.Height(HalfW * Sgn), P1.Height(HalfW * Sgn), T) + (bKerb ? -SimCruiseRoadSection::GutterDropM + SimCruiseRoadSection::CurbFaceM : 0.0);
+					SimCruiseTileDetail::AddStopSign(Props, Base2, Ground, -Tn * Sgn);
+					++B.StopSigns;
+				}
+			}
+		}
+
 		// The drawn mesh's GPU buffers, filled here so the game thread only uploads them.
 		if (FApp::CanEverRender())
 		{

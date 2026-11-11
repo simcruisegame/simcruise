@@ -630,4 +630,67 @@ namespace SimCruiseTileDetail
 			}
 		}
 	}
+
+	void AddStopSign(FSimCruiseMeshData& Props, const FVector2d& BaseM, double GroundZM, const FVector2d& FacingIn)
+	{
+		const FVector2d F = FacingIn.GetSafeNormal();      // out of the face, toward the drivers
+		const FVector2d Across(-F.Y, F.X);                  // the face's horizontal axis
+		FWriter W{ Props, 0.37f };
+		const FLinearColor Steel = FLinearColor::FromSRGBColor(FColor(150, 154, 156));
+		const FLinearColor Red = FLinearColor::FromSRGBColor(FColor(178, 24, 36));
+		const FLinearColor White = FLinearColor::FromSRGBColor(FColor(236, 236, 232));
+		const FLinearColor Back = FLinearColor::FromSRGBColor(FColor(160, 162, 160));
+		// Post: 2 in square galvanised tube, to just under the sign's top.
+		constexpr double PostHalf = 0.026, SignAcross = 0.762, Bottom = 2.13;
+		const double Top = Bottom + SignAcross;
+		const FVector2d Corner[4] = { BaseM + (F + Across) * PostHalf, BaseM + (Across - F) * PostHalf, BaseM + (-F - Across) * PostHalf, BaseM + (F - Across) * PostHalf };
+		for (int32 k = 0; k < 4; ++k)
+		{
+			const FVector2d A = Corner[k], B = Corner[(k + 1) % 4];
+			const FVector2d N = ((A + B) * 0.5 - BaseM).GetSafeNormal();
+			W.Panel(A, B, GroundZM - 0.1, Top - 0.05, N, Steel, Kind::Metal, 0.0, GroundZM);
+		}
+		// The face stands just in front of the post; the octagon across flats SignAcross.
+		const FVector2d Face = BaseM + F * (PostHalf + 0.01);
+		const double Mid = Bottom + 0.5 * SignAcross;
+		auto At = [&](double X, double Y, double Out) { return FVector3d(Face.X + Across.X * X + F.X * Out, Face.Y + Across.Y * X + F.Y * Out, Mid + Y); };
+		const FVector Normal(F.X, F.Y, 0.0);
+		auto Octagon = [&](double Radius, double Out, const FLinearColor& C, const FVector& N)
+		{
+			// Radius across flats / 2 -> vertices on the circumcircle, flats top and bottom.
+			const double Rv = Radius / FMath::Cos(UE_DOUBLE_PI / 8.0);
+			const int32 Centre = Props.Add(FVector(At(0, 0, Out) * 100.0), N, C, FVector2D(0, 0), FVector2D(Kind::Metal, 0.37f));
+			int32 Ring[8];
+			for (int32 k = 0; k < 8; ++k)
+			{
+				const double A = UE_DOUBLE_PI / 8.0 + UE_DOUBLE_PI / 4.0 * k;
+				const FVector3d P = At(FMath::Cos(A) * Rv, FMath::Sin(A) * Rv, Out);
+				Ring[k] = Props.Add(FVector(P * 100.0), N, C, FVector2D(0, 0), FVector2D(Kind::Metal, 0.37f));
+			}
+			for (int32 k = 0; k < 8; ++k) Props.Tri(Centre, Ring[k], Ring[(k + 1) % 8], N);
+		};
+		Octagon(0.5 * SignAcross, 0.0, White, Normal);                 // the white border
+		Octagon(0.5 * SignAcross - 0.019, 0.002, Red, Normal);          // the red field
+		Octagon(0.5 * SignAcross, -0.003, Back, -Normal);               // the plain back
+		// STOP in 10 in block letters (Series C proportions, approximated by strokes).
+		constexpr double LH = 0.254, LW = 0.135, St = 0.036, Gap = 0.03;
+		struct FRect { double X0, Y0, X1, Y1; };
+		const TArray<TArray<FRect>> Letters = {
+			{ { 0, LH - St, LW, LH }, { 0, LH / 2 - St / 2, LW, LH / 2 + St / 2 }, { 0, 0, LW, St }, { 0, LH / 2, St, LH }, { LW - St, 0, LW, LH / 2 } }, // S
+			{ { 0, LH - St, LW, LH }, { LW / 2 - St / 2, 0, LW / 2 + St / 2, LH } },                                                                     // T
+			{ { 0, 0, St, LH }, { LW - St, 0, LW, LH }, { 0, LH - St, LW, LH }, { 0, 0, LW, St } },                                                      // O
+			{ { 0, 0, St, LH }, { 0, LH - St, LW, LH }, { 0, LH / 2 - St / 2, LW, LH / 2 + St / 2 }, { LW - St, LH / 2, LW, LH } },                    // P
+		};
+		const double Width = 4 * LW + 3 * Gap;
+		for (int32 L = 0; L < Letters.Num(); ++L)
+		{
+			const double X0 = -0.5 * Width + L * (LW + Gap);
+			for (const FRect& Rc : Letters[L])
+			{
+				const FVector3d P[4] = { At(X0 + Rc.X0, Rc.Y0 - LH / 2, 0.004), At(X0 + Rc.X1, Rc.Y0 - LH / 2, 0.004), At(X0 + Rc.X1, Rc.Y1 - LH / 2, 0.004), At(X0 + Rc.X0, Rc.Y1 - LH / 2, 0.004) };
+				const FVector2D UV[4] = { FVector2D(0, 0), FVector2D(0, 0), FVector2D(0, 0), FVector2D(0, 0) };
+				W.Quad(P, Normal, White, UV, Kind::Metal);
+			}
+		}
+	}
 }

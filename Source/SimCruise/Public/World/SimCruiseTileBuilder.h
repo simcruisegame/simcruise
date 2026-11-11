@@ -129,6 +129,7 @@ struct SIMCRUISE_API FSimCruiseTileBuild
 
 	int32 ConditionedVertices = 0;
 	int32 MarkingQuads = 0;
+	int32 StopSigns = 0;
 	int32 Buildings = 0;
 	int32 Palms = 0;
 	int32 StreetLights = 0;

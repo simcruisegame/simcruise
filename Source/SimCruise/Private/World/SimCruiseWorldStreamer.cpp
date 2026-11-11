@@ -493,8 +493,8 @@ void ASimCruiseWorldStreamer::TickStreaming(float DeltaSeconds)
 #endif
 		UTexture2D* Aerial = Resources->FindAerial(Result->AerialKey);
 		const FSimCruiseTileBuild& B = *Result->Build;
-		UE_LOG(LogSimCruiseWorld, Display, TEXT("Tile %s: %d ribbons, %d stations, %d markings, %d triangles, %d ground vertices conditioned, heights %.2f..%.2f m, built in %.0f ms%s"),
-			*SimCruiseTileName(TileId), B.Roads.Ribbons.Num(), B.Roads.NumStations(), B.MarkingQuads, B.NumTriangles(), B.ConditionedVertices,
+		UE_LOG(LogSimCruiseWorld, Display, TEXT("Tile %s: %d ribbons, %d stations, %d markings, %d stop signs, %d triangles, %d ground vertices conditioned, heights %.2f..%.2f m, built in %.0f ms%s"),
+			*SimCruiseTileName(TileId), B.Roads.Ribbons.Num(), B.Roads.NumStations(), B.MarkingQuads, B.StopSigns, B.NumTriangles(), B.ConditionedVertices,
 			B.MinHeightM, B.MaxHeightM, B.BuildMs, Aerial ? TEXT(", aerial") : TEXT(""));
 		Tile->Install(Result->Build.ToSharedRef(), Resources, Aerial, true);
 		Tiles.Add(TileId, Tile);

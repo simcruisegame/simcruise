@@ -281,11 +281,12 @@ bool ASimCruiseTraffic::ChooseAt(ASimCruiseTrafficCar& Car, double DecisionS, bo
 	// US practice at a junction without signals: the minor approach stops (a stop sign);
 	// between equal minor streets every approach does (an all-way stop); the priority road
 	// carries on.
-	Car.StopState = CrossRank != MIN_int32 && (CrossRank > R->Rank || (CrossRank == R->Rank && !R->bMajor)) ? 1 : 0;
+	Car.StopState = CrossRank != MIN_int32 && SimCruiseLanes::ApproachStops(R->Rank, R->bMajor, CrossRank) ? 1 : 0;
 	Car.DecisionS = DecisionS;
 	Car.bDecisionAtEnd = bAtEnd;
 	Car.JunctionCm = End.LocationCm;
-	Car.StopBackM = CrossHalfW + 2.5;
+	// The painted stop line: before the crosswalk, beyond the crossing carriageway's edge.
+	Car.StopBackM = CrossHalfW + SimCruiseLanes::StopLineSetbackM;
 	Car.WaitS = 0.0;
 	double Total = 0.0;
 	for (const FOption& O : Options) Total += O.Weight;

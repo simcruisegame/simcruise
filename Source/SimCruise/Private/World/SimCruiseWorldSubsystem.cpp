@@ -21,7 +21,7 @@ void USimCruiseWorldSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	FString Start;
 	FString Preview;
 	const bool bWorld = FParse::Param(Cmd, TEXT("SimCruiseWorld"));
-	const bool bStart = FParse::Value(Cmd, TEXT("SimCruiseStart="), Start);
+	const bool bStart = FParse::Value(Cmd, TEXT("SimCruiseStart="), Start, /*bShouldStopOnSeparator=*/ false);
 	const bool bPreview = FParse::Value(Cmd, TEXT("SimCruisePreview="), Preview, false);
 	if (!bWorld && !bStart && !bPreview)
 	{

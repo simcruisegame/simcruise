@@ -122,6 +122,20 @@ namespace SimCruiseLanes
 	 */
 	SIMCRUISE_API FParking Parking(const FString& Class, double HalfW, int32 Travel, bool bKerbLeft, bool bKerbRight);
 
+	/**
+	 * A stop line stands this far (m) before the crossing carriageway's edge: the
+	 * crosswalk's 1 m setback and 10 ft depth, then 4 ft (MUTCD 3B.16: a stop line 4 ft
+	 * in advance of a crosswalk).
+	 */
+	inline constexpr double StopLineSetbackM = 1.0 + 3.05 + 1.2;
+
+	/**
+	 * Whether an approach on a road of this rank stops where a road of CrossRank crosses,
+	 * at a junction without signals: a stop sign on the minor road; between equal roads
+	 * that are not major roads, an all-way stop.
+	 */
+	inline bool ApproachStops(int32 Rank, bool bMajor, int32 CrossRank) { return CrossRank > Rank || (CrossRank == Rank && !bMajor); }
+
 	/** Signed lateral offset (m, + to the driver's right) of the rightmost travel lane's centre. */
 	SIMCRUISE_API double RightLaneCentreM(const FString& Class, double HalfW, int32 Travel, const FParking& Parking = FParking());
 }

@@ -124,7 +124,7 @@ void ASimCruiseGameMode::BeginWorldDrive()
 	FString Title = TEXT("Ocean Drive, Miami Beach");
 	StartRoadName = StartRoad;
 	FString Start;
-	if (FParse::Value(Cmd, TEXT("SimCruiseStart="), Start) && ParseLatLon(Start, Lat, Lon))
+	if (FParse::Value(Cmd, TEXT("SimCruiseStart="), Start, /*bShouldStopOnSeparator=*/ false) && ParseLatLon(Start, Lat, Lon))
 	{
 		Title = FString::Printf(TEXT("%.5f, %.5f"), Lat, Lon);
 		StartRoadName.Reset();
