@@ -132,6 +132,8 @@ public:
 	/** Knuckle (steer, camber, travel) and spinner (roll) transforms relative to the static hub. */
 	static FTransform KnuckleTransform(const FVector& StaticHubCm, const FSimCruiseWheelVisualState& Wheel, bool bLeftSide);
 	static FRotator SpinRotation(float SpinAngleRad);
+	/** Rotation of the steering wheel about its column (local X, away from the driver). */
+	static FQuat SteeringWheelTurn(double AngleRad);
 
 private:
 	void ClearParts();

@@ -32,6 +32,11 @@ FTransform USimCruiseCarPresentationComponent::KnuckleTransform(const FVector& S
 	return FTransform(Rotation, StaticHubCm + FVector(0.0, 0.0, Wheel.SuspensionTravelCm));
 }
 
+FQuat USimCruiseCarPresentationComponent::SteeringWheelTurn(double AngleRad)
+{
+	return FQuat(FVector::ForwardVector, AngleRad);
+}
+
 FRotator USimCruiseCarPresentationComponent::SpinRotation(float SpinAngleRad)
 {
 	// Rolling forward moves the top of the wheel forward: a negative pitch about the axle (Y).
@@ -179,10 +184,10 @@ void USimCruiseCarPresentationComponent::ApplyVisualState(const FSimCruiseCarVis
 	SteeringWheelAngle = SteeringWheelAngleFor(State.Wheels[0].SteerAngleRad, State.Wheels[1].SteerAngleRad, SteeringRatio);
 	if (SteeringWheelMesh)
 	{
-		// Local X runs along the column away from the driver; anticlockwise
-		// as the driver sees it is a negative roll.
-		const FQuat Turn(FVector::ForwardVector, -SteeringWheelAngle);
-		SteeringWheelMesh->SetRelativeRotation(SteeringRest.GetRotation() * Turn);
+		// Local X runs along the column away from the driver, Y to his right,
+		// Z to the rim's top: a positive angle about X carries the top toward
+		// -Y, anticlockwise as the driver sees it (a left turn).
+		SteeringWheelMesh->SetRelativeRotation(SteeringRest.GetRotation() * SteeringWheelTurn(SteeringWheelAngle));
 	}
 	const int32 Level = State.bBrake ? 2 : (State.bLamps ? 1 : 0);
 	if (Level != LampLevel)

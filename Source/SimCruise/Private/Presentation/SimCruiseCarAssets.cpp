@@ -70,7 +70,7 @@ namespace SimCruiseCarAssetsPrivate
 			const FPolygonGroupID Group = Description.CreatePolygonGroup();
 			const FName Slot(*FString::Printf(TEXT("Slot%02d"), S));
 			SlotNames[Group] = Slot;
-			Mesh->GetStaticMaterials().Add(FStaticMaterial(UMaterial::GetDefaultMaterial(MD_Surface), Slot, Slot));
+			Mesh->GetStaticMaterials().Add(FStaticMaterial(UMaterial::GetDefaultMaterial(MD_Surface), Slot));
 			Instances.SetNumUninitialized(Section.Positions.Num());
 			const bool bTangents = Section.Tangents.Num() == Section.Positions.Num();
 			for (int32 V = 0; V < Section.Positions.Num(); ++V)
