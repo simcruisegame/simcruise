@@ -456,6 +456,43 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 			if (bClear) { Car.StopState = 3; ++StopsPassed; }
 		}
 	}
+	// A left turn gives way to oncoming traffic (traffic going straight or turning right has
+	// the right of way): hold just short of the junction's centre while anything coming the
+	// other way will reach it within 4.5 s.
+	const bool bLeftTurn = Car.bNextChosen && Car.NextTurnDeg < -30.0 && Car.StopState != 1 && Car.StopState != 2;
+	if (bLeftTurn && Remaining < 25.0)
+	{
+		const FPose Centre = PoseAt(Car.Tile, Car.Ribbon, Car.Dir, Car.DecisionS, Car.Lane);
+		auto Oncoming = [&](const FVector& OtherCm, const FVector2d& OtherHeading, double OtherSpeed)
+		{
+			if (FVector2d::DotProduct(OtherHeading, Fwd) > -0.7 || OtherSpeed < 1.0) return false;
+			const FVector2d ToJ((Centre.LocationCm.X - OtherCm.X) / 100.0, (Centre.LocationCm.Y - OtherCm.Y) / 100.0);
+			const double Ahead = FVector2d::DotProduct(ToJ, OtherHeading);
+			return Ahead > -2.0 && Ahead < 60.0 && Ahead / OtherSpeed < 4.5;
+		};
+		bool bYield = false;
+		for (const ASimCruiseTrafficCar* Other : Cars)
+		{
+			if (bYield) break;
+			if (!Other || Other == &Car || Other->Ribbon == INDEX_NONE) continue;
+			const double Yaw = FMath::DegreesToRadians(Other->GetActorRotation().Yaw);
+			bYield = Oncoming(Other->GetActorLocation(), FVector2d(FMath::Cos(Yaw), FMath::Sin(Yaw)), Other->Speed);
+		}
+		if (!bYield) bYield = Oncoming(PlayerCm, PlayerHeading, PlayerVelCm.Size2D() / 100.0);
+		if (bYield)
+		{
+			// The stopped car the IDM keeps 2 m behind stands at the junction's centre: the
+			// front bumper waits 2 m short of it.
+			const double G = FMath::Max(Remaining - 0.5 * Car.LengthM, 0.05);
+			if (Gap < 0.0 || G < Gap) { Gap = G; Closing = Car.Speed; Why = 5; }
+			if (!Car.bYielding) ++LeftTurnYields;
+		}
+		Car.bYielding = bYield;
+	}
+	else
+	{
+		Car.bYielding = false;
+	}
 	Car.Why = Why;
 	const double Accel = SimCruiseTrafficModel::IdmAcceleration(Car.Speed, V0, Gap, Closing);
 	Car.Speed = FMath::Max(0.0, Car.Speed + Accel * Dt);
@@ -691,7 +728,7 @@ void ASimCruiseTraffic::Tick(float DeltaSeconds)
 	{
 		ReportClock = 5.0;
 		int32 Moving = 0, AtStops = 0, Standing = 0;
-		int32 WhyCount[5] = {};
+		int32 WhyCount[6] = {};
 		double Sum = 0.0;
 		for (const ASimCruiseTrafficCar* Car : Cars)
 		{
@@ -702,11 +739,11 @@ void ASimCruiseTraffic::Tick(float DeltaSeconds)
 			if (Car->Speed < 0.3 && Car->StopState != 2)
 			{
 				++Standing;
-				++WhyCount[FMath::Clamp(Car->Why, 0, 4)];
+				++WhyCount[FMath::Clamp(Car->Why, 0, 5)];
 			}
 		}
-		UE_LOG(LogTemp, Display, TEXT("SimCruise traffic: %d cars, %d moving, %d waiting at stops, %d standing elsewhere (lane %d, player %d, crossing %d, stop line %d, none %d), mean %.1f m/s, %d ribbon changes, %d lane changes, %d spawned, %d stops passed"),
-			Cars.Num(), Moving, AtStops, Standing, WhyCount[1], WhyCount[2], WhyCount[3], WhyCount[4], WhyCount[0], Cars.Num() ? Sum / Cars.Num() : 0.0, RibbonChanges, LaneChanges, Spawned, StopsPassed);
+		UE_LOG(LogTemp, Display, TEXT("SimCruise traffic: %d cars, %d moving, %d waiting at stops, %d standing elsewhere (lane %d, player %d, crossing %d, stop line %d, giving way %d, none %d), mean %.1f m/s, %d ribbon changes, %d lane changes, %d left-turn yields, %d spawned, %d stops passed"),
+			Cars.Num(), Moving, AtStops, Standing, WhyCount[1], WhyCount[2], WhyCount[3], WhyCount[4], WhyCount[5], WhyCount[0], Cars.Num() ? Sum / Cars.Num() : 0.0, RibbonChanges, LaneChanges, LeftTurnYields, Spawned, StopsPassed);
 	}
 	const int32 Want = FMath::Max(0, CVarTrafficCars.GetValueOnGameThread());
 	for (int32 Tries = 0; Tries < 2 && Cars.Num() < Want; ++Tries)

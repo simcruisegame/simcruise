@@ -101,8 +101,9 @@ public:
 	int32 Lane = 0;
 	FVector LaneShiftCm = FVector::ZeroVector;
 	double LaneChangeCooldownS = 0.0;
-	/** What set the gap last frame: 0 nothing, 1 a car in the lane, 2 the player, 3 a crossing car, 4 a stop line. */
+	/** What set the gap last frame: 0 nothing, 1 a car in the lane, 2 the player, 3 a crossing car, 4 a stop line, 5 giving way on a left turn. */
 	int32 Why = 0;
+	bool bYielding = false;
 	/** Where the chosen way on starts (m along the ribbon), whether that is the ribbon's end, and whether it is straight on. */
 	double DecisionS = 0.0;
 	bool bDecisionAtEnd = true;
@@ -155,5 +156,5 @@ private:
 	uint32 Random = 0x5eed1234;
 	double SinceStart = 0.0;
 	double ReportClock = 5.0;
-	int32 RibbonChanges = 0, Spawned = 0, StopsPassed = 0, LaneChanges = 0;
+	int32 RibbonChanges = 0, Spawned = 0, StopsPassed = 0, LaneChanges = 0, LeftTurnYields = 0;
 };
