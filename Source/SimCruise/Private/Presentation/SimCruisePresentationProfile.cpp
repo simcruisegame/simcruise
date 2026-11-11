@@ -161,6 +161,25 @@ bool SimCruisePresentationProfiles::Load(const FString& CarId, FSimCruiseCarPres
 	}
 	Car->TryGetStringField(TEXT("hide_pattern"), OutProfile.HidePattern);
 
+	const TSharedPtr<FJsonObject>* ParkedObject = nullptr;
+	if (Car->TryGetObjectField(TEXT("parked"), ParkedObject) && ParkedObject)
+	{
+		FSimCruiseCarPresentationProfile::FParkedDimensions D;
+		const FJsonObject& P = **ParkedObject;
+		P.TryGetNumberField(TEXT("wheelbase_m"), D.WheelbaseM);
+		P.TryGetNumberField(TEXT("front_track_m"), D.FrontTrackM);
+		P.TryGetNumberField(TEXT("rear_track_m"), D.RearTrackM);
+		P.TryGetNumberField(TEXT("tyre_radius_m"), D.TyreRadiusM);
+		P.TryGetNumberField(TEXT("tyre_width_m"), D.TyreWidthM);
+		P.TryGetStringField(TEXT("source"), D.Source);
+		if (D.WheelbaseM < 1.5 || D.WheelbaseM > 5.0 || D.FrontTrackM < 1.0 || D.RearTrackM < 1.0 || D.TyreRadiusM < 0.2 || D.TyreRadiusM > 0.6)
+		{
+			OutError = Where + TEXT(": 'parked' needs wheelbase_m, front_track_m, rear_track_m and tyre_radius_m in a car's range");
+			return false;
+		}
+		OutProfile.Parked = D;
+	}
+
 	const TSharedPtr<FJsonObject>* ClockObject = nullptr;
 	if (Car->TryGetObjectField(TEXT("clock"), ClockObject) && ClockObject)
 	{

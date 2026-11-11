@@ -27,11 +27,27 @@ namespace
 	TAutoConsoleVariable<int32> CVarParkedCars(TEXT("simcruise.World.ParkedCars"), 1,
 		TEXT("1: parked cars in the parking lanes' stalls (drawn runs only); 0: empty stalls."));
 
-	/** The cars that park: the bundled models with a fitted presentation (Ocean Drive: classics and sports cars). */
+	/**
+	 * The cars that park: the bundled models with a fitted presentation. Mostly what a
+	 * Miami street holds (SUVs, a pickup, a minivan, an electric sedan), and the classics
+	 * and sports cars Ocean Drive is known for.
+	 */
 	const TCHAR* ParkedCarFor(uint8 Pick)
 	{
-		return Pick < 90 ? TEXT("mustang65") : Pick < 170 ? TEXT("meridian_z") : TEXT("nb1999");
+		struct FShare { int32 UpTo; const TCHAR* Id; };
+		static const FShare Shares[] = {
+			{ 30, TEXT("nb1999") }, { 60, TEXT("mustang65") }, { 90, TEXT("meridian_z") }, { 130, TEXT("model3") },
+			{ 170, TEXT("grandcherokee13") }, { 210, TEXT("f150raptor18") }, { 256, TEXT("odyssey18") },
+		};
+		for (const FShare& Share : Shares)
+		{
+			if (Pick < Share.UpTo) return Share.Id;
+		}
+		return TEXT("meridian_z");
 	}
+
+	/** Cars whose model could not be fitted: tried once per run, then a stand-in parks there. */
+	TSet<FString> UnfitCars;
 
 	/**
 	 * Body colours in about the shares US cars have them (white 25 %, black 20 %, grey 18 %,
@@ -284,9 +300,17 @@ int32 ASimCruiseWorldTile::PlaceParkedCars(int32 Budget)
 	while (Placed < Budget && !ParkedWaiting.IsEmpty() && World)
 	{
 		const FSimCruiseParkedCar Stall = ParkedWaiting.Pop(EAllowShrinking::No);
-		const FString CarId = ParkedCarFor(Stall.Pick);
+		FString CarId = ParkedCarFor(Stall.Pick);
+		if (UnfitCars.Contains(CarId)) CarId = TEXT("meridian_z");
 		FString Error;
-		const TSharedPtr<FSimCruiseBuiltCar> Built = SimCruiseCarAssets::Get(CarId, Error);
+		TSharedPtr<FSimCruiseBuiltCar> Built = SimCruiseCarAssets::Get(CarId, Error);
+		if (!Built.IsValid())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("SimCruise parked car %s: %s"), *CarId, *Error);
+			UnfitCars.Add(CarId);
+			CarId = TEXT("meridian_z");
+			Built = SimCruiseCarAssets::Get(CarId, Error);
+		}
 		if (!Built.IsValid() || !Built->Body.Mesh.IsValid())
 		{
 			continue;

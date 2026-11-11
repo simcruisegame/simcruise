@@ -184,23 +184,37 @@ TSharedPtr<FSimCruiseBuiltCar> SimCruiseCarAssets::Get(const FString& CarId, FSt
 		return *Found;
 	}
 	const double Start = FPlatformTime::Seconds();
-	FSimCruiseCarDefinition Definition;
-	if (!FSimCruiseCarDefinitionLoader::LoadById(CarId, Definition, OutError))
-	{
-		return nullptr;
-	}
 	TSharedPtr<FSimCruiseBuiltCar> Car = MakeShared<FSimCruiseBuiltCar>();
 	Car->CarId = CarId;
 	if (!SimCruisePresentationProfiles::Load(CarId, Car->Profile, OutError))
 	{
 		return nullptr;
 	}
+	// A driven car is fitted to its driving data; a car that only parks, to its profile's dimensions.
+	FSimCruiseRigInputs Inputs;
+	if (const TOptional<FSimCruiseCarPresentationProfile::FParkedDimensions>& Parked = Car->Profile.Parked; Parked.IsSet())
+	{
+		Inputs.WheelbaseM = Parked->WheelbaseM;
+		Inputs.FrontTrackM = Parked->FrontTrackM;
+		Inputs.RearTrackM = Parked->RearTrackM;
+		Inputs.TireRadiusM = Parked->TyreRadiusM;
+		Inputs.TireWidthM = Parked->TyreWidthM > 0.0 ? Parked->TyreWidthM : Inputs.TireWidthM;
+		Car->SteeringRatio = Car->Profile.SteeringRatio;
+	}
+	else
+	{
+		FSimCruiseCarDefinition Definition;
+		if (!FSimCruiseCarDefinitionLoader::LoadById(CarId, Definition, OutError))
+		{
+			return nullptr;
+		}
+		Inputs = FSimCruiseRigInputs::FromCar(Definition);
+	}
 	const FString ModelPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(FPaths::ProjectDir(), Car->Profile.ModelPath));
 	if (!SimCruiseGltf::Load(ModelPath, Car->Model, OutError))
 	{
 		return nullptr;
 	}
-	const FSimCruiseRigInputs Inputs = FSimCruiseRigInputs::FromCar(Definition);
 	FSimCruiseRiggedCar Rigged;
 	FString RigError;
 	const bool bRigged = SimCruiseCarModelRig::Build(Car->Model, Car->Profile, Inputs, Rigged, RigError);

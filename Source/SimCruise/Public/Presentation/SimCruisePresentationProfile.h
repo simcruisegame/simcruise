@@ -91,6 +91,17 @@ struct FSimCruiseCarPresentationProfile
 	/** Extra case-insensitive regex applied to surface labels to hide them. */
 	FString HidePattern;
 
+	/**
+	 * For a car that only parks (no driving data in data/cars): the dimensions the model
+	 * is fitted to (metres), from the maker's specifications.
+	 */
+	struct FParkedDimensions
+	{
+		double WheelbaseM = 0.0, FrontTrackM = 0.0, RearTrackM = 0.0, TyreRadiusM = 0.0, TyreWidthM = 0.0;
+		FString Source;
+	};
+	TOptional<FParkedDimensions> Parked;
+
 	/** Set when the model's dashboard has a clock to drive. */
 	TOptional<FSimCruiseClockSpec> Clock;
 

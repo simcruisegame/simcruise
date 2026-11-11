@@ -212,6 +212,61 @@ bool FSimCruisePresentationRigMustangTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+// Cars that only park are fitted to their profile's dimensions: each must fit (four
+// wheels on the hubs, front ahead), at the real car's length and track.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruisePresentationRigParkedTest, "SimCruise.Presentation.Rig.ParkedCars", Flags)
+bool FSimCruisePresentationRigParkedTest::RunTest(const FString& Parameters)
+{
+	struct FCase { const TCHAR* Id; double LengthM; };
+	// Published overall lengths: Model 3 184.8 in, F-150 Raptor SuperCab 220.0 in,
+	// Grand Cherokee SRT8 (2013) 190.8 in, Odyssey (2018) 203.2 in.
+	const FCase Cases[] = { { TEXT("model3"), 4.694 }, { TEXT("f150raptor18"), 5.588 }, { TEXT("grandcherokee13"), 4.846 }, { TEXT("odyssey18"), 5.161 } };
+	for (const FCase& Case : Cases)
+	{
+		FString Error;
+		FSimCruiseCarPresentationProfile Profile;
+		if (!SimCruisePresentationProfiles::Load(Case.Id, Profile, Error)) { AddError(Error); continue; }
+		if (!TestTrue(FString::Printf(TEXT("%s has parked dimensions"), Case.Id), Profile.Parked.IsSet())) continue;
+		FSimCruiseGltfModel Model;
+		if (!SimCruiseGltf::Load(FPaths::Combine(FPaths::ProjectDir(), Profile.ModelPath), Model, Error)) { AddError(Error); continue; }
+		FSimCruiseRigInputs Inputs;
+		Inputs.WheelbaseM = Profile.Parked->WheelbaseM;
+		Inputs.FrontTrackM = Profile.Parked->FrontTrackM;
+		Inputs.RearTrackM = Profile.Parked->RearTrackM;
+		Inputs.TireRadiusM = Profile.Parked->TyreRadiusM;
+		Inputs.TireWidthM = Profile.Parked->TyreWidthM;
+		FSimCruiseRiggedCar R;
+		if (!SimCruiseCarModelRig::Build(Model, Profile, Inputs, R, Error)) { AddError(FString(Case.Id) + TEXT(": ") + Error); continue; }
+		AddInfo(FString::Printf(TEXT("%s: length %.3f m, width %.3f m, track %.3f / %.3f m, tyre radius %.3f m, %lld triangles"), Case.Id,
+			R.ModelLengthM, R.ModelWidthM, R.ModelFrontTrackM, R.ModelRearTrackM, R.ModelTyreRadiusM, R.NumTriangles()));
+		TestTrue(FString::Printf(TEXT("%s length %.3f m within 4%% of %.3f m"), Case.Id, R.ModelLengthM, Case.LengthM), FMath::Abs(R.ModelLengthM / Case.LengthM - 1.0) < 0.04);
+		TestTrue(FString::Printf(TEXT("%s front track within 8%%"), Case.Id), FMath::Abs(R.ModelFrontTrackM / Inputs.FrontTrackM - 1.0) < 0.08);
+		TestTrue(FString::Printf(TEXT("%s front hubs ahead of the rear"), Case.Id), R.HubsCm[0].X > R.HubsCm[2].X && R.HubsCm[1].X > R.HubsCm[3].X);
+		TestTrue(FString::Printf(TEXT("%s left hubs on -Y"), Case.Id), R.HubsCm[0].Y < 0 && R.HubsCm[2].Y < 0 && R.HubsCm[1].Y > 0 && R.HubsCm[3].Y > 0);
+		for (int32 W = 0; W < 4; ++W)
+		{
+			TestTrue(FString::Printf(TEXT("%s wheel %d has triangles"), Case.Id, W), R.Wheels[W].NumTriangles() > 100);
+		}
+		// Facing forward: the brake lamps are behind the axles.
+		double RearSum = 0.0; int32 RearCount = 0;
+		for (const FSimCruiseRigSection& Section : R.Body.Sections)
+		{
+			if (Section.Role != ESimCruiseCarMaterialRole::LampRear) continue;
+			for (const FVector3f& P : Section.Positions) { RearSum += P.X; ++RearCount; }
+		}
+		// The Odyssey's lamps are one textured material, front and back, drawn as authored.
+		if (RearCount == 0 && FCString::Strcmp(Case.Id, TEXT("odyssey18")) == 0)
+		{
+			AddInfo(TEXT("odyssey18: lamps drawn as authored (one textured material front and back)"));
+		}
+		else if (TestTrue(FString::Printf(TEXT("%s has rear-lamp surfaces"), Case.Id), RearCount > 0))
+		{
+			TestTrue(FString::Printf(TEXT("%s rear lamps behind the axles (mean x %.2f m)"), Case.Id, RearSum / RearCount / 100.0), RearSum / RearCount < -100.0);
+		}
+	}
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruisePresentationRigC8Test, "SimCruise.Presentation.Rig.MeridianZ", Flags)
 bool FSimCruisePresentationRigC8Test::RunTest(const FString& Parameters)
 {

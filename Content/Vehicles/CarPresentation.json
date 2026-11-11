@@ -310,6 +310,68 @@
    "badges": [
     "chevrolet"
    ]
+  },
+  "model3": {
+   "model": "data/art/traffic/model3-3a602469/scene.gltf",
+   "credit": "\"Tesla M3 model\" by wintrez (https://sketchfab.com/3d-models/tesla-m3-model-3a602469d7874d1397efa67182198705), CC BY 4.0",
+   "parked": {
+    "wheelbase_m": 2.875, "front_track_m": 1.580, "rear_track_m": 1.580, "tyre_radius_m": 0.334, "tyre_width_m": 0.235,
+    "source": "Tesla Model 3 (2017-2023) specifications: wheelbase 113.2 in, track 62.2 in; 235/45R18 tyres (radius 228.6 + 105.8 mm)."
+   },
+   "roles": {
+    "carpaint": "paint",
+    "OrangeLights": "lamp_amber",
+    "RedLight": "lamp_rear",
+    "innerLights": "lamp_front",
+    "Tire_Rims": "wheel_alloy",
+    "TireRubber": "tyre",
+    "Mirror": "mirror_glass"
+   }
+  },
+  "f150raptor18": {
+   "model": "data/art/traffic/f150raptor18-096aa1ba/scene.gltf",
+   "credit": "\"2018 Ford F-150 Raptor\" by Galaxy Car Showroom (https://sketchfab.com/3d-models/2018-ford-f-150-raptor-096aa1ba46984eeeb196b75f4d213a0a), CC BY 4.0",
+   "parked": {
+    "wheelbase_m": 3.393, "front_track_m": 1.869, "rear_track_m": 1.869, "tyre_radius_m": 0.436, "tyre_width_m": 0.315,
+    "source": "Ford F-150 Raptor SuperCab (2017-2020) specifications: wheelbase 133.6 in, length 220.0 in, track 73.6 in; LT315/70R17 tyres (radius 215.9 + 220.5 mm). The model's length to wheelbase (1.658) is the SuperCab's (1.647), not the SuperCrew's (1.599)."
+   },
+   "roles": {
+    "F-150_Paint": "paint",
+    "Red_Glass": "lamp_rear",
+    "Offroad_Tires": "tyre",
+    "F-150_Rim": "wheel_alloy",
+    "F-150_Rim_1": "wheel_alloy"
+   }
+  },
+  "grandcherokee13": {
+   "model": "data/art/traffic/grandcherokee13-74686a75/scene.gltf",
+   "credit": "\"2013 Jeep Grand Cherokee SRT8\" by Galaxy Car Showroom (https://sketchfab.com/3d-models/2013-jeep-grand-cherokee-srt8-74686a75e26146a19337724a7e1d458a), CC BY 4.0",
+   "parked": {
+    "wheelbase_m": 2.915, "front_track_m": 1.628, "rear_track_m": 1.635, "tyre_radius_m": 0.387, "tyre_width_m": 0.295,
+    "source": "Jeep Grand Cherokee SRT8 (WK2, 2012-2013) specifications: wheelbase 114.8 in, track 64.1 / 64.4 in; 295/45ZR20 tyres (radius 254 + 132.8 mm)."
+   },
+   "roles": {
+    "carskin_skin1": "paint",
+    "magsilver_tire": "wheel_alloy",
+    "magsilver_tire.001": "wheel_alloy",
+    "magsilver_tire.002": "wheel_alloy",
+    "magsilver_tire.003": "wheel_alloy"
+   }
+  },
+  "odyssey18": {
+   "model": "data/art/traffic/odyssey-175ce6fb/scene.gltf",
+   "credit": "\"Honda Odessey\" by MattDoesBlender (https://sketchfab.com/3d-models/honda-odessey-175ce6fbbb11469ab068965ce4854554), CC BY 4.0",
+   "parked": {
+    "wheelbase_m": 3.000, "front_track_m": 1.725, "rear_track_m": 1.725, "tyre_radius_m": 0.370, "tyre_width_m": 0.235,
+    "source": "Honda Odyssey (2018-2024) specifications: wheelbase 118.1 in, track 67.9 in; 235/60R18 tyres (radius 228.6 + 141 mm)."
+   },
+   "roles": {
+    "Body": "paint",
+    "kaca_Material": "glass",
+    "glassLamp": "lamp_front",
+    "ban_Material": "tyre",
+    "chrome_Mat": "chrome"
+   }
   }
  }
 }
