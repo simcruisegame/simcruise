@@ -80,6 +80,31 @@ double SimCruiseTrafficModel::LaneOffsetM(const FSimCruiseRibbon& Ribbon, int32 
 	return Dir * SimCruiseLanes::RightLaneCentreM(Ribbon.Class, St.HalfW, 0, Driver);
 }
 
+/**
+ * The next place along the ribbon where a car chooses its way: the centre of the next
+ * run of stations another carriageway crosses (FSimCruiseRibbonSide::Cut), beyond 2 m
+ * ahead and not the junction just passed, or the ribbon's end (bEnd).
+ */
+double SimCruiseTrafficModel::NextDecisionS(const FSimCruiseRibbon& R, int32 Dir, double S, double SkipNearS, bool& bEnd)
+{
+	const int32 N = R.St.Num();
+	auto IsCut = [&](int32 I)
+	{
+		return (R.Sides[0].Cut.IsValidIndex(I) && R.Sides[0].Cut[I]) || (R.Sides[1].Cut.IsValidIndex(I) && R.Sides[1].Cut[I]);
+	};
+	for (int32 K = 0; K < N; ++K)
+	{
+		const int32 I = Dir > 0 ? K : N - 1 - K;
+		if (Dir * (R.St[I].S - S) <= 2.0 || !IsCut(I) || FMath::Abs(R.St[I].S - SkipNearS) < 15.0) continue;
+		int32 J = I;
+		while (J + Dir >= 0 && J + Dir < N && IsCut(J + Dir)) J += Dir;
+		bEnd = false;
+		return 0.5 * (R.St[I].S + R.St[J].S);
+	}
+	bEnd = true;
+	return Dir > 0 ? R.St.Last().S : R.St[0].S;
+}
+
 // ---------------------------------------------------------------------------- car
 
 ASimCruiseTrafficCar::ASimCruiseTrafficCar()
@@ -180,15 +205,19 @@ ASimCruiseTraffic::FPose ASimCruiseTraffic::PoseAt(const FIntPoint& Tile, int32 
 	return Pose;
 }
 
-bool ASimCruiseTraffic::ChooseNext(ASimCruiseTrafficCar& Car) const
+bool ASimCruiseTraffic::ChooseAt(ASimCruiseTrafficCar& Car, double DecisionS, bool bAtEnd) const
 {
 	const FSimCruiseRibbon* R = GetRibbon(Car.Tile, Car.Ribbon);
 	if (!R) return false;
-	const double EndS = Car.Dir > 0 ? R->St.Last().S : R->St[0].S;
-	const FPose End = PoseAt(Car.Tile, Car.Ribbon, Car.Dir, EndS);
+	const FPose End = PoseAt(Car.Tile, Car.Ribbon, Car.Dir, DecisionS);
 	if (!End.bValid) return false;
 	struct FOption { FIntPoint Tile; int32 Ribbon; int32 Dir; double S; double TurnDeg; double Weight; };
 	TArray<FOption> Options;
+	// At a junction along the ribbon, straight on is the likeliest way.
+	if (!bAtEnd) Options.Add({ Car.Tile, Car.Ribbon, Car.Dir, DecisionS, 0.0, 3.0 });
+	// What meets this end: the same street carrying on (a tile seam) or a crossing road.
+	int32 CrossRank = MIN_int32;
+	double CrossHalfW = 0.0;
 	const ASimCruiseWorldTile* Here = Streamer->GetTile(Car.Tile);
 	for (int32 Dx = -1; Dx <= 1; ++Dx)
 	{
@@ -228,6 +257,13 @@ bool ASimCruiseTraffic::ChooseNext(ASimCruiseTrafficCar& Car) const
 				const double Tt = Hit.Value.Value;
 				const double EntryS = FMath::Lerp(Other.St[I].S, Other.St[I + 1].S, Tt);
 				const FVector2d Tn = FMath::Lerp(Other.St[I].T, Other.St[I + 1].T, Tt).GetSafeNormal();
+				const bool bAtItsEnd = EntryS - Other.St[0].S < 2.0 || Other.St.Last().S - EntryS < 2.0;
+				const bool bInLine = FMath::Abs(FVector2d::DotProduct(Tn, End.Heading)) > 0.94;
+				if (!(bAtItsEnd && bInLine && Other.Name == R->Name))
+				{
+					CrossRank = FMath::Max(CrossRank, Other.Rank);
+					CrossHalfW = FMath::Max(CrossHalfW, Other.St[I].HalfW);
+				}
 				for (const int32 Dir : { 1, -1 })
 				{
 					if (Other.St[I].Travel != 0 && Other.St[I].Travel != Dir) continue;
@@ -242,6 +278,15 @@ bool ASimCruiseTraffic::ChooseNext(ASimCruiseTrafficCar& Car) const
 		}
 	}
 	if (Options.IsEmpty()) return false;
+	// US practice at a junction without signals: the minor approach stops (a stop sign);
+	// between equal minor streets every approach does (an all-way stop); the priority road
+	// carries on.
+	Car.StopState = CrossRank != MIN_int32 && (CrossRank > R->Rank || (CrossRank == R->Rank && !R->bMajor)) ? 1 : 0;
+	Car.DecisionS = DecisionS;
+	Car.bDecisionAtEnd = bAtEnd;
+	Car.JunctionCm = End.LocationCm;
+	Car.StopBackM = CrossHalfW + 2.5;
+	Car.WaitS = 0.0;
 	double Total = 0.0;
 	for (const FOption& O : Options) Total += O.Weight;
 	uint32 Seed = Car.Seed;
@@ -253,12 +298,14 @@ bool ASimCruiseTraffic::ChooseNext(ASimCruiseTrafficCar& Car) const
 		if (Pick <= 0.0)
 		{
 			Car.NextTile = O.Tile; Car.NextRibbon = O.Ribbon; Car.NextDir = O.Dir; Car.NextS = O.S; Car.NextTurnDeg = O.TurnDeg;
+			Car.bNextStraight = O.Tile == Car.Tile && O.Ribbon == Car.Ribbon && O.Dir == Car.Dir;
 			Car.bNextChosen = true;
 			return true;
 		}
 	}
 	const FOption& O = Options.Last();
 	Car.NextTile = O.Tile; Car.NextRibbon = O.Ribbon; Car.NextDir = O.Dir; Car.NextS = O.S; Car.NextTurnDeg = O.TurnDeg;
+	Car.bNextStraight = O.Tile == Car.Tile && O.Ribbon == Car.Ribbon && O.Dir == Car.Dir;
 	Car.bNextChosen = true;
 	return true;
 }
@@ -271,6 +318,7 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 	const FVector2d Fwd = Here.Heading;
 	// The car ahead in this lane (traffic or the player): bumper-to-bumper gap and closing speed.
 	double Gap = -1.0, Closing = 0.0;
+	int32 Why = 0, Source = 1;
 	auto Consider = [&](const FVector& OtherCm, const FVector2d& OtherVel, double OtherLength)
 	{
 		const FVector2d D((OtherCm.X - Here.LocationCm.X) / 100.0, (OtherCm.Y - Here.LocationCm.Y) / 100.0);
@@ -282,6 +330,7 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 		{
 			Gap = FMath::Max(G, 0.05);
 			Closing = Car.Speed - FVector2d::DotProduct(OtherVel, Fwd);
+			Why = Source;
 		}
 	};
 	for (const ASimCruiseTrafficCar* Other : Cars)
@@ -291,39 +340,136 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 		const FVector2d Heading(FMath::Cos(FMath::DegreesToRadians(Other->GetActorRotation().Yaw)), FMath::Sin(FMath::DegreesToRadians(Other->GetActorRotation().Yaw)));
 		Consider(Loc, Heading * Other->Speed, Other->LengthM);
 	}
+	Source = 2;
 	Consider(PlayerCm, FVector2d(PlayerVelCm.X, PlayerVelCm.Y) / 100.0, 4.2);
+
+	// Anything crossing the path just ahead (a car turning or crossing at a junction): brake
+	// as for a stopped car where it is.
+	const double Probe = FMath::Clamp(Car.Speed * 2.5, 8.0, 25.0);
+	auto Crossing = [&](const FVector& OtherCm, const FVector2d& OtherHeading)
+	{
+		if (FVector2d::DotProduct(OtherHeading, Fwd) > 0.5) return;
+		for (double D = 4.0; D <= Probe; D += 4.0)
+		{
+			const FVector2d P(Here.LocationCm.X / 100.0 + Fwd.X * D, Here.LocationCm.Y / 100.0 + Fwd.Y * D);
+			if (FVector2d::Distance(P, FVector2d(OtherCm.X / 100.0, OtherCm.Y / 100.0)) < 3.0)
+			{
+				const double G = FMath::Max(D - 0.5 * Car.LengthM - 2.0, 0.05);
+				if (Gap < 0.0 || G < Gap) { Gap = G; Closing = Car.Speed; Why = 3; }
+				return;
+			}
+		}
+	};
+	for (const ASimCruiseTrafficCar* Other : Cars)
+	{
+		// A car waiting behind its stop line is not in the way.
+		if (!Other || Other == &Car || Other->Ribbon == INDEX_NONE || Other->StopState == 2) continue;
+		const double Yaw = FMath::DegreesToRadians(Other->GetActorRotation().Yaw);
+		Crossing(Other->GetActorLocation(), FVector2d(FMath::Cos(Yaw), FMath::Sin(Yaw)));
+	}
+	const FVector2d PlayerHeading = FVector2d(PlayerVelCm.X, PlayerVelCm.Y).GetSafeNormal();
+	if (!PlayerHeading.IsNearlyZero()) Crossing(PlayerCm, PlayerHeading);
 
 	// Speed: the class's limit, and slower into a turn (about 0.25 g round a corner).
 	double V0 = Car.DesiredSpeed;
 	const double EndS = Car.Dir > 0 ? R->St.Last().S : R->St[0].S;
-	const double Remaining = FMath::Abs(EndS - Car.S);
-	if (!Car.bNextChosen && Remaining < 45.0) ChooseNext(Car);
+	if (!Car.bNextChosen)
+	{
+		bool bEnd = true;
+		const double Next = SimCruiseTrafficModel::NextDecisionS(*R, Car.Dir, Car.S, Car.LastDecisionS, bEnd);
+		if (FMath::Abs(Next - Car.S) < 45.0) ChooseAt(Car, Next, bEnd);
+	}
+	const double Remaining = Car.bNextChosen ? FMath::Abs(Car.DecisionS - Car.S) : FMath::Abs(EndS - Car.S);
 	if (Car.bNextChosen && FMath::Abs(Car.NextTurnDeg) > 30.0)
 	{
 		const double TurnSpeed = FMath::Lerp(7.0, 4.5, FMath::Clamp((FMath::Abs(Car.NextTurnDeg) - 30.0) / 60.0, 0.0, 1.0));
 		// Brake gently to the turn speed over the last stretch.
 		V0 = FMath::Min(V0, FMath::Sqrt(TurnSpeed * TurnSpeed + 2.0 * 1.5 * FMath::Max(Remaining - 5.0, 0.0)));
 	}
+	// A stop: the stop line is a stopped car to the IDM; stopped, wait at least a second
+	// and until the junction is clear and nothing on the other roads is about to arrive.
+	if (Car.StopState == 1 || Car.StopState == 2)
+	{
+		const double ToLine = Remaining - Car.StopBackM;
+		if (ToLine < 60.0)
+		{
+			// The stopped car the IDM keeps 2 m (its jam gap) behind stands 2 m past the line:
+			// the front bumper stops at the line.
+			const double G = FMath::Max(ToLine - 0.5 * Car.LengthM + 2.0, 0.05);
+			if (Gap < 0.0 || G < Gap) { Gap = G; Closing = Car.Speed; Why = 4; }
+		}
+		if (Car.StopState == 1 && Car.Speed < 0.3 && ToLine < 0.5 * Car.LengthM + 1.5)
+		{
+			Car.StopState = 2;
+			Car.WaitS = 0.0;
+		}
+		if (Car.StopState == 2)
+		{
+			Car.WaitS += Dt;
+			bool bClear = Car.WaitS > 1.2;
+			auto Blocks = [&](const FVector& OtherCm, const FVector2d& OtherHeading, double OtherSpeed, const ASimCruiseTrafficCar* OtherCar)
+			{
+				const FVector2d ToJ((Car.JunctionCm.X - OtherCm.X) / 100.0, (Car.JunctionCm.Y - OtherCm.Y) / 100.0);
+				const double Dist = ToJ.Size();
+				// Another car waiting at its own stop line: all-way stop order, first to stop goes first.
+				if (OtherCar && OtherCar->StopState == 2)
+				{
+					return Dist < 25.0 && (OtherCar->WaitS > Car.WaitS + 1e-3 || (FMath::IsNearlyEqual(OtherCar->WaitS, Car.WaitS, 1e-3) && OtherCar < &Car));
+				}
+				// Moving through the junction (not alongside in this lane).
+				if (Dist < 10.0 && OtherSpeed > 0.5 && FVector2d::DotProduct(OtherHeading, Fwd) < 0.9) return true;
+				// About to arrive on a road that does not stop (within 5 s).
+				const bool bTowards = FVector2d::DotProduct(OtherHeading, ToJ) > 0.0;
+				const bool bWillStop = OtherCar && OtherCar->StopState == 1;
+				return bTowards && !bWillStop && OtherSpeed > 1.0 && Dist > 2.0 && Dist / OtherSpeed < 5.0;
+			};
+			for (const ASimCruiseTrafficCar* Other : Cars)
+			{
+				if (!bClear) break;
+				if (!Other || Other == &Car || Other->Ribbon == INDEX_NONE) continue;
+				const double Yaw = FMath::DegreesToRadians(Other->GetActorRotation().Yaw);
+				if (Blocks(Other->GetActorLocation(), FVector2d(FMath::Cos(Yaw), FMath::Sin(Yaw)), Other->Speed, Other)) bClear = false;
+			}
+			if (bClear && Blocks(PlayerCm, PlayerHeading, PlayerVelCm.Size2D() / 100.0, nullptr)) bClear = false;
+			if (bClear) { Car.StopState = 3; ++StopsPassed; }
+		}
+	}
+	Car.Why = Why;
 	const double Accel = SimCruiseTrafficModel::IdmAcceleration(Car.Speed, V0, Gap, Closing);
 	Car.Speed = FMath::Max(0.0, Car.Speed + Accel * Dt);
 	Car.bBraking = Accel < -0.6 || (Car.Speed < 0.2 && Gap >= 0.0 && Gap < 6.0);
 	Car.S += Car.Dir * Car.Speed * Dt;
 
-	// Past the end: onto the chosen successor, the jump eased out.
-	const double Over = Car.Dir > 0 ? Car.S - R->St.Last().S : R->St[0].S - Car.S;
+	// Through a junction straight on: carry on along this ribbon.
+	if (Car.bNextChosen && Car.bNextStraight && Car.Dir * (Car.S - Car.DecisionS) >= 0.0)
+	{
+		Car.bNextChosen = false;
+		Car.StopState = 0;
+		Car.LastDecisionS = Car.DecisionS;
+	}
+	// Past a turn or the end: onto the chosen successor, the jump eased out.
+	const double Over = Car.bNextChosen && !Car.bNextStraight ? Car.Dir * (Car.S - Car.DecisionS) : (Car.Dir > 0 ? Car.S - R->St.Last().S : R->St[0].S - Car.S);
 	if (Over > 0.0)
 	{
-		if (!Car.bNextChosen && !ChooseNext(Car))
+		if (!Car.bNextChosen && !ChooseAt(Car, EndS, true))
 		{
 			Car.Ribbon = INDEX_NONE;
 			return;
 		}
-		const FPose Old = PoseAt(Car.Tile, Car.Ribbon, Car.Dir, EndS);
+		if (Car.bNextStraight)
+		{
+			// The end of a ribbon with only the way it came: nowhere to go.
+			Car.Ribbon = INDEX_NONE;
+			return;
+		}
+		const FPose Old = PoseAt(Car.Tile, Car.Ribbon, Car.Dir, Car.DecisionS);
 		Car.Tile = Car.NextTile;
 		Car.Ribbon = Car.NextRibbon;
 		Car.Dir = Car.NextDir;
 		Car.S = Car.NextS + Car.Dir * Over;
 		Car.bNextChosen = false;
+		Car.StopState = 0;
+		Car.LastDecisionS = -1e9;
 		++RibbonChanges;
 		const FPose New = PoseAt(Car.Tile, Car.Ribbon, Car.Dir, Car.S);
 		if (!New.bValid) { Car.Ribbon = INDEX_NONE; return; }
@@ -447,15 +593,23 @@ void ASimCruiseTraffic::Tick(float DeltaSeconds)
 	if (ReportClock <= 0.0)
 	{
 		ReportClock = 5.0;
-		int32 Moving = 0;
+		int32 Moving = 0, AtStops = 0, Standing = 0;
+		int32 WhyCount[5] = {};
 		double Sum = 0.0;
 		for (const ASimCruiseTrafficCar* Car : Cars)
 		{
 			if (!Car) continue;
 			Sum += Car->Speed;
 			Moving += Car->Speed > 1.0 ? 1 : 0;
+			AtStops += Car->StopState == 2 ? 1 : 0;
+			if (Car->Speed < 0.3 && Car->StopState != 2)
+			{
+				++Standing;
+				++WhyCount[FMath::Clamp(Car->Why, 0, 4)];
+			}
 		}
-		UE_LOG(LogTemp, Display, TEXT("SimCruise traffic: %d cars, %d moving, mean %.1f m/s, %d ribbon changes, %d spawned"), Cars.Num(), Moving, Cars.Num() ? Sum / Cars.Num() : 0.0, RibbonChanges, Spawned);
+		UE_LOG(LogTemp, Display, TEXT("SimCruise traffic: %d cars, %d moving, %d waiting at stops, %d standing elsewhere (lane %d, player %d, crossing %d, stop line %d, none %d), mean %.1f m/s, %d ribbon changes, %d spawned, %d stops passed"),
+			Cars.Num(), Moving, AtStops, Standing, WhyCount[1], WhyCount[2], WhyCount[3], WhyCount[4], WhyCount[0], Cars.Num() ? Sum / Cars.Num() : 0.0, RibbonChanges, Spawned, StopsPassed);
 	}
 	const int32 Want = FMath::Max(0, CVarTrafficCars.GetValueOnGameThread());
 	for (int32 Tries = 0; Tries < 2 && Cars.Num() < Want; ++Tries)

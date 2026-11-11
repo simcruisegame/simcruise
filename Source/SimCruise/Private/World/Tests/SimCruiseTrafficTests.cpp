@@ -88,6 +88,33 @@ bool FSimCruiseTrafficModelTest::RunTest(const FString& Parameters)
 	const double WideWay = SimCruiseTrafficModel::LaneOffsetM(Wide, 1, -1);
 	TestTrue(FString::Printf(TEXT("one way, two lanes: the right lane toward -R (%.2f)"), WideWay), WideWay < -0.5 && WideWay > -7.0);
 
+	// Junctions along a ribbon: a crossing road cuts stations 3-4 of a 0..100 m street.
+	{
+		FSimCruiseRibbon Street;
+		Street.Class = TEXT("residential");
+		for (int32 I = 0; I <= 10; ++I)
+		{
+			FSimCruiseRibbonStation St;
+			St.C = FVector2d(I * 10.0, 0.0);
+			St.S = I * 10.0;
+			St.HalfW = 5.0;
+			Street.St.Add(St);
+			for (FSimCruiseRibbonSide& Side : Street.Sides)
+			{
+				Side.Edge.Add(ESimCruiseRoadEdge::Kerb);
+				Side.SidewalkM.Add(2.0f);
+				Side.Cut.Add(I == 3 || I == 4 ? 1 : 0);
+			}
+		}
+		bool bEnd = false;
+		const double Ahead = SimCruiseTrafficModel::NextDecisionS(Street, 1, 5.0, -1e9, bEnd);
+		TestTrue(FString::Printf(TEXT("the junction's centre ahead (%.1f m)"), Ahead), !bEnd && FMath::IsNearlyEqual(Ahead, 35.0));
+		const double Past = SimCruiseTrafficModel::NextDecisionS(Street, 1, 36.0, 35.0, bEnd);
+		TestTrue(FString::Printf(TEXT("past it, the street's end (%.1f m)"), Past), bEnd && FMath::IsNearlyEqual(Past, 100.0));
+		const double Back = SimCruiseTrafficModel::NextDecisionS(Street, -1, 90.0, -1e9, bEnd);
+		TestTrue(FString::Printf(TEXT("driving the other way: the same junction (%.1f m)"), Back), !bEnd && FMath::IsNearlyEqual(Back, 35.0));
+	}
+
 	TestNearlyEqual(TEXT("residential streets at 25 mph"), SimCruiseTrafficModel::SpeedLimitMps(TEXT("residential")), 11.2, 0.05);
 	TestNearlyEqual(TEXT("motorways at 65 mph"), SimCruiseTrafficModel::SpeedLimitMps(TEXT("motorway")), 29.1, 0.05);
 	return true;

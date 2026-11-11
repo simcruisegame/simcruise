@@ -30,6 +30,14 @@ namespace SimCruiseTrafficModel
 	 * lane the markings draw, inside any parking lane on the driver's right.
 	 */
 	SIMCRUISE_API double LaneOffsetM(const FSimCruiseRibbon& Ribbon, int32 I, int32 Dir);
+
+	/**
+	 * The next place along the ribbon (m, station S) where a car driving in Dir from S
+	 * chooses its way: the centre of the next run of stations another carriageway crosses
+	 * (FSimCruiseRibbonSide::Cut) beyond 2 m ahead and not within 15 m of SkipNearS (the
+	 * junction just passed), or the ribbon's end (bEnd true).
+	 */
+	SIMCRUISE_API double NextDecisionS(const FSimCruiseRibbon& Ribbon, int32 Dir, double S, double SkipNearS, bool& bEnd);
 }
 
 /**
@@ -77,6 +85,23 @@ public:
 	double NextTurnDeg = 0.0;
 	bool bNextChosen = false;
 	uint32 Seed = 1;
+	/**
+	 * The junction at this ribbon's end: 0 none or a priority road, 1 a stop ahead (a
+	 * minor approach, or an all-way stop between equal minor streets), 2 stopped and
+	 * waiting for a gap, 3 clear to go.
+	 */
+	int32 StopState = 0;
+	FVector JunctionCm = FVector::ZeroVector;
+	double StopBackM = 6.0;
+	double WaitS = 0.0;
+	/** What set the gap last frame: 0 nothing, 1 a car in the lane, 2 the player, 3 a crossing car, 4 a stop line. */
+	int32 Why = 0;
+	/** Where the chosen way on starts (m along the ribbon), whether that is the ribbon's end, and whether it is straight on. */
+	double DecisionS = 0.0;
+	bool bDecisionAtEnd = true;
+	bool bNextStraight = false;
+	/** The last junction passed straight through (not chosen again). */
+	double LastDecisionS = -1e9;
 };
 
 /**
@@ -112,7 +137,8 @@ private:
 	const FSimCruiseRibbon* GetRibbon(const FIntPoint& Tile, int32 Ribbon) const;
 	FPose PoseAt(const FIntPoint& Tile, int32 Ribbon, int32 Dir, double S) const;
 	bool Spawn(const FVector& FocusCm, const FVector& CameraCm, const FVector& CameraFwd, bool bAnywhere);
-	bool ChooseNext(ASimCruiseTrafficCar& Car) const;
+	/** Picks the way on at DecisionS (a junction along the ribbon, or its end when bAtEnd). */
+	bool ChooseAt(ASimCruiseTrafficCar& Car, double DecisionS, bool bAtEnd) const;
 	void Advance(ASimCruiseTrafficCar& Car, double Dt, const FVector& PlayerCm, const FVector& PlayerVelCm);
 
 	UPROPERTY(Transient)
@@ -120,5 +146,5 @@ private:
 	uint32 Random = 0x5eed1234;
 	double SinceStart = 0.0;
 	double ReportClock = 5.0;
-	int32 RibbonChanges = 0, Spawned = 0;
+	int32 RibbonChanges = 0, Spawned = 0, StopsPassed = 0;
 };
