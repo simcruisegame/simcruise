@@ -187,7 +187,10 @@ return lerp(float3(0.010, 0.040, 0.045), float3(0.012, 0.055, 0.055), VC.r);
 		const TCHAR* BuildingCode = TEXT(R"HLSL(
 const float3 W = float3(0.2126, 0.7152, 0.0722);
 float kind = round(UV1.x);
-float seed = UV1.y;
+// The seed is constant on a building, but interpolation leaves it a few 1e-7 off across a
+// triangle, and the hashes below multiply it by about 1e7: quantised, every pixel of a
+// window draws the same random number (unquantised, lit windows speckled at night).
+float seed = floor(UV1.y * 4096.0 + 0.5) / 4096.0;
 float along = UV0.x;
 float h = UV0.y;
 float meanL = max(dot(GrainMean.rgb, W), 0.001);
@@ -217,10 +220,15 @@ if (kind < 0.5 || abs(kind - 11.0) < 0.5)
 	{
 		bayW = 3.6; x = frac(along / bayW + 0.5) * bayW; winW = 3.1; x0 = 0.25; y0 = 0.35; y1 = 2.65;
 	}
-	float inWin = step(x0, x) * step(x, x0 + winW) * step(y0, y) * step(y, y1) * step(0.0, h);
+	// Edges filtered over the pixel's footprint: a window a few pixels across (down the
+	// street) must not alias into a speckle under the temporal jitter.
+	float fx = max(fwidth(along), 1e-4), fy = max(fwidth(h), 1e-4), fm = max(fx, fy);
+	float inWin = saturate((x - x0) / fx + 0.5) * saturate((x0 + winW - x) / fx + 0.5) * saturate((y - y0) / fy + 0.5) * saturate((y1 - y) / fy + 0.5) * step(0.0, h);
 	float edge = min(min(x - x0, x0 + winW - x), min(y - y0, y1 - y));
-	float frame = inWin * (1.0 - step(0.055, edge));
-	float mullion = inWin * step(abs(x - (x0 + 0.5 * winW)), 0.025) * (shop ? 0.0 : 1.0);
+	// Frames and mullions thinner than a pixel fade to their share of the window.
+	float thin = saturate(1.5 - fm / 0.06);
+	float frame = inWin * lerp(0.15, saturate((0.055 - edge) / fm + 0.5), thin);
+	float mullion = inWin * lerp(0.05, saturate((0.025 - abs(x - (x0 + 0.5 * winW))) / fx + 0.5), thin) * (shop ? 0.0 : 1.0);
 	frame = saturate(frame + mullion);
 	float reveal = inWin * (1.0 - smoothstep(0.0, 0.14, y1 - y));
 	float2 cell = float2(floor(along / bayW + 0.5), level);
@@ -234,10 +242,12 @@ if (kind < 0.5 || abs(kind - 11.0) < 0.5)
 	col *= 1.0 - 0.45 * reveal * (1.0 - frame);
 	rough = lerp(0.9, 0.04, pane);
 	float lit = shop ? step(r, 0.72) : step(r, 0.36);
-	rough = lerp(rough, 0.45, pane * lit * Lights); // a lit room shows its light, not a noisy mirror
+	rough = lerp(rough, 0.95, pane * lit * Lights); // a lit room shows its light, not a noisy mirror
 	// Shops: warm interiors, brighter toward the ceiling lights, a few closed for the night.
+	// Luminance through the glass (cd/m2): a shop lit to 500-1000 lux reads 60-150, a lit
+	// room 15-45; dimmer and the street's reflection in the pane (noisy at night) wins.
 	float depth = shop ? lerp(0.45, 1.0, saturate((y - y0) / (y1 - y0))) : 1.0;
-	emis = pane * lit * Lights * depth * lerp(float3(1.0, 0.72, 0.45), float3(1.0, 0.86, 0.7), frac(r * 3.3)) * (shop ? 1.5 + 2.5 * frac(r * 5.1) : 3.0 + 9.0 * frac(r * 9.7));
+	emis = pane * lit * Lights * depth * lerp(float3(1.0, 0.72, 0.45), float3(1.0, 0.86, 0.7), frac(r * 3.3)) * (shop ? 60.0 + 90.0 * frac(r * 5.1) : 15.0 + 30.0 * frac(r * 9.7));
 }
 else if (kind < 1.5) { rough = 0.86; }
 else if (kind < 2.5) { col = VC.rgb * lerp(1.0, grain, 0.35); rough = 0.93; }
@@ -248,7 +258,8 @@ else if (kind < 4.5)
 	bars = saturate(bars);
 	col = lerp(float3(0.02, 0.026, 0.03), float3(0.8, 0.8, 0.77), bars);
 	rough = lerp(0.04, 0.5, bars);
-	emis = (1.0 - bars) * Lights * float3(1.0, 0.8, 0.55) * 5.0;
+	emis = (1.0 - bars) * Lights * float3(1.0, 0.8, 0.55) * 80.0; // a lit lobby or cafe behind the porch glass
+	rough = lerp(rough, 0.95, (1.0 - bars) * Lights);
 }
 else if (kind < 5.5) { col = VC.rgb * lerp(1.0, grain, 0.25); rough = 0.5; }
 else if (kind < 6.5) { col = VC.rgb * lerp(1.0, grain, 0.12); rough = 0.42; metal = 0.6; }
@@ -271,7 +282,7 @@ return max(col, 0.0);
 		const TCHAR* FoliageCode = TEXT(R"HLSL(
 float s = UV0.x;
 float v = abs(UV0.y);
-float seed = UV1.y;
+float seed = floor(UV1.y * 4096.0 + 0.5) / 4096.0; // quantised (see the building shader)
 float t = s * 90.0 - v * 7.0;
 float idx = floor(t);
 float r = frac(sin((idx + seed * 131.0) * 12.9898) * 43758.5453);
