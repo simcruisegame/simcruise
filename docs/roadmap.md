@@ -10,12 +10,12 @@ Done (see the [changelog](../CHANGELOG.md) "Unreleased"): graphics presets with 
 
 ## Next: the plan after the November 2026 work
 
-What landed in 1.1 is in the [changelog](../CHANGELOG.md): road benches and bridge decks, the real-road test drive, five new cars with calibrated physics and generated models, a Windows build and steep-slope ground. This is the ordered list that follows, with what each item is measured by.
+What landed in 1.1 is in the [changelog](../CHANGELOG.md): road benches and bridge decks, the real-road test drive, five new cars with calibrated physics and generated models (later in November 2026 the fifth became the Corvette C8 on a real model, and the four that still had generated bodies were removed), a Windows build and steep-slope ground. This is the ordered list that follows, with what each item is measured by.
 
 **Driving**
-1. ~~**Slip-dependent tyre curve**~~ — done (November 2026): peak and fall-off, load-dependent relaxation, stable traction control, ABS in both directions. Open: the ABS cars stop 0.6–3 ft longer than before (all in band), and at 0.7 g the Volta still spins on a lift or trail brake (reported by `LiftOff.gd`, not gated).
+1. ~~**Slip-dependent tyre curve**~~ — done (November 2026): peak and fall-off, load-dependent relaxation, stable traction control, ABS in both directions. Open: the ABS cars stop 0.6–3 ft longer than before (all in band).
 2. **Volumetric tyres**: replace the single ray per wheel with a shape cast so kerbs, potholes and bridge joints are felt over the contact patch. Gate: `RoadDrive` jolt counts on the Dragon and I-180 do not rise.
-3. **Engine voices per car**: a V6, a V8 and an electric motor whine next to the four-cylinder; the electric car is silent today.
+3. **Engine voices per car**: a small-block V8 for the Mustang and the Corvette next to the four-cylinder; both use the four-cylinder voice today.
 4. **Tunnels**: carve the terrain along mapped tunnels instead of dropping them; roads currently end at portals.
 5. **Floating origin check**: confirm long drives do not jitter far from the session origin, and rebase the world if they do.
 
@@ -30,7 +30,7 @@ What landed in 1.1 is in the [changelog](../CHANGELOG.md): road benches and brid
 
 **Runs everywhere**
 1. **Quality presets** (Low, Medium, High, Ultra) with Low chosen automatically on 8 GB, small-GPU machines such as the MacBook Neo: render scale, shadow distance, canopy density, tile ring. Gate: `RenderCost` frame times on each preset.
-2. **Level of detail** for the generated cars and distant buildings; impostors past 700 m.
+2. **Level of detail** for distant buildings; impostors past 700 m.
 3. **The Windows build tested on real Windows** before the first release that ships it (under Wine only the installer and the helper could be verified).
 
 **Ideas collected from contributors** (not yet scheduled): speed-based camera field of view and subtle lean, wet and dirt maps from live weather, in-editor authoring tools in place of the Python scripts, quadtree terrain level of detail.

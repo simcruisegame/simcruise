@@ -1,6 +1,6 @@
 """Build a SimCruise car model in Blender from a design file (v3).
 
-    blender -b -P authoring/cars/build_car.py -- authoring/cars/designs/kestrel_s.py game/art/cars/kestrel_s.glb
+    blender -b -P authoring/cars/build_car.py -- authoring/cars/designs/<id>.py game/art/cars/<id>.glb
         [--render out.png --view three-quarter|side|front|rear|top|cabin|rear-three-quarter]
         [--camera cam.json --render out.png]      (match a reference photograph)
         [--fast]                                  (Workbench render, shape checks)

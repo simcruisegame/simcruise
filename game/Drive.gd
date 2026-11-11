@@ -191,12 +191,14 @@ func _ready():
  daylight.configure_sun(sun);daylight.apply_conditions(env,sun,daylight.CLEAR_CLOUD,16093.);add_child(sun)
  probe.size=Vector3(78,30,78);probe.max_distance=100;probe.intensity=.53;probe.cull_mask=1;add_child(probe)
  # The chosen car (preference "car", or --car=<id> for checks). Cars with a
- # generated model use CarBody.gd; the 1999 roadster keeps its CarFinish pass.
+ # model file (model_scene) use CarBody.gd; the 1999 roadster keeps its
+ # CarFinish pass. An unknown id (a retired car) falls back to the default car.
  driving_preferences.open()
  var car_id:String=driving_preferences.values.car
  for arg in OS.get_cmdline_user_args():
   if arg.begins_with("--car="):car_id=arg.trim_prefix("--car=")
  var car_spec=preload("res://CarSpec.gd").load_id(car_id)
+ car_id=car_spec.id
  # A private model for this car (user://cars/<id>.glb, e.g. one you bought or
  # downloaded for yourself) replaces its exterior; it stays on this machine.
  # --stock-model ignores it.
@@ -551,7 +553,7 @@ func toggle_sound():
   engine_voice=preload("res://InlineFourSound.gd").new()
   # Headless checks keep the mixer idle: the dummy audio driver never releases a
   # playing generator before quit, which the exit leak checker then reports.
-  # The electric car has no combustion sound (a motor voice is future work).
+  # An electric car has no combustion sound (a motor voice is future work).
   if DisplayServer.get_name()!="headless" and not vehicle.electric():engine.play();engine_stream=engine.get_stream_playback()
  else:
   engine.stop();engine_stream=null;engine_voice=null

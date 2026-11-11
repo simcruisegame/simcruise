@@ -48,6 +48,8 @@ static func coerce(name: String, value):
   "head_motion":return clampf(value,0.,1.)
   "view_cm":return clampf(value,20.,300.)
   "car_dirt":return clampf(value,0.,1.)
+  # A saved car whose file has left the game (a retired car) becomes the default car.
+  "car":return value if FileAccess.file_exists("res://cars/%s.json"%value) else DEFAULTS.car
  return value
 
 func remember(name: String, value) -> void:

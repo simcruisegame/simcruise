@@ -36,13 +36,9 @@ const ALLOWED_GAIN=1.03
 # Combined grip (g) at each turn, on main fe0f9db (before the slip-ratio
 # curve), measured with this file. 0: spun or locked at every pedal.
 const MAIN={
- "bison_xl":[.669,.670],
- "kestrel_s":[.768,.994],
  "meridian_z":[.746,.926],
  "mustang65":[.662,.729],
  "nb1999":[.808,.955],
- "tora_rs":[.736,1.019],
- "volta":[.680,0.],
 }
 var queue=[];var spec;var car;var pad
 var turn_i=0;var pedal=0.;var state=0;var t=0.;var tick=0;var locks_in_row=0

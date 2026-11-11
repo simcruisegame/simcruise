@@ -2,7 +2,7 @@ extends SceneTree
 ## Calibration bench for any car in res://cars: 0-60 mph, 70-0 mph and the
 ## 300 ft skidpad, compared with the car's published targets.
 ##
-##   godot --headless --path game --fixed-fps 60 --script res://checks/CarTrack.gd -- --car=kestrel_s
+##   godot --headless --path game --fixed-fps 60 --script res://checks/CarTrack.gd -- --car=mustang65
 ##   ... -- --all          every car in res://cars, one table
 ##
 ## The acceleration and braking runs repeat checks/Track.gd's procedure (settle
