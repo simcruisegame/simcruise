@@ -3,7 +3,10 @@
 #include "World/SimCruiseTraffic.h"
 
 #include "Algo/BinarySearch.h"
+#include "Audio/SimCruiseEngineSoundComponent.h"
+#include "AudioDevice.h"
 #include "Camera/PlayerCameraManager.h"
+#include "Presentation/SimCruisePresentationProfile.h"
 #include "Components/BoxComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
@@ -20,6 +23,9 @@ namespace
 {
 	TAutoConsoleVariable<int32> CVarTrafficCars(TEXT("simcruise.Traffic.Cars"), 20,
 		TEXT("How many moving cars drive round the player's car (0: none)."));
+	TAutoConsoleVariable<int32> CVarTrafficSound(TEXT("simcruise.Traffic.Sound"), 1,
+		TEXT("1: traffic cars within 40 m are heard (their engines, in place); 0: silent traffic."));
+	constexpr double VoiceRangeM = 40.0;
 
 	constexpr double SpawnMinM = 60.0, SpawnMaxM = 260.0, RemoveM = 320.0;
 
@@ -140,8 +146,9 @@ ASimCruiseTrafficCar::ASimCruiseTrafficCar()
 	Collision->SetMobility(EComponentMobility::Movable);
 }
 
-bool ASimCruiseTrafficCar::Setup(const FString& CarId, const FLinearColor& Paint)
+bool ASimCruiseTrafficCar::Setup(const FString& InCarId, const FLinearColor& Paint)
 {
+	CarId = InCarId;
 	if (!Presentation->InitializeForCar(CarId))
 	{
 		return false;
@@ -495,6 +502,7 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 	}
 	Car.Why = Why;
 	const double Accel = SimCruiseTrafficModel::IdmAcceleration(Car.Speed, V0, Gap, Closing);
+	Car.Accel = Accel;
 	Car.Speed = FMath::Max(0.0, Car.Speed + Accel * Dt);
 	Car.bBraking = Accel < -0.6 || (Car.Speed < 0.2 && Gap >= 0.0 && Gap < 6.0);
 	Car.S += Car.Dir * Car.Speed * Dt;
@@ -600,6 +608,52 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 	const double YawRate = FMath::DegreesToRadians(FRotator::NormalizeAxis(Yaw - PrevYaw)) / FMath::Max(Dt, 1e-3);
 	const double Steer = Car.Speed > 0.5 ? FMath::Atan(2.6 * YawRate / Car.Speed) : Car.SteerRad;
 	Car.SteerRad += (FMath::Clamp(Steer, -0.6, 0.6) - Car.SteerRad) * (1.0 - FMath::Exp(-Dt / 0.15));
+}
+
+void ASimCruiseTraffic::UpdateVoice(ASimCruiseTrafficCar& Car, double DistanceM, bool bSound)
+{
+	// An electric car has no combustion sound.
+	const bool bWant = bSound && DistanceM < VoiceRangeM && Car.CarId != TEXT("model3");
+	if (!bWant)
+	{
+		if (Car.Voice && Car.Voice->IsPlaying()) Car.Voice->Stop();
+		return;
+	}
+	if (!Car.Voice)
+	{
+		Car.Voice = NewObject<USimCruiseEngineSoundComponent>(&Car, TEXT("Voice"));
+		Car.Voice->SetupAttachment(Car.Presentation);
+		Car.Voice->bAllowSpatialization = true;
+		Car.Voice->bOverrideAttenuation = true;
+		FSoundAttenuationSettings& A = Car.Voice->AttenuationOverrides;
+		A.bAttenuate = true;
+		A.bSpatialize = true;
+		A.DistanceAlgorithm = EAttenuationDistanceModel::NaturalSound;
+		A.AttenuationShapeExtents = FVector(300.f, 0.f, 0.f);  // full level within 3 m
+		A.FalloffDistance = static_cast<float>(VoiceRangeM * 100.0) - 300.f;
+		// The player's engine sits at -12 dB as the Godot mix had it; an engine outside is
+		// heard at the same level up close.
+		Car.Voice->SetVolumeMultiplier(0.25f);
+		if (const FSimCruiseCarPresentationProfile* Profile = Car.Presentation->GetProfile())
+		{
+			if (Profile->EngineSound.IsSet())
+			{
+				Car.Voice->ConfigureCrossPlaneV8(Profile->EngineSound->BankOfEvent, Profile->EngineSound->NearGain, Profile->EngineSound->FarGain);
+			}
+		}
+		Car.Voice->RegisterComponent();
+	}
+	// An automatic cruising in a tall gear: about 750 rpm plus 80 per m/s, more while it
+	// pulls away; the load follows the acceleration.
+	FSimCruiseInlineFourSynth::FInputs In;
+	const double Pull = FMath::Max(Car.Accel, 0.0);
+	In.Rpm = FMath::Clamp(750.0 + 80.0 * Car.Speed + 600.0 * Pull, 700.0, 4500.0);
+	In.Combustion = FMath::Clamp(0.12 + 0.4 * Pull + 0.01 * Car.Speed, 0.0, 1.0);
+	In.ShaftLoad = FMath::Clamp(0.06 + 0.45 * Car.Accel, -1.0, 1.0);
+	In.Pedal = FMath::Clamp(Pull / 1.4, 0.0, 1.0);
+	In.bCabin = false;
+	Car.Voice->SetEngineState(In);
+	if (!Car.Voice->IsPlaying()) Car.Voice->Start();
 }
 
 bool ASimCruiseTraffic::LaneClear(const ASimCruiseTrafficCar& Car, int32 Lane, const FVector& PlayerCm) const
@@ -709,6 +763,8 @@ void ASimCruiseTraffic::Tick(float DeltaSeconds)
 	const FVector CameraFwd = PC->PlayerCameraManager ? PC->PlayerCameraManager->GetCameraRotation().Vector() : Player->GetActorForwardVector();
 	const double Dt = FMath::Min(static_cast<double>(DeltaSeconds), 0.1);
 	const bool bNight = Streamer->GetLightsOn() > 0.5f;
+	// Heard only with an audio device (not in headless runs).
+	const bool bSound = CVarTrafficSound.GetValueOnGameThread() != 0 && GetWorld()->GetAudioDevice().IsValid();
 	for (int32 I = Cars.Num() - 1; I >= 0; --I)
 	{
 		ASimCruiseTrafficCar* Car = Cars[I];
@@ -716,6 +772,7 @@ void ASimCruiseTraffic::Tick(float DeltaSeconds)
 		{
 			Car->bLamps = bNight;
 			Advance(*Car, Dt, Focus, PlayerVel);
+			UpdateVoice(*Car, FVector::Dist(Car->GetActorLocation(), CameraCm) / 100.0, bSound);
 		}
 		if (!Car || Car->Ribbon == INDEX_NONE || FVector::Dist(Car->GetActorLocation(), Focus) > RemoveM * 100.0)
 		{
@@ -727,7 +784,7 @@ void ASimCruiseTraffic::Tick(float DeltaSeconds)
 	if (ReportClock <= 0.0)
 	{
 		ReportClock = 5.0;
-		int32 Moving = 0, AtStops = 0, Standing = 0;
+		int32 Moving = 0, AtStops = 0, Standing = 0, Heard = 0;
 		int32 WhyCount[6] = {};
 		double Sum = 0.0;
 		for (const ASimCruiseTrafficCar* Car : Cars)
@@ -736,14 +793,15 @@ void ASimCruiseTraffic::Tick(float DeltaSeconds)
 			Sum += Car->Speed;
 			Moving += Car->Speed > 1.0 ? 1 : 0;
 			AtStops += Car->StopState == 2 ? 1 : 0;
+			Heard += Car->Voice && Car->Voice->IsPlaying() ? 1 : 0;
 			if (Car->Speed < 0.3 && Car->StopState != 2)
 			{
 				++Standing;
 				++WhyCount[FMath::Clamp(Car->Why, 0, 5)];
 			}
 		}
-		UE_LOG(LogTemp, Display, TEXT("SimCruise traffic: %d cars, %d moving, %d waiting at stops, %d standing elsewhere (lane %d, player %d, crossing %d, stop line %d, giving way %d, none %d), mean %.1f m/s, %d ribbon changes, %d lane changes, %d left-turn yields, %d spawned, %d stops passed"),
-			Cars.Num(), Moving, AtStops, Standing, WhyCount[1], WhyCount[2], WhyCount[3], WhyCount[4], WhyCount[5], WhyCount[0], Cars.Num() ? Sum / Cars.Num() : 0.0, RibbonChanges, LaneChanges, LeftTurnYields, Spawned, StopsPassed);
+		UE_LOG(LogTemp, Display, TEXT("SimCruise traffic: %d cars (%d heard), %d moving, %d waiting at stops, %d standing elsewhere (lane %d, player %d, crossing %d, stop line %d, giving way %d, none %d), mean %.1f m/s, %d ribbon changes, %d lane changes, %d left-turn yields, %d spawned, %d stops passed"),
+			Cars.Num(), Heard, Moving, AtStops, Standing, WhyCount[1], WhyCount[2], WhyCount[3], WhyCount[4], WhyCount[5], WhyCount[0], Cars.Num() ? Sum / Cars.Num() : 0.0, RibbonChanges, LaneChanges, LeftTurnYields, Spawned, StopsPassed);
 	}
 	const int32 Want = FMath::Max(0, CVarTrafficCars.GetValueOnGameThread());
 	for (int32 Tries = 0; Tries < 2 && Cars.Num() < Want; ++Tries)

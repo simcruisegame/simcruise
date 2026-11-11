@@ -9,6 +9,7 @@
 
 class ASimCruiseWorldStreamer;
 class UBoxComponent;
+class USimCruiseEngineSoundComponent;
 struct FSimCruiseRibbon;
 
 /** Pure traffic rules, testable without a world. */
@@ -56,13 +57,18 @@ class SIMCRUISE_API ASimCruiseTrafficCar : public AActor, public ISimCruiseWheel
 public:
 	ASimCruiseTrafficCar();
 
-	bool Setup(const FString& CarId, const FLinearColor& Paint);
+	bool Setup(const FString& InCarId, const FLinearColor& Paint);
 	virtual bool GetCarVisualState(FSimCruiseCarVisualState& OutState) const override;
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USimCruiseCarPresentationComponent> Presentation;
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UBoxComponent> Collision;
+	/** The engine heard from outside, in place (only while the car is near the player). */
+	UPROPERTY(Transient)
+	TObjectPtr<USimCruiseEngineSoundComponent> Voice;
+	FString CarId;
+	double Accel = 0.0;
 
 	// Path: a ribbon of a tile, driven in Dir from station position S (m along the ribbon).
 	FIntPoint Tile = FIntPoint::ZeroValue;
@@ -150,6 +156,8 @@ private:
 	/** Picks the way on at DecisionS (a junction along the ribbon, or its end when bAtEnd). */
 	bool ChooseAt(ASimCruiseTrafficCar& Car, double DecisionS, bool bAtEnd) const;
 	void Advance(ASimCruiseTrafficCar& Car, double Dt, const FVector& PlayerCm, const FVector& PlayerVelCm);
+	/** Starts, feeds or stops a car's engine voice by its distance from the listener. */
+	void UpdateVoice(ASimCruiseTrafficCar& Car, double DistanceM, bool bSound);
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<ASimCruiseTrafficCar>> Cars;
