@@ -73,7 +73,7 @@ namespace SimCruiseHaptics
 	/** Slip angle (rad) where the definition's lateral law
 	 *  tanh(alpha k)(1 - falloff smoothstep(from, to, alpha)) first reaches 98 %
 	 *  of its maximum (10.6 deg on the 1999 roadster). For vehicles to report as
-	 *  FSimCruiseWheelTelemetry::PeakSlipAngleRad. */
+	 *  FSimCruiseDriveWheelTelemetry::PeakSlipAngleRad. */
 	SIMCRUISE_API double PlateauSlipAngleRad(const FSimCruiseCarDefinition& Car);
 
 	SIMCRUISE_API double NormalizedSlip(double Kappa, double PeakKappa, double Alpha, double PeakAlpha);
@@ -98,7 +98,7 @@ class SIMCRUISE_API FSimCruiseHapticsModel
 public:
 	/** Compute this frame's motors from telemetry. Throttle and brake are the
 	 *  pedal positions sent this frame (used by the trigger motors). */
-	FSimCruiseRumble Sample(const FSimCruiseVehicleTelemetry& Telemetry, double Throttle, double Brake, double DeltaTimeS);
+	FSimCruiseRumble Sample(const FSimCruiseDriveTelemetry& Telemetry, double Throttle, double Brake, double DeltaTimeS);
 	void Quiet();
 
 	bool IsAbsActive() const { return bAbsActive; }

@@ -459,8 +459,9 @@ Stars and a moon disc with phases; wet road materials reading `GetRoadWetness`; 
 | `ASimCruisePlayerCameraManager`, `FSimCruiseHeadModel`, `FSimCruiseChaseFrame` | Driver, chase and scenic views | `Cockpit.gd` `head_view`, `ViewLens.gd`, `Drive.gd` cameras, plan 15 |
 | `ASimCruiseHUD` | Canvas HUD, Off / Glance / Full | `Hud.gd` |
 | `FSimCruiseHapticsModel` (`SimCruiseHaptics.h`) | Rumble from tyre slip, ABS and road texture | `feel/slip-haptics-audio:game/Haptics.gd` |
-| `ASimCruiseGameMode` | Spawns the vehicle pawn (from config) with the shell classes | `Drive.tscn` |
-| `ASimCruisePlaceholderVehicle` | Stand-in single-track car until the vehicle pawn lands | none (not a SimCruise model) |
+| `ASimCruiseGameMode` | Starts the drive on the real place, places the vehicle pawn (from config) on the start road once its tiles are built, streams around it and moves it with the floating origin (see "The drive") | `Drive.tscn`, `Drive.gd` start |
+| `ASimCruiseDriveCapture` | `-SimCruiseDriveCapture`: cockpit, chase and top-down shots of the real drive | `checks/Screenshots.gd` |
+| `ASimCruisePlaceholderVehicle` | Fallback single-track car when no vehicle pawn class is configured | none (not a SimCruise model) |
 
 ### The vehicle seam
 
@@ -468,10 +469,10 @@ A vehicle pawn implements `ISimCruiseVehicleControl` and is named in `Config/Def
 
 ```ini
 [/Script/SimCruise.SimCruiseGameMode]
-VehiclePawnClass=/Script/SimCruise.YourVehiclePawn
+VehiclePawnClass=/Script/SimCruise.SimCruiseVehicle
 ```
 
-Without it the game mode spawns `ASimCruisePlaceholderVehicle`. Conventions: Unreal body axes (+X forward, +Y right, +Z up), SI units, yaw rate positive turning right, rack angle = mean front road-wheel angle in radians, positive right; wheels 0 FL, 1 FR, 2 RL, 3 RR (Godot `MOUNTS` order); the driver's eye in pawn-local centimetres (`SimCruiseGodotToLocalCm` converts a car file's `driver_eye`).
+The project config names the real Chaos car, `ASimCruiseVehicle`; without the setting the game mode spawns `ASimCruisePlaceholderVehicle`. The shell's structs are `FSimCruiseDriveTelemetry` and `FSimCruiseDriveWheelTelemetry` (renamed from `FSimCruiseVehicleTelemetry`/`FSimCruiseWheelTelemetry` at integration, where they collided with the vehicle's reflected telemetry structs of the same names). Conventions: Unreal body axes (+X forward, +Y right, +Z up), SI units, yaw rate positive turning right, rack angle = mean front road-wheel angle in radians, positive right; wheels 0 FL, 1 FR, 2 RL, 3 RR (Godot `MOUNTS` order); the driver's eye in pawn-local centimetres (`SimCruiseGodotToLocalCm` converts a car file's `driver_eye`).
 
 - `GetVehicleSetup()` — wheelbase, CG-to-front-axle, parking rack lock, assist lateral g, limit slip surplus, driver eye and sight, idle/upshift/redline rpm, gear count, published skidpad g and the braking g of the 70-0 mph distance.
 - `GetVehicleTelemetry()` — body velocity and angular velocity, rpm, gear, manual/stalled/electric/service-brake flags, the rack angle applied, engine load, road roughness, and per wheel: contact, driven, ABS acting, load, slip ratio and its peak, relaxed slip angle and its 98 %-plateau angle (`SimCruiseHaptics::PlateauSlipAngleRad`), suspension travel, surface grip. Data a vehicle does not report keeps its default and simply produces no cue.
@@ -500,7 +501,7 @@ Without it the game mode spawns `ASimCruisePlaceholderVehicle`. Conventions: Unr
 | CycleLens | F6 | — | natural 45° → true to screen → wide 67° |
 | ToggleSound / ToggleLights | M / L | — | flags until audio and lamps are ported |
 | ToggleAtlas / FindPlace | Tab / `/` | Menu | message until the atlas and search are ported |
-| Recover | R | View | upright at rest on the ground below; road-aware recovery comes with the roads |
+| Recover | R | View | upright at rest in the right-hand lane of the nearest public road within 250 m, facing its travel; else on the ground below |
 
 `Config/DefaultInput.ini` sets the legacy `Gamepad_LeftX` dead zone to 0 so Enhanced Input's 0.12 is the only one.
 
@@ -549,4 +550,4 @@ Without it the game mode spawns `ASimCruisePlaceholderVehicle`. Conventions: Unr
 
 ### Not yet verified
 
-Rumble and trigger levels have not been felt on a physical Xbox pad; the captures prove the levels the model asks for, not how they feel. The shell has only driven the placeholder car on the engine's OpenWorld template map. The countersteer allowance has not passed plan 04's slide-catch gate (see above). The self-test's failure exit code follows the engine source (a forced exit with the code) and has not been triggered.
+Rumble and trigger levels have not been felt on a physical Xbox pad; the captures prove the levels the model asks for, not how they feel. Since integration round 1 the shell drives the real vehicle on the streamed Ocean Drive (see "The drive"); its documentation pictures above are still from the placeholder on the OpenWorld template. The countersteer allowance has not passed plan 04's slide-catch gate (see above). The self-test's failure exit code follows the engine source (a forced exit with the code) and has not been triggered.

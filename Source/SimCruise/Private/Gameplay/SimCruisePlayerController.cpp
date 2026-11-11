@@ -19,6 +19,7 @@
 #include "Misc/Parse.h"
 #include "Modules/ModuleManager.h"
 #include "UnrealClient.h"
+#include "Vehicle/SimCruiseVehicle.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSimCruiseShell, Log, All);
 
@@ -341,6 +342,11 @@ void ASimCruisePlayerController::OnToggleSound()
 void ASimCruisePlayerController::OnToggleLights()
 {
 	bLightsOn = !bLightsOn;
+	if (ASimCruiseVehicle* Car = Cast<ASimCruiseVehicle>(GetPawn()))
+	{
+		// Off returns the lamps to following the sun.
+		Car->bLampsOn = bLightsOn;
+	}
 	ShowMessage(bLightsOn ? TEXT("Lights on") : TEXT("Lights off"), 2.f);
 }
 
@@ -396,11 +402,14 @@ void ASimCruisePlayerController::TickSelfTest(float DeltaTime)
 
 	switch (SelfTestStage)
 	{
-	case 0: // settle; the vehicle must exist
-		if (SelfTestClock > 0.5f)
+	case 0: // settle; the vehicle must exist (a drive on the real place places it once the road is built)
+		if (SelfTestClock > 0.5f && HasVehicle())
 		{
-			if (!HasVehicle()) { Fail(TEXT("no ISimCruiseVehicleControl pawn possessed")); break; }
 			Next();
+		}
+		else if (SelfTestClock > 300.f)
+		{
+			Fail(TEXT("no ISimCruiseVehicleControl pawn possessed"));
 		}
 		break;
 	case 1: // left stick, a third to the left
@@ -563,8 +572,9 @@ void ASimCruisePlayerController::SimCruiseShellCapture(int32 Quit)
 
 void ASimCruisePlayerController::TickCapture(float DeltaTime)
 {
-	if (CaptureClock < 0.f)
+	if (CaptureClock < 0.f || !HasVehicle())
 	{
+		// The timeline starts when the car is on the road.
 		return;
 	}
 	CaptureClock += DeltaTime;

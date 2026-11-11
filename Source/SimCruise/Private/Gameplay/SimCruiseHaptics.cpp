@@ -84,7 +84,7 @@ namespace SimCruiseHaptics
 	}
 }
 
-FSimCruiseRumble FSimCruiseHapticsModel::Sample(const FSimCruiseVehicleTelemetry& Telemetry, double Throttle, double Brake, double DeltaTimeS)
+FSimCruiseRumble FSimCruiseHapticsModel::Sample(const FSimCruiseDriveTelemetry& Telemetry, double Throttle, double Brake, double DeltaTimeS)
 {
 	using namespace SimCruiseHaptics;
 	double FrontSlip = 0.0;
@@ -101,7 +101,7 @@ FSimCruiseRumble FSimCruiseHapticsModel::Sample(const FSimCruiseVehicleTelemetry
 	const double LateralFeel = FMath::SmoothStep(LateralFeelFromMps, LateralFeelToMps, Speed);
 	for (int32 I = 0; I < 4; ++I)
 	{
-		const FSimCruiseWheelTelemetry& Wheel = Telemetry.Wheels[I];
+		const FSimCruiseDriveWheelTelemetry& Wheel = Telemetry.Wheels[I];
 		Loose += 1.0 - FMath::SmoothStep(0.70, 0.92, Wheel.SurfaceGrip);
 		if (!Wheel.bContact || Wheel.NormalLoadN <= 0.0)
 		{

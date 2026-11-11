@@ -61,7 +61,7 @@ void ASimCruisePlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float 
 		return;
 	}
 
-	FSimCruiseVehicleTelemetry Telemetry;
+	FSimCruiseDriveTelemetry Telemetry;
 	Vehicle->GetVehicleTelemetry(Telemetry);
 	const FSimCruiseVehicleSetup Setup = Vehicle->GetVehicleSetup();
 	const FTransform Body = Pawn->GetActorTransform();

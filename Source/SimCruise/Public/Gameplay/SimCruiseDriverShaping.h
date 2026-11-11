@@ -96,7 +96,7 @@ public:
 
 	/** Advance by DeltaTimeS and return the command for the vehicle. Telemetry
 	 *  provides speed, lateral speed and yaw rate for the speed-aware limits. */
-	FSimCruiseDriverCommand Update(const FSimCruiseVehicleSetup& Setup, const FSimCruiseVehicleTelemetry& Telemetry,
+	FSimCruiseDriverCommand Update(const FSimCruiseVehicleSetup& Setup, const FSimCruiseDriveTelemetry& Telemetry,
 		const FSimCruiseRawControls& Raw, double DeltaTimeS);
 
 	double GetRackAngleRad() const { return RackRad; }

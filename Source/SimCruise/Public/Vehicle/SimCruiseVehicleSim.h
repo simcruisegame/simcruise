@@ -40,6 +40,14 @@ struct FSimCruiseVehicleControls
 	bool bHandbrake = false;
 	/** Full service brake held (Godot's "handbrake" action on Space). */
 	bool bFullBrake = false;
+	/**
+	 * The driving shell has already shaped the steering (rates, speed cap,
+	 * countersteer allowance) into a rack angle: apply RackAngleRad as it is,
+	 * limited only by the car's lock, instead of Steer.
+	 */
+	bool bDirectRack = false;
+	/** Mean front road-wheel angle, radians, positive right (with bDirectRack). */
+	double RackAngleRad = 0.0;
 };
 
 /** Rigid-body state at the start of an interval (SI, world frame, Unreal axes). */

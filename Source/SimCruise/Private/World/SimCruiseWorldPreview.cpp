@@ -76,6 +76,12 @@ void ASimCruiseWorldPreview::Begin(ASimCruiseWorldStreamer* InStreamer, const FS
 void ASimCruiseWorldPreview::SpawnLightingIfMissing()
 {
 	UWorld* World = GetWorld();
+	// The SimCruise environment (Environment/) gives every game world its real sun
+	// and sky unless -SimCruiseNoEnvironment turns it off.
+	if (!FParse::Param(FCommandLine::Get(), TEXT("SimCruiseNoEnvironment")))
+	{
+		return;
+	}
 	for (TActorIterator<ADirectionalLight> It(World); It; ++It)
 	{
 		return; // the map brings its own sun

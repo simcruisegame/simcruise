@@ -51,7 +51,7 @@ struct FSimCruiseDriverCommand
 };
 
 /** One tyre as the shell needs to see it (rumble, telemetry HUD). */
-struct FSimCruiseWheelTelemetry
+struct FSimCruiseDriveWheelTelemetry
 {
 	bool bContact = false;
 	bool bDriven = false;
@@ -73,7 +73,7 @@ struct FSimCruiseWheelTelemetry
 
 /** Per-frame state of the car. Missing data keeps its default, so a partial
  *  vehicle still drives the shell (no rumble from data it does not report). */
-struct FSimCruiseVehicleTelemetry
+struct FSimCruiseDriveTelemetry
 {
 	/** Body-frame velocity, m/s, and angular velocity, rad/s (X roll, Y pitch, Z yaw). */
 	FVector BodyVelocityMps = FVector::ZeroVector;
@@ -91,7 +91,7 @@ struct FSimCruiseVehicleTelemetry
 	double EngineLoad = 0.0;
 	/** Road roughness under the car, 0 smooth .. 1 kerb/pothole (RoadNoise.roughness). */
 	double RoadRoughness = 0.0;
-	FSimCruiseWheelTelemetry Wheels[4];
+	FSimCruiseDriveWheelTelemetry Wheels[4];
 };
 
 /** Fixed facts about the mounted car that the shell shapes its controls and
@@ -134,7 +134,7 @@ class SIMCRUISE_API ISimCruiseVehicleControl
 
 public:
 	virtual FSimCruiseVehicleSetup GetVehicleSetup() const = 0;
-	virtual void GetVehicleTelemetry(FSimCruiseVehicleTelemetry& OutTelemetry) const = 0;
+	virtual void GetVehicleTelemetry(FSimCruiseDriveTelemetry& OutTelemetry) const = 0;
 	/** Called once per rendered frame before physics; the vehicle holds the
 	 *  command for every physics substep until the next call. */
 	virtual void ApplyDriverCommand(const FSimCruiseDriverCommand& Command) = 0;

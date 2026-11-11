@@ -37,7 +37,7 @@ public:
 
 	bool HasVehicle() const { return GetVehicle() != nullptr; }
 	ISimCruiseVehicleControl* GetVehicle() const;
-	const FSimCruiseVehicleTelemetry& GetTelemetry() const { return Telemetry; }
+	const FSimCruiseDriveTelemetry& GetTelemetry() const { return Telemetry; }
 	const FSimCruiseVehicleSetup& GetCachedVehicleSetup() const { return Setup; }
 	const FSimCruiseDriverCommand& GetLastCommand() const { return LastCommand; }
 	const FSimCruiseDriverShaper& GetShaper() const { return Shaper; }
@@ -62,14 +62,16 @@ public:
 	UFUNCTION(Exec)
 	void SimCruiseShellCapture(int32 Quit = 0);
 
+	/** Simulated key and axis events through the real Enhanced Input stack (scripts and captures). */
+	void InjectKey(const FKey& Key, bool bPressed);
+	void InjectAxis(const FKey& Key, float Value);
+
 private:
 	FSimCruiseRawControls ReadRawControls() const;
 	void UpdateRumble(float DeltaTime);
 	void StopRumble();
 	void TickSelfTest(float DeltaTime);
 	void TickCapture(float DeltaTime);
-	void InjectKey(const FKey& Key, bool bPressed);
-	void InjectAxis(const FKey& Key, float Value);
 	ASimCruiseHUD* GetSimHUD() const;
 	ASimCruisePlayerCameraManager* GetSimCamera() const;
 
@@ -93,7 +95,7 @@ private:
 	FSimCruiseDriverShaper Shaper;
 	FSimCruiseHapticsModel Haptics;
 	FSimCruiseVehicleSetup Setup;
-	FSimCruiseVehicleTelemetry Telemetry;
+	FSimCruiseDriveTelemetry Telemetry;
 	FSimCruiseDriverCommand LastCommand;
 	FSimCruiseRumble LastRumble;
 	ESimCruiseRumbleBackend RumbleBackend = ESimCruiseRumbleBackend::XInput;

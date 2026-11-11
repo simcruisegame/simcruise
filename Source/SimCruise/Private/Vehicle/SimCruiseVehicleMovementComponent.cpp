@@ -86,6 +86,8 @@ namespace
 		T.SpeedMps = Body.LinearVelocityMps.Size();
 		T.SpeedKph = T.SpeedMps * 3.6;
 		T.SpeedMph = SimCruiseUnits::MpsToMph(T.SpeedMps);
+		T.BodyVelocityLocalMps = Body.Rotation.UnrotateVector(Body.LinearVelocityMps);
+		T.BodyAngularVelocityLocalRadPerSecond = Body.Rotation.UnrotateVector(Body.AngularVelocityRadPerSecond);
 		T.EngineRpm = St.EngineRpm;
 		T.Gear = St.bManual ? St.SelectedGear : (St.bInReverse ? -1 : St.Gear + 1);
 		T.GearText = S.Sim.GetGearText();
@@ -492,6 +494,12 @@ void USimCruiseVehicleMovementComponent::SetSteer(float Value, bool bFromThumbst
 	FScopeLock Lock(&PhysicsState->Mutex);
 	PhysicsState->Controls.Steer = FMath::Clamp(Value, -1.0f, 1.0f);
 	PhysicsState->Controls.bThumbstickSteer = bFromThumbstick;
+}
+
+void USimCruiseVehicleMovementComponent::SetDriverControls(const FSimCruiseVehicleControls& Controls)
+{
+	FScopeLock Lock(&PhysicsState->Mutex);
+	PhysicsState->Controls = Controls;
 }
 
 void USimCruiseVehicleMovementComponent::SetHandbrake(bool bEngaged)

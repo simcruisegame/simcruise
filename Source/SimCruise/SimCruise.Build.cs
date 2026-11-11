@@ -8,6 +8,11 @@ public class SimCruise : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
+		// Each stream keeps its helpers in file-local anonymous namespaces (Tau,
+		// Smooth01, test flags ...). Unity builds paste files together, where
+		// those collide, so every file compiles on its own.
+		bUseUnity = false;
+
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
 			"Core",
@@ -21,30 +26,18 @@ public class SimCruise : ModuleRules
 			"Chaos"
 		});
 
-		// Real-world streaming (Atlas/, World/): runtime-built meshes, decoded
-		// aerial photographs and generated textures.
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
+			// Real-world streaming (Atlas/, World/): runtime-built meshes, decoded
+			// aerial photographs and generated textures.
 			"ProceduralMeshComponent",
-			"ImageWrapper",
-			"RenderCore"
-		});
-
-		// Car presentation (Presentation/): runtime glTF meshes, textures and materials.
-		PrivateDependencyModuleNames.AddRange(new string[]
-		{
+			// Car presentation (Presentation/): runtime glTF meshes, textures and materials.
 			"ImageCore",
 			"ImageWrapper",
 			"MeshDescription",
 			"StaticMeshDescription",
-			"RenderCore",
-			"RHI",
-			"CinematicCamera"
-		});
-
-		// Environment: frame timing (RenderCore, RHI) for the graphics presets and perf sampler.
-		PrivateDependencyModuleNames.AddRange(new string[]
-		{
+			"CinematicCamera",
+			// Rendering resources, plus frame timing for the environment's graphics presets and perf sampler.
 			"RenderCore",
 			"RHI"
 		});

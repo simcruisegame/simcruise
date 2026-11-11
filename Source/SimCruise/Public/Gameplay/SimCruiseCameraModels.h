@@ -80,7 +80,7 @@ public:
 	/** Advance one rendered frame. Body is the pawn transform; WorldVelocityMps
 	 *  the pawn's world velocity in m/s (Unreal axes). */
 	FSimCruiseEyePose Update(const FTransform& Body, const FVector& WorldVelocityMps, const FSimCruiseVehicleSetup& Setup,
-		const FSimCruiseVehicleTelemetry& Telemetry, double DeltaTimeS);
+		const FSimCruiseDriveTelemetry& Telemetry, double DeltaTimeS);
 
 	double HeadMotion = 1.0;
 

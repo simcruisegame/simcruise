@@ -18,6 +18,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "Environment/SimCruiseEnvironment.h"
 #include "GameFramework/PlayerController.h"
 #include "HAL/FileManager.h"
 #include "HAL/IConsoleManager.h"
@@ -163,6 +164,13 @@ void ASimCruiseTurntable::BuildStage()
 	UWorld* World = GetWorld();
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	// The turntable is a fixed studio with its own sun and camera: the real-sky
+	// environment every game world gets (Environment/) would add a second sun.
+	for (TActorIterator<ASimCruiseEnvironment> It(World); It; ++It)
+	{
+		It->Destroy();
+	}
 
 	// Sun: illuminance outside the atmosphere; the sky atmosphere applies the transmittance.
 	const double El = FMath::DegreesToRadians(SunElevationDeg), Az = FMath::DegreesToRadians(SunAzimuthDeg);

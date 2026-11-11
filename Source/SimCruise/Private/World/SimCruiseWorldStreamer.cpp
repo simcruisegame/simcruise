@@ -137,7 +137,8 @@ bool ASimCruiseWorldStreamer::FindRoadPose(const FString& RoadName, const FVecto
 		const FVector Origin = Tile->GetActorLocation();
 		for (const FSimCruiseRibbon& Ribbon : Tile->GetBuild()->Roads.Ribbons)
 		{
-			if (!Ribbon.Name.Equals(RoadName, ESearchCase::IgnoreCase)) continue;
+			// No name: any public road (service ways are driveways and parking aisles).
+			if (RoadName.IsEmpty() ? Ribbon.Class == TEXT("service") : !Ribbon.Name.Equals(RoadName, ESearchCase::IgnoreCase)) continue;
 			for (int32 i = 1; i + 1 < Ribbon.St.Num(); ++i)
 			{
 				const FSimCruiseRibbonStation& St = Ribbon.St[i];

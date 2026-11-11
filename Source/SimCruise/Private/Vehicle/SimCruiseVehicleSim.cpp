@@ -352,7 +352,13 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 	{
 		Turn = 0.0;
 	}
-	if (Controls.bThumbstickSteer)
+	if (Controls.bDirectRack)
+	{
+		// The shell's shaper owns rates and caps; the rack only stops at the lock.
+		State.SteeringRad = FMath::Clamp(Controls.RackAngleRad, -ParkingRackRad, ParkingRackRad);
+		State.SteeringInput = Cap > 1.0e-6 ? FMath::Clamp(State.SteeringRad / Cap, -1.0, 1.0) : 0.0;
+	}
+	else if (Controls.bThumbstickSteer)
 	{
 		State.SteeringInput = AdvanceSteering(State.SteeringInput, Turn, Dt, 2.75, 4.4);
 	}
@@ -368,7 +374,10 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 	{
 		State.SteeringInput = MoveToward(State.SteeringInput, Turn, Dt * (Turn != 0.0 ? 2.75 : 4.4));
 	}
-	State.SteeringRad = State.SteeringInput * Cap;
+	if (!Controls.bDirectRack)
+	{
+		State.SteeringRad = State.SteeringInput * Cap;
+	}
 	const double Steering = State.SteeringRad;
 
 	State.bRoofDown = Up.Dot(FVector3d::UnitZ()) < 0.2;

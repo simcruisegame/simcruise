@@ -94,7 +94,7 @@ void ASimCruiseHUD::SampleVehicle(float DeltaTimeS)
 	{
 		return;
 	}
-	const FSimCruiseVehicleTelemetry& Telemetry = Controller->GetTelemetry();
+	const FSimCruiseDriveTelemetry& Telemetry = Controller->GetTelemetry();
 	const FSimCruiseVehicleSetup& Setup = Controller->GetCachedVehicleSetup();
 	Mph = FMath::RoundToInt(FMath::Abs(Telemetry.BodyVelocityMps.X) * 2.236936);
 	Gear = Telemetry.Gear;

@@ -98,6 +98,14 @@ struct SIMCRUISE_API FSimCruiseVehicleTelemetry
 	UPROPERTY(BlueprintReadOnly, Category = "SimCruise|Vehicle")
 	double SpeedMph = 0.0;
 
+	/** Centre-of-mass velocity in the body frame (m/s; X forward, Y right, Z up). */
+	UPROPERTY(BlueprintReadOnly, Category = "SimCruise|Vehicle")
+	FVector BodyVelocityLocalMps = FVector::ZeroVector;
+
+	/** Angular velocity in the body frame (rad/s; X roll, Y pitch, Z yaw, + turning right). */
+	UPROPERTY(BlueprintReadOnly, Category = "SimCruise|Vehicle")
+	FVector BodyAngularVelocityLocalRadPerSecond = FVector::ZeroVector;
+
 	UPROPERTY(BlueprintReadOnly, Category = "SimCruise|Vehicle")
 	double EngineRpm = 0.0;
 

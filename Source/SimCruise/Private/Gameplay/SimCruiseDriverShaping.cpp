@@ -92,7 +92,7 @@ void FSimCruiseDriverShaper::Reset()
 	bUsingThumbstick = false;
 }
 
-FSimCruiseDriverCommand FSimCruiseDriverShaper::Update(const FSimCruiseVehicleSetup& Setup, const FSimCruiseVehicleTelemetry& Telemetry,
+FSimCruiseDriverCommand FSimCruiseDriverShaper::Update(const FSimCruiseVehicleSetup& Setup, const FSimCruiseDriveTelemetry& Telemetry,
 	const FSimCruiseRawControls& Raw, double DeltaTimeS)
 {
 	using namespace SimCruiseShaping;

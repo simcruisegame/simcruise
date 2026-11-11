@@ -24,16 +24,16 @@ namespace SimCruiseGameplayTest
 	/** The 1999 roadster: FSimCruiseVehicleSetup defaults are the NB's. */
 	FSimCruiseVehicleSetup Roadster() { return FSimCruiseVehicleSetup(); }
 
-	FSimCruiseVehicleTelemetry Moving(double Vx, double Vy = 0.0, double YawRate = 0.0)
+	FSimCruiseDriveTelemetry Moving(double Vx, double Vy = 0.0, double YawRate = 0.0)
 	{
-		FSimCruiseVehicleTelemetry T;
+		FSimCruiseDriveTelemetry T;
 		T.BodyVelocityMps = FVector(Vx, Vy, 0.0);
 		T.BodyAngularVelocityRadPerS = FVector(0.0, 0.0, YawRate);
 		return T;
 	}
 
 	/** Run the shaper for Seconds at 120 Hz with fixed raw controls. */
-	double Hold(FSimCruiseDriverShaper& Shaper, const FSimCruiseVehicleTelemetry& T, const FSimCruiseRawControls& Raw, double Seconds,
+	double Hold(FSimCruiseDriverShaper& Shaper, const FSimCruiseDriveTelemetry& T, const FSimCruiseRawControls& Raw, double Seconds,
 		FSimCruiseDriverCommand* OutCommand = nullptr, double* OutLargestStep = nullptr)
 	{
 		const FSimCruiseVehicleSetup Setup = Roadster();
@@ -215,7 +215,7 @@ bool FSimCruiseCountersteerTest::RunTest(const FString& Parameters)
 	// A right-hand corner whose rear has stepped out to the left: the car moves
 	// left of where its nose points, the front axle 15 deg left of the nose.
 	const double Beta = FMath::DegreesToRadians(-15.0);
-	const FSimCruiseVehicleTelemetry Slide = Moving(20.0, 20.0 * FMath::Tan(Beta), 0.0);
+	const FSimCruiseDriveTelemetry Slide = Moving(20.0, 20.0 * FMath::Tan(Beta), 0.0);
 	TestNearlyEqual(TEXT("beta_f"), SimCruiseShaping::FrontAxleSlipAngleRad(Setup, 20.0, Slide.BodyVelocityMps.Y, 0.0), Beta, 1e-9);
 
 	FSimCruiseDriverShaper Shaper;
@@ -309,8 +309,8 @@ bool FSimCruiseHapticsTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("no pulse without ABS"), AbsPulse(false, 0.01), 0.0);
 
 	// Coasting straight on a smooth road: silence.
-	FSimCruiseVehicleTelemetry Coast = Moving(25.0);
-	for (FSimCruiseWheelTelemetry& Wheel : Coast.Wheels)
+	FSimCruiseDriveTelemetry Coast = Moving(25.0);
+	for (FSimCruiseDriveWheelTelemetry& Wheel : Coast.Wheels)
 	{
 		Wheel.bContact = true;
 		Wheel.NormalLoadN = 2500.0;
@@ -320,13 +320,13 @@ bool FSimCruiseHapticsTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("coasting is quiet"), Model.Sample(Coast, 0.0, 0.0, 1.0 / 60.0).IsQuiet());
 
 	// Understeer: front tyres past the plateau buzz the high-frequency motor.
-	FSimCruiseVehicleTelemetry Push = Coast;
+	FSimCruiseDriveTelemetry Push = Coast;
 	Push.Wheels[0].SlipAngleRad = Push.Wheels[1].SlipAngleRad = 1.5 * PlateauSlipAngleRad(Car);
 	const FSimCruiseRumble Under = Model.Sample(Push, 0.0, 0.0, 1.0 / 60.0);
 	TestTrue(TEXT("understeer is the weak motor"), Under.HighFrequency > 0.6f && Under.LowFrequency == 0.f);
 
 	// Oversteer and wheelspin: the rear, low-frequency motor and the right trigger.
-	FSimCruiseVehicleTelemetry Spin = Coast;
+	FSimCruiseDriveTelemetry Spin = Coast;
 	Spin.Wheels[2].bDriven = Spin.Wheels[3].bDriven = true;
 	Spin.Wheels[2].SlipRatio = Spin.Wheels[3].SlipRatio = 0.25;
 	const FSimCruiseRumble Over = Model.Sample(Spin, 1.0, 0.0, 1.0 / 60.0);
@@ -335,21 +335,21 @@ bool FSimCruiseHapticsTest::RunTest(const FString& Parameters)
 
 	// Parked after a slide: a relaxed slip angle left on the tyres is not
 	// scrub, but wheelspin from standstill is felt.
-	FSimCruiseVehicleTelemetry Parked = Coast;
+	FSimCruiseDriveTelemetry Parked = Coast;
 	Parked.BodyVelocityMps = FVector(0.05, -0.05, 0.0);
-	for (FSimCruiseWheelTelemetry& Wheel : Parked.Wheels) { Wheel.SlipAngleRad = 0.6; }
+	for (FSimCruiseDriveWheelTelemetry& Wheel : Parked.Wheels) { Wheel.SlipAngleRad = 0.6; }
 	FSimCruiseHapticsModel ParkedModel;
 	TestTrue(TEXT("a stopped car does not scrub"), ParkedModel.Sample(Parked, 0.0, 0.0, 1.0 / 60.0).IsQuiet());
-	FSimCruiseVehicleTelemetry Launch = Parked;
-	for (FSimCruiseWheelTelemetry& Wheel : Launch.Wheels) { Wheel.SlipAngleRad = 0.0; }
+	FSimCruiseDriveTelemetry Launch = Parked;
+	for (FSimCruiseDriveWheelTelemetry& Wheel : Launch.Wheels) { Wheel.SlipAngleRad = 0.0; }
 	Launch.Wheels[2].bDriven = Launch.Wheels[3].bDriven = true;
 	Launch.Wheels[2].SlipRatio = Launch.Wheels[3].SlipRatio = 0.5;
 	TestTrue(TEXT("wheelspin from standstill is felt"), ParkedModel.Sample(Launch, 1.0, 0.0, 1.0 / 60.0).LowFrequency > 0.6f);
 
 	// ABS acting: the pulse, in the strong motor and the brake trigger.
-	FSimCruiseVehicleTelemetry Abs = Coast;
+	FSimCruiseDriveTelemetry Abs = Coast;
 	Abs.bServiceBrakeOn = true;
-	for (FSimCruiseWheelTelemetry& Wheel : Abs.Wheels) { Wheel.bAbsActive = true; Wheel.SlipRatio = -0.1; }
+	for (FSimCruiseDriveWheelTelemetry& Wheel : Abs.Wheels) { Wheel.bAbsActive = true; Wheel.SlipRatio = -0.1; }
 	FSimCruiseHapticsModel AbsModel;
 	const FSimCruiseRumble Pulse = AbsModel.Sample(Abs, 0.0, 1.0, 0.01);
 	TestTrue(TEXT("ABS pulse felt"), AbsModel.IsAbsActive() && Pulse.LowFrequency >= 0.6f && Pulse.LeftTrigger >= 0.6f);
@@ -506,7 +506,7 @@ namespace SimCruiseGameplayTest
 		Vehicle->ResetVehicle(FTransform::Identity);
 		const FSimCruiseVehicleSetup Setup = Vehicle->GetVehicleSetup();
 		FSimCruiseDriverShaper Shaper;
-		FSimCruiseVehicleTelemetry T;
+		FSimCruiseDriveTelemetry T;
 		constexpr double Frame = 1.0 / 120.0;
 		auto Step = [&](const FSimCruiseRawControls& Raw)
 		{

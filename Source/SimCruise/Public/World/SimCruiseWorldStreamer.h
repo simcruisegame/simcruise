@@ -53,7 +53,8 @@ public:
 
 	/**
 	 * A pose on a named road near a point: in the travel lane on the right,
-	 * facing the direction of travel. Name match is case-insensitive.
+	 * facing the direction of travel. Name match is case-insensitive; an empty
+	 * name takes the nearest public road (not a service way).
 	 */
 	bool FindRoadPose(const FString& RoadName, const FVector& NearWorldCm, double SearchRadiusM, FVector& OutLocationCm, FRotator& OutRotation) const;
 

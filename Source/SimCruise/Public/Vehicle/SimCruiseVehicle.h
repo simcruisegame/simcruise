@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include "Gameplay/SimCruiseVehicleControl.h"
+#include "Presentation/SimCruiseCarPresentationComponent.h"
 #include "Vehicle/CarDefinition.h"
 #include "Vehicle/SimCruiseVehicleTelemetry.h"
 #include "SimCruiseVehicle.generated.h"
@@ -20,9 +22,14 @@ class USimCruiseVehicleMovementComponent;
  * The root is the collision box centre; the Godot car origin (ground at ride
  * height) is CollisionShapeCenterYM below it. Spawn with SpawnActorDeferred,
  * call SetCarDefinition or set CarId, then finish spawning.
+ *
+ * It is the driving shell's vehicle (ISimCruiseVehicleControl: the shell's
+ * shaped pedals and rack angle in, telemetry out) and feeds the car model
+ * (ISimCruiseWheelStateProvider: wheel steer, camber, spin, travel, lamps).
+ * The visible car is optional (AttachCarModel), so physics benches stay light.
  */
 UCLASS()
-class SIMCRUISE_API ASimCruiseVehicle : public APawn
+class SIMCRUISE_API ASimCruiseVehicle : public APawn, public ISimCruiseVehicleControl, public ISimCruiseWheelStateProvider
 {
 	GENERATED_BODY()
 
@@ -36,11 +43,21 @@ public:
 	/** Install a car before spawning finishes (or later: resizes the body and resets). */
 	void SetCarDefinition(const FSimCruiseCarDefinition& Car);
 
+	/**
+	 * Build the car's downloaded model on this pawn (blocking the first time a
+	 * car is built; later from the cache), posed every frame from the physics.
+	 * Returns false (and keeps driving, invisible) when the model is missing.
+	 */
+	bool AttachCarModel();
+
 	UFUNCTION(BlueprintPure, Category = "SimCruise|Vehicle")
 	USimCruiseVehicleMovementComponent* GetVehicleMovement() const { return VehicleMovement; }
 
 	UFUNCTION(BlueprintPure, Category = "SimCruise|Vehicle")
 	UBoxComponent* GetBody() const { return Body; }
+
+	UFUNCTION(BlueprintPure, Category = "SimCruise|Vehicle")
+	USimCruiseCarPresentationComponent* GetCarModel() const { return CarModel; }
 
 	UFUNCTION(BlueprintPure, Category = "SimCruise|Vehicle|Telemetry")
 	FSimCruiseVehicleTelemetry GetVehicleTelemetry() const;
@@ -77,13 +94,37 @@ public:
 	/** World transform of the root body for a car origin at GroundLocation facing YawDeg. */
 	FTransform BodyTransformForGroundPose(const FVector& GroundLocation, float YawDeg) const;
 
+	/** Head and tail lamps on (else they follow the sun: on from 1 deg below the horizon). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SimCruise|Vehicle")
+	bool bLampsOn = false;
+
+	// ISimCruiseVehicleControl (game thread; see SimCruiseVehicleControl.h).
+	virtual FSimCruiseVehicleSetup GetVehicleSetup() const override;
+	virtual void GetVehicleTelemetry(FSimCruiseDriveTelemetry& OutTelemetry) const override;
+	virtual void ApplyDriverCommand(const FSimCruiseDriverCommand& Command) override;
+	virtual FString RequestGearChange(int32 Step) override;
+	virtual void SetManualTransmission(bool bManual) override;
+	virtual void RequestEngineStart() override;
+	/** WorldTransform is a ground pose (the car origin on the road), as the shell's recover passes it. */
+	virtual void ResetVehicle(const FTransform& WorldTransform) override;
+
+	// ISimCruiseWheelStateProvider
+	virtual bool GetCarVisualState(FSimCruiseCarVisualState& OutState) const override;
+
+	/** Map the vehicle's telemetry to the shell's view of it (exposed for tests). */
+	static void ToDriveTelemetry(const FSimCruiseCarDefinition& Car, const FSimCruiseVehicleTelemetry& In, FSimCruiseDriveTelemetry& Out);
+	/** Map the vehicle's telemetry to the car model's pose (exposed for tests). */
+	static void ToVisualState(const FSimCruiseCarDefinition& Car, const FSimCruiseVehicleTelemetry& In, FSimCruiseCarVisualState& Out);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
+	virtual void Tick(float DeltaSeconds) override;
 
 private:
 	void ApplyBodyShape();
 	void ApplyBodyShape(const FSimCruiseCarDefinition& Car);
+	bool AreLampsWanted() const;
 
 	UPROPERTY(VisibleAnywhere, Category = "SimCruise|Vehicle")
 	TObjectPtr<UBoxComponent> Body;
@@ -91,5 +132,10 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "SimCruise|Vehicle")
 	TObjectPtr<USimCruiseVehicleMovementComponent> VehicleMovement;
 
+	UPROPERTY(Transient)
+	TObjectPtr<USimCruiseCarPresentationComponent> CarModel;
+
 	bool bHasDefinition = false;
+	bool bManualRequested = false;
+	FString LastShownGearMessage;
 };

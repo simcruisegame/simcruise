@@ -71,6 +71,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "SimCruise|Vehicle|Controls")
 	void SetSteer(float Value, bool bFromThumbstick = false);
 
+	/** Replace every driver control at once (the driving shell, once per frame). */
+	void SetDriverControls(const FSimCruiseVehicleControls& Controls);
+
 	/** Rear parking brake. */
 	UFUNCTION(BlueprintCallable, Category = "SimCruise|Vehicle|Controls")
 	void SetHandbrake(bool bEngaged);

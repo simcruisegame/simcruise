@@ -440,7 +440,7 @@ FSimCruiseVehicleSetup ASimCruisePlaceholderVehicle::GetVehicleSetup() const
 	return Setup;
 }
 
-void ASimCruisePlaceholderVehicle::GetVehicleTelemetry(FSimCruiseVehicleTelemetry& Out) const
+void ASimCruisePlaceholderVehicle::GetVehicleTelemetry(FSimCruiseDriveTelemetry& Out) const
 {
 	Out.BodyVelocityMps = FVector(Vx, Vy, 0.0);
 	Out.BodyAngularVelocityRadPerS = FVector(0.0, 0.0, YawRate);
@@ -459,7 +459,7 @@ void ASimCruisePlaceholderVehicle::GetVehicleTelemetry(FSimCruiseVehicleTelemetr
 		const int32 Axle = I < 2 ? 0 : 1;
 		const double AxleShare = Axle == 0 ? Car.FrontWeightFraction : 1.0 - Car.FrontWeightFraction;
 		const double Transfer = Car.MassKg * LateralAccel * Car.CenterOfGravityHeightM / FMath::Max(Track, 0.5) * AxleShare;
-		FSimCruiseWheelTelemetry& Wheel = Out.Wheels[I];
+		FSimCruiseDriveWheelTelemetry& Wheel = Out.Wheels[I];
 		Wheel.bContact = bGrounded;
 		Wheel.bDriven = Car.IsDrivenWheel(I);
 		Wheel.bAbsActive = bAxleAbs[Axle];

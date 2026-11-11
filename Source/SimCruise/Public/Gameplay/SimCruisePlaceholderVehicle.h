@@ -38,7 +38,7 @@ public:
 
 	// ISimCruiseVehicleControl
 	virtual FSimCruiseVehicleSetup GetVehicleSetup() const override;
-	virtual void GetVehicleTelemetry(FSimCruiseVehicleTelemetry& OutTelemetry) const override;
+	virtual void GetVehicleTelemetry(FSimCruiseDriveTelemetry& OutTelemetry) const override;
 	virtual void ApplyDriverCommand(const FSimCruiseDriverCommand& InCommand) override;
 	virtual FString RequestGearChange(int32 Step) override;
 	virtual void SetManualTransmission(bool bInManual) override;

@@ -74,7 +74,7 @@ void FSimCruiseHeadModel::Reset()
 }
 
 FSimCruiseEyePose FSimCruiseHeadModel::Update(const FTransform& Body, const FVector& WorldVelocityMps, const FSimCruiseVehicleSetup& Setup,
-	const FSimCruiseVehicleTelemetry& Telemetry, double DeltaTimeS)
+	const FSimCruiseDriveTelemetry& Telemetry, double DeltaTimeS)
 {
 	// Differentiate over the frame's real duration (a clamped step would
 	// misstate the acceleration above 240 or below 20 fps); integrate the
