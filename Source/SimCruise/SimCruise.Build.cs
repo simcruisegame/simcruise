@@ -19,5 +19,12 @@ public class SimCruise : ModuleRules
 			"JsonUtilities",
 			"PhysicsCore"
 		});
+
+		// Environment: frame timing (RenderCore, RHI) for the graphics presets and perf sampler.
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"RenderCore",
+			"RHI"
+		});
 	}
 }
