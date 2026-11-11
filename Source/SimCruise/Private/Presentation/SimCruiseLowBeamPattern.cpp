@@ -59,9 +59,14 @@ namespace SimCruiseLowBeamPattern
 		{
 			return Cached.Get();
 		}
-		UMaterialInterface* Material = LoadObject<UMaterialInterface>(nullptr, *AssetPath(), nullptr, LOAD_NoWarn | LOAD_Quiet);
+		// Editor builds make it from the code (a saved copy would hide a change); packaged
+		// builds load the copy the SimCruiseBuildWorldMaterials commandlet saved.
+		UMaterialInterface* Material = nullptr;
+#if !WITH_EDITOR
+		Material = LoadObject<UMaterialInterface>(nullptr, *AssetPath(), nullptr, LOAD_NoWarn | LOAD_Quiet);
+#endif
 #if WITH_EDITOR
-		if (!Material && FApp::CanEverRender())
+		if (!Material && (FApp::CanEverRender() || IsRunningCommandlet()))
 		{
 			UMaterial* Built = NewObject<UMaterial>(GetTransientPackage(), TEXT("LF_SimCruiseLowBeam"), RF_Transient);
 			Built->MaterialDomain = MD_LightFunction;

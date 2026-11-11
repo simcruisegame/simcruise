@@ -67,14 +67,14 @@ A plain `-game` launch drives the streamed world (see "Drive it" below). The wor
 
 `-SimCruiseWorld` streams the bundled Miami Beach tiles (no network). `-SimCruiseStart=lat,lon` starts elsewhere and needs the atlas helper (`tools/atlas.exe`, or Bun with `helper/atlas.mjs`; see `docs/building.md`). `-SimCruisePreview=ocean,collins,aerial,top,seam,drop` adds a sun and sky when the map has none, writes those captures to `Saved/Screenshots/SimCruise/` and quits; add `-ExecCmds="scalability 4"` for the highest settings.
 
-The world materials are defined in code. A cooked build needs them as assets:
+Every material is defined in code. The editor always builds them from the code; a cooked build loads saved copies instead. After changing a material, save them all again (exit code 0 when every one saved) and commit `Content/World/Materials`, `Content/Vehicles/Materials` and `Content/Vehicle/Materials`:
 
 ```powershell
 & 'C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe' 'D:\simcruise\SimCruise.uproject' -run=SimCruiseBuildWorldMaterials
 ```
 While any Unreal Editor with Live Coding is open (on any project of this engine install), UnrealBuildTool refuses to build ("Unable to build while Live Coding is active"). Add `-NoHotReloadFromIDE` to build a second checkout or worktree anyway; do not use it to rebuild the module the open editor has loaded.
 
-The `SimCruise` game target builds the same way (`Build.bat SimCruise Win64 Development ...`). Cooked games need the car master materials saved as assets: run the console command `SimCruise.SaveCarMaterials` once in the editor (it writes `Content/Vehicles/Materials`).
+The `SimCruise` game target builds the same way (`Build.bat SimCruise Win64 Development ...`). The commandlet saves the eight world layers, the three car masters, the dashboard clock, the mirror glass and the low-beam light function (`SimCruise.SaveCarMaterials` in the editor still saves only the car masters).
 
 ## Automation tests
 

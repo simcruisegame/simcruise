@@ -41,3 +41,5 @@ data/tiles/*.json linguist-generated
 helper/coast-atlas.json linguist-generated
 helper/lidar-projects.json linguist-generated
 helper/photo-weather-stations.json linguist-generated
+*.uasset binary
+*.umap binary

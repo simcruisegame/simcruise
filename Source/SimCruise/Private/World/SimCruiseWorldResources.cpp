@@ -489,7 +489,12 @@ void USimCruiseWorldResources::Initialise()
 	for (int32 i = 0; i < LayerMaterials.Num(); ++i)
 	{
 		const ESimCruiseTileLayer Layer = static_cast<ESimCruiseTileLayer>(i);
-		UMaterialInterface* Material = LoadObject<UMaterialInterface>(nullptr, *SimCruiseWorldMaterials::AssetPath(Layer), nullptr, LOAD_NoWarn | LOAD_Quiet);
+		// Editor builds make it from the code (a saved copy would hide a change); packaged
+		// builds load the copy the SimCruiseBuildWorldMaterials commandlet saved.
+		UMaterialInterface* Material = nullptr;
+#if !WITH_EDITOR
+		Material = LoadObject<UMaterialInterface>(nullptr, *SimCruiseWorldMaterials::AssetPath(Layer), nullptr, LOAD_NoWarn | LOAD_Quiet);
+#endif
 #if WITH_EDITOR
 		// Headless runs (automation with -nullrhi) draw nothing: no shader compiles for them.
 		if (!Material && FApp::CanEverRender())

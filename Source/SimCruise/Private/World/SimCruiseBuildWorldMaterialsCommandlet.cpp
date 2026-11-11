@@ -3,10 +3,16 @@
 #include "World/SimCruiseBuildWorldMaterialsCommandlet.h"
 
 #include "Materials/Material.h"
+#include "HAL/FileManager.h"
 #include "Misc/PackageName.h"
+#include "Misc/Paths.h"
 #include "UObject/Package.h"
 #include "UObject/SavePackage.h"
 #include "World/SimCruiseWorldResources.h"
+#include "Presentation/SimCruiseCarClock.h"
+#include "Presentation/SimCruiseCarMaterialLibrary.h"
+#include "Presentation/SimCruiseCarMirror.h"
+#include "Presentation/SimCruiseLowBeamPattern.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSimCruiseMaterials, Log, All);
 
@@ -22,6 +28,15 @@ int32 USimCruiseBuildWorldMaterialsCommandlet::Main(const FString& Params)
 {
 #if WITH_EDITOR
 	int32 Failures = 0;
+	// A fresh copy of each: the old files go first (re-saving over a package the engine has
+	// only partly loaded is refused).
+	for (const TCHAR* Dir : { TEXT("World/Materials"), TEXT("Vehicles/Materials"), TEXT("Vehicle/Materials") })
+	{
+		TArray<FString> Old;
+		const FString Folder = FPaths::Combine(FPaths::ProjectContentDir(), Dir);
+		IFileManager::Get().FindFiles(Old, *FPaths::Combine(Folder, TEXT("*.uasset")), true, false);
+		for (const FString& File : Old) IFileManager::Get().Delete(*FPaths::Combine(Folder, File));
+	}
 	for (int32 i = 0; i < static_cast<int32>(ESimCruiseTileLayer::Count); ++i)
 	{
 		const ESimCruiseTileLayer Layer = static_cast<ESimCruiseTileLayer>(i);
@@ -43,6 +58,45 @@ int32 USimCruiseBuildWorldMaterialsCommandlet::Main(const FString& Params)
 		}
 		UE_LOG(LogSimCruiseMaterials, Display, TEXT("Saved %s"), *File);
 	}
+
+	// The car's: its three masters, the dashboard clock, the mirror glass and the low-beam
+	// light function (each built from the code, then saved as a copy).
+	FString Report;
+	if (!SimCruiseCarMaterials::SaveMasters(Report)) ++Failures;
+	UE_LOG(LogSimCruiseMaterials, Display, TEXT("%s"), *Report);
+	auto SaveCopy = [&](UMaterialInterface* Built, const FString& PackagePath)
+	{
+		UMaterial* Source = Built ? Built->GetMaterial() : nullptr;
+		if (!Source)
+		{
+			UE_LOG(LogSimCruiseMaterials, Error, TEXT("Could not build %s"), *PackagePath);
+			++Failures;
+			return;
+		}
+		const FString Name = FPackageName::GetLongPackageAssetName(PackagePath);
+		UPackage* Package = CreatePackage(*PackagePath);
+		UMaterial* Saved = DuplicateObject<UMaterial>(Source, Package, *Name);
+		Saved->ClearFlags(RF_Transient);
+		Saved->SetFlags(RF_Public | RF_Standalone);
+		Saved->PostEditChange();
+		Package->MarkPackageDirty();
+		const FString File = FPackageName::LongPackageNameToFilename(PackagePath, FPackageName::GetAssetPackageExtension());
+		FSavePackageArgs Args;
+		Args.TopLevelFlags = RF_Public | RF_Standalone;
+		Args.SaveFlags = SAVE_NoError;
+		if (UPackage::SavePackage(Package, Saved, *File, Args))
+		{
+			UE_LOG(LogSimCruiseMaterials, Display, TEXT("Saved %s"), *File);
+		}
+		else
+		{
+			UE_LOG(LogSimCruiseMaterials, Error, TEXT("Could not save %s"), *File);
+			++Failures;
+		}
+	};
+	SaveCopy(SimCruiseCarClock::Get(), TEXT("/Game/Vehicle/Materials/M_SimCruiseCarClock"));
+	SaveCopy(SimCruiseCarMirror::Get(), TEXT("/Game/Vehicle/Materials/M_SimCruiseCarMirror"));
+	SaveCopy(SimCruiseLowBeamPattern::Get(), TEXT("/Game/Vehicle/Materials/LF_SimCruiseLowBeam"));
 	return Failures == 0 ? 0 : 1;
 #else
 	return 1;

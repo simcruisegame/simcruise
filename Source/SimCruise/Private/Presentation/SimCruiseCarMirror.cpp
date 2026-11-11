@@ -66,9 +66,14 @@ namespace SimCruiseCarMirror
 		{
 			return Cached.Get();
 		}
-		UMaterialInterface* Material = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Vehicle/Materials/M_SimCruiseCarMirror.M_SimCruiseCarMirror"), nullptr, LOAD_NoWarn | LOAD_Quiet);
+		// Editor builds make it from the code (a saved copy would hide a change); packaged
+		// builds load the copy the SimCruiseBuildWorldMaterials commandlet saved.
+		UMaterialInterface* Material = nullptr;
+#if !WITH_EDITOR
+		Material = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Vehicle/Materials/M_SimCruiseCarMirror.M_SimCruiseCarMirror"), nullptr, LOAD_NoWarn | LOAD_Quiet);
+#endif
 #if WITH_EDITOR
-		if (!Material && FApp::CanEverRender())
+		if (!Material && (FApp::CanEverRender() || IsRunningCommandlet()))
 		{
 			UMaterial* Built = NewObject<UMaterial>(GetTransientPackage(), TEXT("M_SimCruiseCarMirror"), RF_Transient);
 			// Mirror glass is a section of Nanite body and cabin parts.
