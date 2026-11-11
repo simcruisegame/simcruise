@@ -4,6 +4,7 @@ Notable changes to SimCruise, newest first. The format follows [Keep a Changelog
 
 ## Unreleased
 
+- **Rooms behind the windows** (`World/SimCruiseWorldResources`, building shader) — by day every window was a flat dark mirror and the porch glass a black band. Each window now has a room traced behind it in the shader (interior mapping): back and side walls, floor and ceiling that shift with parallax as you pass, furniture along the back wall, blinds or curtains in homes, shelving in shops, lit by daylight that falls off with depth (about 5000 lux at the glass to 1000 at 5 m) and by lamps in shops and lit homes. Physical units against the daylight exposure: the rooms read dim and detailed, as through real glass.
 ## SimCruise 2.0.0-preview.1 (2026-11-11)
 
 The first build made with Unreal Engine 5.8: a Windows preview, published as a zip on GitHub Releases. Everything below, back to 1.1.0, is the move from the Godot client.

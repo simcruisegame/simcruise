@@ -25,6 +25,7 @@
 #endif
 
 #if WITH_EDITOR
+#include "Materials/MaterialExpressionCameraVectorWS.h"
 #include "Materials/MaterialExpressionConstant.h"
 #include "Materials/MaterialExpressionCustom.h"
 #include "Materials/MaterialExpressionLocalPosition.h"
@@ -205,6 +206,10 @@ float3 col = stucco;
 float rough = 0.88;
 float metal = 0.0;
 float3 emis = float3(0.0, 0.0, 0.0);
+// The window a room is drawn behind, set by the facade branches (rPane 0: none).
+float rPane = 0.0, rx = 0.0, ry = 0.0, rBay = 1.0, rX0 = 0.0, rW = 1.0, rY0 = 0.0, rY1 = 1.0;
+float rR = 0.0, rLit = 0.0, rTint = 0.0, rFy = 1e-4;
+bool rShop = false;
 if (kind < 0.5 || (kind > 10.5 && kind < 13.5))
 {
 	const float storey = 3.1;
@@ -233,9 +238,10 @@ if (kind < 0.5 || (kind > 10.5 && kind < 13.5))
 	float reveal = inWin * (1.0 - smoothstep(0.0, 0.14, y1 - y));
 	float2 cell = float2(floor(along / bayW + 0.5), level);
 	float r = frac(sin(dot(cell + seed * 17.0, float2(12.9898, 78.233))) * 43758.5453);
-	float3 glass = float3(0.018, 0.024, 0.03) * (0.8 + 0.5 * r);
-	if (shop) glass = lerp(float3(0.06, 0.055, 0.05), VC.rgb * 0.18, 0.4) * (0.7 + 0.6 * r); // a lit interior behind the reflection
-	glass = lerp(glass, VC.rgb * 0.22, step(0.72, r) * 0.55);
+	// The pane itself has next to no diffuse colour: what it shows is the street's reflection
+	// (its specular) and the room behind it (emissive, below). One window in four is tinted.
+	float tinted = step(0.72, r);
+	float3 glass = lerp(float3(0.006, 0.007, 0.008), VC.rgb * 0.12, tinted * 0.55);
 	float pane = inWin * (1.0 - frame);
 	col = lerp(stucco, glass, pane);
 	col = lerp(col, float3(0.86, 0.86, 0.83), frame);
@@ -243,11 +249,9 @@ if (kind < 0.5 || (kind > 10.5 && kind < 13.5))
 	rough = lerp(0.9, 0.04, pane);
 	float lit = shop ? step(r, 0.72) : step(r, 0.36);
 	rough = lerp(rough, 0.95, pane * lit * Lights); // a lit room shows its light, not a noisy mirror
-	// Shops: warm interiors, brighter toward the ceiling lights, a few closed for the night.
-	// Luminance through the glass (cd/m2): a shop lit to 500-1000 lux reads 60-150, a lit
-	// room 15-45; dimmer and the street's reflection in the pane (noisy at night) wins.
-	float depth = shop ? lerp(0.45, 1.0, saturate((y - y0) / (y1 - y0))) : 1.0;
-	emis = pane * lit * Lights * depth * lerp(float3(1.0, 0.72, 0.45), float3(1.0, 0.86, 0.7), frac(r * 3.3)) * (shop ? 60.0 + 90.0 * frac(r * 5.1) : 15.0 + 30.0 * frac(r * 9.7));
+
+	rPane = pane; rx = x; ry = y; rBay = bayW; rX0 = x0; rW = winW; rY0 = y0; rY1 = y1;
+	rR = r; rLit = lit; rTint = tinted; rFy = fy; rShop = shop;
 	// Art Deco street fronts at night: coloured uplights at the foot of the facade, one
 	// every 3.6 m, washing the stucco (about 310 lux at the base, falling off upward), on
 	// three hotels in five; pink, violet, cyan, teal or warm white per hotel.
@@ -270,10 +274,13 @@ else if (kind < 4.5)
 {
 	float bars = step(frac(along / 1.8), 0.035) + step(abs(h - 2.75), 0.04);
 	bars = saturate(bars);
-	col = lerp(float3(0.02, 0.026, 0.03), float3(0.8, 0.8, 0.77), bars);
+	col = lerp(float3(0.006, 0.007, 0.008), float3(0.8, 0.8, 0.77), bars);
 	rough = lerp(0.04, 0.5, bars);
-	emis = (1.0 - bars) * Lights * float3(1.0, 0.8, 0.55) * 80.0; // a lit lobby or cafe behind the porch glass
-	rough = lerp(rough, 0.95, (1.0 - bars) * Lights);
+	// A lobby or cafe behind the porch glass, lit all day like a shop (a few closed at night).
+	float pr = frac(sin(dot(float2(floor(along / 1.8), 0.0) + seed * 17.0, float2(12.9898, 78.233))) * 43758.5453);
+	rPane = 1.0 - bars; rx = frac(along / 1.8) * 1.8; ry = h; rBay = 1.8; rX0 = 0.0; rW = 1.8; rY0 = 0.0; rY1 = 2.75;
+	rR = pr; rLit = step(pr, 0.72); rTint = 0.0; rFy = max(fwidth(h), 1e-4); rShop = true;
+	rough = lerp(rough, 0.95, rPane * rLit * Lights);
 }
 else if (kind < 5.5) { col = VC.rgb * lerp(1.0, grain, 0.25); rough = 0.5; }
 else if (kind < 6.5) { col = VC.rgb * lerp(1.0, grain, 0.12); rough = 0.42; metal = 0.6; }
@@ -285,6 +292,82 @@ else if (kind < 7.5)
 }
 else if (kind < 8.5) { col = float3(0.8, 0.78, 0.72); rough = 0.2; emis = Lights * float3(1.0, 0.8, 0.58) * 9000.0; }
 else if (kind < 9.5) { col = float3(0.03, 0.045, 0.05); rough = 0.05; }
+)HLSL") TEXT(R"HLSL(
+// Behind any window (set above), a room traced in the shader (interior mapping): the cell
+// is the bay across, the storey up and 4-6 m deep (a shop 7-9 m).
+if (rPane > 0.0)
+{
+	// The view ray from the pane meets the back wall, a side wall, the floor or the ceiling,
+	// so the room moves with parallax as the car passes.
+	float3 V = -normalize(CV);
+	float3 N = normalize(VN);
+	float3 T = normalize(cross(float3(0.0, 0.0, 1.0), N) + float3(1e-5, 1e-5, 0.0));
+	T *= dot(ddx(LP), T) * ddx(along) + dot(ddy(LP), T) * ddy(along) < 0.0 ? -1.0 : 1.0; // along runs +T
+	float3 rd = float3(dot(V, T), V.z, max(-dot(V, N), 0.03));
+	float ceilH = rShop ? 3.0 : 2.8;
+	float deep = (rShop ? 7.0 : 4.0) + 2.0 * frac(rR * 7.7);
+	float tx = rd.x > 0.0 ? (rBay - rx) / rd.x : (rd.x < 0.0 ? -rx / rd.x : 1e4);
+	float ty = rd.y > 0.0 ? (ceilH - ry) / rd.y : (rd.y < 0.0 ? -ry / rd.y : 1e4);
+	float tz = deep / rd.z;
+	float t = min(min(tx, ty), tz);
+	float3 hit = float3(rx, ry, 0.0) + t * rd;
+	float r2 = frac(rR * 91.7), r3 = frac(rR * 53.3), r4 = frac(rR * 17.9);
+	float3 wallC = lerp(float3(0.62, 0.6, 0.55), float3(0.68, 0.6, 0.48), r2);
+	wallC = lerp(wallC, VC.rgb, step(0.8, r3) * 0.5);
+	float3 surf = wallC;
+	float shade = 1.0;
+	if (t == ty)
+	{
+		surf = rd.y > 0.0 ? float3(0.78, 0.77, 0.74) : (r3 < 0.5 ? float3(0.28, 0.18, 0.11) : float3(0.4, 0.38, 0.35)); // ceiling; wood or tile floor
+	}
+	else if (t == tx)
+	{
+		shade = 0.8;
+	}
+	else
+	{
+		// The back wall: a sofa, desk or shelving along its foot, a picture on some; a shop's
+		// shelves run its height.
+		float fx0 = rBay * (0.12 + 0.3 * r2), fx1 = fx0 + rBay * (0.35 + 0.25 * r3);
+		float furn = step(fx0, hit.x) * step(hit.x, fx1) * step(hit.y, rShop ? 2.1 : 0.85);
+		surf = lerp(surf, lerp(float3(0.12, 0.1, 0.09), float3(0.36, 0.31, 0.26), r3), furn);
+		if (rShop) surf *= 1.0 - 0.4 * step(0.6, frac(hit.y / 0.42)) * step(hit.y, 2.1);
+		float pic = step(abs(hit.x - rBay * 0.5), 0.35) * step(abs(hit.y - 1.6), 0.25) * step(0.55, r2) * (rShop ? 0.0 : 1.0);
+		surf = lerp(surf, lerp(float3(0.15, 0.2, 0.3), float3(0.5, 0.35, 0.2), r3), pic);
+	}
+	// Illuminance on what the ray meets (lux): daylight through the window falls off with depth,
+	// from a daylight factor of 10-20 % at the glass (about 5000 lux under a clear sky) to 1-2 %
+	// at the back (about 1000 at 5 m); the room's lamps, on in shops all day (a few closed at
+	// night) and in one home in three at night.
+	float dayLux = (5000.0 * exp(-hit.z / 3.0) + 400.0) * (t == ty && rd.y > 0.0 ? 0.55 : 1.0);
+	float lamp = rShop ? 700.0 * lerp(1.0, rLit, Lights) : 130.0 * rLit * Lights;
+	float3 lampTint = lerp(float3(1.0, 0.72, 0.45), float3(1.0, 0.86, 0.7), frac(rR * 3.3));
+	float3 room = surf * shade * ((1.0 - Lights) * dayLux * float3(0.95, 1.0, 1.05) + lamp * lampTint) / 3.14159;
+	// Blinds or curtains just inside the glass (homes and offices, not shops).
+	float u = (rx - rX0) / rW, v = (ry - rY0) / (rY1 - rY0);
+	float cover = 0.0;
+	float3 coverC = float3(0.82, 0.8, 0.74);
+	if (!rShop)
+	{
+		if (r4 < 0.35)
+		{
+			// Venetian blinds let down part way; their slats average out with distance.
+			float slat = lerp(0.85, step(frac(ry / 0.05), 0.8), saturate(1.5 - rFy / 0.02));
+			cover = step(1.0 - (0.3 + 0.7 * frac(r4 * 7.3)), v) * slat;
+		}
+		else if (r4 < 0.65)
+		{
+			float c = 0.15 + 0.3 * frac(r4 * 5.1);
+			cover = saturate(step(u, c) + step(1.0 - c, u));
+			coverC = lerp(float3(0.78, 0.74, 0.66), lerp(float3(0.45, 0.2, 0.18), float3(0.2, 0.3, 0.4), r2), step(0.6, frac(r4 * 3.7)));
+			coverC *= 0.85 + 0.15 * sin(u * 70.0);
+		}
+	}
+	float3 coverLum = coverC * ((1.0 - Lights) * 6000.0 + lamp * 0.6 * lampTint) / 3.14159;
+	room = lerp(room, coverLum, cover);
+	// Clear glass passes about 85 %, the tinted panes a quarter.
+	emis += rPane * room * lerp(0.85, 0.25, rTint);
+}
 Roughness = rough;
 Metal = metal;
 Emis = emis;
@@ -433,6 +516,7 @@ return col;
 			AddInput(Custom, TEXT("UV0"), TexCoord(Material, 0));
 			AddInput(Custom, TEXT("UV1"), TexCoord(Material, 1));
 			AddInput(Custom, TEXT("Lights"), ScalarParam(Material, TEXT("Lights"), 0.f));
+			AddInput(Custom, TEXT("CV"), AddExpression<UMaterialExpressionCameraVectorWS>(Material)); // the rooms behind the windows
 			Custom->RebuildOutputs();
 			Material->GetEditorOnlyData()->Metallic.Connect(3, Custom);
 			Material->GetEditorOnlyData()->EmissiveColor.Connect(4, Custom);
