@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/Scene.h"
 #include "GameFramework/Actor.h"
 #include "Live/SimCruiseLiveData.h"
 #include "SimCruiseLiveSky.generated.h"
@@ -45,9 +46,9 @@ public:
 	int32 NumAircraft() const { return Planes.Num(); }
 
 	/**
-	 * Test shot: from the player's camera toward the aircraft highest in the sky (above 3
-	 * degrees of elevation), a scene capture with the given field of view; after 2 s (exposure settles)
-	 * the frame is saved to Saved/Screenshots/<Name>.png. Returns a description, or empty.
+	 * Test shot: the view moves for 3 s to a camera on a 30 m mast over the car, aimed at the
+	 * aircraft highest in the sky (above 3 degrees of elevation) with the given field of view,
+	 * and the frame is saved to Saved/Screenshots/<Name>.png. Returns a description, or empty.
 	 */
 	FString StartShot(const FString& Name, float FovDeg);
 
@@ -61,8 +62,7 @@ public:
 	 */
 	double SunElevationDeg = -90.0;
 
-	/** The main camera's display EV100 now, for test shots. */
-	float ShotEV100 = 10.0f;
+
 
 private:
 	struct FPlane
@@ -111,10 +111,11 @@ private:
 	void TickShot(float DeltaSeconds, const FVector& ViewCm);
 
 	UPROPERTY(Transient)
-	TObjectPtr<class USceneCaptureComponent2D> ShotCapture;
+	TObjectPtr<class ACameraActor> ShotCamera;
 
-	UPROPERTY(Transient)
-	TObjectPtr<class UTextureRenderTarget2D> ShotTarget;
+	TWeakObjectPtr<AActor> ShotReturnTarget;
+	FVector ShotFrom = FVector::ZeroVector;
+	bool bShotRequested = false;
 
 	FString ShotName;
 	FString ShotHex;

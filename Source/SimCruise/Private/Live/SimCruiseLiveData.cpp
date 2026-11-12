@@ -738,12 +738,9 @@ FSimCruiseWeatherConditions FSimCruiseLiveData::Fuse(const FSimCruiseLiveWeather
 		// An observer at the airport: what they see wins over the model where they measure it.
 		Out.CloudCover = Metar->CloudCover;
 		Out.VisibilityM = Metar->VisibilityM >= 16000.0f ? FMath::Max(Out.VisibilityM, 40000.0f) : FMath::Max(Metar->VisibilityM, 50.0f);
-		const FRegexPattern Rain(TEXT("(^|[\\s+-])(FZ)?(SH|TS)?(RA|DZ)"));
-		const FRegexPattern Snow(TEXT("(^|[\\s+-])(SH|TS)?(SN|SG|PL|GR|GS)"));
-		FRegexMatcher RainMatch(Rain, Metar->WxString);
-		FRegexMatcher SnowMatch(Snow, Metar->WxString);
-		Out.bRaining = RainMatch.FindNext();
-		Out.bSnowing = SnowMatch.FindNext();
+		// The same present-weather rules as the helper's conditions (FSimCruiseWeather).
+		Out.bRaining = FSimCruiseWeather::IsRainWx(Metar->WxString);
+		Out.bSnowing = FSimCruiseWeather::IsSnowWx(Metar->WxString);
 		Out.bClearSky = Metar->CloudCover <= 0.0f && Metar->VisibilityM >= 10000.0f && Metar->WxString.TrimStartAndEnd().IsEmpty() && Metar->Km <= 40.0f;
 		Out.Station = Metar->Station;
 		Out.StationKm = Metar->Km;

@@ -71,6 +71,10 @@ struct SIMCRUISE_API FSimCruiseWeatherConditions
 /** Parsing and the slow-changing state derived from weather (surface water). */
 struct SIMCRUISE_API FSimCruiseWeather
 {
+	/** METAR present-weather rules (wxString): liquid precipitation, and frozen precipitation. */
+	static bool IsRainWx(const FString& Wx);
+	static bool IsSnowWx(const FString& Wx);
+
 	/**
 	 * Reads one conditions object as written by helper/conditions.mjs. An empty object
 	 * ({} - no station within 85 km) leaves Out at its defaults and returns true.

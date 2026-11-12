@@ -147,6 +147,8 @@ struct SIMCRUISE_API FSimCruisePlacePhoto
 	FString Taken;
 	int32 Width = 0;
 	int32 Height = 0;
+	/** The 1024 px copy on this computer once read (Saved/Live/photos), else empty. */
+	FString LocalFile;
 };
 
 /** A NOAA CO-OPS station that reports water levels. */

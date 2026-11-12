@@ -348,8 +348,8 @@ void FSimCruiseNeuralDetail::Process(const FString& SourcePath)
 	{
 		return;
 	}
-	UE_LOG(LogSimCruiseNeural, Display, TEXT("AI detail: %s %dx%d -> %dx%d, %.2f s on the GPU in %.1f s at %.0f %% duty"), *FPaths::GetCleanFilename(SourcePath),
-		W, H, OW, OH, Seconds, FPlatformTime::Seconds() - Start, Duty * 100.0f);
+	UE_LOG(LogSimCruiseNeural, Display, TEXT("AI detail: %s %dx%d -> %dx%d, %.1f s of inference on %s, %.1f s in all"), *FPaths::GetCleanFilename(SourcePath),
+		W, H, OW, OH, Seconds, *RuntimeName, FPlatformTime::Seconds() - Start);
 	IImageWrapperModule& Wrappers = FModuleManager::LoadModuleChecked<IImageWrapperModule>(TEXT("ImageWrapper"));
 	TSharedPtr<IImageWrapper> Jpeg = Wrappers.CreateImageWrapper(EImageFormat::JPEG);
 	if (Jpeg && Jpeg->SetRaw(Out.GetData(), Out.Num() * sizeof(FColor), OW, OH, ERGBFormat::BGRA, 8))

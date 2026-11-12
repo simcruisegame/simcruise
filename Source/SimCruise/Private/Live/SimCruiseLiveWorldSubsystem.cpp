@@ -3,7 +3,7 @@
 #include "Live/SimCruiseLiveWorldSubsystem.h"
 
 #include "Engine/World.h"
-#include "Environment/SimCruiseDaylightModel.h"
+#include "Components/PostProcessComponent.h"
 #include "Environment/SimCruiseEnvironment.h"
 #include "Environment/SimCruiseEnvironmentSubsystem.h"
 #include "GameFramework/PlayerController.h"
@@ -18,10 +18,12 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Misc/App.h"
 #include "UObject/UObjectIterator.h"
+#include "World/SimCruiseTileBuilder.h"
 #include "World/SimCruiseWorldResources.h"
 #include "Misc/CommandLine.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "UnrealClient.h"
 #include "World/SimCruiseGeo.h"
 #include "World/SimCruiseWorldStreamer.h"
 #include "World/SimCruiseWorldSubsystem.h"
@@ -50,6 +52,16 @@ namespace SimCruiseLiveWorldPrivate
 			if (USimCruiseLiveWorldSubsystem* Live = USimCruiseLiveWorldSubsystem::Get(World))
 			{
 				Live->Shot(Args.Num() > 0 ? Args[0] : TEXT("live-aircraft"), Args.Num() > 1 ? FCString::Atof(*Args[1]) : 20.0f);
+			}
+		}));
+
+	FAutoConsoleCommandWithWorldAndArgs GWet(
+		TEXT("SimCruise.Live.Wet"), TEXT("SimCruise.Live.Wet <0..1 | -1>: force the road water (look tests); -1 follows the weather"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			if (USimCruiseLiveWorldSubsystem* Live = USimCruiseLiveWorldSubsystem::Get(World))
+			{
+				Live->WetOverride = Args.Num() > 0 ? FCString::Atof(*Args[0]) : -1.0f;
 			}
 		}));
 
@@ -166,6 +178,8 @@ void USimCruiseLiveWorldSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	float IgnoredFloat = 0.0f;
 	bWeatherFromCommandLine = FParse::Value(Cmd, TEXT("SimCruiseConditions="), Ignored) || FParse::Value(Cmd, TEXT("SimCruiseCloud="), IgnoredFloat)
 		|| FParse::Value(Cmd, TEXT("SimCruiseVisibilityKm="), IgnoredFloat) || FParse::Param(Cmd, TEXT("SimCruiseRain"));
+	// -SimCruiseLiveWet=<0..1>: road water for look tests.
+	FParse::Value(Cmd, TEXT("SimCruiseLiveWet="), WetOverride);
 	// -SimCruiseLiveShots=<s>: a telephoto shot toward the nearest aircraft every s seconds (play tests).
 	if (FParse::Value(Cmd, TEXT("SimCruiseLiveShots="), ShotEverySeconds))
 	{
@@ -231,6 +245,13 @@ void USimCruiseLiveWorldSubsystem::Tick(float DeltaTime)
 	{
 		NextShotAt = Clock + ShotEverySeconds;
 		Shot(FString::Printf(TEXT("live-aircraft-%d"), ++ShotCount), 20.0f);
+		bViewShotTaken = false;
+	}
+	// The driver's own view halfway between aircraft shots: the weather, the haze, the road.
+	if (ShotEverySeconds > 0.0f && !bViewShotTaken && Clock >= NextShotAt - ShotEverySeconds * 0.5)
+	{
+		bViewShotTaken = true;
+		FScreenshotRequest::RequestScreenshot(FPaths::ProjectSavedDir() / TEXT("Screenshots") / FString::Printf(TEXT("live-view-%d.png"), ShotCount), false, false);
 	}
 
 	double Lat = 0.0, Lon = 0.0;
@@ -269,7 +290,6 @@ void USimCruiseLiveWorldSubsystem::Tick(float DeltaTime)
 			{
 				Sky->OriginElevationM = Env->ElevationM;
 				Sky->SunElevationDeg = Env->GetSunPosition().ApparentElevationDeg;
-				Sky->ShotEV100 = static_cast<float>(FSimCruiseDaylightModel::DisplayEV100(Env->GetReferenceEV100())) - Env->ExposureCompensation;
 			}
 		}
 	}
@@ -303,6 +323,9 @@ void USimCruiseLiveWorldSubsystem::Tick(float DeltaTime)
 		}
 		Sea.bTideObserved = false;
 	}
+
+	TickPhotoDownloads();
+	ApplyRoadWater();
 
 	for (int32 Index = 0; Index < static_cast<int32>(EFeed::Count); ++Index)
 	{
@@ -363,6 +386,65 @@ void USimCruiseLiveWorldSubsystem::Shot(const FString& Name, float FovDeg)
 	UE_LOG(LogSimCruiseLive, Display, TEXT("Live shot %s: %s"), *Name, What.IsEmpty() ? TEXT("no aircraft above 3 degrees") : *What);
 }
 
+FString USimCruiseLiveWorldSubsystem::PhotoPath(const FSimCruisePlacePhoto& Photo) const
+{
+	return FPaths::ProjectSavedDir() / TEXT("Live") / TEXT("photos") / FString::Printf(TEXT("%08x.jpg"), GetTypeHash(Photo.Title));
+}
+
+void USimCruiseLiveWorldSubsystem::TickPhotoDownloads()
+{
+	if (bPhotoInFlight || PhotoQueue.IsEmpty() || Clock < NextPhotoAt)
+	{
+		return;
+	}
+	const int32 Index = PhotoQueue[0];
+	PhotoQueue.RemoveAt(0);
+	if (!Photos.IsValidIndex(Index))
+	{
+		return;
+	}
+	if (!TakeRequestSlot(Photos[Index].ThumbUrl))
+	{
+		PhotoQueue.Insert(Index, 0);
+		return;
+	}
+	bPhotoInFlight = true;
+	NextPhotoAt = Clock + 1.5;
+	const FString Title = Photos[Index].Title;
+	const FString File = PhotoPath(Photos[Index]);
+	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(Photos[Index].ThumbUrl);
+	Request->SetVerb(TEXT("GET"));
+	Request->SetHeader(TEXT("User-Agent"), TEXT("SimCruise/2.0 (+https://github.com/simcruisegame/simcruise)"));
+	Request->SetTimeout(30.0f);
+	TWeakObjectPtr<USimCruiseLiveWorldSubsystem> Weak(this);
+	Request->OnProcessRequestComplete().BindLambda([Weak, Title, File](FHttpRequestPtr Req, FHttpResponsePtr Response, bool bConnected)
+	{
+		USimCruiseLiveWorldSubsystem* Self = Weak.Get();
+		if (!Self)
+		{
+			return;
+		}
+		Self->Requests.Remove(Req);
+		Self->InFlight = FMath::Max(0, Self->InFlight - 1);
+		Self->bPhotoInFlight = false;
+		if (!bConnected || !Response.IsValid() || Response->GetResponseCode() != 200 || Response->GetContent().Num() < 1000)
+		{
+			return;
+		}
+		FFileHelper::SaveArrayToFile(Response->GetContent(), *File);
+		for (FSimCruisePlacePhoto& Photo : Self->Photos)
+		{
+			if (Photo.Title == Title)
+			{
+				Photo.LocalFile = File;
+			}
+		}
+	});
+	Requests.Add(Request);
+	Request->ProcessRequest();
+}
+
 void USimCruiseLiveWorldSubsystem::RefreshAll()
 {
 	for (FFeedState& State : Feeds)
@@ -371,9 +453,64 @@ void USimCruiseLiveWorldSubsystem::RefreshAll()
 	}
 }
 
+void USimCruiseLiveWorldSubsystem::ApplyRoadWater()
+{
+	if (Clock < NextRoadWaterAt)
+	{
+		return;
+	}
+	NextRoadWaterAt = Clock + 2.0;
+	const USimCruiseEnvironmentSubsystem* EnvSubsystem = USimCruiseEnvironmentSubsystem::Get(GetWorld());
+	const ASimCruiseEnvironment* Env = EnvSubsystem ? EnvSubsystem->GetEnvironment() : nullptr;
+	USimCruiseWorldSubsystem* WorldSubsystem = GetWorld()->GetSubsystem<USimCruiseWorldSubsystem>();
+	ASimCruiseWorldStreamer* Streamer = WorldSubsystem ? WorldSubsystem->GetStreamer() : nullptr;
+	if (!Env || !Streamer || !Streamer->Resources)
+	{
+		return;
+	}
+	const float Water = WetOverride >= 0.0f ? WetOverride : Env->GetRoadWetness();
+	// New tiles start dry: set every asphalt material each round while the road is wet.
+	if (Water < 0.005f && AppliedRoadWater >= 0.0f && AppliedRoadWater < 0.005f)
+	{
+		return;
+	}
+	const UMaterialInterface* Asphalt = Streamer->Resources->GetLayerMaterial(ESimCruiseTileLayer::Asphalt);
+	for (TObjectIterator<UMaterialInstanceDynamic> It; It; ++It)
+	{
+		if (It->Parent == Asphalt && It->GetWorld() == GetWorld())
+		{
+			It->SetScalarParameterValue(TEXT("Wet"), Water);
+		}
+	}
+	AppliedRoadWater = Water;
+}
+
+bool USimCruiseLiveWorldSubsystem::TakeRequestSlot(const FString& Url)
+{
+	FString Host = Url;
+	Host.RemoveFromStart(TEXT("https://"));
+	Host.RemoveFromStart(TEXT("http://"));
+	Host = Host.Left(Host.Find(TEXT("/")));
+	RecentRequests.RemoveAll([this](double At) { return Clock - At > 3600.0; });
+	const double* Next = HostNextAt.Find(Host);
+	if (InFlight >= 3 || RecentRequests.Num() >= 600 || (Next && Clock < *Next))
+	{
+		return false;
+	}
+	const double Spacing = Host.Contains(TEXT("wikimedia.org")) ? 1.5 : 1.0;
+	HostNextAt.Add(Host, Clock + Spacing);
+	RecentRequests.Add(Clock);
+	++InFlight;
+	return true;
+}
+
 void USimCruiseLiveWorldSubsystem::Fetch(EFeed Feed, const FString& Url)
 {
 	FFeedState& State = Feeds[static_cast<int32>(Feed)];
+	if (!TakeRequestSlot(Url))
+	{
+		return; // the budget is spent for now: the next tick asks again
+	}
 	State.bInFlight = true;
 	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
 	Request->SetURL(Url);
@@ -390,6 +527,7 @@ void USimCruiseLiveWorldSubsystem::Fetch(EFeed Feed, const FString& Url)
 			return;
 		}
 		Self->Requests.Remove(Req);
+		Self->InFlight = FMath::Max(0, Self->InFlight - 1);
 		FFeedState& S = Self->Feeds[static_cast<int32>(Feed)];
 		S.bInFlight = false;
 		if (!bConnected || !Response.IsValid() || Response->GetResponseCode() != 200)
@@ -488,6 +626,20 @@ void USimCruiseLiveWorldSubsystem::OnFeed(EFeed Feed, const FString& Body, const
 		bOk = FSimCruiseLiveData::ParsePhotos(Body, Photos, Error);
 		if (bOk)
 		{
+			// Keep up to 24 of them on this computer for the builders and the AI to look at.
+			PhotoQueue.Reset();
+			for (int32 Index = 0; Index < Photos.Num(); ++Index)
+			{
+				const FString File = PhotoPath(Photos[Index]);
+				if (IFileManager::Get().FileExists(*File))
+				{
+					Photos[Index].LocalFile = File;
+				}
+				else if (PhotoQueue.Num() < 24)
+				{
+					PhotoQueue.Add(Index);
+				}
+			}
 			UE_LOG(LogSimCruiseLive, Display, TEXT("Live photos: %d freely licensed photographs within 600 m (Wikimedia Commons)"), Photos.Num());
 		}
 		break;
@@ -679,7 +831,7 @@ FString USimCruiseLiveWorldSubsystem::Report() const
 	if (const APawn* Pawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0); Pawn && TrafficAt(Pawn->GetActorLocation(), PerKmLane, PerHour, &Road))
 	{
 		Out += FString::Printf(TEXT("\n  traffic here at %s local: %.0f vehicles an hour, %.1f per km per lane on %s"),
-			*LocalNow().ToString(TEXT("%H:%M %a")), PerHour, PerKmLane, *Road);
+			*LocalNow().ToString(TEXT("%Y-%m-%d %H:%M")), PerHour, PerKmLane, *Road);
 	}
 	Out += FString::Printf(TEXT("\n  %d counted road sections, %d photographs of the place"), Roads.Num(), Photos.Num());
 	const FDateTime Now = FDateTime::UtcNow();
