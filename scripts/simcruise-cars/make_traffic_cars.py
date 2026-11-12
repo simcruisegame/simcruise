@@ -222,7 +222,15 @@ for car in CARS:
     if car["engine"] == "electric":
         car.pop("torque_curve")
         car["torque_curve"] = [[0, car["motor_peak_torque_nm"]], [car["motor_max_rpm"], 104]]
-    with open(os.path.join(root, car["id"] + ".json"), "w", encoding="utf-8", newline="\n") as f:
+    path = os.path.join(root, car["id"] + ".json")
+    # The tyre fit (scripts/fit-tyres.ps1) owns tyre_model and the tmeasy_* keys: keep what it wrote.
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            old = json.load(f)
+        for key, value in old.items():
+            if key == "tyre_model" or key.startswith("tmeasy_"):
+                car[key] = value
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(car, f, indent=1, ensure_ascii=False)
         f.write("\n")
     print("wrote", car["id"])
