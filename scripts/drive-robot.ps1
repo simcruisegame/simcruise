@@ -33,10 +33,10 @@ $History = Join-Path $Out 'history.csv'
 if (-not (Test-Path $History)) { 'date,commit,car,fps_cap,manoeuvre,peak_kph,rear_slip_deg,yaw_dps,spun' | Set-Content -Encoding utf8 $History }
 $Commit = (git -C $Root rev-parse --short HEAD).Trim()
 $Stable = @('launch_turn_trig70', 'junction20_trig70', 'junction30_trig70', 'circle50_lift', 'turnin50_full', 'lanechange80')
-# Per car, manoeuvres that a real car of that kind spins too, recorded but not judged.
-# 1965 Mustang 289: 70 % trigger is 53 % throttle (trigger curve 1.8), about 1800 N m at the
-# rear wheels in first gear against about 1550 N m of grip on bias-ply tyres, so a full-lock
-# launch lights up the inside rear and steps out, as the real car does.
+# Per car, known issues recorded but not judged until they are fixed (docs/release/bugs.md).
+# 1965 Mustang: the full-lock 70 % launch spins (rear slip about 41 deg); the open differential
+# splits the torque equally while the inside wheel flares, so the real car should not step out
+# this far (bug R4, physics).
 $Expected = @{ 'mustang65' = @('launch_turn_trig70') }
 $Failed = @()
 
