@@ -1,0 +1,188 @@
+{
+ "inertia": [
+  5028,
+  5606,
+  1081
+ ],
+ "collision_box": [
+  1.91,
+  0.82,
+  5.59
+ ],
+ "collision_box_y": 0.84,
+ "mount_height_m": 0.6614,
+ "static_length_m": 0.26,
+ "unsprung_corner_kg": 70.0,
+ "wheel_rate_n_m": [
+  35014,
+  33639
+ ],
+ "reference_corner_load_n": 5173.0,
+ "max_contact_load_n": 28414,
+ "coil_lb_in": [
+  0.0,
+  0.0
+ ],
+ "lever_ratio": [
+  1.0,
+  1.0
+ ],
+ "bar_diameter_m": [
+  0.0,
+  0.0
+ ],
+ "damper": [
+  "ratio",
+  "ratio"
+ ],
+ "damper_dyno": [
+  [],
+  []
+ ],
+ "_comment": "Full-size crew-cab pickup, twin-turbo V6, ten-speed automatic, four-wheel drive (4A). Reference: Ford F-150 2.7 EcoBoost SuperCrew 4x4 (fictional name and body).",
+ "id": "bison_xl",
+ "name": "Bison XL",
+ "make": "Prairie",
+ "body": "pickup",
+ "seats": 5,
+ "mass_kg": 2110.0,
+ "front_weight": 0.57,
+ "cg_height_m": 0.78,
+ "wheelbase_m": 3.683,
+ "track_front_m": 1.717,
+ "track_rear_m": 1.717,
+ "tire_width_m": 0.265,
+ "tire_aspect_ratio": 0.7,
+ "rim_in": 17.0,
+ "static_mu": 0.8705,
+ "lateral_grip_scale": 1.1237,
+ "load_sensitivity": 0.11,
+ "drag_area_m2": 1.6,
+ "parking_rack_deg": 33.0,
+ "steering_ratio": 17.2,
+ "road_reference_deg": 31.0,
+ "brake_front_nm": 3600.0,
+ "brake_rear_nm": 2000.0,
+ "parking_brake_nm": 2400.0,
+ "engine": "combustion",
+ "torque_curve": [
+  [
+   700,
+   250
+  ],
+  [
+   1250,
+   380
+  ],
+  [
+   1750,
+   480
+  ],
+  [
+   2750,
+   542
+  ],
+  [
+   4000,
+   520
+  ],
+  [
+   5000,
+   463
+  ],
+  [
+   5750,
+   400
+  ]
+ ],
+ "torque_past_curve_nm": 340.0,
+ "idle_rpm": 650.0,
+ "idle_omega": 68.0,
+ "governor_rpm": 675.0,
+ "fuel_cut_rpm": 6000.0,
+ "max_gear_rpm": 6200.0,
+ "engine_inertia": 0.25,
+ "gears": [
+  4.696,
+  2.985,
+  2.146,
+  1.769,
+  1.52,
+  1.275,
+  1.0,
+  0.854,
+  0.689,
+  0.636
+ ],
+ "reverse_ratio": 4.866,
+ "final_drive": 3.55,
+ "driveline_efficiency": 0.88,
+ "shift_seconds": 0.15,
+ "upshift_rpm": 5600.0,
+ "upshift_min_omega": 420.0,
+ "downshift_rpm": 1300.0,
+ "clutch_stiffness": 12.0,
+ "clutch_capacity_nm": 700.0,
+ "clutch_back_nm": 650.0,
+ "launch_rpm": 1050,
+ "launch_rpm_per_throttle": 1400.0,
+ "layout": "awd",
+ "rear_diff_bias": 1.3,
+ "transmission": "automatic",
+ "bar_rate_n_m": [
+  30000.0,
+  0.0
+ ],
+ "min_travel_m": 0.09,
+ "max_travel_m": 0.4,
+ "bump_gap_m": 0.08,
+ "damper_ratio_rebound": [
+  0.45,
+  0.45
+ ],
+ "damper_ratio_compression": [
+  0.25,
+  0.25
+ ],
+ "damper_knee_mps": [
+  0.15,
+  0.15
+ ],
+ "damper_knee_slope": [
+  0.4,
+  0.4
+ ],
+ "static_camber_deg": [
+  -0.3,
+  0.0
+ ],
+ "camber_per_m": [
+  10.0,
+  0.0
+ ],
+ "caster_deg": 4.5,
+ "toe_per_wheel_deg": 0.05,
+ "target_0_60_s": 5.7,
+ "target_70_0_ft": 190.0,
+ "target_skidpad_g": 0.74,
+ "sources": {
+  "steering": "Steering ratio 17.2:1, an estimate: Ford publishes 17.2:1 for the 2021 F-150 Raptor and no figure was found for the 2.7 EcoBoost SuperCrew.",
+  "calibration": "Car and Driver measured 5.7 s to 60 mph in a 2.7 EcoBoost SuperCab 4x4, and 193 ft / 0.74 g in a 2021 F-150. The crew cab's extra weight is inside the \u00b10.15 s band; the 190 ft braking target splits the difference between pickup tests.",
+  "engine": "325 hp, 400 lb-ft (Ford, 2018+); curve shape estimated.",
+  "gearing": "10R80 ratios and a 3.55 axle (published).",
+  "mass": "About 4650 lb for a 2.7 4x4 SuperCrew 5.5 ft (4564 lb listed by ultimatespecs) with a driver.",
+  "estimates": "Weight split, centre of gravity, inertia (scaled), spring rates (1.3/1.5 Hz), dampers, brakes, tyre grip (calibrated)."
+ },
+ "awd_front_share": 0.4,
+ "center_bias": 3.0,
+ "front_diff_bias": 1.0,
+ "traction_control": true,
+ "model_scene": "res://art/cars/bison_xl.glb",
+ "driver_eye": [
+  -0.406,
+  1.66,
+  -0.167
+ ],
+ "abs_enabled": true,
+ "slip_ratio_falloff": 0.1
+}

@@ -7,6 +7,8 @@
 | `monument-valley.jpg` | Chase view on US 163 at Forrest Gump Point, UT, toward Monument Valley. |
 | `i180-viaduct.jpg` | Chase view on the I-180 viaduct over the Cheyenne rail yard (a streamed bridge deck). |
 | `road-atlas.jpg` | The road atlas (Tab) around Deals Gap. |
+| `c8-steering-quarter-left.jpg` | Corvette driver view, steering a quarter to the left (`CarTurntable.gd --steer-stills --quality=ultra`, bundled Ocean Drive start). |
+| `mustang65-unbadged.jpg` | 1965 Mustang on the turntable without its badges (`CarTurntable.gd --quality=ultra`). |
 | `simcruise-wordmark.png`, `simcruise-icon-1024.png` | Logo, made by `authoring/logo/make_logo.py`. |
 
 ## Regenerating the screenshots

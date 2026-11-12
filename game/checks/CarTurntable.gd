@@ -13,7 +13,11 @@ extends Node
 ## beams on the bundled street with the world shown (lamps_street). Views are
 ## in the car's frame with a long lens, the way product photographs are taken,
 ## so proportions read against reference photographs. --car-dirt=<0..1> keeps
-## road grime (CarWear.gd); otherwise the car is clean.
+## road grime (CarWear.gd); otherwise the car is clean. --steer-stills skips the
+## studio and saves only the in-game driver view with the steering held at full
+## left lock, a quarter left, centred, a quarter right and full right lock
+## (cockpit_left, cockpit_left_quarter, cockpit_centre, cockpit_right_quarter,
+## cockpit_right), with the steering wheel's angle printed for each.
 ## Run windowed with --quality=ultra (4x MSAA, 4096 shadow atlas), e.g.
 ##   godot --path game --windowed --resolution 1600x1000 -- --car-turntable /abs/out --quality=ultra
 var game
@@ -23,6 +27,7 @@ var still := 0.
 var sun_elevation := 42.
 var sun_azimuth := 215.     # degrees clockwise from the car's nose: light from front left
 var lamps := false
+var steer_stills := false
 const STUDIO_LAYER := 1 << 11
 const CAR_LAYER := 2
 
@@ -49,6 +54,7 @@ func _ready():
  out = args[args.find("--car-turntable") + 1]
  DirAccess.make_dir_recursive_absolute(out)
  lamps = "--lamps" in args
+ steer_stills = "--steer-stills" in args
  for a in args:
   if a.begins_with("--sun="):
    var p := a.trim_prefix("--sun=").split(",")
@@ -69,6 +75,9 @@ func _process(dt):
 
 func shoot():
  var vehicle = game.vehicle
+ if steer_stills:
+  await shoot_steering()
+  return
  game.hud.set_level(game.hud.OFF, false)
  game.hud.root.visible = false
  if game.car_wear.material and not Array(OS.get_cmdline_user_args()).any(func(a): return a.begins_with("--car-dirt=")):
@@ -157,6 +166,25 @@ func shoot():
  var drift: float = vehicle.global_position.distance_to(body.origin)
  print("TURNTABLE done %s ground %.3f m below the body origin, %d contacts, moved %.3f m while shooting" % [vehicle.spec.id, -ground, vehicle.wheel_contact, drift])
  Input.action_release("parking_brake")
+ game.request_game_close(0)
+
+## The driver view at full left lock, centred and at full right lock, held on
+## the parking brake, with the HUD hidden.
+func shoot_steering() -> void:
+ var vehicle = game.vehicle
+ game.hud.set_level(game.hud.OFF, false)
+ game.hud.root.visible = false
+ game.view = 1;game.camera_snap = true
+ for step in [["left", "cockpit_left", 1.], ["left", "cockpit_left_quarter", .25], ["", "cockpit_centre", 0.], ["right", "cockpit_right_quarter", .25], ["right", "cockpit_right", 1.]]:
+  Input.action_release("left");Input.action_release("right")
+  if step[0] != "":Input.action_press(step[0], step[2])
+  for i in 150:await RenderingServer.frame_post_draw
+  var road: float = rad_to_deg((vehicle.wheel_heading[0] + vehicle.wheel_heading[1]) * .5)
+  print("TURNTABLE %s road wheels %.1f°, steering wheel %.0f° (ratio %.2f)" % [step[1], road, road * vehicle.spec.steering_ratio, vehicle.spec.steering_ratio])
+  await save(step[1])
+ Input.action_release("left");Input.action_release("right")
+ Input.action_release("parking_brake")
+ print("TURNTABLE done %s steering stills" % vehicle.spec.id)
  game.request_game_close(0)
 
 func save(name: String) -> void:

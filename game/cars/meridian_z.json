@@ -59,6 +59,7 @@
  "mu_max": 1.6,
  "drag_area_m2": 0.65,
  "parking_rack_deg": 34.0,
+ "steering_ratio": 15.7,
  "road_reference_deg": 32.0,
  "brake_front_nm": 3000.0,
  "brake_rear_nm": 2600.0,
@@ -165,6 +166,7 @@
  "target_70_0_ft": 148.0,
  "target_skidpad_g": 1.03,
  "sources": {
+  "steering": "Steering ratio 15.7:1, variable-ratio electric rack (Chevrolet, 2020 Corvette Stingray specifications; 16.25:1 on the C7).",
   "calibration": "Car and Driver: 2.8 s to 60 mph and 149 ft from 70 mph (first test), 148 ft and 1.03 g (long-term 2021 Z51); 3647 lb measured; 40/60 weight split (Chevrolet).",
   "engine": "495 hp at 6450 rpm, 470 lb-ft at 5150 rpm with the Z51 exhaust (Chevrolet); curve shape estimated.",
   "gearing": "Eight-speed DCT ratios and 5.17 final drive: unverified.",
@@ -177,7 +179,7 @@
   1.5
  ],
  "traction_control": true,
- "calibration_open": "0-60 mph 3.55 s against 2.8 s (3.60 s before the slip-ratio tyre curve): Car and Driver omits a 1 ft rollout (about 0.3 s on this launch) while the bench times from rest, and from pedal-down at idle, where the car's launch control holds the engine at launch speed before the brake is released (not modelled). Traction control holds the rear tyres at their peak slip.",
+ "calibration_open": "0-60 mph 3.47 s against 2.8 s (3.55 s before the standstill grip of November 2026, 3.60 s before the slip-ratio tyre curve): Car and Driver omits a 1 ft rollout (about 0.3 s on this launch) while the bench times from rest, and from pedal-down at idle, where the car's launch control holds the engine at launch speed before the brake is released (not modelled). Traction control holds the rear tyres at their peak slip.",
  "model_scene": "res://art/traffic/c8-790c40cc/scene.gltf",
  "model_rig": {"fit": true},
  "driver_eye": [
