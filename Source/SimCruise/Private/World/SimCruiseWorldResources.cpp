@@ -35,6 +35,7 @@
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionTextureObjectParameter.h"
 #include "Materials/MaterialExpressionTime.h"
+#include "Materials/MaterialExpressionWorldPosition.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionVertexColor.h"
 #include "Materials/MaterialExpressionVertexNormalWS.h"
@@ -595,6 +596,34 @@ return col;
 			Custom->RebuildOutputs();
 			Material->GetEditorOnlyData()->OpacityMask.Connect(3, Custom);
 			Material->GetEditorOnlyData()->SubsurfaceColor.Connect(4, Custom);
+			{
+				// The live wind (Live/SimCruiseLiveWorldSubsystem): drag grows with the square of the
+				// wind speed, so a frond's tip bends about 1.1 cm per (m/s)^2 (30 cm in a 5 m/s
+				// breeze, 1.1 m at 10 m/s), along the wind, dipping as it bends; gusts come and go
+				// over seconds and the leaflets flutter faster as the wind rises. Each palm has
+				// its own phase from where it stands.
+				UMaterialExpressionCustom* Sway = AddExpression<UMaterialExpressionCustom>(Material);
+				Sway->OutputType = CMOT_Float3;
+				Sway->Inputs.Reset();
+				Sway->Description = TEXT("SimCruise wind sway");
+				Sway->Code = TEXT(R"HLSL(
+float s = saturate(UV0.x);
+float v = max(WindMs, 0.0);
+float2 dir = WindDir.xy;
+float phase = dot(WP.xy, float2(0.0013, 0.0017));
+float gust = 0.65 + 0.35 * sin(Time * 1.7 + phase) * sin(Time * 0.37 + phase * 0.5);
+float bend = min(1.1 * v * v, 160.0) * s * s * gust;
+float flutter = sin(Time * (6.0 + 0.4 * v) + s * 9.0 + phase * 7.0) * min(0.8 * v, 12.0) * s;
+return float3(dir * bend, -0.25 * bend + flutter);
+)HLSL");
+				AddInput(Sway, TEXT("UV0"), TexCoord(Material, 0));
+				AddInput(Sway, TEXT("WP"), AddExpression<UMaterialExpressionWorldPosition>(Material));
+				AddInput(Sway, TEXT("Time"), AddExpression<UMaterialExpressionTime>(Material));
+				AddInput(Sway, TEXT("WindMs"), ScalarParam(Material, TEXT("WindMs"), 0.f));
+				AddInput(Sway, TEXT("WindDir"), VectorParam(Material, TEXT("WindDir"), FLinearColor(1.f, 0.f, 0.f, 0.f)));
+				Sway->RebuildOutputs();
+				Material->GetEditorOnlyData()->WorldPositionOffset.Connect(0, Sway);
+			}
 			break;
 		}
 		case ESimCruiseTileLayer::Signs:

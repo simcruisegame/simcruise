@@ -15,6 +15,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Live/SimCruiseLiveSky.h"
 #include "Live/SimCruiseNeuralDetail.h"
+#include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Misc/App.h"
 #include "UObject/UObjectIterator.h"
@@ -180,6 +181,8 @@ void USimCruiseLiveWorldSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 		|| FParse::Value(Cmd, TEXT("SimCruiseVisibilityKm="), IgnoredFloat) || FParse::Param(Cmd, TEXT("SimCruiseRain"));
 	// -SimCruiseLiveWet=<0..1>: road water for look tests.
 	FParse::Value(Cmd, TEXT("SimCruiseLiveWet="), WetOverride);
+	// -SimCruiseLiveWind=<m/s>: wind in the palms for look tests.
+	FParse::Value(Cmd, TEXT("SimCruiseLiveWind="), WindOverride);
 	// -SimCruiseLiveShots=<s>: a telephoto shot toward the nearest aircraft every s seconds (play tests).
 	if (FParse::Value(Cmd, TEXT("SimCruiseLiveShots="), ShotEverySeconds))
 	{
@@ -496,6 +499,35 @@ void USimCruiseLiveWorldSubsystem::ApplyRoadWater()
 		}
 	}
 	AppliedRoadWater = Water;
+
+	// The wind in the palms: the fronds of every palm (any mesh drawing the foliage layer
+	// material) get one instance that carries the live wind, the way it blows (from + 180).
+	UMaterialInterface* Foliage = Streamer->Resources->GetLayerMaterial(ESimCruiseTileLayer::Foliage);
+	if (Foliage && !FrondMaterial)
+	{
+		FrondMaterial = UMaterialInstanceDynamic::Create(Foliage, this);
+	}
+	if (FrondMaterial)
+	{
+		const FSimCruiseWeatherConditions& Outside = Env->GetWeather();
+		const float Downwind = FMath::DegreesToRadians(Outside.WindFromDeg + 180.0f);
+		FrondMaterial->SetScalarParameterValue(TEXT("WindMs"), WindOverride >= 0.0f ? WindOverride : Outside.WindSpeedMs);
+		FrondMaterial->SetVectorParameterValue(TEXT("WindDir"), FLinearColor(FMath::Sin(Downwind), -FMath::Cos(Downwind), 0.0f, 0.0f));
+		for (TObjectIterator<UStaticMeshComponent> It; It; ++It)
+		{
+			if (It->GetWorld() != GetWorld() || It->GetNumMaterials() < 2)
+			{
+				continue;
+			}
+			for (int32 Slot = 0; Slot < It->GetNumMaterials(); ++Slot)
+			{
+				if (It->GetMaterial(Slot) == Foliage)
+				{
+					It->SetMaterial(Slot, FrondMaterial);
+				}
+			}
+		}
+	}
 }
 
 bool USimCruiseLiveWorldSubsystem::TakeRequestSlot(const FString& Url)

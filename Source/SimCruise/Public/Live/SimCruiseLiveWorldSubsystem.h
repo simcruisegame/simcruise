@@ -9,6 +9,7 @@
 #include "SimCruiseLiveWorldSubsystem.generated.h"
 
 class ASimCruiseLiveSky;
+class UMaterialInstanceDynamic;
 
 /**
  * The live world: reads free public real-time feeds for the place the car is now and
@@ -99,7 +100,8 @@ private:
 
 	/**
 	 * Every 3 s: the road water (the environment's, or WetOverride) on every asphalt material
-	 * ("Wet"), and the tide and waves on every sea material ("SeaLevelCm", "WaveScale", "WaveDir").
+	 * ("Wet"), the tide and waves on every sea material ("SeaLevelCm", "WaveScale", "WaveDir"),
+	 * and the wind on the palm fronds ("WindMs", "WindDir").
 	 */
 	void ApplyRoadWater();
 	double NextRoadWaterAt = 0.0;
@@ -108,6 +110,9 @@ private:
 public:
 	/** Test override of the road water 0..1 (SimCruise.Live.Wet); negative follows the weather. */
 	float WetOverride = -1.0f;
+
+	/** Test override of the wind in the palms, m/s (-SimCruiseLiveWind); negative follows the weather. */
+	float WindOverride = -1.0f;
 
 private:
 	TMap<FString, double> HostNextAt;
@@ -156,6 +161,10 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<ASimCruiseLiveSky> Sky;
+
+	/** The palm fronds' material with the live wind on it (the palms' meshes share the layer material). */
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> FrondMaterial;
 
 	FDelegateHandle RebaseHandle;
 };
