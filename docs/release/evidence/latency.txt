@@ -1,0 +1,25 @@
+# Stick to picture, Shipping build (commit before cebd03a: preset High, 60 fps cap, Reflex low latency on), Ocean Drive, 1920x1080 full screen
+# Method: -SimCruiseLatencyProbe. Full left/right stick step through the real input stack; first game frame whose vehicle state shows the rack moving; delay = (that frame's start - input time) + Reflex game-to-render latency of that frame (game frame start to GPU render end). Display scan-out is not included.
+
+2026-11-12 08:37:47 Latency probe: waiting for the car (2 latency marker modules, Reflex mode -1)
+2026-11-12 08:38:18 SimCruiseLatency: trial 1, 2 frames to the first moved rack, 33.4 ms to that frame + 29.0 ms game-to-render (Reflex markers) = 62.4 ms; frame 17.5 ms
+2026-11-12 08:38:19 SimCruiseLatency: trial 2, 2 frames to the first moved rack, 36.6 ms to that frame + 33.6 ms game-to-render (Reflex markers) = 70.2 ms; frame 20.2 ms
+2026-11-12 08:38:21 SimCruiseLatency: trial 3, 2 frames to the first moved rack, 33.3 ms to that frame + 28.3 ms game-to-render (Reflex markers) = 61.6 ms; frame 17.5 ms
+2026-11-12 08:38:23 SimCruiseLatency: trial 4, 2 frames to the first moved rack, 32.5 ms to that frame + 27.9 ms game-to-render (Reflex markers) = 60.4 ms; frame 17.0 ms
+2026-11-12 08:38:24 SimCruiseLatency: trial 5, 2 frames to the first moved rack, 33.3 ms to that frame + 28.7 ms game-to-render (Reflex markers) = 62.0 ms; frame 17.8 ms
+2026-11-12 08:38:26 SimCruiseLatency: trial 6, 2 frames to the first moved rack, 32.5 ms to that frame + 25.7 ms game-to-render (Reflex markers) = 58.2 ms; frame 16.8 ms
+2026-11-12 08:38:27 SimCruiseLatency: trial 7, 2 frames to the first moved rack, 33.2 ms to that frame + 27.7 ms game-to-render (Reflex markers) = 60.8 ms; frame 17.4 ms
+2026-11-12 08:38:29 SimCruiseLatency: trial 8, 2 frames to the first moved rack, 33.9 ms to that frame + 27.9 ms game-to-render (Reflex markers) = 61.8 ms; frame 18.2 ms
+2026-11-12 08:38:30 SimCruiseLatency: trial 9, 2 frames to the first moved rack, 32.4 ms to that frame + 27.0 ms game-to-render (Reflex markers) = 59.3 ms; frame 17.6 ms
+2026-11-12 08:38:32 SimCruiseLatency: trial 10, 2 frames to the first moved rack, 31.3 ms to that frame + 25.7 ms game-to-render (Reflex markers) = 57.0 ms; frame 16.9 ms
+2026-11-12 08:38:33 SimCruiseLatency: trial 11, 2 frames to the first moved rack, 34.7 ms to that frame + 26.7 ms game-to-render (Reflex markers) = 61.3 ms; frame 18.4 ms
+2026-11-12 08:38:35 SimCruiseLatency: trial 12, 2 frames to the first moved rack, 32.2 ms to that frame + 25.7 ms game-to-render (Reflex markers) = 57.8 ms; frame 16.9 ms
+2026-11-12 08:38:36 SimCruiseLatency: trial 13, 2 frames to the first moved rack, 32.9 ms to that frame + 31.2 ms game-to-render (Reflex markers) = 64.2 ms; frame 17.3 ms
+2026-11-12 08:38:38 SimCruiseLatency: trial 14, 2 frames to the first moved rack, 31.7 ms to that frame + 29.6 ms game-to-render (Reflex markers) = 61.3 ms; frame 17.7 ms
+2026-11-12 08:38:40 SimCruiseLatency: trial 15, 2 frames to the first moved rack, 38.6 ms to that frame + 41.3 ms game-to-render (Reflex markers) = 79.9 ms; frame 21.3 ms
+2026-11-12 08:38:41 SimCruiseLatency: trial 16, 2 frames to the first moved rack, 32.2 ms to that frame + 24.1 ms game-to-render (Reflex markers) = 56.3 ms; frame 16.8 ms
+2026-11-12 08:38:43 SimCruiseLatency: trial 17, 2 frames to the first moved rack, 34.1 ms to that frame + 27.8 ms game-to-render (Reflex markers) = 61.9 ms; frame 18.8 ms
+2026-11-12 08:38:44 SimCruiseLatency: trial 18, 2 frames to the first moved rack, 34.1 ms to that frame + 26.2 ms game-to-render (Reflex markers) = 60.3 ms; frame 17.6 ms
+2026-11-12 08:38:46 SimCruiseLatency: trial 19, 2 frames to the first moved rack, 35.7 ms to that frame + 31.5 ms game-to-render (Reflex markers) = 67.1 ms; frame 18.5 ms
+2026-11-12 08:38:47 SimCruiseLatency: trial 20, 2 frames to the first moved rack, 33.1 ms to that frame + 24.1 ms game-to-render (Reflex markers) = 57.2 ms; frame 17.6 ms
+2026-11-12 08:38:49 SimCruiseLatency summary: 20 trials, mean 62.1 ms, median 61.3 ms, max 79.9 ms, mean 2.0 frames

@@ -276,12 +276,6 @@ void ASimCruiseLatencyProbe::Finish()
 	{
 		return;
 	}
-	if (APlayerController* Player = GetSimPlayer(this))
-	{
-		Player->ConsoleCommand(TEXT("quit"));
-	}
-	else
-	{
-		FPlatformMisc::RequestExit(false);
-	}
+	// Not the "quit" console command: a Shipping build did not act on it here.
+	FPlatformMisc::RequestExit(false, TEXT("SimCruise release probe"));
 }
