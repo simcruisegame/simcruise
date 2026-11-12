@@ -41,10 +41,12 @@ features stay on hold, as in phase 1, unless the owner moves them in.
    features (imagery, photos, live feeds)?
 2. Can you spend one afternoon on Garage Day (theme 3)?
 3. Does your NB have ABS?
+4. Default lens: true field of view (about 32° on the laptop, most honest speed) or a wider "natural" view (about 2.4x, more awareness)? Theme 6 tests both.
 
 ## Change log
 
 - 2026-11-12: draft 1 from the first team review.
+- 2026-11-12 16:53: lens default question added (true FOV landed in ff35887).
 - 2026-11-12 14:07: tuning menu (4abe190) becomes the base for theme 3; ride-height and clutch P1s sent to release.
 - 2026-11-12 12:52: items 1, 8, 10 fixed on main; theme 7 builds on the new step installer (47a9edf).
 - 2026-11-12: lighting-director joined (owner request); theme 7b added.
