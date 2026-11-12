@@ -94,6 +94,10 @@ float3 classColor = float3(0.15, 0.14, 0.11) * bare + float3(0.052, 0.088, 0.026
 // The photograph is taken from above: white roofs, sand and glare. Ground seen from the
 // street is darker (grass ~0.1, concrete ~0.3, sand ~0.35 albedo), so highlights compress.
 float3 shot = photo * AerialGain;
+// Blue and violet casts in a city's photograph are tower shadows and haze, not ground:
+// bare ground, pavement and sidewalks are warm or neutral, so they keep only their tone.
+float cast = saturate((shot.b - shot.r) * 25.0);
+shot = lerp(shot, dot(shot, W) * float3(1.03, 1.0, 0.95), cast * 0.9);
 float sl = max(dot(shot, W), 0.0001);
 float target = sl < 0.16 ? sl : 0.16 + (sl - 0.16) * 0.4;
 shot *= target / sl;
