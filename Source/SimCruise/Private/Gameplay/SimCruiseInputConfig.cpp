@@ -61,6 +61,11 @@ const TArray<FSimCruiseBindingSpec>& USimCruiseInputConfig::Bindings()
 		{TEXT("FindPlace"), EKeys::Slash},
 		{TEXT("Recover"), EKeys::R},
 		{TEXT("Recover"), EKeys::Gamepad_Special_Left},
+		// MapHUD.gd: the D-pad zooms the minimap.
+		{TEXT("MinimapIn"), EKeys::Gamepad_DPad_Up},
+		{TEXT("MinimapIn"), EKeys::Equals},
+		{TEXT("MinimapOut"), EKeys::Gamepad_DPad_Down},
+		{TEXT("MinimapOut"), EKeys::Hyphen},
 	};
 	return Table;
 }
@@ -92,6 +97,8 @@ USimCruiseInputConfig* USimCruiseInputConfig::Create(UObject* Outer)
 		{TEXT("ToggleLights"), EInputActionValueType::Boolean, &USimCruiseInputConfig::ToggleLights},
 		{TEXT("CycleLens"), EInputActionValueType::Boolean, &USimCruiseInputConfig::CycleLens},
 		{TEXT("ToggleStats"), EInputActionValueType::Boolean, &USimCruiseInputConfig::ToggleStats},
+		{TEXT("MinimapIn"), EInputActionValueType::Boolean, &USimCruiseInputConfig::MinimapIn},
+		{TEXT("MinimapOut"), EInputActionValueType::Boolean, &USimCruiseInputConfig::MinimapOut},
 	};
 
 	for (const FActionSpec& Spec : Actions)

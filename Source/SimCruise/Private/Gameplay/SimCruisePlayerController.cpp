@@ -102,6 +102,8 @@ void ASimCruisePlayerController::SetupInputComponent()
 	Input->BindAction(InputConfig->ToggleAtlas, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnToggleAtlas);
 	Input->BindAction(InputConfig->FindPlace, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnFindPlace);
 	Input->BindAction(InputConfig->Recover, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnRecover);
+	Input->BindActionValueLambda(InputConfig->MinimapIn, ETriggerEvent::Started, [this](const FInputActionValue&) { if (ASimCruiseHUD* Hud = GetSimHUD()) Hud->ZoomMinimap(-1); });
+	Input->BindActionValueLambda(InputConfig->MinimapOut, ETriggerEvent::Started, [this](const FInputActionValue&) { if (ASimCruiseHUD* Hud = GetSimHUD()) Hud->ZoomMinimap(1); });
 	Input->BindAction(InputConfig->ToggleSound, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnToggleSound);
 	Input->BindAction(InputConfig->ToggleLights, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnToggleLights);
 	Input->BindAction(InputConfig->CycleLens, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnCycleLens);

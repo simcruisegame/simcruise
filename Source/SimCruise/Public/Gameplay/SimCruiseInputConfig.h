@@ -70,6 +70,8 @@ public:
 	UPROPERTY() TObjectPtr<UInputAction> ToggleLights;
 	UPROPERTY() TObjectPtr<UInputAction> CycleLens;
 	UPROPERTY() TObjectPtr<UInputAction> ToggleStats;
+	UPROPERTY() TObjectPtr<UInputAction> MinimapIn;
+	UPROPERTY() TObjectPtr<UInputAction> MinimapOut;
 
 private:
 	UPROPERTY() TMap<FName, TObjectPtr<UInputAction>> ActionsByName;

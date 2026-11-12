@@ -438,7 +438,8 @@ void ASimCruiseHUD::DrawMinimap(float Scale, float Alpha)
 	const float W = 236.f * Scale;
 	const float H = 150.f * Scale;
 	const float X = Canvas->ClipX - 28.f * Scale - W;
-	const float Y = Canvas->ClipY - 28.f * Scale - H;
+	// Above the Full level's bottom strip, so it never covers the hints and the g-meter.
+	const float Y = Canvas->ClipY - (Level == ESimCruiseHudLevel::Full ? 128.f : 28.f) * Scale - H;
 	FCanvasTileItem Panel(FVector2D(X, Y), FVector2D(W, H), WithAlpha(FLinearColor(Ink.R, Ink.G, Ink.B, 0.55f), Alpha));
 	Panel.BlendMode = SE_BLEND_Translucent;
 	Canvas->DrawItem(Panel);
