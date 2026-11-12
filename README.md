@@ -35,6 +35,8 @@ No account, no API keys, no subscription, no telemetry. The game talks directly 
 | *Ocean Drive, Miami Beach, mid-morning* | *Ocean Drive at night* |
 | ![From the driver's seat: traffic, parked SUVs and pickups, the live rear-view mirror](docs/images/unreal/round3-day-cockpit.jpg) | ![7th Street toward Ocean Drive: the stop sign and stop line where the traffic stops](docs/images/unreal/round3-stop-sign.jpg) |
 | *Driver's seat, with traffic in the mirror* | *A side street: stop sign at Ocean Drive* |
+| ![The Edison on Ocean Drive with its name in neon and Ocean's Ten on the awning, from the map's named places](docs/images/unreal/buildings-signs-edison.jpg) | ![A row of Ocean Drive fronts: Ocean Blue Hostel and Deco Walk signed over their awnings](docs/images/unreal/buildings-signs-row.jpg) |
+| *Named places sign their own buildings* | *Signs along the row* |
 
 *Captured with `-SimCruiseDriveCapture` (see [docs/unreal-building.md](docs/unreal-building.md#drive-captures)). Map data © OpenStreetMap contributors.*
 

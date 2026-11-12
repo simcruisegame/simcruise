@@ -402,8 +402,10 @@ Nrm = normalize(VN);
 if (VA > 0.75)
 {
 	Roughness = 0.25;
-	Emis = c * (300.0 + 2500.0 * Lights) * lerp(0.6, 1.0, smoothstep(0.5, 0.65, d));
-	return c * 0.55 + 0.35;
+	// By day a lit tube still reads in its own colour against sunlit stucco (photographs of
+	// Ocean Drive at noon): brighter than the facades' thin neon, and less washed out.
+	Emis = c * (1200.0 + 1600.0 * Lights) * lerp(0.6, 1.0, smoothstep(0.5, 0.65, d));
+	return c * 0.75 + 0.12;
 }
 Roughness = 0.45;
 Emis = c * Lights * 60.0;

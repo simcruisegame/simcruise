@@ -195,11 +195,25 @@ once; the others wait for that file.
 - Water: open-water polygons lower the ground inside them; a water surface
   at mean sea level (NAVD88 - 0.1 m) for the sea, the low ground of the
   polygon for lakes. Pools are shaded through the land-cover mask.
-- Buildings: footprints and heights from the tile (walls, flat roof, collision)
-  as a massing model until the Godot client's observed facades and LiDAR
-  roofs are ported. Wall colours come from one palette for every place, the
-  Godot client's 12 common US exterior paints and 4 brick colours
-  (`Drive.gd` `house_paints`, `bricks`), chosen per building by id.
+- Buildings (`World/SimCruiseTileDetail::BuildBuildings`): footprints and
+  heights from the tile, walls, parapets and flat roofs, with recipes by
+  region. In the Miami Beach Architectural District, Art Deco hotels get
+  porches, awnings, eyebrows, speed lines and neon; most round their street
+  corners (Streamline Moderne, `RoundCorners`) so the eyebrows wrap them, and
+  the main front (on the bigger street at a corner) carries one of three
+  tower forms: a stepped central tower, three pylons with flagpoles or twin
+  fins. Elsewhere, wall colours come from the Godot client's 12 common US
+  exterior paints and 4 brick colours. Windows, shopfronts and the rooms
+  behind them are drawn by the building shader.
+- Signs: every named place in the tile's `pois` with a sign-worthy kind
+  (`SignStyleFor`: hotels and bars in neon, shops, restaurants and offices in
+  painted letters) is matched to the footprint it stands in (or the nearest
+  within 12 m) and signs that building's street edge nearest it: a hotel up
+  its central tower letter over letter, on the parapet or over the porch; a
+  shop on the fascia or its awning's valance. `SignText` drops branch and
+  area tails ("Cardozo Hotel South Beach" -> CARDOZO). Each sign is a
+  `UTextRenderComponent` (distance-field Roboto) in the Signs layer's
+  material, narrowed to the room it has.
 - Ground mask (1024 px per tile): vegetation, sand, paved paths, water.
 
 ### Materials and textures (`World/SimCruiseWorldResources`)
