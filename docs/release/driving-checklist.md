@@ -111,3 +111,15 @@ Published data: `docs/cars.md` (road-test sources for each car). The 3 % band is
 | # | Item | Pass rule | How measured | Evidence | Result |
 |---|---|---|---|---|---|
 | M1 | Cockpit and bumper views use the field of view of the human eye | the horizontal FOV comes from the screen size and the eye distance (default 15.6 inch at 60 cm, about 32 deg); the True and Wide presets and the size and distance settings work; the eye point is each car's driver head position; the chase view keeps its wide FOV | Shipping build screenshots and the lens settings | `docs/release/evidence/cameras/` | TODO (re-test when the cars thread's change is on main) |
+
+## N. Release package
+
+The standing rule for every release (`docs/release/RELEASE-CHECKLIST.md`): people must be able to download and play it.
+
+| # | Item | Pass rule | How measured | Evidence | Result |
+|---|---|---|---|---|---|
+| N1 | Shipping package and zip | `scripts\release.ps1` builds them with no error; the zip has no `.pdb` and no `Saved` folder | release script output | `docs/release/evidence/package.txt` | TODO |
+| N2 | Installer | the setup installs for the current user without administrator rights, the Start menu entry starts the game, the car drives, the uninstaller removes the program folder and the Start menu entry | clean install on the test PC | `docs/release/evidence/installer.txt` | TODO |
+| N3 | Checksums | `SHA256SUMS.txt` matches the published files | `Get-FileHash` | same | TODO |
+| N4 | README and docs | README shows current screenshots and the download; `docs/install.md`, `docs/controls.md`, CHANGELOG are current | review | the release commit | TODO |
+| N5 | Screenshots | 6-10 in-game screenshots from the Shipping build of this release | captures | `docs/images/release-2.0.0/` | TODO |

@@ -47,11 +47,11 @@ Visual changes come with captures (`-SimCruiseDriveCapture`, docs/unreal-buildin
 
 ## Versions and releases
 
-SimCruise uses [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`. A patch release fixes bugs; a minor release adds features, cars, places or data layers; a major release breaks saved preferences, the cache format or the helper's command line. The version lives in one place, `config/version` in `game/project.godot`, and the build scripts read it from there.
+SimCruise uses [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`. A patch release fixes bugs; a minor release adds features, cars, places or data layers; a major release breaks saved preferences, the cache format or the helper's command line. The version lives in one place, `ProjectVersion` in `Config/DefaultGame.ini`, and the package, zip and installer names read it from there.
 
 `CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/): every change a player would notice gets a line in the top, unreleased section in the same pull request.
 
-To release, a maintainer moves the unreleased changelog section under `## SimCruise X.Y.Z (YYYY-MM-DD)`, merges it to `main`, runs every `SimCruise.*` test and `sh scripts/check-helper.sh` on it, and tags it (`git tag vX.Y.Z && git push origin vX.Y.Z`). The Unreal client's packaging (a Windows installer first; macOS needs a Mac to build on) is still to be written; the Godot 1.x release scripts are at the git tag `godot-final`.
+Every release must ship a complete package that people can play: the Windows installer and zip with checksums, an updated README with current in-game screenshots, and an installer that was installed, played and uninstalled on a clean user account. Follow [docs/release/RELEASE-CHECKLIST.md](docs/release/RELEASE-CHECKLIST.md); `scriptselease.ps1` builds the Shipping package, the map helper, the installer and the checksums and smoke-tests the game in one step. The Godot 1.x release scripts are at the git tag `godot-final`.
 
 ## Security
 
