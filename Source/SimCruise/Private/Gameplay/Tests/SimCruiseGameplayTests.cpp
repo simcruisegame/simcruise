@@ -104,7 +104,7 @@ bool FSimCruiseInputBindingsTest::RunTest(const FString& Parameters)
 		{TEXT("ToggleAtlas"), EKeys::Tab}, {TEXT("ToggleAtlas"), EKeys::Gamepad_Special_Right},
 		{TEXT("FindPlace"), EKeys::Slash},
 		{TEXT("Recover"), EKeys::R}, {TEXT("Recover"), EKeys::Gamepad_Special_Left},
-		{TEXT("ToggleSound"), EKeys::M}, {TEXT("ToggleLights"), EKeys::L}, {TEXT("CycleLens"), EKeys::F6}, {TEXT("ToggleStats"), EKeys::F3},
+		{TEXT("ToggleSound"), EKeys::M}, {TEXT("ToggleLights"), EKeys::L}, {TEXT("CycleLens"), EKeys::F6}, {TEXT("CycleLens"), EKeys::Gamepad_LeftThumbstick}, {TEXT("ToggleStats"), EKeys::F3},
 	};
 	for (const FExpect& E : Expected)
 	{
