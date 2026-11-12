@@ -9,6 +9,7 @@
 #include "UObject/Package.h"
 #include "UObject/SavePackage.h"
 #include "World/SimCruiseRegionalTerrain.h"
+#include "World/SimCruiseTrees.h"
 #include "World/SimCruiseWorldResources.h"
 #include "Presentation/SimCruiseCarClock.h"
 #include "Presentation/SimCruiseCarMaterialLibrary.h"
@@ -100,6 +101,11 @@ int32 USimCruiseBuildWorldMaterialsCommandlet::Main(const FString& Params)
 	// The land to the horizon (World/SimCruiseRegionalTerrain).
 	SaveCopy(ASimCruiseRegionalTerrain::BuildMaterial(GetTransientPackage(), TEXT("M_SimCruiseLandscapeBuild"), RF_Transient),
 		FPackageName::ObjectPathToPackageName(ASimCruiseRegionalTerrain::MaterialPath()));
+	// Trees anywhere (World/SimCruiseTrees).
+	SaveCopy(ASimCruiseTrees::BuildLeafMaterial(GetTransientPackage(), TEXT("M_SimCruiseTreeLeafBuild"), RF_Transient),
+		FPackageName::ObjectPathToPackageName(ASimCruiseTrees::LeafMaterialPath()));
+	SaveCopy(ASimCruiseTrees::BuildBarkMaterial(GetTransientPackage(), TEXT("M_SimCruiseTreeBarkBuild"), RF_Transient),
+		FPackageName::ObjectPathToPackageName(ASimCruiseTrees::BarkMaterialPath()));
 	return Failures == 0 ? 0 : 1;
 #else
 	return 1;

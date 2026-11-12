@@ -20,6 +20,7 @@
 #include "Vehicle/SimCruiseVehicle.h"
 #include "Misc/App.h"
 #include "World/SimCruiseRegionalTerrain.h"
+#include "World/SimCruiseTrees.h"
 #include "World/SimCruiseWorldStreamer.h"
 #include "World/SimCruiseWorldSubsystem.h"
 
@@ -205,6 +206,16 @@ void ASimCruiseGameMode::BeginWorldDrive()
 		if (ASimCruiseRegionalTerrain* Land = World->SpawnActor<ASimCruiseRegionalTerrain>(ASimCruiseRegionalTerrain::StaticClass(), FTransform::Identity, Params))
 		{
 			Land->Streamer = Streamer;
+		}
+	}
+	// Trees anywhere, from the canopy height map (needs the helper; drawn runs only).
+	if (FApp::CanEverRender() && !FParse::Param(Cmd, TEXT("SimCruiseNoTrees")))
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		if (ASimCruiseTrees* Trees = World->SpawnActor<ASimCruiseTrees>(ASimCruiseTrees::StaticClass(), FTransform::Identity, Params))
+		{
+			Trees->Streamer = Streamer;
 		}
 	}
 
