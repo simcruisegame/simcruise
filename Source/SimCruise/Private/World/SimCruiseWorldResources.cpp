@@ -920,6 +920,36 @@ UTexture2D* USimCruiseWorldResources::ReplaceAerial(const FString& Key, const TA
 	return Old;
 }
 
+UTexture2D* USimCruiseWorldResources::AddAerialMips(const FString& Key, TArray<TArray<FColor>>&& Mips, int32 Width, int32 Height)
+{
+	if (UTexture2D* Existing = FindAerial(Key))
+	{
+		return Existing;
+	}
+	UTexture2D* Texture = CreateTextureFromMips(this, NAME_None, MoveTemp(Mips), Width, Height, true, false);
+	if (Texture)
+	{
+		Aerials.Add(Key, Texture);
+	}
+	return Texture;
+}
+
+UTexture2D* USimCruiseWorldResources::ReplaceAerialMips(const FString& Key, TArray<TArray<FColor>>&& Mips, int32 Width, int32 Height, UTexture2D*& OutNew)
+{
+	OutNew = nullptr;
+	UTexture2D* Old = FindAerial(Key);
+	if (!Old)
+	{
+		return nullptr;
+	}
+	OutNew = CreateTextureFromMips(this, NAME_None, MoveTemp(Mips), Width, Height, true, false);
+	if (OutNew)
+	{
+		Aerials.Add(Key, OutNew);
+	}
+	return Old;
+}
+
 void USimCruiseWorldResources::TrimAerials(const TSet<FString>& Keep)
 {
 	for (auto It = Aerials.CreateIterator(); It; ++It)
@@ -990,30 +1020,24 @@ UTexture2D* USimCruiseWorldResources::CreateTexture(UObject* Outer, FName Name, 
 	{
 		return nullptr;
 	}
-	UTexture2D* Texture = NewObject<UTexture2D>(Outer ? Outer : GetTransientPackage(), Name, RF_Transient);
-	FTexturePlatformData* Data = new FTexturePlatformData();
-	Data->SizeX = Width;
-	Data->SizeY = Height;
-	Data->SetNumSlices(1);
-	Data->PixelFormat = PF_B8G8R8A8;
-	Texture->SetPlatformData(Data);
-	Texture->bNotOfflineProcessed = true;
+	TArray<TArray<FColor>> Mips;
+	BuildMipChain(Pixels, Width, Height, bSRGB, Mips);
+	return CreateTextureFromMips(Outer, Name, MoveTemp(Mips), Width, Height, bSRGB, bWrap);
+}
 
-	// Box-filtered mip chain (in sRGB-decoded space for colour images).
-	TArray<FColor> Level = Pixels;
-	int32 W = Width, H = Height;
-	while (true)
+void USimCruiseWorldResources::BuildMipChain(const TArray<FColor>& Pixels, int32 Width, int32 Height, bool bSRGB, TArray<TArray<FColor>>& OutMips)
+{
+	OutMips.Reset();
+	if (Width <= 0 || Height <= 0 || Pixels.Num() != Width * Height)
 	{
-		FTexture2DMipMap* Mip = new FTexture2DMipMap(W, H, 1);
-		Data->Mips.Add(Mip);
-		Mip->BulkData.Lock(LOCK_READ_WRITE);
-		void* Dest = Mip->BulkData.Realloc(static_cast<int64>(W) * H * 4);
-		FMemory::Memcpy(Dest, Level.GetData(), static_cast<int64>(W) * H * 4);
-		Mip->BulkData.Unlock();
-		if (W == 1 && H == 1)
-		{
-			break;
-		}
+		return;
+	}
+	// Box-filtered mip chain (in sRGB-decoded space for colour images).
+	OutMips.Add(Pixels);
+	int32 W = Width, H = Height;
+	while (W > 1 || H > 1)
+	{
+		const TArray<FColor>& Level = OutMips.Last();
 		const int32 NW = FMath::Max(1, W / 2), NH = FMath::Max(1, H / 2);
 		TArray<FColor> Next;
 		Next.SetNumUninitialized(NW * NH);
@@ -1038,9 +1062,37 @@ UTexture2D* USimCruiseWorldResources::CreateTexture(UObject* Outer, FName Name, 
 				}
 			}
 		}
-		Level = MoveTemp(Next);
+		OutMips.Add(MoveTemp(Next));
 		W = NW;
 		H = NH;
+	}
+}
+
+UTexture2D* USimCruiseWorldResources::CreateTextureFromMips(UObject* Outer, FName Name, TArray<TArray<FColor>>&& Mips, int32 Width, int32 Height, bool bSRGB, bool bWrap)
+{
+	if (Width <= 0 || Height <= 0 || Mips.IsEmpty() || Mips[0].Num() != Width * Height)
+	{
+		return nullptr;
+	}
+	UTexture2D* Texture = NewObject<UTexture2D>(Outer ? Outer : GetTransientPackage(), Name, RF_Transient);
+	FTexturePlatformData* Data = new FTexturePlatformData();
+	Data->SizeX = Width;
+	Data->SizeY = Height;
+	Data->SetNumSlices(1);
+	Data->PixelFormat = PF_B8G8R8A8;
+	Texture->SetPlatformData(Data);
+	Texture->bNotOfflineProcessed = true;
+	int32 W = Width, H = Height;
+	for (const TArray<FColor>& Level : Mips)
+	{
+		FTexture2DMipMap* Mip = new FTexture2DMipMap(W, H, 1);
+		Data->Mips.Add(Mip);
+		Mip->BulkData.Lock(LOCK_READ_WRITE);
+		void* Dest = Mip->BulkData.Realloc(static_cast<int64>(W) * H * 4);
+		FMemory::Memcpy(Dest, Level.GetData(), static_cast<int64>(W) * H * 4);
+		Mip->BulkData.Unlock();
+		W = FMath::Max(1, W / 2);
+		H = FMath::Max(1, H / 2);
 	}
 	Texture->SRGB = bSRGB;
 	Texture->AddressX = bWrap ? TA_Wrap : TA_Clamp;

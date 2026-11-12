@@ -41,7 +41,7 @@ public:
 	bool EnhanceAerial(const FString& SourcePath, TArray<FColor>& Pixels, int32& Width, int32& Height);
 
 	/** Game thread: a queued photograph is enhanced (key = its file name, as the streamer's AerialKey). */
-	TFunction<void(const FString& Key, const TArray<FColor>& Pixels, int32 Width, int32 Height)> OnEnhanced;
+	TFunction<void(const FString& Key, TArray<TArray<FColor>>& Mips, int32 Width, int32 Height)> OnEnhanced;
 
 	/**
 	 * GPU share the background worker may take: after each window it rests (1 / Duty - 1) times

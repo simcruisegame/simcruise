@@ -358,11 +358,14 @@ void FSimCruiseNeuralDetail::Process(const FString& SourcePath)
 		FFileHelper::SaveArrayToFile(Jpeg->GetCompressed(92), *CachePath(SourcePath));
 	}
 	const FString Key = FPaths::GetCleanFilename(SourcePath);
-	AsyncTask(ENamedThreads::GameThread, [this, Key, Pixels = MoveTemp(Out), OW, OH]()
+	// The texture's mip chain here, on the worker: the game thread only copies it in.
+	TSharedRef<TArray<TArray<FColor>>> Mips = MakeShared<TArray<TArray<FColor>>>();
+	USimCruiseWorldResources::BuildMipChain(Out, OW, OH, true, *Mips);
+	AsyncTask(ENamedThreads::GameThread, [this, Key, Mips, OW, OH]()
 	{
 		if (OnEnhanced)
 		{
-			OnEnhanced(Key, Pixels, OW, OH);
+			OnEnhanced(Key, *Mips, OW, OH);
 		}
 	});
 }

@@ -8,6 +8,7 @@
 #include "Environment/SimCruiseEnvironmentSubsystem.h"
 #include "GameFramework/PlayerController.h"
 #include "Gameplay/SimCruiseHUD.h"
+#include "Async/Async.h"
 #include "HAL/FileManager.h"
 #include "HAL/IConsoleManager.h"
 #include "HttpModule.h"
@@ -140,7 +141,7 @@ void USimCruiseLiveWorldSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 		FSimCruiseNeuralDetail::Get().Initialize();
 		// A sharper photograph from the background worker replaces the one the tiles draw now.
 		TWeakObjectPtr<UWorld> WeakWorld(&InWorld);
-		FSimCruiseNeuralDetail::Get().OnEnhanced = [WeakWorld](const FString& Key, const TArray<FColor>& Pixels, int32 Width, int32 Height)
+		FSimCruiseNeuralDetail::Get().OnEnhanced = [WeakWorld](const FString& Key, TArray<TArray<FColor>>& Mips, int32 Width, int32 Height)
 		{
 			UWorld* World = WeakWorld.Get();
 			USimCruiseWorldSubsystem* WorldSubsystem = World ? World->GetSubsystem<USimCruiseWorldSubsystem>() : nullptr;
@@ -149,8 +150,9 @@ void USimCruiseLiveWorldSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 			{
 				return;
 			}
+			const double SwapStart = FPlatformTime::Seconds();
 			UTexture2D* New = nullptr;
-			UTexture2D* Old = Streamer->Resources->ReplaceAerial(Key, Pixels, Width, Height, New);
+			UTexture2D* Old = Streamer->Resources->ReplaceAerialMips(Key, MoveTemp(Mips), Width, Height, New);
 			if (!Old || !New)
 			{
 				return;
@@ -165,7 +167,8 @@ void USimCruiseLiveWorldSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 					++Swapped;
 				}
 			}
-			UE_LOG(LogSimCruiseLive, Display, TEXT("AI detail: %s now drawn at %dx%d on %d ground materials"), *Key, Width, Height, Swapped);
+			UE_LOG(LogSimCruiseLive, Display, TEXT("AI detail: %s now drawn at %dx%d on %d ground materials (%.1f ms on the game thread)"), *Key, Width, Height, Swapped,
+				(FPlatformTime::Seconds() - SwapStart) * 1000.0);
 		};
 	}
 	const bool bForce = FParse::Param(Cmd, TEXT("SimCruiseLive"));
@@ -244,6 +247,18 @@ void USimCruiseLiveWorldSubsystem::Tick(float DeltaTime)
 		return;
 	}
 	Clock += DeltaTime;
+	// Play tests (-SimCruiseLiveShots or -SimCruiseFrameCheck): the worst frame of each 30 s, to catch stalls.
+	static const bool bFrameCheck = FParse::Param(FCommandLine::Get(), TEXT("SimCruiseFrameCheck"));
+	if (ShotEverySeconds > 0.0f || bFrameCheck)
+	{
+		WorstFrameS = FMath::Max(WorstFrameS, static_cast<double>(DeltaTime));
+		if (Clock >= NextFrameReportAt)
+		{
+			UE_LOG(LogSimCruiseLive, Display, TEXT("Live frame check: worst frame %.1f ms in the last 30 s"), WorstFrameS * 1000.0);
+			WorstFrameS = 0.0;
+			NextFrameReportAt = Clock + 30.0;
+		}
+	}
 	if (ShotEverySeconds > 0.0f && Clock >= NextShotAt)
 	{
 		NextShotAt = Clock + ShotEverySeconds;
@@ -389,7 +404,7 @@ void USimCruiseLiveWorldSubsystem::Shot(const FString& Name, float FovDeg)
 	UE_LOG(LogSimCruiseLive, Display, TEXT("Live shot %s: %s"), *Name, What.IsEmpty() ? TEXT("no aircraft above 3 degrees") : *What);
 }
 
-FString USimCruiseLiveWorldSubsystem::PhotoPath(const FSimCruisePlacePhoto& Photo) const
+FString USimCruiseLiveWorldSubsystem::PhotoPath(const FSimCruisePlacePhoto& Photo)
 {
 	return FPaths::ProjectSavedDir() / TEXT("Live") / TEXT("photos") / FString::Printf(TEXT("%08x.jpg"), GetTypeHash(Photo.Title));
 }
@@ -558,7 +573,9 @@ void USimCruiseLiveWorldSubsystem::Fetch(EFeed Feed, const FString& Url)
 	}
 	State.bInFlight = true;
 	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
-	Request->SetURL(Url);
+	// -SimCruiseLiveOffline: every request goes to a closed local port, to test a start with no network.
+	static const bool bOffline = FParse::Param(FCommandLine::Get(), TEXT("SimCruiseLiveOffline"));
+	Request->SetURL(bOffline ? FString(TEXT("http://127.0.0.1:9/offline")) : Url);
 	Request->SetVerb(TEXT("GET"));
 	Request->SetHeader(TEXT("User-Agent"), TEXT("SimCruise/2.0 (+https://github.com/simcruisegame/simcruise)"));
 	Request->SetHeader(TEXT("Accept"), TEXT("application/json"));
@@ -586,7 +603,29 @@ void USimCruiseLiveWorldSubsystem::Fetch(EFeed Feed, const FString& Url)
 			}
 			return;
 		}
-		Self->OnFeed(Feed, Response->GetContentAsString(), FDateTime::UtcNow(), false);
+		// Parse (and save the cache) on a worker: a road inventory or the tide-station list is
+		// megabytes of JSON, which would stall a frame. The game thread only applies the result.
+		const FDateTime Received = FDateTime::UtcNow();
+		S.NextAt = Self->Clock + 5.0; // not again while the answer is being parsed
+		const FString Cache = Self->CachePath(Feed);
+		const FString Meta = FString::Printf(TEXT("%.5f %.5f %lld"), Self->FeedLat, Self->FeedLon, Received.ToUnixTimestamp());
+		TWeakObjectPtr<USimCruiseLiveWorldSubsystem> WeakSelf(Self);
+		Async(EAsyncExecution::ThreadPool, [WeakSelf, Feed, Body = Response->GetContentAsString(), Received, Cache, Meta]()
+		{
+			TSharedRef<FParsedFeed> Parsed = ParseFeed(Feed, Body);
+			if (Parsed->bOk && Feed != EFeed::Aircraft)
+			{
+				FFileHelper::SaveStringToFile(Body, *Cache, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+				FFileHelper::SaveStringToFile(Meta, *(Cache + TEXT(".meta")));
+			}
+			AsyncTask(ENamedThreads::GameThread, [WeakSelf, Feed, Parsed, Received]()
+			{
+				if (USimCruiseLiveWorldSubsystem* Live = WeakSelf.Get())
+				{
+					Live->ApplyFeed(Feed, *Parsed, Received, false);
+				}
+			});
+		});
 	});
 	Requests.Add(Request);
 	Request->ProcessRequest();
@@ -594,63 +633,99 @@ void USimCruiseLiveWorldSubsystem::Fetch(EFeed Feed, const FString& Url)
 
 void USimCruiseLiveWorldSubsystem::OnFeed(EFeed Feed, const FString& Body, const FDateTime& ReceivedUtc, bool bFromCache)
 {
+	ApplyFeed(Feed, *ParseFeed(Feed, Body), ReceivedUtc, bFromCache);
+}
+
+TSharedRef<USimCruiseLiveWorldSubsystem::FParsedFeed> USimCruiseLiveWorldSubsystem::ParseFeed(EFeed Feed, const FString& Body)
+{
+	TSharedRef<FParsedFeed> P = MakeShared<FParsedFeed>();
+	switch (Feed)
+	{
+	case EFeed::Weather: P->bOk = FSimCruiseLiveData::ParseWeather(Body, P->Weather, P->Error); break;
+	case EFeed::Metar: P->bOk = FSimCruiseLiveData::ParseMetars(Body, P->Metars, P->Error); break;
+	case EFeed::Air: P->bOk = FSimCruiseLiveData::ParseAir(Body, P->Air, P->Error); break;
+	case EFeed::Sea: P->bOk = FSimCruiseLiveData::ParseMarine(Body, P->Sea, P->Error); break;
+	case EFeed::TideStations: P->bOk = FSimCruiseLiveData::ParseTideStations(Body, P->TideStations, P->Error); break;
+	case EFeed::Tide:
+	{
+		FDateTime When;
+		P->bOk = FSimCruiseLiveData::ParseTide(Body, P->TideLevelM, When, P->Error);
+		break;
+	}
+	case EFeed::State: P->bOk = FSimCruiseLiveData::ParseState(Body, P->StateCode, P->Error); break;
+	case EFeed::Roads: P->bOk = FSimCruiseLiveData::ParseRoads(Body, P->Roads, P->Error); break;
+	case EFeed::Photos:
+		P->bOk = FSimCruiseLiveData::ParsePhotos(Body, P->Photos, P->Error);
+		for (FSimCruisePlacePhoto& Photo : P->Photos)
+		{
+			const FString File = PhotoPath(Photo);
+			if (IFileManager::Get().FileExists(*File))
+			{
+				Photo.LocalFile = File;
+			}
+		}
+		break;
+	case EFeed::Aircraft: P->bOk = FSimCruiseLiveData::ParseAircraft(Body, P->Aircraft, P->Error); break;
+	default: break;
+	}
+	return P;
+}
+
+void USimCruiseLiveWorldSubsystem::ApplyFeed(EFeed Feed, FParsedFeed& P, const FDateTime& ReceivedUtc, bool bFromCache)
+{
 	FFeedState& State = Feeds[static_cast<int32>(Feed)];
-	FString Error;
-	bool bOk = false;
 	switch (Feed)
 	{
 	case EFeed::Weather:
-		bOk = FSimCruiseLiveData::ParseWeather(Body, Weather, Error);
+		if (P.bOk) { Weather = P.Weather; }
 		break;
 	case EFeed::Metar:
-		bOk = FSimCruiseLiveData::ParseMetars(Body, Metars, Error);
+		if (P.bOk) { Metars = MoveTemp(P.Metars); }
 		break;
 	case EFeed::Air:
-		bOk = FSimCruiseLiveData::ParseAir(Body, Air, Error);
+		if (P.bOk) { Air = P.Air; }
 		break;
 	case EFeed::Sea:
-	{
-		FSimCruiseLiveSea Parsed = Sea;
-		bOk = FSimCruiseLiveData::ParseMarine(Body, Parsed, Error);
-		if (bOk)
+		if (P.bOk)
 		{
-			Sea = Parsed;
+			// The modelled sea; an observed tide already read stays.
+			P.Sea.bTideObserved = Sea.bTideObserved;
+			P.Sea.TideM = Sea.TideM;
+			P.Sea.TideStation = Sea.TideStation;
+			Sea = P.Sea;
 		}
-		else
+		else if (!bFromCache)
 		{
 			Sea.bValid = false; // inland: no sea
 		}
 		break;
-	}
 	case EFeed::TideStations:
-		bOk = FSimCruiseLiveData::ParseTideStations(Body, TideStations, Error);
-		if (bOk && bHaveFeedPlace)
+		if (P.bOk)
 		{
-			TideStation.Reset();
-			if (const FSimCruiseTideStation* Near = FSimCruiseLiveData::NearestTideStation(TideStations, FeedLat, FeedLon))
+			TideStations = MoveTemp(P.TideStations);
+			if (bHaveFeedPlace)
 			{
-				TideStation = *Near;
-				Feeds[static_cast<int32>(EFeed::Tide)].NextAt = 0.0;
+				TideStation.Reset();
+				if (const FSimCruiseTideStation* Near = FSimCruiseLiveData::NearestTideStation(TideStations, FeedLat, FeedLon))
+				{
+					TideStation = *Near;
+					Feeds[static_cast<int32>(EFeed::Tide)].NextAt = 0.0;
+				}
 			}
 		}
 		break;
 	case EFeed::Tide:
-	{
-		float Level = 0.0f;
-		FDateTime When;
-		bOk = FSimCruiseLiveData::ParseTide(Body, Level, When, Error);
-		if (bOk && TideStation.IsSet())
+		if (P.bOk && TideStation.IsSet())
 		{
 			Sea.bTideObserved = true;
-			Sea.TideM = Level;
+			Sea.TideM = P.TideLevelM;
 			Sea.TideStation = TideStation->Name;
 		}
 		break;
-	}
 	case EFeed::State:
-		bOk = FSimCruiseLiveData::ParseState(Body, StateCode, Error);
-		if (bOk)
+		if (P.bOk)
 		{
+			StateCode = P.StateCode;
 			Feeds[static_cast<int32>(EFeed::Roads)].NextAt = FMath::Min(Feeds[static_cast<int32>(EFeed::Roads)].NextAt, Clock);
 		}
 		else if (!bFromCache)
@@ -661,26 +736,21 @@ void USimCruiseLiveWorldSubsystem::OnFeed(EFeed Feed, const FString& Body, const
 		}
 		break;
 	case EFeed::Roads:
-		bOk = FSimCruiseLiveData::ParseRoads(Body, Roads, Error);
-		if (bOk)
+		if (P.bOk)
 		{
+			Roads = MoveTemp(P.Roads);
 			UE_LOG(LogSimCruiseLive, Display, TEXT("Live roads: %d counted road sections (FHWA HPMS %s)"), Roads.Num(), *StateCode);
 		}
 		break;
 	case EFeed::Photos:
-		bOk = FSimCruiseLiveData::ParsePhotos(Body, Photos, Error);
-		if (bOk)
+		if (P.bOk)
 		{
+			Photos = MoveTemp(P.Photos);
 			// Keep up to 24 of them on this computer for the builders and the AI to look at.
 			PhotoQueue.Reset();
-			for (int32 Index = 0; Index < Photos.Num(); ++Index)
+			for (int32 Index = 0; Index < Photos.Num() && PhotoQueue.Num() < 24; ++Index)
 			{
-				const FString File = PhotoPath(Photos[Index]);
-				if (IFileManager::Get().FileExists(*File))
-				{
-					Photos[Index].LocalFile = File;
-				}
-				else if (PhotoQueue.Num() < 24)
+				if (Photos[Index].LocalFile.IsEmpty())
 				{
 					PhotoQueue.Add(Index);
 				}
@@ -689,24 +759,27 @@ void USimCruiseLiveWorldSubsystem::OnFeed(EFeed Feed, const FString& Body, const
 		}
 		break;
 	case EFeed::Aircraft:
-		bOk = FSimCruiseLiveData::ParseAircraft(Body, Aircraft, Error);
-		if (bOk && Sky)
+		if (P.bOk)
 		{
-			Sky->SetAircraft(Aircraft, ReceivedUtc);
+			Aircraft = MoveTemp(P.Aircraft);
+			if (Sky)
+			{
+				Sky->SetAircraft(Aircraft, ReceivedUtc);
+			}
 		}
 		break;
 	default:
 		break;
 	}
 
-	if (!bOk)
+	if (!P.bOk)
 	{
-		State.LastError = Error;
+		State.LastError = P.Error;
 		if (!bFromCache)
 		{
 			State.Failures++;
 			State.NextAt = Clock + PeriodSeconds(Feed);
-			UE_LOG(LogSimCruiseLive, Display, TEXT("Live %s: %s"), FeedName(Feed), *Error);
+			UE_LOG(LogSimCruiseLive, Display, TEXT("Live %s: %s"), FeedName(Feed), *P.Error);
 		}
 		return;
 	}
@@ -716,12 +789,6 @@ void USimCruiseLiveWorldSubsystem::OnFeed(EFeed Feed, const FString& Body, const
 	{
 		State.Failures = 0;
 		State.NextAt = Clock + PeriodSeconds(Feed);
-		if (Feed != EFeed::Aircraft)
-		{
-			FFileHelper::SaveStringToFile(Body, *CachePath(Feed), FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
-			FFileHelper::SaveStringToFile(FString::Printf(TEXT("%.5f %.5f %lld"), FeedLat, FeedLon, ReceivedUtc.ToUnixTimestamp()),
-				*(CachePath(Feed) + TEXT(".meta")));
-		}
 	}
 	if (Feed == EFeed::Weather || Feed == EFeed::Metar || Feed == EFeed::Air)
 	{

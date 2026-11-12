@@ -282,6 +282,7 @@ void ASimCruiseWorldStreamer::Launch(const FSimCruiseTileJobTicket& Ticket)
 			USimCruiseWorldResources::DecodeImageFile(Path, Result->AerialPixels, Result->AerialWidth, Result->AerialHeight);
 			// The local AI detail engine (Live/SimCruiseNeuralDetail): its cached sharper photograph, or queued for it.
 			FSimCruiseNeuralDetail::Get().EnhanceAerial(Path, Result->AerialPixels, Result->AerialWidth, Result->AerialHeight);
+			USimCruiseWorldResources::BuildMipChain(Result->AerialPixels, Result->AerialWidth, Result->AerialHeight, true, Result->AerialMips);
 		}
 		if (!Box->bClosed) Box->Queue.Enqueue(Result);
 	};
@@ -518,7 +519,14 @@ void ASimCruiseWorldStreamer::TickStreaming(float DeltaSeconds)
 		if (!Result.IsValid()) continue;
 		if (Result->AerialPixels.Num() > 0 && !Resources->FindAerial(Result->AerialKey))
 		{
-			Resources->AddAerial(Result->AerialKey, Result->AerialPixels, Result->AerialWidth, Result->AerialHeight);
+			if (Result->AerialMips.Num() > 0)
+			{
+				Resources->AddAerialMips(Result->AerialKey, MoveTemp(Result->AerialMips), Result->AerialWidth, Result->AerialHeight);
+			}
+			else
+			{
+				Resources->AddAerial(Result->AerialKey, Result->AerialPixels, Result->AerialWidth, Result->AerialHeight);
+			}
 		}
 		const bool bOk = Result->Build.IsValid() && Result->Error.IsEmpty();
 		if (!Manager.Complete(Result->Ticket, bOk, Now))
