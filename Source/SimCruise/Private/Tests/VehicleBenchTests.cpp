@@ -7,6 +7,7 @@
 #include "Tests/VehicleBenchWorld.h"
 #include "Tests/VehicleBenches.h"
 #include "Vehicle/SimCruiseUnits.h"
+#include "Vehicle/SimCruiseVehicleDynamics.h"
 
 namespace
 {
@@ -190,13 +191,53 @@ namespace
 				Test.AddError(FString::Printf(TEXT("pedal %.2f: the circle driver found no steady state"), Case.BrakePedal));
 				continue;
 			}
-			if (Case.bSpun)
+			// Past the friction circle any car may rotate: judge only while the combined demand
+			// stays within 90 % of the car's skidpad grip.
+			const double CombinedG = FMath::Sqrt(FMath::Square(Case.DecelG) + FMath::Square(Case.SteadyLateralG));
+			const bool bWithinGrip = CombinedG <= 0.9 * Car.TargetSkidpadG;
+			if (Case.bSpun && bWithinGrip)
 			{
-				Fail(FString::Printf(TEXT("pedal %.2f: spun braking in the turn (peak sideslip %.1f deg)"), Case.BrakePedal, Case.PeakBetaDeg));
+				Fail(FString::Printf(TEXT("pedal %.2f: spun braking in the turn at %.2f g combined (peak sideslip %.1f deg)"), Case.BrakePedal, CombinedG, Case.PeakBetaDeg));
 			}
-			if (!Car.bAbsEnabled && Case.FirstLockAxle == 1)
+			if (!Car.bAbsEnabled && Case.FirstLockAxle == 1 && bWithinGrip)
 			{
 				Fail(FString::Printf(TEXT("pedal %.2f: a rear wheel locked before the fronts"), Case.BrakePedal));
+			}
+		}
+
+		// The proportioning rule in a straight line: from 0.15 to 0.8 g the rear axle's share of the
+		// brake force stays at or under its share of the load (static rear share - a h / L), so on
+		// equal grip the fronts lock first. A rear share far under the load costs stopping distance.
+		if (!Car.bAbsEnabled)
+		{
+			auto RearPedal = [&Car](double P)
+			{
+				return P <= Car.RearBrakeKneeFraction ? P : Car.RearBrakeKneeFraction + Car.RearBrakeSlopeAboveKnee * (P - Car.RearBrakeKneeFraction);
+			};
+			const double Radius = Car.TireFreeRadiusM();
+			double WorstMargin = 1.0;
+			for (double A = 0.15; A <= 0.8001; A += 0.05)
+			{
+				const double Needed = A * Car.MassKg * SimCruiseDynamics::GravityMps2 * Radius / 2.0;
+				double Lo = 0.0, Hi = 1.0;
+				for (int32 Iteration = 0; Iteration < 40; ++Iteration)
+				{
+					const double P = 0.5 * (Lo + Hi);
+					(P * Car.FrontBrakeTorqueNm + RearPedal(P) * Car.RearBrakeTorqueNm < Needed ? Lo : Hi) = P;
+				}
+				const double Front = Hi * Car.FrontBrakeTorqueNm;
+				const double Rear = RearPedal(Hi) * Car.RearBrakeTorqueNm;
+				const double Share = Rear / FMath::Max(Front + Rear, 1.0);
+				const double Ideal = (1.0 - Car.FrontWeightFraction) - A * Car.CenterOfGravityHeightM / Car.WheelbaseM;
+				const FString Line = FString::Printf(TEXT("BRAKESPLIT %-11s %.2f g  pedal %.2f  rear share %.3f  load share %.3f"), CarId, A, Hi, Share, Ideal);
+				UE_LOG(LogTemp, Display, TEXT("%s"), *Line);
+				Test.AddInfo(Line);
+				WorstMargin = FMath::Min(WorstMargin, Ideal - Share);
+				if (Share > Ideal + 0.005)
+				{
+					const FString What = FString::Printf(TEXT("%.2f g straight: the rear takes %.3f of the braking but carries %.3f of the load (rears lock first)"), A, Share, Ideal);
+				if (bOpen) Test.AddInfo(What + TEXT(", stated open item")); else Test.AddError(What);
+				}
 			}
 		}
 		return true;

@@ -74,6 +74,8 @@ namespace
 		double SpeedI = 0.0;
 		double RampTurn = 0.0;
 		double RampSpeed = 0.0;
+		/** The 70-0 stop's pedal (threshold braking without ABS). */
+		double ThresholdPedal = 1.0;
 		TArray<double> Window;
 		int32 WindowSize = 360;
 		std::atomic<bool> bDone{ false };
@@ -175,7 +177,25 @@ namespace
 				}
 				break;
 			case 2:
-				C.Controls.Brake = 1.0;
+			{
+				// A magazine tester threshold-brakes a car without ABS: the pedal backs off as a wheel
+				// passes its peak slip and comes back as it rolls again (about 4 and 1 pedal per second).
+				// With ABS the foot stays down.
+				if (!C.Sim.GetCar().bAbsEnabled)
+				{
+					double Worst = 0.0;
+					for (const FSimCruiseWheelState& W : C.Sim.State.Wheels)
+					{
+						Worst = FMath::Max(Worst, -W.SlipRatio / FMath::Max(W.PeakSlip, 0.03));
+					}
+					ThresholdPedal = FMath::Clamp(ThresholdPedal + Dt * (Worst > 1.0 ? -4.0 : 1.0), 0.3, 1.0);
+				}
+				else
+				{
+					ThresholdPedal = 1.0;
+				}
+				C.Controls.Brake = ThresholdPedal;
+			}
 				if (bTrace && Tick % FMath::Max<int64>(1, FMath::RoundToInt64(0.25 / Dt)) == 0)
 				{
 					FString Wheels;
