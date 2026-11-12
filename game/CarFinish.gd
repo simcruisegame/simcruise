@@ -35,6 +35,7 @@ extends RefCounted
 
 const CAR := preload("res://art/miata.glb")
 const SPORT_WHEEL := preload("res://SportWheel.gd")
+const TUNED_WHEEL := preload("res://TunedWheel.gd")
 
 const DROP := .025              # ride height
 const NOSE_RISE := .065         # headlamp centre 537 -> 577 mm above ground
@@ -68,8 +69,12 @@ func build(drive) -> void:
   part.layers=2
  likeness()
  # Wheel hubs are separate pivots so steering and rotation do not affect the body.
- var sport_mesh=SPORT_WHEEL.wheel()
- var caliper_mesh=SPORT_WHEEL.caliper()
+ # The tuned roadster (finish_wheel "multispoke17") mounts the generic 17 in
+ # ten-spoke and silver calipers set inboard behind its concave face.
+ var tuned_wheel:bool=vehicle.spec.finish_wheel=="multispoke17"
+ var sport_mesh=TUNED_WHEEL.wheel() if tuned_wheel else SPORT_WHEEL.wheel()
+ var caliper_mesh=SPORT_WHEEL.silver_caliper() if tuned_wheel else SPORT_WHEEL.caliper()
+ var caliper_x:=.011 if tuned_wheel else .033
  for axle in ["front","rear"]:
   for lr in ["l","r"]:
    var hub=Node3D.new();vehicle.add_child(hub);hub.position=Vector3(-.779 if lr=="l" else .779,.305,-1.13 if axle=="front" else 1.13)
@@ -86,7 +91,7 @@ func build(drive) -> void:
    mounted.rotation.y=PI if lr=="l" else 0.
    roller.add_child(mounted)
    var caliper=MeshInstance3D.new();caliper.mesh=caliper_mesh;caliper.layers=2
-   caliper.position=Vector3(side_sign*.033,0.,0.)   # sector behind the axle, straddling the disc
+   caliper.position=Vector3(side_sign*caliper_x,0.,0.)   # sector behind the axle, straddling the disc
    hub.add_child(caliper)
    hub.position=vehicle.MOUNTS[game.wheels.size()]-Vector3.UP*.205
    game.wheels.append([hub,roller,axle=="front"])
@@ -133,10 +138,15 @@ func likeness() -> void:
   if lens:
    lamp.mesh = lens
  place_third_stop_lamp(shell)
+ taller_head_lamps(shell)
  var plate := number_plate(shell)
  if plate:
   model.add_child(plate)
  model.add_child(shut_lines(shell))
+ if game.vehicle.spec.finish_spoiler:
+  var lip := deck_spoiler(shell)
+  if lip:
+   model.add_child(lip)
  model.add_child(wipers())
  for side in [-1., 1.]:
   model.add_child(mirror(side, shell))
@@ -151,7 +161,10 @@ func make_materials() -> void:
  paint = ShaderMaterial.new()
  paint.shader = preload("res://CarPaint.gdshader")
  paint.resource_name = "racing green paint"
- paint.set_shader_parameter("base_color", PAINT_COLOR)
+ var colour := PAINT_COLOR
+ if game.vehicle.spec.paint_color != "":
+  colour = Color(game.vehicle.spec.paint_color)
+ paint.set_shader_parameter("base_color", colour)
  dark_trim = StandardMaterial3D.new()
  dark_trim.albedo_color = Color("#121414"); dark_trim.roughness = .74; dark_trim.metallic = .05
  dark_trim.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -412,6 +425,11 @@ func lowest_paint() -> float:
 #    plastic cowl grille, not paint.
 func finish_surfaces() -> void:
  report["welded_paint_vertices"] = weld_normals(body, 4)
+ var faired := 0
+ for part in model.find_children("*", "MeshInstance3D", true, false):
+  if part.mesh and part.mesh.get_surface_count() == 1 and part.get_surface_override_material(0) == paint:
+   faired += fair_normals(part)
+ report["faired_paint_vertices"] = faired
  var glass_part: MeshInstance3D = model.find_child("body_glass", true, false)
  if glass_part:
   report["welded_glass_vertices"] = weld_normals(glass_part, 4)
@@ -556,6 +574,79 @@ static func weld_normals(part: MeshInstance3D, small: int, cos_limit := .55) -> 
  for s in overrides.size():
   if overrides[s]:
    part.set_surface_override_material(s, overrides[s])
+ return changed
+
+# Panel fairing. The shell is coarse and slightly uneven, so the sky and the
+# ground reflected in the doors, fenders and rear quarters wobbled in waves
+# the real pressed panels do not show (Commons photographs, side and rear 3/4).
+# The positions stay; only the shading normals are faired: each vertex normal
+# moves toward the mean of its neighbours' (vertices sharing a triangle with
+# any vertex at its 2 mm position) over `iterations` passes, but never across
+# a crease (neighbours more than about 35 degrees off are ignored), so shut
+# lines, the beltline, lamp cut-outs and the bumper edges stay crisp. Only
+# surface 0 of single-surface paint parts. Returns vertices changed.
+static func fair_normals(part: MeshInstance3D, iterations := 10, cos_limit := .82) -> int:
+ if part.mesh.get_surface_count() != 1:
+  return 0
+ var arrays := part.mesh.surface_get_arrays(0)
+ var v: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+ var n: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+ var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+ if n.size() != v.size() or idx.is_empty():
+  return 0
+ # Welded position key per vertex, and the vertices touching each key's triangles.
+ var key_of := PackedInt32Array(); key_of.resize(v.size())
+ var keys := {}
+ for i in v.size():
+  var k := Vector3i((v[i] * 500.).round())
+  if not keys.has(k):
+   keys[k] = keys.size()
+  key_of[i] = keys[k]
+ var ring := []
+ ring.resize(keys.size())
+ for r in ring.size():
+  ring[r] = []
+ for t in range(0, idx.size(), 3):
+  for a in 3:
+   var list: Array = ring[key_of[idx[t + a]]]
+   for b in 3:
+    if a != b:
+     list.append(idx[t + b])
+ var cur := n.duplicate()
+ for i in cur.size():
+  cur[i] = cur[i].normalized()
+ # Each vertex's distinct neighbours on its own side of any crease, judged
+ # once on the imported normals, packed flat (start offsets + list).
+ var start := PackedInt32Array(); start.resize(v.size() + 1)
+ var flat := PackedInt32Array()
+ for i in v.size():
+  start[i] = flat.size()
+  var seen := {}
+  for j in ring[key_of[i]]:
+   if j != i and not seen.has(j) and cur[j].dot(cur[i]) > cos_limit:
+    seen[j] = true
+    flat.append(j)
+ start[v.size()] = flat.size()
+ for _pass in iterations:
+  var nxt := cur.duplicate()
+  for i in v.size():
+   var sum := cur[i] * 2.
+   for k in range(start[i], start[i + 1]):
+    sum += cur[flat[k]]
+   nxt[i] = sum.normalized()
+  cur = nxt
+ var changed := 0
+ for i in v.size():
+  if cur[i].dot(n[i].normalized()) < .99995:
+   changed += 1
+ arrays[Mesh.ARRAY_NORMAL] = cur
+ var override := part.get_surface_override_material(0)
+ var mesh := ArrayMesh.new()
+ mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+ mesh.surface_set_material(0, part.mesh.surface_get_material(0))
+ part.mesh = mesh
+ if override:
+  part.set_surface_override_material(0, override)
  return changed
 
 # Head lamps (Drive.set_head_lamps, key L): the photographed lenses glow warm
@@ -802,6 +893,86 @@ func place_third_stop_lamp(shell: Shell) -> void:
  deform(chmsl, func(p: Vector3, _i: int) -> Vector3: return p + offset)
 
 # ---------------------------------------------------------------------------
+# Head lamps. The NB's fixed lamps are tall almonds (about 2.4:1 across the
+# lens in the Commons front 3/4 photographs) where the model's were thin slits
+# (about 4:1). Each lamp and its seal grows downward from its top edge by
+# LAMP_GROW, the top staying under the hood line, and moves forward along the
+# lens's own rake (the slope of z on y fitted to each side's lamp vertices), so
+# the lower half comes out of the bumper skin as the real lens's does.
+const LAMP_GROW := 1.45
+func taller_head_lamps(_shell: Shell) -> void:
+ var lamps := model.find_children("Headlamp *", "MeshInstance3D", true, false)
+ var tops := {}
+ var fit := {}   # side -> [n, sy, sz, syy, syz]
+ for lamp in lamps:
+  var box: AABB = lamp.get_aabb()
+  var side := signf(box.get_center().x)
+  tops[side] = maxf(tops.get(side, -INF), box.end.y)
+  var f: Array = fit.get(side, [0., 0., 0., 0., 0.])
+  for s in lamp.mesh.get_surface_count():
+   for p in lamp.mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]:
+    f[0] += 1.; f[1] += p.y; f[2] += p.z; f[3] += p.y * p.y; f[4] += p.y * p.z
+  fit[side] = f
+ var grown := 0
+ for lamp in lamps:
+  var side := signf(lamp.get_aabb().get_center().x)
+  var top: float = tops[side]
+  var f: Array = fit[side]
+  var slope: float = (f[0] * f[4] - f[1] * f[2]) / maxf(f[0] * f[3] - f[1] * f[1], 1e-9)
+  slope = clampf(slope * .5, -1., 1.)   # half the housing rake keeps the lens flush with the fender front
+  report["head_lamp_rake_dz_dy"] = snappedf(slope, .01)
+  deform(lamp, func(p: Vector3, _i: int) -> Vector3:
+   var y := top - (top - p.y) * LAMP_GROW
+   return Vector3(p.x, y, p.z + (y - p.y) * slope))
+  grown += 1
+ report["head_lamp_parts_grown"] = grown
+
+# Small deck-lid lip spoiler (tuned roadster, spec.finish_spoiler): a body-
+# colour wedge about 28 mm tall and 85 mm deep laid on the lid along its
+# trailing edge, fading into the lid at both ends, like the 2004 factory turbo
+# car's trunk lip. Shape is original; visual only (no published downforce).
+func deck_spoiler(shell: Shell) -> MeshInstance3D:
+ var st := SurfaceTool.new()
+ st.begin(Mesh.PRIMITIVE_TRIANGLES)
+ st.set_material(paint)
+ var columns := 29
+ var profile := [[0., 0.], [.35, .009], [.65, .02], [.88, .027], [.97, .028], [1., .025], [1.0001, 0.]]
+ var grid := []
+ for ci in columns:
+  var x := lerpf(-.56, .56, float(ci) / (columns - 1))
+  # Deck edge: the last point, going back, where the lid still faces up.
+  var edge_z := -1.
+  var z := tail_edge_z(absf(x)) - .32
+  while z < tail_edge_z(absf(x)) + .08:
+   var h := shell.hit(Vector3(x, 2., z), Vector3.DOWN, 2.)
+   if not h.is_empty() and h[1].y > .62 and h[0].y > .70:
+    edge_z = z
+   z += .004
+  if edge_z < 0.:
+   return null
+  var taper := smoothstep(.56, .44, absf(x))
+  var row := []
+  for p in profile:
+   var pz: float = edge_z - .012 - .085 * (1. - p[0])
+   var h := shell.hit(Vector3(x, 2., pz), Vector3.DOWN, 2.)
+   if h.is_empty():
+    return null
+   row.append(h[0] + Vector3.UP * (.0012 + p[1] * taper))
+  grid.append(row)
+ for ci in range(1, columns):
+  for j in range(1, profile.size()):
+   var a: Vector3 = grid[ci - 1][j - 1]; var b: Vector3 = grid[ci][j - 1]
+   var c: Vector3 = grid[ci][j]; var d: Vector3 = grid[ci - 1][j]
+   st.add_vertex(a); st.add_vertex(b); st.add_vertex(c)
+   st.add_vertex(a); st.add_vertex(c); st.add_vertex(d)
+ st.generate_normals()
+ var lip := MeshInstance3D.new()
+ lip.mesh = st.commit()
+ lip.name = "DeckSpoiler"
+ lip.layers = 2
+ report["deck_spoiler_edge_z"] = snappedf(grid[columns / 2][profile.size() - 1].z, .001)
+ return lip
+
 func number_plate(shell: Shell) -> MeshInstance3D:
  var h := shell.hit(Vector3(0., PLATE_Y, 3.), Vector3.FORWARD, 2.)
  if h.is_empty():

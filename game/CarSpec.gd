@@ -83,6 +83,25 @@ var road_reference_deg := 35.5
 var ackermann_blend := .49
 var assist_lateral_g := .95
 var limit_slip_surplus_deg := 5.
+# Overall steering ratio (steering-wheel angle over road-wheel angle). Sets the
+# hand pace of a held key (Powertrain.key_rack_rate). The NB's is about 15:1
+# (Cars.com 1999 MX-5 specifications, about 3 turns lock to lock,
+# https://www.cars.com/research/mazda-mx_5_miata-1999/specs/106937/); cars
+# without a published ratio keep it as an estimate.
+var steering_ratio := 15.
+# Steering compliance (Powertrain.compliance_angle): stiffness of the steering
+# system about each front wheel's steering axis at the road wheel, and the
+# tyre's pneumatic trail at small slip. Neither is published for any car here.
+# The trail is the brush-model value, about a sixth of the contact length
+# (about 90 mm for a 195/50R15 at 2.6 kN and 2.1 bar). The stiffness is an
+# estimate chosen so steering compliance adds about 1 deg/g of understeer, the
+# size of the front aligning-torque and lateral-force compliance-steer terms in
+# a Bundorf breakdown (https://en.wikipedia.org/wiki/Bundorf_analysis); it
+# takes the NB from a near-neutral 0.65 deg/g to about 1.6 deg/g at 60 mph, the
+# mild understeer of a road car (SAE 840561's survey averaged 2.6 deg/g for
+# European cars). 0 disables it.
+var steering_stiffness_nm_per_deg := 120.
+var pneumatic_trail_m := .015
 
 # Brakes (torque per wheel at full pedal)
 var brake_front_nm := 1150.
@@ -96,6 +115,15 @@ var drag_area_m2 := .65        # Cd × frontal area
 var engine := "combustion"     # or "electric"
 var torque_curve := [Vector2(800,94),Vector2(1750,127),Vector2(3000,146),Vector2(4150,151),Vector2(5000,161),Vector2(5900,156),Vector2(6500,153),Vector2(7000,137)]
 var torque_past_curve_nm := 120.
+# Turbocharger (Powertrain.update_boost): the full-boost torque curve ([] =
+# naturally aspirated; torque_curve is then the off-boost curve), the rpm
+# band over which the exhaust can drive boost, the spool-up time constant
+# (turbo lag) and how fast the bypass valve vents the charge on a lift.
+var boost_torque_curve := []
+var boost_threshold_rpm := 2500.
+var boost_full_rpm := 3500.
+var spool_seconds := .5
+var boost_vent_seconds := .15
 var idle_rpm := 850.
 var idle_omega := 89.          # rad/s on restarts
 var governor_rpm := 875.
@@ -177,6 +205,21 @@ var damper_dyno := [[],[Vector3(0.0,0,0),Vector3(1.0,42,73),Vector3(1.1,45,80),V
 var target_0_60_s := 7.97
 var target_70_0_ft := 173.
 var target_skidpad_g := .89
+# A car tested 60-0 mph instead of 70-0 sets this (> 0); CarTrack then holds
+# the 60-0 distance of the same full-pedal stop to it instead.
+var target_60_0_ft := 0.
+# Band half-widths. Where two published tests disagree the target sits
+# between them and the band covers both (stated in the car's sources).
+var tolerance_0_60_s := .15
+var tolerance_stop_ft := 5.
+var tolerance_skidpad_g := .02
+# Exterior details for the roadster's CarFinish.gd pass (the generated-model
+# cars ignore them): wheel ("sport15" the factory 15 in five-spoke,
+# "multispoke17" a generic 17 in ten-spoke), a small deck-lid lip spoiler, and
+# the paint ("" keeps the factory green).
+var finish_wheel := "sport15"
+var finish_spoiler := false
+var paint_color := ""
 var sources := {}
 # A known gap, stated: CarTrack reports the car but does not fail on it.
 var calibration_open := ""
@@ -234,7 +277,7 @@ func apply(data) -> void:
 
 func convert_array(key:String,v) -> Array:
  if not v is Array:return []
- if key=="torque_curve":
+ if key=="torque_curve" or key=="boost_torque_curve":
   return v.map(func(r):return Vector2(r[0],r[1]))
  if key=="damper_dyno":
   return v.map(func(axle):return axle.map(func(r):return Vector3(r[0],r[1],r[2])))

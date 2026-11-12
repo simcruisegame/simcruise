@@ -27,6 +27,13 @@ static func caliper() -> ArrayMesh:
   _caliper = build_caliper()
  return _caliper
 
+# The same caliper painted silver, as on the 2004 turbo car (tuned roadster).
+static var _silver_caliper: ArrayMesh
+static func silver_caliper() -> ArrayMesh:
+ if _silver_caliper == null:
+  _silver_caliper = build_caliper(Color("#b4b7b8"),.55,.38)
+ return _silver_caliper
+
 static func material(color:Color,metal:float,rough:float) -> StandardMaterial3D:
  var m=StandardMaterial3D.new()
  m.albedo_color=color;m.metallic=metal;m.roughness=rough
@@ -227,8 +234,8 @@ static func build_wheel() -> ArrayMesh:
 # Single-piston sliding caliper hugging the rotor behind the axle: an annular
 # sector straddling the disc plane (centred on the node, symmetric in X, so the
 # same mesh serves both sides without mirroring).
-static func build_caliper() -> ArrayMesh:
- var st=surface(material(Color("#3b3d3b"),.32,.58))
+static func build_caliper(color:=Color("#3b3d3b"),metal:=.32,rough:=.58) -> ArrayMesh:
+ var st=surface(material(color,metal,rough))
  var centre=deg_to_rad(76.);var half=deg_to_rad(23.)
  var inner=.086;var outer=.133;var w=.025
  var steps=10

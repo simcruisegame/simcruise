@@ -29,14 +29,25 @@ var ASSIST_LATERAL_G:float
 # curve peaks near 14°). A tyre curve with a sharper peak would lower this.
 var LIMIT_SLIP_SURPLUS_RAD:float
 const LOCK_BLEND_RAD = 3.0 * PI / 180.0
-# A held key moves the rack at a hand's pace: the previous 2.75/s of lock while
-# parking, easing to 12°/s (about 160°/s at the wheel) by highway speed, so a
-# half-second tap at 60 mph reaches 6° instead of the lock. Release is quicker.
+# A held key turns the steering wheel at a hand's pace, set at the steering
+# wheel and divided by the car's overall ratio (spec.steering_ratio): 120°/s
+# from 10 m/s up, the lane-keeping pace well under ISO 7401's 200-500°/s
+# emergency step steer, rising to the previous 2.75/s of lock (parking) only
+# below 3 m/s. The rate builds over the first KEY_PRESS_RAMP_S of a press,
+# so a 0.1 s tap moves the wheel about 3-4° instead of 48° (the old rack-rate
+# map gave 67°/s of rack at 30 mph): the smallest keyboard correction is a
+# correction, not a lane change (checks/KeyboardTap.gd). Release is quicker.
 var KEY_RACK_RATE_PARKING_RAD_S:float
-const KEY_RACK_RATE_HIGHWAY_RAD_S = 12.0 * PI / 180.0
+const KEY_WHEEL_RATE_RAD_S = 120.0 * PI / 180.0
+const KEY_PRESS_RAMP_S = .15
 const KEY_RETURN_RATE_MIN_RAD_S = 24.0 * PI / 180.0
 const KEY_RETURN_FACTOR = 1.6
 const STEER_DEAD_BAND = 0.01
+var key_hold_seconds := 0.
+var key_hold_sign := 0.
+# Steering compliance (Powertrain.drive): each front wheel turns out of the
+# corner by its side force times the trail, over the steering stiffness.
+var front_compliance := [0.,0.]
 # Roof-down or stranded timers for Drive's recovery prompt.
 var roof_down := false
 var flipped_seconds := 0.
@@ -57,6 +68,8 @@ var sound_throttle := 0.
 var sound_combustion := 0.
 var sound_shaft_load := 0.
 var engine_omega=89.0
+var boost:=0.     # turbo boost fraction (update_boost)
+var blowoff:=0.   # bypass-valve vent envelope for the sound, 1 to 0 over 0.6 s
 var gear=0
 var in_reverse=false
 var manual=false
@@ -210,15 +223,36 @@ func restart(pos:Vector3,head:float):
  freeze=true;global_transform=Transform3D(Basis(Vector3.UP,head),pos)
  freeze=false;linear_velocity=Vector3.ZERO;angular_velocity=Vector3.ZERO;sleeping=false
  rolling_slip.fill(0.)
+ front_compliance=[0.,0.];key_hold_seconds=0.;key_hold_sign=0.;boost=0.;blowoff=0.
  sound_throttle=0.;sound_combustion=0.;sound_shaft_load=0.
  selected_gear=0 if manual else 1;clutch_pedal=0.;stalled=false
  roof_down=false;flipped_seconds=0.;stuck_seconds=0.;stranded_seconds=0.
  omega=[0.,0.,0.,0.];gear=0;in_reverse=false;shift_time=0.;steering=0;steering_input=0;service_brake=false;rpm=spec.idle_rpm;engine_omega=rpm*TAU/60.;reset_physics_interpolation()
 func crank_torque(n):
- var curve=spec.torque_curve
+ var base=curve_torque(spec.torque_curve,n)
+ if spec.boost_torque_curve.is_empty() or boost<=0.:return base
+ return lerpf(base,curve_torque(spec.boost_torque_curve,n),boost)
+func curve_torque(curve:Array,n:float)->float:
  for i in range(1,curve.size()):
   if n<=curve[i].x:return lerpf(curve[i-1].y,curve[i].y,clampf(inverse_lerp(curve[i-1].x,curve[i].x,n),0,1))
  return spec.torque_past_curve_nm
+# Turbocharger (cars with a boost_torque_curve). boost is the fraction of the
+# wastegate-limited boost the turbine delivers: the torque runs from the
+# off-boost curve (torque_curve) to the full-boost curve with it. The boost the
+# exhaust can drive rises with rpm from boost_threshold_rpm to boost_full_rpm
+# and with the pedal (a closed throttle starves the turbine); the turbine and
+# compressor spin up with a first-order lag (spool_seconds, the turbo lag) and
+# the bypass (blow-off) valve vents the charge within boost_vent_seconds when
+# the throttle closes. blowoff runs from 1 to 0 over 0.6 s after the valve
+# opens on more than half boost, for the sound.
+func update_boost(pedal:float,engine_rpm:float,ds:float)->void:
+ if spec.boost_torque_curve.is_empty():boost=0.;return
+ var target:float=clampf(pedal,0.,1.)*smoothstep(spec.boost_threshold_rpm,spec.boost_full_rpm,engine_rpm)
+ var closing:=pedal<.15
+ if closing and boost>.5 and blowoff<=0.:blowoff=1.
+ var tau:float=spec.spool_seconds if target>boost else (spec.boost_vent_seconds if closing else spec.spool_seconds*.5)
+ boost+=(target-boost)*(1.-exp(-ds/maxf(tau,.001)))
+ blowoff=maxf(0.,blowoff-ds/.6)
 # Polynomial smooth minimum (Quilez): equals the smaller value once the two
 # differ by more than k, and rounds the corner where they cross.
 static func smooth_min(a:float, b:float, k:float) -> float:
@@ -233,12 +267,34 @@ func available_steering(speed_mps:float, assisted:bool=true) -> float:
  if not assisted:
   var road_angle := ROAD_ASSIST_REFERENCE_RAD / (1.0 + speed * 0.044)
   return lerpf(PARKING_RACK_RAD, road_angle, smoothstep(2.0, 6.0, speed))
- var limit_angle := atan(WHEELBASE_M * ASSIST_LATERAL_G * G / maxf(speed * speed, 0.01)) + LIMIT_SLIP_SURPLUS_RAD
+ var limit_angle := atan(WHEELBASE_M * ASSIST_LATERAL_G * G / maxf(speed * speed, 0.01)) + LIMIT_SLIP_SURPLUS_RAD + limit_compliance_rad()
  return smooth_min(PARKING_RACK_RAD, limit_angle, LOCK_BLEND_RAD)
 
-# How fast a held key moves the rack at this speed, in radians per second.
-func key_rack_rate(speed_mps:float) -> float:
- return lerpf(KEY_RACK_RATE_PARKING_RAD_S, KEY_RACK_RATE_HIGHWAY_RAD_S, smoothstep(5.0, 25.0, absf(speed_mps)))
+# How fast a held key moves the rack at this speed, in radians per second,
+# once the press has built up (held_s past KEY_PRESS_RAMP_S).
+func key_rack_rate(speed_mps:float, held_s:float=1.) -> float:
+ var hand:float=KEY_WHEEL_RATE_RAD_S/maxf(spec.steering_ratio,1.)
+ return lerpf(KEY_RACK_RATE_PARKING_RAD_S, hand, smoothstep(3.0, 10.0, absf(speed_mps)))*smoothstep(0.,KEY_PRESS_RAMP_S,held_s)
+
+# Steering compliance. The front tyre's side force acts behind the steering
+# axis by the mechanical trail (caster) plus the pneumatic trail, and the
+# steering system (column, rack, tie rods, bushes) yields to that moment, so
+# the road wheels steer out of the corner: the main source of a road car's
+# linear-range understeer (Bundorf analysis: aligning-torque and lateral-force
+# compliance steer together about 1 deg/g at the front). The pneumatic trail
+# shrinks as the tyre saturates (brush model), which is also why steering
+# lightens at the limit. Returns the angle (rad, + left) for one front wheel.
+func compliance_angle(side_force:float, slip_angle:float) -> float:
+ if spec.steering_stiffness_nm_per_deg<=0.:return 0.
+ var trail:float=R*tan(deg_to_rad(spec.caster_deg))+spec.pneumatic_trail_m*maxf(0.,1.-absf(tanh(slip_angle*spec.slip_stiffness)))
+ return side_force*trail/(spec.steering_stiffness_nm_per_deg*180./PI)
+
+# Compliance steer a front wheel carries at the assisted map's lateral limit
+# (mechanical trail only: the pneumatic trail has collapsed there).
+func limit_compliance_rad() -> float:
+ if spec.steering_stiffness_nm_per_deg<=0.:return 0.
+ var wheel_force:float=spec.mass_kg*spec.front_weight*ASSIST_LATERAL_G*G*.5
+ return wheel_force*R*tan(deg_to_rad(spec.caster_deg))/(spec.steering_stiffness_nm_per_deg*180./PI)
 
 # A stick has a few millimetres of thumb travel. Allocate its center to ordinary
 # lane corrections and preserve full available steering at either end. This maps
@@ -286,7 +342,10 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
  elif steering_assist:
   # Key rates are set in rack angle, so the same key moves the wheel more
   # slowly as the cap closes with speed. Releasing or countersteering unwinds first.
-  var apply=key_rack_rate(speed)/cap
+  # A press builds from rest; holding on (or a new press the other way) restarts the ramp.
+  if turn!=0. and signf(turn)==key_hold_sign:key_hold_seconds+=dt
+  else:key_hold_seconds=dt if turn!=0. else 0.;key_hold_sign=signf(turn)
+  var apply=key_rack_rate(speed,key_hold_seconds)/cap
   var back_rate=maxf(apply*KEY_RETURN_FACTOR,KEY_RETURN_RATE_MIN_RAD_S/cap)
   steering_input=advance_steering(steering_input,turn,dt,apply,back_rate)
  else:
@@ -310,6 +369,7 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
    var sign_side=-1.0 if i%2==0 else 1.0
    var angle=signf(steering)*(inner if (i==0 and steering>0) or (i==1 and steering<0) else outer) if i<2 else 0.
    angle+=sign_side*deg_to_rad(spec.toe_per_wheel_deg)
+   if i<2:angle+=front_compliance[i]
    var camber=spec.static_camber_deg[axle]-(spec.static_length_m-len)*spec.camber_per_m[axle]
    wheel_camber[i]=-sign_side*deg_to_rad(camber)
    if i<2:wheel_camber[i]+=sin(angle)*deg_to_rad(spec.caster_deg)
@@ -336,6 +396,7 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
   if points[i].is_empty():
    spring_load[i]=0
    rolling_slip[i]=0.
+   if i<2:front_compliance[i]=0.
    continue
   var row=points[i];var fz=float(row[2]);spring_load[i]=fz
   var slip_angle=0.
@@ -347,6 +408,7 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
   var road_lean=asin(clampf(b.x.dot(row[1]),-1.,1.))
   lateral-=fz*spec.camber_thrust*(wheel_camber[i]+road_lean)*minf(1.,absf(row[5])/3.)
   side[i]=lateral;row.append(mu)
+  if i<2:front_compliance[i]=compliance_angle(lateral,slip_angle)
  var throttle_aid=spec.traction_control
  if not throttle_aid or throttle<=0.:tc_cut=0.;tc_integral=0.;tc_slip=0.;tc_slip_filtered=0.
  var pedal_throttle=throttle
@@ -378,7 +440,7 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
   if electric():
    clutch_load=motor_torque(throttle,forward_ratio,sign_dir,speed)
   else:
-   rpm=engine_omega*60/TAU;var friction=spec.engine_friction_nm+spec.engine_friction_per_rpm*rpm
+   rpm=engine_omega*60/TAU;update_boost(throttle,rpm,ds);var friction=spec.engine_friction_nm+spec.engine_friction_per_rpm*rpm
    var torque=(crank_torque(rpm)+friction)*throttle if rpm<spec.fuel_cut_rpm else 0.
    var drag=friction*(1.0 if rpm>spec.idle_rpm else .5)
    var governor=clampf((spec.governor_rpm-rpm)*.8,0,100.)

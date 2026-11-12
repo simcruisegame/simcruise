@@ -12,7 +12,10 @@ extends SceneTree
 ## acceleration before the body slip angle passes 10°. It needs no path
 ## driver, so the result does not depend on controller tuning; on the NB it
 ## reads 0.884 g where Track.gd's tuned circle driver demonstrates 0.885 g.
-## Bands: 0-60 ±0.15 s, 70-0 ±5 ft, skidpad ±0.02 g. Exit 0 when every car
+## A car tested 60-0 instead (target_60_0_ft) is measured from the moment the
+## same full-pedal stop passes 60 mph. Bands: 0-60 ±0.15 s, stop ±5 ft,
+## skidpad ±0.02 g, unless the car file widens one to cover two published
+## tests (tolerance_*). Exit 0 when every car
 ## passes or carries a stated calibration_open note in its file.
 const CAR_SPEC=preload("res://CarSpec.gd")
 const RADIUS=45.72
@@ -20,7 +23,7 @@ var queue=[]
 var car
 var spec
 var tick=0;var state=0;var t=0.;var last=0.
-var a60=0.;var b70=0.;var reached=false;var start_z=0.
+var a60=0.;var b70=0.;var b60=0.;var reached=false;var start_z=0.;var start60_z=NAN
 var speed_i=0.
 var rows=[];var failed=0;var open_count=0
 var ramp_turn=0.;var ramp_peak=0.;var ramp_window=[];var ramp_speed=0.
@@ -40,7 +43,7 @@ func next_car():
  if queue.is_empty():finish();return
  spec=CAR_SPEC.load_id(queue.pop_front())
  car=load("res://Powertrain.gd").new();car.use_spec(spec);car.setup();root.add_child(car);car.restart(Vector3(0,.18,0),0.)
- tick=0;state=0;t=0.;last=0.;a60=0.;b70=0.;reached=false
+ tick=0;state=0;t=0.;last=0.;a60=0.;b70=0.;b60=0.;start60_z=NAN;reached=false
  speed_i=0.
 
 func _physics_process(dt):
@@ -60,8 +63,12 @@ func _physics_process(dt):
    if t>40:a60=INF;start_z=car.position.z;state=2;t=0
   2:
    car.drive(dt,0.,1.,0.,false)
+   # 60-0 inside the same stop: the brakes act at once, so passing 60 mph
+   # under full pedal is where a 60-0 test's stop begins.
+   if is_nan(start60_z) and speed<=26.8224:start60_z=car.position.z-(26.8224-speed)*dt/2
    if speed<.1:
     b70=absf(start_z-car.position.z)*3.28084
+    b60=absf(start60_z-car.position.z)*3.28084
     state=3;car.restart(Vector3(0,.18,0),0.);t=0
   3:
    # (also re-entered to restart the fine skidpad pass from rest)
@@ -87,10 +94,13 @@ func _physics_process(dt):
  return false
 
 func record(note:String):
- var ok=absf(a60-spec.target_0_60_s)<=.15 and absf(b70-spec.target_70_0_ft)<=5. and absf(ramp_peak-spec.target_skidpad_g)<=.02
+ var sixty:bool=spec.target_60_0_ft>0.
+ var stop:float=b60 if sixty else b70
+ var stop_target:float=spec.target_60_0_ft if sixty else spec.target_70_0_ft
+ var ok=absf(a60-spec.target_0_60_s)<=spec.tolerance_0_60_s+1e-6 and absf(stop-stop_target)<=spec.tolerance_stop_ft and absf(ramp_peak-spec.target_skidpad_g)<=spec.tolerance_skidpad_g+1e-6
  if not ok and spec.calibration_open=="":failed+=1
  if not ok and spec.calibration_open!="":note+=" (open: %s)"%spec.calibration_open;open_count+=1
- rows.append("%-14s 0-60 %5.2f s (target %5.2f)  70-0 %6.1f ft (target %5.1f)  skidpad %.3f g (target %.2f)  %s %s"%[spec.id,a60,spec.target_0_60_s,b70,spec.target_70_0_ft,ramp_peak,spec.target_skidpad_g,"PASS" if ok else "OFF",note])
+ rows.append("%-14s 0-60 %5.2f s (target %5.2f)  %s %6.1f ft (target %5.1f)  skidpad %.3f g (target %.2f)  %s %s"%[spec.id,a60,spec.target_0_60_s,"60-0" if sixty else "70-0",stop,stop_target,ramp_peak,spec.target_skidpad_g,"PASS" if ok else "OFF",note])
  call_deferred("next_car")
 
 func finish():

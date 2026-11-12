@@ -220,7 +220,10 @@ func head_view(body: Transform3D, car, forward_speed: float, dt: float) -> Array
  # Gaze lead: positive is to the right. Lateral acceleration and the rack both
  # point into the corner; Powertrain steering is positive to the left.
  var lead := clampf(felt.x / (.5 * G), -1.0, 1.0) - .5 * clampf(car.steering / .10, -1.0, 1.0)
- lead = clampf(lead, -1.0, 1.0) * smoothstep(3.0, 14.0, absf(forward_speed))
+ # A driver looks into a corner, not into a lane correction: below about
+ # 0.12 g the lead fades out, so small keyboard or wheel corrections do not
+ # swing the view and read as extra yaw (full lead from 0.3 g).
+ lead = clampf(lead, -1.0, 1.0) * smoothstep(3.0, 14.0, absf(forward_speed)) * smoothstep(.12, .3, absf(felt.x) / G)
  gaze_deg += (lead * GAZE_LEAD_DEG - gaze_deg) * (1.0 - exp(-dt / .25))
  # Road roughness from the suspension travel rate, high-passed so steady roll
  # or dive does not shake the view.

@@ -68,6 +68,7 @@ var ready_drive=false
 var closing=false
 var close_code=0
 var camera_snap=true
+var chase_aim=Vector3.INF   # lagged aim point of the outside views
 var road_name="Ocean Drive"
 var failures={}
 # Godot clears body velocity while a rigid body is frozen. Keep the entry
@@ -203,8 +204,11 @@ func _ready():
  var private_model:="user://cars/%s.glb"%car_id
  if FileAccess.file_exists(private_model) and not "--stock-model" in OS.get_cmdline_user_args():
   car_spec.model_scene=private_model;car_spec.model_rig=car_spec.model_rig.duplicate();car_spec.model_rig.fit=true
+ # Every car takes its own file's physics, the roadster variants too (the
+ # tuned roadster shares the CarFinish model but not the 1999 car's numbers).
+ vehicle.use_spec(car_spec)
  if car_spec.model_scene!="" and (ResourceLoader.exists(car_spec.model_scene) or car_spec.model_scene.begins_with("user://")):
-  vehicle.use_spec(car_spec);generic_car=true
+  generic_car=true
   preload("res://CarBody.gd").new().build(self)
  else:
   preload("res://CarFinish.gd").new().build(self) # player car, its likeness pass, wheels, lamps, shade and parked cars
@@ -749,6 +753,11 @@ func _process(dt):
    goal=hit.position+(pivot-goal).normalized()*.22
    camera_snap=true
  camera.position=goal if camera_snap or view==1 else camera.position.lerp(goal,1-exp(-10.0*dt))
+ # Outside views: the aim point lags the body by about 0.12 s, as the position
+ # does, so body yaw micro-motion from small corrections is not shown 1:1.
+ if view!=1:
+  chase_aim=target if camera_snap or not chase_aim.is_finite() or chase_aim.distance_to(target)>20. else chase_aim.lerp(target,1-exp(-dt/.12))
+  target=chase_aim
  camera.look_at(target,head_up if view==1 else Vector3.UP);camera_snap=false
  grove.refresh(self);roadside.refresh(self)
  park_clock+=dt
@@ -767,7 +776,7 @@ func _process(dt):
  if sound_enabled and engine_stream:
   var available=engine_stream.get_frames_available()
   if available>0:
-   var buffer=engine_voice.render(available,vehicle.rpm,vehicle.sound_combustion,vehicle.sound_shaft_load,vehicle.stalled,view==1,vehicle.sound_throttle)
+   var buffer=engine_voice.render(available,vehicle.rpm,vehicle.sound_combustion,vehicle.sound_shaft_load,vehicle.stalled,view==1,vehicle.sound_throttle,vehicle.boost,vehicle.blowoff)
    engine_stream.push_buffer(buffer)
 
 func update_parked():

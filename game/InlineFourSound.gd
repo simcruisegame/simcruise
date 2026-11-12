@@ -56,7 +56,16 @@ func _init():
   exhaust_light.append(quiet);exhaust_load.append(loud);intake.append(air)
   pulse_window.append(.28+.72*pow(.5+.5*cos(theta-.65),2))
 
-func render(frames:int,rpm:float,combustion:float,shaft_load:float,stalled:bool,cabin:bool,pedal:float)->PackedVector2Array:
+## Turbocharged cars also pass boost (0..1, Powertrain.boost) and blowoff
+## (the bypass-valve envelope, 1 to 0 over 0.6 s): a compressor whine that
+## rises with boost and engine speed, and a soft filtered rush when the
+## factory recirculating valve vents (no atmospheric "pssh"). Both are
+## approximations, not recordings of the IHI unit.
+var whine_phase := 0.
+var whine := 0.
+var vent_low := 0.
+var vent_band := 0.
+func render(frames:int,rpm:float,combustion:float,shaft_load:float,stalled:bool,cabin:bool,pedal:float,boost:float=0.,blowoff:float=0.)->PackedVector2Array:
  var samples:=PackedVector2Array();samples.resize(frames)
  if frames<1 or (stalled and gain<.00003):return samples
  var target_hz:=clampf(rpm,0.,7200.)/30.
@@ -120,6 +129,14 @@ func render(frames:int,rpm:float,combustion:float,shaft_load:float,stalled:bool,
   var exhaust:=pulse*exhaust_level
   boom+=.034*(exhaust-boom)
   var pressure:=exhaust+boom*boom_level+air*inlet_level+breath*airflow+pop_low
+  if boost>0. or blowoff>0.:
+   # Compressor whine: a thin tone from about 1.6 to 5 kHz with shaft speed.
+   whine+=(boost-whine)*smoothing
+   whine_phase=fmod(whine_phase+(1600.+3400.*whine*clampf(rpm/6500.,.3,1.))/RATE,1.)
+   pressure+=sin(TAU*whine_phase)*whine*whine*(.010 if cabin else .022)
+   # Recirculated vent: band-passed noise, 0.6 s envelope.
+   vent_low+=.45*(white-vent_low);vent_band+=.06*(vent_low-vent_band)
+   pressure+=(vent_low-vent_band)*blowoff*blowoff*(.10 if cabin else .18)
   output_low+=filter*(pressure-output_low)
   var v:=clampf(output_low*gain,-.94,.94)
   samples[i]=Vector2(v,v)

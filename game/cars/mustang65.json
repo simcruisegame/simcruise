@@ -59,6 +59,7 @@
  ],
  "drag_area_m2": 0.85,
  "parking_rack_deg": 33,
+ "steering_ratio": 21.7,
  "road_reference_deg": 32,
  "brake_front_nm": 830,
  "brake_rear_nm": 500,
