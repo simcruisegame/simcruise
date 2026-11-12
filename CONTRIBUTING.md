@@ -51,7 +51,7 @@ SimCruise uses [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`. 
 
 `CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/): every change a player would notice gets a line in the top, unreleased section in the same pull request.
 
-Every release must ship a complete package that people can play: the Windows installer and zip with checksums, an updated README with current in-game screenshots, and an installer that was installed, played and uninstalled on a clean user account. Follow [docs/release/RELEASE-CHECKLIST.md](docs/release/RELEASE-CHECKLIST.md); `scriptselease.ps1` builds the Shipping package, the map helper, the installer and the checksums and smoke-tests the game in one step. The Godot 1.x release scripts are at the git tag `godot-final`.
+Every release must ship a complete package that people can play: the Windows installer and zip with checksums, an updated README with current in-game screenshots, and an installer that was installed, played and uninstalled on a clean user account. Follow [docs/release/RELEASE-CHECKLIST.md](docs/release/RELEASE-CHECKLIST.md); `scripts\release.ps1` builds the Shipping package, the map helper, the installer and the checksums and smoke-tests the game in one step. The Godot 1.x release scripts are at the git tag `godot-final`.
 
 ## Security
 

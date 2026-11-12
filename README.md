@@ -27,20 +27,28 @@ No account, no API keys, no subscription, no telemetry. The game talks directly 
 
 > **SimCruise moved to Unreal Engine 5.8 in November 2026.** The Godot client that made the 1.x releases is kept at the git tag [`godot-final`](https://github.com/simcruisegame/simcruise/tree/godot-final) (`git show godot-final:game/<file>`); everything below is about the Unreal client. The Unreal client goes anywhere in the US again: a normal start is a random road from the start pool, `/` searches for a place, and Tab (Menu on the pad) opens the road atlas to drive anywhere on the map. Trees, rangeland scrub, the land to the horizon, guard rails, bridges, gravel roads and traffic signals are built for wherever you are. What is still being ported is in [the migration ledger](docs/unreal-migration-ledger.md).
 
+## Download
+
+**SimCruise 2.0.0 for Windows** (64-bit Windows 10 or 11, DirectX 12): get `SimCruise-2.0.0-windows-x64-setup.exe` from the [latest release](https://github.com/simcruisegame/simcruise/releases/latest), run it, and start SimCruise from the Start menu. A portable zip and SHA-256 checksums are on the same page. Install steps and system requirements: [docs/install.md](docs/install.md). Controls (keyboard, Xbox controller, USB wheel): [docs/controls.md](docs/controls.md).
+
+Tested on a laptop with an RTX 2070 Super Max-Q: 78 fps on Ocean Drive and 91 fps on a rural road from the driver's seat at 1080p on the Medium preset (the default for that GPU), capped at 60 fps in play, and about 50 ms from the stick to the picture. The full release gate is in [docs/release/v2.0.0-report.md](docs/release/v2.0.0-report.md).
+
 ## Screenshots
+
+From the 2.0.0 Shipping build, Ultra preset, 1920x1080.
 
 | | |
 |---|---|
-| ![Ocean Drive, Miami Beach, from behind the 2001 roadster: Lummus Park palms, Art Deco hotels, parked cars in the painted stalls](docs/images/unreal/round3-day-chase.jpg) | ![Ocean Drive at 21:00: street lights, lit shop windows and the hotels' coloured uplight](docs/images/unreal/round3-night-chase.jpg) |
-| *Ocean Drive, Miami Beach, mid-morning* | *Ocean Drive at night* |
-| ![From the driver's seat: traffic, parked SUVs and pickups, the live rear-view mirror](docs/images/unreal/round3-day-cockpit.jpg) | ![7th Street toward Ocean Drive: the stop sign and stop line where the traffic stops](docs/images/unreal/round3-stop-sign.jpg) |
-| *Driver's seat, with traffic in the mirror* | *A side street: stop sign at Ocean Drive* |
-| ![The Edison on Ocean Drive with its name in neon and Ocean's Ten on the awning, from the map's named places](docs/images/unreal/buildings-signs-edison.jpg) | ![A row of Ocean Drive fronts: Ocean Blue Hostel and Deco Walk signed over their awnings](docs/images/unreal/buildings-signs-row.jpg) |
-| *Named places sign their own buildings* | *Signs along the row* |
-| ![The Breakwater at night: its name on a neon blade, neon along the parapet, lit rooms](docs/images/unreal/buildings-night-breakwater.jpg) | ![King Street, Charleston: shops signed over their windows, a brick block with a belt course](docs/images/unreal/buildings-town-charleston-king-street.jpg) |
-| *Ocean Drive at night* | *Any town: King Street, Charleston* |
+| ![The 2001 Miata on Ocean Drive, Miami Beach: Lummus Park palms, Art Deco hotels, parked cars](docs/images/release-2.0.0/01-miata-ocean-drive-chase.jpg) | ![From the Miata's seat with the true field of view: the road, the dash and the gauges as a 15.6 inch screen at 60 cm shows them](docs/images/release-2.0.0/02-miata-cockpit-true-fov.jpg) |
+| *2001 Miata, Ocean Drive* | *The driver's seat, true field of view* |
+| ![The 1965 Mustang convertible on Ocean Drive](docs/images/release-2.0.0/03-mustang-1965-ocean-drive.jpg) | ![The Corvette Stingray C8 on Ocean Drive](docs/images/release-2.0.0/05-corvette-c8-ocean-drive.jpg) |
+| *1965 Mustang 289* | *Corvette Stingray (C8)* |
+| ![Ocean Drive at 21:00: low beams, street lights, neon on the Breakwater](docs/images/release-2.0.0/07-ocean-drive-night-chase.jpg) | ![The Corvette's cockpit with the HUD, the place card and the minimap](docs/images/release-2.0.0/06-corvette-c8-cockpit-hud.jpg) |
+| *Ocean Drive at night* | *Corvette cockpit with the HUD* |
+| ![Princeton Road, a gravel road in Lancaster County, Nebraska](docs/images/release-2.0.0/09-rural-gravel-road-nebraska.jpg) | ![The same road at night from the driver's seat, lit only by the low beams](docs/images/release-2.0.0/10-rural-night-low-beams.jpg) |
+| *A gravel road in Nebraska* | *The same road at night* |
 
-*Captured with `-SimCruiseDriveCapture` (see [docs/unreal-building.md](docs/unreal-building.md#drive-captures)). Map data © OpenStreetMap contributors.*
+*Captured with `-SimCruiseDriveCapture` (see [docs/unreal-building.md](docs/unreal-building.md#drive-captures)). Map data © OpenStreetMap contributors. Earlier screenshots are in [docs/images/unreal/](docs/images/unreal/).*
 
 ## Features
 
@@ -52,12 +60,12 @@ No account, no API keys, no subscription, no telemetry. The game talks directly 
 - **The real sun and sky.** Sun and moon where they are at that place and time, physically based sky and exposure in real units, street lights and lit windows at night, low beams with a real cut-off. A drive starts in a morning sun; `-SimCruiseRealTime` follows your clock instead.
 - **The real place, now.** While you drive, the game reads free public live feeds for the place you are: the weather (Open-Meteo and the nearest airport's METAR) sets the clouds, haze, mist and wet roads; the air quality (aerosol optical depth) sets the haze in clear air; the sea and the nearest NOAA tide gauge give the tide and waves; and the real aircraft within 25 nautical miles (adsb.lol) fly over you at their real positions, with their real lights at night. `-SimCruiseNoLive` turns it off.
 - **A local AI detail engine.** A super-resolution network (Real-ESRGAN) runs on your own computer (CPU by default, or the GPU) through Unreal's Neural Network Engine and adds detail to the aerial photographs the ground is shaded with, once per place, then from a cache.
-- **Keyboard or Xbox controller**, with steering and pedal shaping that never fakes the physics, rumble from tyre slip, cockpit and chase cameras and a true-to-screen lens.
+- **Keyboard, Xbox controller or USB wheel**, with steering and pedal shaping that never fakes the physics, rumble from tyre slip, a clutch on the right thumb and gears on the bumpers, a tuning menu (springs, dampers, ride height, anti-roll bars, gearing), cockpit and chase cameras, and a true field of view from the driver's seat (set your screen size and eye distance on the road atlas).
 - **Open data, open code.** Every data source is free and keyless, and its licence is recorded in [`licenses/`](licenses/).
 
 ## Running it
 
-**Windows:** download the zip from [Releases](https://github.com/simcruisegame/simcruise/releases), extract it and start `SimCruise.exe` (64-bit Windows 10 or 11, DirectX 12). macOS follows when a Mac is available to build on. From source on Windows:
+**Windows:** install with the setup from [Releases](https://github.com/simcruisegame/simcruise/releases) (see [Download](#download)). macOS follows when a Mac is available to build on. From source on Windows:
 
 1. Install Unreal Engine 5.8, Visual Studio 2022 Build Tools with the C++ game workload, and [Bun](https://bun.com/) (for the map helper).
 2. Clone the repository and build the editor target (PowerShell, editor closed):
@@ -72,7 +80,7 @@ No account, no API keys, no subscription, no telemetry. The game talks directly 
    & 'C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' "$PWD\SimCruise.uproject" -game
    ```
 
-The game starts on a random US road from the start pool (it needs the network; offline it falls back to the bundled Ocean Drive streets) and puts you in the 2001 roadster. Press / to search for a place, or Tab for the road atlas. `-SimCruiseBundledStart` always starts on Ocean Drive. To make a standalone Windows build instead (no editor needed to play it), run `powershell -ExecutionPolicy Bypass -File scripts\package.ps1` and start `Saved\Package\Windows\SimCruise.exe`. Options (another car, a fixed time, graphics presets, captures) are in [docs/unreal-building.md](docs/unreal-building.md#drive-it).
+The game starts on a random US road from the start pool (it needs the network; offline it falls back to the bundled Ocean Drive streets) and puts you in Aaron's 2001 roadster. Press / to search for a place, or Tab for the road atlas. `-SimCruiseBundledStart` always starts on Ocean Drive. To make a standalone Windows build instead (no editor needed to play it), run `powershell -ExecutionPolicy Bypass -File scripts\package.ps1` and start `Saved\Package\Windows\SimCruise.exe`; `scripts\release.ps1` makes the installer too ([release checklist](docs/release/RELEASE-CHECKLIST.md)). Options (another car, a fixed time, graphics presets, captures) are in [docs/unreal-building.md](docs/unreal-building.md#drive-it).
 
 | Action | Keyboard | Xbox controller |
 |---|---|---|

@@ -1,6 +1,6 @@
-# SimCruise.Vehicle automation run, commit d8d565b (on main 4abe190), 2026-11-12T14:10Z
+# SimCruise.Vehicle automation run, commit b7ac2de on main ff35887, 2026-11-12T16:26Z
 
-56 passed, 0 failed, 0 logged errors in 1246 s (log: D:\sc\lane-release\Saved\Logs\SimCruiseChecks.log)
+57 passed, 0 failed, 0 logged errors in 1788 s (log: D:\sc\lane-release\Saved\Logs\SimCruiseChecks.log)
 CHECKS PASSED
 
 CARTRACK crv25       0-60 8.31 s (target 8.30)  70-0 174.4 ft (target 175.0)  skidpad 0.822 g (target 0.82)  PASS
@@ -9,26 +9,26 @@ CARTRACK grandcherokee13 0-60 4.90 s (target 5.00)  70-0 151.9 ft (target 152.0)
 CARTRACK meridian_z  0-60 3.22 s rollout, 3.53 s from rest (target 2.80)  70-0 149.1 ft (target 148.0)  skidpad 1.019 g (target 1.03)  OFF
 CARTRACK model3      0-60 5.35 s (target 5.40)  70-0 164.9 ft (target 165.0)  skidpad 0.860 g (target 0.88)  PASS
 CARTRACK mustang65   0-60 9.03 s (target 8.90)  70-0 265.7 ft (target 264.0)  skidpad 0.707 g (target 0.70)  PASS
-CARTRACK nb1999      0-60 7.91 s (target 7.97)  70-0 173.0 ft (target 173.0)  skidpad 0.892 g (target 0.89)  PASS
-CARTRACK nb2001      0-60 7.69 s (target 7.80)  70-0 174.3 ft (target 173.0)  skidpad 0.904 g (target 0.89)  PASS
-CARTRACK nb2001_aaron 0-60 7.69 s (target 7.80)  70-0 156.9 ft (target 160.0)  skidpad 0.986 g (target 0.98)  PASS
+CARTRACK nb1999      0-60 7.96 s (target 7.97)  70-0 173.1 ft (target 173.0)  skidpad 0.892 g (target 0.89)  PASS
+CARTRACK nb2001      0-60 7.73 s (target 7.80)  70-0 174.2 ft (target 173.0)  skidpad 0.904 g (target 0.89)  PASS
+CARTRACK nb2001_aaron 0-60 7.73 s (target 7.80)  70-0 154.8 ft (target 160.0)  skidpad 0.997 g (target 0.98)  OFF
 CARTRACK odyssey18   0-60 8.31 s (target 6.70)  70-0 179.9 ft (target 180.0)  skidpad 0.744 g (target 0.74)  OFF
 CRASH meridian_z  car       impact 54 km/h, peak rise 0.17 m, closest centres 4.33 m (car length 4.33 m), finite 1
-CRASH meridian_z  guardrail impact 64 km/h, peak rise 0.01 m, peak up speed 0.09 m/s, peak tilt 2 deg, max x 174.57 m (limit -1.00), finite 1
-CRASH meridian_z  tree      impact 51 km/h, peak rise 0.05 m, peak up speed 0.48 m/s, peak tilt 4 deg, max x 77.59 m (limit 77.63), finite 1
+CRASH meridian_z  guardrail impact 64 km/h, peak rise 0.01 m, peak up speed 0.10 m/s, peak tilt 2 deg, max x 174.57 m (limit -1.00), finite 1
+CRASH meridian_z  tree      impact 51 km/h, peak rise 0.05 m, peak up speed 0.43 m/s, peak tilt 4 deg, max x 77.59 m (limit 77.63), finite 1
 CRASH meridian_z  wall      impact 60 km/h, peak rise 0.02 m, peak up speed 0.43 m/s, peak tilt 2 deg, max x 77.31 m (limit 77.33), finite 1
-CRASH mustang65   car       impact 50 km/h, peak rise 0.14 m, closest centres 4.52 m (car length 4.55 m), finite 1
-CRASH mustang65   guardrail impact 69 km/h, peak rise 0.03 m, peak up speed 0.48 m/s, peak tilt 8 deg, max x 144.12 m (limit -1.00), finite 1
+CRASH mustang65   car       impact 50 km/h, peak rise 0.00 m, closest centres 4.63 m (car length 4.55 m), finite 1
+CRASH mustang65   guardrail impact 69 km/h, peak rise 0.03 m, peak up speed 0.44 m/s, peak tilt 8 deg, max x 144.39 m (limit -1.00), finite 1
 CRASH mustang65   tree      impact 50 km/h, peak rise 0.03 m, peak up speed 0.48 m/s, peak tilt 6 deg, max x 77.49 m (limit 77.52), finite 1
 CRASH mustang65   wall      impact 60 km/h, peak rise 0.05 m, peak up speed 0.66 m/s, peak tilt 3 deg, max x 77.20 m (limit 77.22), finite 1
-CRASH nb2001      car       impact 52 km/h, peak rise 0.01 m, closest centres 3.65 m (car length 3.65 m), finite 1
-CRASH nb2001      guardrail impact 66 km/h, peak rise 0.00 m, peak up speed 0.06 m/s, peak tilt 2 deg, max x 148.76 m (limit -1.00), finite 1
-CRASH nb2001      tree      impact 49 km/h, peak rise 0.04 m, peak up speed 0.26 m/s, peak tilt 7 deg, max x 77.96 m (limit 77.97), finite 1
-CRASH nb2001      wall      impact 59 km/h, peak rise 0.00 m, peak up speed 0.05 m/s, peak tilt 2 deg, max x 77.65 m (limit 77.67), finite 1
-CRASH nb2001_aaron car       impact 52 km/h, peak rise 0.00 m, closest centres 2.69 m (car length 3.65 m), finite 1
-CRASH nb2001_aaron guardrail impact 64 km/h, peak rise 0.00 m, peak up speed 0.03 m/s, peak tilt 2 deg, max x 152.43 m (limit -1.00), finite 1
-CRASH nb2001_aaron tree      impact 49 km/h, peak rise 0.03 m, peak up speed 0.31 m/s, peak tilt 5 deg, max x 77.96 m (limit 77.97), finite 1
-CRASH nb2001_aaron wall      impact 59 km/h, peak rise 0.00 m, peak up speed 0.05 m/s, peak tilt 1 deg, max x 77.63 m (limit 77.67), finite 1
+CRASH nb2001      car       impact 51 km/h, peak rise 0.01 m, closest centres 3.67 m (car length 3.65 m), finite 1
+CRASH nb2001      guardrail impact 66 km/h, peak rise 0.00 m, peak up speed 0.06 m/s, peak tilt 3 deg, max x 148.09 m (limit -1.00), finite 1
+CRASH nb2001      tree      impact 47 km/h, peak rise 0.11 m, peak up speed 0.92 m/s, peak tilt 5 deg, max x 77.96 m (limit 77.97), finite 1
+CRASH nb2001      wall      impact 58 km/h, peak rise 0.00 m, peak up speed 0.05 m/s, peak tilt 3 deg, max x 77.67 m (limit 77.67), finite 1
+CRASH nb2001_aaron car       impact 51 km/h, peak rise 0.00 m, closest centres 2.48 m (car length 3.65 m), finite 1
+CRASH nb2001_aaron guardrail impact 66 km/h, peak rise 0.00 m, peak up speed 0.03 m/s, peak tilt 2 deg, max x 148.51 m (limit -1.00), finite 1
+CRASH nb2001_aaron tree      impact 47 km/h, peak rise 0.02 m, peak up speed 0.28 m/s, peak tilt 5 deg, max x 77.96 m (limit 77.97), finite 1
+CRASH nb2001_aaron wall      impact 58 km/h, peak rise 0.00 m, peak up speed 0.03 m/s, peak tilt 2 deg, max x 77.65 m (limit 77.67), finite 1
 UNDERSTEER crv25       2.09 deg/g (road-wheel steer 4.45 deg at 0.30 g, 4.86 deg at 0.50 g)
 UNDERSTEER f150raptor18 6.57 deg/g (road-wheel steer 5.98 deg at 0.30 g, 7.24 deg at 0.49 g)
 UNDERSTEER grandcherokee13 2.90 deg/g (road-wheel steer 5.06 deg at 0.30 g, 5.62 deg at 0.50 g)
@@ -37,7 +37,7 @@ UNDERSTEER model3      1.29 deg/g (road-wheel steer 4.48 deg at 0.30 g, 4.74 deg
 UNDERSTEER mustang65   3.61 deg/g (road-wheel steer 4.40 deg at 0.31 g, 5.10 deg at 0.50 g)
 UNDERSTEER nb1999      1.28 deg/g (road-wheel steer 3.58 deg at 0.30 g, 3.83 deg at 0.50 g)
 UNDERSTEER nb2001      1.31 deg/g (road-wheel steer 3.59 deg at 0.30 g, 3.85 deg at 0.50 g)
-UNDERSTEER nb2001_aaron 1.09 deg/g (road-wheel steer 3.58 deg at 0.30 g, 3.79 deg at 0.50 g)
+UNDERSTEER nb2001_aaron 1.04 deg/g (road-wheel steer 3.57 deg at 0.30 g, 3.78 deg at 0.50 g)
 UNDERSTEER odyssey18   2.32 deg/g (road-wheel steer 4.96 deg at 0.30 g, 5.42 deg at 0.50 g)
 
 Success SimCruise.Vehicle.CarTrack.crv25
@@ -78,6 +78,7 @@ Success SimCruise.Vehicle.LiftOff.nb2001_aaron
 Success SimCruise.Vehicle.LiftOff.odyssey18
 Success SimCruise.Vehicle.Model.Drivetrain
 Success SimCruise.Vehicle.Model.Gearbox
+Success SimCruise.Vehicle.Model.ManualClutchLocks
 Success SimCruise.Vehicle.Model.ReverseInhibit
 Success SimCruise.Vehicle.Model.ShiftMap
 Success SimCruise.Vehicle.Model.SuspensionPreload

@@ -1,0 +1,19 @@
+# Release package, scripts\release.ps1, commit b7ac2de (main ff35887 + release branch), 2026-11-12T16:30Z
+
+Execution of commandlet took:  16.05 seconds, PeakPhysMemoryMB=2619 MB, PeakVirtMemoryMB=2419 MB
+Building tools\atlas.exe from helper\atlas.mjs
+ZIPPED: D:\sc\lane-release\Saved\Package\SimCruise-2.0.0-windows-x64.zip (429 MB)
+PreprocessingSimCruise-2.0.0-windows-x64-setup.exe  365 MB
+SimCruise-2.0.0-windows-x64.zip  429 MB
+CHECKSUMS: D:\sc\lane-release\Saved\Package\SimCruise-2.0.0-SHA256SUMS.txt
+Smoke test: the packaged game self-test
+SimCruise-2.0.0-SHA256SUMS.txt  0.0 MB
+SimCruise-2.0.0-windows-x64-setup.exe  364.5 MB
+SimCruise-2.0.0-windows-x64.zip  429.4 MB
+RELEASE PACKAGE OK
+
+Zip checks by release.ps1: no .pdb, no SimCruise/Saved, SimCruise/tools/atlas.exe present.
+Smoke test: SimCruise-Win64-Shipping.exe -SimCruiseShellSelfTest exited 0 (self-test passed and the game exited; before the R6 fix it hung at exit).
+
+262aee04ebb52ce8c65974a2ccb836162fcb5ccc4921ede419d7ce4cb6f8367a  SimCruise-2.0.0-windows-x64-setup.exe
+f937203abefe1dbb2c538f07e8cc1fdb2571268eddac45f01395b3ed85e0f4b4  SimCruise-2.0.0-windows-x64.zip
