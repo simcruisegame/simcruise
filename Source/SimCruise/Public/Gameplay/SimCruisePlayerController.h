@@ -131,6 +131,7 @@ protected:
 	bool bSoundOn = true;
 	bool bLightsOn = false;
 	bool bStatsShown = false;
+	bool bPreferencesApplied = false;
 	TSharedPtr<SWidget> OverlayWidget;
 	TSharedPtr<SSimCruisePlaceSearch> SearchPanel;
 	TSharedPtr<SSimCruiseRoadAtlas> AtlasPanel;

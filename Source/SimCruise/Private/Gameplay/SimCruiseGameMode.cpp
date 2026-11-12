@@ -12,6 +12,7 @@
 #include "Gameplay/SimCruisePlaceholderVehicle.h"
 #include "Gameplay/SimCruisePlayerCameraManager.h"
 #include "Gameplay/SimCruisePlayerController.h"
+#include "Gameplay/SimCruisePreferences.h"
 #include "Gameplay/SimCruiseVehicleControl.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
@@ -110,6 +111,13 @@ void ASimCruiseGameMode::InitGame(const FString& MapName, const FString& Options
 	// must hold that player until the road under the car exists.
 	const TCHAR* Cmd = FCommandLine::Get();
 	CarId = StartCarId;
+	// The car driven last (DrivingPreferences.gd "car"), when it still exists.
+	const FString Remembered = SimCruisePreferences::GetString(TEXT("car"), FString());
+	const USimCruiseGameInstance* Garage = GetGameInstance<USimCruiseGameInstance>();
+	if (!Remembered.IsEmpty() && Garage && Garage->HasCarDefinition(Remembered))
+	{
+		CarId = Remembered;
+	}
 	FParse::Value(Cmd, TEXT("SimCruiseCar="), CarId);
 	// The lighting lab builds its own street, and -SimCruiseNoWorld drives the loaded map.
 	bWorldDrive = GetWorld() && GetWorld()->IsGameWorld()
@@ -365,6 +373,7 @@ void ASimCruiseGameMode::CycleCar(APlayerController* Player)
 	}
 	const int32 Index = Ids.IndexOfByKey(CarId);
 	CarId = Ids[(Index + 1) % Ids.Num()];
+	SimCruisePreferences::SetString(TEXT("car"), CarId);
 	// The new car starts at rest where the old one stood, facing the same way.
 	FVector Ground = Pawn->GetActorLocation();
 	const FRotator Heading(0.0, Pawn->GetActorRotation().Yaw, 0.0);
