@@ -112,6 +112,7 @@ namespace
 		T.SoundCombustion = St.SoundCombustion;
 		T.SoundShaftLoad = St.SoundShaftLoad;
 		T.ClutchTorqueNm = St.ClutchTorqueNm;
+		T.RackAligningTorqueNm = St.RackAligningTorqueNm;
 		T.SimTimeS = S.SimTimeS;
 		T.PhysicsSteps = S.Steps;
 		T.FixedStepSeconds = DeltaTimeS;
@@ -142,6 +143,7 @@ namespace
 			Out.InclinationDeg = SimCruiseUnits::ToDegrees(W.InclinationRad);
 			Out.LongitudinalForceN = W.LongitudinalForceN;
 			Out.LateralForceN = W.LateralForceN;
+			Out.AligningTorqueNm = W.AligningTorqueNm;
 			Out.SurfaceGrip = W.SurfaceGrip;
 			Out.AbsRelease = W.AbsRelease;
 			Out.ContactPointCm = SimCruiseUnits::ToUnrealLength(W.ContactPointM);

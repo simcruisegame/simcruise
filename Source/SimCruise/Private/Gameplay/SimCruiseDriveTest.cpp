@@ -44,7 +44,7 @@ void ASimCruiseDriveTest::BeginPlay()
 		OutputFile = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("DriveTest"),
 			FString::Printf(TEXT("drive-log-%s.csv"), *FDateTime::Now().ToString(TEXT("%Y%m%d-%H%M%S"))));
 	}
-	FString Header = TEXT("t,frame_dt,phase,stick,rt,lt,shaper_rack_deg,rack_deg,vx,vy,yaw_rate_dps,roll_rate_dps,beta_deg,gear,rpm,throttle,tc_cut,brake,contacts,x_m,y_m,z_m,yaw_deg,phys_steps");
+	FString Header = TEXT("t,frame_dt,phase,stick,rt,lt,shaper_rack_deg,rack_deg,vx,vy,yaw_rate_dps,roll_rate_dps,beta_deg,gear,rpm,throttle,tc_cut,brake,contacts,x_m,y_m,z_m,yaw_deg,phys_steps,rack_mz_nm");
 	static const TCHAR* Names[4] = {TEXT("fl"), TEXT("fr"), TEXT("rl"), TEXT("rr")};
 	for (const TCHAR* N : Names)
 	{
@@ -97,10 +97,10 @@ void ASimCruiseDriveTest::WriteRow(float DeltaSeconds, float Stick, float Thrott
 	PeakYawDegPerS = FMath::Max(PeakYawDegPerS, FMath::Abs(FMath::RadiansToDegrees(W.Z)));
 	PeakSpeedKph = FMath::Max(PeakSpeedKph, T.SpeedKph);
 	const FVector P = Car->GetActorLocation() / 100.0;
-	FString Row = FString::Printf(TEXT("%.4f,%.4f,%s,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.2f,%.2f,%.2f,%d,%.0f,%.3f,%.3f,%.3f,%d,%.2f,%.2f,%.3f,%.2f,%lld"),
+	FString Row = FString::Printf(TEXT("%.4f,%.4f,%s,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.2f,%.2f,%.2f,%d,%.0f,%.3f,%.3f,%.3f,%d,%.2f,%.2f,%.3f,%.2f,%lld,%.1f"),
 		Clock, DeltaSeconds, *Phase, Stick, Throttle, Brake, FMath::RadiansToDegrees(Player->GetShaper().GetRackAngleRad()), T.SteeringAngleDeg,
 		V.X, V.Y, FMath::RadiansToDegrees(W.Z), FMath::RadiansToDegrees(W.X), Beta, T.Gear, T.EngineRpm, T.Throttle, T.TractionControlCut,
-		T.BrakeAmount, T.WheelContactCount, P.X, P.Y, P.Z, Car->GetActorRotation().Yaw, T.PhysicsSteps);
+		T.BrakeAmount, T.WheelContactCount, P.X, P.Y, P.Z, Car->GetActorRotation().Yaw, T.PhysicsSteps, T.RackAligningTorqueNm);
 	for (int32 I = 0; I < 4; ++I)
 	{
 		const FSimCruiseWheelTelemetry Wh = T.Wheels.IsValidIndex(I) ? T.Wheels[I] : FSimCruiseWheelTelemetry();

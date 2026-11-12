@@ -191,6 +191,26 @@ bool FSimCruiseVehicleModelTmeasyTest::RunTest(const FString& Parameters)
 	const FSimCruiseLongitudinalSubstepOutput Locked = SimCruiseDynamics::SolveLongitudinalSubstep(Car, In);
 	TestTrue(TEXT("locked: the force is the sliding force, braking"),
 		Locked.LongitudinalForceN < 0.0 && FMath::Abs(FMath::Abs(Locked.LongitudinalForceN) - X.SlideForce) < 0.02 * X.SlideForce);
+
+	// Aligning torque: a contact patch about 13 cm long, a pneumatic trail of about a fifth of it
+	// at small slip, the torque (trail times side force) peaking well before the side force does
+	// and falling as the front slides: what a driver feels lighten before the front lets go.
+	const double Patch = SimCruiseDynamics::ContactPatchLengthM(Car, Fz);
+	const double Trail0 = SimCruiseDynamics::TmeasyPneumaticTrailM(Car, Fz, 0.0);
+	double PeakMzAlpha = 0.0, PeakMz = 0.0;
+	for (double A = 0.25; A <= 20.0; A += 0.25)
+	{
+		const double Mz = SimCruiseDynamics::TmeasyPneumaticTrailM(Car, Fz, FMath::Tan(FMath::DegreesToRadians(A))) * Lateral(A, 0.0);
+		if (Mz > PeakMz) { PeakMz = Mz; PeakMzAlpha = A; }
+	}
+	AddInfo(FString::Printf(TEXT("TMeasy aligning: patch %.0f mm, trail %.1f mm at no slip, torque peak %.1f N m at %.2f deg (side force peaks at %.2f deg)"),
+		Patch * 1000.0, Trail0 * 1000.0, PeakMz, PeakMzAlpha, PeakAlpha));
+	TestTrue(TEXT("contact patch 10-16 cm at the nominal load"), Patch > 0.10 && Patch < 0.16);
+	TestEqual(TEXT("trail at no slip is the lever times the patch"), Trail0, Car.TmeasyTrailFraction * Patch, 1.0e-9);
+	TestTrue(TEXT("the aligning torque peaks at 0.3-0.6 of the side force's peak slip angle"),
+		PeakMzAlpha >= 0.3 * PeakAlpha && PeakMzAlpha <= 0.6 * PeakAlpha);
+	TestTrue(TEXT("past the side-force peak the aligning torque is less than half its peak"),
+		SimCruiseDynamics::TmeasyPneumaticTrailM(Car, Fz, FMath::Tan(FMath::DegreesToRadians(PeakAlpha))) * Lateral(PeakAlpha, 0.0) < 0.5 * PeakMz);
 	return true;
 }
 

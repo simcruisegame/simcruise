@@ -815,6 +815,7 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 
 	// Forces at each contact patch, then aero and rolling resistance at the
 	// centre of mass.
+	State.RackAligningTorqueNm = 0.0;
 	for (int32 WheelIndex = 0; WheelIndex < 4; ++WheelIndex)
 	{
 		FSimCruiseWheelState& Wheel = State.Wheels[WheelIndex];
@@ -822,10 +823,23 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 		const FContactRow& Row = Rows[WheelIndex];
 		if (!Row.bValid)
 		{
+			Wheel.AligningTorqueNm = 0.0;
 			continue;
 		}
 		Wheel.LongitudinalForceN = Row.MeanLongitudinal;
 		Wheel.LateralForceN = Row.MeanLateral;
+		// Aligning torque: the side force acts a trail behind the steering axis (the tyre's
+		// pneumatic trail plus the caster's R sin(caster)); a force to the right steers the
+		// wheel to the left. Fades in from walking pace, where the trail has no meaning.
+		{
+			const double Trail = SimCruiseDynamics::TmeasyPneumaticTrailM(Car, Row.Load, FMath::Tan(FMath::Clamp(Wheel.SlipAngleRad, -1.4, 1.4)))
+				+ (WheelIndex < 2 ? R * FMath::Sin(CasterRad) : 0.0);
+			Wheel.AligningTorqueNm = -Trail * Row.MeanLateral * SmoothStep(0.5, 3.0, FMath::Abs(Row.ForwardSpeed));
+			if (WheelIndex < 2)
+			{
+				State.RackAligningTorqueNm += Wheel.AligningTorqueNm;
+			}
+		}
 		const FVector3d Force = Row.Normal * Row.Load + Row.WheelForward * Row.MeanLongitudinal + Row.WheelRight * Row.MeanLateral;
 		OutForces.bWheelActive[WheelIndex] = true;
 		OutForces.WheelPointM[WheelIndex] = Row.Point;

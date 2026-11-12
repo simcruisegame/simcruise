@@ -104,6 +104,8 @@ struct FSimCruiseWheelState
 	/** Interval-mean tyre forces in the wheel's ground frame. */
 	double LongitudinalForceN = 0.0;
 	double LateralForceN = 0.0;
+	/** Torque about the steering axis from the tyre (pneumatic plus caster trail), + steering the wheel to the right. */
+	double AligningTorqueNm = 0.0;
 	/** Accumulated rotation for presentation. */
 	double SpinAngleRad = 0.0;
 	bool bContact = false;
@@ -141,6 +143,8 @@ struct FSimCruiseVehicleSimState
 	double PedalThrottle = 0.0;
 	double ForwardSpeedMps = 0.0;
 	double ClutchTorqueNm = 0.0;
+	/** Both front tyres' aligning torque about the steering axes (N m, + steering right). */
+	double RackAligningTorqueNm = 0.0;
 	int32 WheelContactCount = 0;
 	bool bRoofDown = false;
 	double FlippedSeconds = 0.0;

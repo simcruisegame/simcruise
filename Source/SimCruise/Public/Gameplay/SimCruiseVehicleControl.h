@@ -91,6 +91,8 @@ struct FSimCruiseDriveTelemetry
 	double EngineLoad = 0.0;
 	/** Road roughness under the car, 0 smooth .. 1 kerb/pothole (RoadNoise.roughness). */
 	double RoadRoughness = 0.0;
+	/** Both front tyres' aligning torque about the steering axes (N m, + steering right). */
+	double RackAligningTorqueNm = 0.0;
 	FSimCruiseDriveWheelTelemetry Wheels[4];
 };
 

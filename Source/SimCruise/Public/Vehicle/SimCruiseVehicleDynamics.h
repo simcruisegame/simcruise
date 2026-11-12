@@ -140,6 +140,13 @@ namespace SimCruiseDynamics
 	void GetTmeasyCurves(const FSimCruiseCarDefinition& Car, double NormalLoadN, double GripScale,
 		FTmeasyCurve& OutX, FTmeasyCurve& OutY);
 
+	/** Contact patch length (m) of a tyre under this load: 2 sqrt(R d), d = load / vertical stiffness. */
+	double ContactPatchLengthM(const FSimCruiseCarDefinition& Car, double NormalLoadN);
+
+	/** Pneumatic trail (m, + behind the contact centre) at this load and lateral slip tan(alpha):
+	 *  TMeasy's lever over the patch length, falling through zero past the peak (Chrono AlignmentTorque). */
+	double TmeasyPneumaticTrailM(const FSimCruiseCarDefinition& Car, double NormalLoadN, double LateralSlip);
+
 	/** TMeasy's force over combined slip s along one curve (Rill; Chrono tmxy_combined). */
 	double TmeasyForce(double Slip, const FTmeasyCurve& Curve);
 

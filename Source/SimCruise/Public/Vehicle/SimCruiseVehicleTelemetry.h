@@ -68,6 +68,10 @@ struct SIMCRUISE_API FSimCruiseWheelTelemetry
 	UPROPERTY(BlueprintReadOnly, Category = "SimCruise|Vehicle")
 	double LateralForceN = 0.0;
 
+	/** Torque the tyre puts about the steering axis (N m, + steering the wheel to the right). */
+	UPROPERTY(BlueprintReadOnly, Category = "SimCruise|Vehicle")
+	double AligningTorqueNm = 0.0;
+
 	UPROPERTY(BlueprintReadOnly, Category = "SimCruise|Vehicle")
 	double SurfaceGrip = 1.0;
 
@@ -183,6 +187,11 @@ struct SIMCRUISE_API FSimCruiseVehicleTelemetry
 	/** Clutch or motor torque this step (N·m). */
 	UPROPERTY(BlueprintReadOnly, Category = "SimCruise|Vehicle")
 	double ClutchTorqueNm = 0.0;
+
+	/** Both front tyres' aligning torque about the steering axes (N m, + steering right): what a
+	 *  steering wheel feels through the rack, for self-centring and force feedback. */
+	UPROPERTY(BlueprintReadOnly, Category = "SimCruise|Vehicle")
+	double RackAligningTorqueNm = 0.0;
 
 	/** Physics time of the step that wrote this telemetry. */
 	UPROPERTY(BlueprintReadOnly, Category = "SimCruise|Vehicle")

@@ -157,6 +157,41 @@ namespace SimCruiseDynamics
 		return Fm - (Fm - Fs) * Sn * Sn * (3.0 - 2.0 * Sn);
 	}
 
+	double ContactPatchLengthM(const FSimCruiseCarDefinition& Car, double NormalLoadN)
+	{
+		const double Deflection = FMath::Max(NormalLoadN, 0.0) / FMath::Max(Car.TireVerticalStiffnessNPerM, 1.0);
+		return 2.0 * FMath::Sqrt(Car.TireFreeRadiusM() * Deflection);
+	}
+
+	double TmeasyPneumaticTrailM(const FSimCruiseCarDefinition& Car, double NormalLoadN, double LateralSlip)
+	{
+		const double Q = FMath::Clamp(NormalLoadN / FMath::Max(Car.ReferenceCornerLoadN, 1.0), 0.0, 2.5);
+		auto InterpL = [Q](double W1, double W2) { return W1 + (W2 - W1) * (Q - 1.0); };
+		const double N0 = InterpL(Car.TmeasyTrailFraction, Car.TmeasyTrailFraction * Car.TmeasyTrailFraction2Ratio);
+		const double S0 = FMath::Max(InterpL(Car.TmeasyTrailZeroSlip, Car.TmeasyTrailZeroSlip * Car.TmeasyTrailZeroSlip2Ratio), 0.01);
+		const double SE = FMath::Max(InterpL(Car.TmeasyTrailEndSlip, Car.TmeasyTrailEndSlip * Car.TmeasyTrailEndSlip2Ratio), S0);
+		const double W = S0 / SE;
+		const double S = FMath::Abs(LateralSlip);
+		double Lever = 0.0;
+		if (S >= SE)
+		{
+			Lever = 0.0;
+		}
+		else if (S <= S0)
+		{
+			// Linear to zero, blended with an S-shaped fall (Chrono's nto1 and nto2).
+			const double Sn = S / S0;
+			Lever = (1.0 - W) * N0 * (1.0 - Sn) + W * N0 * (1.0 - (3.0 - 2.0 * Sn) * Sn * Sn);
+		}
+		else
+		{
+			// Past the zero the trail goes a little negative and returns to zero at full slide.
+			const double Sn = (SE - S) / (SE - S0);
+			Lever = -N0 * (1.0 - W) * (S - S0) / S0 * Sn * Sn;
+		}
+		return Lever * ContactPatchLengthM(Car, NormalLoadN);
+	}
+
 	double TmeasyCombined(const FSimCruiseCarDefinition& Car, double NormalLoadN, double GripScale,
 		double SlipX, double SlipY, double& OutSecantPerSlip, double& OutPeakSlipX)
 	{

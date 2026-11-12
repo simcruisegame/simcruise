@@ -109,6 +109,20 @@ struct FSimCruiseCarDefinition
 	double TmeasySlideMuY2Ratio = 0.77336 / 0.8336;
 	double TmeasyPeakSlipY2Ratio = 0.18504 / 0.14852;
 	double TmeasySlideSlipY2Ratio = 1.0714 / 0.96524;
+	/**
+	 * TMeasy aligning torque: the pneumatic trail is TrailFraction of the contact patch length
+	 * at no slip, falls to zero at TrailZeroSlip and back to zero at TrailEndSlip (Chrono's
+	 * nL0, sq0, sqe; GuessPassCar70Par, with their values at twice the load as ratios). The
+	 * patch length is 2 sqrt(R d), d the tyre's deflection under load at its vertical stiffness.
+	 */
+	double TmeasyTrailFraction = 0.178;
+	double TmeasyTrailFraction2Ratio = 0.19 / 0.178;
+	double TmeasyTrailZeroSlip = 0.16337;
+	double TmeasyTrailZeroSlip2Ratio = 0.20355 / 0.16337;
+	double TmeasyTrailEndSlip = 0.96524;
+	double TmeasyTrailEndSlip2Ratio = 1.0714 / 0.96524;
+	/** Tyre vertical stiffness (N/m); a 195/50R15 at 30 psi is about 200 kN/m (estimate). */
+	double TireVerticalStiffnessNPerM = 200000.0;
 	bool bAbsEnabled = false;
 	double WheelRotationalInertiaKgM2 = 1.05;
 	double RollingResistanceCoefficient = 0.012;

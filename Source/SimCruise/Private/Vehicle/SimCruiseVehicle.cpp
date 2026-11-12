@@ -289,6 +289,7 @@ void ASimCruiseVehicle::ToDriveTelemetry(const FSimCruiseCarDefinition& Car, con
 	Out.RackAngleRad = FMath::DegreesToRadians(In.SteeringAngleDeg);
 	Out.EngineLoad = FMath::Clamp(In.SoundCombustion, 0.0, 1.0);
 	Out.RoadRoughness = 0.0;
+	Out.RackAligningTorqueNm = In.RackAligningTorqueNm;
 	const double PlateauRad = SimCruiseHaptics::PlateauSlipAngleRad(Car);
 	for (int32 I = 0; I < 4; ++I)
 	{
