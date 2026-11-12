@@ -82,8 +82,8 @@
  "rear_diff_bias": 1.0,
  "transmission": "single-speed",
  "bar_rate_n_m": [
-  25000.0,
-  20000.0
+  52000.0,
+  8000.0
  ],
  "damper_ratio_rebound": [
   0.5,
@@ -135,7 +135,7 @@
   "calibration": "Car and Driver measured a Model 3 Standard at 5.4 s to 60 mph and 0.88 g on 235/45R-18 all-season tyres. The 70-0 mph target (165 ft) is an estimate.",
   "motor": "About 286 hp quoted for the current Standard; 415 N m motor torque (re-estimated on the TMeasy tyre, which wastes less in slip than the legacy curve, from the 430 N m first estimate) and a 9.04 reduction are estimates from earlier RWD versions.",
   "mass": "About 3627 lb for the RWD sedan.",
-  "estimates": "Weight split, centre of gravity, inertia (scaled), spring and bar rates (1.5/1.7 Hz), dampers, regeneration, brakes, tyre grip (calibrated)."
+  "estimates": "Weight split, centre of gravity, inertia (scaled), spring rates (1.5/1.7 Hz), anti-roll bars biased to the front (52/8 kN/m, for the mild understeer of the production car; on the TMeasy tyre the earlier 25/20 kN/m oversteered, -0.14 deg/g), dampers, regeneration, brakes, tyre grip (calibrated)."
  },
  "torque_curve": [
   [

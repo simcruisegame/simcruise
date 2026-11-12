@@ -65,7 +65,7 @@ CARS.append(derive({
     "gears": [1.0], "reverse_ratio": 1.0, "final_drive": 9.04, "driveline_efficiency": 0.95, "shift_seconds": 0.0,
     "idle_rpm": 0.0, "idle_omega": 0.0, "min_omega_auto": 0.0, "max_omega": 1900.0,
     "layout": "rwd", "rear_diff_bias": 1.0, "transmission": "single-speed",
-    "bar_rate_n_m": [25000.0, 20000.0], "damper_ratio_rebound": [0.5, 0.5], "damper_ratio_compression": [0.3, 0.3],
+    "bar_rate_n_m": [52000.0, 8000.0], "damper_ratio_rebound": [0.5, 0.5], "damper_ratio_compression": [0.3, 0.3],
     "damper_knee_mps": [0.12, 0.12], "damper_knee_slope": [0.45, 0.45],
     "static_camber_deg": [-0.6, -1.0], "camber_per_m": [18.0, 20.0], "caster_deg": 6.0, "toe_per_wheel_deg": 0.05,
     "target_0_60_s": 5.4, "target_70_0_ft": 165.0, "target_skidpad_g": 0.88,
@@ -77,7 +77,7 @@ CARS.append(derive({
         "calibration": "Car and Driver measured a Model 3 Standard at 5.4 s to 60 mph and 0.88 g on 235/45R-18 all-season tyres. The 70-0 mph target (165 ft) is an estimate.",
         "motor": "About 286 hp quoted for the current Standard; 415 N m motor torque (re-estimated on the TMeasy tyre, which wastes less in slip than the legacy curve, from the 430 N m first estimate) and a 9.04 reduction are estimates from earlier RWD versions.",
         "mass": "About 3627 lb for the RWD sedan.",
-        "estimates": "Weight split, centre of gravity, inertia (scaled), spring and bar rates (1.5/1.7 Hz), dampers, regeneration, brakes, tyre grip (calibrated)."},
+        "estimates": "Weight split, centre of gravity, inertia (scaled), spring rates (1.5/1.7 Hz), anti-roll bars biased to the front (52/8 kN/m, for the mild understeer of the production car; on the TMeasy tyre the earlier 25/20 kN/m oversteered, -0.14 deg/g), dampers, regeneration, brakes, tyre grip (calibrated)."},
 }, 1.73, 1.0, 4.69, (1.5, 1.7), 35.0, 0.217))
 
 # --- 2018 Ford F-150 Raptor SuperCab (the model is fitted as the SuperCab).
