@@ -741,7 +741,8 @@ namespace SimCruiseTileBuilder
 				for (int32 c = 0; c < 5; ++c) Rows[i].Add(Cm(Cols[c][i], St.Column(c)));
 				for (const FVector& P : Rows[i]) B.CarriagewayPoints.Add(P);
 			}
-			EmitStrip(Asphalt, Rows, { FVector::UpVector }, FLinearColor(0.f, 0.f, 0.f, 1.f), true);
+			// Vertex colour R: gravel (the asphalt shader's rural-shoulder gravel) on an unpaved road.
+			EmitStrip(Asphalt, Rows, { FVector::UpVector }, FLinearColor(Ribbon.bUnpaved ? 1.f : 0.f, 0.f, 0.f, 1.f), true);
 
 			// Open ends inside the tile get a skirt so a dead end never shows a gap.
 			for (int32 End = 0; End < 2; ++End)
@@ -921,7 +922,7 @@ namespace SimCruiseTileBuilder
 			for (int32 r = 0; r < Roads.Ribbons.Num(); ++r)
 			{
 				const FSimCruiseRibbon& Ribbon = Roads.Ribbons[r];
-				if (!Ribbon.bMajor || Ribbon.St.Num() < 2) continue;
+				if (!Ribbon.bMajor || Ribbon.bUnpaved || Ribbon.St.Num() < 2) continue;
 				const bool bArterial = Ribbon.Class == TEXT("motorway") || Ribbon.Class == TEXT("trunk") || Ribbon.Class == TEXT("primary");
 				const double Lane = LaneWidth(Ribbon.Class);
 				// Dashes anchored to the world along a canonical direction, so a straight

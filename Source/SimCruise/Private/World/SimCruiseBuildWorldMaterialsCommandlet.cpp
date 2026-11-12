@@ -10,6 +10,7 @@
 #include "UObject/SavePackage.h"
 #include "World/SimCruiseGuardRails.h"
 #include "World/SimCruiseRegionalTerrain.h"
+#include "World/SimCruiseSignals.h"
 #include "World/SimCruiseTrees.h"
 #include "World/SimCruiseWorldResources.h"
 #include "Presentation/SimCruiseCarClock.h"
@@ -110,6 +111,9 @@ int32 USimCruiseBuildWorldMaterialsCommandlet::Main(const FString& Params)
 	// Guard rails (World/SimCruiseGuardRails).
 	SaveCopy(ASimCruiseGuardRails::BuildMaterial(GetTransientPackage(), TEXT("M_SimCruiseGuardRailBuild"), RF_Transient),
 		FPackageName::ObjectPathToPackageName(ASimCruiseGuardRails::MaterialPath()));
+	// Traffic signals (World/SimCruiseSignals).
+	SaveCopy(ASimCruiseSignals::BuildMaterial(GetTransientPackage(), TEXT("M_SimCruiseSignalBuild"), RF_Transient),
+		FPackageName::ObjectPathToPackageName(ASimCruiseSignals::MaterialPath()));
 	return Failures == 0 ? 0 : 1;
 #else
 	return 1;

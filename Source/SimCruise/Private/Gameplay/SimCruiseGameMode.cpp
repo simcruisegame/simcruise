@@ -22,6 +22,7 @@
 #include "Misc/App.h"
 #include "World/SimCruiseGuardRails.h"
 #include "World/SimCruiseRegionalTerrain.h"
+#include "World/SimCruiseSignals.h"
 #include "World/SimCruiseTrees.h"
 #include "World/SimCruiseWorldStreamer.h"
 #include "World/SimCruiseWorldSubsystem.h"
@@ -235,6 +236,16 @@ void ASimCruiseGameMode::BeginWorldDrive()
 		if (ASimCruiseGuardRails* Rails = World->SpawnActor<ASimCruiseGuardRails>(ASimCruiseGuardRails::StaticClass(), FTransform::Identity, Params))
 		{
 			Rails->Streamer = Streamer;
+		}
+	}
+	// Traffic signals where two through roads cross.
+	if (!FParse::Param(Cmd, TEXT("SimCruiseNoSignals")))
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		if (ASimCruiseSignals* Signals = World->SpawnActor<ASimCruiseSignals>(ASimCruiseSignals::StaticClass(), FTransform::Identity, Params))
+		{
+			Signals->Streamer = Streamer;
 		}
 	}
 

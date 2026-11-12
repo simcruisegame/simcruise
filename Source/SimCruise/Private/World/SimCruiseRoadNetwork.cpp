@@ -64,6 +64,7 @@ namespace
 		FString Name;
 		int32 Contract[2] = { INDEX_NONE, INDEX_NONE }; // neighbour seam end each piece end was snapped to
 		bool bBridge = false;
+		bool bUnpaved = false;
 	};
 
 	struct FPart
@@ -480,7 +481,7 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 	};
 	for (const FSimCruiseRoadRow& Row : Tile.Roads)
 	{
-		if (!IsDrivableClass(Row.Class) || Row.Surface == TEXT("unpaved")) continue;
+		if (!IsDrivableClass(Row.Class)) continue;
 		FPiece Piece;
 		Piece.Class = Row.Class;
 		Piece.Name = Row.Name;
@@ -488,6 +489,7 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 		Piece.OneWay = Row.OneWay;
 		Piece.Rank = ClassRank(Row.Class);
 		Piece.bBridge = Row.bBridge;
+		Piece.bUnpaved = Row.Surface == TEXT("unpaved");
 		for (FVector2d U : Row.Points)
 		{
 			for (int32 Axis = 0; Axis < 2; ++Axis)
@@ -699,6 +701,7 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 			Ribbon.Name = Pieces[BestPiece].Name;
 			Ribbon.bMajor = IsMajorClass(Ribbon.Class);
 			Ribbon.bService = Ribbon.Class == TEXT("service");
+			Ribbon.bUnpaved = Pieces[BestPiece].bUnpaved;
 
 			const int32 Count = FMath::Max(1, FMath::CeilToInt(SpanLength / SimCruiseRoadSection::StationStepM));
 			Ribbon.St.SetNum(Count + 1);

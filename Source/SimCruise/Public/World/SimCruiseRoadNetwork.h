@@ -88,6 +88,8 @@ struct FSimCruiseRibbon
 	int32 Rank = 0;
 	bool bMajor = false;
 	bool bService = false;
+	/** Mapped surface=unpaved (gravel, dirt): drawn in gravel, no paint. */
+	bool bUnpaved = false;
 	bool bStartOnBoundary = false;
 	bool bEndOnBoundary = false;
 	TArray<FSimCruiseRibbonStation> St;
