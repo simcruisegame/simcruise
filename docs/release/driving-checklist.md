@@ -83,7 +83,7 @@ Published data: `docs/cars.md` (road-test sources for each car). The 3 % band is
 | I1 | Default start | a normal launch opens on a random start-pool road (or Ocean Drive when that fails) and the car drives | smoke test and play test | `docs/release/evidence/start.txt` | TODO |
 | I2 | Random start | `-SimCruiseRandomStart` puts the car on a road; no crash | play test | same | TODO |
 | I3 | Preset travel | travel to a preset place loads the place; no crash | play test | same | TODO |
-| I4 | Offline fallback | with no network the game opens on the bundled Ocean Drive; no crash | play test with the network blocked | same | TODO |
+| I4 | Offline fallback | with no network the game opens on the bundled Ocean Drive and drives; no crash | Shipping game with `-SimCruiseLiveOffline` (every live request goes to a closed local port) and a 4-minute soak drive | same | TODO |
 
 ## J. Settings
 
