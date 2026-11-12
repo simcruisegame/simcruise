@@ -331,6 +331,23 @@ bool SimCruisePresentationProfiles::Load(const FString& CarId, FSimCruiseCarPres
 			OutProfile.RoleAreas.Add(Area);
 		}
 	}
+	const TSharedPtr<FJsonObject>* Design = nullptr;
+	if (Car->TryGetObjectField(TEXT("wheel_design"), Design) && Design)
+	{
+		FSimCruiseWheelDesign& W = OutProfile.WheelDesign;
+		(*Design)->TryGetStringField(TEXT("style"), W.Style);
+		(*Design)->TryGetNumberField(TEXT("rim_diameter_in"), W.RimDiameterIn);
+		(*Design)->TryGetNumberField(TEXT("rim_width_in"), W.RimWidthIn);
+		(*Design)->TryGetNumberField(TEXT("lip_in"), W.LipIn);
+		(*Design)->TryGetNumberField(TEXT("dish_in"), W.DishIn);
+		(*Design)->TryGetNumberField(TEXT("spokes"), W.Spokes);
+		(*Design)->TryGetStringField(TEXT("source"), W.Source);
+		if (W.Style != TEXT("mesh"))
+		{
+			OutError = Where + TEXT(": wheel_design style must be \"mesh\"");
+			return false;
+		}
+	}
 	const TArray<TSharedPtr<FJsonValue>>* AddonList = nullptr;
 	if (Car->TryGetArrayField(TEXT("addons"), AddonList) && AddonList)
 	{

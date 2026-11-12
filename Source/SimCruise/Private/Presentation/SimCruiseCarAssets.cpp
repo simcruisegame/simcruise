@@ -219,6 +219,42 @@ TSharedPtr<FSimCruiseBuiltCar> SimCruiseCarAssets::Get(const FString& CarId, FSt
 	FString RigError;
 	const bool bRigged = SimCruiseCarModelRig::Build(Car->Model, Car->Profile, Inputs, Rigged, RigError);
 	Car->Log = Rigged.Log;
+	if (bRigged && Car->Profile.WheelDesign.IsSet())
+	{
+		// The profile's wheel design replaces the model's rims and tyres; discs and calipers stay.
+		// Its own untextured materials: a bright silver-painted face, a polished lip, a dark cap.
+		auto AddMaterial = [&Car](const TCHAR* Name, const FLinearColor& Base, float Metallic, float Roughness)
+		{
+			FSimCruiseGltfMaterial M;
+			M.Name = Name;
+			M.BaseColorFactor = Base;
+			M.MetallicFactor = Metallic;
+			M.RoughnessFactor = Roughness;
+			return Car->Model.Materials.Add(M);
+		};
+		SimCruiseWheelBuilder::FMaterials Materials;
+		Materials.Face = AddMaterial(TEXT("simcruise_wheel_face"), FLinearColor(0.52f, 0.53f, 0.55f), 1.f, 0.38f);
+		Materials.Lip = AddMaterial(TEXT("simcruise_wheel_lip"), FLinearColor(0.91f, 0.91f, 0.92f), 1.f, 0.1f);
+		Materials.Cap = AddMaterial(TEXT("simcruise_wheel_cap"), FLinearColor(0.02f, 0.02f, 0.022f), 0.f, 0.45f);
+		// Plain rubber: the model's tyre material carries its own texture and sidewall detail, laid out for its UVs.
+		Materials.Tyre = AddMaterial(TEXT("simcruise_wheel_tyre"), FLinearColor(0.025f, 0.025f, 0.026f), 0.f, 0.85f);
+		for (int32 W = 0; W < 4; ++W)
+		{
+			SimCruiseWheelBuilder::FMaterials Own = Materials;
+			TArray<FSimCruiseRigSection> Kept;
+			for (FSimCruiseRigSection& Section : Rigged.Wheels[W].Sections)
+			{
+				if (Section.Role == ESimCruiseCarMaterialRole::BrakeDisc || Section.Role == ESimCruiseCarMaterialRole::BrakeCaliper) Kept.Add(MoveTemp(Section));
+			}
+			SimCruiseWheelBuilder::BuildMeshWheel(Car->Profile.WheelDesign, Inputs.TireRadiusM * 100.0, Inputs.TireWidthM * 100.0,
+				(W == 0 || W == 2) ? -1.0 : 1.0, Own, Kept);
+			Rigged.Wheels[W].Sections = MoveTemp(Kept);
+		}
+		Rigged.Log.Add(FString::Printf(TEXT("wheel design '%s': %.0fx%.1f in, %.1f in lip, %d spokes (%s)"), *Car->Profile.WheelDesign.Style,
+			Car->Profile.WheelDesign.RimDiameterIn, Car->Profile.WheelDesign.RimWidthIn, Car->Profile.WheelDesign.LipIn, Car->Profile.WheelDesign.Spokes,
+			*Car->Profile.WheelDesign.Source));
+		Car->Log = Rigged.Log;
+	}
 	if (!bRigged)
 	{
 		OutError = FString::Printf(TEXT("%s: could not fit %s: %s"), *CarId, *ModelPath, *RigError);

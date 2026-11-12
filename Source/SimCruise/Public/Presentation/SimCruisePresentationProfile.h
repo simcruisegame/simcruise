@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Presentation/SimCruiseWheelBuilder.h"
 #include "Presentation/SimCruiseCarMaterialRoles.h"
 
 /** A box (vehicle frame: X forward, Y right, Z up, metres) whose wholly contained parts are badges. */
@@ -154,6 +155,9 @@ struct FSimCruiseCarPresentationProfile
 		double Roughness = 0.45;
 	};
 	TArray<FAddon> Addons;
+
+	/** A wheel design that replaces the model's rims and tyres (the brake discs stay). */
+	FSimCruiseWheelDesign WheelDesign;
 
 	/** The role for an author material: the profile's override, else the name guess. */
 	ESimCruiseCarMaterialRole RoleFor(const FString& MaterialName, const FString& OwnerLabel) const;

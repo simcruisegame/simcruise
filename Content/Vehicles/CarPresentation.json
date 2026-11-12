@@ -415,7 +415,16 @@
      "roughness": 0.35
     }
    ],
-   "addons_source": "The owner's car in their two photographs (D:\\sc\\miata-ref, 12 November 2026): a black roll bar (hoop with a diagonal brace and stays to the rear deck) whose top is about level with the windscreen top; the soft top folded down behind it; a silver-grey wing with small silver-grey end plates on short black uprights, about 12 cm above the trunk lid and just past the tail. Heights scaled from the photos against the 0.86 m trunk lid; positions fitted to the model."
+   "addons_source": "The owner's car in their two photographs (D:\\sc\\miata-ref, 12 November 2026): a black roll bar (hoop with a diagonal brace and stays to the rear deck) whose top is about level with the windscreen top; the soft top folded down behind it; a silver-grey wing with small silver-grey end plates on short black uprights, about 12 cm above the trunk lid and just past the tail. Heights scaled from the photos against the 0.86 m trunk lid; positions fitted to the model.",
+   "wheel_design": {
+    "style": "mesh",
+    "rim_diameter_in": 15,
+    "rim_width_in": 8,
+    "lip_in": 1.3,
+    "dish_in": 1.6,
+    "spokes": 12,
+    "source": "The owner's wheels in their photographs: silver cross-spoke mesh face, a wide polished lip (about 2 in), a deep dish and a dark Mazda centre cap, about 15x8; the tyre is the car file's size."
+   }
   },
   "nb1999": {
    "model": "data/art/traffic/miata_nb-5d103c56/scene.gltf",
