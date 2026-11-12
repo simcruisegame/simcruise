@@ -8,6 +8,7 @@
 #include "Misc/Paths.h"
 #include "UObject/Package.h"
 #include "UObject/SavePackage.h"
+#include "World/SimCruiseBridges.h"
 #include "World/SimCruiseGuardRails.h"
 #include "World/SimCruiseRegionalTerrain.h"
 #include "World/SimCruiseSignals.h"
@@ -114,6 +115,9 @@ int32 USimCruiseBuildWorldMaterialsCommandlet::Main(const FString& Params)
 	// Traffic signals (World/SimCruiseSignals).
 	SaveCopy(ASimCruiseSignals::BuildMaterial(GetTransientPackage(), TEXT("M_SimCruiseSignalBuild"), RF_Transient),
 		FPackageName::ObjectPathToPackageName(ASimCruiseSignals::MaterialPath()));
+	// Bridge decks (World/SimCruiseBridges).
+	SaveCopy(ASimCruiseBridges::BuildMaterial(GetTransientPackage(), TEXT("M_SimCruiseBridgeConcreteBuild"), RF_Transient),
+		FPackageName::ObjectPathToPackageName(ASimCruiseBridges::MaterialPath()));
 	return Failures == 0 ? 0 : 1;
 #else
 	return 1;

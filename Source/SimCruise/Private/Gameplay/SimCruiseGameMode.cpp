@@ -20,6 +20,7 @@
 #include "Vehicle/CarDefinitionLoader.h"
 #include "Vehicle/SimCruiseVehicle.h"
 #include "Misc/App.h"
+#include "World/SimCruiseBridges.h"
 #include "World/SimCruiseGuardRails.h"
 #include "World/SimCruiseRegionalTerrain.h"
 #include "World/SimCruiseSignals.h"
@@ -246,6 +247,16 @@ void ASimCruiseGameMode::BeginWorldDrive()
 		if (ASimCruiseSignals* Signals = World->SpawnActor<ASimCruiseSignals>(ASimCruiseSignals::StaticClass(), FTransform::Identity, Params))
 		{
 			Signals->Streamer = Streamer;
+		}
+	}
+	// The structure under the mapped bridges: deck, parapets, piers.
+	if (!FParse::Param(Cmd, TEXT("SimCruiseNoBridgeDecks")))
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		if (ASimCruiseBridges* Bridges = World->SpawnActor<ASimCruiseBridges>(ASimCruiseBridges::StaticClass(), FTransform::Identity, Params))
+		{
+			Bridges->Streamer = Streamer;
 		}
 	}
 
