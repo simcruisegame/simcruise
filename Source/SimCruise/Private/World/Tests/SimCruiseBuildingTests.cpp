@@ -33,6 +33,22 @@ bool FSimCruiseSignTextTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseWallAlbedoTest, "SimCruise.World.Buildings.WallAlbedo", SimCruiseBuildingTest::Flags)
+bool FSimCruiseWallAlbedoTest::RunTest(const FString& Parameters)
+{
+	using namespace SimCruiseTileDetail;
+	// Weathered paint: a 0.88 white comes down to the cap with its hue; darker colours stay.
+	const FLinearColor White = FLinearColor::FromSRGBColor(FColor::FromHex(TEXT("F5F1E6")));
+	const FLinearColor Capped = WeatheredPaint(White);
+	TestTrue(FString::Printf(TEXT("white capped at %.2f (%.3f)"), MaxWallAlbedo, Capped.GetLuminance()), FMath::IsNearlyEqual(Capped.GetLuminance(), MaxWallAlbedo, 0.005f));
+	TestTrue(TEXT("hue kept"), FMath::IsNearlyEqual(Capped.R / Capped.B, White.R / White.B, 1e-3f));
+	const FLinearColor Pink = FLinearColor::FromSRGBColor(FColor::FromHex(TEXT("F4B39A")));
+	TestTrue(TEXT("a colour under the cap is unchanged"), WeatheredPaint(Pink).Equals(Pink));
+	TestTrue(TEXT("trim cap"), WeatheredPaint(FLinearColor::White, MaxTrimAlbedo).GetLuminance() <= MaxTrimAlbedo + 1e-3f);
+	TestTrue(TEXT("tower cap"), WeatheredPaint(FLinearColor::White, MaxTowerAlbedo).GetLuminance() <= MaxTowerAlbedo + 1e-3f);
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseRoundCornersTest, "SimCruise.World.Buildings.RoundCorners", SimCruiseBuildingTest::Flags)
 bool FSimCruiseRoundCornersTest::RunTest(const FString& Parameters)
 {

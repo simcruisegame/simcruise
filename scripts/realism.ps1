@@ -34,6 +34,8 @@ param(
     [int]$LockTimeoutMinutes = 60,
     # Extra editor arguments for an A/B, e.g. '-DPCVars=r.DefaultFeature.LocalExposure.HighlightContrastScale=0.7'.
     [string]$ExtraArgs = '',
+    # Extra console commands run at start, e.g. 'SimCruise.Env.Look ExposureCompensation -0.1'.
+    [string]$ExecExtra = '',
     [string]$EngineDir = $(if ($env:UE_ROOT) { $env:UE_ROOT } else { 'C:\Program Files\Epic Games\UE_5.8' })
 )
 
@@ -81,7 +83,7 @@ foreach ($P in $Poses) {
     $Start = if ($P.world -eq 'bundled') { '-SimCruiseWorld' } else { "-SimCruiseStart=$($P.lat),$($P.lon)" }
     $ArgLine = "`"$Project`" -game -windowed -ResX=$($P.width) -ResY=$($P.height) -nosplash -unattended $Start " +
         "-SimCruiseDriveCapture `"-SimCruiseDriveCaptureOut=$Captures`" -SimCruiseRealismPose=$PoseArg " +
-        "-SimCruiseUtc=$($P.utc) -SimCruiseGraphics=$Graphics `"-ExecCmds=simcruise.Traffic.Cars 0`" -log=SimCruiseRealism.log -NoLiveCoding $ExtraArgs"
+        "-SimCruiseUtc=$($P.utc) -SimCruiseGraphics=$Graphics `"-ExecCmds=simcruise.Traffic.Cars 0$(if ($ExecExtra) { ',' + $ExecExtra })`" -log=SimCruiseRealism.log -NoLiveCoding $ExtraArgs"
     if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "realism capture $($P.name) on $Root")) { exit 1 }
     try {
         Write-Host "Capturing $($P.name)"

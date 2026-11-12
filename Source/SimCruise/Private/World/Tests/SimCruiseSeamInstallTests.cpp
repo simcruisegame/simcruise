@@ -72,7 +72,9 @@ bool FSimCruiseSeamBankingTest::RunTest(const FString& Parameters)
 						++Pairs;
 						// The seam section stores the banking it has, the same seen from either side.
 						const double Sign = FVector2d::DotProduct(SA.T, SB.T) >= 0.0 ? 1.0 : -1.0;
-						WorstBank = FMath::Max(WorstBank, FMath::Abs(SA.E - Sign * SB.E));
+						// The cross-slope as built (edge heights), which is what the tyres meet.
+						const double XA = (SA.HL - SA.HR) / (2.0 * FMath::Max(SA.HalfW, 0.1)), XB = (SB.HL - SB.HR) / (2.0 * FMath::Max(SB.HalfW, 0.1));
+						WorstBank = FMath::Max(WorstBank, FMath::Abs(XA - Sign * XB));
 					}
 				}
 			}
@@ -96,7 +98,9 @@ bool FSimCruiseSeamBankingTest::RunTest(const FString& Parameters)
 	}
 	AddInfo(FString::Printf(TEXT("%d seam pairs, worst banking mismatch %.5f; worst grade within 30 m of a seam %.3f over %d steps"), Pairs, WorstBank, WorstGrade, Lifts));
 	TestTrue(TEXT("seams found"), Pairs > 3);
-	TestTrue(FString::Printf(TEXT("the banking meets across the seam (%.5f)"), WorstBank), WorstBank < 1e-3);
+	// Contracted ends meet exactly; an end whose neighbour found no contract (a corner, a
+	// split) is solved on each side alone and may differ by about a centimetre at the edges.
+	TestTrue(FString::Printf(TEXT("the banking meets across the seam (%.5f)"), WorstBank), WorstBank < 3e-3);
 	TestTrue(FString::Printf(TEXT("no steep pin ramp at a seam (%.3f)"), WorstGrade), WorstGrade < 0.12);
 	return true;
 }
@@ -169,7 +173,7 @@ bool FSimCruiseSlopedSeamTest::RunTest(const FString& Parameters)
 		{
 			const double East = (i / double(Grid)) * Side, South = (j / double(Grid)) * Side;
 			if (!H.IsEmpty()) H += TEXT(",");
-			H += FString::Printf(TEXT("%.3f"), Z0 + 0.06 * East - 0.08 * (South - 0.5 * Side) * 0.1);
+			H += FString::Printf(TEXT("%.3f"), Z0 + 0.06 * East - 0.08 * (South - 0.5 * Side));
 		}
 		return FString::Printf(TEXT("{\"id\":[%d,500],\"grid\":%d,\"h\":[%s],\"roads\":[%s]}"), X, Grid, *H, Road);
 	};
@@ -210,6 +214,27 @@ bool FSimCruiseSlopedSeamTest::RunTest(const FString& Parameters)
 		}
 	}
 	AddInfo(FString::Printf(TEXT("worst departure from the hill's 6 %% grade: %.4f"), Worst));
+	// Every boundary end keeps its clearance: the shared ground stays under both edges of the
+	// seam section by the shoulder drop (0.05 m), across the whole carriageway.
+	double WorstClear = 1e9;
+	for (const TPair<const FSimCruiseTileData*, const FSimCruiseTileBuild*>& T : { TPair<const FSimCruiseTileData*, const FSimCruiseTileBuild*>(&A, &BA.Get()), TPair<const FSimCruiseTileData*, const FSimCruiseTileBuild*>(&B, &BB.Get()) })
+	{
+		for (const FSimCruiseRibbon& R : T.Value->Roads.Ribbons)
+		{
+			for (int32 End = 0; End < 2; ++End)
+			{
+				if (!(End == 0 ? R.bStartOnBoundary : R.bEndOnBoundary)) continue;
+				const FSimCruiseRibbonStation& St = End == 0 ? R.St[0] : R.St.Last();
+				for (double L = -St.HalfW; L <= St.HalfW + 1e-6; L += 0.5)
+				{
+					const double Ground = T.Key->HeightAtUnit((St.C + St.R * L) / Side);
+					WorstClear = FMath::Min(WorstClear, St.Height(L) - Ground);
+				}
+			}
+		}
+	}
+	AddInfo(FString::Printf(TEXT("least clearance over the ground at a seam: %.3f m"), WorstClear));
+	TestTrue(FString::Printf(TEXT("the road clears the ground at the seams (%.3f m)"), WorstClear), WorstClear >= 0.04);
 	TestTrue(FString::Printf(TEXT("seam pins bend the grade by about 1 %% at most (%.4f)"), Worst), Worst < 0.02);
 	return true;
 }

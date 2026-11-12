@@ -157,6 +157,8 @@ float puddle = saturate((Wet - 0.4) * 2.5) * smoothstep(0.93, 0.82, low);
 col *= lerp(1.0, 0.6, damp) * lerp(1.0, 0.85, puddle);
 Roughness = lerp(lerp(Roughness, 0.35, damp), 0.04, puddle);
 Nrm = normalize(lerp(VN + g, VN, puddle));
+// Standing water reflects as water (F0 0.02, Specular 0.25), not as plastic (0.04, the default 0.5).
+Spec = lerp(0.5, 0.25, puddle);
 return max(col, 0.0);
 )HLSL");
 
@@ -234,7 +236,8 @@ float grain = dot(Texture2DSample(Grain, GrainSampler, tuv / 1.3).rgb, W) / mean
 float stain = dot(Texture2DSample(Grain, GrainSampler, float2(along * 0.11, h * 0.035) + seed * 5.3).rgb, W) / meanL;
 // Weathering (lighting review 2026-11-12): broad staining at a quarter of the colour, and the
 // splash zone at the foot of the wall a fifth darker up to 1.2 m.
-float3 stucco = VC.rgb * lerp(1.0, grain, 0.09) * lerp(1.0, stain, 0.25);
+// Stains only darken (never lift a wall above its weathered-paint albedo).
+float3 stucco = VC.rgb * lerp(1.0, grain, 0.09) * lerp(1.0, min(stain, 1.0), 0.25);
 stucco *= lerp(0.78, 1.0, smoothstep(0.0, 1.2, h));
 float3 col = stucco;
 float rough = 0.88;
@@ -316,7 +319,7 @@ else if (kind < 4.5)
 {
 	float bars = step(frac(along / 1.8), 0.035) + step(abs(h - 2.75), 0.04);
 	bars = saturate(bars);
-	col = lerp(float3(0.006, 0.007, 0.008), float3(0.8, 0.8, 0.77), bars);
+	col = lerp(float3(0.006, 0.007, 0.008), float3(0.75, 0.75, 0.72), bars);
 	rough = lerp(0.04, 0.5, bars);
 	// A lobby or cafe behind the porch glass, lit all day like a shop (a few closed at night).
 	float pr = frac(sin(dot(float2(floor(along / 1.8), 0.0) + seed * 17.0, float2(12.9898, 78.233))) * 43758.5453);
@@ -562,6 +565,9 @@ return col;
 			break;
 		case ESimCruiseTileLayer::Asphalt:
 			Custom->Code = AsphaltCode;
+			Custom->AdditionalOutputs.Add({ FName(TEXT("Spec")), CMOT_Float1 });
+			Custom->RebuildOutputs();
+			Material->GetEditorOnlyData()->Specular.Connect(3, Custom);
 			AddInput(Custom, TEXT("Asphalt"), TextureParam(Material, TEXT("Asphalt"), DefaultTexture));
 			AddInput(Custom, TEXT("AsphaltMean"), VectorParam(Material, TEXT("AsphaltMean"), FLinearColor(0.2f, 0.2f, 0.2f)));
 			AddInput(Custom, TEXT("Tint"), VectorParam(Material, TEXT("Tint"), FLinearColor(0.085f, 0.083f, 0.08f)));

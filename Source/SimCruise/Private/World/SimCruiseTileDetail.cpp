@@ -31,17 +31,10 @@ namespace
 	 * median sRGB 191 where the game's 0.88 white read 210, with the promenade concrete equal
 	 * (159) in both. Colours lighter than the cap keep their hue and scale down.
 	 */
-	constexpr float MaxWallAlbedo = 0.75f;
-	constexpr float MaxTrimAlbedo = 0.80f;
-	/** Concrete towers: weathered painted concrete, darker than stucco (raw concrete is 0.2-0.45). */
-	constexpr float MaxTowerAlbedo = 0.55f;
-	FLinearColor WeatheredPaint(const FLinearColor& C, float Max = MaxWallAlbedo)
-	{
-		const float L = C.GetLuminance();
-		if (L <= Max || L <= 0.f) return C;
-		const float K = Max / L;
-		return FLinearColor(C.R * K, C.G * K, C.B * K, C.A);
-	}
+	using SimCruiseTileDetail::MaxWallAlbedo;
+	using SimCruiseTileDetail::MaxTrimAlbedo;
+	using SimCruiseTileDetail::MaxTowerAlbedo;
+	using SimCruiseTileDetail::WeatheredPaint;
 
 	/** Writes quads with the two texture coordinates the building material reads. */
 	struct FWriter
@@ -215,6 +208,14 @@ namespace
 
 namespace SimCruiseTileDetail
 {
+	FLinearColor WeatheredPaint(const FLinearColor& C, float Max)
+	{
+		const float L = C.GetLuminance();
+		if (L <= Max || L <= 0.f) return C;
+		const float K = Max / L;
+		return FLinearColor(C.R * K, C.G * K, C.B * K, C.A);
+	}
+
 	EBuildingStyle StyleForPlace(double LatDeg, double LonDeg)
 	{
 		// The district runs from about 6th Street to Dade Boulevard, Ocean Drive to Lenox Avenue;
