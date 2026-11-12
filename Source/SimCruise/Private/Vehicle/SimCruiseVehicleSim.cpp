@@ -451,7 +451,58 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 		const FVector3d Source = Body.PositionM + Body.Rotation.RotateVector(MountsLocalM[WheelIndex]);
 		FSimCruiseGroundHit Hit;
 		Wheel.bContact = false;
-		if (Ground(Source, Source - Up * (RestLengthM + R), Hit) && Hit.NormalM.Dot(Up) > 0.33)
+		// The tyre is a tread, not a point: rays at its centre and near both shoulders. The
+		// highest one carries the wheel (a kerb edge under one shoulder lifts it, a pothole
+		// narrower than the tread does not drop it), and the grip is the tread's mean.
+		bool bHit = false;
+		{
+			const double Shoulder = 0.4 * Car.TireSectionWidthM;
+			const FVector3d Offsets[3] = { FVector3d::ZeroVector, Right * Shoulder, Right * -Shoulder };
+			double GripSum = 0.0;
+			int32 GripCount = 0;
+			double Best = -1.0e9;
+			double CentreHeight = -1.0e9;
+			for (int32 Ray = 0; Ray < (Car.ContactRays >= 3 ? 3 : 1); ++Ray)
+			{
+				FSimCruiseGroundHit Probe;
+				const FVector3d From = Source + Offsets[Ray];
+				if (Ground(From, From - Up * (RestLengthM + R), Probe) && Probe.NormalM.Dot(Up) > 0.33)
+				{
+					GripSum += Probe.SurfaceGrip;
+					++GripCount;
+					const double Height = (Probe.PointM - Source).Dot(Up) + Probe.RoadProfileM;
+					if (Ray == 0)
+					{
+						CentreHeight = Height;
+						Best = Height;
+						Hit = Probe;
+						bHit = true;
+					}
+					else if (Height > Best + 0.01)
+					{
+						// A step under a shoulder (a kerb, a pothole's edge) carries the tyre. The
+						// contact stays under the wheel's centre: on even ground, and as the body
+						// rolls, the shoulders must not widen the track.
+						Best = Height;
+						if (!bHit || CentreHeight < -1.0e8)
+						{
+							Hit = Probe;
+							bHit = true;
+						}
+						else
+						{
+							Hit.PointM += Up * (Height - (Hit.PointM - Source).Dot(Up) - Hit.RoadProfileM);
+							Hit.NormalM = Probe.NormalM;
+						}
+					}
+				}
+			}
+			if (bHit)
+			{
+				Hit.SurfaceGrip = GripSum / GripCount;
+			}
+		}
+		if (bHit)
 		{
 			FContactRow& Row = Rows[WheelIndex];
 			const int32 Axle = WheelIndex < 2 ? 0 : 1;

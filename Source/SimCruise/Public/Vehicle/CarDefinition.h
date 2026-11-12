@@ -121,6 +121,8 @@ struct FSimCruiseCarDefinition
 	double TmeasyTrailZeroSlip2Ratio = 0.20355 / 0.16337;
 	double TmeasyTrailEndSlip = 0.96524;
 	double TmeasyTrailEndSlip2Ratio = 1.0714 / 0.96524;
+	/** Ground rays per tyre: 3 (the centre and both shoulders) or 1 (the centre only, as Godot did). */
+	int32 ContactRays = 3;
 	/** Tyre vertical stiffness (N/m); a 195/50R15 at 30 psi is about 200 kN/m (estimate). */
 	double TireVerticalStiffnessNPerM = 200000.0;
 	bool bAbsEnabled = false;
