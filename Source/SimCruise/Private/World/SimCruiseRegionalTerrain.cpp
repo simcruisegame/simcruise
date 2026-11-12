@@ -25,7 +25,9 @@
 #include "Misc/Paths.h"
 #include "ProceduralMeshComponent.h"
 #include "World/SimCruiseWorldResources.h"
+#include "World/SimCruiseTileBuilder.h"
 #include "World/SimCruiseWorldStreamer.h"
+#include "World/SimCruiseWorldTile.h"
 #include <atomic>
 
 DEFINE_LOG_CATEGORY_STATIC(LogSimCruiseLandscape, Log, All);
@@ -376,11 +378,14 @@ void ASimCruiseRegionalTerrain::Install(FJob& Done)
 			Material->SetTextureParameterValue(TEXT("Middle"), MiddlePhoto);
 			Material->SetScalarParameterValue(TEXT("HasMiddle"), 1.f);
 		}
+		SnowMask = Done.Snow;
+		SnowMaskSize = Done.Snow.Num() > 0 ? Done.SnowW : 0;
+		NextSnowGround = 0.0;
 		if (Done.Snow.Num() > 0)
 		{
-			UTexture2D* SnowMask = USimCruiseWorldResources::CreateTexture(this, TEXT("T_SimCruiseLandscapeSnow"), Done.Snow, Done.SnowW, Done.SnowH, false, false);
-			Textures.Add(SnowMask);
-			Material->SetTextureParameterValue(TEXT("Snow"), SnowMask);
+			UTexture2D* SnowTexture = USimCruiseWorldResources::CreateTexture(this, TEXT("T_SimCruiseLandscapeSnow"), Done.Snow, Done.SnowW, Done.SnowH, false, false);
+			Textures.Add(SnowTexture);
+			Material->SetTextureParameterValue(TEXT("Snow"), SnowTexture);
 			Material->SetScalarParameterValue(TEXT("HasSnow"), 1.f);
 		}
 		Mesh->SetMaterial(0, Material);
@@ -444,6 +449,11 @@ void ASimCruiseRegionalTerrain::Tick(float DeltaSeconds)
 		const bool bNear = FVector::Dist2D(Centre, Car->GetActorLocation()) < 1200000.0;
 		Mesh->SetVisibility(bNear);
 	}
+	if (Now >= NextSnowGround)
+	{
+		NextSnowGround = Now + 2.0;
+		ApplySnowToTiles();
+	}
 	if (Shown == Here || Job.IsValid() || (Failed == Here && Now < RetryAt) || Now < NextPoll)
 	{
 		return;
@@ -455,4 +465,33 @@ void ASimCruiseRegionalTerrain::Tick(float DeltaSeconds)
 		return;
 	}
 	StartJob(Here);
+}
+
+void ASimCruiseRegionalTerrain::ApplySnowToTiles()
+{
+	// Snow on the near ground too (RegionalSnow.gd): each driving tile's ground takes the
+	// snow cover the 500 m mask has under its middle.
+	ASimCruiseWorldStreamer* Stream = Streamer.Get();
+	if (!Stream || Shown.X < 0) return;
+	const FSimCruiseWorldFrame& Frame = Stream->GetFrame();
+	const FVector Centre = Frame.TileOriginCm(Shown * 8 + FIntPoint(4, 4));
+	for (int32 X = Shown.X * 8 - 8; X < Shown.X * 8 + 16; ++X)
+	for (int32 Y = Shown.Y * 8 - 8; Y < Shown.Y * 8 + 16; ++Y)
+	{
+		ASimCruiseWorldTile* Tile = Stream->GetTile(FIntPoint(X, Y));
+		if (!Tile) continue;
+		const int32 Terrain = static_cast<int32>(ESimCruiseTileLayer::Terrain);
+		UMaterialInstanceDynamic* Ground = Tile->Materials.IsValidIndex(Terrain) ? Tile->Materials[Terrain].Get() : nullptr;
+		if (!Ground) continue;
+		double Cover = 0.0;
+		if (SnowMaskSize > 0)
+		{
+			const FVector Mid = Tile->GetActorLocation() + FVector(Frame.TileSizeCm() * 0.5, Frame.TileSizeCm() * 0.5, 0.0) - Centre;
+			const FVector2D UV = FVector2D(Mid.X, Mid.Y) / (2.0 * RadiusM * 100.0) + FVector2D(0.5, 0.5);
+			const int32 Px = FMath::Clamp(FMath::FloorToInt(UV.X * SnowMaskSize), 0, SnowMaskSize - 1);
+			const int32 Py = FMath::Clamp(FMath::FloorToInt(UV.Y * SnowMaskSize), 0, SnowMaskSize - 1);
+			Cover = FMath::SmoothStep(0.38, 0.76, SnowMask[Py * SnowMaskSize + Px].R / 255.0);
+		}
+		Ground->SetScalarParameterValue(TEXT("SnowCover"), static_cast<float>(Cover));
+	}
 }

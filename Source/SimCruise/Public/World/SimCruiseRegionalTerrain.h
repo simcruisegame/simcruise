@@ -72,6 +72,11 @@ private:
 	double RetryAt = 0.0;
 	double NextPoll = 0.0;
 	int32 Triangles = 0;
+	/** The snow mask of the region shown (256 px over the 90 km square), for the ground of the driving tiles. */
+	TArray<FColor> SnowMask;
+	int32 SnowMaskSize = 0;
+	double NextSnowGround = 0.0;
+	void ApplySnowToTiles();
 	uint32 SeenGeneration = 0;
 	FString SeenTitle;
 };

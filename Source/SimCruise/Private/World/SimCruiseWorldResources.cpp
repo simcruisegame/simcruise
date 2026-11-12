@@ -122,6 +122,9 @@ float dl = dot(detail, W);
 float3 hue = lerp(float3(1.0, 1.0, 1.0), detail / max(dl, 0.001), 0.3 * veg + 0.15 * sand);
 baseColor *= lerp(1.0, dl, 0.55 * veg + 0.25 * sand + 0.4 * (bare + paved)) * hue;
 baseColor = lerp(baseColor, float3(0.025, 0.15, 0.17), water);
+// Snow lying now (MODIS snow cover, set per tile by ASimCruiseRegionalTerrain): settled snow
+// over the ground, thinner where grass and shrubs poke through.
+baseColor = lerp(baseColor, float3(0.80, 0.83, 0.86), SnowCover * (1.0 - water) * (1.0 - 0.35 * veg));
 Roughness = lerp(lerp(lerp(0.9, 0.97, veg), 0.86, sand), 0.08, water);
 Nrm = normalize(VN);
 return max(baseColor, 0.0);
@@ -539,6 +542,7 @@ return col;
 			AddInput(Custom, TEXT("TileSizeCm"), ScalarParam(Material, TEXT("TileSizeCm"), 55000.f));
 			AddInput(Custom, TEXT("Cell"), VectorParam(Material, TEXT("Cell"), FLinearColor(0, 0, 0, 0)));
 			AddInput(Custom, TEXT("AerialGain"), ScalarParam(Material, TEXT("AerialGain"), 1.f));
+			AddInput(Custom, TEXT("SnowCover"), ScalarParam(Material, TEXT("SnowCover"), 0.f));
 			AddInput(Custom, TEXT("Mask"), TextureParam(Material, TEXT("Mask"), DefaultTexture));
 			AddInput(Custom, TEXT("Aerial"), TextureParam(Material, TEXT("Aerial"), DefaultTexture));
 			AddInput(Custom, TEXT("Grass"), TextureParam(Material, TEXT("Grass"), DefaultTexture));
