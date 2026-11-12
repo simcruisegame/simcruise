@@ -4,6 +4,7 @@ Notable changes to SimCruise, newest first. The format follows [Keep a Changelog
 
 ## Unreleased
 
+- **Trees in palm country** (`World/SimCruiseTrees`) — South Florida and Hawaii kept only the palms planted on mapped lawns, so Waikiki's streets had no trees. The measured crowns off the lawns are now half coconut palms (the tiles' palm variants, picked and scaled by the measured height, solid) and half broadleaf shade trees.
 - **Snow on the distant mountains** (`World/SimCruiseRegionalTerrain`) — the land to the horizon is shaded with summer photographs, so the Rockies had no snow in November. The helper's `snow` (NASA GIBS MODIS Terra NDSI snow cover, 500 m) gives the newest day within a week (GIBS publishes two to four days late) over the landscape's 90 km square, and the landscape whitens where snow lies, as the Godot client's regional snow did. The streamed driving tiles do not show snow yet.
 - **A tyre is a tread, not a point** (`FSimCruiseVehicleSim::Step`, `contact_rays`) — each tyre found the ground with one ray at its centre, so a kerb under its edge did nothing until the centre reached it and a pothole narrower than the tread dropped the wheel. Now three rays (the centre and both shoulders, 40 % of the section width out) find it: a step of more than 1 cm under a shoulder carries the tyre, the contact stays under the wheel's centre so a rolling body does not widen the track, and the grip is the tread's mean (a tyre half on gravel grips in between). On even ground nothing changes: every car's track figures are as before.
 

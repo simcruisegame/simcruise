@@ -381,6 +381,25 @@ void ASimCruiseTrees::Refresh()
 	const double Side = Frame.TileSizeM;
 	TArray<TArray<FTransform>> Lists;
 	Lists.SetNum(6);
+	// The palm variants the tiles plant on lawns, for the measured trees where palms grow.
+	if (PalmRings.Num() == 0 && Stream->Resources && Stream->Resources->PalmMeshes.Num() > 0)
+	{
+		for (UStaticMesh* Palm : Stream->Resources->PalmMeshes)
+		{
+			UHierarchicalInstancedStaticMeshComponent* Ring = NewObject<UHierarchicalInstancedStaticMeshComponent>(this);
+			Ring->SetStaticMesh(Palm);
+			Ring->SetMobility(EComponentMobility::Movable);
+			Ring->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+			Ring->SetupAttachment(RootComponent);
+			Ring->SetCullDistances(0, 60000);
+			Ring->bAffectDistanceFieldLighting = false;
+			Ring->RegisterComponent();
+			PalmRings.Add(Ring);
+		}
+	}
+	for (UHierarchicalInstancedStaticMeshComponent* Ring : PalmRings) Ring->ClearInstances();
+	TArray<TArray<FTransform>> PalmLists;
+	PalmLists.SetNum(PalmRings.Num());
 	Placed = 0;
 	Feet.Reset();
 	LastTrunkFocus = FVector(1e30);
@@ -393,6 +412,8 @@ void ASimCruiseTrees::Refresh()
 		double Lon = 0.0, Lat = 0.0;
 		Frame.WorldCmToLonLat(Origin, Lon, Lat);
 		const double Conifers = ConiferShare(Lat, Lon, Tile->GetBuild()->MinHeightM);
+		const bool bPalms = PalmRings.Num() > 0 && SimCruiseTileDetail::IsCoconutPalmRegion(Lat, Lon);
+		const TArray<FColor>& Mask = Tile->GetBuild()->Mask;
 
 		// Roads keep clear: a coarse grid of the carriageway's centre points and half widths.
 		TMultiMap<FIntPoint, FVector3d> RoadCells;
@@ -425,7 +446,25 @@ void ASimCruiseTrees::Refresh()
 			if (!Stream->SurfaceHeightAt(At, Z)) continue;
 			At.Z = Z - 10.0;
 			const uint32 H = Hash2(FMath::RoundToInt(Local.X * 10.0) + Id.X * 7919, FMath::RoundToInt(Local.Y * 10.0) + Id.Y * 104729);
-			const bool bPine = (H % 1000) < Conifers * 1000.0;
+			if (bPalms)
+			{
+				// Lawns and parks have the tile's own palms; elsewhere half the crowns are coconut palms
+				// (variants 8.7 to 15.3 m tall: the nearest to the measured height, scaled to it).
+				const int32 MaskSize = SimCruiseGroundMask::Size;
+				const int32 Mx = FMath::Clamp(FMath::FloorToInt(Local.X / Side * MaskSize), 0, MaskSize - 1);
+				const int32 My = FMath::Clamp(FMath::FloorToInt(Local.Y / Side * MaskSize), 0, MaskSize - 1);
+				if (Mask.Num() == MaskSize * MaskSize && Mask[My * MaskSize + Mx].R > 128) continue;
+				if ((H >> 7) % 2 == 0)
+				{
+					const int32 Variants = PalmRings.Num();
+					const int32 V = FMath::Clamp(FMath::RoundToInt((Row.HeightM - 8.0) / 8.0 * Variants - 0.5), 0, Variants - 1);
+					const double Nominal = 8.0 + 8.0 * (V + 0.5) / Variants;
+					PalmLists[V].Add(FTransform(FRotator(0.0, (H >> 10) % 360, 0.0), At, FVector(FMath::Clamp(Row.HeightM / Nominal, 0.6, 1.5))));
+					++Placed;
+					continue;
+				}
+			}
+			const bool bPine = !bPalms && (H % 1000) < Conifers * 1000.0;
 			const double Yaw = (H >> 10) % 360;
 			// A conifer's crown is narrower than the canopy peak's footprint suggests.
 			const double Width = FMath::Clamp(Row.CrownM * (bPine ? 0.75 : 1.0), 1.5, Row.HeightM * 0.95);
@@ -442,6 +481,10 @@ void ASimCruiseTrees::Refresh()
 	for (int32 i = 0; i < 6; ++i)
 	{
 		Rings[i]->AddInstances(Lists[i], false, true, false);
+	}
+	for (int32 i = 0; i < PalmRings.Num(); ++i)
+	{
+		PalmRings[i]->AddInstances(PalmLists[i], false, true, false);
 	}
 
 	// Shrubs: each 34 m cell of the zoom-12 shrub map holds its cover fraction of crowns of its
@@ -541,11 +584,6 @@ void ASimCruiseTrees::Tick(float DeltaSeconds)
 		if (const double* Retry = RetryAt.Find(Id); Retry && *Retry > Now) continue;
 		double Lon = 0.0, Lat = 0.0;
 		Frame.WorldCmToLonLat(Tile->GetActorLocation() + FVector(Frame.TileSizeCm() * 0.5, Frame.TileSizeCm() * 0.5, 0.0), Lon, Lat);
-		if (SimCruiseTileDetail::IsCoconutPalmRegion(Lat, Lon))
-		{
-			Canopy.Add(Id); // palms there (SimCruiseTileDetail)
-			continue;
-		}
 		TSharedPtr<FFetch, ESPMode::ThreadSafe> Job = MakeShared<FFetch, ESPMode::ThreadSafe>();
 		Fetches.Add(Id, Job);
 		++Running;

@@ -28,7 +28,8 @@ struct FSimCruiseTreeRow
  * Godot client's broadleaf and conifer meshes at three detail levels. Trees
  * on roads are left out; the species follows the region (conifers in the
  * north, the western mountains and the Pacific Northwest, mixed pine in the
- * south-east). South Florida keeps its palms (SimCruiseTileDetail). The 32
+ * south-east). Where coconut palms grow (South Florida, Hawaii) half of the trees
+ * off the lawns are palms (the lawns get SimCruiseTileDetail's). The 32
  * trees nearest the car have solid trunks.
  */
 UCLASS(NotPlaceable, Transient)
@@ -76,6 +77,10 @@ private:
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UTexture2D>> Textures;
+
+	/** Coconut palms for the measured trees where palms grow (the shared palm variants of USimCruiseWorldResources). */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UHierarchicalInstancedStaticMeshComponent>> PalmRings;
 
 	/** Low shrubs (sagebrush, rangeland scrub) from the USDA RAP shrub cover and RCMAP shrub height. */
 	UPROPERTY(Transient)
