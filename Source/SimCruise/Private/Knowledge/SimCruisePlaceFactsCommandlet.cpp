@@ -11,6 +11,7 @@
 #include "Interfaces/IHttpResponse.h"
 #include "Knowledge/SimCruisePlaceAI.h"
 #include "Knowledge/SimCruisePlaceFacts.h"
+#include "Knowledge/SimCruiseFurnitureData.h"
 #include "Knowledge/SimCruisePlacePhotos.h"
 #include "Dom/JsonObject.h"
 #include "Serialization/JsonReader.h"
@@ -153,6 +154,36 @@ int32 USimCruisePlaceFactsCommandlet::Main(const FString& Params)
 			FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 		UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("%s: %d useful of %d OSM + %d Wikidata -> %s"), *SimCruiseTileName(Tile), Useful.Num(), Osm.Num(), Wd.Num(), *Path);
 		FPlatformProcess::Sleep(2.0f);
+	}
+	// -Furniture: the street furniture of these tiles (data/knowledge/furniture).
+	if (FParse::Param(*Params, TEXT("Furniture")))
+	{
+		int32 Total = 0;
+		for (const FIntPoint& Tile : Tiles)
+		{
+			if (!bAll && FPaths::FileExists(SimCruiseFurniture::BundledPath(Tile))) continue;
+			double S, W, N, E;
+			SimCruiseGeo::TileToLonLat(FVector2d(Tile.X, Tile.Y), W, N);
+			SimCruiseGeo::TileToLonLat(FVector2d(Tile.X + 1, Tile.Y + 1), E, S);
+			const FString Box = FString::Printf(TEXT("(%.6f,%.6f,%.6f,%.6f)"), S, W, N, E);
+			const FString Query = FString::Printf(TEXT("[out:json][timeout:25];(%s);out 3000;"), *SimCruiseFurniture::OverpassLines(Box));
+			FString Text, Error;
+			TArray<FSimCruiseFurniture> Items;
+			bool bOk = false;
+			for (int32 Attempt = 0; Attempt < 6 && !bOk; ++Attempt)
+			{
+				if (Attempt > 0) FPlatformProcess::Sleep(5.0f * Attempt);
+				Items.Reset();
+				bOk = Fetch(SimCruisePlaceFacts::OverpassUrl(Attempt), TEXT("POST"), TEXT("data=") + FGenericPlatformHttp::UrlEncode(Query), TEXT("application/json"), Text)
+					&& SimCruiseFurniture::ParseOverpass(Text, Items, Error);
+			}
+			if (!bOk) { ++Failures; UE_LOG(LogSimCruisePlaceFactsCommandlet, Warning, TEXT("%s: furniture failed"), *SimCruiseTileName(Tile)); continue; }
+			FFileHelper::SaveStringToFile(SimCruiseFurniture::ToJson(Tile, Items), *SimCruiseFurniture::BundledPath(Tile), FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+			Total += Items.Num();
+			UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("%s: %d furniture items"), *SimCruiseTileName(Tile), Items.Num());
+			FPlatformProcess::Sleep(2.0f);
+		}
+		UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("Furniture: %d items."), Total);
 	}
 	// -Photos: each building with its own Wikidata photograph gets its wall colour measured.
 	if (FParse::Param(*Params, TEXT("Photos")))

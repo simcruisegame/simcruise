@@ -4,6 +4,8 @@
 
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/World.h"
+#include "Async/Async.h"
+#include "Misc/ScopeExit.h"
 #include "GenericPlatform/GenericPlatformHttp.h"
 #include "GameFramework/Pawn.h"
 #include "HAL/IConsoleManager.h"
@@ -11,6 +13,7 @@
 #include "Interfaces/IHttpResponse.h"
 #include "Kismet/GameplayStatics.h"
 #include "Knowledge/SimCruisePlaceAI.h"
+#include "Knowledge/SimCruiseFurnitureData.h"
 #include "Knowledge/SimCruisePlaceFacts.h"
 // The live feeds (Source/SimCruise/*/Live) join when that code is in the tree; until then
 // other systems push live facts with SimCruisePlaceHub::SetLive.
@@ -37,7 +40,15 @@ namespace
 {
 	FCriticalSection HubLock;
 	FSimCruiseFactSet& LiveStore() { static FSimCruiseFactSet S; return S; }
-	TMap<FIntPoint, FSimCruiseTilePlan>& PlanStore() { static TMap<FIntPoint, FSimCruiseTilePlan> S; return S; }
+	using FPlanRef = TSharedPtr<const FSimCruiseTilePlan, ESPMode::ThreadSafe>;
+	TMap<FIntPoint, FPlanRef>& PlanStore() { static TMap<FIntPoint, FPlanRef> S; return S; }
+
+	/** -SimCruisePlaceOffline: every request of the graph goes to a closed local port, to test that a start with no network neither stalls nor fails. */
+	FString TestUrl(const FString& Url)
+	{
+		static const bool bOffline = FParse::Param(FCommandLine::Get(), TEXT("SimCruisePlaceOffline"));
+		return bOffline ? FString(TEXT("http://127.0.0.1:9/")) : Url;
+	}
 
 	const TCHAR* UserAgent = TEXT("SimCruise/2.0 (+https://github.com/simcruisegame/simcruise)");
 
@@ -101,7 +112,7 @@ namespace SimCruisePlaceHub
 	void StorePlan(const FSimCruiseTilePlan& Plan)
 	{
 		FScopeLock Lock(&HubLock);
-		PlanStore().Add(Plan.Tile, Plan);
+		PlanStore().Add(Plan.Tile, MakeShared<const FSimCruiseTilePlan, ESPMode::ThreadSafe>(Plan));
 		// Keep the plans of the tiles around the car only (a tile holds a few hundred buildings).
 		if (PlanStore().Num() > 64)
 		{
@@ -112,11 +123,11 @@ namespace SimCruisePlaceHub
 		}
 	}
 
-	bool FindPlan(const FIntPoint& Tile, FSimCruiseTilePlan& Out)
+	TSharedPtr<const FSimCruiseTilePlan, ESPMode::ThreadSafe> FindPlan(const FIntPoint& Tile)
 	{
 		FScopeLock Lock(&HubLock);
-		if (const FSimCruiseTilePlan* P = PlanStore().Find(Tile)) { Out = *P; return true; }
-		return false;
+		const FPlanRef* P = PlanStore().Find(Tile);
+		return P ? *P : FPlanRef();
 	}
 
 	void ForgetPlan(const FIntPoint& Tile)
@@ -159,6 +170,13 @@ void USimCruisePlaceGraphSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 		R.Rules.Num(), R.LiveRules.Num(), R.Regions.Num(), R.Palettes.Num(), bNetwork ? TEXT("on") : TEXT("off"));
 }
 
+void USimCruisePlaceGraphSubsystem::Deinitialize()
+{
+	// The run's summary: what was baked and fetched, and what the graph cost the game thread.
+	if (GetWorld() && GetWorld()->IsGameWorld() && (Fetched > 0 || AIAreas > 0 || SlowestTickMs > 0.0)) UE_LOG(LogSimCruisePlaceGraph, Display, TEXT("%s"), *Report());
+	Super::Deinitialize();
+}
+
 TStatId USimCruisePlaceGraphSubsystem::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(USimCruisePlaceGraphSubsystem, STATGROUP_Tickables);
@@ -185,6 +203,7 @@ bool USimCruisePlaceGraphSubsystem::ObserverLonLat(double& OutLat, double& OutLo
 void USimCruisePlaceGraphSubsystem::Tick(float DeltaTime)
 {
 	const double Now = FPlatformTime::Seconds();
+	ON_SCOPE_EXIT { SlowestTickMs = FMath::Max(SlowestTickMs, (FPlatformTime::Seconds() - Now) * 1000.0); };
 	if (Now >= NextLive)
 	{
 		NextLive = Now + 5.0;
@@ -200,7 +219,9 @@ void USimCruisePlaceGraphSubsystem::Tick(float DeltaTime)
 	if (Now >= NextCardCheck)
 	{
 		NextCardCheck = Now + 0.5;
+		const double C0 = FPlatformTime::Seconds();
 		UpdateCard(Now);
+		SlowestCardMs = FMath::Max(SlowestCardMs, (FPlatformTime::Seconds() - C0) * 1000.0);
 	}
 	if (bNetwork && !bFetching && Now >= NextFetch)
 	{
@@ -298,9 +319,9 @@ void USimCruisePlaceGraphSubsystem::StartFetch(const FIntPoint& Tile)
 {
 	bFetching = true;
 	FetchTile = Tile;
-	PendingOsm.Reset();
+	PendingOsmBody.Reset();
 	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Req = FHttpModule::Get().CreateRequest();
-	Req->SetURL(SimCruisePlaceFacts::OverpassUrl(OverpassAttempt));
+	Req->SetURL(TestUrl(SimCruisePlaceFacts::OverpassUrl(OverpassAttempt)));
 	Req->SetVerb(TEXT("POST"));
 	Req->SetHeader(TEXT("User-Agent"), UserAgent);
 	Req->SetHeader(TEXT("Content-Type"), TEXT("application/x-www-form-urlencoded"));
@@ -318,17 +339,19 @@ void USimCruisePlaceGraphSubsystem::StartFetch(const FIntPoint& Tile)
 
 void USimCruisePlaceGraphSubsystem::OnOverpass(const FIntPoint& Tile, const FString& Body, bool bOk)
 {
-	FString Error;
-	if (!bOk || !SimCruisePlaceFacts::ParseOverpass(Body, PendingOsm, Error))
+	// Keep the answer as text: Overpass answers run to megabytes, so they are parsed on a
+	// worker thread with the Wikidata answer (OnWikidata), never on the game thread.
+	PendingOsmBody = bOk ? Body : FString();
+	if (!bOk)
 	{
-		// Overpass is busy at times (429/504): try again later, keep going with Wikidata alone.
-		LastError = FString::Printf(TEXT("Overpass %s (%s): %s"), *SimCruiseTileName(Tile), *SimCruisePlaceFacts::OverpassUrl(OverpassAttempt), bOk ? *Error : TEXT("no answer"));
-		++OverpassAttempt; // the next request goes to the next instance
+		// Overpass is busy at times (429/504): the next request goes to the next instance;
+		// keep going with Wikidata alone.
+		LastError = FString::Printf(TEXT("Overpass %s (%s): no answer"), *SimCruiseTileName(Tile), *SimCruisePlaceFacts::OverpassUrl(OverpassAttempt));
+		++OverpassAttempt;
 		UE_LOG(LogSimCruisePlaceGraph, Display, TEXT("%s"), *LastError);
-		PendingOsm.Reset();
 	}
 	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Req = FHttpModule::Get().CreateRequest();
-	Req->SetURL(SimCruisePlaceFacts::WikidataUrl(SimCruisePlaceFacts::WikidataQuery(Tile)));
+	Req->SetURL(TestUrl(SimCruisePlaceFacts::WikidataUrl(SimCruisePlaceFacts::WikidataQuery(Tile))));
 	Req->SetVerb(TEXT("GET"));
 	Req->SetHeader(TEXT("User-Agent"), UserAgent);
 	Req->SetHeader(TEXT("Accept"), TEXT("application/sparql-results+json"));
@@ -347,28 +370,49 @@ void USimCruisePlaceGraphSubsystem::OnOverpass(const FIntPoint& Tile, const FStr
 
 void USimCruisePlaceGraphSubsystem::OnWikidata(const FIntPoint& Tile, const FString& Body, bool bOk)
 {
-	bFetching = false;
 	if (!bOk)
 	{
+		bFetching = false;
+		PendingOsmBody.Reset();
 		Failed.Add(Tile);
 		NextFetch = FPlatformTime::Seconds() + 10.0;
 		return;
 	}
-	TArray<FSimCruisePlaceRecord> Wd;
-	FString Error;
-	if (!Body.IsEmpty() && !SimCruisePlaceFacts::ParseWikidata(Body, Wd, Error))
+	// Parse, merge and save on a worker thread; only the result comes back.
+	FString OsmBody = MoveTemp(PendingOsmBody);
+	PendingOsmBody.Reset();
+	TWeakObjectPtr<USimCruisePlaceGraphSubsystem> Weak(this);
+	Async(EAsyncExecution::ThreadPool, [Weak, Tile, OsmBody = MoveTemp(OsmBody), WdBody = Body]()
 	{
-		LastError = FString::Printf(TEXT("Wikidata %s: %s"), *SimCruiseTileName(Tile), *Error);
-	}
-	TArray<FSimCruisePlaceRecord> All, Useful;
-	SimCruisePlaceFacts::Merge(PendingOsm, Wd, All);
-	for (FSimCruisePlaceRecord& R : All) if (SimCruisePlaceFacts::IsUseful(R)) Useful.Add(MoveTemp(R));
-	SimCruisePlaceFacts::Store(Tile, Useful, FString::Printf(TEXT("overpass:%d wikidata:%d"), PendingOsm.Num(), Wd.Num()));
-	++Fetched;
-	UE_LOG(LogSimCruisePlaceGraph, Display, TEXT("Place facts %s: %d useful records (%d OSM, %d Wikidata)."), *SimCruiseTileName(Tile), Useful.Num(), PendingOsm.Num(), Wd.Num());
-	PendingOsm.Reset();
-	// The Overpass fair-use rule: one request at a time, a pause between them.
-	NextFetch = FPlatformTime::Seconds() + 3.0;
+		TArray<FSimCruisePlaceRecord> Osm, Wd, All, Useful;
+		FString Error, OsmError, WdError;
+		if (!OsmBody.IsEmpty() && !SimCruisePlaceFacts::ParseOverpass(OsmBody, Osm, OsmError)) Osm.Reset();
+		if (!WdBody.IsEmpty() && !SimCruisePlaceFacts::ParseWikidata(WdBody, Wd, WdError)) Wd.Reset();
+		SimCruisePlaceFacts::Merge(Osm, Wd, All);
+		for (FSimCruisePlaceRecord& R : All) if (SimCruisePlaceFacts::IsUseful(R)) Useful.Add(MoveTemp(R));
+		// Both sources answered: saved for good. One missing: kept for this run only, asked again next time.
+		const bool bComplete = !OsmBody.IsEmpty() && OsmError.IsEmpty() && !WdBody.IsEmpty() && WdError.IsEmpty();
+		SimCruisePlaceFacts::Store(Tile, Useful, FString::Printf(TEXT("overpass:%d wikidata:%d"), Osm.Num(), Wd.Num()), bComplete);
+		// The street furniture comes in the same Overpass answer.
+		if (!OsmBody.IsEmpty() && OsmError.IsEmpty())
+		{
+			TArray<FSimCruiseFurniture> Furniture;
+			FString FError;
+			if (SimCruiseFurniture::ParseOverpass(OsmBody, Furniture, FError)) SimCruiseFurniture::Store(Tile, Furniture, true);
+		}
+		const FString Line = FString::Printf(TEXT("Place facts %s: %d useful records (%d OSM, %d Wikidata)%s%s."), *SimCruiseTileName(Tile), Useful.Num(), Osm.Num(), Wd.Num(),
+			OsmError.IsEmpty() ? TEXT("") : *(TEXT("; ") + OsmError), WdError.IsEmpty() ? TEXT("") : *(TEXT("; ") + WdError));
+		AsyncTask(ENamedThreads::GameThread, [Weak, Line]()
+		{
+			if (!Weak.IsValid()) return;
+			USimCruisePlaceGraphSubsystem& S = *Weak;
+			S.bFetching = false;
+			++S.Fetched;
+			UE_LOG(LogSimCruisePlaceGraph, Display, TEXT("%s"), *Line);
+			// The Overpass fair-use rule: one request at a time, a pause between them.
+			S.NextFetch = FPlatformTime::Seconds() + 3.0;
+		});
+	});
 }
 
 FString USimCruisePlaceGraphSubsystem::Report() const
@@ -378,13 +422,14 @@ FString USimCruisePlaceGraphSubsystem::Report() const
 	double Ms = 0.0;
 	for (const auto& KV : PlanStore())
 	{
-		Buildings += KV.Value.Buildings.Num();
-		Matched += KV.Value.Matched;
-		Records += KV.Value.Records;
-		Ms = FMath::Max(Ms, KV.Value.BakeMs);
+		Buildings += KV.Value->Buildings.Num();
+		Matched += KV.Value->Matched;
+		Records += KV.Value->Records;
+		Ms = FMath::Max(Ms, KV.Value->BakeMs);
 	}
-	return FString::Printf(TEXT("Place graph: %d tiles baked, %d buildings, %d with their own open data (%d records), slowest bake %.2f ms; %d tiles fetched%s%s; %d live facts."),
-		PlanStore().Num(), Buildings, Matched, Records, Ms, Fetched, LastError.IsEmpty() ? TEXT("") : TEXT(", last error: "), *LastError, LiveStore().Facts.Num());
+	return FString::Printf(TEXT("Place graph: %d tiles baked, %d buildings, %d with their own open data (%d records), slowest bake %.2f ms (worker); %d tiles fetched, %d areas read by the AI%s%s; %d live facts; game thread: slowest tick %.2f ms, slowest card check %.2f ms."),
+		PlanStore().Num(), Buildings, Matched, Records, Ms, Fetched, AIAreas, LastError.IsEmpty() ? TEXT("") : TEXT(", last error: "), *LastError, LiveStore().Facts.Num(),
+		SlowestTickMs, SlowestCardMs);
 }
 
 FString USimCruisePlaceGraphSubsystem::Explain(int32 Count) const
@@ -393,8 +438,9 @@ FString USimCruisePlaceGraphSubsystem::Explain(int32 Count) const
 	if (!ObserverLonLat(Lat, Lon)) return TEXT("Place graph: no world yet.");
 	const FVector2d T = SimCruiseGeo::LonLatToTile(Lon, Lat);
 	const FIntPoint Tile(FMath::FloorToInt(T.X), FMath::FloorToInt(T.Y));
-	FSimCruiseTilePlan Plan;
-	if (!SimCruisePlaceHub::FindPlan(Tile, Plan)) return FString::Printf(TEXT("Place graph: tile %s has no plan yet."), *SimCruiseTileName(Tile));
+	const TSharedPtr<const FSimCruiseTilePlan, ESPMode::ThreadSafe> PlanRef = SimCruisePlaceHub::FindPlan(Tile);
+	if (!PlanRef.IsValid()) return FString::Printf(TEXT("Place graph: tile %s has no plan yet."), *SimCruiseTileName(Tile));
+	const FSimCruiseTilePlan& Plan = *PlanRef;
 	const double Side = SimCruiseGeo::TileSizeMetres(Lat);
 	const FVector2d Here = (T - FVector2d(Tile.X, Tile.Y)) * Side;
 	TArray<const FSimCruiseBuildingPlan*> Near;
@@ -495,8 +541,9 @@ void USimCruisePlaceGraphSubsystem::UpdateCard(double Now)
 	if (!ObserverLonLat(Lat, Lon)) return;
 	const FVector2d T = SimCruiseGeo::LonLatToTile(Lon, Lat);
 	const FIntPoint Tile(FMath::FloorToInt(T.X), FMath::FloorToInt(T.Y));
-	FSimCruiseTilePlan Plan;
-	if (!SimCruisePlaceHub::FindPlan(Tile, Plan)) return;
+	const TSharedPtr<const FSimCruiseTilePlan, ESPMode::ThreadSafe> PlanRef = SimCruisePlaceHub::FindPlan(Tile);
+	if (!PlanRef.IsValid()) return;
+	const FSimCruiseTilePlan& Plan = *PlanRef;
 	const FVector2d Here = (T - FVector2d(Tile.X, Tile.Y)) * SimCruiseGeo::TileSizeMetres(Lat);
 	const FSimCruiseBuildingPlan* Best = nullptr;
 	double BestD = CardRangeM;
@@ -541,7 +588,7 @@ namespace
 	void AIRequest(TWeakObjectPtr<USimCruisePlaceGraphSubsystem> Weak, const FString& Url, const FString& Verb, const FString& Body, float Timeout, FAIThen Then)
 	{
 		const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Req = FHttpModule::Get().CreateRequest();
-		Req->SetURL(Url);
+		Req->SetURL(TestUrl(Url));
 		Req->SetVerb(Verb);
 		Req->SetHeader(TEXT("User-Agent"), UserAgent);
 		if (!Body.IsEmpty())

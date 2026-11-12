@@ -200,6 +200,12 @@
     { "if": ["poi:fuel"], "then": { "detail:canopy": 0.9, "detail:price_sign": 0.9 } },
     { "if": ["poi:school"], "then": { "palette:institutional_brick": 0.6 } },
 
+    { "if": ["region:florida"], "then": { "hydrant:#E2B41E": 0.8, "hydrant_cap:#D8D8D2": 0.6 },
+      "why": "South Florida utilities paint hydrant barrels chrome yellow (Miami-Dade Water and Sewer)." },
+    { "if": ["region:northeast"], "then": { "hydrant:#B8261F": 0.5 } },
+    { "if": ["region:midwest"], "then": { "hydrant:#B8261F": 0.5 } },
+    { "if": ["region:california"], "then": { "hydrant:#D9B92A": 0.5 } },
+    { "if": ["district:art_deco"], "then": { "bench:#8C6A48": 0.6, "street_metal:#2E3A36": 0.6, "bin:#2A3F33": 0.5 } },
     { "if": ["era:before_1945"], "then": { "detail:wear": 0.35 } },
     { "if": ["era:1945_1975"], "then": { "detail:wear": 0.3 } },
     { "if": ["era:after_1975"], "then": { "detail:wear": 0.15 } },

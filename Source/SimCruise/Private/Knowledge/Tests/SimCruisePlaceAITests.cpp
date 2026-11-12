@@ -153,3 +153,35 @@ bool FSimCruisePlacePhotoTest::RunTest(const FString&)
 	return true;
 }
 #endif
+
+#if WITH_DEV_AUTOMATION_TESTS
+#include "Knowledge/SimCruiseFurnitureData.h"
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseFurnitureDataTest, "SimCruise.Knowledge.StreetFurniture", SimCruisePlaceAITests::Flags)
+bool FSimCruiseFurnitureDataTest::RunTest(const FString&)
+{
+	// Recorded 2026-11-12 (shortened): Overpass furniture nodes on Ocean Drive, and a building way.
+	const TCHAR* Json = TEXT(R"json({"elements":[
+		{"type":"node","id":1,"lat":25.7801,"lon":-80.1301,"tags":{"amenity":"bench","backrest":"yes"}},
+		{"type":"node","id":2,"lat":25.7802,"lon":-80.1302,"tags":{"emergency":"fire_hydrant","fire_hydrant:type":"pillar","colour":"yellow"}},
+		{"type":"node","id":3,"lat":25.7803,"lon":-80.1303,"tags":{"emergency":"fire_hydrant","fire_hydrant:type":"underground"}},
+		{"type":"node","id":4,"lat":25.7804,"lon":-80.1304,"tags":{"highway":"bus_stop","shelter":"yes","bench":"yes","name":"Ocean Dr & 10 St"}},
+		{"type":"node","id":5,"lat":25.7805,"lon":-80.1305,"tags":{"amenity":"cafe","name":"News Cafe"}},
+		{"type":"way","id":6,"center":{"lat":25.78,"lon":-80.13},"tags":{"building":"yes"}}]})json");
+	TArray<FSimCruiseFurniture> Items;
+	FString Error;
+	TestTrue(TEXT("parses"), SimCruiseFurniture::ParseOverpass(Json, Items, Error));
+	TestEqual(TEXT("bench, pillar hydrant, bus stop (not the underground hydrant, the cafe or the building)"), Items.Num(), 3);
+	if (Items.Num() == 3)
+	{
+		TestEqual(TEXT("bench"), Items[0].Kind, FName(TEXT("bench")));
+		TestEqual(TEXT("hydrant colour"), Items[1].Colour, FString(TEXT("yellow")));
+		TestTrue(TEXT("shelter and bench"), Items[2].bShelter && Items[2].bBench);
+	}
+	TArray<FSimCruiseFurniture> Back;
+	TestTrue(TEXT("round trip"), SimCruiseFurniture::FromJson(SimCruiseFurniture::ToJson(FIntPoint(1, 2), Items), Back) && Back.Num() == Items.Num());
+	TestTrue(TEXT("kept to 1 cm"), Back.Num() == 3 && FMath::Abs(Back[1].Lat - 25.7802) < 1e-6 && Back[2].bShelter);
+	TestTrue(TEXT("the Overpass lines ask for hydrants"), SimCruiseFurniture::OverpassLines(TEXT("(1,2,3,4)")).Contains(TEXT("fire_hydrant")));
+	return true;
+}
+#endif

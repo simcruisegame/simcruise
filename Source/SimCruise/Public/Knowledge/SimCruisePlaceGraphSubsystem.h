@@ -42,6 +42,7 @@ class SIMCRUISE_API USimCruisePlaceGraphSubsystem : public UTickableWorldSubsyst
 public:
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
+	virtual void Deinitialize() override;
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
 
@@ -75,7 +76,9 @@ private:
 	double NextFetch = 0.0;
 	bool bFetching = false;
 	FIntPoint FetchTile = FIntPoint::ZeroValue;
-	TArray<FSimCruisePlaceRecord> PendingOsm;
+	FString PendingOsmBody;
+	double SlowestTickMs = 0.0;
+	double SlowestCardMs = 0.0;
 	TSet<FIntPoint> Failed;
 	int32 Fetched = 0;
 	int32 OverpassAttempt = 0;
@@ -107,7 +110,8 @@ namespace SimCruisePlaceHub
 	SIMCRUISE_API FSimCruiseFactSet Live();
 
 	SIMCRUISE_API void StorePlan(const FSimCruiseTilePlan& Plan);
-	SIMCRUISE_API bool FindPlan(const FIntPoint& Tile, FSimCruiseTilePlan& Out);
+	/** The tile's plan, shared (no copy: the game thread reads it every half second). Null when none. */
+	SIMCRUISE_API TSharedPtr<const FSimCruiseTilePlan, ESPMode::ThreadSafe> FindPlan(const FIntPoint& Tile);
 	SIMCRUISE_API void ForgetPlan(const FIntPoint& Tile);
 
 	/**

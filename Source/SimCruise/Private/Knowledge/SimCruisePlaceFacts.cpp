@@ -2,6 +2,8 @@
 
 #include "Knowledge/SimCruisePlaceFacts.h"
 
+#include "Knowledge/SimCruiseFurnitureData.h"
+
 #include "Knowledge/SimCruisePlacePhotos.h"
 
 #include "Dom/JsonObject.h"
@@ -70,8 +72,8 @@ namespace SimCruisePlaceFacts
 		double S, W, N, E;
 		Bounds(Tile, S, W, N, E);
 		const FString B = FString::Printf(TEXT("(%.6f,%.6f,%.6f,%.6f)"), S, W, N, E);
-		return FString::Printf(TEXT("[out:json][timeout:25];(way[\"building\"]%s;relation[\"building\"]%s;node[\"wikidata\"]%s;node[\"building:architecture\"]%s;way[\"historic\"=\"district\"]%s;relation[\"historic\"=\"district\"]%s;);out tags center 3000;"),
-			*B, *B, *B, *B, *B, *B);
+		return FString::Printf(TEXT("[out:json][timeout:25];(way[\"building\"]%s;relation[\"building\"]%s;node[\"wikidata\"]%s;node[\"building:architecture\"]%s;way[\"historic\"=\"district\"]%s;relation[\"historic\"=\"district\"]%s;%s);out tags center 5000;"),
+			*B, *B, *B, *B, *B, *B, *SimCruiseFurniture::OverpassLines(B));
 	}
 
 	FString WikidataQuery(const FIntPoint& Tile)
@@ -376,9 +378,9 @@ namespace SimCruisePlaceFacts
 		return false;
 	}
 
-	void Store(const FIntPoint& Tile, const TArray<FSimCruisePlaceRecord>& Records, const FString& Sources)
+	void Store(const FIntPoint& Tile, const TArray<FSimCruisePlaceRecord>& Records, const FString& Sources, bool bSave)
 	{
-		FFileHelper::SaveStringToFile(ToJson(Tile, Records, Sources), *CachePath(Tile), FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+		if (bSave) FFileHelper::SaveStringToFile(ToJson(Tile, Records, Sources), *CachePath(Tile), FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 		FScopeLock Lock(&CacheLock);
 		Cache().Add(Tile, Records);
 	}

@@ -52,7 +52,8 @@ namespace SimCruisePlaceFacts
 	/** The tile's records from the bundle or the cache (thread-safe, kept in memory). False when none is saved yet. */
 	SIMCRUISE_API bool ForTile(const FIntPoint& Tile, TArray<FSimCruisePlaceRecord>& Out);
 	/** Saves fetched records to the cache and makes them the tile's records. */
-	SIMCRUISE_API void Store(const FIntPoint& Tile, const TArray<FSimCruisePlaceRecord>& Records, const FString& Sources);
+	/** bSave false: for this run only (a partial answer, e.g. Overpass was busy), so the next run asks again. */
+	SIMCRUISE_API void Store(const FIntPoint& Tile, const TArray<FSimCruisePlaceRecord>& Records, const FString& Sources, bool bSave = true);
 	/** True when the tile has a saved answer (even an empty one). */
 	SIMCRUISE_API bool IsKnown(const FIntPoint& Tile);
 }

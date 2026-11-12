@@ -7,6 +7,7 @@
 #include "StaticMeshResources.h"
 #include "World/SimCruiseGeo.h"
 #include "World/SimCruiseTileData.h"
+#include "World/SimCruiseStreetFurniture.h"
 #include "World/SimCruiseTileDetail.h"
 
 namespace
@@ -901,6 +902,7 @@ namespace SimCruiseTileBuilder
 			SimCruiseTileDetail::BuildPalms(Context);
 			SimCruiseTileDetail::BuildStreetLights(Context);
 			SimCruiseTileDetail::BuildPromenades(Context);
+			SimCruiseStreetFurniture::Build(Context);
 		}
 
 		// ---------------------------------------------------------------- markings
