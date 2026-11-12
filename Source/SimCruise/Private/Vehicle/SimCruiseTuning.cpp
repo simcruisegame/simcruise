@@ -83,6 +83,7 @@ FSimCruiseCarDefinition FSimCruiseTuning::Apply(const FSimCruiseCarDefinition& R
 	// collision box and centre of mass keep their places in the body.
 	const double Offset = RideHeightMm / 1000.0;
 	Car.SuspensionMountHeightM -= Offset;
+	Car.RideHeightOffsetM += Offset;
 	return Car;
 }
 
@@ -99,7 +100,8 @@ double FSimCruiseTuning::RollGradientDegPerG(const FSimCruiseCarDefinition& Car)
 		RollStiffness += Track * Track * (0.5 * Spring + Bar);
 	}
 	const double Weight = Car.MassKg * SimCruiseDynamics::GravityMps2;
-	const double Arm = Car.CenterOfGravityHeightM;
+	// The centre of mass over the road moves with the ride height.
+	const double Arm = FMath::Max(0.05, Car.CenterOfGravityHeightM + Car.RideHeightOffsetM);
 	const double Net = RollStiffness - Weight * Arm;
 	return Net > 1.0 ? FMath::RadiansToDegrees(Weight * Arm / Net) : 99.0;
 }

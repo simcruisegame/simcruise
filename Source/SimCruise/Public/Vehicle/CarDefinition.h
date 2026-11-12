@@ -55,6 +55,8 @@ struct FSimCruiseCarDefinition
 	double FrontTrackM = 1.414;
 	double RearTrackM = 1.44;
 	double SuspensionMountHeightM = 0.51;
+	/** How far tuning raised the body over the road, m (negative lowers it); the CG height above stays the stock one in the body. */
+	double RideHeightOffsetM = 0.0;
 	double VisualHubDropM = 0.205;
 	double TireSectionWidthM = 0.195;
 	double TireAspectRatio = 0.50;
@@ -146,6 +148,10 @@ struct FSimCruiseCarDefinition
 	// Brake torque at each wheel.
 	double FrontBrakeTorqueNm = 1150.0;
 	double RearBrakeTorqueNm = 650.0;
+	/** Rear proportioning valve: above this pedal fraction the rear pressure rises at
+	 *  RearBrakeSlopeAboveKnee of the pedal's. 1 / 1 is no valve. */
+	double RearBrakeKneeFraction = 1.0;
+	double RearBrakeSlopeAboveKnee = 1.0;
 	double ParkingBrakeTorqueNm = 900.0;
 
 	// Aerodynamic body drag, Cd multiplied by frontal area.
@@ -166,6 +172,9 @@ struct FSimCruiseCarDefinition
 	double EngineRotationalInertiaKgM2 = 0.18;
 	double EngineFrictionTorqueNm = 10.0;
 	double EngineFrictionTorqueNmPerRpm = 0.002;
+	/** Closed-throttle pumping loss above idle (scaled by 1 - throttle), N m and N m per rpm. */
+	double EnginePumpingTorqueNm = 0.0;
+	double EnginePumpingTorqueNmPerRpm = 0.0;
 	double MinimumAutomaticEngineSpeedRadPerSecond = 78.0;
 	double MaximumEngineSpeedRadPerSecond = 750.0;
 	double StallEngineSpeedRadPerSecond = 35.0;

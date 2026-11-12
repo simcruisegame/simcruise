@@ -158,7 +158,9 @@ bool SSimCruiseTuningMenu::Commit()
 
 void SSimCruiseTuningMenu::Close(bool bSave)
 {
-	Result = bSave ? (Commit() ? ETuningResult::Saved : ETuningResult::SaveFailed) : ETuningResult::Cancelled;
+	// With no car left to tune (it was removed while the menu was open) nothing was applied.
+	Result = !bSave || !Vehicle.IsValid() ? ETuningResult::Cancelled
+		: Commit() ? ETuningResult::Saved : ETuningResult::SaveFailed;
 	OnClose.ExecuteIfBound();
 }
 

@@ -245,6 +245,9 @@ bool FSimCruiseVehicleModelTuningTest::RunTest(const FString& Parameters)
 	Stiff.Clamp(Stock);
 	const FSimCruiseCarDefinition Tuned = Stiff.Apply(Car, Stock);
 	TestTrue(TEXT("stiffer springs and bar roll less"), FSimCruiseTuning::RollGradientDegPerG(Tuned) < RealRoll);
+	FSimCruiseTuning Lower = Stock;
+	Lower.RideHeightMm = -30.0;
+	TestTrue(TEXT("a lower body (lower centre of mass) rolls less"), FSimCruiseTuning::RollGradientDegPerG(Lower.Apply(Car, Stock)) < RealRoll);
 	// The body stands where the suspension holds its static length: mount over the road at
 	// R + static length, the body centre (mount height - box centre) under it.
 	auto BodyOverRoad = [](const FSimCruiseCarDefinition& C)

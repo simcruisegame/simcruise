@@ -26,6 +26,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# powershell -File passes "a,b,c" as one string.
+$Cars = @($Cars | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 $Root = Split-Path -Parent $PSScriptRoot
 $Out = Join-Path $Root 'Saved\DriveTest'
 New-Item -ItemType Directory -Force $Out | Out-Null
