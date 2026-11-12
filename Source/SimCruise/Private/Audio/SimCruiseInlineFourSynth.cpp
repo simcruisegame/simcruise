@@ -93,7 +93,7 @@ void FSimCruiseInlineFourSynth::Render(float* Out, int32 Frames, const FInputs& 
 	const double ExhaustPresence = In.bCabin ? 1.0 : 1.12;
 	// The powertrain cuts torque over the limiter; with the pedal still down the sound
 	// alternates between fuel cut and firing at LimiterHz.
-	const bool bLimiting = Rpm > LimiterRpm && TargetThrottle > .35 && !In.bStalled;
+	const bool bLimiting = Rpm > In.LimiterRpm && TargetThrottle > .35 && !In.bStalled;
 	const double CutSmoothing = 1.0 - FMath::Exp(-1.0 / (SampleRate * .0025));
 	// Overrun pops: likely right after the throttle closes, fading over about 1.2 s.
 	if (TargetOverrun > .25 && Rpm > PopRpm) OverrunAge += static_cast<double>(Frames) / SampleRate;

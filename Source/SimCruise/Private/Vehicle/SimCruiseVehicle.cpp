@@ -458,6 +458,8 @@ void ASimCruiseVehicle::UpdateEngineSound(const FSimCruiseVehicleTelemetry& Tele
 	In.Pedal = Telemetry.SoundThrottle;
 	In.bStalled = Telemetry.bStalled;
 	In.bCabin = bInSeat;
+	// The limiter's stutter at this car's own fuel cut (NB 7250, Mustang 5000, C8 6600 rpm).
+	In.LimiterRpm = VehicleMovement->GetCarDefinition().FuelCutSpeedRpm - 25.0;
 	EngineSound->SetEngineState(In);
 	if (!EngineSound->IsPlaying())
 	{

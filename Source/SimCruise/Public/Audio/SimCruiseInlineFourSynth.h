@@ -22,7 +22,8 @@ class SIMCRUISE_API FSimCruiseInlineFourSynth
 {
 public:
 	static constexpr int32 SampleRate = 22050;
-	static constexpr double LimiterRpm = 6950.0;
+	/** The rev limiter when the inputs give none. */
+	static constexpr double DefaultLimiterRpm = 6950.0;
 	static constexpr double LimiterHz = 14.0;
 	static constexpr double PopRpm = 3000.0;
 
@@ -38,6 +39,8 @@ public:
 		bool bStalled = false;
 		/** The driver's seat (cabin pickup) rather than outside. */
 		bool bCabin = true;
+		/** Engine speed where the powertrain cuts fuel (the car file's fuel_cut_rpm): the limiter's stutter starts here. */
+		double LimiterRpm = DefaultLimiterRpm;
 	};
 
 	FSimCruiseInlineFourSynth();
