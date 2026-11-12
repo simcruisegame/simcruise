@@ -503,7 +503,11 @@ namespace SimCruiseTileDetail
 			FLinearColor Wall = bDeco ? Pick(DecoWalls(), H) : (bTower ? Pick(TowerWalls(), H) : Pick(GenericWalls(), H));
 			// A colour mapped on the building wins; else the region's palette for ordinary buildings
 			// (the deco and tower palettes above are matched to Ocean Drive photographs).
-			if (BP && BP->bColourFromData) Wall = BP->Wall;
+			// A colour measured from a photograph is the camera's sRGB of the wall in sun, not its
+			// albedo: a white wall the camera puts at 0.85-0.9 linear is paint of about 0.65-0.7.
+			// Scale it as the Lummus Park comparison did (photo 191 vs game 210 at 0.88), so a
+			// measured white sits under the cap with room for wear, not on it.
+			if (BP && BP->bColourFromData) Wall = BP->Wall * 0.78f;
 			else if (BP && BP->bHasColour && !bDeco && !bTower) Wall = BP->Wall;
 			// Main Street's two- and three-storey blocks are mostly brick (the generic palette's last four).
 			if (bMainStreet && !(BP && BP->bHasColour) && Unit(Hash(H, 24)) < 0.6) Wall = GenericWalls()[12 + Hash(H, 28) % 4];

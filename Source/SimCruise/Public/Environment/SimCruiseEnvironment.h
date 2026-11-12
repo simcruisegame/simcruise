@@ -171,6 +171,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Exposure")
 	float ExposureCompensation = 0.2f;
 
+	/**
+	 * Daylight only (reference EV100 above 11, fading in from 8, so night is untouched): a third
+	 * of a stop darker. Against the Lummus Park photograph at its hour the frame was 13 % too
+	 * bright on average with the shadows lifted (luma mean 127 vs 115, p10 66 vs 40, p99 210 vs
+	 * 200); at -0.3 it reads mean 113, p99 200 (the owner found the game too bright, 2026-11-12).
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Exposure")
+	float DaylightCompensation = -0.3f;
+
 	/** Colour saturation of the camera rendering in daylight (1 = neutral); night desaturation multiplies it. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Exposure")
 	float CameraSaturation = 1.0f;
