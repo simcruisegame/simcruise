@@ -97,7 +97,10 @@ private:
 	 */
 	bool TakeRequestSlot(const FString& Url);
 
-	/** Puts the road water (the environment's, or WetOverride) on every asphalt material ("Wet"). */
+	/**
+	 * Every 3 s: the road water (the environment's, or WetOverride) on every asphalt material
+	 * ("Wet"), and the tide and waves on every sea material ("SeaLevelCm", "WaveScale", "WaveDir").
+	 */
 	void ApplyRoadWater();
 	double NextRoadWaterAt = 0.0;
 	float AppliedRoadWater = -1.0f;

@@ -190,6 +190,10 @@ return VC.rgb * keep;
 		const TCHAR* WaterCode = TEXT(R"HLSL(
 float2 p = LP.xy * 0.01 + Anchor.xy;
 float2 grad = float2(0.0, 0.0);
+// The live sea (Live/SimCruiseLiveWorldSubsystem): the swell runs along WaveDir and its
+// slopes grow with the measured wave height (WaveScale 1 = the 0.3 m of a calm Miami day).
+float2 wd = normalize(WaveDir.xy + float2(1e-4, 0.0));
+float2x2 turn = float2x2(wd.x, -wd.y, wd.y, wd.x);
 const float2 D[6] = { float2(0.91, 0.41), float2(0.6, -0.8), float2(-0.3, 0.95), float2(0.99, -0.12), float2(-0.7, -0.71), float2(0.2, 0.98) };
 const float L[6] = { 9.0, 5.3, 3.1, 1.7, 1.1, 0.63 };
 const float A[6] = { 0.05, 0.03, 0.017, 0.009, 0.005, 0.003 };
@@ -197,8 +201,9 @@ for (int i = 0; i < 6; i++)
 {
 	float k = 6.2831853 / L[i];
 	float w = sqrt(9.81 * k);
-	float ph = dot(D[i], p) * k - w * Time;
-	grad += D[i] * (A[i] * k * cos(ph));
+	float2 d = mul(turn, D[i]);
+	float ph = dot(d, p) * k - w * Time;
+	grad += d * (A[i] * WaveScale * k * cos(ph));
 }
 Nrm = normalize(float3(-grad.x, -grad.y, 1.0));
 Roughness = 0.04;
@@ -613,6 +618,21 @@ return col;
 		{
 			Custom->Code = WaterCode;
 			AddInput(Custom, TEXT("Time"), AddExpression<UMaterialExpressionTime>(Material));
+			AddInput(Custom, TEXT("WaveScale"), ScalarParam(Material, TEXT("WaveScale"), 1.f));
+			AddInput(Custom, TEXT("WaveDir"), VectorParam(Material, TEXT("WaveDir"), FLinearColor(1.f, 0.f, 0.f, 0.f)));
+			{
+				// The live tide lifts the open sea (the surface built at mean sea level, about
+				// -10 cm in the map's NAVD88 heights), not lakes and pools.
+				UMaterialExpressionCustom* Tide = AddExpression<UMaterialExpressionCustom>(Material);
+				Tide->OutputType = CMOT_Float3;
+				Tide->Inputs.Reset();
+				Tide->Description = TEXT("SimCruise tide");
+				Tide->Code = TEXT("return float3(0.0, 0.0, abs(LP.z + 10.0) < 8.0 ? SeaLevelCm : 0.0);");
+				AddInput(Tide, TEXT("LP"), AddExpression<UMaterialExpressionLocalPosition>(Material));
+				AddInput(Tide, TEXT("SeaLevelCm"), ScalarParam(Material, TEXT("SeaLevelCm"), 0.f));
+				Tide->RebuildOutputs();
+				Material->GetEditorOnlyData()->WorldPositionOffset.Connect(0, Tide);
+			}
 			UMaterialExpressionConstant* Specular = AddExpression<UMaterialExpressionConstant>(Material);
 			Specular->R = 0.25f; // F0 ~ 0.02, water
 			Material->GetEditorOnlyData()->Specular.Connect(0, Specular);

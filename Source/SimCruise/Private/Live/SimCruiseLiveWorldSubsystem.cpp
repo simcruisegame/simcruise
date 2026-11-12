@@ -459,7 +459,7 @@ void USimCruiseLiveWorldSubsystem::ApplyRoadWater()
 	{
 		return;
 	}
-	NextRoadWaterAt = Clock + 2.0;
+	NextRoadWaterAt = Clock + 3.0;
 	const USimCruiseEnvironmentSubsystem* EnvSubsystem = USimCruiseEnvironmentSubsystem::Get(GetWorld());
 	const ASimCruiseEnvironment* Env = EnvSubsystem ? EnvSubsystem->GetEnvironment() : nullptr;
 	USimCruiseWorldSubsystem* WorldSubsystem = GetWorld()->GetSubsystem<USimCruiseWorldSubsystem>();
@@ -469,17 +469,30 @@ void USimCruiseLiveWorldSubsystem::ApplyRoadWater()
 		return;
 	}
 	const float Water = WetOverride >= 0.0f ? WetOverride : Env->GetRoadWetness();
-	// New tiles start dry: set every asphalt material each round while the road is wet.
-	if (Water < 0.005f && AppliedRoadWater >= 0.0f && AppliedRoadWater < 0.005f)
-	{
-		return;
-	}
 	const UMaterialInterface* Asphalt = Streamer->Resources->GetLayerMaterial(ESimCruiseTileLayer::Asphalt);
+	const UMaterialInterface* SeaMaterial = Streamer->Resources->GetLayerMaterial(ESimCruiseTileLayer::Water);
+	// The sea: the observed tide (else the modelled sea level) lifts the open water, and the
+	// measured waves set the swell's slope and the way it runs (toward = from + 180 degrees;
+	// the map has +X east and +Y south).
+	const float SeaLevelCm = !Sea.bValid ? 0.0f : (Sea.bTideObserved ? Sea.TideM : Sea.SeaLevelM) * 100.0f;
+	const float WaveScale = Sea.bValid ? FMath::Clamp(Sea.WaveHeightM / 0.3f, 0.3f, 5.0f) : 1.0f;
+	const float Toward = FMath::DegreesToRadians(Sea.WaveFromDeg + 180.0f);
+	const FLinearColor WaveDir(FMath::Sin(Toward), -FMath::Cos(Toward), 0.0f, 0.0f);
 	for (TObjectIterator<UMaterialInstanceDynamic> It; It; ++It)
 	{
-		if (It->Parent == Asphalt && It->GetWorld() == GetWorld())
+		if (It->GetWorld() != GetWorld())
+		{
+			continue;
+		}
+		if (It->Parent == Asphalt)
 		{
 			It->SetScalarParameterValue(TEXT("Wet"), Water);
+		}
+		else if (It->Parent == SeaMaterial && Sea.bValid)
+		{
+			It->SetScalarParameterValue(TEXT("SeaLevelCm"), SeaLevelCm);
+			It->SetScalarParameterValue(TEXT("WaveScale"), WaveScale);
+			It->SetVectorParameterValue(TEXT("WaveDir"), WaveDir);
 		}
 	}
 	AppliedRoadWater = Water;
