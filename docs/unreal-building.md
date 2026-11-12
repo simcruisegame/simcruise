@@ -42,6 +42,10 @@ It saves the generated materials, runs `BuildCookRun` for Win64 Development (`-C
 
 For a release: `-Configuration Shipping -Zip` writes `Saved\Package\SimCruise-<ProjectVersion>-windows-x64.zip` (the game at the top, with `LICENSE.txt`, `DATA-SOURCES.md`, `CONTROLS.md`, `licenses/` and a `CREDITS.txt` built from the car profiles; no debug symbols; only the car models a profile uses). `-NoBuild` redoes only the copying and the zip. A Shipping game keeps its logs, settings and captures in `%LOCALAPPDATA%\SimCruise\Saved`. Publish with `gh release create v<version> <zip> --prerelease` while the version is a preview.
 
+### Play-test builds
+
+`scripts\playtest.ps1` makes a play-test build of the latest `main` without touching any other checkout: it fetches `origin`, puts the worktree `D:\sc\playtest` on `origin/main` (`-Ref` builds something else), runs `scripts\package.ps1 -Zip` there under the PC-wide editor lock, starts the packaged game headless with `-SimCruiseShellSelfTest` as a smoke test, and copies the zip to `D:\SimCruise-playtests` (`-OutDir`) as `SimCruise-<version>-<date>-<commit>.zip` with a `-NOTES.txt` beside it: the smoke-test result and the commits since the previous play-test build. It keeps the newest five (`-Keep`) and publishes nothing. Exit code 0 only when the smoke test passed.
+
 ## Automation tests
 
 Tests are Unreal automation tests named `SimCruise.<Area>.<Test>`. Run them headless:
@@ -190,6 +194,8 @@ The defaults live in `Config/DefaultGame.ini` under `[/Script/SimCruise.SimCruis
 ```
 
 Pictures go to `Saved/Screenshots/SimCruise/Drive/` (`-SimCruiseDriveCaptureOut=DIR` changes it), with one `SHOT` line per picture in the log; the whole run takes about a minute. Leave out `-SimCruiseUtc` to photograph the morning start, or add `-SimCruiseRealTime` for the real time of day.
+
+Realism score: `-SimCruiseRealismPose=name,lat,lon,heading,hfov` (several joined with `+`) with `-SimCruiseDriveCapture` photographs the world from each pose instead of driving: the eye 1.65 m above the ground, the compass heading, the horizontal field of view, the player car hidden, as `realism-<name>.png`, then quits. `scripts\realism.ps1` runs it at the pose, time and size of each licensed photograph in `lab/realism/poses.json` and scores the captures with `lab/realism/score.py` (see [lab/realism/README.md](../lab/realism/README.md)).
 
 Console variables: `simcruise.Rumble.Strength` (0..1), `simcruise.Camera.HeadMotion` (0..1), `simcruise.Lens.ScreenHeightCm` and `simcruise.Lens.ViewDistanceCm` for the true-to-screen lens. For look development: `simcruise.Lamps.BeamScale` multiplies the low beams (1 = the real 15 000 cd) and `simcruise.Lamps.Pattern 0` takes their cut-off pattern off; `simcruise.World.ParkedCars 0` leaves the parking stalls empty, `simcruise.Traffic.Cars N` sets the moving traffic (0: none), `simcruise.Mirrors 0` turns the live mirrors off and `simcruise.Mirrors.Interval` sets how often their capture runs (every third frame). They can be given at launch, for example `"-ExecCmds=simcruise.Lamps.BeamScale 6"` with `-SimCruiseDriveCapture`.
 

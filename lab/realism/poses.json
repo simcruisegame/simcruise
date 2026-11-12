@@ -1,0 +1,24 @@
+{
+  "about": "Poses for the realism score. Each is the exact spot of a licensed street photograph. Photos are fetched into Saved/Realism/photos for scoring and are never committed (links only).",
+  "poses": [
+    {
+      "name": "lummus",
+      "lat": 25.7770425,
+      "lon": -80.1309641,
+      "heading": 7,
+      "hfov": 70.8,
+      "utc": "2025-04-24T14:34:52Z",
+      "width": 1600,
+      "height": 720,
+      "world": "bundled",
+      "photo": {
+        "source": "panoramax",
+        "id": "4b6d216b-ae1c-48a8-b2ae-5d9558334f18",
+        "url": "https://panoramax.xyz/#focus=pic&pic=4b6d216b-ae1c-48a8-b2ae-5d9558334f18",
+        "author": "MatthiasMatthias",
+        "licence": "CC BY-SA 4.0"
+      },
+      "notes": "Lummus Park beachwalk and the Ocean Drive frontage. Pose, heading and time from the frame; field of view of the Pixel 8 main camera (6.9 mm). The Godot taste test of 10 November 2026 used the same pose."
+    }
+  ]
+}
