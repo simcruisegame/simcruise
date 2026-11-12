@@ -4,6 +4,7 @@ const HUD=preload("res://Hud.gd")
 const CAR=preload("res://art/miata.glb")
 const WORLD=40075016.686
 const START_POOL=preload("res://StartPool.gd")
+const PARKING=preload("res://StreetParking.gd")
 # Check modes and A/B captures start in the bundled place, offline and the same
 # every run (StartPool.FALLBACK); --random-start (or start_mode) overrides.
 const BUNDLED_START_FLAGS=["--bundled-start","--car-audit","--bethel-facade-ab","--archive-normal-check","--reference","--pad-steering","--capitol-drive-proof","--building-check","--crossfall-drive","--street-check","--us-check","--survey-stops","--seam-check","--landscape-drive","--field-check","--profile-trees","--preference-check","--road-test","--car-turntable"]
@@ -776,15 +777,23 @@ func update_parked():
   var tile=tiles[id];var o=tile_offset(id)
   for car in tile.parked:
    var p=car[0]+o;var dd=p.distance_squared_to(pos)
-   if dd<115*115:nearby.append([dd,p,car[1],car[2]])
+   if dd<115*115:nearby.append([dd,p,car[1],car[2],car[3],car[4]])
  nearby.sort_custom(func(a,b):return a[0]<b[0])
  # Assign fixed variants by coordinate so passing cars do not change model with distance.
+ # A spot is a kerb point and the parking lane's width (StreetParking.gd): only a
+ # car that fits stands there, KERB_GAP off the kerb, wholly in the parking lane.
  var used={}
  for candidate in nearby:
-  var want_pickup=candidate[3]==0
+  var want_pickup=candidate[3]==0;var pick=-1
   for i in traffic.size():
-   if used.has(i) or (i%5==0)!=want_pickup:continue
-   var node=traffic[i];var p=candidate[1];node.position=Vector3(p.x,ground(p)+.015,p.y);node.rotation.y=candidate[2];node.show();node.collision_layer=1;used[i]=true;break
+   if used.has(i) or float(traffic[i].get_meta("width",2.))+PARKING.KERB_GAP>candidate[4]:continue
+   if (i%5==0)==want_pickup:pick=i;break
+   if pick<0:pick=i
+  if pick<0:continue
+  var node=traffic[pick];var p:Vector2=candidate[1]+candidate[5]*(PARKING.KERB_GAP+float(node.get_meta("width",2.))*.5)
+  # Never materialise a parked car on top of the driver (a start or a reset at the kerb).
+  if p.distance_to(pos)<4. and not node.visible:continue
+  node.position=Vector3(p.x,ground(p)+.015,p.y);node.rotation.y=candidate[2];node.show();node.collision_layer=1;used[pick]=true
   if used.size()==traffic.size():break
  for i in traffic.size():
   if not used.has(i):traffic[i].hide();traffic[i].collision_layer=0

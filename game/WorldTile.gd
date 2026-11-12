@@ -2,6 +2,7 @@ extends Node3D
 const LIDAR_ROOF=preload("res://LidarRoof.gd")
 const JUNCTION=preload("res://Junction.gd")
 const HOUSE=preload("res://HouseRecipe.gd")
+const PARKING=preload("res://StreetParking.gd")
 var info:Dictionary
 var side:float
 var batches={}
@@ -968,14 +969,12 @@ func street_details():
     var outeru=vert(u+out*2.05,hu);var outerv=vert(v+out*2.05,hv)
     collision_faces.append_array(PackedVector3Array([curb0,curb1,curb2,curb0,curb2,curb3,curb3,curb2,outerv,curb3,outerv,outeru]))
     quad("walk",vert(u,hu),vert(v,hv),vert(v+out*2.05,hv),vert(u+out*2.05,hu),Vector3.UP,Vector2(3,1))
-   if seg[5]=="minor" or length<36:continue
-   for j in range(16+idx%9,int(length)-10,27+(idx%3)*5):
-    var p=a+t*j+out*(wide-1.05)
-    if occupied(p):continue
-    var own=nearest(p,true);if own.size() and own[2]<wide-1.7:continue
-    var rnd=absi(hash(Vector3i(info.id[0]+idx,info.id[1]+j,signum)))
-    # Detail cars are pooled around the driver. More distant streets use the ground texture.
-    parked.append([p,atan2(t.x,t.y)+(PI if signum<0 and seg[4]==0 else 0),rnd%5])
+ parked=parking_spots()
+# Kerbside spots in the parking lanes (StreetParking.gd): never in a travel
+# lane, a junction or a driveway mouth. Detail cars are pooled around the
+# driver (Drive.gd update_parked); more distant streets use the ground texture.
+func parking_spots()->Array:
+ return PARKING.spots(segments,info.id,occupied,side)
 var parked=[]
 
 func collider(shape):

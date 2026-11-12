@@ -290,7 +290,11 @@ func errand(car: Dictionary) -> void:
  if not s[4] in DELIVERY_ROADS or s[3] != 0:return
  var room: float = life.seg_length(car.seg) - car.s
  if room < 40. or car.stop_at < car.s + room:return
- car.park_at = car.s + rng.randf_range(15., room - 15.)
+ var at: float = car.s + rng.randf_range(15., room - 15.)
+ # Only where the van fits in a parking lane, clear of junctions and driveways
+ # (StreetParking.gd): a pulled-over van never stands in a travel lane.
+ if not life.can_pull_over(car, car.seg, car.dir, at):return
+ car.park_at = at
  car.dwell = rng.randf_range(20., 60.)      # dwell, started on arrival
 
 ## Called by AmbientLife every frame with the traffic step.

@@ -115,6 +115,8 @@ static func shade_and_traffic(game, shade_size:=Vector2(2.14,4.34)) -> void:
    if pool.is_empty():pool=rows
    var row=pool[(i*7+3)%pool.size()]
    look.mesh=row[0];look.transform=row[1]
+   # Footprint for the kerbside fit (Drive.gd update_parked).
+   var bounds:AABB=row[1]*row[0].get_aabb();prop.set_meta("width",bounds.size.x);prop.set_meta("length",bounds.size.z)
   prop.add_child(look);var shade=MeshInstance3D.new();shade.mesh=game.shadow_plane;shade.position.y=.035;shade.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;prop.add_child(shade);var hit=CollisionShape3D.new();var box=BoxShape3D.new();box.size=Vector3(1.68,1.12,4.12);hit.shape=box;hit.position.y=.70;prop.add_child(hit);prop.collision_layer=0;game.add_child(prop);prop.hide();game.traffic.append(prop)
 
 # ---------------------------------------------------------------------------

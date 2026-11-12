@@ -42,7 +42,10 @@ var bird_target := 0
 var cars: Array = []                 # {seg, dir, s, speed, model, pos:Vector3, yaw}
 var parts: Array = []                # per model: [[MultiMesh, Transform3D local], ...]
 var model_bounds: Array = []
-var segs: Array = []                 # world-space [a, b, width, oneway, class]
+var segs: Array = []                 # world-space [a, b, width, oneway, class, street]
+var streets: Array = []              # every tile segment in world space (WorldTile layout)
+var street_grid: Dictionary = {}     # StreetParking.index(streets)
+var street_grid_built := false
 var ends: Dictionary = {}            # Vector2i(round end) -> [[seg index, end 0/1], ...]
 var tile_signature := 0
 var graph_clock := 0.
@@ -51,6 +54,7 @@ var solids: Array = []
 var flocks: Array = []               # {node, center:Vector3, goal:Vector3}
 var bird_material: ShaderMaterial
 const DIRECTOR := preload("res://TrafficDirector.gd")
+const PARKING := preload("res://StreetParking.gd")
 const CAR_LENGTH := 4.6
 var director = DIRECTOR.new()
 var utility_models: Array = []      # model indices for delivery vans (pickups)
@@ -162,7 +166,12 @@ static func merged_mesh(path: String) -> ArrayMesh:
  # ImporterMesh) so a distant 300k-triangle car costs a few thousand.
  var im := ImporterMesh.new()
  for s in merged.get_surface_count():
-  im.add_surface(Mesh.PRIMITIVE_TRIANGLES, merged.surface_get_arrays(s), [], {}, merged.surface_get_material(s))
+  # Custom channels and skinning need format flags ImporterMesh is not given;
+  # a parked or moving car uses neither, so drop them (they made
+  # add_surface fail with "Invalid array format" and the car vanish).
+  var arrays := merged.surface_get_arrays(s)
+  for k in [Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2, Mesh.ARRAY_CUSTOM3, Mesh.ARRAY_BONES, Mesh.ARRAY_WEIGHTS]:arrays[k] = null
+  im.add_surface(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, merged.surface_get_material(s))
  im.generate_lods(25., 60., [])
  var lodded: ArrayMesh = im.get_mesh()
  merged_cache[path] = lodded
@@ -177,21 +186,27 @@ static func relative(root: Node, node: Node) -> Transform3D:
  return t
 
 func rebuild_graph() -> void:
- segs.clear();ends.clear()
+ segs.clear();ends.clear();streets.clear()
  for id in game.tiles:
   var tile = game.tiles[id]
   var o: Vector2 = game.tile_offset(id)
   for seg in tile.segments:
-   if seg.size() < 6 or not str(seg[5]) in DRIVABLE:continue
+   if seg.size() < 6:continue
+   # Every road (minor streets and driveways too) in world space, for the
+   # parking clearances; only the drivable ones join the traffic graph.
+   var street: Array = seg.duplicate();street[0] = seg[0] + o;street[1] = seg[1] + o
+   streets.append(street)
+   if not str(seg[5]) in DRIVABLE:continue
    if seg.size() > 6 and seg[6] == "unpaved":continue
-   var a: Vector2 = seg[0] + o;var b: Vector2 = seg[1] + o
+   var a: Vector2 = street[0];var b: Vector2 = street[1]
    if a.distance_squared_to(b) < 1.:continue
    var k := segs.size()
-   segs.append([a, b, float(seg[3]), int(seg[4]) if seg[4] is int or seg[4] is float else (1 if seg[4] else 0), str(seg[5])])
+   segs.append([a, b, float(seg[3]), int(seg[4]) if seg[4] is int or seg[4] is float else (1 if seg[4] else 0), str(seg[5]), street])
    for e in 2:
     var key := Vector2i(((a if e == 0 else b) / 1.5).round())
     if not ends.has(key):ends[key] = []
     ends[key].append([k, e])
+ street_grid.clear();street_grid_built = false   # indexed when a van first looks for a spot
 
 func signature() -> int:
  var h := 17
@@ -268,12 +283,39 @@ func lane_point(car: Dictionary) -> Array:
  var t := (b - a) / maxf(length, .001)
  var right := Vector2(-t.y, t.x)
  var width: float = s[2]
- # Right-hand traffic: two-way roads keep right of the centre line; one-way
- # roads use the lane right of centre on wide roads, the middle on narrow ones.
- var offset := width * .25 if s[3] == 0 else (width * .2 if width > 7. else 0.)
+ # Right-hand traffic: two-way roads keep to the middle of the right-hand travel
+ # lane (clear of a parking lane, StreetParking.gd); one-way roads use the lane
+ # right of centre on wide roads, the middle on narrow ones.
+ var offset: float = PARKING.lane_offset(width, s[3] != 0, s[4])
  # car.lat moves the car off the lane centre: towards the kerb to pull over,
- # towards the centre line to pass a van that has. [3] is the room to the kerb.
- return [a + t * car.s + right * (offset + car.lat), t, length, maxf(0., width * .5 - offset - 1.1)]
+ # towards the centre line to pass a van that has. [3] is the room to the kerb:
+ # this car's kerb side KERB_GAP from the kerb.
+ return [a + t * car.s + right * (offset + car.lat), t, length, maxf(0., width * .5 - offset - PARKING.KERB_GAP - car_width(car) * .5)]
+
+## Body width of a car's model, metres (model_bounds is the fitted AABB).
+func car_width(car: Dictionary) -> float:
+ var m: int = car.get("model", -1)
+ return model_bounds[m].size.x if m >= 0 and m < model_bounds.size() else 2.
+
+## The tile builder's segment ([a, b, name, width, oneway, class]) behind
+## graph segment k, for StreetParking.gd.
+func street_segment(k: int) -> Array:
+ return segs[k][5]
+
+## Whether a car pulled over at distance at along segment k (driving dir) would
+## stand wholly in a parking lane, clear of every travel lane, junction and
+## driveway mouth (StreetParking.gd). Delivery stops are only made where it would.
+func can_pull_over(car: Dictionary, k: int, dir: int, at: float) -> bool:
+ var w := car_width(car)
+ if PARKING.parking_m(street_segment(k)) < w + PARKING.KERB_GAP:return false
+ var probe := {"seg":k, "dir":dir, "s":at, "lat":0., "model":car.get("model", -1)}
+ probe.lat = lane_point(probe)[3]
+ var lane := lane_point(probe)
+ var m: int = probe.model
+ var length: float = model_bounds[m].size.z if m >= 0 and m < model_bounds.size() else PARKING.SPOT_LENGTH
+ var corners := PARKING.box(lane[0], lane[1], length, w)
+ if not street_grid_built:street_grid = PARKING.index(streets);street_grid_built = true
+ return PARKING.conflict(corners, PARKING.nearby(street_grid, lane[0]), street_segment(k)) == ""
 
 func step_traffic(dt: float) -> void:
  if game.tiles.is_empty():return
