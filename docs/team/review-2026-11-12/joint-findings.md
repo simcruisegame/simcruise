@@ -1,6 +1,6 @@
 # Joint team review: 12 November 2026 (main 4de89c5)
 
-All ten experts reviewed the current game in five pairs. They read the code,
+All eleven experts (lighting-director joined the same day) reviewed the current game in five pairs. They read the code,
 the car data, the tests, the docs and the captures. **Nobody built or ran the
 game for this review.** So every item needs its "verify" step before a fix
 is merged. Items marked (estimate) or (speculation) are not measured.
@@ -39,6 +39,9 @@ names all of them.
 | 23 | P2 | Chase camera yaw is rigid (only position lags), so steering twitches shake the picture | cinematographer | `SimCruiseCameraModels.cpp:194-226` | 0.15-0.3 s critically damped heading spring | Slalom: camera yaw > 2 Hz at least 50 % lower |
 | 24 | P2 | Chase camera jumps in front of palms and parked cars | cinematographer | `SimCruisePlayerCameraManager.cpp:122-129` | Sphere sweep, ignore thin objects, ease out | No > 0.5 m distance change per frame |
 | 25 | P2 | Cockpit shake is new noise each frame: 2x stronger at 30 fps than 120 fps | cinematographer | `SimCruiseCameraModels.cpp:136-137` | Noise on sim time, or from suspension | Shake RMS within 10 % at 30/60/144 fps |
+| 26 | P1 | Night exposure meters lux on a card facing the low beams, not road luminance: road renders ~0.1 cd/m² vs real 0.4-2 cd/m²; 61 % of night pixels at code 0-3 (root cause of the black night in item P2 list) | lighting-director | `SimCruiseVehicle.cpp:214-216`; `SimCruiseDaylightModel.cpp:105-116` | Meter an adaptation luminance (~0.5 cd/m² halogen low beam) | Road probe 0.3-1 cd/m² at 0-32 m; ≤ 25 % pixels at code 0-3 |
+| 27 | P1 | Low-beam pattern attenuated twice (8°/32° cone x light function; 122 m radius halves the beam at 90 m) | lighting-director | `SimCruiseVehicle.cpp:155-171` | Inner cone 30°, outer 32°, radius ~250 m | Pattern x cone ≥ 0.9 at ±20°; ≥ 3 lx at (10 m, 3 m right) |
+| 28 | P1 | Software Lumen sees no streets (tiles have no distance fields), so shade has no warm bounce and paint reflects only the sky | lighting-director | `DefaultEngine.ini:16-20`; `SimCruiseWorldTile.cpp:159` (wrong comment) | Fix the comment; A/B hardware Lumen at 28 W | Shade within 0.5 EV of photo; cost logged |
 
 Other P2 items (details in the role reviews): Torsen bias 2.0 should be ~2.5
 for 2001 and coast bias is missing; C8 front tyre size wrong (uses rear
@@ -57,7 +60,7 @@ spawn in view.
 
 Send items 1, 3, 4-7, 8-10, 12-16 and 18 to "Ship the driving-experience
 release". They are the ones a driver feels. Item 2 needs a 28 W measurement
-first. Items 19-25 are polish: fix them if the release has time.
+first. Items 26-27 (night light) also go to the release thread; item 28 needs a 28 W measurement. Items 19-25 are polish: fix them if the release has time.
 
 ## Questions for the owner
 

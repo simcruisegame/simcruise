@@ -31,6 +31,7 @@ that the team finds go to the release thread through the coordinator.
 | `automotive-engineer` | Real-car numbers for the Miata NB, Corvette C8 and 1965 Mustang: mass, springs, gearing, torque, brakes, diffs, steering. |
 | `magician` | Perception: what the driver notices, how to hide pop-in and LOD swaps, how a cheap world feels detailed. |
 | `cinematographer` | Cameras, lenses, FOV, head motion, exposure, tone map, colour, light, replay shots. |
+| `lighting-director` | Light in physical units (lux, cd, cd/m²), night and street lighting, auto exposure chain, tone range, SDR/HDR output (PQ, paper white, "Dolby style"), Lumen GI/reflection correctness. |
 | `sound-designer` | Engine, tyre, road and wind sound; interior and exterior mix; MetaSounds; loudness. |
 | `ux-accessibility` | Gamepad steering curves, dead zones, haptics, HUD, menus, comfort and accessibility guidelines. |
 | `gis-data-scientist` | Real-world data: OSM, elevation, projections, road geometry, licences and rate limits. |

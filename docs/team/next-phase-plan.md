@@ -27,6 +27,7 @@ texture. Each claim has a measured test.
 | 6 | Camera feel and honest speed | Smoothed chase camera, swept collision, shake from suspension, lens chosen by measurement for the 15.6 in screen, speed-judgement test with speedometer hidden | M | < 5 % speed error with speedometer hidden; 5 of 6 drivers prefer it blind | Personal taste differs | cinematographer + magician |
 | 7 | The magician's streamer | One scheduler hides every swap (tiles, LOD, parked cars, lights) out of view, faded, or behind a masking event; tile install split over frames | M | Pop-in button test: seen swaps < half of today; no streaming frame > 25 ms at 130 km/h | Complexity in streamer | magician + performance-engineer |
 | 8 | Sound that matches recordings | Recorded reference set (owner's Miata; licensed clips only for others), offline match test, mix bus with volume controls, R128 loudness check | M | First 6 engine orders within 3 dB median at 6 points; owner blind A/B 4 of 6; -24±2 LUFS | Licensing of recordings | sound-designer |
+| 7b | Light like a film master ("Dolby style") | Display contract (SDR BT.709 reference), optional HDR10/PQ output with 203-nit paper white and calibration screen, Lumen that sees the street (hardware Lumen or distance-field proxies), night light in real units, photo-match regression | M-L | HDR display: grey card 20-30 nits, white stucco 180-220 nits, paint glints ≥ 600 nits; shade within 0.5 EV of licensed photo; ≤ +1.5 ms at 28 W | Laptop panel may be SDR only; Lumen cost | lighting-director + cinematographer |
 | 9 | Pad controls for everyone | Automatic clutch option, controls page with remapping, sensitivity and dead zones with live readout (XAG 107), readable HUD | S-M | 10/10 stall-free downshifts under braking; XAG 101/102 sizes and contrast | Menu work in Slate/UMG | ux-accessibility |
 
 ## Out of scope for this phase (proposal)
@@ -44,3 +45,4 @@ features stay on hold, as in phase 1, unless the owner moves them in.
 ## Change log
 
 - 2026-11-12: draft 1 from the first team review.
+- 2026-11-12: lighting-director joined (owner request); theme 7b added.
