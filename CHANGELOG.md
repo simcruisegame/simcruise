@@ -4,6 +4,32 @@ Notable changes to SimCruise, newest first. The format follows [Keep a Changelog
 
 ## Unreleased
 
+## SimCruise 2.0.0 (2026-11-12)
+
+The first full release of the Unreal Engine 5.8 client, for Windows: a Windows installer (per-user or all users, Start menu entry, uninstaller) and a portable zip, with SHA-256 checksums. Drive anywhere in the US in a 2001 Miata, a 1965 Mustang, a Corvette C8 and six other cars. The release gate (`docs/release/driving-checklist.md`, results in `docs/release/v2.0.0-report.md`) checked the cars against published road tests, the pad and wheel input, cameras, sound, traffic, crashes, frame rate and input delay on a laptop GPU, starting anywhere, settings, night driving, the cockpit field of view and a 20-minute drive in the Shipping build.
+
+Known issues in 2.0.0:
+
+- The Corvette C8 reaches 60 mph in 3.22 s (with a 1 ft rollout); Car and Driver measured 2.8 s. Its stop and skidpad match.
+- The 1965 Mustang spins in a full-lock launch at 70 % trigger; the open differential should let the inside wheel spin instead.
+- The Tesla Model 3 can spin when it trail-brakes hard at 0.7 g: the game has no stability-control model yet.
+- An offline start was tested with the live feeds blocked (`-SimCruiseLiveOffline`), not with the whole network off.
+- On an unlit rural road at night the low beams light the road to about 45-50 m.
+- Fields in the Great Plains are bright green in November instead of the brown of harvested crops.
+- The tuning menu (D-pad right / F4) was tested by its model test and by loading a saved setup in the Shipping build, not by hand by the release gate.
+
+Release gate fixes:
+
+- **A new pad layout** — the clutch is on A (hold), the parking brake on B (hold), the gears on the bumpers (RB up, LB down), the gearbox switch on the right-stick click, the engine restart on D-pad left and the HUD on X. The clutch was on LB, the same finger as the brake trigger, and hard steering pressed the left stick (the HUD) by accident. D-pad right opens the tuning menu.
+- **Steady head motion and g-meter** (`FSimCruiseHeadModel`, `FSimCruiseGMeter`) — they divided the velocity change by the frame time while the 360 Hz physics gives 5, 6 or 7 new steps in a 60 fps frame, so they jittered by about 17 %. They now use the physics time (`SimCruise.Gameplay.Camera.PhysicsTimeNoJitter`).
+- **No camera swoop after a recover** — the reset happens on the physics thread a frame or more after the request, so the snap came too early; the camera now snaps on the frame the car is seen to jump or turn upright.
+- **Frame pacing** — a 60 fps cap (`simcruise.FrameCap`, 0 for none), and the RTX 2070 Super Max-Q and other Max-Q laptop GPUs start on the Medium preset: in the Shipping build at 1080p, Ocean Drive from the driver's seat ran 57 fps (1 % low 44) on High and 77 fps (1 % low 61) on Medium. NVIDIA Reflex low latency is available (`simcruise.Reflex 1`) but off by default: with it on, the Shipping game hung at exit; it is now turned off before the engine exits.
+- **Crash bench** (`SimCruise.Vehicle.Crash.<car>`) — each release car hits a wall at 60 km/h, a tree at 50 km/h, a guard rail at 80 km/h and a stopped car at 50 km/h: no launch, no tunnelling, no NaN, and the reset drives on.
+- **Release tools** — `-SimCruiseLatencyProbe` (stick to picture), `-SimCruiseSoak=<minutes>` (an unattended drive with crashes, recovers, camera, car and place changes), `scripts\release.ps1` (Shipping package, map helper, installer, checksums and smoke test in one step), `docs/release/RELEASE-CHECKLIST.md` for every release, and the drive robot now drives the Mustang and the Corvette too.
+- **The map helper is built with the package** (`scripts/package.ps1` builds `tools/atlas.exe` from `helper/atlas.mjs` when Bun is installed), so a package never ships an older helper.
+
+Everything else in 2.0.0, since 2.0.0-preview.1:
+
 - **True field of view from the driver's seat** (`SimCruiseLens::TrueHorizontalFovDeg`, road atlas Screen / Eye to screen) — the cockpit view is now, by default, the angle the screen subtends at the eye, from the screen's diagonal and the eye's distance (15.6 in at 60 cm: 32.1° across); Wide and Natural stay on F6 and the atlas. `SimCruise.Gameplay.Lens.TrueFov` checks the geometry.
 - **Night roads are lit** (`ASimCruiseVehicle::NightAdaptationLuminanceCdM2`, low-beam cone and range) — the eye adapted to a grey card facing the lamps (about 2 cd/m2), so the 0.1 cd/m2 road was nearly black; it now adapts to 0.5 cd/m2, inside real lamp-lit asphalt's 0.4-2. The low beam's cone no longer dims it a second time (core 30°, edge 32°: its shape comes from the cut-off pattern) and it reaches 250 m, not 122 m.
 - **The engine's pitch runs to its own limiter** — the synth clamped every engine's pitch at 7200 rpm; it now follows to 200 rpm past the car's fuel cut. `SimCruise.Audio.Limiter` checks each car's stutter.

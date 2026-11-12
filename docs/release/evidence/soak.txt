@@ -1,0 +1,52 @@
+# 20 minute soak, final 2.0.0 Shipping build (commit b7ac2de), 1920x1080 full screen, default settings (Medium, 60 fps cap), no wheel connected
+# SimCruise-Win64-Shipping.exe -SimCruiseSoak=20 -SimCruiseFrameCheck: a normal (random) start, the robot holds about 45 km/h with a slow weave through the real input stack, recovers when stuck 6 s, changes the camera every 45 s, the car every 4 min and travels to the next preset every 6 min. Shipping writes no log; the soak writes Saved/Profiling/SimCruiseSoak.log.
+# Result: exit code 0 after 1208 s (clean exit), 0 non-finite states, no crash.
+
+2026-11-12 11:58:59 SOAK start: 20.0 minutes, travel 1
+2026-11-12 11:59:29 SOAK   30 s: waiting, 0 km/h, 51 fps avg, worst frame 400 ms, 2181 MB used, 0 recoveries, 0 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_aaron
+2026-11-12 11:59:59 SOAK   60 s: driving, -6 km/h, 59 fps avg, worst frame 400 ms, 2434 MB used, 1 recoveries, 1 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_aaron
+2026-11-12 12:00:29 SOAK   90 s: driving, 2 km/h, 60 fps avg, worst frame 48 ms, 2620 MB used, 3 recoveries, 1 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_aaron
+2026-11-12 12:00:59 SOAK  120 s: driving, -0 km/h, 60 fps avg, worst frame 18 ms, 2586 MB used, 5 recoveries, 2 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_aaron
+2026-11-12 12:01:29 SOAK  150 s: driving, 22 km/h, 60 fps avg, worst frame 20 ms, 2582 MB used, 8 recoveries, 3 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_aaron
+2026-11-12 12:01:59 SOAK  180 s: driving, 27 km/h, 60 fps avg, worst frame 19 ms, 2565 MB used, 10 recoveries, 3 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_aaron
+2026-11-12 12:02:29 SOAK  210 s: driving, -0 km/h, 60 fps avg, worst frame 20 ms, 2545 MB used, 12 recoveries, 4 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_aaron
+2026-11-12 12:02:59 SOAK  240 s: driving, 40 km/h, 60 fps avg, worst frame 20 ms, 2546 MB used, 14 recoveries, 5 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_aaron
+2026-11-12 12:03:11 SOAK car -> odyssey18 at 252 s
+2026-11-12 12:03:29 SOAK  270 s: driving, -0 km/h, 60 fps avg, worst frame 20 ms, 2544 MB used, 16 recoveries, 5 camera changes, place Broadway · Lower Broadway, Nashville, TN, car odyssey18
+2026-11-12 12:03:59 SOAK  300 s: driving, 8 km/h, 60 fps avg, worst frame 20 ms, 2549 MB used, 18 recoveries, 6 camera changes, place Broadway · Lower Broadway, Nashville, TN, car odyssey18
+2026-11-12 12:04:29 SOAK  330 s: driving, 24 km/h, 60 fps avg, worst frame 19 ms, 2544 MB used, 20 recoveries, 7 camera changes, place Broadway · Lower Broadway, Nashville, TN, car odyssey18
+2026-11-12 12:04:59 SOAK  360 s: driving, 40 km/h, 60 fps avg, worst frame 20 ms, 2549 MB used, 22 recoveries, 7 camera changes, place Broadway · Lower Broadway, Nashville, TN, car odyssey18
+2026-11-12 12:05:11 SOAK travel -> Monument Valley · US 163, UT at 372 s
+2026-11-12 12:05:29 SOAK  390 s: driving, 60 km/h, 60 fps avg, worst frame 51 ms, 2829 MB used, 23 recoveries, 8 camera changes, place Monument Valley · US 163, UT, car odyssey18
+2026-11-12 12:05:59 SOAK  420 s: driving, 62 km/h, 60 fps avg, worst frame 63 ms, 2948 MB used, 23 recoveries, 8 camera changes, place Monument Valley · US 163, UT, car odyssey18
+2026-11-12 12:06:29 SOAK  450 s: driving, 43 km/h, 60 fps avg, worst frame 33 ms, 2368 MB used, 23 recoveries, 9 camera changes, place Monument Valley · US 163, UT, car odyssey18
+2026-11-12 12:06:59 SOAK  480 s: driving, 42 km/h, 60 fps avg, worst frame 46 ms, 2473 MB used, 23 recoveries, 10 camera changes, place Monument Valley · US 163, UT, car odyssey18
+2026-11-12 12:07:11 SOAK car -> crv25 at 492 s
+2026-11-12 12:07:29 SOAK  510 s: driving, 42 km/h, 60 fps avg, worst frame 32 ms, 2378 MB used, 23 recoveries, 10 camera changes, place Monument Valley · US 163, UT, car crv25
+2026-11-12 12:07:59 SOAK  540 s: driving, 43 km/h, 60 fps avg, worst frame 21 ms, 2460 MB used, 23 recoveries, 11 camera changes, place Monument Valley · US 163, UT, car crv25
+2026-11-12 12:08:29 SOAK  570 s: driving, 42 km/h, 60 fps avg, worst frame 35 ms, 2257 MB used, 23 recoveries, 12 camera changes, place Monument Valley · US 163, UT, car crv25
+2026-11-12 12:08:59 SOAK  600 s: driving, 44 km/h, 60 fps avg, worst frame 28 ms, 2501 MB used, 23 recoveries, 12 camera changes, place Monument Valley · US 163, UT, car crv25
+2026-11-12 12:09:29 SOAK  630 s: driving, 43 km/h, 60 fps avg, worst frame 18 ms, 2357 MB used, 23 recoveries, 13 camera changes, place Monument Valley · US 163, UT, car crv25
+2026-11-12 12:09:59 SOAK  660 s: driving, 43 km/h, 60 fps avg, worst frame 20 ms, 2385 MB used, 23 recoveries, 14 camera changes, place Monument Valley · US 163, UT, car crv25
+2026-11-12 12:10:29 SOAK  690 s: driving, 40 km/h, 60 fps avg, worst frame 19 ms, 2367 MB used, 23 recoveries, 14 camera changes, place Monument Valley · US 163, UT, car crv25
+2026-11-12 12:10:59 SOAK  720 s: driving, 63 km/h, 60 fps avg, worst frame 20 ms, 2455 MB used, 23 recoveries, 15 camera changes, place Monument Valley · US 163, UT, car crv25
+2026-11-12 12:11:11 SOAK travel -> Capitol Avenue · Cheyenne, WY at 732 s
+2026-11-12 12:11:29 SOAK  750 s: waiting, 0 km/h, 60 fps avg, worst frame 36 ms, 2230 MB used, 23 recoveries, 15 camera changes, place Capitol Avenue · Cheyenne, WY, car crv25
+2026-11-12 12:11:46 SOAK car -> f150raptor18 at 767 s
+2026-11-12 12:11:59 SOAK  780 s: driving, 0 km/h, 60 fps avg, worst frame 28 ms, 2501 MB used, 23 recoveries, 16 camera changes, place Capitol Avenue · Cheyenne, WY, car f150raptor18
+2026-11-12 12:12:29 SOAK  810 s: driving, 39 km/h, 60 fps avg, worst frame 43 ms, 2449 MB used, 26 recoveries, 16 camera changes, place Capitol Avenue · Cheyenne, WY, car f150raptor18
+2026-11-12 12:12:59 SOAK  840 s: driving, -4 km/h, 60 fps avg, worst frame 21 ms, 2451 MB used, 28 recoveries, 17 camera changes, place Capitol Avenue · Cheyenne, WY, car f150raptor18
+2026-11-12 12:13:29 SOAK  870 s: driving, 44 km/h, 60 fps avg, worst frame 21 ms, 2449 MB used, 30 recoveries, 18 camera changes, place Capitol Avenue · Cheyenne, WY, car f150raptor18
+2026-11-12 12:13:59 SOAK  900 s: driving, 3 km/h, 60 fps avg, worst frame 20 ms, 2453 MB used, 31 recoveries, 18 camera changes, place Capitol Avenue · Cheyenne, WY, car f150raptor18
+2026-11-12 12:14:29 SOAK  930 s: driving, 0 km/h, 60 fps avg, worst frame 29 ms, 2591 MB used, 33 recoveries, 19 camera changes, place Capitol Avenue · Cheyenne, WY, car f150raptor18
+2026-11-12 12:14:59 SOAK  960 s: driving, 24 km/h, 60 fps avg, worst frame 20 ms, 2594 MB used, 35 recoveries, 20 camera changes, place Capitol Avenue · Cheyenne, WY, car f150raptor18
+2026-11-12 12:15:29 SOAK  990 s: driving, 36 km/h, 60 fps avg, worst frame 18 ms, 2588 MB used, 37 recoveries, 20 camera changes, place Capitol Avenue · Cheyenne, WY, car f150raptor18
+2026-11-12 12:15:46 SOAK car -> grandcherokee13 at 1007 s
+2026-11-12 12:15:59 SOAK 1020 s: driving, 43 km/h, 60 fps avg, worst frame 20 ms, 2592 MB used, 39 recoveries, 21 camera changes, place Capitol Avenue · Cheyenne, WY, car grandcherokee13
+2026-11-12 12:16:29 SOAK 1050 s: driving, 0 km/h, 60 fps avg, worst frame 20 ms, 2594 MB used, 41 recoveries, 22 camera changes, place Capitol Avenue · Cheyenne, WY, car grandcherokee13
+2026-11-12 12:16:59 SOAK 1080 s: driving, 0 km/h, 60 fps avg, worst frame 19 ms, 2594 MB used, 44 recoveries, 22 camera changes, place Capitol Avenue · Cheyenne, WY, car grandcherokee13
+2026-11-12 12:17:11 SOAK travel -> Clay Center · Charleston, WV at 1092 s
+2026-11-12 12:17:29 SOAK 1110 s: waiting, 0 km/h, 60 fps avg, worst frame 40 ms, 2094 MB used, 45 recoveries, 23 camera changes, place Clay Center · Charleston, WV, car grandcherokee13
+2026-11-12 12:17:59 SOAK 1140 s: driving, 0 km/h, 59 fps avg, worst frame 38 ms, 2498 MB used, 45 recoveries, 24 camera changes, place Clay Center · Charleston, WV, car grandcherokee13
+2026-11-12 12:18:29 SOAK 1170 s: driving, -9 km/h, 60 fps avg, worst frame 55 ms, 2438 MB used, 47 recoveries, 24 camera changes, place Clay Center · Charleston, WV, car grandcherokee13
+2026-11-12 12:18:59 SOAK DONE: 20.0 minutes, drove 1, 48 recoveries, 25 camera changes, 4 car changes, 3 travels, 0 non-finite states, peak 3043 MB used
