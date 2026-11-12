@@ -1,7 +1,7 @@
 {
 	"tile": "18178_27909",
-	"fetched": "2026-11-12T02:15:21.166Z",
-	"sources": "overpass:47 wikidata:6",
+	"fetched": "2026-11-12T07:01:45.265Z",
+	"sources": "overpass:47 wikidata:6 photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -186,6 +186,7 @@
 			],
 			"year": 1925,
 			"architect": "Samuel Dana Butterworth",
+			"image": "Miami Beach - The Floridian.jpg",
 			"building": "hotel"
 		},
 		{
@@ -193,7 +194,8 @@
 			"lon": -80.141372000000004,
 			"name": "Miami Beach Aquarium",
 			"wikidata": "Q126919382",
-			"year": 1921
+			"year": 1921,
+			"image": "Miami Beach - The Aquarium 01.jpg"
 		},
 		{
 			"lat": 25.775911000000001,
@@ -201,6 +203,7 @@
 			"name": "Southern Hotel",
 			"wikidata": "Q136387843",
 			"year": 1920,
+			"image": "Miami Beach - Southern Hotel.jpg",
 			"building": "hotel"
 		}
 	]

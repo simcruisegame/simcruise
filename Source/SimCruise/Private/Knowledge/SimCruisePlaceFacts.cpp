@@ -2,6 +2,8 @@
 
 #include "Knowledge/SimCruisePlaceFacts.h"
 
+#include "Knowledge/SimCruisePlacePhotos.h"
+
 #include "Dom/JsonObject.h"
 #include "GenericPlatform/GenericPlatformHttp.h"
 #include "HAL/FileManager.h"
@@ -79,10 +81,10 @@ namespace SimCruisePlaceFacts
 		const double Lat = 0.5 * (S + N), Lon = 0.5 * (W + E);
 		const double RadiusKm = 0.5 * SimCruiseGeo::TileSizeMetres(Lat) * 1.42 / 1000.0;
 		return FString::Printf(TEXT(
-			"SELECT ?item ?itemLabel ?loc ?styleLabel ?inception ?architectLabel ?heritageLabel ?materialLabel ?typeLabel WHERE { "
+			"SELECT ?item ?itemLabel ?loc ?styleLabel ?inception ?architectLabel ?heritageLabel ?materialLabel ?typeLabel ?image WHERE { "
 			"SERVICE wikibase:around { ?item wdt:P625 ?loc . bd:serviceParam wikibase:center \"Point(%.6f %.6f)\"^^geo:wktLiteral . bd:serviceParam wikibase:radius \"%.3f\" . } "
 			"OPTIONAL { ?item wdt:P149 ?style } OPTIONAL { ?item wdt:P571 ?inception } OPTIONAL { ?item wdt:P84 ?architect } "
-			"OPTIONAL { ?item wdt:P1435 ?heritage } OPTIONAL { ?item wdt:P186 ?material } OPTIONAL { ?item wdt:P31 ?type } "
+			"OPTIONAL { ?item wdt:P1435 ?heritage } OPTIONAL { ?item wdt:P186 ?material } OPTIONAL { ?item wdt:P31 ?type } OPTIONAL { ?item wdt:P18 ?image } "
 			"SERVICE wikibase:label { bd:serviceParam wikibase:language \"en\". } } LIMIT 3000"), Lon, Lat, RadiusKm);
 	}
 
@@ -220,6 +222,9 @@ namespace SimCruisePlaceFacts
 			if (R.Heritage.IsEmpty() && !IsBareId(Heritage)) R.Heritage = Heritage;
 			const FString Material = Val(TEXT("materialLabel"));
 			if (R.Material.IsEmpty() && !IsBareId(Material)) R.Material = Material;
+			// The newest-looking photograph: Commons names often carry the year; keep the later one.
+			const FString Image = SimCruisePlacePhotos::FileFromCommonsUrl(Val(TEXT("image")));
+			if (!Image.IsEmpty() && (R.Image.IsEmpty() || Image > R.Image)) R.Image = Image;
 			const FString Type = Val(TEXT("typeLabel")).ToLower();
 			if (Type.Contains(TEXT("historic district")) || Type == TEXT("district") || Type.Contains(TEXT("architectural district"))) R.bDistrict = true;
 			if (Type.Contains(TEXT("hotel"))) R.Building = TEXT("hotel");
@@ -243,6 +248,7 @@ namespace SimCruisePlaceFacts
 				if (R.Architect.IsEmpty()) R.Architect = W.Architect;
 				if (R.Heritage.IsEmpty()) R.Heritage = W.Heritage;
 				if (R.Material.IsEmpty()) R.Material = W.Material;
+				if (R.Image.IsEmpty()) R.Image = W.Image;
 				if (R.Name.IsEmpty()) R.Name = W.Name;
 				R.bDistrict |= W.bDistrict;
 				if (R.Building.IsEmpty() || R.Building == TEXT("yes")) { if (!W.Building.IsEmpty()) R.Building = W.Building; }
@@ -257,7 +263,7 @@ namespace SimCruisePlaceFacts
 	bool IsUseful(const FSimCruisePlaceRecord& R)
 	{
 		return R.Styles.Num() > 0 || R.Year > 0 || !R.Architect.IsEmpty() || !R.Heritage.IsEmpty() || !R.Material.IsEmpty()
-			|| !R.Colour.IsEmpty() || !R.RoofShape.IsEmpty() || R.bDistrict || (!R.Building.IsEmpty() && R.Building != TEXT("yes"));
+			|| !R.Colour.IsEmpty() || !R.RoofShape.IsEmpty() || !R.Image.IsEmpty() || R.bDistrict || (!R.Building.IsEmpty() && R.Building != TEXT("yes"));
 	}
 
 	FString ToJson(const FIntPoint& Tile, const TArray<FSimCruisePlaceRecord>& Records, const FString& Sources)
@@ -288,6 +294,8 @@ namespace SimCruisePlaceFacts
 			Set(TEXT("heritage"), R.Heritage);
 			Set(TEXT("material"), R.Material);
 			Set(TEXT("colour"), R.Colour);
+			Set(TEXT("colour_source"), R.ColourSource);
+			Set(TEXT("image"), R.Image);
 			Set(TEXT("roof"), R.RoofShape);
 			if (R.Levels > 0) O->SetNumberField(TEXT("levels"), R.Levels);
 			Set(TEXT("building"), R.Building);
@@ -327,6 +335,8 @@ namespace SimCruisePlaceFacts
 			R.Heritage = Str(*O, TEXT("heritage"));
 			R.Material = Str(*O, TEXT("material"));
 			R.Colour = Str(*O, TEXT("colour"));
+			R.ColourSource = Str(*O, TEXT("colour_source"));
+			R.Image = Str(*O, TEXT("image"));
 			R.RoofShape = Str(*O, TEXT("roof"));
 			(*O)->TryGetNumberField(TEXT("levels"), R.Levels);
 			R.Building = Str(*O, TEXT("building"));

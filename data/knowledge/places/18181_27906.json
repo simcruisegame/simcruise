@@ -1,7 +1,7 @@
 {
 	"tile": "18181_27906",
-	"fetched": "2026-11-12T04:15:47.418Z",
-	"sources": "overpass:9 wikidata:5",
+	"fetched": "2026-11-12T07:03:02.495Z",
+	"sources": "overpass:9 wikidata:5 photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -39,6 +39,7 @@
 			],
 			"year": 1942,
 			"architect": "Lawrence Murray Dixon",
+			"image": "Miami Beach - The Betsy Ross Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -50,6 +51,7 @@
 				"Colonial Revival architecture"
 			],
 			"year": 1939,
+			"image": "Miami Beach - The White House Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -62,6 +64,7 @@
 			],
 			"year": 1937,
 			"architect": "David T. Ellis",
+			"image": "Miami Beach - The Drake 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -73,6 +76,7 @@
 				"Art Deco architecture"
 			],
 			"year": 1939,
+			"image": "Miami Beach - The St. Mortiz Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -81,6 +85,7 @@
 			"name": "Royal Palm Hotel",
 			"wikidata": "Q124433922",
 			"year": 1939,
+			"image": "Miami Beach - Royal Palm Hotel.jpg",
 			"building": "hotel"
 		}
 	]

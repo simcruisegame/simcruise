@@ -1,7 +1,7 @@
 {
 	"tile": "18180_27910",
-	"fetched": "2026-11-12T04:14:47.789Z",
-	"sources": "overpass:49 wikidata:21",
+	"fetched": "2026-11-12T07:02:57.076Z",
+	"sources": "overpass:49 wikidata:21 photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -38,6 +38,9 @@
 			"name": "Continuum on South Beach I",
 			"osm": "way/301906634",
 			"wikidata": "Q2995687",
+			"colour": "#F5FFFD",
+			"colour_source": "measured in File:Continuum Tower South Beach.jpg (2008, , CC BY-SA 1.0; wall 30% of the facade band)",
+			"image": "Continuum Tower South Beach.jpg",
 			"levels": 40,
 			"building": "apartments"
 		},
@@ -242,6 +245,7 @@
 			],
 			"year": 1939,
 			"architect": "Henry Hohauser",
+			"image": "EAST ELEVATION - Century Hotel, 140 Ocean Drive, Miami, Miami-Dade County, FL HABS FLA,13-MIAM,16-1.tif",
 			"building": "hotel"
 		},
 		{
@@ -254,6 +258,7 @@
 			],
 			"year": 1939,
 			"architect": "Anton Skislewicz",
+			"image": "Miami Beach - Hotel Stanton 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -266,6 +271,7 @@
 			],
 			"year": 1939,
 			"architect": "Anton Skislewicz",
+			"image": "Miami Beach - The Corsair 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -277,6 +283,7 @@
 				"Miami Modern architecture"
 			],
 			"year": 1941,
+			"image": "Miami Beach - The Walburne Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -299,6 +306,7 @@
 			"name": "Warr Inn",
 			"wikidata": "Q125486733",
 			"year": 1925,
+			"image": "Miami Beach - Hotel Warrinn 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -310,6 +318,7 @@
 				"Mediterranean Revival architecture"
 			],
 			"year": 1921,
+			"image": "Miami Beach - Hotel Nemo.jpg",
 			"building": "hotel"
 		},
 		{
@@ -317,13 +326,15 @@
 			"lon": -80.134530999999996,
 			"name": "Miami Beach Kennel Club",
 			"wikidata": "Q126919391",
-			"year": 1928
+			"year": 1928,
+			"image": "Miami Beach - Miami Beach Kennel Club 01.jpg"
 		},
 		{
 			"lat": 25.770223000000001,
 			"lon": -80.132711,
 			"name": "Ocean Haven Hotel",
 			"wikidata": "Q128429583",
+			"image": "Miami Beach - Ocean Haven Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -335,6 +346,7 @@
 				"Mediterranean Revival architecture"
 			],
 			"year": 1925,
+			"image": "Miami Beach - Hotel Leonard.jpg",
 			"building": "hotel"
 		}
 	]

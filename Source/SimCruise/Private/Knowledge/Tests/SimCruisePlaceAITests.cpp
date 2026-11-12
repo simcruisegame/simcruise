@@ -95,3 +95,61 @@ bool FSimCruisePlaceAITest::RunTest(const FString&)
 }
 
 #endif
+
+#if WITH_DEV_AUTOMATION_TESTS
+#include "Knowledge/SimCruisePlacePhotos.h"
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruisePlacePhotoTest, "SimCruise.Knowledge.PhotoColour", SimCruisePlaceAITests::Flags)
+bool FSimCruisePlacePhotoTest::RunTest(const FString&)
+{
+	TestEqual(TEXT("file from a Wikidata P18 url"), SimCruisePlacePhotos::FileFromCommonsUrl(TEXT("http://commons.wikimedia.org/wiki/Special:FilePath/Tides%20Hotel%20Miami%20Beach.jpg")),
+		FString(TEXT("Tides Hotel Miami Beach.jpg")));
+
+	// Recorded 2026-11-12 (shortened): Commons imageinfo for a 2012 photo and a 1940s postcard.
+	const TCHAR* Modern = TEXT(R"json({"query":{"pages":{"1":{"title":"File:Tides Hotel Miami Beach.jpg","imageinfo":[{"thumburl":"https://upload.wikimedia.org/x/480px-Tides.jpg","descriptionurl":"https://commons.wikimedia.org/wiki/File:Tides.jpg",
+		"extmetadata":{"DateTimeOriginal":{"value":"2012-11-25"},"LicenseShortName":{"value":"CC BY-SA 3.0"},"Artist":{"value":"<a href=\"x\">Someone</a>"},"Categories":{"value":"Tides Hotel, Miami Beach|Self-published work"}}}]}}}})json");
+	const TCHAR* Postcard = TEXT(R"json({"query":{"pages":{"2":{"title":"File:Miami Beach - The Tides Hotel 01.jpg","imageinfo":[{"thumburl":"https://upload.wikimedia.org/x/480px-T01.jpg",
+		"extmetadata":{"DateTimeOriginal":{"value":"circa 1940<div style=\"display: none;\">date QS:P571</div>"},"LicenseShortName":{"value":"Public domain"},"Categories":{"value":"Postcards of hotels in Miami Beach, Florida"}}}]}}}})json");
+	FSimCruisePhotoInfo A, B;
+	FString Error;
+	TestTrue(TEXT("modern parses"), SimCruisePlacePhotos::ParseImageInfo(Modern, A, Error));
+	TestEqual(TEXT("year"), A.Year, 2012);
+	TestEqual(TEXT("artist without tags"), A.Artist, FString(TEXT("Someone")));
+	TestTrue(TEXT("a 2012 colour photo is used"), SimCruisePlacePhotos::IsUsable(A));
+	TestTrue(TEXT("postcard parses"), SimCruisePlacePhotos::ParseImageInfo(Postcard, B, Error));
+	TestFalse(TEXT("a 1940 postcard is not"), SimCruisePlacePhotos::IsUsable(B));
+
+	// A synthetic photo: blue sky on top, a pale yellow wall in the middle with dark
+	// windows and a palm, grey street at the bottom.
+	const int32 W = 320, H = 240;
+	TArray<FColor> Px;
+	Px.SetNum(W * H);
+	for (int32 y = 0; y < H; ++y)
+	{
+		for (int32 x = 0; x < W; ++x)
+		{
+			FColor C(240, 228, 170); // the wall
+			if (y < H / 4) C = FColor(110, 160, 230);
+			else if (y > H * 4 / 5) C = FColor(120, 120, 118);
+			else if ((x / 20) % 3 == 0 && (y / 15) % 2 == 0) C = FColor(40, 50, 60); // windows
+			else if (x > W * 3 / 4 && x < W * 4 / 5) C = FColor(60, 120, 50); // a palm
+			Px[y * W + x] = C;
+		}
+	}
+	FColor Wall;
+	float Share = 0.0f;
+	TestTrue(TEXT("a wall is found"), SimCruisePlacePhotos::WallColour(Px, W, H, Wall, Share));
+	TestTrue(TEXT("it is the yellow stucco"), FMath::Abs(Wall.R - 240) < 12 && FMath::Abs(Wall.G - 228) < 12 && FMath::Abs(Wall.B - 170) < 12);
+	TestTrue(TEXT("it covers most of what is left"), Share > 0.6f);
+
+	// Black and white: no colour.
+	for (FColor& C : Px) { const uint8 L = static_cast<uint8>((C.R + C.G + C.B) / 3); C = FColor(L, L, L); }
+	TestFalse(TEXT("a grey picture gives none"), SimCruisePlacePhotos::WallColour(Px, W, H, Wall, Share));
+
+	FSimCruisePlaceRecord R;
+	SimCruisePlacePhotos::Apply(R, FColor(240, 228, 170), 0.7f, A);
+	TestEqual(TEXT("hex"), R.Colour, FString(TEXT("#F0E4AA")));
+	TestTrue(TEXT("credit"), R.ColourSource.Contains(TEXT("Tides Hotel Miami Beach.jpg")) && R.ColourSource.Contains(TEXT("CC BY-SA 3.0")));
+	return true;
+}
+#endif

@@ -514,6 +514,8 @@ namespace SimCruisePlaceGraph
 		}
 		if (!Rec.Material.IsEmpty()) Out.Add(Token(TEXT("material"), Slug(Rec.Material)), 1.0f, Src);
 		if (!Rec.RoofShape.IsEmpty()) Out.Add(Token(TEXT("roof"), Slug(Rec.RoofShape)), 1.0f, Src);
+		if (!Rec.Colour.IsEmpty()) Out.Add(FName(Rec.ColourSource.IsEmpty() ? TEXT("colour:mapped") : TEXT("colour:from_photo")), 1.0f,
+			Rec.ColourSource.IsEmpty() ? FString::Printf(TEXT("%s: building:colour %s"), *Src, *Rec.Colour) : FString::Printf(TEXT("%s %s"), *Rec.Colour, *Rec.ColourSource));
 		if (!Rec.Building.IsEmpty() && Rec.Building != TEXT("yes")) Out.Add(Token(TEXT("use"), Slug(Rec.Building)), 1.0f, Src);
 		if (Rec.Building == TEXT("hotel")) Out.Add(FName(TEXT("poi:hotel")), 1.0f, Src);
 		const FName Poi = PoiFact(Rec.Amenity);

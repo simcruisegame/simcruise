@@ -1,7 +1,7 @@
 {
 	"tile": "18178_27906",
-	"fetched": "2026-11-12T03:13:21.555Z",
-	"sources": "overpass:187 wikidata:6",
+	"fetched": "2026-11-12T07:01:42.980Z",
+	"sources": "overpass:187 wikidata:6 photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -107,6 +107,9 @@
 			"name": "Regal Cinema",
 			"osm": "way/297682367",
 			"wikidata": "Q42421762",
+			"colour": "#6B6C6A",
+			"colour_source": "measured in File:Movie theater in Miami Beach.JPG (2004, User:Wikiwopbop, CC BY-SA 3.0; wall 39% of the facade band)",
+			"image": "Movie theater in Miami Beach.JPG",
 			"building": "commercial",
 			"amenity": "cinema"
 		},
@@ -233,7 +236,10 @@
 			"wikidata": "Q170391",
 			"year": 2010,
 			"architect": "Herzog & de Meuron",
-			"material": "concrete"
+			"material": "concrete",
+			"colour": "#7B6338",
+			"colour_source": "measured in File:1111 Lincoln Road at night.jpg (2011, Jonathan Schilling, CC BY-SA 3.0; wall 59% of the facade band)",
+			"image": "1111 Lincoln Road at night.jpg"
 		},
 		{
 			"lat": 25.78687,
@@ -242,6 +248,7 @@
 			"wikidata": "Q5457287",
 			"year": 1921,
 			"architect": "Rubush & Hunter",
+			"image": "Miami Beach - Flamingo Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -254,6 +261,7 @@
 			],
 			"year": 1924,
 			"architect": "Martin L. Hampton",
+			"image": "Miami Beach - Hotel Helene 01.jpg",
 			"building": "hotel"
 		}
 	]

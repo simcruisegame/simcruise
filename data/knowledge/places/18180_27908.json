@@ -1,7 +1,7 @@
 {
 	"tile": "18180_27908",
-	"fetched": "2026-11-12T04:14:21.584Z",
-	"sources": "overpass:139 wikidata:68",
+	"fetched": "2026-11-12T07:02:51.075Z",
+	"sources": "overpass:139 wikidata:68 photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -15,6 +15,9 @@
 			],
 			"year": 1931,
 			"architect": "Henry J. Moloney",
+			"colour": "#B8B0A1",
+			"colour_source": "measured in File:Miami Beach - Hotel Shelly.jpg (2021, P. Hughes, CC BY-SA 4.0; wall 39% of the facade band)",
+			"image": "Miami Beach - Hotel Shelly.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -37,6 +40,7 @@
 			],
 			"year": 1938,
 			"architect": "Albert Anis",
+			"image": "Miami Beach - Hotel Chesterfield.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -51,6 +55,7 @@
 			],
 			"year": 1941,
 			"architect": "Albert Anis",
+			"image": "Miami Beach - Majestic Hotel.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -82,6 +87,7 @@
 			],
 			"year": 1934,
 			"architect": "Victor Nellenbogen",
+			"image": "Miami Beach - Hotel Franklin.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -97,6 +103,7 @@
 			"year": 1939,
 			"architect": "Lawrence Murray Dixon",
 			"heritage": "National Register of Historic Places contributing property",
+			"image": "Miami Beach - Hotel Imperial 01.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -112,6 +119,9 @@
 			"year": 1938,
 			"architect": "Henry Hohauser",
 			"heritage": "National Register of Historic Places contributing property",
+			"colour": "#F1E6DB",
+			"colour_source": "measured in File:Park Central Hotel (Miami Beach).jpg (2014, Visitor7, CC BY-SA 3.0; wall 38% of the facade band)",
+			"image": "Park Central Hotel (Miami Beach).jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -181,6 +191,7 @@
 			],
 			"year": 1941,
 			"architect": "Albert Anis",
+			"image": "Miami Beach - The Avalon Hotel 01.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -195,6 +206,9 @@
 			],
 			"year": 1937,
 			"architect": "Harry O. Nelson",
+			"colour": "#E0DDD9",
+			"colour_source": "measured in File:Miami Beach - Beacon Hotel.jpg (2020, P. Hughes, CC BY-SA 4.0; wall 65% of the facade band)",
+			"image": "Miami Beach - Beacon Hotel.jpg",
 			"levels": 5,
 			"building": "hotel",
 			"amenity": "hotel"
@@ -210,6 +224,9 @@
 			],
 			"year": 1950,
 			"architect": "August Swarz",
+			"colour": "#E1E1DD",
+			"colour_source": "measured in File:Boulevard Hotel South Beach 1950.jpg (2018, Phillip Pessar, CC BY 2.0; wall 49% of the facade band)",
+			"image": "Boulevard Hotel South Beach 1950.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -232,6 +249,7 @@
 			],
 			"year": 1929,
 			"architect": "William F. Brown",
+			"image": "Miami Beach - Beach Park Hotel.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -264,6 +282,9 @@
 			"year": 1937,
 			"architect": "Albert Anis",
 			"heritage": "National Register of Historic Places contributing property",
+			"colour": "#A19796",
+			"colour_source": "measured in File:Waldorf Towers (Miami Beach)-1.jpg (2014, Visitor7, CC BY-SA 3.0; wall 25% of the facade band)",
+			"image": "Waldorf Towers (Miami Beach)-1.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -278,6 +299,7 @@
 			],
 			"year": 1952,
 			"architect": "Gilbert M. Fein",
+			"image": "Miami Beach - Starlite Hotel and Apartments 01.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -293,6 +315,7 @@
 			"year": 1937,
 			"architect": "John Skinner",
 			"heritage": "National Register of Historic Places contributing property",
+			"image": "Miami Beach - Barbizon Apartment Hotel.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -317,6 +340,7 @@
 			"year": 1939,
 			"architect": "Anton Skislewicz",
 			"heritage": "National Register of Historic Places contributing property",
+			"image": "Miami Beach - Breakwater Hotel.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -350,6 +374,7 @@
 			"year": 1935,
 			"architect": "Henry Hohauser",
 			"heritage": "National Register of Historic Places contributing property",
+			"image": "Miami Beach - Colony Hotel 01.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -416,7 +441,10 @@
 			"lon": -80.132599999999996,
 			"name": "Wolfsonian-FIU",
 			"wikidata": "Q2178180",
-			"year": 1986
+			"year": 1986,
+			"colour": "#E7E7DC",
+			"colour_source": "measured in File:Wolfsonian FL1.jpg (2012, Acroterion, CC BY-SA 4.0; wall 73% of the facade band)",
+			"image": "Wolfsonian FL1.jpg"
 		},
 		{
 			"lat": 25.778808000000001,
@@ -427,6 +455,7 @@
 				"Art Deco architecture"
 			],
 			"year": 1934,
+			"image": "Miami Beach - Clinton Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -439,6 +468,7 @@
 			],
 			"year": 1929,
 			"architect": "B. Kingston Hall",
+			"image": "Miami Beach - Blackstone Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -453,7 +483,8 @@
 			"lon": -80.130278000000004,
 			"name": "Lummus Park",
 			"wikidata": "Q13107165",
-			"year": 1985
+			"year": 1985,
+			"image": "Bird's eye view of Lummus Park by the beach - Miami Beach, Florida.jpg"
 		},
 		{
 			"lat": 25.780729999999998,
@@ -462,6 +493,7 @@
 			"wikidata": "Q111393211",
 			"year": 1936,
 			"architect": "Lawrence Murray Dixon",
+			"image": "FAIRMONT HOTEL and APARTMENTS, SOUTHEAST ELEVATION - Miami Beach Art Deco Historic District, Miami, Miami-Dade County, FL HABS FLA,13-MIAM,5-16.tif",
 			"building": "hotel"
 		},
 		{
@@ -475,6 +507,7 @@
 			"year": 1938,
 			"architect": "Henry Hohauser",
 			"heritage": "National Register of Historic Places contributing property",
+			"image": "Miami Beach - Essex House Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -487,6 +520,7 @@
 			],
 			"year": 1938,
 			"architect": "Albert Anis",
+			"image": "Miami Beach - The Clevelander Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -506,6 +540,7 @@
 			],
 			"year": 1939,
 			"architect": "John Skinner",
+			"image": "Miami Beach - Bentley Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -516,6 +551,7 @@
 			"year": 1935,
 			"architect": "Lawrence Murray Dixon",
 			"heritage": "National Register of Historic Places contributing property",
+			"image": "Miami Beach - Empire Hotel 1.jpg",
 			"building": "hotel"
 		},
 		{
@@ -529,6 +565,7 @@
 			"year": 1948,
 			"architect": "Henry Hohauser",
 			"heritage": "National Register of Historic Places contributing property",
+			"image": "Miami Beach - Pelican Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -541,6 +578,7 @@
 			],
 			"year": 1935,
 			"architect": "Henry Hohauser",
+			"image": "Miami Beach - Edison Hotel 1.jpg",
 			"building": "hotel"
 		},
 		{
@@ -552,6 +590,7 @@
 				"Mediterranean Revival architecture"
 			],
 			"year": 1930,
+			"image": "Miami Beach - Shore Park Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -564,6 +603,7 @@
 			],
 			"year": 1939,
 			"architect": "Lawrence Murray Dixon",
+			"image": "Miami Beach - Tiffany Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -576,6 +616,7 @@
 			],
 			"year": 1936,
 			"architect": "Albert Anis",
+			"image": "Miami Beach - Hotel Whitelaw 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -584,6 +625,7 @@
 			"name": "The Norman Hotel",
 			"wikidata": "Q119721028",
 			"year": 1937,
+			"image": "Miami Beach - The Norman Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -596,6 +638,7 @@
 			],
 			"year": 1947,
 			"architect": "MacKay & Gibbs",
+			"image": "Miami Beach - Sherbrooke Hotel Apartments.jpg",
 			"building": "hotel"
 		},
 		{
@@ -608,6 +651,7 @@
 			],
 			"year": 1935,
 			"architect": "Henry J. Maloney",
+			"image": "Miami Beach - Hotel Evans.jpg",
 			"building": "hotel"
 		},
 		{
@@ -620,6 +664,7 @@
 			],
 			"year": 1924,
 			"architect": "Harvey and Clarke",
+			"image": "Miami Beach - William Penn Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -632,6 +677,7 @@
 			],
 			"year": 1936,
 			"architect": "Lawrence Murray Dixon",
+			"image": "Miami Beach - The Shoreham Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -644,6 +690,7 @@
 			],
 			"year": 1936,
 			"architect": "T. Hunter Henderson",
+			"image": "Miami Beach - Hotel Astor 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -656,6 +703,7 @@
 			],
 			"year": 1934,
 			"architect": "Lee L. Wade",
+			"image": "Miami Beach - Princess Ann Hotel 02.jpg",
 			"building": "hotel"
 		},
 		{
@@ -668,6 +716,7 @@
 			],
 			"year": 1935,
 			"architect": "B. Kingston Hall",
+			"image": "Miami Beach - St. Geroge Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -677,6 +726,7 @@
 			"wikidata": "Q124313226",
 			"year": 1939,
 			"architect": "Henry Hohauser",
+			"image": "Miami Beach - The Hotel Henry.jpg",
 			"building": "hotel"
 		},
 		{
@@ -689,6 +739,7 @@
 			],
 			"year": 1936,
 			"architect": "B. Kingston Hall",
+			"image": "Miami Beach - Seymour Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -700,6 +751,7 @@
 				"Mediterranean Revival architecture"
 			],
 			"year": 1922,
+			"image": "Miami Beach - Oceanic Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -708,14 +760,16 @@
 			"name": "Carter's Million Dollar Pier",
 			"wikidata": "Q124519632",
 			"year": 1929,
-			"architect": "R. A. Preas"
+			"architect": "R. A. Preas",
+			"image": "Miami Beach - Million Dollar Pier 01.jpg"
 		},
 		{
 			"lat": 25.774486,
 			"lon": -80.131262000000007,
 			"name": "Cook's Casino",
 			"wikidata": "Q124521836",
-			"year": 1926
+			"year": 1926,
+			"image": "Miami Beach - Cook's Casino.jpg"
 		},
 		{
 			"lat": 25.777349999999998,
@@ -727,6 +781,7 @@
 			],
 			"year": 1935,
 			"architect": "Henry Hohauser",
+			"image": "Miami Beach - Hotel An-Nell.jpg",
 			"building": "hotel"
 		},
 		{
@@ -735,6 +790,7 @@
 			"name": "Premier Hotel",
 			"wikidata": "Q127430587",
 			"year": 1940,
+			"image": "Miami Beach - Premier Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -747,6 +803,9 @@
 			],
 			"year": 1941,
 			"architect": "Albert Anis",
+			"colour": "#998E83",
+			"colour_source": "measured in File:Miami Beach - Viscay Hotel.jpg (2024, P. Hughes, CC BY 4.0; wall 44% of the facade band)",
+			"image": "Miami Beach - Viscay Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -758,6 +817,7 @@
 				"Streamline Moderne architecture"
 			],
 			"year": 1940,
+			"image": "Miami Beach - Hotel Metropole 03.jpg",
 			"building": "hotel"
 		},
 		{
@@ -770,6 +830,7 @@
 			],
 			"year": 1936,
 			"architect": "Victor Nellenbogen",
+			"image": "Miami Beach - Chelsea Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -781,6 +842,7 @@
 				"Miami Modern architecture"
 			],
 			"year": 1954,
+			"image": "Miami Beach - Skylark Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -791,7 +853,10 @@
 			"style": [
 				"Gothic Revival"
 			],
-			"year": 1926
+			"year": 1926,
+			"colour": "#ECE7DD",
+			"colour_source": "measured in File:Miami Beach - South Beach buildings - Fat Tuesday.jpg (2017, Daniel Di Palma, CC BY-SA 4.0; wall 51% of the facade band)",
+			"image": "Miami Beach - South Beach buildings - Fat Tuesday.jpg"
 		},
 		{
 			"lat": 25.777450999999999,
@@ -802,6 +867,7 @@
 				"Neoclassical architecture"
 			],
 			"year": 1930,
+			"image": "Miami Beach - London Arms Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -813,6 +879,7 @@
 				"Art Deco architecture"
 			],
 			"year": 1941,
+			"image": "Miami Beach - Lynmar Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -822,7 +889,10 @@
 			"wikidata": "Q137479978",
 			"style": [
 				"Art Deco"
-			]
+			],
+			"colour": "#F4F8F9",
+			"colour_source": "measured in File:Miami Design Preservation League 1001 Ocean Drive Miami Beach FL 33139 USA.jpg (2024, Spudgun67, CC0; wall 38% of the facade band)",
+			"image": "Miami Design Preservation League 1001 Ocean Drive Miami Beach FL 33139 USA.jpg"
 		},
 		{
 			"lat": 25.777788999999999,
@@ -832,7 +902,8 @@
 			"style": [
 				"Mediterranean Revival architecture"
 			],
-			"year": 1927
+			"year": 1927,
+			"image": "Miami Beach - Mayfield Court Apartments.jpg"
 		},
 		{
 			"lat": 25.780280000000001,
@@ -844,13 +915,17 @@
 			],
 			"year": 1934,
 			"architect": "Robert A. Taylor",
-			"heritage": "National Register of Historic Places contributing property"
+			"heritage": "National Register of Historic Places contributing property",
+			"colour": "#C6C7C2",
+			"colour_source": "measured in File:Miami South Beach - Beach Patrol Headquarters.JPG (2011, Paolo Bernabei, CC BY-SA 3.0; wall 42% of the facade band)",
+			"image": "Miami South Beach - Beach Patrol Headquarters.JPG"
 		},
 		{
 			"lat": 25.779754000000001,
 			"lon": -80.130960000000002,
 			"name": "Faber's Park Apartment Hotel",
 			"wikidata": "Q140937865",
+			"image": "Miami Beach - Park Apartment Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -862,6 +937,7 @@
 				"Mediterranean Revival architecture"
 			],
 			"year": 1926,
+			"image": "Miami Beach - Mare Grande Hotel 01.jpg",
 			"building": "hotel"
 		}
 	]

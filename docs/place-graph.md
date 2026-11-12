@@ -103,6 +103,19 @@ answers are cached in `Saved/Knowledge/areas/`, and the start areas ship in
 `-SimCruiseNoPlaceAI`, the graph works without it. The model is the smallest local chat
 model of 1-8 GB (`simcruise.Knowledge.OllamaUrl` sets the server).
 
+## Wall colours from each building's own photograph
+
+`SimCruisePlacePhotos`: Wikidata names a photograph for many buildings (P18). Commons'
+imageinfo gives its date, licence, author and categories. Archive pictures (before 1990)
+and postcards are left out, because their colours are not today's paint (on the start
+tiles 260 of 319 photographs are 1930s-1950s postcards). In a 480 px thumbnail, the facade
+band (the middle 56 % of the height, 76 % of the width) drops sky, leaves, shadow and
+glass; the largest colour cluster is the wall when it covers at least a fifth of what is
+left. The colour goes on the building's record with its credit (file, year, author,
+licence) and the plan uses it as mapped data, over any palette. 59 start-tile buildings
+have a measured wall (`-run=SimCruisePlaceFacts -Photos -NoOSM`). The buildings thread
+owns facade textures from photographs; this only measures the paint.
+
 ## Next
 
 - Photographs as evidence: wall colours sampled from street-level and Commons photos of

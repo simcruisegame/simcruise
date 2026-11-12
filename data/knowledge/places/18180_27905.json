@@ -1,7 +1,7 @@
 {
 	"tile": "18180_27905",
-	"fetched": "2026-11-12T04:04:58.475Z",
-	"sources": "overpass:107 wikidata:60",
+	"fetched": "2026-11-12T07:02:07.558Z",
+	"sources": "overpass:107 wikidata:60 photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -11,6 +11,9 @@
 			"osm": "node/2815896023",
 			"wikidata": "Q7012600",
 			"year": 1987,
+			"colour": "#DFE0D5",
+			"colour_source": "measured in File:Miami New World Center.jpg (2014, Alexf, CC BY-SA 3.0; wall 38% of the facade band)",
+			"image": "Miami New World Center.jpg",
 			"amenity": "school"
 		},
 		{
@@ -24,6 +27,9 @@
 			],
 			"year": 1936,
 			"architect": "Thomas W. Lamb",
+			"colour": "#72725C",
+			"colour_source": "measured in File:Miami Beach FL Lincoln Mall Lincoln Theatre01.jpg (2011, Ebyabe, CC BY-SA 3.0; wall 59% of the facade band)",
+			"image": "Miami Beach FL Lincoln Mall Lincoln Theatre01.jpg",
 			"levels": 4,
 			"building": "commercial"
 		},
@@ -76,6 +82,7 @@
 			],
 			"year": 1941,
 			"architect": "Lawrence Murray Dixon",
+			"image": "Miami Beach - The Gale 01.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -104,6 +111,7 @@
 				"Art Deco architecture"
 			],
 			"architect": "MacKay & Gibbs",
+			"image": "Miami Beach - The Surfcomber 01.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -119,6 +127,7 @@
 			],
 			"year": 1940,
 			"architect": "Lawrence Murray Dixon",
+			"image": "Miami Beach - The Raleigh.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -133,6 +142,9 @@
 			],
 			"year": 1940,
 			"architect": "Lawrence Murray Dixon",
+			"colour": "#F5F8F6",
+			"colour_source": "measured in File:Ritz Plaza Hotel Miami Beach 1.jpg (2016, Gzzz, CC BY-SA 4.0; wall 43% of the facade band)",
+			"image": "Ritz Plaza Hotel Miami Beach 1.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -149,6 +161,9 @@
 			"year": 1947,
 			"architect": "Robert Swartburg",
 			"heritage": "National Register of Historic Places contributing property",
+			"colour": "#F1F2F2",
+			"colour_source": "measured in File:Delano South Beach.jpg (2016, Gzzz, CC BY-SA 4.0; wall 67% of the facade band)",
+			"image": "Delano South Beach.jpg",
 			"levels": 50,
 			"building": "construction",
 			"amenity": "hotel"
@@ -164,6 +179,7 @@
 			],
 			"year": 1940,
 			"heritage": "National Register of Historic Places contributing property",
+			"image": "National Hotel, Miami Beach, Florida LCCN2017711401.tif",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -178,6 +194,9 @@
 			],
 			"year": 2011,
 			"architect": "Frank Gehry",
+			"colour": "#6F5B4A",
+			"colour_source": "measured in File:New World Center main entrance and lobby.jpg (2011, Jonathan Schilling, CC BY-SA 3.0; wall 64% of the facade band)",
+			"image": "New World Center main entrance and lobby.jpg",
 			"building": "yes",
 			"amenity": "concert_hall"
 		},
@@ -228,6 +247,7 @@
 			"wikidata": "Q7698521",
 			"year": 1947,
 			"material": "marble",
+			"image": "Temple Emanu-El in Miami Beach, one of the nation's few beaches open to Jews when the synagogue was built in 1947. Miami Beach, Florida LCCN2011634589.tif",
 			"building": "temple",
 			"amenity": "place_of_worship"
 		},
@@ -242,6 +262,7 @@
 			],
 			"year": 1941,
 			"architect": "Albert Anis",
+			"image": "Miami Beach - Cadet Hotel.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -319,6 +340,7 @@
 			],
 			"year": 1941,
 			"architect": "Morris Lapidus",
+			"image": "Boulevard in Miami Beach met het Shelborne Hotel, Bestanddeelnr 191-0779.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -345,6 +367,9 @@
 				"Art Deco architecture"
 			],
 			"heritage": "National Register of Historic Places listed place",
+			"colour": "#F9FEF8",
+			"colour_source": "measured in File:Collins District.JPG (2013, MosheA, CC BY-SA 3.0; wall 23% of the facade band)",
+			"image": "Collins District.JPG",
 			"district": true
 		},
 		{
@@ -370,7 +395,8 @@
 			"name": "Fillmore Miami Beach",
 			"wikidata": "Q96212269",
 			"year": 1951,
-			"architect": "Henry Hohauser"
+			"architect": "Henry Hohauser",
+			"image": "Jackie Gleason Theater.jpg"
 		},
 		{
 			"lat": 25.795248000000001,
@@ -403,6 +429,7 @@
 			],
 			"year": 1947,
 			"architect": "Albert Anis",
+			"image": "Miami Beach - Claremont Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -415,6 +442,7 @@
 			],
 			"year": 1948,
 			"architect": "Henry Hohauser",
+			"image": "Miami Beach - San Juan Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -427,6 +455,7 @@
 			],
 			"year": 1948,
 			"architect": "Albert Anis",
+			"image": "Miami Beach - The Sagamore.jpg",
 			"building": "hotel"
 		},
 		{
@@ -439,6 +468,7 @@
 			],
 			"year": 1940,
 			"architect": "Albert Anis",
+			"image": "Miami Beach - Berkeley Shore Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -453,6 +483,9 @@
 			"lon": -80.130039999999994,
 			"name": "Loews Miami Beach Hotel",
 			"wikidata": "Q111393196",
+			"colour": "#EDEDE5",
+			"colour_source": "measured in File:Miami Beach - Loews Miami Beach from boardwalk.jpg (2011, P. Hughes, CC BY-SA 4.0; wall 39% of the facade band)",
+			"image": "Miami Beach - Loews Miami Beach from boardwalk.jpg",
 			"building": "hotel"
 		},
 		{
@@ -467,6 +500,7 @@
 			"year": 1939,
 			"architect": "Igor B. Polevitzky",
 			"heritage": "National Register of Historic Places contributing property",
+			"image": "Miami Beach - The Albion 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -479,6 +513,7 @@
 			],
 			"year": 1951,
 			"architect": "Morris Lapidus",
+			"image": "Miami Beach - Nautilus Hotel 05.jpg",
 			"building": "hotel"
 		},
 		{
@@ -491,6 +526,7 @@
 			],
 			"year": 1947,
 			"architect": "B. Robert Swartburg",
+			"image": "Miami Beach - Marseilles Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -503,6 +539,7 @@
 			],
 			"year": 1941,
 			"architect": "Lawrence Murray Dixon",
+			"image": "Miami Beach - The Richmond Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -516,6 +553,7 @@
 			],
 			"year": 1941,
 			"architect": "Lawrence Murray Dixon",
+			"image": "Miami Beach - The South Seas Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -529,6 +567,7 @@
 			],
 			"year": 1941,
 			"architect": "Lawrence Murray Dixon",
+			"image": "Miami Beach - The Regent Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -541,6 +580,7 @@
 			],
 			"year": 1940,
 			"architect": "Joseph DeBrita",
+			"image": "Miami Beach - The Dorset 2.jpg",
 			"building": "hotel"
 		},
 		{
@@ -553,6 +593,7 @@
 			],
 			"year": 1917,
 			"architect": "August Geiger",
+			"image": "Miami Beach - Lincoln Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -565,6 +606,7 @@
 			],
 			"year": 1938,
 			"architect": "David T. Ellis",
+			"image": "Miami Beach - Maxine Hotel (1940).jpg",
 			"building": "hotel"
 		},
 		{
@@ -577,6 +619,7 @@
 			],
 			"year": 1935,
 			"architect": "Kiehnel and Elliott",
+			"image": "Miami Beach - The Barclay Plaza Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -589,6 +632,7 @@
 			],
 			"year": 1939,
 			"architect": "Frank Wyatt Woods",
+			"image": "Miami Beach - The Dorchester Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -599,7 +643,8 @@
 			"style": [
 				"Mediterranean Revival architecture"
 			],
-			"year": 1921
+			"year": 1921,
+			"image": "Miami Beach - Community Church 01.jpg"
 		},
 		{
 			"lat": 25.789943000000001,
@@ -611,6 +656,7 @@
 			],
 			"year": 1940,
 			"architect": "Joseph DeBrita",
+			"image": "Miami Beach - The Georgian Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -623,6 +669,7 @@
 			],
 			"year": 1936,
 			"architect": "Russell T. Pancoast",
+			"image": "Miami Beach - Peter Miller Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -636,6 +683,7 @@
 			"year": 1939,
 			"architect": "Henry Hohauser",
 			"heritage": "National Register of Historic Places contributing property",
+			"image": "Miami Beach - The Greenview Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -648,6 +696,7 @@
 			],
 			"year": 1940,
 			"architect": "Gerard Pitt",
+			"image": "Miami Beach - Miljean Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -660,6 +709,7 @@
 			],
 			"year": 1953,
 			"architect": "Morris Lapidus",
+			"image": "Miami Beach - Hotel di Lido 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -668,6 +718,7 @@
 			"name": "Hotel James",
 			"wikidata": "Q129221956",
 			"year": 1939,
+			"image": "Miami Beach - Hotel James.jpg",
 			"building": "hotel"
 		},
 		{
@@ -676,6 +727,7 @@
 			"name": "The Catalina Hotel",
 			"wikidata": "Q131273676",
 			"year": 1940,
+			"image": "Miami Beach - Catalina Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -686,6 +738,9 @@
 			"style": [
 				"Art Deco architecture"
 			],
+			"colour": "#EDEEED",
+			"colour_source": "measured in File:Miami Beach - Lincoln Arms Apartment Building.jpg (2024, P. Hughes, CC BY 4.0; wall 55% of the facade band)",
+			"image": "Miami Beach - Lincoln Arms Apartment Building.jpg",
 			"building": "hotel"
 		},
 		{
@@ -695,6 +750,7 @@
 			"wikidata": "Q131312203",
 			"year": 1948,
 			"architect": "MacKay & Gibbs",
+			"image": "Miami Beach - The Seacomber 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -707,6 +763,7 @@
 			],
 			"year": 1949,
 			"architect": "Albert Anis",
+			"image": "Miami Beach - Front view and pool, Shore Club Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -714,6 +771,7 @@
 			"lon": -80.129799000000006,
 			"name": "Fairfax Hotel",
 			"wikidata": "Q138773757",
+			"image": "Miami Beach - Fairfax Hotel and Apartments 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -724,7 +782,8 @@
 			"style": [
 				"mid-century modern"
 			],
-			"year": 1956
+			"year": 1956,
+			"image": "Miami Beach Federal Building.jpg"
 		}
 	]
 }

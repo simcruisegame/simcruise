@@ -1,7 +1,7 @@
 {
 	"tile": "18180_27909",
-	"fetched": "2026-11-12T02:19:55.860Z",
-	"sources": "overpass:96 wikidata:36",
+	"fetched": "2026-11-12T07:02:55.083Z",
+	"sources": "overpass:96 wikidata:36 photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -64,6 +64,7 @@
 			],
 			"year": 1935,
 			"architect": "Victor Nellenbogen",
+			"image": "Miami Beach - Savoy Plaza Hotel.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -234,6 +235,7 @@
 			"wikidata": "Q112026585",
 			"year": 1940,
 			"architect": "Anton Skislewicz",
+			"image": "Miami Beach - Lord Balfour Hotel 01.jpg",
 			"levels": 3,
 			"building": "hotel",
 			"amenity": "hotel"
@@ -264,6 +266,7 @@
 			],
 			"year": 1939,
 			"architect": "Henry Hohauser",
+			"image": "EAST ELEVATION - Century Hotel, 140 Ocean Drive, Miami, Miami-Dade County, FL HABS FLA,13-MIAM,16-1.tif",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -359,6 +362,7 @@
 			"osm": "way/435731605",
 			"wikidata": "Q3178486",
 			"year": 1936,
+			"image": "JewishMuseumMiamiBeach.png",
 			"building": "yes",
 			"amenity": "museum"
 		},
@@ -427,6 +431,7 @@
 				"Mediterranean Revival architecture"
 			],
 			"year": 1935,
+			"image": "Miami Beach - Hotel Harrison.jpg",
 			"levels": 2,
 			"building": "hotel",
 			"amenity": "hotel"
@@ -508,6 +513,7 @@
 			],
 			"year": 1939,
 			"architect": "John Skinner",
+			"image": "Miami Beach - Bentley Hotel.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -564,7 +570,10 @@
 			"name": "Beth Jacob Social Hall and Congregation",
 			"wikidata": "Q4897552",
 			"architect": "A. Fraser Rose",
-			"heritage": "National Register of Historic Places listed place"
+			"heritage": "National Register of Historic Places listed place",
+			"colour": "#D9CEB5",
+			"colour_source": "measured in File:Miami Beach FL Beth Jacob Hall msm01.jpg (2011, Ebyabe, CC BY-SA 3.0; wall 37% of the facade band)",
+			"image": "Miami Beach FL Beth Jacob Hall msm01.jpg"
 		},
 		{
 			"lat": 25.769563999999999,
@@ -591,6 +600,7 @@
 			"year": 1937,
 			"architect": "John Skinner",
 			"heritage": "National Register of Historic Places contributing property",
+			"image": "Miami Beach - Barbizon Apartment Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -599,6 +609,7 @@
 			"name": "The Norman Hotel",
 			"wikidata": "Q119721028",
 			"year": 1937,
+			"image": "Miami Beach - The Norman Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -611,6 +622,7 @@
 			],
 			"year": 1941,
 			"architect": "Albert Anis",
+			"image": "Miami Beach - Hotel Arlington 03.jpg",
 			"building": "hotel"
 		},
 		{
@@ -618,6 +630,7 @@
 			"lon": -80.133544999999998,
 			"name": "Sea Breeze Hotel",
 			"wikidata": "Q120646095",
+			"image": "Miami Beach - Sea Breeze Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -629,6 +642,7 @@
 				"Art Deco architecture"
 			],
 			"year": 1938,
+			"image": "Miami Beach - Whitehart Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -641,6 +655,7 @@
 			],
 			"year": 1939,
 			"architect": "Anton Skislewicz",
+			"image": "Miami Beach - Hotel Stanton 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -653,6 +668,7 @@
 			],
 			"year": 1936,
 			"architect": "Lawrence Murray Dixon",
+			"image": "Miami Beach - The Shoreham Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -665,6 +681,7 @@
 			],
 			"year": 1929,
 			"architect": "William F. Brown",
+			"image": "Miami Beach - Beach Park Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -676,6 +693,7 @@
 				"Art Deco architecture"
 			],
 			"year": 1929,
+			"image": "Miami Beach - Strath Haven Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -688,6 +706,7 @@
 			],
 			"year": 1937,
 			"architect": "Lawrence Murray Dixon",
+			"image": "Miami Beach - Simone Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -700,6 +719,7 @@
 			],
 			"year": 1939,
 			"architect": "Anton Skislewicz",
+			"image": "Miami Beach - The Corsair 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -712,6 +732,7 @@
 			],
 			"year": 1924,
 			"architect": "William F. Brown",
+			"image": "Miami Beach - George Washington Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -724,6 +745,7 @@
 			],
 			"year": 1936,
 			"architect": "Henry Hohauser",
+			"image": "Miami Beach - Surf Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -735,6 +757,7 @@
 				"Mediterranean Revival architecture"
 			],
 			"year": 1922,
+			"image": "Miami Beach - Oceanic Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -743,14 +766,16 @@
 			"name": "Carter's Million Dollar Pier",
 			"wikidata": "Q124519632",
 			"year": 1929,
-			"architect": "R. A. Preas"
+			"architect": "R. A. Preas",
+			"image": "Miami Beach - Million Dollar Pier 01.jpg"
 		},
 		{
 			"lat": 25.774486,
 			"lon": -80.131262000000007,
 			"name": "Cook's Casino",
 			"wikidata": "Q124521836",
-			"year": 1926
+			"year": 1926,
+			"image": "Miami Beach - Cook's Casino.jpg"
 		},
 		{
 			"lat": 25.770092999999999,
@@ -761,6 +786,7 @@
 				"Miami Modern architecture"
 			],
 			"year": 1941,
+			"image": "Miami Beach - The Walburne Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -772,6 +798,7 @@
 				"Streamline Moderne"
 			],
 			"year": 1939,
+			"image": "Miami Beach - Somerset Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -779,6 +806,7 @@
 			"lon": -80.132711,
 			"name": "Ocean Haven Hotel",
 			"wikidata": "Q128429583",
+			"image": "Miami Beach - Ocean Haven Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -787,6 +815,7 @@
 			"name": "Normandie Hotel",
 			"wikidata": "Q129259399",
 			"year": 1937,
+			"image": "Miami Beach - Hotel Normandie.jpg",
 			"building": "hotel"
 		},
 		{
@@ -798,6 +827,7 @@
 				"Art Deco architecture"
 			],
 			"year": 1936,
+			"image": "Miami Beach - Olympic Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -808,6 +838,7 @@
 			"style": [
 				"Art Deco architecture"
 			],
+			"image": "Miami Beach - Belmont Hotel 03.jpg",
 			"building": "hotel"
 		},
 		{
@@ -819,6 +850,7 @@
 				"Mediterranean Revival architecture"
 			],
 			"year": 1926,
+			"image": "Miami Beach - Mare Grande Hotel 01.jpg",
 			"building": "hotel"
 		}
 	]

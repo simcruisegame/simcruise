@@ -1,7 +1,7 @@
 {
 	"tile": "18179_27907",
-	"fetched": "2026-11-12T03:59:36.349Z",
-	"sources": "overpass:236 wikidata:10",
+	"fetched": "2026-11-12T07:01:51.691Z",
+	"sources": "overpass:236 wikidata:10 photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -189,7 +189,10 @@
 			"lon": -80.136261000000005,
 			"name": "South Beach",
 			"wikidata": "Q186106",
-			"year": 1886
+			"year": 1886,
+			"colour": "#F9F7F1",
+			"colour_source": "measured in File:Ocean drive day 2009j.JPG (2009, chensiyuan, CC BY-SA 4.0; wall 29% of the facade band)",
+			"image": "Ocean drive day 2009j.JPG"
 		},
 		{
 			"lat": 25.781058000000002,
@@ -200,6 +203,7 @@
 				"Mediterranean Revival architecture"
 			],
 			"year": 1926,
+			"image": "Miami Beach - Hotel Granada.jpg",
 			"building": "hotel"
 		},
 		{
@@ -212,6 +216,7 @@
 			],
 			"year": 1936,
 			"architect": "Anton Skislewicz",
+			"image": "Miami Beach - Kenmore Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -223,6 +228,7 @@
 				"Mediterranean Revival architecture"
 			],
 			"year": 1925,
+			"image": "Miami Beach - Roosevelt Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -230,6 +236,7 @@
 			"lon": -80.135572999999994,
 			"name": "Gotham Hotel and Apartments",
 			"wikidata": "Q124337690",
+			"image": "Miami Beach - Gotham Hotel and Apartments.jpg",
 			"building": "hotel"
 		},
 		{
@@ -242,6 +249,7 @@
 			],
 			"year": 1940,
 			"architect": "Henry Hohauser",
+			"image": "Miami Beach - Neron Hotel.jpg",
 			"building": "hotel"
 		}
 	]

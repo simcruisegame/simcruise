@@ -11,6 +11,10 @@
 #include "Interfaces/IHttpResponse.h"
 #include "Knowledge/SimCruisePlaceAI.h"
 #include "Knowledge/SimCruisePlaceFacts.h"
+#include "Knowledge/SimCruisePlacePhotos.h"
+#include "Dom/JsonObject.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "World/SimCruiseGeo.h"
@@ -45,6 +49,33 @@ namespace
 		});
 		Req->ProcessRequest();
 		const double End = FPlatformTime::Seconds() + Timeout + 10.0;
+		while (!bDone && FPlatformTime::Seconds() < End)
+		{
+			FHttpModule::Get().GetHttpManager().Tick(0.05f);
+			FPlatformProcess::Sleep(0.05f);
+		}
+		return bOk;
+	}
+}
+
+namespace
+{
+	bool FetchBytes(const FString& Url, TArray<uint8>& Out)
+	{
+		const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Req = FHttpModule::Get().CreateRequest();
+		Req->SetURL(Url);
+		Req->SetVerb(TEXT("GET"));
+		Req->SetHeader(TEXT("User-Agent"), TEXT("SimCruise/2.0 (+https://github.com/simcruisegame/simcruise)"));
+		Req->SetTimeout(60.0f);
+		bool bDone = false, bOk = false;
+		Req->OnProcessRequestComplete().BindLambda([&](FHttpRequestPtr, FHttpResponsePtr Response, bool bConnected)
+		{
+			bOk = bConnected && Response.IsValid() && Response->GetResponseCode() == 200;
+			if (bOk) Out = Response->GetContent();
+			bDone = true;
+		});
+		Req->ProcessRequest();
+		const double End = FPlatformTime::Seconds() + 70.0;
 		while (!bDone && FPlatformTime::Seconds() < End)
 		{
 			FHttpModule::Get().GetHttpManager().Tick(0.05f);
@@ -122,6 +153,72 @@ int32 USimCruisePlaceFactsCommandlet::Main(const FString& Params)
 			FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 		UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("%s: %d useful of %d OSM + %d Wikidata -> %s"), *SimCruiseTileName(Tile), Useful.Num(), Osm.Num(), Wd.Num(), *Path);
 		FPlatformProcess::Sleep(2.0f);
+	}
+	// -Photos: each building with its own Wikidata photograph gets its wall colour measured.
+	if (FParse::Param(*Params, TEXT("Photos")))
+	{
+		int32 Measured = 0, Tried = 0;
+		for (const FIntPoint& Tile : Tiles)
+		{
+			FString Text, Error;
+			TArray<FSimCruisePlaceRecord> Records;
+			const FString Path = SimCruisePlaceFacts::BundledPath(Tile);
+			if (!FFileHelper::LoadFileToString(Text, *Path) || !SimCruisePlaceFacts::FromJson(Text, Records, Error)) continue;
+			// The photographs (P18) of the tile's Wikidata items, joined by id.
+			FString WdText;
+			TArray<FSimCruisePlaceRecord> Wd;
+			if (Fetch(SimCruisePlaceFacts::WikidataUrl(SimCruisePlaceFacts::WikidataQuery(Tile)), TEXT("GET"), FString(), TEXT("application/sparql-results+json"), WdText))
+			{
+				SimCruisePlaceFacts::ParseWikidata(WdText, Wd, Error);
+			}
+			for (FSimCruisePlaceRecord& R : Records)
+			{
+				if (R.Image.IsEmpty() && !R.Wikidata.IsEmpty())
+				{
+					for (const FSimCruisePlaceRecord& W : Wd) if (W.Wikidata == R.Wikidata) { R.Image = W.Image; break; }
+				}
+			}
+			bool bChanged = false;
+			for (FSimCruisePlaceRecord& R : Records)
+			{
+				if (R.Image.IsEmpty() || (!R.Colour.IsEmpty() && R.ColourSource.IsEmpty())) continue; // a mapped colour wins
+				bChanged = true;
+				++Tried;
+				FString InfoText, Thumb;
+				FSimCruisePhotoInfo Info;
+				if (!Fetch(SimCruisePlacePhotos::ImageInfoUrl(R.Image), TEXT("GET"), FString(), TEXT("application/json"), InfoText)
+					|| !SimCruisePlacePhotos::ParseImageInfo(InfoText, Info, Error))
+				{
+					continue;
+				}
+				if (!SimCruisePlacePhotos::IsUsable(Info))
+				{
+					UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("%s: %s left out (%d%s)"), *R.Name, *R.Image, Info.Year, Info.bPostcard ? TEXT(", postcard") : TEXT(""));
+					continue;
+				}
+				TArray<uint8> Bytes;
+				if (!FetchBytes(Info.ThumbUrl, Bytes)) continue;
+				TArray<FColor> Pixels;
+				int32 W = 0, H = 0;
+				FColor Wall;
+				float Share = 0.0f;
+				if (SimCruisePlacePhotos::DecodeImage(Bytes, Pixels, W, H) && SimCruisePlacePhotos::WallColour(Pixels, W, H, Wall, Share))
+				{
+					SimCruisePlacePhotos::Apply(R, Wall, Share, Info);
+					++Measured;
+					UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("%s: wall %s %s"), *R.Name, *R.Colour, *R.ColourSource);
+				}
+				FPlatformProcess::Sleep(0.5f);
+			}
+			if (bChanged)
+			{
+				FString Sources = TEXT("bundled");
+				TSharedPtr<FJsonObject> Old;
+				if (FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Text), Old) && Old.IsValid()) Old->TryGetStringField(TEXT("sources"), Sources);
+				FFileHelper::SaveStringToFile(SimCruisePlaceFacts::ToJson(Tile, Records, Sources + TEXT(" photos")), *Path, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+			}
+		}
+		UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("Photos: %d walls measured of %d buildings with a photograph."), Measured, Tried);
 	}
 	// -AI: the local model reads each area of these tiles (data/knowledge/areas).
 	if (FParse::Param(*Params, TEXT("AI")))

@@ -111,7 +111,9 @@ struct SIMCRUISE_API FSimCruisePlaceRecord
 	FString Architect;
 	FString Heritage;       // e.g. "National Register of Historic Places contributing property"
 	FString Material;       // OSM building:material, Wikidata P186
-	FString Colour;         // OSM building:colour (hex or name)
+	FString Colour;         // OSM building:colour (hex or name), or measured in a photograph
+	FString ColourSource;   // where a measured colour comes from (file, year, author, licence)
+	FString Image;          // Wikidata P18: the Commons file of the building's photograph
 	FString RoofShape;      // OSM roof:shape
 	int32 Levels = 0;
 	FString Building;       // OSM building=* (hotel, apartments, house ...)

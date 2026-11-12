@@ -1,7 +1,7 @@
 {
 	"tile": "18179_27910",
-	"fetched": "2026-11-12T04:04:25.231Z",
-	"sources": "overpass:43 wikidata:14",
+	"fetched": "2026-11-12T07:01:56.158Z",
+	"sources": "overpass:43 wikidata:14 photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -24,6 +24,9 @@
 			"name": "Portofino Tower",
 			"osm": "way/117915459",
 			"wikidata": "Q3399359",
+			"colour": "#EBB085",
+			"colour_source": "measured in File:Portofino Tower South Beach.jpg (2008, , CC BY-SA 1.0; wall 32% of the facade band)",
+			"image": "Portofino Tower South Beach.jpg",
 			"levels": 44,
 			"building": "apartments"
 		},
@@ -253,6 +256,7 @@
 				"Mediterranean Revival architecture"
 			],
 			"year": 1926,
+			"image": "Miami Beach - David Court 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -261,6 +265,7 @@
 			"name": "Warr Inn",
 			"wikidata": "Q125486733",
 			"year": 1925,
+			"image": "Miami Beach - Hotel Warrinn 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -272,6 +277,7 @@
 				"Mediterranean Revival architecture"
 			],
 			"year": 1921,
+			"image": "Miami Beach - Hotel Nemo.jpg",
 			"building": "hotel"
 		},
 		{
@@ -279,7 +285,8 @@
 			"lon": -80.134530999999996,
 			"name": "Miami Beach Kennel Club",
 			"wikidata": "Q126919391",
-			"year": 1928
+			"year": 1928,
+			"image": "Miami Beach - Miami Beach Kennel Club 01.jpg"
 		}
 	]
 }

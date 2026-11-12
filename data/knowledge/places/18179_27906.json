@@ -1,7 +1,7 @@
 {
 	"tile": "18179_27906",
-	"fetched": "2026-11-12T03:21:04.657Z",
-	"sources": "overpass:282 wikidata:12",
+	"fetched": "2026-11-12T07:01:50.368Z",
+	"sources": "overpass:282 wikidata:12 photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -224,7 +224,10 @@
 			"lon": -80.136388999999994,
 			"name": "Lincoln Road",
 			"wikidata": "Q3241310",
-			"heritage": "National Register of Historic Places listed place"
+			"heritage": "National Register of Historic Places listed place",
+			"colour": "#DEE0DB",
+			"colour_source": "measured in File:Lincoln Road.jpg (2008, , CC BY-SA 3.0; wall 39% of the facade band)",
+			"image": "Lincoln Road.jpg"
 		},
 		{
 			"lat": 25.785833,
@@ -236,6 +239,9 @@
 			],
 			"year": 1915,
 			"heritage": "National Register of Historic Places listed place",
+			"colour": "#B6B7B0",
+			"colour_source": "measured in File:SouthBeachMiamiBeach.jpg (2008, Massimo Catarinella, CC BY-SA 3.0; wall 35% of the facade band)",
+			"image": "SouthBeachMiamiBeach.jpg",
 			"district": true
 		},
 		{
@@ -247,7 +253,8 @@
 				"Art Deco",
 				"Mediterranean Revival architecture"
 			],
-			"year": 1935
+			"year": 1935,
+			"image": "1620 Pennsylvania Avenue BW.png"
 		},
 		{
 			"lat": 25.790284,
@@ -259,6 +266,7 @@
 			],
 			"year": 1926,
 			"architect": "Martin L. Hampton",
+			"image": "Miami Beach - Hotel Hampton 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -271,6 +279,7 @@
 			],
 			"year": 1924,
 			"architect": "Martin L. Hampton",
+			"image": "Miami Beach - Hotel Helene 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -283,6 +292,7 @@
 			],
 			"year": 1937,
 			"architect": "Igor B. Polevitzky",
+			"image": "Miami Beach - Lincoln Center Hotel.jpg",
 			"building": "hotel"
 		}
 	]

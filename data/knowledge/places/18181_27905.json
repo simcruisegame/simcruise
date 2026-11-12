@@ -1,7 +1,7 @@
 {
 	"tile": "18181_27905",
-	"fetched": "2026-11-12T04:15:18.443Z",
-	"sources": "overpass:35 wikidata:18",
+	"fetched": "2026-11-12T07:03:01.631Z",
+	"sources": "overpass:35 wikidata:18 photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -23,6 +23,7 @@
 				"Art Deco architecture"
 			],
 			"architect": "MacKay & Gibbs",
+			"image": "Miami Beach - The Surfcomber 01.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -38,6 +39,7 @@
 			],
 			"year": 1940,
 			"architect": "Lawrence Murray Dixon",
+			"image": "Miami Beach - The Raleigh.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -52,6 +54,7 @@
 			],
 			"year": 1940,
 			"heritage": "National Register of Historic Places contributing property",
+			"image": "National Hotel, Miami Beach, Florida LCCN2017711401.tif",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -84,6 +87,7 @@
 			],
 			"year": 1941,
 			"architect": "Morris Lapidus",
+			"image": "Boulevard in Miami Beach met het Shelborne Hotel, Bestanddeelnr 191-0779.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -98,6 +102,9 @@
 			"year": 1947,
 			"architect": "B. Robert Swartburg",
 			"heritage": "National Register of Historic Places contributing property",
+			"colour": "#F1F2F2",
+			"colour_source": "measured in File:Delano South Beach.jpg (2016, Gzzz, CC BY-SA 4.0; wall 67% of the facade band)",
+			"image": "Delano South Beach.jpg",
 			"building": "hotel"
 		},
 		{
@@ -110,6 +117,9 @@
 			],
 			"year": 1940,
 			"architect": "Lawrence Murray Dixon",
+			"colour": "#F5F8F6",
+			"colour_source": "measured in File:Ritz Plaza Hotel Miami Beach 1.jpg (2016, Gzzz, CC BY-SA 4.0; wall 43% of the facade band)",
+			"image": "Ritz Plaza Hotel Miami Beach 1.jpg",
 			"building": "hotel"
 		},
 		{
@@ -129,6 +139,7 @@
 			],
 			"year": 1947,
 			"architect": "Albert Anis",
+			"image": "Miami Beach - Claremont Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -141,6 +152,7 @@
 			],
 			"year": 1948,
 			"architect": "Albert Anis",
+			"image": "Miami Beach - The Sagamore.jpg",
 			"building": "hotel"
 		},
 		{
@@ -153,6 +165,7 @@
 			],
 			"year": 1939,
 			"architect": "Robert A. Taylor",
+			"image": "Miami Beach - Cromwell Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -165,6 +178,7 @@
 			],
 			"year": 1951,
 			"architect": "Morris Lapidus",
+			"image": "Miami Beach - Nautilus Hotel 05.jpg",
 			"building": "hotel"
 		},
 		{
@@ -177,6 +191,7 @@
 			],
 			"year": 1947,
 			"architect": "B. Robert Swartburg",
+			"image": "Miami Beach - Marseilles Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -189,6 +204,7 @@
 			],
 			"year": 1941,
 			"architect": "Lawrence Murray Dixon",
+			"image": "Miami Beach - The Richmond Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -202,6 +218,7 @@
 			],
 			"year": 1941,
 			"architect": "Lawrence Murray Dixon",
+			"image": "Miami Beach - The South Seas Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -214,6 +231,7 @@
 			],
 			"year": 1940,
 			"architect": "Joseph DeBrita",
+			"image": "Miami Beach - The Dorset 2.jpg",
 			"building": "hotel"
 		},
 		{
@@ -226,6 +244,7 @@
 			],
 			"year": 1953,
 			"architect": "Morris Lapidus",
+			"image": "Miami Beach - Hotel di Lido 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -235,6 +254,7 @@
 			"wikidata": "Q131312203",
 			"year": 1948,
 			"architect": "MacKay & Gibbs",
+			"image": "Miami Beach - The Seacomber 01.jpg",
 			"building": "hotel"
 		}
 	]

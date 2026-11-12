@@ -1,7 +1,7 @@
 {
 	"tile": "18179_27909",
-	"fetched": "2026-11-12T06:27:23.294Z",
-	"sources": "overpass:182 wikidata:17",
+	"fetched": "2026-11-12T07:01:54.834Z",
+	"sources": "overpass:182 wikidata:17 photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -669,6 +669,7 @@
 			"osm": "way/435731605",
 			"wikidata": "Q3178486",
 			"year": 1936,
+			"image": "JewishMuseumMiamiBeach.png",
 			"building": "yes",
 			"amenity": "museum"
 		},
@@ -1015,7 +1016,10 @@
 			"name": "Beth Jacob Social Hall and Congregation",
 			"wikidata": "Q4897552",
 			"architect": "A. Fraser Rose",
-			"heritage": "National Register of Historic Places listed place"
+			"heritage": "National Register of Historic Places listed place",
+			"colour": "#D9CEB5",
+			"colour_source": "measured in File:Miami Beach FL Beth Jacob Hall msm01.jpg (2011, Ebyabe, CC BY-SA 3.0; wall 37% of the facade band)",
+			"image": "Miami Beach FL Beth Jacob Hall msm01.jpg"
 		},
 		{
 			"lat": 25.77421,
@@ -1029,6 +1033,7 @@
 			"lon": -80.133544999999998,
 			"name": "Sea Breeze Hotel",
 			"wikidata": "Q120646095",
+			"image": "Miami Beach - Sea Breeze Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -1051,6 +1056,7 @@
 				"Mediterranean Revival architecture"
 			],
 			"year": 1926,
+			"image": "Miami Beach - David Court 01.jpg",
 			"building": "hotel"
 		},
 		{
@@ -1062,6 +1068,7 @@
 				"Mediterranean Revival architecture"
 			],
 			"year": 1935,
+			"image": "Miami Beach - Hotel Harrison.jpg",
 			"building": "hotel"
 		},
 		{
@@ -1074,6 +1081,7 @@
 			],
 			"year": 1924,
 			"architect": "William F. Brown",
+			"image": "Miami Beach - George Washington Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -1084,6 +1092,7 @@
 			"style": [
 				"Mediterranean Revival architecture"
 			],
+			"image": "Miami Beach - Ambassador Hotel.jpg",
 			"building": "hotel"
 		},
 		{
@@ -1095,6 +1104,7 @@
 				"Art Deco architecture"
 			],
 			"year": 1934,
+			"image": "Miami Beach - Hotel MacArthur 01.jpg",
 			"building": "hotel"
 		}
 	]
