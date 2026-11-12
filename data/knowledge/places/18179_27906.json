@@ -1,0 +1,289 @@
+{
+	"tile": "18179_27906",
+	"fetched": "2026-11-12T03:21:04.657Z",
+	"sources": "overpass:282 wikidata:12",
+	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
+	"records": [
+		{
+			"lat": 25.785392000000002,
+			"lon": -80.138960999999995,
+			"osm": "way/255410013",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.785516999999999,
+			"lon": -80.139450999999994,
+			"osm": "way/255410047",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.785969000000001,
+			"lon": -80.134930999999995,
+			"name": "The Temple House",
+			"osm": "way/435541652",
+			"wikidata": "Q7768354",
+			"year": 1933,
+			"architect": "Lawrence Murray Dixon",
+			"building": "yes"
+		},
+		{
+			"lat": 25.788122999999999,
+			"lon": -80.137936999999994,
+			"name": "Courtyard Apartments Part of the Oasis Casita Collection",
+			"osm": "way/435576127",
+			"levels": 2,
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.785095999999999,
+			"lon": -80.13946,
+			"osm": "way/560720634",
+			"roof": "gabled",
+			"building": "house"
+		},
+		{
+			"lat": 25.785523999999999,
+			"lon": -80.138988999999995,
+			"osm": "way/560720635",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.785657,
+			"lon": -80.138992999999999,
+			"osm": "way/560720636",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.785800999999999,
+			"lon": -80.139037000000002,
+			"osm": "way/560720637",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.785955000000001,
+			"lon": -80.139174999999994,
+			"osm": "way/560720638",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.785931000000001,
+			"lon": -80.139003000000002,
+			"osm": "way/560720639",
+			"roof": "gabled",
+			"building": "house"
+		},
+		{
+			"lat": 25.786217000000001,
+			"lon": -80.138942999999998,
+			"osm": "way/560720640",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.786352999999998,
+			"lon": -80.138969000000003,
+			"osm": "way/560720642",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.786503,
+			"lon": -80.138968000000006,
+			"osm": "way/560720644",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.786681999999999,
+			"lon": -80.138983999999994,
+			"osm": "way/560720647",
+			"building": "house"
+		},
+		{
+			"lat": 25.786750000000001,
+			"lon": -80.139532000000003,
+			"osm": "way/560720649",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.786614,
+			"lon": -80.139520000000005,
+			"osm": "way/560720652",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.786476,
+			"lon": -80.139516,
+			"osm": "way/560720656",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.786338000000001,
+			"lon": -80.139538000000002,
+			"osm": "way/560720658",
+			"building": "house"
+		},
+		{
+			"lat": 25.786199,
+			"lon": -80.139557999999994,
+			"osm": "way/560720662",
+			"roof": "gabled",
+			"building": "house"
+		},
+		{
+			"lat": 25.786068,
+			"lon": -80.139467999999994,
+			"osm": "way/560720664",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.785924999999999,
+			"lon": -80.139520000000005,
+			"osm": "way/560720667",
+			"roof": "gabled",
+			"building": "house"
+		},
+		{
+			"lat": 25.785789000000001,
+			"lon": -80.139474000000007,
+			"osm": "way/560720669",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.785651999999999,
+			"lon": -80.139478999999994,
+			"osm": "way/560720670",
+			"building": "house"
+		},
+		{
+			"lat": 25.785375999999999,
+			"lon": -80.139475000000004,
+			"osm": "way/560720672",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.785112000000002,
+			"lon": -80.138972999999993,
+			"osm": "way/560720674",
+			"roof": "gabled",
+			"building": "house"
+		},
+		{
+			"lat": 25.788197,
+			"lon": -80.135647000000006,
+			"name": "L’Etoile Apartments Part of the Oasis Casita Collection",
+			"osm": "way/640170845",
+			"roof": "hipped",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.788063999999999,
+			"lon": -80.135598999999999,
+			"osm": "way/640170846",
+			"roof": "hipped",
+			"building": "detached"
+		},
+		{
+			"lat": 25.788475999999999,
+			"lon": -80.135622999999995,
+			"osm": "way/640170847",
+			"roof": "hipped",
+			"building": "detached"
+		},
+		{
+			"lat": 25.787153,
+			"lon": -80.139289000000005,
+			"name": "Ten30",
+			"osm": "way/1558857385",
+			"levels": 3,
+			"building": "terrace"
+		},
+		{
+			"lat": 25.788352,
+			"lon": -80.135007000000002,
+			"osm": "relation/6457694",
+			"levels": 6,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.790555999999999,
+			"lon": -80.136388999999994,
+			"name": "Lincoln Road",
+			"wikidata": "Q3241310",
+			"heritage": "National Register of Historic Places listed place"
+		},
+		{
+			"lat": 25.785833,
+			"lon": -80.134167000000005,
+			"name": "Miami Beach Architectural District",
+			"wikidata": "Q3307877",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1915,
+			"heritage": "National Register of Historic Places listed place",
+			"district": true
+		},
+		{
+			"lat": 25.789838,
+			"lon": -80.134642999999997,
+			"name": "Penthouse Court",
+			"wikidata": "Q110639761",
+			"style": [
+				"Art Deco",
+				"Mediterranean Revival architecture"
+			],
+			"year": 1935
+		},
+		{
+			"lat": 25.790284,
+			"lon": -80.138549999999995,
+			"name": "The Hampton Hotel",
+			"wikidata": "Q124327604",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1926,
+			"architect": "Martin L. Hampton",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.787208,
+			"lon": -80.139258999999996,
+			"name": "Hotel Helene",
+			"wikidata": "Q124433927",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1924,
+			"architect": "Martin L. Hampton",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.790365999999999,
+			"lon": -80.134952999999996,
+			"name": "Lincoln Center Hotel",
+			"wikidata": "Q126326717",
+			"style": [
+				"Miami Modern architecture"
+			],
+			"year": 1937,
+			"architect": "Igor B. Polevitzky",
+			"building": "hotel"
+		}
+	]
+}

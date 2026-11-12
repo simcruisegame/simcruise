@@ -1,0 +1,341 @@
+{
+	"tile": "18180_27910",
+	"fetched": "2026-11-12T04:14:47.789Z",
+	"sources": "overpass:49 wikidata:21",
+	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
+	"records": [
+		{
+			"lat": 25.769683000000001,
+			"lon": -80.132367000000002,
+			"name": "Hilton Bentley Miami/South Beach",
+			"osm": "way/100457586",
+			"wikidata": "Q111393237",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.770448999999999,
+			"lon": -80.132261999999997,
+			"name": "Marriott Stanton South Beach",
+			"osm": "way/117913336",
+			"wikidata": "Q111393236",
+			"levels": 11,
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.767263,
+			"lon": -80.134135999999998,
+			"name": "South Pointe Tower",
+			"osm": "way/263002505",
+			"wikidata": "Q7568259",
+			"levels": 25,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.766849000000001,
+			"lon": -80.132858999999996,
+			"name": "Continuum on South Beach I",
+			"osm": "way/301906634",
+			"wikidata": "Q2995687",
+			"levels": 40,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.767883000000001,
+			"lon": -80.132824999999997,
+			"name": "Continuum at South Beach II",
+			"osm": "way/301920897",
+			"levels": 37,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.769898999999999,
+			"lon": -80.132379999999998,
+			"osm": "way/435234979",
+			"levels": 7,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770060999999998,
+			"lon": -80.132515999999995,
+			"osm": "way/435566383",
+			"levels": 7,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.769081,
+			"lon": -80.132248000000004,
+			"osm": "way/435576803",
+			"building": "retail"
+		},
+		{
+			"lat": 25.770126999999999,
+			"lon": -80.132086999999999,
+			"osm": "way/435737376",
+			"levels": 7,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.766470000000002,
+			"lon": -80.132785999999996,
+			"osm": "way/436106496",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.767510000000001,
+			"lon": -80.131797000000006,
+			"osm": "way/436106501",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.767513999999998,
+			"lon": -80.131928000000002,
+			"osm": "way/436106502",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.767519,
+			"lon": -80.132113000000004,
+			"osm": "way/436106503",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.767610999999999,
+			"lon": -80.132408999999996,
+			"osm": "way/436106504",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.768024,
+			"lon": -80.132396999999997,
+			"osm": "way/436106584",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.767081000000001,
+			"lon": -80.132401999999999,
+			"osm": "way/436107604",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.767862000000001,
+			"lon": -80.132872000000006,
+			"osm": "way/436109974",
+			"building": "retail"
+		},
+		{
+			"lat": 25.767861,
+			"lon": -80.133611000000002,
+			"osm": "way/436121932",
+			"building": "retail"
+		},
+		{
+			"lat": 25.770232,
+			"lon": -80.132660000000001,
+			"name": "Ocean Park",
+			"osm": "way/436122705",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.768165,
+			"lon": -80.132108000000002,
+			"osm": "way/436122708",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.768167999999999,
+			"lon": -80.131919999999994,
+			"osm": "way/436122709",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.768172,
+			"lon": -80.131791000000007,
+			"osm": "way/436122710",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.766881999999999,
+			"lon": -80.133106999999995,
+			"osm": "way/481651649",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.765885000000001,
+			"lon": -80.134103999999994,
+			"osm": "way/481651650",
+			"building": "retail"
+		},
+		{
+			"lat": 25.769447,
+			"lon": -80.133781999999997,
+			"osm": "way/481651651",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.765644000000002,
+			"lon": -80.13073,
+			"osm": "way/567439880",
+			"building": "lifeguard_tower"
+		},
+		{
+			"lat": 25.769134999999999,
+			"lon": -80.130761000000007,
+			"osm": "way/567439885",
+			"building": "lifeguard_tower"
+		},
+		{
+			"lat": 25.770185000000001,
+			"lon": -80.133215000000007,
+			"osm": "way/637335326",
+			"levels": 18,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.768744000000002,
+			"lon": -80.133724999999998,
+			"osm": "way/647526323",
+			"levels": 7,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.768636000000001,
+			"lon": -80.133636999999993,
+			"osm": "way/647526324",
+			"building": "retail"
+		},
+		{
+			"lat": 25.769355999999998,
+			"lon": -80.133359999999996,
+			"osm": "way/827416831",
+			"levels": 8,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.769917,
+			"lon": -80.133691999999996,
+			"osm": "relation/6461978",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770447000000001,
+			"lon": -80.133044999999996,
+			"name": "Century Hotel",
+			"wikidata": "Q118744983",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1939,
+			"architect": "Henry Hohauser",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.770636,
+			"lon": -80.132593,
+			"name": "Hotel Stanton",
+			"wikidata": "Q124090210",
+			"style": [
+				"Streamline Moderne"
+			],
+			"year": 1939,
+			"architect": "Anton Skislewicz",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.769748,
+			"lon": -80.132711,
+			"name": "The Corsair",
+			"wikidata": "Q124308755",
+			"style": [
+				"Streamline Moderne"
+			],
+			"year": 1939,
+			"architect": "Anton Skislewicz",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.770092999999999,
+			"lon": -80.132698000000005,
+			"name": "Walburne Hotel",
+			"wikidata": "Q124622942",
+			"style": [
+				"Miami Modern architecture"
+			],
+			"year": 1941,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.768891,
+			"lon": -80.132221999999999,
+			"name": "Hardie's Casino",
+			"wikidata": "Q124672202",
+			"year": 1914
+		},
+		{
+			"lat": 25.767925000000002,
+			"lon": -80.132361000000003,
+			"name": "Smith's Casino",
+			"wikidata": "Q124672307",
+			"year": 1904
+		},
+		{
+			"lat": 25.768165,
+			"lon": -80.133878999999993,
+			"name": "Warr Inn",
+			"wikidata": "Q125486733",
+			"year": 1925,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.769936999999999,
+			"lon": -80.134184000000005,
+			"name": "Hotel Nemo",
+			"wikidata": "Q126010702",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1921,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.767659999999999,
+			"lon": -80.134530999999996,
+			"name": "Miami Beach Kennel Club",
+			"wikidata": "Q126919391",
+			"year": 1928
+		},
+		{
+			"lat": 25.770223000000001,
+			"lon": -80.132711,
+			"name": "Ocean Haven Hotel",
+			"wikidata": "Q128429583",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.769376000000001,
+			"lon": -80.133294000000006,
+			"name": "Leonard Hotel",
+			"wikidata": "Q137271466",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1925,
+			"building": "hotel"
+		}
+	]
+}

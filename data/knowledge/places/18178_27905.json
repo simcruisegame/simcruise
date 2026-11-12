@@ -1,0 +1,162 @@
+{
+	"tile": "18178_27905",
+	"fetched": "2026-11-12T03:09:58.432Z",
+	"sources": "overpass:116 wikidata:9",
+	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
+	"records": [
+		{
+			"lat": 25.791885000000001,
+			"lon": -80.140956000000003,
+			"name": "BankUnited",
+			"osm": "way/255427195",
+			"building": "retail",
+			"amenity": "bank"
+		},
+		{
+			"lat": 25.790585,
+			"lon": -80.143934000000002,
+			"name": "Hôtel Gaythering",
+			"osm": "way/258238120",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.790171000000001,
+			"lon": -80.142763000000002,
+			"osm": "way/263068136",
+			"building": "residential"
+		},
+		{
+			"lat": 25.792845,
+			"lon": -80.142876999999999,
+			"name": "Public Storage",
+			"osm": "way/263233283",
+			"levels": 3,
+			"building": "warehouse",
+			"amenity": "shop"
+		},
+		{
+			"lat": 25.790811000000001,
+			"lon": -80.140820000000005,
+			"name": "1111 Lincoln Road Garage",
+			"osm": "way/297682282",
+			"year": 2010,
+			"architect": "Herzog & de Meuron",
+			"levels": 8,
+			"building": "yes",
+			"amenity": "parking"
+		},
+		{
+			"lat": 25.790116000000001,
+			"lon": -80.140626999999995,
+			"name": "Regal Cinema",
+			"osm": "way/297682367",
+			"wikidata": "Q42421762",
+			"building": "commercial",
+			"amenity": "cinema"
+		},
+		{
+			"lat": 25.790126999999998,
+			"lon": -80.140137999999993,
+			"osm": "way/564772308",
+			"levels": 2,
+			"building": "commercial"
+		},
+		{
+			"lat": 25.792384999999999,
+			"lon": -80.142205000000004,
+			"name": "Residence Inn Miami Beach South Beach",
+			"osm": "way/586107955",
+			"levels": 5,
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.792346999999999,
+			"lon": -80.141514999999998,
+			"osm": "way/586108023",
+			"building": "retail"
+		},
+		{
+			"lat": 25.795117999999999,
+			"lon": -80.143190000000004,
+			"osm": "way/586749089",
+			"building": "retail",
+			"amenity": "parking"
+		},
+		{
+			"lat": 25.791177000000001,
+			"lon": -80.140861000000001,
+			"osm": "way/587787077",
+			"year": 2010,
+			"architect": "Herzog & de Meuron",
+			"building": "yes"
+		},
+		{
+			"lat": 25.790485,
+			"lon": -80.139585999999994,
+			"osm": "way/589663846",
+			"building": "roof"
+		},
+		{
+			"lat": 25.792287000000002,
+			"lon": -80.139448000000002,
+			"name": "Cuban Hebrew Congregation of Miami",
+			"osm": "way/763447699",
+			"wikidata": "Q5192020",
+			"style": [
+				"neo-expressionism"
+			],
+			"year": 1961,
+			"building": "yes",
+			"amenity": "place_of_worship"
+		},
+		{
+			"lat": 25.792740999999999,
+			"lon": -80.141677999999999,
+			"name": "Kimpton Hotel Palomar South Beach",
+			"osm": "way/827740924",
+			"wikidata": "Q111887629",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.790828000000001,
+			"lon": -80.140330000000006,
+			"osm": "way/903188510",
+			"year": 1970,
+			"architect": "Adolfo Albasia",
+			"levels": 9,
+			"building": "office"
+		},
+		{
+			"lat": 25.791775000000001,
+			"lon": -80.141897999999998,
+			"osm": "way/1029423238",
+			"building": "roof"
+		},
+		{
+			"lat": 25.790942000000001,
+			"lon": -80.140822,
+			"name": "1111 Lincoln Road",
+			"osm": "relation/12268481",
+			"wikidata": "Q170391",
+			"year": 2010,
+			"architect": "Herzog & de Meuron",
+			"material": "concrete",
+			"building": "yes"
+		},
+		{
+			"lat": 25.792202,
+			"lon": -80.141575000000003,
+			"name": "Hotel Mayflower",
+			"wikidata": "Q124433971",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1922,
+			"architect": "Martin L. Hampton",
+			"building": "hotel"
+		}
+	]
+}

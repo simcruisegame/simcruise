@@ -120,6 +120,7 @@ Contributions are welcome: code, data sources, bug reports from places that look
 | [Migration ledger](docs/unreal-migration-ledger.md) | Every Godot file and check, where it went in Unreal, and its status |
 | [Data sources and licences](docs/data-sources.md) | Every data layer, its source and licence |
 | [Controls](docs/controls.md) | Full control reference, manual gearbox, road atlas |
+| [Place knowledge graph](docs/place-graph.md) | How facts and rules decide the details of each building, and the live-data hub |
 | [Cars](docs/cars.md) | The garage, how cars are calibrated, adding a car |
 | [Roadmap](docs/roadmap.md) | What comes next and why |
 | [Changelog](CHANGELOG.md) | Changes by version |

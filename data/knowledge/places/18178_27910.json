@@ -1,0 +1,44 @@
+{
+	"tile": "18178_27910",
+	"fetched": "2026-11-12T03:59:13.552Z",
+	"sources": "overpass:9 wikidata:1",
+	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
+	"records": [
+		{
+			"lat": 25.770271999999999,
+			"lon": -80.144388000000006,
+			"osm": "way/480955461",
+			"building": "garage"
+		},
+		{
+			"lat": 25.770603999999999,
+			"lon": -80.144229999999993,
+			"osm": "way/480955468",
+			"building": "industrial"
+		},
+		{
+			"lat": 25.770105000000001,
+			"lon": -80.144199999999998,
+			"osm": "way/602406600",
+			"building": "garage"
+		},
+		{
+			"lat": 25.769995999999999,
+			"lon": -80.144633999999996,
+			"osm": "way/1496070262",
+			"building": "industrial"
+		},
+		{
+			"lat": 25.770019000000001,
+			"lon": -80.144323999999997,
+			"osm": "way/1496070267",
+			"building": "shed"
+		},
+		{
+			"lat": 25.770192000000002,
+			"lon": -80.144465999999994,
+			"osm": "way/1496070268",
+			"building": "shed"
+		}
+	]
+}

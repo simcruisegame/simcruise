@@ -1,0 +1,14 @@
+{
+	"tile": "18181_27908",
+	"fetched": "2026-11-12T04:20:09.638Z",
+	"sources": "overpass:1 wikidata:1",
+	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
+	"records": [
+		{
+			"lat": 25.777975000000001,
+			"lon": -80.128741000000005,
+			"osm": "way/567439897",
+			"building": "lifeguard_tower"
+		}
+	]
+}

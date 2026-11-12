@@ -2,6 +2,8 @@
 
 #include "World/SimCruiseTileDetail.h"
 
+#include "Knowledge/SimCruisePlaceGraph.h"
+#include "Knowledge/SimCruisePlaceGraphSubsystem.h"
 
 #include "World/SimCruiseRoadNetwork.h"
 #include "World/SimCruiseTileData.h"
@@ -332,6 +334,11 @@ namespace SimCruiseTileDetail
 		const FSimCruiseRoadNetwork& Roads = B.Roads;
 		FSimCruiseMeshData& Mesh = B.Layer(ESimCruiseTileLayer::Building);
 		const EBuildingStyle Place = StyleForPlace(X.LatDeg, X.LonDeg);
+		// The place knowledge graph (data/knowledge/place-graph.json): each building's recipe,
+		// colours and how likely each detail is, from its open data, its neighbours, the region.
+		FSimCruiseTilePlan Plan;
+		const bool bGraph = SimCruisePlaceGraph::Rules().Rules.Num() > 0;
+		if (bGraph) SimCruisePlaceHub::BakeForBuild(Data, X.LatDeg, X.LonDeg, X.Side, Plan);
 
 		// Footprints in metres, and each named place on its building: the footprint it stands
 		// in, or the nearest within 12 m (map points often sit on the sidewalk at the door).
@@ -384,17 +391,33 @@ namespace SimCruiseTileDetail
 
 			const uint32 H = Hash(GetTypeHash(Data.Id), static_cast<uint32>(b));
 			FWriter W{ Mesh, static_cast<float>(Unit(Hash(H, 7))) };
-			const bool bRegionDeco = Place == EBuildingStyle::MiamiBeachDeco && !bFloating;
-			const bool bDeco = bRegionDeco && Height <= 26.0;
-			const bool bTower = bRegionDeco && Height > 26.0;
+			const FSimCruiseBuildingPlan* BP = bGraph ? Plan.Find(b) : nullptr;
+			const bool bGraphDeco = BP && BP->P(TEXT("recipe:deco")) >= 0.5f;
+			const bool bGraphTower = BP && !bGraphDeco && BP->P(TEXT("recipe:resort_tower")) >= 0.5f;
+			const bool bRegionDeco = (BP ? (bGraphDeco || bGraphTower) : Place == EBuildingStyle::MiamiBeachDeco) && !bFloating;
+			const bool bDeco = BP ? bGraphDeco && !bFloating : bRegionDeco && Height <= 26.0;
+			const bool bTower = BP ? bGraphTower && !bFloating : bRegionDeco && Height > 26.0;
+			// Probability of a detail: the graph's, else the recipe's own default.
+			// Given that the recipe is deco, a deco detail's chance is the graph's divided by how sure
+			// the graph is of the deco family (an undated district hotel keeps the full set).
+			const double DecoSure = BP ? FMath::Max(static_cast<double>(BP->P(TEXT("family:deco"))), 0.05) : 1.0;
+			auto Chance = [BP, DecoSure](const TCHAR* Detail, double Default)
+			{
+				return BP ? FMath::Min(1.0, static_cast<double>(BP->P(Detail, static_cast<float>(Default * DecoSure))) / DecoSure) : Default;
+			};
 			const double FloorH = bDeco ? 3.1 : 3.2;
 			const double Parapet = bDeco ? (Height > 5.0 ? 0.9 : 0.4) : (bTower ? 1.1 : 0.5);
-			const FLinearColor Wall = bDeco ? Pick(DecoWalls(), H) : (bTower ? Pick(TowerWalls(), H) : Pick(GenericWalls(), H));
+			FLinearColor Wall = bDeco ? Pick(DecoWalls(), H) : (bTower ? Pick(TowerWalls(), H) : Pick(GenericWalls(), H));
+			// A colour mapped on the building wins; else the region's palette for ordinary buildings
+			// (the deco and tower palettes above are matched to Ocean Drive photographs).
+			if (BP && BP->bColourFromData) Wall = BP->Wall;
+			else if (BP && BP->bHasColour && !bDeco && !bTower) Wall = BP->Wall;
+			if (BP) Wall = BP->Weathered(Wall);
 			// Half the hotels keep white trim; the rest a contrasting accent.
-			const FLinearColor Accent = (bDeco && Unit(Hash(H, 3)) < 0.55) ? Pick(DecoAccents(), Hash(H, 4)) : Srgb(TEXT("FAF8F2"));
+			const FLinearColor Accent = (bDeco && Unit(Hash(H, 3)) < Chance(TEXT("detail:accent_trim"), 0.55)) ? Pick(DecoAccents(), Hash(H, 4)) : Srgb(TEXT("FAF8F2"));
 			const FLinearColor Neon = Pick(NeonColours(), Hash(H, 5));
-			const bool bNeonParapet = bDeco && Unit(Hash(H, 6)) < 0.5;
-			const bool bEyebrowsAround = bDeco && Unit(Hash(H, 8)) < 0.5;
+			const bool bNeonParapet = bDeco && Unit(Hash(H, 6)) < Chance(TEXT("detail:neon_parapet"), 0.5);
+			const bool bEyebrowsAround = bDeco && Unit(Hash(H, 8)) < Chance(TEXT("detail:eyebrows_wrap"), 0.5);
 			const int32 Floors = FMath::Max(1, FMath::FloorToInt((Height + 0.2) / FloorH));
 			TArray<int32> Places;
 			PlacesOf.MultiFind(b, Places);
@@ -429,14 +452,14 @@ namespace SimCruiseTileDetail
 				const bool bConvexA = FVector2d::DotProduct(EdgeDirOf(Footprint, (i + N0 - 1) % N0), N2) > 0.5;
 				const bool bConvexC = FVector2d::DotProduct(EdgeDirOf(Footprint, (i + 1) % N0), N2) < -0.5;
 				PorchDepth0[i] = FMath::Min(2.2, 0.35 * FMath::Min(PrevLen, NextLen));
-				Porch0[i] = bDeco && Front0[i] && Len >= 8.0 && Height >= 6.0 && bConvexA && bConvexC && PorchDepth0[i] >= 1.5 && Unit(Hash(H, 9)) < 0.8;
+				Porch0[i] = bDeco && Front0[i] && Len >= 8.0 && Height >= 6.0 && bConvexA && bConvexC && PorchDepth0[i] >= 1.5 && Unit(Hash(H, 9)) < Chance(TEXT("detail:porch"), 0.8);
 			}
 
 			// Streamline Moderne: most of the district's hotels round their street corners, and
 			// the eyebrows and speed lines wrap round them (the Carlyle, the Cardozo, the Leslie).
 			TArray<FVector2d> Ring;
 			TArray<int32> Source;
-			if (bDeco && Height >= 6.0 && Unit(Hash(H, 21)) < 0.7)
+			if (bDeco && Height >= 6.0 && Unit(Hash(H, 21)) < Chance(TEXT("detail:round_corners"), 0.7))
 			{
 				RoundCorners(Footprint, Sign, Front0, Porch0, 2.2, Ring, Source);
 			}
@@ -473,7 +496,10 @@ namespace SimCruiseTileDetail
 			// pylons with flagpoles (the Carlyle), or twin fins (the Avalon, the Majestic).
 			const double FormPick = Unit(Hash(H, 22));
 			const bool bHasTower = bDeco && Longest != INDEX_NONE && LongestLen >= 10.0 && Height >= 6.0;
-			const int32 TowerForm = !bHasTower ? -1 : FormPick < 0.45 ? 0 : FormPick < 0.8 ? 1 : 2;
+			// The graph weighs the three forms (a Streamline Moderne front leans to pylons and fins).
+			const double WCentral = Chance(TEXT("detail:central_tower"), 0.45), WPylons = Chance(TEXT("detail:pylons"), 0.35), WFins = Chance(TEXT("detail:twin_fins"), 0.2);
+			const double WSum = FMath::Max(WCentral + WPylons + WFins, 1e-3);
+			const int32 TowerForm = !bHasTower ? -1 : FormPick < WCentral / WSum ? 0 : FormPick < (WCentral + WPylons) / WSum ? 1 : 2;
 
 			// Where the lettering goes: each named place on the street edge nearest it, the
 			// hotel first; spans already lettered on an edge are not used again.
@@ -502,7 +528,7 @@ namespace SimCruiseTileDetail
 			for (int32 i = 0; i < N; ++i)
 			{
 				const double Len = FVector2d::Distance(Ring[i], Ring[(i + 1) % N]);
-				Awning[i] = bDeco && Front[i] && !Arc[i] && !PorchEdge[i] && Len >= 3.0 && Unit(Hash(H, 12 + i)) < 0.75;
+				Awning[i] = bDeco && Front[i] && !Arc[i] && !PorchEdge[i] && Len >= 3.0 && Unit(Hash(H, 12 + i)) < Chance(TEXT("detail:awnings"), 0.75);
 			}
 
 			for (const int32 p : Places)

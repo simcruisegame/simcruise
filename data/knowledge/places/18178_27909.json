@@ -1,0 +1,207 @@
+{
+	"tile": "18178_27909",
+	"fetched": "2026-11-12T02:15:21.166Z",
+	"sources": "overpass:47 wikidata:6",
+	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
+	"records": [
+		{
+			"lat": 25.771318999999998,
+			"lon": -80.144729999999996,
+			"osm": "way/117820925",
+			"building": "industrial"
+		},
+		{
+			"lat": 25.772839999999999,
+			"lon": -80.140431000000007,
+			"name": "Murano Grande at Portofino",
+			"osm": "way/117915438",
+			"wikidata": "Q6937329",
+			"levels": 37,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773993000000001,
+			"lon": -80.140249999999995,
+			"osm": "way/258423142",
+			"building": "retail"
+		},
+		{
+			"lat": 25.774054,
+			"lon": -80.139717000000005,
+			"osm": "way/258423143",
+			"building": "retail"
+		},
+		{
+			"lat": 25.775352999999999,
+			"lon": -80.142114000000007,
+			"name": "Bentley Bay South Tower",
+			"osm": "way/262990036",
+			"levels": 26,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773512,
+			"lon": -80.140958999999995,
+			"osm": "way/301904680",
+			"building": "residential"
+		},
+		{
+			"lat": 25.770271999999999,
+			"lon": -80.144388000000006,
+			"osm": "way/480955461",
+			"building": "garage"
+		},
+		{
+			"lat": 25.770603999999999,
+			"lon": -80.144229999999993,
+			"osm": "way/480955468",
+			"building": "industrial"
+		},
+		{
+			"lat": 25.773844,
+			"lon": -80.141149999999996,
+			"name": "ICON at South Beach",
+			"osm": "way/481648934",
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771652,
+			"lon": -80.139645000000002,
+			"osm": "way/481648945",
+			"levels": 2,
+			"building": "retail"
+		},
+		{
+			"lat": 25.773087,
+			"lon": -80.140191999999999,
+			"osm": "way/637335322",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771439000000001,
+			"lon": -80.139866999999995,
+			"osm": "way/945873462",
+			"building": "retail"
+		},
+		{
+			"lat": 25.775136,
+			"lon": -80.141255999999998,
+			"name": "Five Park",
+			"osm": "way/1180320017",
+			"architect": "Arquitectonica",
+			"building": "residential"
+		},
+		{
+			"lat": 25.770192000000002,
+			"lon": -80.144465999999994,
+			"osm": "way/1496070268",
+			"building": "shed"
+		},
+		{
+			"lat": 25.770327000000002,
+			"lon": -80.144737000000006,
+			"osm": "way/1496070271",
+			"building": "shed"
+		},
+		{
+			"lat": 25.770299000000001,
+			"lon": -80.144718999999995,
+			"osm": "way/1496070272",
+			"building": "shed"
+		},
+		{
+			"lat": 25.770302000000001,
+			"lon": -80.144801000000001,
+			"osm": "way/1496070273",
+			"building": "shed"
+		},
+		{
+			"lat": 25.770444000000001,
+			"lon": -80.144608000000005,
+			"osm": "way/1496070276",
+			"building": "shed"
+		},
+		{
+			"lat": 25.770423000000001,
+			"lon": -80.144560999999996,
+			"osm": "way/1496070277",
+			"building": "shed"
+		},
+		{
+			"lat": 25.77045,
+			"lon": -80.144508999999999,
+			"osm": "way/1496070278",
+			"building": "shed"
+		},
+		{
+			"lat": 25.770491,
+			"lon": -80.144518000000005,
+			"osm": "way/1496070279",
+			"building": "shed"
+		},
+		{
+			"lat": 25.770478000000001,
+			"lon": -80.144541000000004,
+			"osm": "way/1496070280",
+			"building": "shed"
+		},
+		{
+			"lat": 25.770467,
+			"lon": -80.144563000000005,
+			"osm": "way/1496070281",
+			"building": "shed"
+		},
+		{
+			"lat": 25.771011999999999,
+			"lon": -80.144373999999999,
+			"osm": "way/1496070286",
+			"building": "shed"
+		},
+		{
+			"lat": 25.771037,
+			"lon": -80.144289999999998,
+			"osm": "way/1496070287",
+			"building": "shed"
+		},
+		{
+			"lat": 25.770893000000001,
+			"lon": -80.144931,
+			"osm": "way/1496078613",
+			"building": "shed"
+		},
+		{
+			"lat": 25.770931999999998,
+			"lon": -80.144955999999993,
+			"osm": "way/1496078614",
+			"building": "shed"
+		},
+		{
+			"lat": 25.775331000000001,
+			"lon": -80.142114000000007,
+			"name": "The Floridian Hotel",
+			"wikidata": "Q120767494",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1925,
+			"architect": "Samuel Dana Butterworth",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.775086000000002,
+			"lon": -80.141372000000004,
+			"name": "Miami Beach Aquarium",
+			"wikidata": "Q126919382",
+			"year": 1921
+		},
+		{
+			"lat": 25.775911000000001,
+			"lon": -80.141126,
+			"name": "Southern Hotel",
+			"wikidata": "Q136387843",
+			"year": 1920,
+			"building": "hotel"
+		}
+	]
+}

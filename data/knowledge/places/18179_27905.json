@@ -1,0 +1,311 @@
+{
+	"tile": "18179_27905",
+	"fetched": "2026-11-12T03:19:21.579Z",
+	"sources": "overpass:166 wikidata:18",
+	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
+	"records": [
+		{
+			"lat": 25.792377999999999,
+			"lon": -80.136004,
+			"osm": "way/255427187",
+			"levels": 4,
+			"building": "commercial"
+		},
+		{
+			"lat": 25.794428,
+			"lon": -80.137012999999996,
+			"osm": "way/255437882",
+			"levels": 14,
+			"building": "residential"
+		},
+		{
+			"lat": 25.792826999999999,
+			"lon": -80.135388000000006,
+			"name": "Miami Beach City Hall",
+			"osm": "way/296949744",
+			"building": "office",
+			"amenity": "townhall"
+		},
+		{
+			"lat": 25.791803999999999,
+			"lon": -80.138514999999998,
+			"name": "The Lincoln",
+			"osm": "way/314353452",
+			"levels": 6,
+			"building": "commercial"
+		},
+		{
+			"lat": 25.792511000000001,
+			"lon": -80.136950999999996,
+			"osm": "way/435530699",
+			"levels": 5,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.793035,
+			"lon": -80.136989,
+			"name": "Saxo Apartments",
+			"osm": "way/435587813",
+			"levels": 8,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.791971,
+			"lon": -80.136927,
+			"osm": "way/435808657",
+			"levels": 9,
+			"building": "commercial"
+		},
+		{
+			"lat": 25.793201,
+			"lon": -80.136979999999994,
+			"name": "Fairview Condominium",
+			"osm": "way/435847457",
+			"building": "apartments"
+		},
+		{
+			"lat": 25.791363,
+			"lon": -80.138262999999995,
+			"name": "The Lincoln Garage",
+			"osm": "way/475940180",
+			"levels": 6,
+			"building": "garages",
+			"amenity": "parking"
+		},
+		{
+			"lat": 25.791588000000001,
+			"lon": -80.136926000000003,
+			"osm": "way/589549222",
+			"levels": 5,
+			"building": "commercial"
+		},
+		{
+			"lat": 25.791765999999999,
+			"lon": -80.136926000000003,
+			"name": "Meridian Center",
+			"osm": "way/589549224",
+			"levels": 6,
+			"building": "commercial"
+		},
+		{
+			"lat": 25.790158999999999,
+			"lon": -80.135011000000006,
+			"osm": "way/589648558",
+			"levels": 3,
+			"building": "office"
+		},
+		{
+			"lat": 25.790634000000001,
+			"lon": -80.134602000000001,
+			"osm": "way/589648565",
+			"building": "roof"
+		},
+		{
+			"lat": 25.790586999999999,
+			"lon": -80.135211999999996,
+			"osm": "way/589648566",
+			"building": "roof",
+			"amenity": "theatre"
+		},
+		{
+			"lat": 25.790541000000001,
+			"lon": -80.137106000000003,
+			"osm": "way/589663835",
+			"building": "roof"
+		},
+		{
+			"lat": 25.790543,
+			"lon": -80.137015000000005,
+			"osm": "way/589663836",
+			"building": "roof"
+		},
+		{
+			"lat": 25.790545999999999,
+			"lon": -80.136921999999998,
+			"osm": "way/589663837",
+			"building": "roof"
+		},
+		{
+			"lat": 25.790548999999999,
+			"lon": -80.136831000000001,
+			"osm": "way/589663838",
+			"building": "roof"
+		},
+		{
+			"lat": 25.790593000000001,
+			"lon": -80.136877999999996,
+			"osm": "way/589663839",
+			"building": "roof"
+		},
+		{
+			"lat": 25.790592,
+			"lon": -80.136968999999993,
+			"osm": "way/589663841",
+			"building": "roof"
+		},
+		{
+			"lat": 25.790590000000002,
+			"lon": -80.137062999999998,
+			"osm": "way/589663842",
+			"building": "roof"
+		},
+		{
+			"lat": 25.790527999999998,
+			"lon": -80.138374999999996,
+			"osm": "way/589663843",
+			"building": "roof"
+		},
+		{
+			"lat": 25.790485,
+			"lon": -80.139585999999994,
+			"osm": "way/589663846",
+			"building": "roof"
+		},
+		{
+			"lat": 25.790521999999999,
+			"lon": -80.138541000000004,
+			"osm": "way/589992947",
+			"building": "roof"
+		},
+		{
+			"lat": 25.792287000000002,
+			"lon": -80.139448000000002,
+			"name": "Cuban Hebrew Congregation of Miami",
+			"osm": "way/763447699",
+			"wikidata": "Q5192020",
+			"style": [
+				"neo-expressionism"
+			],
+			"year": 1961,
+			"building": "yes",
+			"amenity": "place_of_worship"
+		},
+		{
+			"lat": 25.790533,
+			"lon": -80.136103000000006,
+			"osm": "way/764980769",
+			"building": "roof"
+		},
+		{
+			"lat": 25.790528999999999,
+			"lon": -80.136255000000006,
+			"osm": "way/764980774",
+			"building": "roof"
+		},
+		{
+			"lat": 25.790531000000001,
+			"lon": -80.136179999999996,
+			"osm": "way/764980775",
+			"building": "roof"
+		},
+		{
+			"lat": 25.790220999999999,
+			"lon": -80.136283000000006,
+			"osm": "way/765276882",
+			"levels": 1,
+			"building": "retail"
+		},
+		{
+			"lat": 25.794105999999999,
+			"lon": -80.137439999999998,
+			"osm": "way/1031829483",
+			"building": "roof"
+		},
+		{
+			"lat": 25.790828999999999,
+			"lon": -80.139076000000003,
+			"osm": "way/1183429548",
+			"building": "roof"
+		},
+		{
+			"lat": 25.790496999999998,
+			"lon": -80.139103000000006,
+			"osm": "relation/8313322",
+			"building": "roof"
+		},
+		{
+			"lat": 25.790555999999999,
+			"lon": -80.136388999999994,
+			"name": "Lincoln Road",
+			"wikidata": "Q3241310",
+			"heritage": "National Register of Historic Places listed place"
+		},
+		{
+			"lat": 25.790778,
+			"lon": -80.133968999999993,
+			"name": "Lincoln Theatre",
+			"wikidata": "Q6551047",
+			"style": [
+				"Art Deco"
+			],
+			"year": 1936,
+			"architect": "Thomas W. Lamb"
+		},
+		{
+			"lat": 25.792000000000002,
+			"lon": -80.136806000000007,
+			"name": "Latin Songwriters Hall of Fame",
+			"wikidata": "Q18388574",
+			"year": 2013
+		},
+		{
+			"lat": 25.795556000000001,
+			"lon": -80.136667000000003,
+			"name": "Collins Canal",
+			"wikidata": "Q49245221",
+			"year": 1912
+		},
+		{
+			"lat": 25.789838,
+			"lon": -80.134642999999997,
+			"name": "Penthouse Court",
+			"wikidata": "Q110639761",
+			"style": [
+				"Art Deco",
+				"Mediterranean Revival architecture"
+			],
+			"year": 1935
+		},
+		{
+			"lat": 25.794119999999999,
+			"lon": -80.136870000000002,
+			"name": "1818 Meridian House Hotel",
+			"wikidata": "Q111887631",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.790284,
+			"lon": -80.138549999999995,
+			"name": "The Hampton Hotel",
+			"wikidata": "Q124327604",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1926,
+			"architect": "Martin L. Hampton",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.790365999999999,
+			"lon": -80.134952999999996,
+			"name": "Lincoln Center Hotel",
+			"wikidata": "Q126326717",
+			"style": [
+				"Miami Modern architecture"
+			],
+			"year": 1937,
+			"architect": "Igor B. Polevitzky",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.791922,
+			"lon": -80.136341000000002,
+			"name": "Burdine's Department Store",
+			"wikidata": "Q133281245",
+			"style": [
+				"modern architecture"
+			],
+			"year": 1956
+		}
+	]
+}

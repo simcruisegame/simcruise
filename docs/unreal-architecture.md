@@ -295,6 +295,16 @@ aerial photographs of different tone meet.
   buildings have the same friction for the car's tyres.
 - Each collision section (terrain, asphalt, concrete, buildings) restarts the
   asynchronous cook, so a dense tile cooks up to four times on a worker thread.
+## Place knowledge graph (`Source/SimCruise/{Public,Private}/Knowledge/`)
+
+Decides which real details go on each building, anywhere, from facts and a data file of rules (`data/knowledge/place-graph.json`). Full description: [place-graph.md](place-graph.md).
+
+- `SimCruisePlaceGraph` (pure): fact sets, the rule parser, forward chaining (noisy OR, suppression), neighbour spread, `BakeTile` (one `FSimCruiseBuildingPlan` per building: style, year, architect, palette, wall colour, wear, `P("detail:x")`).
+- `SimCruisePlaceFacts` (pure): Overpass and Wikidata queries, parsers, merge by Wikidata id, per-tile cache (`data/knowledge/places/`, then `Saved/Knowledge/places/`).
+- `USimCruisePlaceGraphSubsystem`: fetches open data two tiles ahead, turns live feeds into `live:*` facts every 5 s, keeps the baked plans (`SimCruisePlaceHub`), the co-driver card, console `SimCruise.Knowledge.Explain|Live|Report`.
+- Consumers: `SimCruiseTileDetail::BuildBuildings` (recipe, detail chances with the old values as defaults, colours, wear), `ASimCruiseHUD::DrawPlaceCard`.
+- Tests: `SimCruise.Knowledge.*` (rules, open-data parsers, bake, bundled Ocean Drive, place card).
+
 ## Car presentation (`Source/SimCruise/{Public,Private}/Presentation/`, `Content/Vehicles/`)
 
 The visible car: the downloaded Sketchfab model of each car, fitted to the car's data, cut into moving parts and drawn with physically based materials. It replaces `godot-final:game/ModelRig.gd`, `CarBody.gd` and the material parts of `CarFinish.gd`. Physics never reads anything from here.

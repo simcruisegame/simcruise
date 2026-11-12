@@ -1,0 +1,825 @@
+{
+	"tile": "18180_27909",
+	"fetched": "2026-11-12T02:19:55.860Z",
+	"sources": "overpass:96 wikidata:36",
+	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
+	"records": [
+		{
+			"lat": 25.770448999999999,
+			"lon": -80.132261999999997,
+			"name": "Marriott Stanton South Beach",
+			"osm": "way/117913336",
+			"wikidata": "Q111393236",
+			"levels": 11,
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.772490999999999,
+			"lon": -80.131784999999994,
+			"name": "East Atlantic Gardens Condo",
+			"osm": "way/139496419",
+			"levels": 5,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772936999999999,
+			"lon": -80.131738999999996,
+			"osm": "way/139496420",
+			"levels": 9,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772642999999999,
+			"lon": -80.131848000000005,
+			"osm": "way/139496421",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772956000000001,
+			"lon": -80.133683000000005,
+			"name": "The Julia Hotel",
+			"osm": "way/255394172",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.773313999999999,
+			"lon": -80.134073000000001,
+			"name": "Hotel Casa Coloretta",
+			"osm": "way/255394176",
+			"levels": 1,
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.773724000000001,
+			"lon": -80.131693999999996,
+			"name": "The Savoy Hotel",
+			"osm": "way/255394209",
+			"wikidata": "Q111395257",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1935,
+			"architect": "Victor Nellenbogen",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.773444999999999,
+			"lon": -80.132482999999993,
+			"name": "Local House Hotel",
+			"osm": "way/255394222",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.774115999999999,
+			"lon": -80.132339999999999,
+			"osm": "way/255394233",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.774173000000001,
+			"lon": -80.132772000000003,
+			"osm": "way/255394239",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.774294999999999,
+			"lon": -80.133322000000007,
+			"name": "City National Bank",
+			"osm": "way/255394260",
+			"building": "commercial",
+			"amenity": "bank"
+		},
+		{
+			"lat": 25.773792,
+			"lon": -80.132853999999995,
+			"osm": "way/255394282",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771239000000001,
+			"lon": -80.133407000000005,
+			"osm": "way/255394294",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772500999999998,
+			"lon": -80.132694000000001,
+			"name": "JURNY Miami Beach Apartments",
+			"osm": "way/255394302",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772639000000002,
+			"lon": -80.132675000000006,
+			"osm": "way/255394365",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771374999999999,
+			"lon": -80.133379000000005,
+			"osm": "way/255394374",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773577,
+			"lon": -80.132456000000005,
+			"osm": "way/255394377",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771477999999998,
+			"lon": -80.133999000000003,
+			"osm": "way/255394379",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771080000000001,
+			"lon": -80.132991000000004,
+			"osm": "way/255394387",
+			"levels": 7,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773,
+			"lon": -80.133049,
+			"osm": "way/255394406",
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772714000000001,
+			"lon": -80.133088999999998,
+			"osm": "way/255394414",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771208999999999,
+			"lon": -80.134073000000001,
+			"osm": "way/255394421",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772769,
+			"lon": -80.132630000000006,
+			"name": "Casa Ocean",
+			"osm": "way/255394423",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773171999999999,
+			"lon": -80.134111000000004,
+			"name": "Hotel Saint Augustine",
+			"osm": "way/255394472",
+			"levels": 2,
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.77336,
+			"lon": -80.133583000000002,
+			"osm": "way/255394474",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.774426999999999,
+			"lon": -80.131411999999997,
+			"osm": "way/263075221",
+			"levels": 10,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.774054,
+			"lon": -80.131535,
+			"osm": "way/263075224",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773479999999999,
+			"lon": -80.131618000000003,
+			"osm": "way/263075226",
+			"levels": 10,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772051999999999,
+			"lon": -80.131826000000004,
+			"osm": "way/263075231",
+			"levels": 5,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773118,
+			"lon": -80.132565,
+			"name": "The Balfour Hotel",
+			"osm": "way/263075233",
+			"wikidata": "Q112026585",
+			"year": 1940,
+			"architect": "Anton Skislewicz",
+			"levels": 3,
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.770724000000001,
+			"lon": -80.133080000000007,
+			"osm": "way/380861910",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773987000000002,
+			"lon": -80.132369999999995,
+			"name": "Ocean Five Hotel",
+			"osm": "way/380861916",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.770447999999998,
+			"lon": -80.133138000000002,
+			"name": "The Century Hotel",
+			"osm": "way/380861945",
+			"wikidata": "Q118744983",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1939,
+			"architect": "Henry Hohauser",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.775202,
+			"lon": -80.132109,
+			"name": "The Fritz Hotel",
+			"osm": "way/380861949",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.771896999999999,
+			"lon": -80.132821000000007,
+			"osm": "way/381111101",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.774052999999999,
+			"lon": -80.133457000000007,
+			"osm": "way/433295223",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772165000000001,
+			"lon": -80.133869000000004,
+			"osm": "way/433295296",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772023000000001,
+			"lon": -80.133881000000002,
+			"osm": "way/433295301",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773035,
+			"lon": -80.133981000000006,
+			"osm": "way/433295391",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772908000000001,
+			"lon": -80.134163000000001,
+			"osm": "way/433295429",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773440999999998,
+			"lon": -80.134056000000001,
+			"osm": "way/435378304",
+			"levels": 5,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773125,
+			"lon": -80.132892999999996,
+			"osm": "way/435387824",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771811,
+			"lon": -80.133942000000005,
+			"osm": "way/435390884",
+			"levels": 6,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772382,
+			"lon": -80.133159000000006,
+			"osm": "way/435574859",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773261999999999,
+			"lon": -80.132959999999997,
+			"osm": "way/435577348",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772559999999999,
+			"lon": -80.134224000000003,
+			"name": "Jewish Museum of Florida",
+			"osm": "way/435731605",
+			"wikidata": "Q3178486",
+			"year": 1936,
+			"building": "yes",
+			"amenity": "museum"
+		},
+		{
+			"lat": 25.772850999999999,
+			"lon": -80.133054999999999,
+			"osm": "way/435732487",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773682000000001,
+			"lon": -80.131073999999998,
+			"osm": "way/435736220",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770126999999999,
+			"lon": -80.132086999999999,
+			"osm": "way/435737376",
+			"levels": 7,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771339999999999,
+			"lon": -80.134020000000007,
+			"osm": "way/435738927",
+			"building": "retail"
+		},
+		{
+			"lat": 25.771578000000002,
+			"lon": -80.133346000000003,
+			"osm": "way/435739039",
+			"levels": 7,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771280999999998,
+			"lon": -80.132919999999999,
+			"osm": "way/435739062",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.775266999999999,
+			"lon": -80.132544999999993,
+			"name": "Council Towers South",
+			"osm": "way/435740245",
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773990999999999,
+			"lon": -80.130977999999999,
+			"osm": "way/435745819",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773782000000001,
+			"lon": -80.133977000000002,
+			"name": "Harrison Hotel",
+			"osm": "way/435879990",
+			"wikidata": "Q124287491",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1935,
+			"levels": 2,
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.774339000000001,
+			"lon": -80.132284999999996,
+			"osm": "way/436031596",
+			"levels": 5,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771758999999999,
+			"lon": -80.133296000000001,
+			"osm": "way/436039728",
+			"building": "retail"
+		},
+		{
+			"lat": 25.771986999999999,
+			"lon": -80.133313000000001,
+			"osm": "way/436040315",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770232,
+			"lon": -80.132660000000001,
+			"name": "Ocean Park",
+			"osm": "way/436122705",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771318999999998,
+			"lon": -80.133065000000002,
+			"osm": "way/436124546",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772237000000001,
+			"lon": -80.134308000000004,
+			"osm": "way/436126373",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770803999999998,
+			"lon": -80.133509000000004,
+			"osm": "way/480391180",
+			"building": "retail"
+		},
+		{
+			"lat": 25.771366,
+			"lon": -80.130407000000005,
+			"osm": "way/567439887",
+			"building": "lifeguard_tower"
+		},
+		{
+			"lat": 25.772843999999999,
+			"lon": -80.130144999999999,
+			"osm": "way/567439890",
+			"building": "lifeguard_tower"
+		},
+		{
+			"lat": 25.774521,
+			"lon": -80.129851000000002,
+			"osm": "way/567439892",
+			"building": "lifeguard_tower"
+		},
+		{
+			"lat": 25.774937000000001,
+			"lon": -80.132159999999999,
+			"name": "Bentley South Beach",
+			"osm": "way/567675306",
+			"wikidata": "Q111887649",
+			"style": [
+				"Streamline Moderne"
+			],
+			"year": 1939,
+			"architect": "John Skinner",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.770185000000001,
+			"lon": -80.133215000000007,
+			"osm": "way/637335326",
+			"levels": 18,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772289000000001,
+			"lon": -80.131866000000002,
+			"osm": "way/827416828",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772618999999999,
+			"lon": -80.133754999999994,
+			"osm": "way/827416829",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772907,
+			"lon": -80.132608000000005,
+			"osm": "way/827416830",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.77298,
+			"lon": -80.132172999999995,
+			"osm": "way/1105291005",
+			"building": "roof"
+		},
+		{
+			"lat": 25.771871999999998,
+			"lon": -80.132694000000001,
+			"osm": "way/1105365655",
+			"building": "roof"
+		},
+		{
+			"lat": 25.773167999999998,
+			"lon": -80.133643000000006,
+			"osm": "relation/6462144",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772221999999999,
+			"lon": -80.134444000000002,
+			"name": "Beth Jacob Social Hall and Congregation",
+			"wikidata": "Q4897552",
+			"architect": "A. Fraser Rose",
+			"heritage": "National Register of Historic Places listed place"
+		},
+		{
+			"lat": 25.769563999999999,
+			"lon": -80.132300000000001,
+			"name": "Hilton Bentley Miami/South Beach",
+			"wikidata": "Q111393237",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.775645999999998,
+			"lon": -80.133600000000001,
+			"name": "The Goodtime Hotel",
+			"wikidata": "Q111887635",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.775459000000001,
+			"lon": -80.131945000000002,
+			"name": "Barbizon Hotel",
+			"wikidata": "Q118383575",
+			"style": [
+				"Art Deco"
+			],
+			"year": 1937,
+			"architect": "John Skinner",
+			"heritage": "National Register of Historic Places contributing property",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.775347,
+			"lon": -80.131501999999998,
+			"name": "The Norman Hotel",
+			"wikidata": "Q119721028",
+			"year": 1937,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.774111999999999,
+			"lon": -80.131857999999994,
+			"name": "Hotel Arlington",
+			"wikidata": "Q119845638",
+			"style": [
+				"Streamline Moderne"
+			],
+			"year": 1941,
+			"architect": "Albert Anis",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.771104000000001,
+			"lon": -80.133544999999998,
+			"name": "Sea Breeze Hotel",
+			"wikidata": "Q120646095",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.772255999999999,
+			"lon": -80.131983000000005,
+			"name": "Whitehart Hotel",
+			"wikidata": "Q123966607",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1938,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.770636,
+			"lon": -80.132593,
+			"name": "Hotel Stanton",
+			"wikidata": "Q124090210",
+			"style": [
+				"Streamline Moderne"
+			],
+			"year": 1939,
+			"architect": "Anton Skislewicz",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.775368,
+			"lon": -80.131525999999994,
+			"name": "The Shoreham",
+			"wikidata": "Q124102083",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1936,
+			"architect": "Lawrence Murray Dixon",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.775706,
+			"lon": -80.131857999999994,
+			"name": "Beach Park Hotel",
+			"wikidata": "Q124213896",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1929,
+			"architect": "William F. Brown",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.773789000000001,
+			"lon": -80.131887000000006,
+			"name": "Strath Haven Hotel",
+			"wikidata": "Q124249695",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1929,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.772333,
+			"lon": -80.132216999999997,
+			"name": "Simone Hotel",
+			"wikidata": "Q124307464",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1937,
+			"architect": "Lawrence Murray Dixon",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.769748,
+			"lon": -80.132711,
+			"name": "The Corsair",
+			"wikidata": "Q124308755",
+			"style": [
+				"Streamline Moderne"
+			],
+			"year": 1939,
+			"architect": "Anton Skislewicz",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.774901,
+			"lon": -80.134366999999997,
+			"name": "George Washington Hotel",
+			"wikidata": "Q124308785",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1924,
+			"architect": "William F. Brown",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.774135000000001,
+			"lon": -80.132446000000002,
+			"name": "The Surf Hotel",
+			"wikidata": "Q124343995",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1936,
+			"architect": "Henry Hohauser",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.774947999999998,
+			"lon": -80.133211000000003,
+			"name": "Oceanic Hotel",
+			"wikidata": "Q124432561",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1922,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.774726999999999,
+			"lon": -80.129653000000005,
+			"name": "Carter's Million Dollar Pier",
+			"wikidata": "Q124519632",
+			"year": 1929,
+			"architect": "R. A. Preas"
+		},
+		{
+			"lat": 25.774486,
+			"lon": -80.131262000000007,
+			"name": "Cook's Casino",
+			"wikidata": "Q124521836",
+			"year": 1926
+		},
+		{
+			"lat": 25.770092999999999,
+			"lon": -80.132698000000005,
+			"name": "Walburne Hotel",
+			"wikidata": "Q124622942",
+			"style": [
+				"Miami Modern architecture"
+			],
+			"year": 1941,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.772676000000001,
+			"lon": -80.132026999999994,
+			"name": "Somerset Hotel",
+			"wikidata": "Q128428319",
+			"style": [
+				"Streamline Moderne"
+			],
+			"year": 1939,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.770223000000001,
+			"lon": -80.132711,
+			"name": "Ocean Haven Hotel",
+			"wikidata": "Q128429583",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.772964999999999,
+			"lon": -80.132069999999999,
+			"name": "Normandie Hotel",
+			"wikidata": "Q129259399",
+			"year": 1937,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.773968,
+			"lon": -80.132248000000004,
+			"name": "Olympic Hotel",
+			"wikidata": "Q130271769",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1936,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.772113999999998,
+			"lon": -80.132320000000007,
+			"name": "Belmont Hotel",
+			"wikidata": "Q133308940",
+			"style": [
+				"Art Deco architecture"
+			],
+			"building": "hotel"
+		},
+		{
+			"lat": 25.775203000000001,
+			"lon": -80.132170000000002,
+			"name": "Mare Grande Hotel",
+			"wikidata": "Q141096590",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1926,
+			"building": "hotel"
+		}
+	]
+}

@@ -1,0 +1,137 @@
+{
+	"tile": "18178_27908",
+	"fetched": "2026-11-12T03:14:59.168Z",
+	"sources": "overpass:70 wikidata:6",
+	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
+	"records": [
+		{
+			"lat": 25.779951000000001,
+			"lon": -80.142643000000007,
+			"name": "Southgate Towers North",
+			"osm": "way/255394164",
+			"levels": 14,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.779084999999998,
+			"lon": -80.142548000000005,
+			"name": "Southgate Towers South",
+			"osm": "way/255394213",
+			"levels": 14,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.777895000000001,
+			"lon": -80.141724999999994,
+			"name": "Federation Towers",
+			"osm": "way/255394440",
+			"building": "apartments"
+		},
+		{
+			"lat": 25.778040000000001,
+			"lon": -80.142503000000005,
+			"name": "South Bay Club Condominium",
+			"osm": "way/258423135",
+			"levels": 8,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.776802,
+			"lon": -80.142320999999995,
+			"name": "The Floridian Apartments",
+			"osm": "way/262990034",
+			"levels": 33,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.775911000000001,
+			"lon": -80.142266000000006,
+			"name": "Bentley Bay North Tower",
+			"osm": "way/262990035",
+			"levels": 24,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.775352999999999,
+			"lon": -80.142114000000007,
+			"name": "Bentley Bay South Tower",
+			"osm": "way/262990036",
+			"levels": 26,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.775637,
+			"lon": -80.142177000000004,
+			"osm": "way/301911279",
+			"building": "roof"
+		},
+		{
+			"lat": 25.777434,
+			"lon": -80.140441999999993,
+			"osm": "way/809875359",
+			"building": "hospital"
+		},
+		{
+			"lat": 25.775136,
+			"lon": -80.141255999999998,
+			"name": "Five Park",
+			"osm": "way/1180320017",
+			"architect": "Arquitectonica",
+			"building": "residential"
+		},
+		{
+			"lat": 25.777336999999999,
+			"lon": -80.140506999999999,
+			"name": "Baptist Health South Florida",
+			"wikidata": "Q25007161",
+			"year": 1960
+		},
+		{
+			"lat": 25.778044999999999,
+			"lon": -80.142448999999999,
+			"name": "Fleetwood Hotel",
+			"wikidata": "Q118464658",
+			"year": 1925,
+			"architect": "Frank V. Newell",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.775331000000001,
+			"lon": -80.142114000000007,
+			"name": "The Floridian Hotel",
+			"wikidata": "Q120767494",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1925,
+			"architect": "Samuel Dana Butterworth",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.776268999999999,
+			"lon": -80.139785000000003,
+			"name": "Terrace Apartment Hotel",
+			"wikidata": "Q120767696",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1920,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.775086000000002,
+			"lon": -80.141372000000004,
+			"name": "Miami Beach Aquarium",
+			"wikidata": "Q126919382",
+			"year": 1921
+		},
+		{
+			"lat": 25.775911000000001,
+			"lon": -80.141126,
+			"name": "Southern Hotel",
+			"wikidata": "Q136387843",
+			"year": 1920,
+			"building": "hotel"
+		}
+	]
+}

@@ -1,0 +1,730 @@
+{
+	"tile": "18180_27905",
+	"fetched": "2026-11-12T04:04:58.475Z",
+	"sources": "overpass:107 wikidata:60",
+	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
+	"records": [
+		{
+			"lat": 25.791848000000002,
+			"lon": -80.133386999999999,
+			"name": "New World Symphony",
+			"osm": "node/2815896023",
+			"wikidata": "Q7012600",
+			"year": 1987,
+			"amenity": "school"
+		},
+		{
+			"lat": 25.790887999999999,
+			"lon": -80.134016000000003,
+			"name": "Lincoln Theatre",
+			"osm": "way/120105957",
+			"wikidata": "Q6551047",
+			"style": [
+				"Art Deco"
+			],
+			"year": 1936,
+			"architect": "Thomas W. Lamb",
+			"levels": 4,
+			"building": "commercial"
+		},
+		{
+			"lat": 25.790911000000001,
+			"lon": -80.133560000000003,
+			"osm": "way/120105958",
+			"levels": 1,
+			"building": "retail"
+		},
+		{
+			"lat": 25.790915999999999,
+			"lon": -80.133408000000003,
+			"osm": "way/120106687",
+			"levels": 1,
+			"building": "retail"
+		},
+		{
+			"lat": 25.790914000000001,
+			"lon": -80.133713,
+			"osm": "way/120106698",
+			"levels": 2,
+			"building": "retail"
+		},
+		{
+			"lat": 25.791181999999999,
+			"lon": -80.129024999999999,
+			"name": "The Ritz-Carlton, South Beach",
+			"osm": "way/207799793",
+			"wikidata": "Q111393192",
+			"building": "commercial",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.791919,
+			"lon": -80.130274,
+			"name": "San Juan Hotel South Beach",
+			"osm": "way/207799797",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.792124999999999,
+			"lon": -80.130258999999995,
+			"name": "Gale South Beach",
+			"osm": "way/207940948",
+			"wikidata": "Q111393184",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1941,
+			"architect": "Lawrence Murray Dixon",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.790302000000001,
+			"lon": -80.133583000000002,
+			"name": "Miami Beach Community Church",
+			"osm": "way/255427150",
+			"building": "church"
+		},
+		{
+			"lat": 25.791976999999999,
+			"lon": -80.131093000000007,
+			"name": "James",
+			"osm": "way/255427182",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.792919000000001,
+			"lon": -80.128951999999998,
+			"name": "Kimpton Surfcomber Hotel",
+			"osm": "way/263592315",
+			"wikidata": "Q14686425",
+			"style": [
+				"Art Deco architecture"
+			],
+			"architect": "MacKay & Gibbs",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.793710000000001,
+			"lon": -80.128969999999995,
+			"name": "The Raleigh",
+			"osm": "way/263592316",
+			"wikidata": "Q16900941",
+			"style": [
+				"Streamline Moderne",
+				"Art Deco architecture"
+			],
+			"year": 1940,
+			"architect": "Lawrence Murray Dixon",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.792594999999999,
+			"lon": -80.129096000000004,
+			"name": "SLS South Beach",
+			"osm": "way/263592319",
+			"wikidata": "Q7336919",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1940,
+			"architect": "Lawrence Murray Dixon",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.792121999999999,
+			"lon": -80.129175000000004,
+			"name": "Delano South Beach",
+			"osm": "way/263592326",
+			"wikidata": "Q5253151",
+			"style": [
+				"art deco",
+				"Art Deco architecture"
+			],
+			"year": 1947,
+			"architect": "Robert Swartburg",
+			"heritage": "National Register of Historic Places contributing property",
+			"levels": 50,
+			"building": "construction",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.791853,
+			"lon": -80.128962000000001,
+			"name": "National",
+			"osm": "way/263592327",
+			"wikidata": "Q56427609",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1940,
+			"heritage": "National Register of Historic Places contributing property",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.791671999999998,
+			"lon": -80.133444999999995,
+			"name": "New World Center",
+			"osm": "way/277037894",
+			"wikidata": "Q11884284",
+			"style": [
+				"postmodern architecture"
+			],
+			"year": 2011,
+			"architect": "Frank Gehry",
+			"building": "yes",
+			"amenity": "concert_hall"
+		},
+		{
+			"lat": 25.791656,
+			"lon": -80.134000999999998,
+			"name": "Pennsylvania Avenue Garage",
+			"osm": "way/277037896",
+			"levels": 5,
+			"building": "garages",
+			"amenity": "parking"
+		},
+		{
+			"lat": 25.790925999999999,
+			"lon": -80.133256000000003,
+			"osm": "way/301241456",
+			"levels": 2,
+			"building": "retail"
+		},
+		{
+			"lat": 25.790013999999999,
+			"lon": -80.132499999999993,
+			"osm": "way/301241461",
+			"levels": 6,
+			"building": "office"
+		},
+		{
+			"lat": 25.793669000000001,
+			"lon": -80.129949999999994,
+			"name": "The Redbury South Beach",
+			"osm": "way/381126195",
+			"wikidata": "Q111393177",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.790952000000001,
+			"lon": -80.132195999999993,
+			"osm": "way/397181085",
+			"levels": 13,
+			"building": "office"
+		},
+		{
+			"lat": 25.792739999999998,
+			"lon": -80.131384999999995,
+			"name": "Temple Emanu-El",
+			"osm": "way/435238971",
+			"wikidata": "Q7698521",
+			"year": 1947,
+			"material": "marble",
+			"building": "temple",
+			"amenity": "place_of_worship"
+		},
+		{
+			"lat": 25.792563000000001,
+			"lon": -80.130436000000003,
+			"name": "Cadet Hotel",
+			"osm": "way/435731596",
+			"wikidata": "Q111393181",
+			"style": [
+				"Streamline Moderne"
+			],
+			"year": 1941,
+			"architect": "Albert Anis",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.790706,
+			"lon": -80.132069999999999,
+			"osm": "way/435844925",
+			"building": "roof"
+		},
+		{
+			"lat": 25.790348000000002,
+			"lon": -80.131589000000005,
+			"name": "Lincoln Building",
+			"osm": "way/564984251",
+			"levels": 5,
+			"building": "commercial"
+		},
+		{
+			"lat": 25.790934,
+			"lon": -80.133010999999996,
+			"name": "Lincoln-Drexel Building",
+			"osm": "way/564987068",
+			"levels": 2,
+			"building": "retail"
+		},
+		{
+			"lat": 25.790938000000001,
+			"lon": -80.132795999999999,
+			"osm": "way/564987070",
+			"levels": 2,
+			"building": "retail"
+		},
+		{
+			"lat": 25.791922,
+			"lon": -80.132417000000004,
+			"osm": "way/587787074",
+			"building": "service"
+		},
+		{
+			"lat": 25.791255,
+			"lon": -80.132482999999993,
+			"osm": "way/589989774",
+			"building": "service",
+			"amenity": "toilets"
+		},
+		{
+			"lat": 25.789966,
+			"lon": -80.131558999999996,
+			"osm": "way/590645538",
+			"levels": 1,
+			"building": "tweak"
+		},
+		{
+			"lat": 25.789697,
+			"lon": -80.131217000000007,
+			"osm": "way/590645539",
+			"levels": 4,
+			"building": "garages",
+			"amenity": "parking"
+		},
+		{
+			"lat": 25.79063,
+			"lon": -80.133391000000003,
+			"osm": "way/765503773",
+			"building": "roof"
+		},
+		{
+			"lat": 25.794166000000001,
+			"lon": -80.128856999999996,
+			"name": "Shelborne South Beach",
+			"osm": "way/917311823",
+			"wikidata": "Q111393179",
+			"style": [
+				"International Style"
+			],
+			"year": 1941,
+			"architect": "Morris Lapidus",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.792943999999999,
+			"lon": -80.132655999999997,
+			"osm": "way/1029423236",
+			"building": "roof"
+		},
+		{
+			"lat": 25.794778999999998,
+			"lon": -80.131619999999998,
+			"osm": "relation/9337296",
+			"building": "apartments"
+		},
+		{
+			"lat": 25.795278,
+			"lon": -80.131388999999999,
+			"name": "Collins Waterfront Architectural District",
+			"wikidata": "Q5147413",
+			"style": [
+				"Miami Modern architecture",
+				"Mediterranean Revival architecture",
+				"Art Deco architecture"
+			],
+			"heritage": "National Register of Historic Places listed place",
+			"district": true
+		},
+		{
+			"lat": 25.792524,
+			"lon": -80.132735999999994,
+			"name": "Mermaid",
+			"wikidata": "Q6819846",
+			"year": 1979
+		},
+		{
+			"lat": 25.790109000000001,
+			"lon": -80.132413,
+			"name": "Beach Theatre",
+			"wikidata": "Q42421662",
+			"style": [
+				"Streamline Moderne"
+			],
+			"year": 1940
+		},
+		{
+			"lat": 25.792829999999999,
+			"lon": -80.133129999999994,
+			"name": "Fillmore Miami Beach",
+			"wikidata": "Q96212269",
+			"year": 1951,
+			"architect": "Henry Hohauser"
+		},
+		{
+			"lat": 25.795248000000001,
+			"lon": -80.129639999999995,
+			"name": "Lennox Hotel Miami Beach",
+			"wikidata": "Q111393175",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.794281000000002,
+			"lon": -80.130750000000006,
+			"name": "Pestana South Beach Hotel",
+			"wikidata": "Q111393176",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.7926,
+			"lon": -80.129459999999995,
+			"name": "SLS South Beach",
+			"wikidata": "Q111393185",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.79233,
+			"lon": -80.129729999999995,
+			"name": "The Claremont Hotel",
+			"wikidata": "Q111393186",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1947,
+			"architect": "Albert Anis",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.792020000000001,
+			"lon": -80.129949999999994,
+			"name": "San Juan Hotel",
+			"wikidata": "Q111393187",
+			"style": [
+				"Miami Modern architecture"
+			],
+			"year": 1948,
+			"architect": "Henry Hohauser",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.791599999999999,
+			"lon": -80.129639999999995,
+			"name": "Sagamore Hotel South Beach",
+			"wikidata": "Q111393188",
+			"style": [
+				"Miami Modern architecture"
+			],
+			"year": 1948,
+			"architect": "Albert Anis",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.78969,
+			"lon": -80.13064,
+			"name": "Iberostar Waves Berkeley Shore",
+			"wikidata": "Q111393190",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1940,
+			"architect": "Albert Anis",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.789429999999999,
+			"lon": -80.130350000000007,
+			"name": "Hyatt Centric South Beach Miami",
+			"wikidata": "Q111393194",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.789339999999999,
+			"lon": -80.130039999999994,
+			"name": "Loews Miami Beach Hotel",
+			"wikidata": "Q111393196",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.790952000000001,
+			"lon": -80.130955,
+			"name": "Albion Hotel",
+			"wikidata": "Q116671767",
+			"style": [
+				"Streamline Moderne",
+				"Art Deco architecture"
+			],
+			"year": 1939,
+			"architect": "Igor B. Polevitzky",
+			"heritage": "National Register of Historic Places contributing property",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.794443999999999,
+			"lon": -80.129142999999999,
+			"name": "Nautilus Hotel",
+			"wikidata": "Q117536611",
+			"style": [
+				"mid-century modern"
+			],
+			"year": 1951,
+			"architect": "Morris Lapidus",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.793187,
+			"lon": -80.129357999999996,
+			"name": "Marseilles Hotel",
+			"wikidata": "Q119983344",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1947,
+			"architect": "B. Robert Swartburg",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.793485,
+			"lon": -80.129197000000005,
+			"name": "The Richmond",
+			"wikidata": "Q120196824",
+			"style": [
+				"Miami Modern architecture"
+			],
+			"year": 1941,
+			"architect": "Lawrence Murray Dixon",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.793341000000002,
+			"lon": -80.129307999999995,
+			"name": "South Seas Hotel",
+			"wikidata": "Q120196885",
+			"style": [
+				"Streamline Moderne",
+				"Miami Modern architecture"
+			],
+			"year": 1941,
+			"architect": "Lawrence Murray Dixon",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.792152000000002,
+			"lon": -80.130547000000007,
+			"name": "The Regent",
+			"wikidata": "Q120829503",
+			"style": [
+				"Streamline Moderne",
+				"Art Deco architecture"
+			],
+			"year": 1941,
+			"architect": "Lawrence Murray Dixon",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.792866,
+			"lon": -80.129919000000001,
+			"name": "Dorset Hotel",
+			"wikidata": "Q123942749",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1940,
+			"architect": "Joseph DeBrita",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.790445999999999,
+			"lon": -80.132523000000006,
+			"name": "Lincoln Hotel",
+			"wikidata": "Q124149849",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1917,
+			"architect": "August Geiger",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.793392999999998,
+			"lon": -80.129855000000006,
+			"name": "Maxine Hotel",
+			"wikidata": "Q124249717",
+			"style": [
+				"Miami Modern architecture"
+			],
+			"year": 1938,
+			"architect": "David T. Ellis",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.795877999999998,
+			"lon": -80.131576999999993,
+			"name": "Barclay Plaza Hotel",
+			"wikidata": "Q124287480",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1935,
+			"architect": "Kiehnel and Elliott",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.794930000000001,
+			"lon": -80.129650999999996,
+			"name": "Dorchester Hotel",
+			"wikidata": "Q124313233",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1939,
+			"architect": "Frank Wyatt Woods",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.790405,
+			"lon": -80.133598000000006,
+			"name": "Miami Beach Community Church",
+			"wikidata": "Q124337673",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1921
+		},
+		{
+			"lat": 25.789943000000001,
+			"lon": -80.129454999999993,
+			"name": "The Georgian Hotel",
+			"wikidata": "Q124377652",
+			"style": [
+				"Colonial Revival architecture"
+			],
+			"year": 1940,
+			"architect": "Joseph DeBrita",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.795207999999999,
+			"lon": -80.129450000000006,
+			"name": "Peter Miller Hotel",
+			"wikidata": "Q124628010",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1936,
+			"architect": "Russell T. Pancoast",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.791595000000001,
+			"lon": -80.131564999999995,
+			"name": "Greenview Hotel",
+			"wikidata": "Q125517484",
+			"style": [
+				"Streamline Moderne"
+			],
+			"year": 1939,
+			"architect": "Henry Hohauser",
+			"heritage": "National Register of Historic Places contributing property",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.794319999999999,
+			"lon": -80.130587000000006,
+			"name": "Miljean Hotel",
+			"wikidata": "Q127785994",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1940,
+			"architect": "Gerard Pitt",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.791378000000002,
+			"lon": -80.129490000000004,
+			"name": "Hotel Di Lido",
+			"wikidata": "Q128693718",
+			"style": [
+				"Miami Modern architecture"
+			],
+			"year": 1953,
+			"architect": "Morris Lapidus",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.791986000000001,
+			"lon": -80.131034,
+			"name": "Hotel James",
+			"wikidata": "Q129221956",
+			"year": 1939,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.793126999999998,
+			"lon": -80.129897,
+			"name": "The Catalina Hotel",
+			"wikidata": "Q131273676",
+			"year": 1940,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.794119999999999,
+			"lon": -80.131135999999998,
+			"name": "Lincoln Arms Apartment Hotel",
+			"wikidata": "Q131299821",
+			"style": [
+				"Art Deco architecture"
+			],
+			"building": "hotel"
+		},
+		{
+			"lat": 25.793047999999999,
+			"lon": -80.129379999999998,
+			"name": "Seacomber Hotel",
+			"wikidata": "Q131312203",
+			"year": 1948,
+			"architect": "MacKay & Gibbs",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.794858000000001,
+			"lon": -80.129086999999998,
+			"name": "Shore Club Hotel",
+			"wikidata": "Q131316255",
+			"style": [
+				"Miami Modern architecture"
+			],
+			"year": 1949,
+			"architect": "Albert Anis",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.793693000000001,
+			"lon": -80.129799000000006,
+			"name": "Fairfax Hotel",
+			"wikidata": "Q138773757",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.791028000000001,
+			"lon": -80.132182999999998,
+			"name": "Miami Beach Federal Savings and Loan Building",
+			"wikidata": "Q140897359",
+			"style": [
+				"mid-century modern"
+			],
+			"year": 1956
+		}
+	]
+}

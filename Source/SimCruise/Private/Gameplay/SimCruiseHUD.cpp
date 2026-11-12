@@ -2,6 +2,8 @@
 
 #include "Gameplay/SimCruiseHUD.h"
 
+#include "Knowledge/SimCruisePlaceGraphSubsystem.h"
+
 #include "CanvasItem.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/Canvas.h"
@@ -167,8 +169,38 @@ void ASimCruiseHUD::DrawHUD()
 	{
 		DrawMinimap(Scale, Level == ESimCruiseHudLevel::Glance ? GlanceAlphaValue : 1.f);
 	}
+	if (bHasVehicle && Level != ESimCruiseHudLevel::Off)
+	{
+		DrawPlaceCard(Scale);
+	}
 	DrawLoading(Scale);
 	DrawMessage(Scale);
+}
+
+void ASimCruiseHUD::DrawPlaceCard(float Scale)
+{
+	// The co-driver names the notable building the car passes (the place knowledge graph):
+	// right-aligned above the minimap.
+	const USimCruisePlaceGraphSubsystem* Graph = USimCruisePlaceGraphSubsystem::Get(GetWorld());
+	FSimCruisePlaceCard Card;
+	if (!Graph || !Graph->GetPlaceCard(Card)) return;
+	const float Right = Canvas->ClipX - 28.f * Scale;
+	const float Bottom = Canvas->ClipY - 28.f * Scale - 150.f * Scale - 12.f * Scale;
+	const FVector2D T = MeasureText(Card.Title, true, 14.f * Scale);
+	const FVector2D L = MeasureText(Card.Line, false, 11.f * Scale);
+	const FVector2D N = MeasureText(Card.Note, false, 9.f * Scale);
+	const float W = FMath::Max3(T.X, L.X, N.X) + 28.f * Scale;
+	const float H = T.Y + L.Y + N.Y + 24.f * Scale;
+	FCanvasTileItem Box(FVector2D(Right - W, Bottom - H), FVector2D(W, H), WithAlpha(FLinearColor(Ink.R, Ink.G, Ink.B, 0.62f), Card.Alpha));
+	Box.BlendMode = SE_BLEND_Translucent;
+	Canvas->DrawItem(Box);
+	const float X = Right - 14.f * Scale;
+	float Y = Bottom - H + 9.f * Scale;
+	DrawTextAt(Card.Title, true, 14.f * Scale, X, Y, WithAlpha(Paper, Card.Alpha), true);
+	Y += T.Y + 2.f * Scale;
+	DrawTextAt(Card.Line, false, 11.f * Scale, X, Y, WithAlpha(Lime, Card.Alpha), true);
+	Y += L.Y + 2.f * Scale;
+	DrawTextAt(Card.Note, false, 9.f * Scale, X, Y, WithAlpha(Dim, Card.Alpha), true);
 }
 
 namespace

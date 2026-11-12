@@ -1,0 +1,347 @@
+{
+	"tile": "18178_27907",
+	"fetched": "2026-11-12T02:14:17.121Z",
+	"sources": "overpass:98 wikidata:2",
+	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
+	"records": [
+		{
+			"lat": 25.779951000000001,
+			"lon": -80.142643000000007,
+			"name": "Southgate Towers North",
+			"osm": "way/255394164",
+			"levels": 14,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.784934,
+			"lon": -80.140679000000006,
+			"osm": "way/255402005",
+			"roof": "gabled",
+			"building": "yes"
+		},
+		{
+			"lat": 25.784839000000002,
+			"lon": -80.141450000000006,
+			"osm": "way/255402035",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.784700000000001,
+			"lon": -80.141442999999995,
+			"osm": "way/255402085",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.783045999999999,
+			"lon": -80.141394000000005,
+			"osm": "way/255402087",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.783325000000001,
+			"lon": -80.141217999999995,
+			"osm": "way/255402128",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.784977999999999,
+			"lon": -80.140488000000005,
+			"osm": "way/255402146",
+			"roof": "gabled",
+			"building": "yes"
+		},
+		{
+			"lat": 25.783462,
+			"lon": -80.141401999999999,
+			"osm": "way/255402180",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.783598000000001,
+			"lon": -80.141413999999997,
+			"osm": "way/255402206",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.781085000000001,
+			"lon": -80.141300999999999,
+			"osm": "way/260945358",
+			"levels": 2,
+			"building": "retail"
+		},
+		{
+			"lat": 25.781040000000001,
+			"lon": -80.142712000000003,
+			"name": "Mirador Apartments South Tower",
+			"osm": "way/262990048",
+			"levels": 17,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.781922000000002,
+			"lon": -80.142730999999998,
+			"name": "Mondrian South Beach Hotel",
+			"osm": "way/262990050",
+			"wikidata": "Q111393182",
+			"levels": 17,
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.782741999999999,
+			"lon": -80.142895999999993,
+			"name": "Mirador Apartments North Tower",
+			"osm": "way/262990052",
+			"levels": 17,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.783279,
+			"lon": -80.143022999999999,
+			"name": "Bayview Terrace",
+			"osm": "way/262990054",
+			"levels": 15,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.783711,
+			"lon": -80.143119999999996,
+			"name": "Bay Garden Manor",
+			"osm": "way/262990057",
+			"levels": 15,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.78124,
+			"lon": -80.141824999999997,
+			"osm": "way/263002519",
+			"levels": 8,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.781541000000001,
+			"lon": -80.141803999999993,
+			"osm": "way/263002520",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.782208000000001,
+			"lon": -80.141835999999998,
+			"name": "Mirador 1125",
+			"osm": "way/263002521",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.782453,
+			"lon": -80.141356000000002,
+			"name": "Beit Chabad South Beach",
+			"osm": "way/263002523",
+			"roof": "flat",
+			"levels": 3,
+			"building": "synagogue"
+		},
+		{
+			"lat": 25.782889999999998,
+			"lon": -80.141389000000004,
+			"osm": "way/263002526",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.783186000000001,
+			"lon": -80.141399000000007,
+			"osm": "way/263002528",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.783296,
+			"lon": -80.141437999999994,
+			"osm": "way/263002530",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.783757999999999,
+			"lon": -80.141396,
+			"osm": "way/263002533",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.784189999999999,
+			"lon": -80.141373999999999,
+			"osm": "way/263002537",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.785007,
+			"lon": -80.141442999999995,
+			"name": "Alton Condo",
+			"osm": "way/263233862",
+			"roof": "flat",
+			"building": "apartments"
+		},
+		{
+			"lat": 25.784486000000001,
+			"lon": -80.141306999999998,
+			"osm": "way/263233866",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.781918999999998,
+			"lon": -80.141362999999998,
+			"osm": "way/263233867",
+			"levels": 5,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.784122,
+			"lon": -80.140128000000004,
+			"osm": "way/560720714",
+			"roof": "gabled",
+			"building": "yes"
+		},
+		{
+			"lat": 25.784244000000001,
+			"lon": -80.140154999999993,
+			"osm": "way/560720716",
+			"roof": "gabled",
+			"building": "yes"
+		},
+		{
+			"lat": 25.783812999999999,
+			"lon": -80.140185000000002,
+			"osm": "way/560720718",
+			"roof": "gabled",
+			"building": "yes"
+		},
+		{
+			"lat": 25.783432000000001,
+			"lon": -80.140146000000001,
+			"osm": "way/560720722",
+			"roof": "hipped",
+			"building": "yes"
+		},
+		{
+			"lat": 25.783145000000001,
+			"lon": -80.140615999999994,
+			"osm": "way/560720728",
+			"roof": "gabled",
+			"building": "yes"
+		},
+		{
+			"lat": 25.783275,
+			"lon": -80.140636999999998,
+			"osm": "way/560720729",
+			"roof": "gabled",
+			"building": "yes"
+		},
+		{
+			"lat": 25.783562,
+			"lon": -80.140558999999996,
+			"osm": "way/560720735",
+			"roof": "hipped",
+			"building": "yes"
+		},
+		{
+			"lat": 25.783694000000001,
+			"lon": -80.140654999999995,
+			"osm": "way/560720737",
+			"roof": "gabled",
+			"building": "yes"
+		},
+		{
+			"lat": 25.783826999999999,
+			"lon": -80.140635000000003,
+			"osm": "way/560720739",
+			"roof": "hipped",
+			"building": "yes"
+		},
+		{
+			"lat": 25.784103999999999,
+			"lon": -80.140664000000001,
+			"name": "McAllister Spa",
+			"osm": "way/560720741",
+			"roof": "gabled",
+			"levels": 1,
+			"building": "retail"
+		},
+		{
+			"lat": 25.784254000000001,
+			"lon": -80.140664000000001,
+			"osm": "way/560720742",
+			"roof": "gabled",
+			"building": "yes"
+		},
+		{
+			"lat": 25.784383999999999,
+			"lon": -80.140664000000001,
+			"osm": "way/560720744",
+			"roof": "gabled",
+			"building": "yes"
+		},
+		{
+			"lat": 25.784524000000001,
+			"lon": -80.140673000000007,
+			"osm": "way/560720748",
+			"roof": "hipped",
+			"building": "yes"
+		},
+		{
+			"lat": 25.784658,
+			"lon": -80.140665999999996,
+			"osm": "way/560720749",
+			"roof": "gabled",
+			"building": "yes"
+		},
+		{
+			"lat": 25.784797999999999,
+			"lon": -80.140669000000003,
+			"osm": "way/560720751",
+			"roof": "gabled",
+			"building": "yes"
+		},
+		{
+			"lat": 25.785067999999999,
+			"lon": -80.140601000000004,
+			"osm": "way/560720753",
+			"roof": "gabled",
+			"building": "yes"
+		},
+		{
+			"lat": 25.782958000000001,
+			"lon": -80.141857999999999,
+			"name": "Abae Hotel",
+			"osm": "way/646126751",
+			"levels": 6,
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.784199999999998,
+			"lon": -80.143151000000003,
+			"name": "Monad Terrace",
+			"osm": "way/827740907",
+			"building": "apartments"
+		},
+		{
+			"lat": 25.784700000000001,
+			"lon": -80.143119999999996,
+			"name": "The Waverly",
+			"osm": "way/827740921",
+			"levels": 36,
+			"building": "apartments"
+		}
+	]
+}

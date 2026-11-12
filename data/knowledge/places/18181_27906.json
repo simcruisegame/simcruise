@@ -1,0 +1,87 @@
+{
+	"tile": "18181_27906",
+	"fetched": "2026-11-12T04:15:47.418Z",
+	"sources": "overpass:9 wikidata:5",
+	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
+	"records": [
+		{
+			"lat": 25.789362000000001,
+			"lon": -80.128512000000001,
+			"osm": "way/435844800",
+			"building": "roof"
+		},
+		{
+			"lat": 25.785602999999998,
+			"lon": -80.127561999999998,
+			"osm": "way/567439904",
+			"building": "lifeguard_tower"
+		},
+		{
+			"lat": 25.787686999999998,
+			"lon": -80.127363000000003,
+			"osm": "way/567439906",
+			"building": "lifeguard_tower"
+		},
+		{
+			"lat": 25.788730000000001,
+			"lon": -80.128651000000005,
+			"osm": "way/589931277",
+			"levels": 1,
+			"building": "cabin"
+		},
+		{
+			"lat": 25.7865,
+			"lon": -80.129660000000001,
+			"name": "The Betsy Hotel",
+			"wikidata": "Q111393202",
+			"style": [
+				"Colonial Revival architecture"
+			],
+			"year": 1942,
+			"architect": "Lawrence Murray Dixon",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.787330999999998,
+			"lon": -80.129355000000004,
+			"name": "The White House Hotel",
+			"wikidata": "Q119519124",
+			"style": [
+				"Colonial Revival architecture"
+			],
+			"year": 1939,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.787431999999999,
+			"lon": -80.129766000000004,
+			"name": "The Drake Hotel",
+			"wikidata": "Q119704183",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1937,
+			"architect": "David T. Ellis",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.788875000000001,
+			"lon": -80.12961,
+			"name": "St. Moritz Hotel",
+			"wikidata": "Q120485683",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1939,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.788468999999999,
+			"lon": -80.129632999999998,
+			"name": "Royal Palm Hotel",
+			"wikidata": "Q124433922",
+			"year": 1939,
+			"building": "hotel"
+		}
+	]
+}

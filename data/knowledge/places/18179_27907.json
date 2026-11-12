@@ -1,0 +1,248 @@
+{
+	"tile": "18179_27907",
+	"fetched": "2026-11-12T03:59:36.349Z",
+	"sources": "overpass:236 wikidata:10",
+	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
+	"records": [
+		{
+			"lat": 25.784970000000001,
+			"lon": -80.138977999999994,
+			"osm": "way/255402014",
+			"roof": "gabled",
+			"building": "house"
+		},
+		{
+			"lat": 25.783659,
+			"lon": -80.139465000000001,
+			"osm": "way/255402019",
+			"roof": "gabled",
+			"building": "house"
+		},
+		{
+			"lat": 25.782557000000001,
+			"lon": -80.138499999999993,
+			"name": "Police Athletic League",
+			"osm": "way/255402079",
+			"building": "public"
+		},
+		{
+			"lat": 25.783853000000001,
+			"lon": -80.139267000000004,
+			"osm": "way/255402201",
+			"roof": "hipped",
+			"building": "yes"
+		},
+		{
+			"lat": 25.783830999999999,
+			"lon": -80.139446000000007,
+			"osm": "way/560720626",
+			"roof": "gabled",
+			"building": "house"
+		},
+		{
+			"lat": 25.784164000000001,
+			"lon": -80.139436000000003,
+			"osm": "way/560720627",
+			"roof": "flat",
+			"building": "house"
+		},
+		{
+			"lat": 25.784386000000001,
+			"lon": -80.139453000000003,
+			"osm": "way/560720628",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.784551,
+			"lon": -80.139478999999994,
+			"osm": "way/560720629",
+			"roof": "gabled",
+			"building": "house"
+		},
+		{
+			"lat": 25.784689,
+			"lon": -80.139442000000003,
+			"osm": "way/560720630",
+			"roof": "gabled",
+			"building": "house"
+		},
+		{
+			"lat": 25.78482,
+			"lon": -80.139304999999993,
+			"osm": "way/560720631",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.784832000000002,
+			"lon": -80.139499999999998,
+			"osm": "way/560720632",
+			"roof": "flat",
+			"building": "house"
+		},
+		{
+			"lat": 25.784959000000001,
+			"lon": -80.139514000000005,
+			"osm": "way/560720633",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.785095999999999,
+			"lon": -80.13946,
+			"osm": "way/560720634",
+			"roof": "gabled",
+			"building": "house"
+		},
+		{
+			"lat": 25.784842000000001,
+			"lon": -80.139009000000001,
+			"osm": "way/560720676",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.784704000000001,
+			"lon": -80.138941000000003,
+			"osm": "way/560720679",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.784565000000001,
+			"lon": -80.138971999999995,
+			"osm": "way/560720680",
+			"roof": "gabled",
+			"building": "house"
+		},
+		{
+			"lat": 25.784427999999998,
+			"lon": -80.139004,
+			"osm": "way/560720682",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.78417,
+			"lon": -80.138987999999998,
+			"osm": "way/560720684",
+			"building": "house"
+		},
+		{
+			"lat": 25.783812999999999,
+			"lon": -80.138880999999998,
+			"osm": "way/560720685",
+			"roof": "gabled",
+			"building": "house"
+		},
+		{
+			"lat": 25.783325999999999,
+			"lon": -80.138902000000002,
+			"osm": "way/560720690",
+			"roof": "gabled",
+			"building": "house"
+		},
+		{
+			"lat": 25.783187999999999,
+			"lon": -80.138895000000005,
+			"osm": "way/560720691",
+			"building": "house"
+		},
+		{
+			"lat": 25.783038000000001,
+			"lon": -80.139391000000003,
+			"osm": "way/560720694",
+			"roof": "gabled",
+			"building": "house"
+		},
+		{
+			"lat": 25.783176000000001,
+			"lon": -80.139387999999997,
+			"osm": "way/560720696",
+			"roof": "hipped",
+			"building": "house"
+		},
+		{
+			"lat": 25.78332,
+			"lon": -80.139249000000007,
+			"osm": "way/560720698",
+			"roof": "gabled",
+			"building": "house"
+		},
+		{
+			"lat": 25.783324,
+			"lon": -80.139444999999995,
+			"osm": "way/560720700",
+			"roof": "gabled",
+			"building": "house"
+		},
+		{
+			"lat": 25.783498000000002,
+			"lon": -80.139435000000006,
+			"osm": "way/560720702",
+			"roof": "gabled",
+			"building": "house"
+		},
+		{
+			"lat": 25.781874999999999,
+			"lon": -80.136261000000005,
+			"name": "South Beach",
+			"wikidata": "Q186106",
+			"year": 1886
+		},
+		{
+			"lat": 25.781058000000002,
+			"lon": -80.136021999999997,
+			"name": "Granada Hotel",
+			"wikidata": "Q119702631",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1926,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.781821999999998,
+			"lon": -80.133212999999998,
+			"name": "Kenmore Hotel",
+			"wikidata": "Q119703950",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1936,
+			"architect": "Anton Skislewicz",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.783954000000001,
+			"lon": -80.133600999999999,
+			"name": "Roosevelt Hotel",
+			"wikidata": "Q119943920",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1925,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.783975999999999,
+			"lon": -80.135572999999994,
+			"name": "Gotham Hotel and Apartments",
+			"wikidata": "Q124337690",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.783154,
+			"lon": -80.133227000000005,
+			"name": "Neron Hotel",
+			"wikidata": "Q131312985",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1940,
+			"architect": "Henry Hohauser",
+			"building": "hotel"
+		}
+	]
+}

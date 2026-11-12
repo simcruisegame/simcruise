@@ -1,0 +1,241 @@
+{
+	"tile": "18181_27905",
+	"fetched": "2026-11-12T04:15:18.443Z",
+	"sources": "overpass:35 wikidata:18",
+	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
+	"records": [
+		{
+			"lat": 25.791181999999999,
+			"lon": -80.129024999999999,
+			"name": "The Ritz-Carlton, South Beach",
+			"osm": "way/207799793",
+			"wikidata": "Q111393192",
+			"building": "commercial",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.792919000000001,
+			"lon": -80.128951999999998,
+			"name": "Kimpton Surfcomber Hotel",
+			"osm": "way/263592315",
+			"wikidata": "Q14686425",
+			"style": [
+				"Art Deco architecture"
+			],
+			"architect": "MacKay & Gibbs",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.793710000000001,
+			"lon": -80.128969999999995,
+			"name": "The Raleigh",
+			"osm": "way/263592316",
+			"wikidata": "Q16900941",
+			"style": [
+				"Streamline Moderne",
+				"Art Deco architecture"
+			],
+			"year": 1940,
+			"architect": "Lawrence Murray Dixon",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.791853,
+			"lon": -80.128962000000001,
+			"name": "National",
+			"osm": "way/263592327",
+			"wikidata": "Q56427609",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1940,
+			"heritage": "National Register of Historic Places contributing property",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.792238000000001,
+			"lon": -80.128280000000004,
+			"osm": "way/435388117",
+			"building": "construction"
+		},
+		{
+			"lat": 25.790754,
+			"lon": -80.126761000000002,
+			"osm": "way/567439907",
+			"building": "lifeguard_tower"
+		},
+		{
+			"lat": 25.792392,
+			"lon": -80.126532999999995,
+			"osm": "way/567439910",
+			"building": "lifeguard_tower"
+		},
+		{
+			"lat": 25.794166000000001,
+			"lon": -80.128856999999996,
+			"name": "Shelborne South Beach",
+			"osm": "way/917311823",
+			"wikidata": "Q111393179",
+			"style": [
+				"International Style"
+			],
+			"year": 1941,
+			"architect": "Morris Lapidus",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.792100000000001,
+			"lon": -80.128799999999998,
+			"name": "Delano Hotel",
+			"wikidata": "Q5253151",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1947,
+			"architect": "B. Robert Swartburg",
+			"heritage": "National Register of Historic Places contributing property",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.792100000000001,
+			"lon": -80.1297,
+			"name": "Ritz Plaza Hotel",
+			"wikidata": "Q7336919",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1940,
+			"architect": "Lawrence Murray Dixon",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.7926,
+			"lon": -80.129459999999995,
+			"name": "SLS South Beach",
+			"wikidata": "Q111393185",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.79233,
+			"lon": -80.129729999999995,
+			"name": "The Claremont Hotel",
+			"wikidata": "Q111393186",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1947,
+			"architect": "Albert Anis",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.791599999999999,
+			"lon": -80.129639999999995,
+			"name": "Sagamore Hotel South Beach",
+			"wikidata": "Q111393188",
+			"style": [
+				"Miami Modern architecture"
+			],
+			"year": 1948,
+			"architect": "Albert Anis",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.795075000000001,
+			"lon": -80.128169999999997,
+			"name": "Cromwell Hotel",
+			"wikidata": "Q116739035",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1939,
+			"architect": "Robert A. Taylor",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.794443999999999,
+			"lon": -80.129142999999999,
+			"name": "Nautilus Hotel",
+			"wikidata": "Q117536611",
+			"style": [
+				"mid-century modern"
+			],
+			"year": 1951,
+			"architect": "Morris Lapidus",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.793187,
+			"lon": -80.129357999999996,
+			"name": "Marseilles Hotel",
+			"wikidata": "Q119983344",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1947,
+			"architect": "B. Robert Swartburg",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.793485,
+			"lon": -80.129197000000005,
+			"name": "The Richmond",
+			"wikidata": "Q120196824",
+			"style": [
+				"Miami Modern architecture"
+			],
+			"year": 1941,
+			"architect": "Lawrence Murray Dixon",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.793341000000002,
+			"lon": -80.129307999999995,
+			"name": "South Seas Hotel",
+			"wikidata": "Q120196885",
+			"style": [
+				"Streamline Moderne",
+				"Miami Modern architecture"
+			],
+			"year": 1941,
+			"architect": "Lawrence Murray Dixon",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.792866,
+			"lon": -80.129919000000001,
+			"name": "Dorset Hotel",
+			"wikidata": "Q123942749",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1940,
+			"architect": "Joseph DeBrita",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.791378000000002,
+			"lon": -80.129490000000004,
+			"name": "Hotel Di Lido",
+			"wikidata": "Q128693718",
+			"style": [
+				"Miami Modern architecture"
+			],
+			"year": 1953,
+			"architect": "Morris Lapidus",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.793047999999999,
+			"lon": -80.129379999999998,
+			"name": "Seacomber Hotel",
+			"wikidata": "Q131312203",
+			"year": 1948,
+			"architect": "MacKay & Gibbs",
+			"building": "hotel"
+		}
+	]
+}

@@ -1,0 +1,260 @@
+{
+	"tile": "18178_27906",
+	"fetched": "2026-11-12T03:13:21.555Z",
+	"sources": "overpass:187 wikidata:6",
+	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
+	"records": [
+		{
+			"lat": 25.787129,
+			"lon": -80.140854000000004,
+			"name": "Chevron",
+			"osm": "way/237435610",
+			"roof": "flat",
+			"building": "roof",
+			"amenity": "fuel"
+		},
+		{
+			"lat": 25.787075000000002,
+			"lon": -80.140724000000006,
+			"osm": "way/237435618",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.786442999999998,
+			"lon": -80.140692000000001,
+			"osm": "way/255410028",
+			"roof": "flat",
+			"levels": 1,
+			"building": "retail"
+		},
+		{
+			"lat": 25.785905,
+			"lon": -80.140187999999995,
+			"osm": "way/255410094",
+			"roof": "gabled",
+			"building": "yes"
+		},
+		{
+			"lat": 25.786362,
+			"lon": -80.144424999999998,
+			"name": "Flamingo Point",
+			"osm": "way/263002543",
+			"levels": 15,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.787286999999999,
+			"lon": -80.144862000000003,
+			"name": "Flamingo Point",
+			"osm": "way/263066055",
+			"levels": 15,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.787279000000002,
+			"lon": -80.144012000000004,
+			"name": "Flamingo Point",
+			"osm": "way/263066057",
+			"levels": 32,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.787955,
+			"lon": -80.143991999999997,
+			"name": "Flamingo Point",
+			"osm": "way/263066058",
+			"levels": 15,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.785007,
+			"lon": -80.141442999999995,
+			"name": "Alton Condo",
+			"osm": "way/263233862",
+			"roof": "flat",
+			"building": "apartments"
+		},
+		{
+			"lat": 25.785359,
+			"lon": -80.141435000000001,
+			"osm": "way/263233863",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.785748000000002,
+			"lon": -80.141400000000004,
+			"name": "Bank of America",
+			"osm": "way/263233864",
+			"roof": "flat",
+			"levels": 1,
+			"building": "yes",
+			"amenity": "bank"
+		},
+		{
+			"lat": 25.785927999999998,
+			"lon": -80.140701000000007,
+			"name": "CVS Pharmacy",
+			"osm": "way/290515377",
+			"roof": "flat",
+			"building": "yes",
+			"amenity": "pharmacy"
+		},
+		{
+			"lat": 25.790116000000001,
+			"lon": -80.140626999999995,
+			"name": "Regal Cinema",
+			"osm": "way/297682367",
+			"wikidata": "Q42421762",
+			"building": "commercial",
+			"amenity": "cinema"
+		},
+		{
+			"lat": 25.789666,
+			"lon": -80.140814000000006,
+			"name": "Lincoln Center Parking",
+			"osm": "way/319274844",
+			"building": "garage",
+			"amenity": "parking"
+		},
+		{
+			"lat": 25.786899999999999,
+			"lon": -80.140218000000004,
+			"osm": "way/435567250",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.787210000000002,
+			"lon": -80.140214999999998,
+			"osm": "way/435736249",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.78706,
+			"lon": -80.140198999999996,
+			"osm": "way/435883387",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.786750000000001,
+			"lon": -80.141356999999999,
+			"osm": "way/560720621",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.786534,
+			"lon": -80.141351,
+			"osm": "way/560720622",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.786227,
+			"lon": -80.140701000000007,
+			"osm": "way/560720625",
+			"roof": "flat",
+			"levels": 2,
+			"building": "retail"
+		},
+		{
+			"lat": 25.785067999999999,
+			"lon": -80.140601000000004,
+			"osm": "way/560720753",
+			"roof": "gabled",
+			"building": "yes"
+		},
+		{
+			"lat": 25.785765999999999,
+			"lon": -80.140180000000001,
+			"osm": "way/560720758",
+			"roof": "gabled",
+			"building": "yes"
+		},
+		{
+			"lat": 25.786321000000001,
+			"lon": -80.140236000000002,
+			"osm": "way/560720762",
+			"roof": "hipped",
+			"building": "yes"
+		},
+		{
+			"lat": 25.786726999999999,
+			"lon": -80.140238999999994,
+			"osm": "way/560720765",
+			"roof": "gabled",
+			"building": "yes"
+		},
+		{
+			"lat": 25.790126999999998,
+			"lon": -80.140137999999993,
+			"osm": "way/564772308",
+			"levels": 2,
+			"building": "commercial"
+		},
+		{
+			"lat": 25.786878999999999,
+			"lon": -80.141395000000003,
+			"osm": "way/770873619",
+			"roof": "flat",
+			"levels": 1,
+			"building": "yes"
+		},
+		{
+			"lat": 25.787078000000001,
+			"lon": -80.141368,
+			"osm": "way/770873625",
+			"roof": "flat",
+			"levels": 1,
+			"building": "yes"
+		},
+		{
+			"lat": 25.786577000000001,
+			"lon": -80.140877000000003,
+			"osm": "way/771508670",
+			"levels": 1,
+			"building": "roof"
+		},
+		{
+			"lat": 25.789439999999999,
+			"lon": -80.140308000000005,
+			"name": "Lincoln Place Residences",
+			"osm": "relation/6997320",
+			"building": "residential"
+		},
+		{
+			"lat": 25.790728000000001,
+			"lon": -80.141041999999999,
+			"name": "1111 Lincoln Road",
+			"wikidata": "Q170391",
+			"year": 2010,
+			"architect": "Herzog & de Meuron",
+			"material": "concrete"
+		},
+		{
+			"lat": 25.78687,
+			"lon": -80.144609000000003,
+			"name": "Flamingo Hotel, Miami Beach",
+			"wikidata": "Q5457287",
+			"year": 1921,
+			"architect": "Rubush & Hunter",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.787208,
+			"lon": -80.139258999999996,
+			"name": "Hotel Helene",
+			"wikidata": "Q124433927",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1924,
+			"architect": "Martin L. Hampton",
+			"building": "hotel"
+		}
+	]
+}

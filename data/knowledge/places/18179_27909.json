@@ -1,0 +1,110 @@
+{
+	"tile": "18179_27909",
+	"fetched": "2026-11-12T04:03:54.114Z",
+	"sources": "overpass:0 wikidata:17",
+	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
+	"records": [
+		{
+			"lat": 25.77252,
+			"lon": -80.134420000000006,
+			"name": "Jewish Museum of Florida",
+			"wikidata": "Q3178486",
+			"year": 1936
+		},
+		{
+			"lat": 25.772221999999999,
+			"lon": -80.134444000000002,
+			"name": "Beth Jacob Social Hall and Congregation",
+			"wikidata": "Q4897552",
+			"architect": "A. Fraser Rose",
+			"heritage": "National Register of Historic Places listed place"
+		},
+		{
+			"lat": 25.774014999999999,
+			"lon": -80.136358999999999,
+			"name": "Urbanica The Meridian Hotel",
+			"wikidata": "Q111393216",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.77421,
+			"lon": -80.13588,
+			"name": "Urbanica The Euclid",
+			"wikidata": "Q112026581",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.771104000000001,
+			"lon": -80.133544999999998,
+			"name": "Sea Breeze Hotel",
+			"wikidata": "Q120646095",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.769487000000002,
+			"lon": -80.135464999999996,
+			"name": "David Court Hotel",
+			"wikidata": "Q120900466",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1925,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.769501999999999,
+			"lon": -80.135465999999994,
+			"name": "David Court",
+			"wikidata": "Q121029142",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1926,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.773786999999999,
+			"lon": -80.134129000000001,
+			"name": "Hotel Harrison",
+			"wikidata": "Q124287491",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1935,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.774901,
+			"lon": -80.134366999999997,
+			"name": "George Washington Hotel",
+			"wikidata": "Q124308785",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1924,
+			"architect": "William F. Brown",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.771636000000001,
+			"lon": -80.138000000000005,
+			"name": "Ambassador Hotel",
+			"wikidata": "Q126127865",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"building": "hotel"
+		},
+		{
+			"lat": 25.774781999999998,
+			"lon": -80.135378000000003,
+			"name": "Hotel MacArthur",
+			"wikidata": "Q132673671",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1934,
+			"building": "hotel"
+		}
+	]
+}

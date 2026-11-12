@@ -56,6 +56,8 @@ private:
 	void DrawGlance(float Scale, float DeltaTimeS);
 	void DrawFull(float Scale);
 	void DrawMessage(float Scale);
+	/** The co-driver's card for the notable building the car passes (USimCruisePlaceGraphSubsystem). */
+	void DrawPlaceCard(float Scale);
 	/** The roads round the car, heading up (MapHUD.gd). */
 	void DrawMinimap(float Scale, float Alpha);
 	/** While the car waits for a new place to be built. */

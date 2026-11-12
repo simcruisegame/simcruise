@@ -1,0 +1,585 @@
+{
+	"tile": "18180_27906",
+	"fetched": "2026-11-12T04:09:19.385Z",
+	"sources": "overpass:0 wikidata:62",
+	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
+	"records": [
+		{
+			"lat": 25.785833,
+			"lon": -80.134167000000005,
+			"name": "Miami Beach Architectural District",
+			"wikidata": "Q3307877",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1915,
+			"heritage": "National Register of Historic Places listed place",
+			"district": true
+		},
+		{
+			"lat": 25.787099999999999,
+			"lon": -80.131439999999998,
+			"name": "Cameo Theatre",
+			"wikidata": "Q7721082",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1938
+		},
+		{
+			"lat": 25.785969999999999,
+			"lon": -80.134919999999994,
+			"name": "The Temple House",
+			"wikidata": "Q7768354",
+			"year": 1933,
+			"architect": "Lawrence Murray Dixon"
+		},
+		{
+			"lat": 25.784444000000001,
+			"lon": -80.132499999999993,
+			"name": "U.S. Post Office, Miami Beach",
+			"wikidata": "Q16920414",
+			"style": [
+				"Streamline Moderne"
+			],
+			"year": 1937
+		},
+		{
+			"lat": 25.790109000000001,
+			"lon": -80.132413,
+			"name": "Beach Theatre",
+			"wikidata": "Q42421662",
+			"style": [
+				"Streamline Moderne"
+			],
+			"year": 1940
+		},
+		{
+			"lat": 25.788509000000001,
+			"lon": -80.130521999999999,
+			"name": "The Tropics Hotel and Hostel",
+			"wikidata": "Q111121448",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1941,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.784393000000001,
+			"lon": -80.130936000000005,
+			"name": "Suites On South Beach",
+			"wikidata": "Q111331279",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.78969,
+			"lon": -80.13064,
+			"name": "Iberostar Waves Berkeley Shore",
+			"wikidata": "Q111393190",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1940,
+			"architect": "Albert Anis",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.789429999999999,
+			"lon": -80.130350000000007,
+			"name": "Hyatt Centric South Beach Miami",
+			"wikidata": "Q111393194",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.789339999999999,
+			"lon": -80.130039999999994,
+			"name": "Loews Miami Beach Hotel",
+			"wikidata": "Q111393196",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.786984,
+			"lon": -80.132030999999998,
+			"name": "El Paseo Hotel",
+			"wikidata": "Q111393198",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.78829,
+			"lon": -80.130139999999997,
+			"name": "Royal Palm South Beach Miami, a Tribute Portfolio Resort",
+			"wikidata": "Q111393199",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.78716,
+			"lon": -80.130470000000003,
+			"name": "Crowne Plaza South Beach - Z Ocean Hotel",
+			"wikidata": "Q111393200",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.7865,
+			"lon": -80.129660000000001,
+			"name": "The Betsy Hotel",
+			"wikidata": "Q111393202",
+			"style": [
+				"Colonial Revival architecture"
+			],
+			"year": 1942,
+			"architect": "Lawrence Murray Dixon",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.785309999999999,
+			"lon": -80.129890000000003,
+			"name": "Winter Haven Hotel",
+			"wikidata": "Q111393204",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1939,
+			"architect": "Albert Anis",
+			"heritage": "National Register of Historic Places contributing property",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.78436,
+			"lon": -80.129990000000006,
+			"name": "Cavalier Hotel",
+			"wikidata": "Q111393206",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1936,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.787527999999998,
+			"lon": -80.130825000000002,
+			"name": "The Hall South Beach Miami",
+			"wikidata": "Q111887633",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.78679,
+			"lon": -80.131984000000003,
+			"name": "Esme Miami Beach",
+			"wikidata": "Q112026580",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.786003000000001,
+			"lon": -80.129806000000002,
+			"name": "Crescent Hotel",
+			"wikidata": "Q116242998",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1938,
+			"architect": "Henry Hohauser",
+			"heritage": "National Register of Historic Places contributing property",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.790952000000001,
+			"lon": -80.130955,
+			"name": "Albion Hotel",
+			"wikidata": "Q116671767",
+			"style": [
+				"Streamline Moderne",
+				"Art Deco architecture"
+			],
+			"year": 1939,
+			"architect": "Igor B. Polevitzky",
+			"heritage": "National Register of Historic Places contributing property",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.78942,
+			"lon": -80.129583999999994,
+			"name": "Hotel New Yorker",
+			"wikidata": "Q116681073",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1939,
+			"architect": "Henry Hohauser",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.785864,
+			"lon": -80.129812999999999,
+			"name": "Penguin Hotel",
+			"wikidata": "Q116688479",
+			"style": [
+				"Miami Modern architecture"
+			],
+			"year": 1948,
+			"architect": "Henry Hohauser",
+			"heritage": "National Register of Historic Places contributing property",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.787834,
+			"lon": -80.130103000000005,
+			"name": "Hotel Bancroft",
+			"wikidata": "Q117087199",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1939,
+			"architect": "Albert Anis",
+			"heritage": "National Register of Historic Places contributing property",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.786787,
+			"lon": -80.130337999999995,
+			"name": "Biarritz Hotel",
+			"wikidata": "Q117229663",
+			"year": 1935,
+			"architect": "Harry O. Nelson",
+			"heritage": "National Register of Historic Places contributing property",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.785419000000001,
+			"lon": -80.130640999999997,
+			"name": "Beach Plaza Hotel",
+			"wikidata": "Q118676029",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1936,
+			"architect": "Lawrence Murray Dixon",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.785540000000001,
+			"lon": -80.12988,
+			"name": "Edgewater Beach Hotel",
+			"wikidata": "Q118736055",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1936,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.786124000000001,
+			"lon": -80.129776000000007,
+			"name": "McAlpin Hotel",
+			"wikidata": "Q118745002",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1940,
+			"architect": "Lawrence Murray Dixon",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.784364,
+			"lon": -80.133165000000005,
+			"name": "Habana Hotel",
+			"wikidata": "Q119212059",
+			"year": 1925,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.784616,
+			"lon": -80.130099000000001,
+			"name": "Hotel Netherland",
+			"wikidata": "Q119300030",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1935,
+			"architect": "Robertson & Patterson",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.787116000000001,
+			"lon": -80.130759999999995,
+			"name": "Hoffman's Cafeteria",
+			"wikidata": "Q119400333",
+			"style": [
+				"Streamline Moderne"
+			],
+			"architect": "Henry Hohauser"
+		},
+		{
+			"lat": 25.786280999999999,
+			"lon": -80.129745,
+			"name": "Ocean Plaza Hotel",
+			"wikidata": "Q119428955",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1941,
+			"architect": "Lawrence Murray Dixon",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.785993999999999,
+			"lon": -80.130544,
+			"name": "The President",
+			"wikidata": "Q119440696",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1936,
+			"architect": "Lawrence Murray Dixon",
+			"heritage": "National Register of Historic Places contributing property",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.787330999999998,
+			"lon": -80.129355000000004,
+			"name": "The White House Hotel",
+			"wikidata": "Q119519124",
+			"style": [
+				"Colonial Revival architecture"
+			],
+			"year": 1939,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.787431999999999,
+			"lon": -80.129766000000004,
+			"name": "The Drake Hotel",
+			"wikidata": "Q119704183",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1937,
+			"architect": "David T. Ellis",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.787481,
+			"lon": -80.130859999999998,
+			"name": "Haddon Hall Hotel",
+			"wikidata": "Q119752077",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1940,
+			"architect": "Lawrence Murray Dixon",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.787976,
+			"lon": -80.130673999999999,
+			"name": "Parisian Hotel",
+			"wikidata": "Q120359949",
+			"style": [
+				"Miami Modern architecture"
+			],
+			"year": 1955,
+			"architect": "A. Herbert Mathes",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.788875000000001,
+			"lon": -80.12961,
+			"name": "St. Moritz Hotel",
+			"wikidata": "Q120485683",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1939,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.789317,
+			"lon": -80.129523000000006,
+			"name": "The Sands Hotel",
+			"wikidata": "Q120719201",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1940,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.784369000000002,
+			"lon": -80.131276,
+			"name": "Alamac Hotel",
+			"wikidata": "Q121066021",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1934,
+			"architect": "Victor Nellenbogen",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.790445999999999,
+			"lon": -80.132523000000006,
+			"name": "Lincoln Hotel",
+			"wikidata": "Q124149849",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1917,
+			"architect": "August Geiger",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.788288000000001,
+			"lon": -80.130004,
+			"name": "Shorecrest Hotel",
+			"wikidata": "Q124249774",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1940,
+			"architect": "Kiehnel and Elliott",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.784969,
+			"lon": -80.129936000000001,
+			"name": "Van Ness Hotel",
+			"wikidata": "Q124261899",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1930,
+			"architect": "R. A. Preas",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.785176,
+			"lon": -80.131032000000005,
+			"name": "Commodore Hotel",
+			"wikidata": "Q124313193",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1939,
+			"architect": "Henry Hohauser",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.790405,
+			"lon": -80.133598000000006,
+			"name": "Miami Beach Community Church",
+			"wikidata": "Q124337673",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1921
+		},
+		{
+			"lat": 25.785855000000002,
+			"lon": -80.130925000000005,
+			"name": "Nassau Hotel",
+			"wikidata": "Q124337701",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1936,
+			"architect": "Albert Anis",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.784841,
+			"lon": -80.130720999999994,
+			"name": "Hotel Clifton",
+			"wikidata": "Q124369939",
+			"style": [
+				"Streamline Moderne"
+			],
+			"year": 1948,
+			"architect": "Gerard Pitt",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.789943000000001,
+			"lon": -80.129454999999993,
+			"name": "The Georgian Hotel",
+			"wikidata": "Q124377652",
+			"style": [
+				"Colonial Revival architecture"
+			],
+			"year": 1940,
+			"architect": "Joseph DeBrita",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.788468999999999,
+			"lon": -80.129632999999998,
+			"name": "Royal Palm Hotel",
+			"wikidata": "Q124433922",
+			"year": 1939,
+			"building": "hotel"
+		},
+		{
+			"lat": 25.787416,
+			"lon": -80.130188000000004,
+			"name": "Charles Hotel",
+			"wikidata": "Q126865888",
+			"year": 1938,
+			"architect": "Henry J. Maloney",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.786556999999998,
+			"lon": -80.130432999999996,
+			"name": "Hotel Carlton",
+			"wikidata": "Q127694576",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1937,
+			"architect": "Henry Hohauser",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.784905999999999,
+			"lon": -80.131029999999996,
+			"name": "Hotel Shepley",
+			"wikidata": "Q127710963",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1937,
+			"architect": "Henry Hohauser",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.785817999999999,
+			"lon": -80.131676999999996,
+			"name": "Reef Apartment Hotel",
+			"wikidata": "Q127784928",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1935,
+			"architect": "Victor Nellenbogen",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.786830999999999,
+			"lon": -80.132030999999998,
+			"name": "Clay Hotel",
+			"wikidata": "Q132643855",
+			"style": [
+				"Mediterranean Revival architecture"
+			],
+			"year": 1925,
+			"architect": "Robert A. Taylor",
+			"building": "hotel"
+		},
+		{
+			"lat": 25.786650999999999,
+			"lon": -80.129873000000003,
+			"name": "LT Steak & Seafood",
+			"wikidata": "Q140339216",
+			"year": 1942
+		}
+	]
+}
