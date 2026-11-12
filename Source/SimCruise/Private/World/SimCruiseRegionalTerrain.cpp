@@ -20,6 +20,7 @@
 #include "Materials/MaterialExpressionCameraPositionWS.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Misc/App.h"
+#include "Misc/Base64.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "ProceduralMeshComponent.h"
@@ -40,6 +41,12 @@ float edge = min(min(st.x, 1.0 - st.x), min(st.y, 1.0 - st.y));
 if (HasMiddle > 0.5 && edge > 0.0)
 {
 	c = lerp(c, Texture2DSample(Middle, MiddleSampler, st).rgb, smoothstep(0.0, 0.065, edge));
+}
+// Today's snow (MODIS Terra NDSI snow cover, 500 m): the photograph may be from summer.
+if (HasSnow > 0.5)
+{
+	float snow = smoothstep(0.38, 0.76, Texture2DSample(Snow, SnowSampler, uv).r);
+	c = lerp(c, float3(0.80, 0.84, 0.88), snow * 0.95);
 }
 // An orthophoto is taken from above with some shading in it; seen from the ground across many
 // kilometres its tones read a little lighter and flatter.
@@ -137,8 +144,9 @@ struct ASimCruiseRegionalTerrain::FJob
 	TArray<FVector> Positions;
 	TArray<int32> Indices;
 	TArray<FVector> Normals;
-	TArray<FColor> Photo, Middle;
-	int32 PhotoW = 0, PhotoH = 0, MiddleW = 0, MiddleH = 0;
+	TArray<FColor> Photo, Middle, Snow;
+	int32 PhotoW = 0, PhotoH = 0, MiddleW = 0, MiddleH = 0, SnowW = 0, SnowH = 0;
+	FString SnowDate;
 	double MaxErrorM = 0.0;
 };
 
@@ -183,6 +191,8 @@ UMaterial* ASimCruiseRegionalTerrain::BuildMaterial(UObject* Outer, FName Name, 
 	AddInput(Colour, TEXT("RadiusCm"), ScalarParam(TEXT("RadiusCm"), static_cast<float>(RadiusM * 100.0)));
 	AddInput(Colour, TEXT("HasPhoto"), ScalarParam(TEXT("HasPhoto"), 0.f));
 	AddInput(Colour, TEXT("HasMiddle"), ScalarParam(TEXT("HasMiddle"), 0.f));
+	AddInput(Colour, TEXT("HasSnow"), ScalarParam(TEXT("HasSnow"), 0.f));
+	AddInput(Colour, TEXT("Snow"), TextureParam(TEXT("Snow")));
 	AddInput(Colour, TEXT("Photo"), TextureParam(TEXT("Photo")));
 	AddInput(Colour, TEXT("Middle"), TextureParam(TEXT("Middle")));
 
@@ -295,6 +305,32 @@ void ASimCruiseRegionalTerrain::StartJob(const FIntPoint& Region)
 		{
 			USimCruiseWorldResources::DecodeImageFile(FPaths::Combine(Config.CacheDir, MiddleName), J.Middle, J.MiddleW, J.MiddleH);
 		}
+		// Snow on the ground now (RegionalSnow.gd): the helper's `snow` reads a day's MODIS snow
+		// cover over the same 90 km square as a 256 px mask. NASA GIBS publishes a day two to
+		// four days late, so the newest day it has within a week.
+		for (int32 DaysBack = 1; DaysBack <= 7; ++DaysBack)
+		{
+			FSimCruiseAtlasRequest Snow;
+			Snow.Command = TEXT("snow");
+			const FString Date = (FDateTime::UtcNow() - FTimespan::FromDays(DaysBack)).ToString(TEXT("%Y-%m-%d"));
+			Snow.Args = { FString::FromInt(J.Region.X), FString::FromInt(J.Region.Y), Date };
+			Snow.TimeoutSeconds = 60.0;
+			const FSimCruiseAtlasResult SnowResult = FSimCruiseAtlasClient::RunBlocking(Config, Snow, nullptr);
+			const TSharedPtr<FJsonObject> SnowDoc = SnowResult.IsOk() && SnowResult.Json->Type == EJson::Object ? SnowResult.Json->AsObject() : nullptr;
+			FString SnowStatus, Mask;
+			if (!SnowDoc || !SnowDoc->TryGetStringField(TEXT("status"), SnowStatus) || SnowStatus != TEXT("available")) continue;
+			J.SnowDate = Date;
+			TArray<uint8> Png;
+			if (SnowDoc->TryGetStringField(TEXT("mask"), Mask) && FBase64::Decode(Mask, Png))
+			{
+				const FString File = FPaths::Combine(Config.CacheDir, FString::Printf(TEXT("relief-snow-%d-%d-%s.png"), J.Region.X, J.Region.Y, *Date));
+				if (FFileHelper::SaveArrayToFile(Png, *File))
+				{
+					USimCruiseWorldResources::DecodeImageFile(File, J.Snow, J.SnowW, J.SnowH);
+				}
+			}
+			break;
+		}
 		J.bOk = true;
 		J.bDone = true;
 	});
@@ -340,13 +376,21 @@ void ASimCruiseRegionalTerrain::Install(FJob& Done)
 			Material->SetTextureParameterValue(TEXT("Middle"), MiddlePhoto);
 			Material->SetScalarParameterValue(TEXT("HasMiddle"), 1.f);
 		}
+		if (Done.Snow.Num() > 0)
+		{
+			UTexture2D* SnowMask = USimCruiseWorldResources::CreateTexture(this, TEXT("T_SimCruiseLandscapeSnow"), Done.Snow, Done.SnowW, Done.SnowH, false, false);
+			Textures.Add(SnowMask);
+			Material->SetTextureParameterValue(TEXT("Snow"), SnowMask);
+			Material->SetScalarParameterValue(TEXT("HasSnow"), 1.f);
+		}
 		Mesh->SetMaterial(0, Material);
 	}
 	Triangles = Done.Indices.Num() / 3;
 	Shown = Done.Region;
 	Failed = FIntPoint(-1, -1);
-	UE_LOG(LogSimCruiseLandscape, Display, TEXT("Landscape %d_%d: %d triangles to %.0f km, %.0f m tolerance, photo %s, middle %s, %d requests"),
-		Shown.X, Shown.Y, Triangles, RadiusM / 1000.0, Done.MaxErrorM, Done.Photo.Num() ? TEXT("yes") : TEXT("no"), Done.Middle.Num() ? TEXT("yes") : TEXT("no"), Done.Requests);
+	UE_LOG(LogSimCruiseLandscape, Display, TEXT("Landscape %d_%d: %d triangles to %.0f km, %.0f m tolerance, photo %s, middle %s, snow of %s %s, %d requests"),
+		Shown.X, Shown.Y, Triangles, RadiusM / 1000.0, Done.MaxErrorM, Done.Photo.Num() ? TEXT("yes") : TEXT("no"), Done.Middle.Num() ? TEXT("yes") : TEXT("no"),
+		*Done.SnowDate, Done.Snow.Num() ? TEXT("seen") : TEXT("none"), Done.Requests);
 }
 
 void ASimCruiseRegionalTerrain::Tick(float DeltaSeconds)
