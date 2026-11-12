@@ -71,6 +71,7 @@ func _ready() -> void:
 
 # ---------------------------------------------------------------- traffic ----
 const TRAFFIC_MANIFEST := "res://art/traffic/manifest.json"
+const MODEL_RIG := preload("res://ModelRig.gd")
 
 func build_models() -> void:
  var sources := []
@@ -146,14 +147,21 @@ static func merged_mesh(path: String) -> ArrayMesh:
  # instance transform however many parts its file has.
  var root: Node = packed.instantiate()
  var merged := ArrayMesh.new()
+ # Badges are left out the way ModelRig.gd leaves them out of a player car
+ # (by material, texture, mesh or node name).
+ var badge := RegEx.create_from_string(MODEL_RIG.BADGE_PATTERN)
  for mi in root.find_children("*", "MeshInstance3D", true, false):
   if mi.mesh == null or not mi.visible:continue
   var local: Transform3D = relative(root, mi)
+  var owner_name: String = mi.mesh.resource_name
+  var n: Node = mi
+  while n != null and n != root:owner_name += " " + str(n.name);n = n.get_parent()
   for s in mi.mesh.get_surface_count():
    if merged.get_surface_count() >= 255:break
+   var mat: Material = mi.get_surface_override_material(s) if s < mi.get_surface_override_material_count() and mi.get_surface_override_material(s) else mi.mesh.surface_get_material(s)
+   if badge.search(MODEL_RIG.surface_label(mat, owner_name)) != null:continue
    var st := SurfaceTool.new()
    st.append_from(mi.mesh, s, local)
-   var mat: Material = mi.get_surface_override_material(s) if s < mi.get_surface_override_material_count() and mi.get_surface_override_material(s) else mi.mesh.surface_get_material(s)
    st.set_material(mat)
    st.commit(merged)
  root.free()

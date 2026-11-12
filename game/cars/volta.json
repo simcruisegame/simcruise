@@ -1,0 +1,134 @@
+{
+ "inertia": [
+  2513,
+  2802,
+  708
+ ],
+ "collision_box": [
+  1.73,
+  0.6,
+  4.39
+ ],
+ "collision_box_y": 0.67,
+ "mount_height_m": 0.5514,
+ "static_length_m": 0.217,
+ "unsprung_corner_kg": 35.0,
+ "wheel_rate_n_m": [
+  31229,
+  45743
+ ],
+ "reference_corner_load_n": 4033.0,
+ "max_contact_load_n": 22396,
+ "coil_lb_in": [
+  0.0,
+  0.0
+ ],
+ "lever_ratio": [
+  1.0,
+  1.0
+ ],
+ "bar_diameter_m": [
+  0.0,
+  0.0
+ ],
+ "damper": [
+  "ratio",
+  "ratio"
+ ],
+ "damper_dyno": [
+  [],
+  []
+ ],
+ "_comment": "Rear-drive electric sedan, single motor and single reduction gear. Reference: Tesla Model 3 RWD (fictional name and body).",
+ "id": "volta",
+ "name": "Volta",
+ "make": "Amp\u00e8re",
+ "body": "sedan",
+ "seats": 5,
+ "mass_kg": 1645.0,
+ "front_weight": 0.47,
+ "cg_height_m": 0.46,
+ "wheelbase_m": 2.875,
+ "track_front_m": 1.58,
+ "track_rear_m": 1.58,
+ "tire_width_m": 0.235,
+ "tire_aspect_ratio": 0.45,
+ "rim_in": 18.0,
+ "static_mu": 0.9821,
+ "lateral_grip_scale": 1.0251,
+ "drag_area_m2": 0.51,
+ "parking_rack_deg": 35.0,
+ "steering_ratio": 10.3,
+ "road_reference_deg": 33.0,
+ "brake_front_nm": 2200.0,
+ "brake_rear_nm": 1300.0,
+ "parking_brake_nm": 1300.0,
+ "engine": "electric",
+ "motor_peak_torque_nm": 430.0,
+ "motor_peak_power_w": 184928,
+ "motor_max_rpm": 17000.0,
+ "regen_torque_nm": 110.0,
+ "gears": [
+  1.0
+ ],
+ "reverse_ratio": 1.0,
+ "final_drive": 9.04,
+ "driveline_efficiency": 0.95,
+ "shift_seconds": 0.0,
+ "idle_rpm": 0.0,
+ "idle_omega": 0.0,
+ "min_omega_auto": 0.0,
+ "max_omega": 1900.0,
+ "layout": "rwd",
+ "rear_diff_bias": 1.0,
+ "transmission": "single-speed",
+ "bar_rate_n_m": [
+  25000.0,
+  20000.0
+ ],
+ "damper_ratio_rebound": [
+  0.5,
+  0.5
+ ],
+ "damper_ratio_compression": [
+  0.3,
+  0.3
+ ],
+ "damper_knee_mps": [
+  0.12,
+  0.12
+ ],
+ "damper_knee_slope": [
+  0.45,
+  0.45
+ ],
+ "static_camber_deg": [
+  -0.6,
+  -1.0
+ ],
+ "camber_per_m": [
+  18.0,
+  20.0
+ ],
+ "caster_deg": 6.0,
+ "toe_per_wheel_deg": 0.05,
+ "target_0_60_s": 5.4,
+ "target_70_0_ft": 165.0,
+ "target_skidpad_g": 0.88,
+ "sources": {
+  "steering": "Steering ratio about 10.3:1, an estimate: the owner's manual gives 2.0 turns lock to lock (Tesla Model 3 owner's manual, 2017-2023, specifications) and no ratio; 2.0 turns over this file's 35 degree rack lock each way is 10.3:1.",
+  "calibration": "Car and Driver measured a current Model 3 Standard at 5.4 s to 60 mph and 0.88 g on 235/45R-18 all-season tyres. The 70-0 mph target (165 ft) is an estimate.",
+  "motor": "About 286 hp quoted for the current Standard; 430 N\u00b7m motor torque and a 9.04 reduction are estimates from earlier RWD versions.",
+  "mass": "About 3627 lb for the RWD sedan.",
+  "estimates": "Weight split, centre of gravity, inertia (scaled), spring and bar rates (1.5/1.7 Hz), dampers, regeneration, brakes, tyre grip (calibrated)."
+ },
+ "traction_control": true,
+ "model_scene": "res://art/cars/volta.glb",
+ "driver_eye": [
+  -0.37,
+  1.14,
+  -0.07
+ ],
+ "abs_enabled": true,
+ "slip_ratio_falloff": 0.1
+}
