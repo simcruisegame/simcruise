@@ -1,7 +1,7 @@
 {
  "_comment": "How each car looks in the Unreal client (Source/SimCruise/*/Presentation). Physics stays in data/cars/<id>.json. Boxes and points use the Unreal vehicle frame: X forward, Y right, Z up, metres, origin midway between the axles at the physics body origin. Colours are \"#rrggbb\" sRGB. Roles: see SimCruiseCarMaterialRoles.h. Every value that copies a real car names its source.",
  "cars": {
-  "nb2001": {
+  "nb2001_aaron": {
    "model": "data/art/traffic/miata_nb-5d103c56/scene.gltf",
    "credit": "\"Mazda MX-5 (NB) convertible HQ interior\" by Nieve5677 (https://sketchfab.com/niev), CC BY 4.0",
    "steering_ratio": 15.0,
@@ -424,6 +424,106 @@
     "dish_in": 1.6,
     "spokes": 12,
     "source": "The owner's wheels in their photographs: silver cross-spoke mesh face, a wide polished lip (about 2 in), a deep dish and a dark Mazda centre cap, about 15x8; the tyre is the car file's size."
+   }
+  },
+  "nb2001": {
+   "model": "data/art/traffic/miata_nb-5d103c56/scene.gltf",
+   "credit": "\"Mazda MX-5 (NB) convertible HQ interior\" by Nieve5677 (https://sketchfab.com/niev), CC BY 4.0",
+   "steering_ratio": 15.0,
+   "steering_ratio_source": "15:1 overall, power rack, 2.6 turns lock to lock (GoAuto, 2001 MX-5 review; the NB power rack is the same 1999-2005).",
+   "paint": {
+    "name": "Emerald Mica (DU)",
+    "base": "#1f4a36",
+    "metallic": 0.35,
+    "base_roughness": 0.38,
+    "flake": 0.55,
+    "clear_coat_roughness": 0.035,
+    "orange_peel": 0.3,
+    "source": "1999 NB Emerald Mica, a mica green; matched by eye to the green 1999 cars in the taste references (Kevauto front/rear 4.28.18, DestinationFearFan 1999 Mazda MX-5 Miata), which read lighter and less blue than the Godot build's #0f3b2a."
+   },
+   "roles": {
+    "carpaint": "paint",
+    "material_20": "wheel_alloy",
+    "tire": "tyre",
+    "brakedisk": "brake_disc",
+    "windowglass": "glass",
+    "clearglass": "lamp_front",
+    "redglass": "lamp_rear",
+    "orangeglass": "lamp_amber",
+    "mirror": "mirror_glass",
+    "display": "gauge",
+    "LicPlate_black": "hidden",
+    "LicPlate_blue": "hidden",
+    "LicPlate_yellow": "hidden",
+    "LicPlate_white": "hidden",
+    "white": "gauge"
+   },
+   "tints": {
+    "interior_plastic": "#2e2f30"
+   },
+   "badges": [
+    "mazda",
+    {
+     "note": "MX-5 lettering on the tail panel, left of the plate",
+     "box": [
+      [
+       -2.08,
+       -0.52,
+       0.5
+      ],
+      [
+       -1.78,
+       -0.24,
+       0.72
+      ]
+     ]
+    },
+    {
+     "note": "mazda wordmark on the tail panel, right of the plate",
+     "box": [
+      [
+       -2.08,
+       0.24,
+       0.5
+      ],
+      [
+       -1.78,
+       0.52,
+       0.72
+      ]
+     ]
+    }
+   ],
+   "clock": {
+    "material": "display",
+    "box": [
+     0.586,
+     0.1,
+     0.962,
+     0.9
+    ],
+    "clear": [
+     0.3,
+     0.5
+    ],
+    "flip_v": true,
+    "radio_mhz": 91.3,
+    "source": "display_baseColor.png paints 5:12 between x 650-990 and y 15-112 of 1024 x 128; the dash shows it upside down (seven-segment 5 reads as 2), as 2:15. The NB clock is a 12-hour green LCD. The same mesh maps the texture's wrapped copy (V -0.91..0) onto the radio's LCD, which the stock radio uses for the tuned station: WLRN, Miami's public radio, at 91.3 FM."
+   },
+   "roles_source": "'white' is the cluster's numerals and ticks and the console's labels (meshes only on the dash, x -9..47, y -83..-49 cm in the model): backlit like the real panel, 25 nits, which daylight in the cabin drowns and night shows.",
+   "steering_wheel": {
+    "centre": [
+     0.11,
+     -0.351,
+     0.713
+    ],
+    "axis": [
+     -0.829,
+     0.035,
+     0.559
+    ],
+    "radius": 0.185,
+    "source": "Centre and column from the model (the rig's own ring search, which found the 0.162 m horn ring); radius 0.185 m: the NB's 370 mm wheel, measured on the model's rim (estimate)."
    }
   },
   "nb1999": {
