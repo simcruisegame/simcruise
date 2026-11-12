@@ -75,6 +75,9 @@ void ASimCruiseWorldStreamer::StartAt(double LonDeg, double LatDeg, const FStrin
 	Manager.RingRadius = RingRadius;
 	Manager.MaxInFlight = FMath::Max(1, MaxConcurrentBuilds);
 	Manager.Reset();
+	TilesFailed = 0;
+	// Cars of the last place drive on its roads: they go with it.
+	if (Traffic) Traffic->ClearCars();
 	FocusCm = Frame.LonLatToWorldCm(LonDeg, LatDeg);
 	FocusVelocity = FVector::ZeroVector;
 	bHasFocus = true;
@@ -141,6 +144,15 @@ bool ASimCruiseWorldStreamer::SurfaceHeightAt(const FVector& WorldCm, double& Ou
 
 bool ASimCruiseWorldStreamer::FindRoadPose(const FString& RoadName, const FVector& NearWorldCm, double SearchRadiusM, FVector& OutLocationCm, FRotator& OutRotation) const
 {
+	return FindRoadPoseFacing(RoadName, NearWorldCm, SearchRadiusM, TNumericLimits<double>::Max(), OutLocationCm, OutRotation);
+}
+
+bool ASimCruiseWorldStreamer::FindRoadPoseFacing(const FString& RoadName, const FVector& NearWorldCm, double SearchRadiusM, double PreferredYawDeg, FVector& OutLocationCm, FRotator& OutRotation) const
+{
+	const bool bPreferred = PreferredYawDeg < 1e9;
+	const FVector2d Wanted = bPreferred
+		? FVector2d(FMath::Cos(FMath::DegreesToRadians(PreferredYawDeg)), FMath::Sin(FMath::DegreesToRadians(PreferredYawDeg)))
+		: FVector2d::ZeroVector;
 	double Best = SearchRadiusM * 100.0;
 	bool bFound = false;
 	for (const auto& Pair : Tiles)
@@ -180,7 +192,14 @@ bool ASimCruiseWorldStreamer::FindRoadPose(const FString& RoadName, const FVecto
 				if (St.Travel == 0)
 				{
 					const double Back = FMath::Abs(SimCruiseTrafficModel::NextDecisionS(Ribbon, -Way, St.S, -1e9, bEnd) - St.S);
-					if (Back > Room) { Way = -Way; Room = Back; }
+					// A requested heading picks the way when that way has room; else the way with more room.
+					bool bFlip = Back > Room;
+					if (bPreferred)
+					{
+						const bool bWantBack = FVector2d::DotProduct(St.T * static_cast<double>(Way), Wanted) < 0.0;
+						bFlip = bWantBack ? (Back >= 25.0 || Back > Room) : (Room < 25.0 && Back > Room);
+					}
+					if (bFlip) { Way = -Way; Room = Back; }
 				}
 				if (Room < 25.0) continue;
 				const FVector2d Dir = St.T * static_cast<double>(Way);
@@ -501,7 +520,11 @@ void ASimCruiseWorldStreamer::TickStreaming(float DeltaSeconds)
 		if (!Manager.Complete(Result->Ticket, bOk, Now))
 		{
 			if (bOk) ++ResultsRejected;
-			else UE_LOG(LogSimCruiseWorld, Warning, TEXT("Tile %s failed: %s"), *SimCruiseTileName(Result->Ticket.Tile), *Result->Error);
+			else
+			{
+				if (Result->Ticket.Generation == Manager.GetGeneration()) ++TilesFailed;
+				UE_LOG(LogSimCruiseWorld, Warning, TEXT("Tile %s failed: %s"), *SimCruiseTileName(Result->Ticket.Tile), *Result->Error);
+			}
 			continue;
 		}
 		const FIntPoint TileId = Result->Ticket.Tile;

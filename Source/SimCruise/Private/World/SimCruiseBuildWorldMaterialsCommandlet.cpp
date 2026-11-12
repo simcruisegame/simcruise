@@ -8,6 +8,7 @@
 #include "Misc/Paths.h"
 #include "UObject/Package.h"
 #include "UObject/SavePackage.h"
+#include "World/SimCruiseRegionalTerrain.h"
 #include "World/SimCruiseWorldResources.h"
 #include "Presentation/SimCruiseCarClock.h"
 #include "Presentation/SimCruiseCarMaterialLibrary.h"
@@ -96,6 +97,9 @@ int32 USimCruiseBuildWorldMaterialsCommandlet::Main(const FString& Params)
 	SaveCopy(SimCruiseCarClock::Get(), TEXT("/Game/Vehicle/Materials/M_SimCruiseCarClock"));
 	SaveCopy(SimCruiseCarMirror::Get(), TEXT("/Game/Vehicle/Materials/M_SimCruiseCarMirror"));
 	SaveCopy(SimCruiseLowBeamPattern::Get(), TEXT("/Game/Vehicle/Materials/LF_SimCruiseLowBeam"));
+	// The land to the horizon (World/SimCruiseRegionalTerrain).
+	SaveCopy(ASimCruiseRegionalTerrain::BuildMaterial(GetTransientPackage(), TEXT("M_SimCruiseLandscapeBuild"), RF_Transient),
+		FPackageName::ObjectPathToPackageName(ASimCruiseRegionalTerrain::MaterialPath()));
 	return Failures == 0 ? 0 : 1;
 #else
 	return 1;

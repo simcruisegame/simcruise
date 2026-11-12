@@ -82,7 +82,10 @@ float3 s2 = Texture2DSample(Sand, SandSampler, float2(m.x * 0.8 - m.y * 0.6, m.x
 s1 = lerp(float3(1.0, 1.0, 1.0), s1, 0.5);
 float3 p1 = Texture2DSample(Grain, GrainSampler, m / 3.1).rgb / max(GrainMean.rgb, 0.001);
 float3 p2 = Texture2DSample(Grain, GrainSampler, m / 23.0 + 0.53).rgb / max(GrainMean.rgb, 0.001);
-float veg = mask.r;
+// A mapped park or meadow is turf only where the photograph is green: a tribal park in the
+// desert, dry rangeland or a winter field keeps the colour the photograph shows.
+float green = saturate((photo.g - max(photo.r, photo.b)) * 25.0 + 0.6);
+float veg = mask.r * (Cell.z > 0.5 ? green : 1.0);
 float sand = mask.g * (1.0 - veg);
 float water = mask.a;
 float paved = mask.b * (1.0 - water);

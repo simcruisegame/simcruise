@@ -191,12 +191,18 @@ ASimCruiseTraffic::ASimCruiseTraffic()
 
 void ASimCruiseTraffic::EndPlay(const EEndPlayReason::Type Reason)
 {
+	ClearCars();
+	Super::EndPlay(Reason);
+}
+
+void ASimCruiseTraffic::ClearCars()
+{
 	for (ASimCruiseTrafficCar* Car : Cars)
 	{
 		if (Car) Car->Destroy();
 	}
 	Cars.Reset();
-	Super::EndPlay(Reason);
+	SinceStart = 0.0;
 }
 
 const FSimCruiseRibbon* ASimCruiseTraffic::GetRibbon(const FIntPoint& Tile, int32 Ribbon) const

@@ -56,6 +56,10 @@ private:
 	void DrawGlance(float Scale, float DeltaTimeS);
 	void DrawFull(float Scale);
 	void DrawMessage(float Scale);
+	/** The roads round the car, heading up (MapHUD.gd). */
+	void DrawMinimap(float Scale, float Alpha);
+	/** While the car waits for a new place to be built. */
+	void DrawLoading(float Scale);
 	void DrawGMeter(const FVector2D& Centre, float Radius, float Alpha);
 	void DrawRpmBar(float X, float Y, float W, float H, float Alpha);
 	/** Roboto from the engine content, Bold or Regular, at PointSize (already scaled). */
@@ -75,6 +79,8 @@ private:
 	ESimCruiseHudLevel Level = ESimCruiseHudLevel::Glance;
 	FString Message;
 	float MessageTime = 0.f;
+	/** Index into the minimap scales (MapHUD.gd starts at 1). */
+	int32 MinimapZoom = 1;
 	float GlanceAlphaValue = 1.f;
 	float WakeTime = SimCruiseHudRules::WakeS;
 	int32 ShownMph = 0;

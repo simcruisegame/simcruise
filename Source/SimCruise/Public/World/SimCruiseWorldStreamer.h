@@ -59,6 +59,16 @@ public:
 	 */
 	bool FindRoadPose(const FString& RoadName, const FVector& NearWorldCm, double SearchRadiusM, FVector& OutLocationCm, FRotator& OutRotation) const;
 
+	/**
+	 * As above, but on a two-way road the car faces the given yaw (degrees, world frame)
+	 * when that way has room; a one-way road keeps its direction of travel (Drive.gd: "requested
+	 * bearing honoured on two-way roads, one-way direction respected").
+	 */
+	bool FindRoadPoseFacing(const FString& RoadName, const FVector& NearWorldCm, double SearchRadiusM, double PreferredYawDeg, FVector& OutLocationCm, FRotator& OutRotation) const;
+
+	/** Tiles of this drive (since StartAt) that failed to load or build: no network, no helper, a bad document. */
+	int32 NumTilesFailed() const { return TilesFailed; }
+
 	FSimCruiseWorldRebased OnRebased;
 
 	/** One streaming step (called from Tick; tests drive it directly). */
@@ -82,6 +92,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, Category = "SimCruise|World")
 	int32 ResultsRejected = 0;
+
+	UPROPERTY(VisibleAnywhere, Category = "SimCruise|World")
+	int32 TilesFailed = 0;
 
 	UPROPERTY(Transient)
 	TObjectPtr<USimCruiseWorldResources> Resources;

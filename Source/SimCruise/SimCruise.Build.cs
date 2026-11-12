@@ -39,6 +39,9 @@ public class SimCruise : ModuleRules
 			"MeshDescription",
 			"StaticMeshDescription",
 			"CinematicCamera",
+			// The place search and the road atlas (Gameplay/SimCruiseAtlasUI): Slate screens.
+			"Slate",
+			"SlateCore",
 			// Rendering resources, plus frame timing for the environment's graphics presets and perf sampler.
 			"RenderCore",
 			"RHI"

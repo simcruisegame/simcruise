@@ -9,7 +9,11 @@
 #include "Engine/Font.h"
 #include "Engine/World.h"
 #include "Gameplay/SimCruisePlayerCameraManager.h"
+#include "Gameplay/SimCruiseGameMode.h"
 #include "Gameplay/SimCruisePlayerController.h"
+#include "World/SimCruiseTileBuilder.h"
+#include "World/SimCruiseWorldStreamer.h"
+#include "World/SimCruiseWorldTile.h"
 
 namespace SimCruiseHudRules
 {
@@ -159,6 +163,11 @@ void ASimCruiseHUD::DrawHUD()
 	{
 		DrawFull(Scale);
 	}
+	if (bHasVehicle && Level != ESimCruiseHudLevel::Off)
+	{
+		DrawMinimap(Scale, Level == ESimCruiseHudLevel::Glance ? GlanceAlphaValue : 1.f);
+	}
+	DrawLoading(Scale);
 	DrawMessage(Scale);
 }
 
@@ -354,4 +363,125 @@ void ASimCruiseHUD::DrawMessage(float Scale)
 	Box.BlendMode = SE_BLEND_Translucent;
 	Canvas->DrawItem(Box);
 	DrawTextAt(Message, false, Size, X, Y, Paper);
+}
+
+namespace
+{
+	/** Liang-Barsky: clip segment A-B to a box; false when nothing is left. */
+	bool ClipSegment(FVector2D& A, FVector2D& B, const FVector2D& Min, const FVector2D& Max)
+	{
+		double T0 = 0.0, T1 = 1.0;
+		const FVector2D D = B - A;
+		const double P[4] = { -D.X, D.X, -D.Y, D.Y };
+		const double Q[4] = { A.X - Min.X, Max.X - A.X, A.Y - Min.Y, Max.Y - A.Y };
+		for (int32 i = 0; i < 4; ++i)
+		{
+			if (FMath::IsNearlyZero(P[i]))
+			{
+				if (Q[i] < 0.0) return false;
+				continue;
+			}
+			const double R = Q[i] / P[i];
+			if (P[i] < 0.0) T0 = FMath::Max(T0, R);
+			else T1 = FMath::Min(T1, R);
+			if (T0 > T1) return false;
+		}
+		const FVector2D A0 = A;
+		A = A0 + D * T0;
+		B = A0 + D * T1;
+		return true;
+	}
+}
+
+void ASimCruiseHUD::DrawMinimap(float Scale, float Alpha)
+{
+	// MapHUD.gd: the roads of the loaded tiles round the car, heading up, at 0.95 px/m.
+	const ASimCruiseGameMode* Mode = GetWorld() ? GetWorld()->GetAuthGameMode<ASimCruiseGameMode>() : nullptr;
+	const ASimCruiseWorldStreamer* Stream = Mode ? Mode->GetStreamer() : nullptr;
+	const APawn* Car = GetOwningPawn();
+	if (!Stream || !Car || !Stream->GetFrame().IsValid())
+	{
+		return;
+	}
+	const float W = 236.f * Scale;
+	const float H = 150.f * Scale;
+	const float X = Canvas->ClipX - 28.f * Scale - W;
+	const float Y = Canvas->ClipY - 28.f * Scale - H;
+	FCanvasTileItem Panel(FVector2D(X, Y), FVector2D(W, H), WithAlpha(FLinearColor(Ink.R, Ink.G, Ink.B, 0.55f), Alpha));
+	Panel.BlendMode = SE_BLEND_Translucent;
+	Canvas->DrawItem(Panel);
+
+	static const float PxPerM[] = { 1.45f, 0.95f, 0.52f, 0.28f, 0.14f };
+	const double S = PxPerM[FMath::Clamp(MinimapZoom, 0, 4)] * Scale;
+	const FVector2D Centre(X + W * 0.5f, Y + H * 0.62f);
+	const FVector2D Min(X + 2.f, Y + 2.f), Max(X + W - 2.f, Y + H - 2.f);
+	const FVector CarCm = Car->GetActorLocation();
+	const double Yaw = FMath::DegreesToRadians(Car->GetActorRotation().Yaw);
+	const FVector2D F(FMath::Cos(Yaw), FMath::Sin(Yaw));
+	const FVector2D R(-F.Y, F.X);
+	auto ToScreen = [&](const FVector2D& WorldM)
+	{
+		const FVector2D D = WorldM - FVector2D(CarCm.X, CarCm.Y) / 100.0;
+		return Centre + FVector2D(FVector2D::DotProduct(D, R), -FVector2D::DotProduct(D, F)) * S;
+	};
+	const double RangeM = FVector2D(W, H).Size() / S;
+	const FIntPoint Here = Stream->GetFrame().TileAtWorldCm(CarCm);
+	for (int32 dx = -1; dx <= 1; ++dx)
+	{
+		for (int32 dy = -1; dy <= 1; ++dy)
+		{
+			const ASimCruiseWorldTile* Tile = Stream->GetTile(Here + FIntPoint(dx, dy));
+			const FSimCruiseTileBuild* Build = Tile ? Tile->GetBuild() : nullptr;
+			if (!Build) continue;
+			const FVector2D Origin = FVector2D(Tile->GetActorLocation().X, Tile->GetActorLocation().Y) / 100.0;
+			for (const FSimCruiseRibbon& Ribbon : Build->Roads.Ribbons)
+			{
+				const bool bWide = Ribbon.St.Num() > 0 && Ribbon.St[0].HalfW * 2.0 > 9.0;
+				const FLinearColor Color = WithAlpha(bWide ? FLinearColor(FColor(0xd8, 0xd6, 0xbf)) : FLinearColor(FColor(0xa4, 0xac, 0x91)), Alpha);
+				for (int32 i = 0; i + 1 < Ribbon.St.Num(); ++i)
+				{
+					const FVector2D WA = Origin + FVector2D(Ribbon.St[i].C.X, Ribbon.St[i].C.Y);
+					if (FVector2D::Distance(WA, FVector2D(CarCm.X, CarCm.Y) / 100.0) > RangeM) continue;
+					FVector2D A = ToScreen(WA);
+					FVector2D B = ToScreen(Origin + FVector2D(Ribbon.St[i + 1].C.X, Ribbon.St[i + 1].C.Y));
+					if (!ClipSegment(A, B, Min, Max)) continue;
+					FCanvasLineItem Line(A, B);
+					Line.SetColor(Color);
+					Line.LineThickness = FMath::Clamp(static_cast<float>(Ribbon.St[i].HalfW * 2.0 * 0.39 * S), 1.f, 8.f);
+					Canvas->DrawItem(Line);
+				}
+			}
+		}
+	}
+	// The car, always pointing up.
+	const FLinearColor Arrow = WithAlpha(Lime, Alpha);
+	const FVector2D Tip = Centre + FVector2D(0.f, -9.f * Scale), Left = Centre + FVector2D(-6.f * Scale, 6.f * Scale), Right = Centre + FVector2D(6.f * Scale, 6.f * Scale);
+	for (const TPair<FVector2D, FVector2D>& Edge : { TPair<FVector2D, FVector2D>(Tip, Left), TPair<FVector2D, FVector2D>(Left, Centre + FVector2D(0.f, 3.f * Scale)),
+		TPair<FVector2D, FVector2D>(Centre + FVector2D(0.f, 3.f * Scale), Right), TPair<FVector2D, FVector2D>(Right, Tip) })
+	{
+		FCanvasLineItem Line(Edge.Key, Edge.Value);
+		Line.SetColor(Arrow);
+		Line.LineThickness = 2.5f * Scale;
+		Canvas->DrawItem(Line);
+	}
+	DrawTextAt(Mode->GetPlace().Title, false, 10.f * Scale, X + 8.f * Scale, Y + 6.f * Scale, WithAlpha(Dim, Alpha));
+}
+
+void ASimCruiseHUD::DrawLoading(float Scale)
+{
+	const ASimCruiseGameMode* Mode = GetWorld() ? GetWorld()->GetAuthGameMode<ASimCruiseGameMode>() : nullptr;
+	if (!Mode || !Mode->IsWorldDrive() || Mode->IsDriveReady())
+	{
+		return;
+	}
+	FCanvasTileItem Shade(FVector2D(0.f, 0.f), FVector2D(Canvas->ClipX, Canvas->ClipY), FLinearColor(Ink.R, Ink.G, Ink.B, 0.92f));
+	Shade.BlendMode = SE_BLEND_Translucent;
+	Canvas->DrawItem(Shade);
+	const FString Title = FString::Printf(TEXT("Loading %s…"), *Mode->GetPlace().Title);
+	const FVector2D Size = MeasureText(Title, true, 30.f * Scale);
+	DrawTextAt(Title, true, 30.f * Scale, (Canvas->ClipX - Size.X) * 0.5f, Canvas->ClipY * 0.42f, Paper);
+	const int32 Tiles = Mode->GetStreamer() ? FMath::Min(Mode->GetStreamer()->NumTiles(), 9) : 0;
+	const FString Sub = FString::Printf(TEXT("Building the real roads · %d of 9 tiles  ·  / or Tab to choose another place"), Tiles);
+	const FVector2D SubSize = MeasureText(Sub, false, 14.f * Scale);
+	DrawTextAt(Sub, false, 14.f * Scale, (Canvas->ClipX - SubSize.X) * 0.5f, Canvas->ClipY * 0.42f + 48.f * Scale, Dim);
 }

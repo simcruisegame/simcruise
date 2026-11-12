@@ -8,7 +8,13 @@
 #include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/Engine.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Gameplay/SimCruiseAtlasUI.h"
 #include "Gameplay/SimCruiseGameMode.h"
+#include "SimCruiseGameInstance.h"
+#include "World/SimCruiseWorldStreamer.h"
 #include "Gameplay/SimCruiseHUD.h"
 #include "Gameplay/SimCruiseInputConfig.h"
 #include "Gameplay/SimCruisePlayerCameraManager.h"
@@ -41,7 +47,6 @@ void ASimCruisePlayerController::BeginPlay()
 	if (IsLocalController())
 	{
 		SetInputMode(FInputModeGameOnly());
-		ShowMessage(TEXT("RT or W to accelerate  ·  Y or C camera  ·  L3 or F2 HUD"), 6.f);
 		if (FParse::Param(FCommandLine::Get(), TEXT("SimCruiseShellSelfTest")))
 		{
 			SimCruiseShellSelfTest(1);
@@ -55,6 +60,7 @@ void ASimCruisePlayerController::BeginPlay()
 
 void ASimCruisePlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	CloseOverlays();
 	StopRumble();
 	Super::EndPlay(EndPlayReason);
 }
@@ -262,6 +268,8 @@ void ASimCruisePlayerController::OnToggleTransmission()
 	{
 		const bool bManual = !Telemetry.bManualTransmission;
 		Vehicle->SetManualTransmission(bManual);
+		// Read back now: the atlas toggles it while the game is paused.
+		Vehicle->GetVehicleTelemetry(Telemetry);
 		ShowMessage(bManual ? TEXT("Manual · clutch + shift to select first gear") : TEXT("Automatic shifting"), 4.f);
 	}
 }
@@ -311,12 +319,145 @@ void ASimCruisePlayerController::OnCycleHud()
 
 void ASimCruisePlayerController::OnToggleAtlas()
 {
-	ShowMessage(TEXT("Road atlas is not ported to Unreal yet"), 2.5f);
+	if (IsOverlayOpen())
+	{
+		CloseOverlays();
+		return;
+	}
+	OpenRoadAtlas();
 }
 
 void ASimCruisePlayerController::OnFindPlace()
 {
-	ShowMessage(TEXT("Place search is not ported to Unreal yet"), 2.5f);
+	if (IsOverlayOpen())
+	{
+		CloseOverlays();
+		return;
+	}
+	OpenPlaceSearch(false);
+}
+
+FSimCruiseAtlasView ASimCruisePlayerController::AtlasView() const
+{
+	FSimCruiseAtlasView View;
+	const ASimCruiseGameMode* Mode = GetWorld() ? GetWorld()->GetAuthGameMode<ASimCruiseGameMode>() : nullptr;
+	if (!Mode)
+	{
+		return View;
+	}
+	if (ASimCruiseWorldStreamer* Stream = Mode->GetStreamer())
+	{
+		View.Frame = Stream->GetFrame();
+		View.Streamer = Stream;
+	}
+	View.Title = Mode->GetPlace().Title;
+	if (const APawn* Car = GetPawn())
+	{
+		View.CarCm = Car->GetActorLocation();
+		View.CarYawDeg = Car->GetActorRotation().Yaw;
+		View.bHasCar = true;
+	}
+	else
+	{
+		View.CarCm = View.Frame.IsValid() ? View.Frame.LonLatToWorldCm(Mode->GetPlace().Lon, Mode->GetPlace().Lat) : FVector::ZeroVector;
+	}
+	const USimCruiseGameInstance* GameInstance = GetGameInstance<USimCruiseGameInstance>();
+	const FSimCruiseCarDefinition* CarDef = GameInstance ? GameInstance->FindCarDefinition(Mode->GetCarId()) : nullptr;
+	View.CarName = CarDef ? CarDef->Name : Mode->GetCarId();
+	View.Transmission = Telemetry.bManualTransmission ? TEXT("Manual") : TEXT("Automatic");
+	return View;
+}
+
+void ASimCruisePlayerController::ShowOverlay(const TSharedRef<SWidget>& Widget, const TSharedPtr<SWidget>& Focus)
+{
+	if (!GEngine || !GEngine->GameViewport)
+	{
+		return;
+	}
+	if (OverlayWidget.IsValid())
+	{
+		GEngine->GameViewport->RemoveViewportWidgetContent(OverlayWidget.ToSharedRef());
+	}
+	OverlayWidget = Widget;
+	GEngine->GameViewport->AddViewportWidgetContent(Widget, 50);
+	// The car waits while you choose (Drive.gd froze it with a menu open); pad and keys go to the screen.
+	SetPause(true);
+	FInputModeUIOnly Mode;
+	Mode.SetWidgetToFocus(Focus.IsValid() ? Focus : TSharedPtr<SWidget>(Widget));
+	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(Mode);
+	bShowMouseCursor = true;
+	StopRumble();
+	Haptics.Quiet();
+}
+
+void ASimCruisePlayerController::OpenPlaceSearch(bool bGamepad)
+{
+	CloseOverlays();
+	SearchPanel = SNew(SSimCruisePlaceSearch)
+		.OnChoose_Lambda([this](const FSimCruisePlace& Place) { ChoosePlace(Place); })
+		.OnSurprise_Lambda([this]() { return SurpriseMe(); })
+		.OnClose_Lambda([this]() { CloseOverlays(); });
+	ShowOverlay(SearchPanel.ToSharedRef(), SearchPanel->FocusTarget(bGamepad));
+}
+
+void ASimCruisePlayerController::OpenRoadAtlas()
+{
+	CloseOverlays();
+	AtlasPanel = SNew(SSimCruiseRoadAtlas)
+		.GetView_Lambda([this]() { return AtlasView(); })
+		.OnChoose_Lambda([this](const FSimCruisePlace& Place) { ChoosePlace(Place); })
+		.OnSurprise_Lambda([this]() { return SurpriseMe(); })
+		.OnFindPlace_Lambda([this]() { OpenPlaceSearch(true); })
+		.OnCycleCar_Lambda([this]()
+		{
+			if (ASimCruiseGameMode* Mode = GetWorld() ? GetWorld()->GetAuthGameMode<ASimCruiseGameMode>() : nullptr)
+			{
+				Mode->CycleCar(this);
+			}
+		})
+		.OnToggleTransmission_Lambda([this]() { OnToggleTransmission(); })
+		.OnClose_Lambda([this]() { CloseOverlays(); });
+	ShowOverlay(AtlasPanel.ToSharedRef(), AtlasPanel);
+}
+
+void ASimCruisePlayerController::CloseOverlays()
+{
+	if (OverlayWidget.IsValid() && GEngine && GEngine->GameViewport)
+	{
+		GEngine->GameViewport->RemoveViewportWidgetContent(OverlayWidget.ToSharedRef());
+	}
+	const bool bWasOpen = OverlayWidget.IsValid();
+	OverlayWidget.Reset();
+	SearchPanel.Reset();
+	AtlasPanel.Reset();
+	if (bWasOpen)
+	{
+		SetPause(false);
+		SetInputMode(FInputModeGameOnly());
+		bShowMouseCursor = false;
+		Shaper.Reset();
+	}
+}
+
+void ASimCruisePlayerController::ChoosePlace(const FSimCruisePlace& Place)
+{
+	CloseOverlays();
+	if (ASimCruiseGameMode* Mode = GetWorld() ? GetWorld()->GetAuthGameMode<ASimCruiseGameMode>() : nullptr)
+	{
+		Mode->TravelTo(Place);
+	}
+}
+
+bool ASimCruisePlayerController::SurpriseMe()
+{
+	ASimCruiseGameMode* Mode = GetWorld() ? GetWorld()->GetAuthGameMode<ASimCruiseGameMode>() : nullptr;
+	if (!Mode)
+	{
+		return false;
+	}
+	CloseOverlays();
+	return Mode->SurpriseMe();
 }
 
 void ASimCruisePlayerController::OnRecover()

@@ -18,6 +18,8 @@
 #include "SimCruiseGameInstance.h"
 #include "Vehicle/CarDefinitionLoader.h"
 #include "Vehicle/SimCruiseVehicle.h"
+#include "Misc/App.h"
+#include "World/SimCruiseRegionalTerrain.h"
 #include "World/SimCruiseWorldStreamer.h"
 #include "World/SimCruiseWorldSubsystem.h"
 
@@ -43,6 +45,30 @@ namespace
 		OutLat = FCString::Atod(*Parts[0]);
 		OutLon = FCString::Atod(*Parts[1]);
 		return true;
+	}
+
+	/** The bundled offline place (its tiles ship in data/tiles). */
+	bool IsBundledPlace(const FSimCruisePlace& Place)
+	{
+		const FSimCruisePlace Bundled = SimCruisePlaces::Fallback();
+		return FMath::Abs(Place.Lat - Bundled.Lat) < 1e-4 && FMath::Abs(Place.Lon - Bundled.Lon) < 1e-4;
+	}
+
+	/** A normal drive starts on a random pool road; checks, captures and previews start on the bundled streets. */
+	bool WantsRandomStart(const TCHAR* Cmd, bool bConfigDefault)
+	{
+		if (FParse::Param(Cmd, TEXT("SimCruiseRandomStart"))) return true;
+		static const TCHAR* BundledFlags[] = {
+			TEXT("SimCruiseBundledStart"), TEXT("SimCruiseDriveCapture"), TEXT("SimCruiseDriveTest"), TEXT("SimCruiseShellSelfTest"),
+			TEXT("SimCruiseShellCapture"), TEXT("SimCruiseLab"),
+		};
+		for (const TCHAR* Flag : BundledFlags)
+		{
+			if (FParse::Param(Cmd, Flag)) return false;
+		}
+		FString Ignored;
+		if (FParse::Value(Cmd, TEXT("SimCruisePreview="), Ignored) || FParse::Value(Cmd, TEXT("SimCruiseDrivePerf="), Ignored)) return false;
+		return bConfigDefault && !GIsAutomationTesting;
 	}
 }
 
@@ -120,42 +146,65 @@ void ASimCruiseGameMode::BeginWorldDrive()
 		return;
 	}
 	const TCHAR* Cmd = FCommandLine::Get();
-	double Lat = USimCruiseWorldSubsystem::BundledLat;
-	double Lon = USimCruiseWorldSubsystem::BundledLon;
-	FString Title = TEXT("Ocean Drive, Miami Beach");
-	StartRoadName = StartRoad;
+
+	// Where this drive begins (Drive.gd plan_start): a chosen point, else a seeded random
+	// start-pool road in normal play, else the bundled place, which checks and captures use
+	// so their runs repeat.
+	int32 Seed = 0;
+	if (FParse::Value(Cmd, TEXT("SimCruiseStartSeed="), Seed)) StartRng.Initialize(Seed);
+	else StartRng.GenerateNewSeed();
+	FSimCruisePlace First = SimCruisePlaces::Fallback();
+	First.Street = StartRoad;
+	FString Mode = TEXT("bundled");
 	FString Start;
+	double Lat = 0.0, Lon = 0.0;
 	if (FParse::Value(Cmd, TEXT("SimCruiseStart="), Start, /*bShouldStopOnSeparator=*/ false) && ParseLatLon(Start, Lat, Lon))
 	{
-		Title = FString::Printf(TEXT("%.5f, %.5f"), Lat, Lon);
-		StartRoadName.Reset();
+		First = FSimCruisePlace::Make(Lon, Lat, FString::Printf(TEXT("%.5f, %.5f"), Lat, Lon));
+		Mode = TEXT("chosen");
 	}
-	FParse::Value(Cmd, TEXT("SimCruiseStartRoad="), StartRoadName);
+	else if (WantsRandomStart(Cmd, bRandomStart))
+	{
+		StartPool = SimCruisePlaces::LoadStartPool();
+		StartChain = SimCruisePlaces::Sequence(StartPool, StartRng, 1 + SimCruisePlaces::Retries);
+		if (!StartChain.IsEmpty())
+		{
+			First = StartChain[0];
+			StartChain.RemoveAt(0);
+			bStartLaunch = true;
+			Mode = TEXT("random");
+		}
+	}
+	FString Road;
+	if (FParse::Value(Cmd, TEXT("SimCruiseStartRoad="), Road))
+	{
+		First.Street = Road;
+	}
+	// Checks parse this line (Drive.gd: "START <mode> seed=<n> <title>").
+	UE_LOG(LogSimCruiseDrive, Display, TEXT("START %s seed=%d %s"), *Mode, StartRng.GetInitialSeed(), *First.Title);
 
-	// The world subsystem may already have started this place from the command line.
+	// The world subsystem may already have started a place from the command line.
 	ASimCruiseWorldStreamer* Existing = Worlds->GetStreamer();
-	Streamer = Existing ? Existing : Worlds->StartDrive(Lon, Lat, Title);
+	const bool bSamePlace = Existing && Existing->GetFrame().IsValid()
+		&& Existing->GetFrame().OriginTile == FSimCruiseWorldFrame::ForPlace(First.Lon, First.Lat).OriginTile;
+	Streamer = Existing ? Existing : Worlds->StartDrive(First.Lon, First.Lat, First.Title);
 	if (!Streamer.IsValid())
 	{
 		UE_LOG(LogSimCruiseDrive, Error, TEXT("Could not start the world stream; driving the loaded map."));
 		bWorldDrive = false;
 		return;
 	}
-	StartCm = Streamer->GetFrame().LonLatToWorldCm(Lon, Lat);
-	Streamer->SetFocus(StartCm, FVector::ZeroVector);
 	Streamer->OnRebased.AddUObject(this, &ASimCruiseGameMode::HandleRebased);
-	WaitStartedSeconds = FPlatformTime::Seconds();
+	BeginTravel(First, Existing != nullptr && !bSamePlace);
 
-	// The sun and sky follow the place (unless the command line placed the observer).
-	double CommandLineLat = 0.0;
-	if (!FParse::Value(Cmd, TEXT("SimCruiseLat="), CommandLineLat))
+	// The land to the horizon round wherever the car is (needs the helper; drawn runs only).
+	if (FApp::CanEverRender() && !FParse::Param(Cmd, TEXT("SimCruiseNoLandscape")))
 	{
-		if (USimCruiseEnvironmentSubsystem* Environments = USimCruiseEnvironmentSubsystem::Get(World))
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		if (ASimCruiseRegionalTerrain* Land = World->SpawnActor<ASimCruiseRegionalTerrain>(ASimCruiseRegionalTerrain::StaticClass(), FTransform::Identity, Params))
 		{
-			if (ASimCruiseEnvironment* Environment = Environments->GetEnvironment())
-			{
-				Environment->SetPlace(Lat, Lon, Environment->ElevationM);
-			}
+			Land->Streamer = Streamer;
 		}
 	}
 
@@ -171,7 +220,156 @@ void ASimCruiseGameMode::BeginWorldDrive()
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		World->SpawnActor<ASimCruiseDriveTest>(ASimCruiseDriveTest::StaticClass(), FTransform::Identity, Params);
 	}
-	UE_LOG(LogSimCruiseDrive, Display, TEXT("Drive at %s in %s: waiting for the tiles around the start"), *Title, *CarId);
+	UE_LOG(LogSimCruiseDrive, Display, TEXT("Drive at %s in %s: waiting for the tiles around the start"), *First.Title, *CarId);
+}
+
+void ASimCruiseGameMode::BeginTravel(const FSimCruisePlace& Place, bool bRestartWorld)
+{
+	ASimCruiseWorldStreamer* Stream = Streamer.Get();
+	if (!Stream)
+	{
+		return;
+	}
+	CurrentPlace = Place;
+	StartRoadName = Place.Street;
+	bCarPlaced = false;
+	if (bRestartWorld)
+	{
+		Stream->StartAt(Place.Lon, Place.Lat, Place.Title);
+	}
+	StartCm = Stream->GetFrame().LonLatToWorldCm(Place.Lon, Place.Lat);
+	Stream->SetFocus(StartCm, FVector::ZeroVector);
+	WaitStartedSeconds = FPlatformTime::Seconds();
+	LastMessageSeconds = -100.0;
+
+	// The sun and sky follow the place (unless the command line placed the observer).
+	double CommandLineLat = 0.0;
+	if (!FParse::Value(FCommandLine::Get(), TEXT("SimCruiseLat="), CommandLineLat))
+	{
+		if (USimCruiseEnvironmentSubsystem* Environments = USimCruiseEnvironmentSubsystem::Get(GetWorld()))
+		{
+			if (ASimCruiseEnvironment* Environment = Environments->GetEnvironment())
+			{
+				Environment->SetPlace(Place.Lat, Place.Lon, Environment->ElevationM);
+			}
+		}
+	}
+}
+
+void ASimCruiseGameMode::HoldPlayers()
+{
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		APlayerController* Player = It->Get();
+		if (!Player) continue;
+		if (APawn* Pawn = Player->GetPawn())
+		{
+			Player->UnPossess();
+			Pawn->Destroy();
+		}
+		PendingPlayers.AddUnique(Player);
+	}
+	bCarPlaced = false;
+}
+
+void ASimCruiseGameMode::TravelTo(const FSimCruisePlace& Place)
+{
+	if (!bWorldDrive || !Streamer.IsValid() || !Place.IsValid())
+	{
+		return;
+	}
+	// A chosen place ends any start sequence (Drive.gd choose_place).
+	StartChain.Reset();
+	bStartLaunch = false;
+	StartNote.Reset();
+	HoldPlayers();
+	UE_LOG(LogSimCruiseDrive, Display, TEXT("Travel to %s (%.5f, %.5f)%s"), *Place.Title, Place.Lat, Place.Lon,
+		Place.Street.IsEmpty() ? TEXT("") : *FString::Printf(TEXT(" on %s"), *Place.Street));
+	BeginTravel(Place, true);
+	UpdateLoadingMessage();
+}
+
+bool ASimCruiseGameMode::SurpriseMe()
+{
+	if (StartPool.IsEmpty())
+	{
+		StartPool = SimCruisePlaces::LoadStartPool();
+	}
+	TArray<FSimCruisePlace> Picks = SimCruisePlaces::Sequence(StartPool, StartRng, 1 + SimCruisePlaces::Retries, CurrentPlace.Title);
+	if (Picks.IsEmpty())
+	{
+		return false;
+	}
+	const FSimCruisePlace First = Picks[0];
+	Picks.RemoveAt(0);
+	TravelTo(First);
+	StartChain = MoveTemp(Picks);
+	return true;
+}
+
+void ASimCruiseGameMode::TravelFailed(const FString& Reason)
+{
+	UE_LOG(LogSimCruiseDrive, Warning, TEXT("%s did not load: %s"), *CurrentPlace.Title, *Reason);
+	if (!StartChain.IsEmpty())
+	{
+		const FSimCruisePlace Next = StartChain[0];
+		StartChain.RemoveAt(0);
+		BeginTravel(Next, true);
+		return;
+	}
+	StartNote = bStartLaunch
+		? FString(TEXT("No random road loaded · starting in bundled Miami Beach (works offline)"))
+		: FString::Printf(TEXT("%s did not load · back in bundled Miami Beach (works offline)"), *CurrentPlace.Title);
+	bStartLaunch = false;
+	UE_LOG(LogSimCruiseDrive, Display, TEXT("START fallback after: %s"), *Reason);
+	FSimCruisePlace Fallback = SimCruisePlaces::Fallback();
+	Fallback.Street = StartRoad;
+	BeginTravel(Fallback, true);
+}
+
+bool ASimCruiseGameMode::WorldToLonLat(const FVector& WorldCm, double& OutLon, double& OutLat) const
+{
+	const ASimCruiseWorldStreamer* Stream = Streamer.Get();
+	if (!Stream || !Stream->GetFrame().IsValid())
+	{
+		return false;
+	}
+	Stream->GetFrame().WorldCmToLonLat(WorldCm, OutLon, OutLat);
+	return true;
+}
+
+void ASimCruiseGameMode::CycleCar(APlayerController* Player)
+{
+	APawn* Pawn = Player ? Player->GetPawn() : nullptr;
+	const USimCruiseGameInstance* GameInstance = GetGameInstance<USimCruiseGameInstance>();
+	if (!Pawn || !GameInstance || !bCarPlaced)
+	{
+		return;
+	}
+	TArray<FString> Ids = GameInstance->GetAvailableCarIds();
+	Ids.Sort();
+	if (Ids.Num() < 2)
+	{
+		return;
+	}
+	const int32 Index = Ids.IndexOfByKey(CarId);
+	CarId = Ids[(Index + 1) % Ids.Num()];
+	// The new car starts at rest where the old one stood, facing the same way.
+	FVector Ground = Pawn->GetActorLocation();
+	const FRotator Heading(0.0, Pawn->GetActorRotation().Yaw, 0.0);
+	double Z = 0.0;
+	if (ASimCruiseWorldStreamer* Stream = Streamer.Get(); Stream && Stream->SurfaceHeightAt(Ground, Z))
+	{
+		Ground.Z = Z;
+	}
+	Player->UnPossess();
+	Pawn->Destroy();
+	SpawnVehicleAt(Player, Ground, Heading);
+	if (ASimCruisePlayerController* SimPlayer = Cast<ASimCruisePlayerController>(Player))
+	{
+		const FSimCruiseCarDefinition* Car = GameInstance->FindCarDefinition(CarId);
+		SimPlayer->ShowMessage(FString::Printf(TEXT("Car · %s"), Car ? *Car->Name : *CarId), 3.f);
+	}
 }
 
 void ASimCruiseGameMode::RestartPlayer(AController* NewPlayer)
@@ -224,11 +422,21 @@ bool ASimCruiseGameMode::TryPlacePendingPlayers()
 	{
 		return false;
 	}
-	if (!bCarPlaced)
+	const bool bFirstPlacement = !bCarPlaced;
+	if (bFirstPlacement)
 	{
 		Stream->SetFocus(StartCm, FVector::ZeroVector);
 		const bool bReady = Stream->AreTilesReadyAround(StartCm, 1);
-		const bool bTimedOut = FPlatformTime::Seconds() - WaitStartedSeconds > StartTimeoutSeconds;
+		const double Waited = FPlatformTime::Seconds() - WaitStartedSeconds;
+		const bool bTimedOut = Waited > StartTimeoutSeconds;
+		// Tiles that cannot load (offline, no helper, nothing there): the next place, else the
+		// bundled one (Drive.gd start_next). The bundled place itself loads from disk.
+		const int32 Failed = Stream->NumTilesFailed();
+		if (!bReady && (Failed >= 2 || (Failed >= 1 && Waited > 30.0)) && !IsBundledPlace(CurrentPlace))
+		{
+			TravelFailed(FString::Printf(TEXT("%d tiles failed to load"), Failed));
+			return false;
+		}
 		if (!bReady && !bTimedOut)
 		{
 			UpdateLoadingMessage();
@@ -240,22 +448,33 @@ bool ASimCruiseGameMode::TryPlacePendingPlayers()
 		}
 	}
 
+	// On the place's street (a start-pool point is a node on it), facing its bearing on a two-way
+	// road; else the nearest public road. A pool point takes the road under it only within 30 m
+	// (Drive.gd: named street within 125 m, loose fallback main road within 30 m).
+	const double PreferredYaw = CurrentPlace.bHasBearing ? SimCruisePlaces::BearingToYawDeg(CurrentPlace.BearingDeg) : TNumericLimits<double>::Max();
+	const double NamedRadiusM = CurrentPlace.bLoose ? 125.0 : StartSearchRadiusM;
+	const double AnyRadiusM = CurrentPlace.bLoose ? 30.0 : StartSearchRadiusM;
 	FVector Ground = StartCm;
-	FRotator Heading = FRotator::ZeroRotator;
-	const bool bNamed = !StartRoadName.IsEmpty() && Stream->FindRoadPose(StartRoadName, StartCm, StartSearchRadiusM, Ground, Heading);
+	FRotator Heading = CurrentPlace.bHasBearing ? FRotator(0.0, PreferredYaw, 0.0) : FRotator::ZeroRotator;
+	const bool bNamed = !StartRoadName.IsEmpty() && Stream->FindRoadPoseFacing(StartRoadName, StartCm, NamedRadiusM, PreferredYaw, Ground, Heading);
 	if (!bNamed && !StartRoadName.IsEmpty())
 	{
-		UE_LOG(LogSimCruiseDrive, Warning, TEXT("No room to start on %s within %.0f m of the start; starting on the nearest road."), *StartRoadName, StartSearchRadiusM);
+		UE_LOG(LogSimCruiseDrive, Warning, TEXT("No room to start on %s within %.0f m of the start; starting on the nearest road."), *StartRoadName, NamedRadiusM);
 	}
-	const bool bOnRoad = bNamed || Stream->FindRoadPose(FString(), StartCm, StartSearchRadiusM, Ground, Heading);
+	const bool bOnRoad = bNamed || Stream->FindRoadPoseFacing(FString(), StartCm, AnyRadiusM, PreferredYaw, Ground, Heading);
 	if (!bOnRoad)
 	{
+		if (bFirstPlacement && (!StartChain.IsEmpty() || bStartLaunch))
+		{
+			TravelFailed(TEXT("no road near the start point"));
+			return false;
+		}
 		double Z = 0.0;
 		if (Stream->SurfaceHeightAt(StartCm, Z))
 		{
 			Ground.Z = Z;
 		}
-		UE_LOG(LogSimCruiseDrive, Warning, TEXT("No road within %.0f m of the start; the car starts on the ground."), StartSearchRadiusM);
+		UE_LOG(LogSimCruiseDrive, Warning, TEXT("No road within %.0f m of the start; the car starts on the ground."), AnyRadiusM);
 	}
 	for (const TWeakObjectPtr<AController>& Weak : PendingPlayers)
 	{
@@ -268,7 +487,8 @@ bool ASimCruiseGameMode::TryPlacePendingPlayers()
 					*Ground.ToString(), Heading.Yaw, FPlatformTime::Seconds() - WaitStartedSeconds);
 				if (ASimCruisePlayerController* SimPlayer = Cast<ASimCruisePlayerController>(Player))
 				{
-					SimPlayer->ShowMessage(TEXT("RT or W to accelerate  ·  Y or C camera  ·  L3 or F2 HUD"), 6.f);
+					SimPlayer->ShowMessage(!StartNote.IsEmpty() ? StartNote
+						: FString::Printf(TEXT("%s  ·  RT or W to accelerate  ·  / or Menu to go somewhere else"), *CurrentPlace.Title), 6.f);
 				}
 				(void)Pawn;
 			}
@@ -276,6 +496,10 @@ bool ASimCruiseGameMode::TryPlacePendingPlayers()
 	}
 	PendingPlayers.Reset();
 	bCarPlaced = true;
+	StartChain.Reset();
+	bStartLaunch = false;
+	StartNote.Reset();
+
 	return true;
 }
 

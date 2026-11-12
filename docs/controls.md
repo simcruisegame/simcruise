@@ -22,9 +22,11 @@ The Unreal client starts in the 2001 roadster in Ocean Drive's lane, Miami Beach
 | Head lamps on / off | L | — |
 | Recover to the nearest road | R | View |
 | Sound on / off (engine, tyres, road, wind) | M | — |
-| Road atlas, find a place | Tab, / | Menu, — |
+| Road atlas, find a place | Tab, / | Menu, X in the atlas |
 
-The engine sound is on at the start. The atlas and place search answer with a message until they are ported from the Godot client.
+The engine sound is on at the start.
+
+**Go somewhere else.** Press / for "Where to?": type a street, a town, a landmark or `latitude, longitude` and press Enter, or pick a preset, or press Surprise me (Y on the pad) for a random US road. Press Tab (Menu) for the road atlas: move the map with the left stick, the mouse or the arrow keys, zoom with the D-pad, the wheel or +/−, click to pin a spot, and press Enter (A) or Drive here to go to the pin or the map centre. In the atlas, X finds a place, Y recentres, RB changes the car and LB the gearbox; Esc, Tab or B goes back to the drive. The game pauses while either is open.
 
 **Automatic gearbox.** It changes up early with a light pedal and holds each gear longer the deeper you press, kicks down when you floor it, never changes up while you brake and holds its gear through a corner.
 

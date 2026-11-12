@@ -140,6 +140,9 @@ public:
 
 	int32 NumCars() const { return Cars.Num(); }
 
+	/** Remove every car (a jump to another place: their roads are gone). */
+	void ClearCars();
+
 private:
 	struct FPose
 	{

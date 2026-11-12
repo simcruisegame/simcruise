@@ -10,6 +10,11 @@
 #include "SimCruisePlayerController.generated.h"
 
 class USimCruiseInputConfig;
+class SSimCruisePlaceSearch;
+class SSimCruiseRoadAtlas;
+class SWidget;
+struct FSimCruisePlace;
+struct FSimCruiseAtlasView;
 class ASimCruiseHUD;
 class ASimCruisePlayerCameraManager;
 
@@ -62,6 +67,16 @@ public:
 	UFUNCTION(Exec)
 	void SimCruiseShellCapture(int32 Quit = 0);
 
+	/** The place search (/ key; X in the atlas): the game pauses while it is open. */
+	void OpenPlaceSearch(bool bGamepad);
+	/** The road atlas (Tab, Menu). */
+	void OpenRoadAtlas();
+	/** Close the search or the atlas and give the drive back. */
+	void CloseOverlays();
+	bool IsOverlayOpen() const { return OverlayWidget.IsValid(); }
+	TSharedPtr<SSimCruiseRoadAtlas> GetRoadAtlas() const { return AtlasPanel; }
+	TSharedPtr<SSimCruisePlaceSearch> GetPlaceSearch() const { return SearchPanel; }
+
 	/** Simulated key and axis events through the real Enhanced Input stack (scripts and captures). */
 	void InjectKey(const FKey& Key, bool bPressed);
 	void InjectAxis(const FKey& Key, float Value);
@@ -73,9 +88,15 @@ private:
 	void TickSelfTest(float DeltaTime);
 	void TickCapture(float DeltaTime);
 	ASimCruiseHUD* GetSimHUD() const;
+	void ShowOverlay(const TSharedRef<SWidget>& Widget, const TSharedPtr<SWidget>& Focus);
+	void ChoosePlace(const FSimCruisePlace& Place);
+	bool SurpriseMe();
+	FSimCruiseAtlasView AtlasView() const;
 	ASimCruisePlayerCameraManager* GetSimCamera() const;
 
+public:
 	void OnToggleTransmission();
+private:
 	void OnShiftUp();
 	void OnShiftDown();
 	void OnStartEngine();
@@ -110,6 +131,9 @@ protected:
 	bool bSoundOn = true;
 	bool bLightsOn = false;
 	bool bStatsShown = false;
+	TSharedPtr<SWidget> OverlayWidget;
+	TSharedPtr<SSimCruisePlaceSearch> SearchPanel;
+	TSharedPtr<SSimCruiseRoadAtlas> AtlasPanel;
 	FString PendingMessage;
 	float PendingMessageSeconds = 0.f;
 
