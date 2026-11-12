@@ -52,6 +52,13 @@
  "rim_in": 14,
  "static_mu": 0.8,
  "lateral_grip_scale": 1.07,
+ "tmeasy_peak_slip_y": 0.21,
+ "tmeasy_stiffness_y": 9.5,
+ "tmeasy_slide_mu_y": 0.713,
+ "tmeasy_peak_mu_y": 0.856,
+ "tmeasy_slide_mu_x": 0.76,
+ "tmeasy_peak_mu_x": 0.912,
+ "tyre_model": "tmeasy",
  "mu_max": 1.05,
  "axle_grip": [
   1,
