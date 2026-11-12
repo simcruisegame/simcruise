@@ -83,6 +83,11 @@ var road_reference_deg := 35.5
 var ackermann_blend := .49
 var assist_lateral_g := .95
 var limit_slip_surplus_deg := 5.
+# Steering-wheel turns per road-wheel turn (the maker's overall ratio). The
+# cabin steering wheel turns by the front wheels' mean angle times this; the
+# steering physics act on the rack angle and do not read it. NB power rack:
+# 15:1, 2.6 turns lock to lock (GoAuto, 2001 MX-5 review).
+var steering_ratio := 15.0
 
 # Brakes (torque per wheel at full pedal)
 var brake_front_nm := 1150.
@@ -208,6 +213,19 @@ static func load_id(car_id:String):
   push_warning("Car %s not found; using the default car"%car_id)
   return spec
  spec.apply(JSON.parse_string(FileAccess.get_file_as_string(path)))
+ return spec
+
+# A spec for a downloaded model that has no car file yet (checks/RigProbe.gd):
+# the 1999 car's defaults with the manifest entry's "spec" block (published
+# wheelbase, track, tyre size, steering ratio, driver's eye) and its "rig" block.
+static func from_manifest(entry:Dictionary):
+ var spec=new()
+ spec.id=str(entry.get("kind",entry.get("id","model")))
+ spec.name=str(entry.get("title",spec.id))
+ spec.model_scene=str(entry.get("scene",""))
+ spec.apply(entry.get("spec",{}))
+ spec.model_rig={"fit":true}
+ spec.model_rig.merge(entry.get("rig",{}),true)
  return spec
 
 # Copy fields from parsed JSON. Vectors are written as arrays; a torque curve
