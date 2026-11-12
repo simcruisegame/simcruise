@@ -28,8 +28,8 @@ struct FSimCruiseTreeRow
  * Godot client's broadleaf and conifer meshes at three detail levels. Trees
  * on roads are left out; the species follows the region (conifers in the
  * north, the western mountains and the Pacific Northwest, mixed pine in the
- * south-east). South Florida keeps its palms (SimCruiseTileDetail). Display
- * only: no collision yet.
+ * south-east). South Florida keeps its palms (SimCruiseTileDetail). The 32
+ * trees nearest the car have solid trunks.
  */
 UCLASS(NotPlaceable, Transient)
 class SIMCRUISE_API ASimCruiseTrees : public AActor
@@ -76,6 +76,15 @@ private:
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UTexture2D>> Textures;
+
+	/** Solid trunks for the nearest trees (Grove.gd: 32 pooled trunk bodies). */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<class UCapsuleComponent>> Trunks;
+
+	/** Every placed tree's foot (world cm) and trunk radius (cm), for the trunk pool. */
+	TArray<FVector4> Feet;
+	FVector LastTrunkFocus = FVector(1e30);
+	void UpdateTrunks(const FVector& CarCm);
 
 	TMap<FIntPoint, TArray<FSimCruiseTreeRow>> Canopy;
 	TMap<FIntPoint, TSharedPtr<FFetch, ESPMode::ThreadSafe>> Fetches;

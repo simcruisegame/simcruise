@@ -4,6 +4,8 @@
 
 #include "Async/Async.h"
 #include "Atlas/SimCruiseAtlasClient.h"
+#include "Components/CapsuleComponent.h"
+#include "Engine/CollisionProfile.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Dom/JsonObject.h"
 #include "Engine/StaticMesh.h"
@@ -330,6 +332,17 @@ bool ASimCruiseTrees::BuildMeshes()
 			Rings.Add(Ring);
 		}
 	}
+	for (int32 i = 0; i < 32; ++i)
+	{
+		UCapsuleComponent* Trunk = NewObject<UCapsuleComponent>(this);
+		Trunk->SetupAttachment(RootComponent);
+		Trunk->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+		Trunk->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Trunk->SetHiddenInGame(true);
+		Trunk->SetMobility(EComponentMobility::Movable);
+		Trunk->RegisterComponent();
+		Trunks.Add(Trunk);
+	}
 	UE_LOG(LogSimCruiseTrees, Display, TEXT("Built %d tree meshes"), Meshes.Num());
 	return true;
 }
@@ -344,6 +357,8 @@ void ASimCruiseTrees::Refresh()
 	TArray<TArray<FTransform>> Lists;
 	Lists.SetNum(6);
 	Placed = 0;
+	Feet.Reset();
+	LastTrunkFocus = FVector(1e30);
 	for (const FIntPoint& Id : Shown)
 	{
 		const ASimCruiseWorldTile* Tile = Stream->GetTile(Id);
@@ -394,6 +409,8 @@ void ASimCruiseTrees::Refresh()
 			{
 				Lists[(bPine ? 3 : 0) + Level].Add(Xf);
 			}
+			// Trunk about a sixtieth of the height across (Grove.gd row[4]), 8 to 45 cm radius.
+			Feet.Add(FVector4(At.X, At.Y, At.Z, FMath::Clamp(Row.HeightM * 100.0 / 120.0, 8.0, 45.0)));
 			++Placed;
 		}
 	}
@@ -489,6 +506,11 @@ void ASimCruiseTrees::Tick(float DeltaSeconds)
 		It.RemoveCurrent();
 	}
 
+	if (const APlayerController* Player = GetWorld()->GetFirstPlayerController(); Player && Player->GetPawn())
+	{
+		UpdateTrunks(Player->GetPawn()->GetActorLocation());
+	}
+
 	// Re-place when the tiles with trees change or the floating origin moves.
 	TSet<FIntPoint> Ready;
 	for (const FIntPoint& Id : Present) if (Canopy.Contains(Id)) Ready.Add(Id);
@@ -497,5 +519,32 @@ void ASimCruiseTrees::Tick(float DeltaSeconds)
 		Shown = MoveTemp(Ready);
 		ShownOrigin = Frame.OriginTile;
 		Refresh();
+	}
+}
+
+void ASimCruiseTrees::UpdateTrunks(const FVector& CarCm)
+{
+	if (FVector::Dist2D(CarCm, LastTrunkFocus) < 400.0) return;
+	LastTrunkFocus = CarCm;
+	TArray<TPair<double, int32>> Near;
+	for (int32 i = 0; i < Feet.Num(); ++i)
+	{
+		const double D = FVector2D::DistSquared(FVector2D(Feet[i].X, Feet[i].Y), FVector2D(CarCm.X, CarCm.Y));
+		if (D < 3500.0 * 3500.0) Near.Emplace(D, i);
+	}
+	Near.Sort([](const TPair<double, int32>& A, const TPair<double, int32>& B) { return A.Key < B.Key; });
+	for (int32 i = 0; i < Trunks.Num(); ++i)
+	{
+		UCapsuleComponent* Trunk = Trunks[i];
+		if (!Near.IsValidIndex(i))
+		{
+			Trunk->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			continue;
+		}
+		const FVector4& F = Feet[Near[i].Value];
+		const float Radius = static_cast<float>(F.W);
+		Trunk->SetCapsuleSize(Radius, 250.f);
+		Trunk->SetWorldLocation(FVector(F.X, F.Y, F.Z + 240.0));
+		Trunk->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	}
 }

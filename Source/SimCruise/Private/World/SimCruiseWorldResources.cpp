@@ -99,6 +99,10 @@ float3 shot = photo * AerialGain;
 float cast = saturate((shot.b - shot.r) * 25.0);
 shot = lerp(shot, dot(shot, W) * float3(1.03, 1.0, 0.95), cast * 0.9);
 float sl = max(dot(shot, W), 0.0001);
+// Under a closed canopy the photograph is dark crowns; the ground there is leaf litter and
+// needles, brown and shaded, not lawn.
+float forest = veg * saturate((0.075 - sl) / 0.035);
+classColor = lerp(classColor, float3(0.062, 0.052, 0.036), forest);
 float target = sl < 0.16 ? sl : 0.16 + (sl - 0.16) * 0.4;
 shot *= target / sl;
 // The zoom-14 photograph is about 10 m a pixel: on lawns and sand its blur would be the
