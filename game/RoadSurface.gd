@@ -60,10 +60,18 @@ const KERB_SIDEWALK_MAX_M := 12.
 const KERB_PARALLEL := .93      # cos 21.6 deg
 const KERB_FILL_STATIONS := 5   # a gap this short (10 m: a driveway, a gap in the mapping) keeps the kerb
 const KERB_MIN_STATIONS := 5    # a run shorter than this (10 m) is a crossing path, not a sidewalk
-# Built up as LaneMarkings.gd decides it: the 250 m square around a station
-# holds LaneMarkings.TOWN_BUILDINGS buildings.
-const TOWN_CELL_M := 50.
+# Built up as LaneMarkings.gd decides it without a mapped limit (dense(),
+# town_share()): the 250 m square around a station holds TOWN_BUILDINGS
+# buildings or TOWN_STREETS_M of local streets and driveways; a ribbon mostly
+# built up (or mostly open) in the tile is that all along, a mixed one takes
+# the majority of its stations within TOWN_RUN_M each way, so the shoulder
+# does not flip between gravel and verge at every 50 m cell.
+# checks/RoadEdgeCheck.gd fails if these drift from LaneMarkings'.
+const TOWN_CELL_M := 50.        # LaneMarkings.HOME_CELL_M
 const TOWN_BUILDINGS := 15      # LaneMarkings.TOWN_BUILDINGS
+const TOWN_STREETS_M := 600.    # LaneMarkings.TOWN_STREETS_M
+const TOWN_SHARE := .65         # LaneMarkings.TOWN_SHARE
+const TOWN_RUN_M := 150.        # LaneMarkings.TOWN_RUN_M
 
 static func edge_color(kind: int) -> Color:
  return Color(1. if kind == EDGE_KERB else 0., 1. if kind != EDGE_RURAL else 0., 0., 1.)
@@ -270,11 +278,14 @@ static func barycentric(p: Vector2, a: Vector3, b: Vector3, c: Vector3) -> Vecto
 ## EDGE_KERB where a mapped sidewalk or footway runs alongside within
 ## KERB_SIDEWALK_MAX_M of the paved edge (a gap of a driveway or two keeps it,
 ## a lone crossing path does not make one), else EDGE_TOWN on a built-up
-## street (LaneMarkings.gd's rule: buildings in the 250 m square), else
-## EDGE_RURAL. Only mapped data decides; nothing is read from imagery.
+## street (LaneMarkings.gd's rule without a mapped limit: buildings or local
+## streets in the 250 m square, by the ribbon's share or its majority within
+## TOWN_RUN_M), else EDGE_RURAL. Only mapped data decides; nothing is read
+## from imagery.
 func classify_edges(tile) -> void:
  var side: float = tile.side
- # Buildings per TOWN_CELL_M cell (first coordinate of each footprint).
+ # Buildings (first coordinate of each footprint) and local street length
+ # per TOWN_CELL_M cell, counted as LaneMarkings.prepare() counts them.
  var homes := {}
  for b in tile.info.get("buildings", []):
   var p = b
@@ -283,8 +294,30 @@ func classify_edges(tile) -> void:
   if p is Array and p.size() >= 2 and typeof(p[0]) in [TYPE_FLOAT, TYPE_INT]:
    var key := Vector2i((Vector2(float(p[0]), float(p[1])) * side / TOWN_CELL_M).floor())
    homes[key] = homes.get(key, 0) + 1
+ var streets := {}
+ for road in tile.info.get("roads", []):
+  if not road is Array or road.size() < 4 or not str(road[0]) in ["minor", "service"] or not road[3] is Array:continue
+  var route: Array = road[3]
+  for j in range(1, route.size()):
+   var a := Vector2(float(route[j-1][0]), float(route[j-1][1])) * side;var b := Vector2(float(route[j][0]), float(route[j][1])) * side
+   var pieces := ceili(a.distance_to(b) / 10.)
+   for k in pieces:
+    var key := Vector2i((a.lerp(b, (k + .5) / pieces) / TOWN_CELL_M).floor())
+    streets[key] = streets.get(key, 0.) + a.distance_to(b) / pieces
  var cells := ceili(side / TOWN_CELL_M)
  var towns := {}
+ var dense := func(c: Vector2) -> bool:
+  var cell := Vector2i((c / TOWN_CELL_M).floor())
+  if not towns.has(cell):
+   var count := 0.;var length := 0.;var inside := 0
+   for dx in range(-2, 3):
+    for dy in range(-2, 3):
+     var k := cell + Vector2i(dx, dy)
+     if k.x < 0 or k.y < 0 or k.x >= cells or k.y >= cells:continue
+     inside += 1;count += homes.get(k, 0);length += streets.get(k, 0.)
+   var scale := 25. / maxi(inside, 1)
+   towns[cell] = count * scale >= TOWN_BUILDINGS or length * scale >= TOWN_STREETS_M
+  return towns[cell]
  # Sidewalk segments in BIN cells.
  var walks := {}
  for row in tile.info.get("pedestrian", []):
@@ -305,6 +338,21 @@ func classify_edges(tile) -> void:
   var kerb := [PackedByteArray(), PackedByteArray()]
   kerb[0].resize(n);kerb[1].resize(n)
   var edge: PackedByteArray = line.edge
+  # Built up: the ribbon's share of built-up stations, or on a mixed ribbon
+  # the majority within TOWN_RUN_M (LaneMarkings.path()).
+  var raw := PackedByteArray();raw.resize(n)
+  var arc := PackedFloat64Array();arc.resize(n)
+  var built := 0
+  for i in n:
+   var c := Vector2(sections[i][2].x, sections[i][2].z)
+   if i > 0:arc[i] = arc[i - 1] + c.distance_to(Vector2(sections[i - 1][2].x, sections[i - 1][2].z))
+   raw[i] = 1 if dense.call(c) else 0
+   built += raw[i]
+  var town_at := majority(raw, arc, TOWN_RUN_M)
+  var share := float(built) / maxi(n, 1)
+  if share >= TOWN_SHARE or share <= 1. - TOWN_SHARE:town_at.fill(1 if share >= TOWN_SHARE else 0)
+  for i in n:
+   edge[i * 2] = EDGE_TOWN if town_at[i] == 1 else EDGE_RURAL;edge[i * 2 + 1] = edge[i * 2]
   for i in n:
    var c := Vector2(sections[i][2].x, sections[i][2].z)
    var nrm := Vector2(sections[i][4].x - c.x, sections[i][4].z - c.y)
@@ -312,18 +360,6 @@ func classify_edges(tile) -> void:
    nrm = nrm.normalized()
    var t := Vector2(nrm.y, -nrm.x)
    var half: float = line.halves[i]
-   # Built up?
-   var cell := Vector2i((c / TOWN_CELL_M).floor())
-   if not towns.has(cell):
-    var count := 0;var inside := 0
-    for dx in range(-2, 3):
-     for dy in range(-2, 3):
-      var k := cell + Vector2i(dx, dy)
-      if k.x < 0 or k.y < 0 or k.x >= cells or k.y >= cells:continue
-      inside += 1;count += homes.get(k, 0)
-    towns[cell] = count * 25. / maxi(inside, 1) >= TOWN_BUILDINGS
-   var town: bool = towns[cell]
-   edge[i * 2] = EDGE_TOWN if town else EDGE_RURAL;edge[i * 2 + 1] = edge[i * 2]
    if walks.is_empty():continue
    var home := Vector2i(floori(c.x / BIN), floori(c.y / BIN))
    for dx in range(-reach, reach + 1):
@@ -346,6 +382,17 @@ func classify_edges(tile) -> void:
    drop_short(run, KERB_MIN_STATIONS)
    for i in n:
     if run[i] == 1:edge[i * 2 + s] = EDGE_KERB
+
+## Per station, 1 where at least half of the stations within `reach` metres
+## of arc each way are 1 (a tie is 1, as in LaneMarkings.path()).
+static func majority(run: PackedByteArray, arc: PackedFloat64Array, reach: float) -> PackedByteArray:
+ var out := PackedByteArray();out.resize(run.size())
+ var lo := 0;var hi := 0;var votes := 0
+ for k in run.size():
+  while hi < run.size() and arc[hi] - arc[k] <= reach:votes += run[hi];hi += 1
+  while arc[k] - arc[lo] > reach:votes -= run[lo];lo += 1
+  out[k] = 1 if votes * 2 >= hi - lo else 0
+ return out
 
 ## Set the gaps of at most `gap` zeros between ones.
 static func fill_gaps(run: PackedByteArray, gap: int) -> void:

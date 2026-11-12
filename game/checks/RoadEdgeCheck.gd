@@ -19,7 +19,10 @@ extends SceneTree
 ##     paved half fails;
 ##   * the edge treatment: on the fixture a mapped sidewalk makes a kerb on its
 ##     own side only (and curb geometry), a built-up tile is EDGE_TOWN, an empty
-##     one EDGE_RURAL with loose (0.76) grip on the gravel shoulder;
+##     one EDGE_RURAL with loose (0.76) grip on the gravel shoulder; town or
+##     rural uses LaneMarkings' constants and its majority along the road
+##     (changes between gravel shoulder and verge are reported per km for
+##     --dir tiles);
 ##   * plan-view kinks (a station whose heading change exceeds both of its
 ##     neighbours' by more than KINK_DEG: a corner, not a curve) and edge wobble
 ##     (each paved edge's deviation from a quadratic fitted over +-10 m), per km
@@ -118,6 +121,17 @@ func rules()->void:
  expect(Array(run)==[1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,1],"kerb gaps fill: %s"%[Array(run)])
  SURFACE.drop_short(run,5)
  expect(Array(run)==[0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1],"short kerb runs drop: %s"%[Array(run)])
+ # Town or rural is LaneMarkings' rule, so the shoulder and the edge lines agree.
+ expect(SURFACE.TOWN_CELL_M==LANES.HOME_CELL_M and SURFACE.TOWN_BUILDINGS==LANES.TOWN_BUILDINGS and SURFACE.TOWN_STREETS_M==LANES.TOWN_STREETS_M and SURFACE.TOWN_SHARE==LANES.TOWN_SHARE and SURFACE.TOWN_RUN_M==LANES.TOWN_RUN_M,"RoadSurface's town rule matches LaneMarkings'")
+ # A built-up half with one open 50 m cell and an open half with one built-up
+ # cell: one change, at the middle, not three.
+ var raw:=PackedByteArray();var arc:=PackedFloat64Array()
+ for k in 200:
+  raw.append(1 if (k<100 and not (k>=30 and k<55)) or (k>=150 and k<175) else 0);arc.append(k*2.)
+ var town:=SURFACE.majority(raw,arc,SURFACE.TOWN_RUN_M)
+ var changes:=0
+ for k in range(1,200):changes+=1 if town[k]!=town[k-1] else 0
+ expect(changes==1 and town[40]==1 and town[160]==0,"town majority along a ribbon: %d changes, station 40 %d, station 160 %d"%[changes,town[40],town[160]])
 
 ## A bundled tile with a ribbon along every paved road (the helper's row
 ## format), a sidewalk mapped 3 m beyond the paved edge on the left of the
@@ -169,9 +183,18 @@ func hostile_mask(tile)->void:
  tile.learned_edges=mask
 
 func edge_kinds(surface)->Dictionary:
- var out:={"rural":0,"town":0,"kerb":0}
+ var out:={"rural":0,"town":0,"kerb":0,"town_rural_changes":0}
  for line in surface.lines:
   for v in line.edge:out[["rural","town","kerb"][v]]+=1
+  # Changes between gravel shoulder and verge along each side (a kerb run
+  # keeps the treatment before it).
+  for s in 2:
+   var last:=-1
+   for i in line.sections.size():
+    var v:int=line.edge[i*2+s]
+    if v==SURFACE.EDGE_KERB:continue
+    if last>=0 and v!=last:out.town_rural_changes+=1
+    last=v
  return out
 
 ## Points across every paved half (and the shoulder band) of every ribbon.
@@ -269,7 +292,7 @@ func measure_live(folder:String,id:String)->void:
  var g:=geometry(tile.road_surface,side)
  var rms:=sqrt(g.wobble_sq/maxi(g.wobble_n,1))
  print("  %s: %.2f km of ribbon · %d kinks over %.0f deg (%.2f per km, worst %.1f deg) · paved-edge wobble %.3f m RMS, %.3f m max · edges %s · curb %s"%[id,g.km,g.kinks,KINK_DEG,g.kinks/maxf(g.km,.001),g.worst_kink,rms,g.wobble_max,edge_kinds(tile.road_surface),tile.info.get("kerbs",{})])
- print("RESULT %s grip_below_1=%d off_ribbon=%d kinks_per_km=%.2f wobble_rms_m=%.3f"%[id,m.grip_low,m.off_ribbon,g.kinks/maxf(g.km,.001),rms])
+ print("RESULT %s grip_below_1=%d off_ribbon=%d kinks_per_km=%.2f wobble_rms_m=%.3f town_rural_changes_per_km=%.2f"%[id,m.grip_low,m.off_ribbon,g.kinks/maxf(g.km,.001),rms,edge_kinds(tile.road_surface).town_rural_changes/maxf(g.km,.001)])
  expect(m.grip_low==0,"%s: %d carriageway points with grip under 1"%[id,m.grip_low])
  expect(m.off_ribbon==0,"%s: %d carriageway points off the paved half"%[id,m.off_ribbon])
  expect(g.kinks/maxf(g.km,.001)<=KINKS_PER_KM,"%s: %.2f plan-view kinks per km"%[id,g.kinks/maxf(g.km,.001)])
@@ -321,7 +344,9 @@ func ribbon_fixture(data:Dictionary,side:float,rural:bool)->Dictionary:
   # The sidewalk's stations, a little inside its ends (the gap filling and
   # the shortest run work in stations).
   walk_from+=3;walk_to-=3
- if rural:out["buildings"]=[];out["pedestrian"]=[]
+ # Rural: no buildings and no local street grid (LaneMarkings' town rule
+ # counts either); the ribbons built above stay.
+ if rural:out["buildings"]=[];out["pedestrian"]=[];out["roads"]=out.roads.filter(func(r):return str(r[0]) not in ["minor","service"])
  return {"data":out,"walk_line":best,"walk_from":walk_from,"walk_to":walk_to}
 
 # ---------------------------------------------------------------------------

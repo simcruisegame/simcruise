@@ -295,7 +295,7 @@ LAYERS = [
         "id": "aerial", "title": "Aerial imagery", "tag": "PD",
         "tooltip": "USGS National Map imagery (1024-px JPEG per 4 × 4 block), USDA NAIP for Hawaii, USFS Alaska orthophotos. Public domain.",
         "kicker": "USGS The National Map · USDA NAIP · USDA Forest Service Alaska",
-        "what": "After a tile is drivable, the helper fetches one 1,024 × 1,024 JPEG for its 4 × 4 block from the National Map imagery export, or a 512-px PNG from the NAIP Hawaii or Forest Service Alaska image services where those cover the spot. The image drapes the ground and low roofs and feeds a small logistic classifier (RoadEdges) that refines shoulders from the pixels against the mapped centrelines.",
+        "what": "After a tile is drivable, the helper fetches one 1,024 × 1,024 JPEG for its 4 × 4 block from the National Map imagery export, or a 512-px PNG from the NAIP Hawaii or Forest Service Alaska image services where those cover the spot. The image drapes the ground and low roofs and tints the road ribbon's asphalt. A small logistic classifier (RoadEdges) reads it against the mapped centrelines for tyre grip off the ribbon and for where roadside plants may grow; it no longer decides where the asphalt ends, which is the ribbon's own geometry (RoadSurface.lateral, terrain.gdshader).",
         "files": ["helper/atlas.mjs (photograph)", "helper/regional-aerial.mjs", "game/Drive.gd (stream_photo)", "game/WorldTile.gd (apply_photo, prepare_pixels)", "game/RoadEdges.gd"],
         "sources": [
             {"name": "USGS The National Map, USGSImageryOnly", "licence": "US public domain", "url": "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer", "note": "basemap.nationalmap.gov"},
