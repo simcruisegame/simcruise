@@ -437,6 +437,9 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 		double LateralSpeed = 0.0;
 		double Mu = 0.0;
 		double SideForce = 0.0;
+		/** TMeasy: tan(relaxed slip angle) and surface times axle grip. */
+		double SlipY = 0.0;
+		double GripScale = 1.0;
 		double MeanLateral = 0.0;
 		double MeanLongitudinal = 0.0;
 	};
@@ -569,8 +572,24 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 		Row.Mu = SimCruiseDynamics::ComputeFrictionCoefficient(Car, Axle, Fz, Wheel.SurfaceGrip);
 		Wheel.FrictionCoefficient = Row.Mu;
 		const double RoadLean = FMath::Asin(FMath::Clamp(Right.Dot(Row.Normal), -1.0, 1.0));
-		Row.SideForce = SimCruiseDynamics::ComputeLateralForceN(Car, Fz, Row.Mu, SlipAngle,
-			Wheel.InclinationRad - RoadLean, Row.ForwardSpeed);
+		if (SimCruiseDynamics::UsesTmeasy(Car))
+		{
+			// The slip force comes from the combined TMeasy curve in each substep; here only
+			// the camber thrust (the same term the legacy law adds).
+			Row.SlipY = FMath::Tan(FMath::Clamp(SlipAngle, -1.4, 1.4));
+			Row.GripScale = FMath::Max(Wheel.SurfaceGrip, 0.0) * AxleValue(Car.AxleGripMultiplier, Axle, 1.0);
+			SimCruiseDynamics::FTmeasyCurve CurveX, CurveY;
+			SimCruiseDynamics::GetTmeasyCurves(Car, Fz, Row.GripScale, CurveX, CurveY);
+			Row.Mu = Fz > 1.0 ? CurveY.PeakForce / Fz : 0.0;
+			Wheel.FrictionCoefficient = Row.Mu;
+			Row.SideForce = SimCruiseDynamics::ComputeLateralForceN(Car, Fz, Row.Mu, 0.0,
+				Wheel.InclinationRad - RoadLean, Row.ForwardSpeed);
+		}
+		else
+		{
+			Row.SideForce = SimCruiseDynamics::ComputeLateralForceN(Car, Fz, Row.Mu, SlipAngle,
+				Wheel.InclinationRad - RoadLean, Row.ForwardSpeed);
+		}
 	}
 
 	const bool bThrottleAid = Car.bTractionControlEnabled;
@@ -781,6 +800,8 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 			Sub.TireRadiusM = R;
 			Sub.WheelInertiaKgM2 = I;
 			Sub.SubstepS = Ds;
+			Sub.LateralSlip = Row.SlipY;
+			Sub.GripScale = Row.GripScale;
 			const FSimCruiseLongitudinalSubstepOutput Out = SimCruiseDynamics::SolveLongitudinalSubstep(Car, Sub);
 			Wheel.SlipRatio = Out.SlipRatio;
 			Wheel.TractionControlSlip = Out.TractionControlSlip;

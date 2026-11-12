@@ -421,7 +421,8 @@ namespace SimCruiseCarData
 			TEXT("center_bias"), TEXT("tc_target_slip"), TEXT("tc_gain"), TEXT("wheel_rate_n_m"), TEXT("bar_rate_n_m"), TEXT("bump_gap_m"),
 			TEXT("bump_stiffness"), TEXT("static_camber_deg"), TEXT("camber_per_m"), TEXT("caster_deg"), TEXT("toe_per_wheel_deg"),
 			TEXT("unsprung_corner_kg"), TEXT("damper_ratio_rebound"), TEXT("damper_ratio_compression"), TEXT("damper_knee_mps"),
-			TEXT("damper_knee_slope") };
+			TEXT("damper_knee_slope"), TEXT("tmeasy_peak_mu_x"), TEXT("tmeasy_slide_mu_x"), TEXT("tmeasy_peak_mu_y"),
+			TEXT("tmeasy_slide_mu_y"), TEXT("tmeasy_stiffness_x"), TEXT("tmeasy_stiffness_y") };
 		for (const TCHAR* Field : Fields)
 		{
 			if (Key == Field)
@@ -604,6 +605,17 @@ bool FSimCruiseCarDefinitionLoader::ParseJson(const FString& JsonText, const FSt
 	SIMCRUISE_READ_NUMBER("slip_ratio_peak", PeakSlipRatio);
 	SIMCRUISE_READ_NUMBER("slip_ratio_falloff", SlipRatioFalloffFraction);
 	SIMCRUISE_READ_NUMBER("relaxation_load_exponent", RelaxationLoadExponent);
+	SIMCRUISE_READ_STRING("tyre_model", TyreModel);
+	SIMCRUISE_READ_NUMBER("tmeasy_peak_mu_x", TmeasyPeakMuX);
+	SIMCRUISE_READ_NUMBER("tmeasy_slide_mu_x", TmeasySlideMuX);
+	SIMCRUISE_READ_NUMBER("tmeasy_peak_mu_y", TmeasyPeakMuY);
+	SIMCRUISE_READ_NUMBER("tmeasy_slide_mu_y", TmeasySlideMuY);
+	SIMCRUISE_READ_NUMBER("tmeasy_stiffness_x", TmeasyStiffnessX);
+	SIMCRUISE_READ_NUMBER("tmeasy_stiffness_y", TmeasyStiffnessY);
+	SIMCRUISE_READ_NUMBER("tmeasy_peak_slip_x", TmeasyPeakSlipX);
+	SIMCRUISE_READ_NUMBER("tmeasy_peak_slip_y", TmeasyPeakSlipY);
+	SIMCRUISE_READ_NUMBER("tmeasy_slide_slip_x", TmeasySlideSlipX);
+	SIMCRUISE_READ_NUMBER("tmeasy_slide_slip_y", TmeasySlideSlipY);
 	SIMCRUISE_READ_BOOL("abs_enabled", bAbsEnabled);
 	SIMCRUISE_READ_NUMBER("wheel_inertia", WheelRotationalInertiaKgM2);
 	SIMCRUISE_READ_NUMBER("rolling_resistance", RollingResistanceCoefficient);

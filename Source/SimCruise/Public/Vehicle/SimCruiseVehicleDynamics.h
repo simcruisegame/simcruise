@@ -54,6 +54,10 @@ struct FSimCruiseLongitudinalSubstepInput
 	double TireRadiusM = 0.0;
 	double WheelInertiaKgM2 = 0.0;
 	double SubstepS = 0.0;
+	/** TMeasy only: lateral slip tan(relaxed slip angle), + contact sliding to the wheel's right,
+	 *  and surface times axle grip. LateralForceN then carries only the camber thrust. */
+	double LateralSlip = 0.0;
+	double GripScale = 1.0;
 };
 
 struct FSimCruiseLongitudinalSubstepOutput
@@ -116,6 +120,32 @@ namespace SimCruiseDynamics
 		double SlipAngleRad,
 		double InclinationRad,
 		double ForwardSpeedMps);
+
+	/** One TMeasy direction at a load: initial stiffness (N per unit slip), peak force and
+	 *  slip, full-slide force and slip. */
+	struct FTmeasyCurve
+	{
+		double Stiffness = 0.0;
+		double PeakForce = 0.0;
+		double PeakSlip = 0.1;
+		double SlideForce = 0.0;
+		double SlideSlip = 0.5;
+	};
+
+	bool UsesTmeasy(const FSimCruiseCarDefinition& Car);
+
+	/** The car's TMeasy curves at this load (interpolated between the nominal load and
+	 *  twice it as Chrono's ChTMeasyTire does: forces quadratically, slips linearly), the
+	 *  forces and slips scaled by GripScale. */
+	void GetTmeasyCurves(const FSimCruiseCarDefinition& Car, double NormalLoadN, double GripScale,
+		FTmeasyCurve& OutX, FTmeasyCurve& OutY);
+
+	/** TMeasy's force over combined slip s along one curve (Rill; Chrono tmxy_combined). */
+	double TmeasyForce(double Slip, const FTmeasyCurve& Curve);
+
+	/** Combined TMeasy force F along the slip direction (SlipX, SlipY), and the secant F/s. */
+	double TmeasyCombined(const FSimCruiseCarDefinition& Car, double NormalLoadN, double GripScale,
+		double SlipX, double SlipY, double& OutSecantPerSlip, double& OutPeakSlipX);
 
 	FSimCruiseLongitudinalSubstepOutput SolveLongitudinalSubstep(
 		const FSimCruiseCarDefinition& Car,

@@ -136,6 +136,64 @@ bool FSimCruiseVehicleModelTyreTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseVehicleModelTmeasyTest, "SimCruise.Vehicle.Model.TyreTmeasy", VehicleTestFlags)
+bool FSimCruiseVehicleModelTmeasyTest::RunTest(const FString& Parameters)
+{
+	// The shape of Chrono's passenger-tyre set (GuessPassCar70Par) as this code evaluates it.
+	FSimCruiseCarDefinition Car;
+	Car.TyreModel = TEXT("tmeasy");
+	const double Fz = Car.ReferenceCornerLoadN;
+	SimCruiseDynamics::FTmeasyCurve X, Y;
+	SimCruiseDynamics::GetTmeasyCurves(Car, Fz, 1.0, X, Y);
+	TestEqual(TEXT("nominal load: lateral peak is mu_y Fz"), Y.PeakForce, Car.TmeasyPeakMuY * Fz, 1.0e-6);
+	TestEqual(TEXT("nominal load: longitudinal slide is mu_x,slide Fz"), X.SlideForce, Car.TmeasySlideMuX * Fz, 1.0e-6);
+	FSimCruiseCarDefinition Twice = Car;
+	SimCruiseDynamics::FTmeasyCurve X2, Y2;
+	SimCruiseDynamics::GetTmeasyCurves(Car, 2.0 * Fz, 1.0, X2, Y2);
+	TestEqual(TEXT("twice the load: lateral peak from the 2 pn set"), Y2.PeakForce, 2.0 * Fz * Car.TmeasyPeakMuY * Car.TmeasyPeakMuY2Ratio, 1.0e-6);
+	// Chrono's set gives 1.61 (12.85 per unit at 2 pn against 15.98 at pn); a linear stiffness would be 2.
+	TestTrue(TEXT("cornering stiffness saturates with load (K(2Fz)/K(Fz) at most 1.65)"), Y2.Stiffness / Y.Stiffness <= 1.65);
+	TestTrue(TEXT("load sensitivity: the peak friction falls with load"), Y2.PeakForce / (2.0 * Fz) < Y.PeakForce / Fz);
+
+	auto Lateral = [&](double AlphaDeg, double SlipX)
+	{
+		double Secant = 0.0, PeakX = 0.0;
+		const double SlipY = FMath::Tan(FMath::DegreesToRadians(AlphaDeg));
+		SimCruiseDynamics::TmeasyCombined(Car, Fz, 1.0, SlipX, SlipY, Secant, PeakX);
+		return Secant * SlipY;
+	};
+	double PeakAlpha = 0.0, PeakForce = 0.0;
+	for (double A = 0.25; A <= 20.0; A += 0.25)
+	{
+		const double F = Lateral(A, 0.0);
+		if (F > PeakForce) { PeakForce = F; PeakAlpha = A; }
+	}
+	AddInfo(FString::Printf(TEXT("TMeasy pure lateral: peak %.2f Fz at %.2f deg; %.0f %% of it at 4 deg; slope %.1f /rad"),
+		PeakForce / Fz, PeakAlpha, 100.0 * Lateral(4.0, 0.0) / PeakForce, Lateral(0.25, 0.0) / FMath::DegreesToRadians(0.25) / Fz));
+	TestTrue(TEXT("radial tyre: peak slip angle 6-9 deg"), PeakAlpha >= 6.0 && PeakAlpha <= 9.0);
+	TestTrue(TEXT("at 4 deg the tyre already gives at least 75 % of its peak"), Lateral(4.0, 0.0) >= 0.75 * PeakForce);
+	TestTrue(TEXT("past the peak the force falls toward sliding, not to zero"), Lateral(20.0, 0.0) > 0.75 * Car.TmeasySlideMuY * Fz);
+	const double Combined = Lateral(4.0, 0.05) / Lateral(4.0, 0.0);
+	AddInfo(FString::Printf(TEXT("TMeasy combined: at 5 %% drive slip the 4 deg side force is %.0f %%"), 100.0 * Combined));
+	// TMeasy couples the directions through the combined slip only: at a third of the peak slip it
+	// costs little (Chrono's shape: 5 %); near the peak it costs much more (below).
+	TestTrue(TEXT("combined slip: 5 % drive slip costs 3-20 % of the 4 deg side force"), Combined >= 0.80 && Combined <= 0.97);
+	TestTrue(TEXT("combined slip: at the drive peak (14 %) the 4 deg side force falls below 70 %"), Lateral(4.0, 0.14) / Lateral(4.0, 0.0) < 0.70);
+
+	// A locked wheel at speed slides at the full-slide force.
+	FSimCruiseLongitudinalSubstepInput In;
+	In.NormalLoadN = Fz;
+	In.ForwardSpeedMps = 20.0;
+	In.TireRadiusM = Car.TireFreeRadiusM();
+	In.WheelInertiaKgM2 = Car.WheelRotationalInertiaKgM2;
+	In.SubstepS = 1.0 / 360.0;
+	In.BrakeTorqueNm = 3000.0;
+	const FSimCruiseLongitudinalSubstepOutput Locked = SimCruiseDynamics::SolveLongitudinalSubstep(Car, In);
+	TestTrue(TEXT("locked: the force is the sliding force, braking"),
+		Locked.LongitudinalForceN < 0.0 && FMath::Abs(FMath::Abs(Locked.LongitudinalForceN) - X.SlideForce) < 0.02 * X.SlideForce);
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseVehicleModelDrivetrainTest, "SimCruise.Vehicle.Model.Drivetrain", VehicleTestFlags)
 bool FSimCruiseVehicleModelDrivetrainTest::RunTest(const FString& Parameters)
 {

@@ -78,6 +78,37 @@ struct FSimCruiseCarDefinition
 	double PeakSlipRatio = 0.10;
 	double SlipRatioFalloffFraction = 0.0;
 	double RelaxationLoadExponent = 0.5;
+
+	/**
+	 * Tyre force law: "legacy" (the tanh curve and friction ellipse above) or "tmeasy"
+	 * (G. Rill's TMeasy: one force-over-slip curve per direction, from the initial
+	 * stiffness dF0, the peak FM at sM and the sliding force FS from sS, each given at
+	 * the nominal load and at twice it, combined along the slip direction). The
+	 * default shape is Project Chrono's GuessPassCar70Par set (BSD-3) for a 70-series
+	 * passenger tyre; the four grip levels below scale it to the car's tyre.
+	 */
+	FString TyreModel = TEXT("legacy");
+	/** TMeasy grip at the nominal load: peak and full-slide friction, longitudinal and lateral. */
+	double TmeasyPeakMuX = 1.1292;
+	double TmeasySlideMuX = 0.80149;
+	double TmeasyPeakMuY = 1.0009;
+	double TmeasySlideMuY = 0.8336;
+	/** Initial slip stiffness over load (per unit slip) and the slips of peak and full slide. */
+	double TmeasyStiffnessX = 18.3741;
+	double TmeasyStiffnessY = 15.9826;
+	double TmeasyPeakSlipX = 0.13913;
+	double TmeasyPeakSlipY = 0.14852;
+	double TmeasySlideSlipX = 0.66667;
+	double TmeasySlideSlipY = 0.96524;
+	/** At twice the nominal load, each value over its nominal-load value (Chrono's 2 pn set). */
+	double TmeasyStiffnessX2Ratio = 19.4669 / 18.3741;
+	double TmeasyStiffnessY2Ratio = 12.8509 / 15.9826;
+	double TmeasyPeakMuX2Ratio = 1.0896 / 1.1292;
+	double TmeasyPeakMuY2Ratio = 0.91367 / 1.0009;
+	double TmeasySlideMuX2Ratio = 0.76917 / 0.80149;
+	double TmeasySlideMuY2Ratio = 0.77336 / 0.8336;
+	double TmeasyPeakSlipY2Ratio = 0.18504 / 0.14852;
+	double TmeasySlideSlipY2Ratio = 1.0714 / 0.96524;
 	bool bAbsEnabled = false;
 	double WheelRotationalInertiaKgM2 = 1.05;
 	double RollingResistanceCoefficient = 0.012;

@@ -92,10 +92,149 @@ namespace SimCruiseDynamics
 		return LateralN;
 	}
 
+	bool UsesTmeasy(const FSimCruiseCarDefinition& Car)
+	{
+		return Car.TyreModel == TEXT("tmeasy");
+	}
+
+	void GetTmeasyCurves(const FSimCruiseCarDefinition& Car, double NormalLoadN, double GripScale,
+		FTmeasyCurve& OutX, FTmeasyCurve& OutY)
+	{
+		const double Pn = FMath::Max(Car.ReferenceCornerLoadN, 1.0);
+		// Chrono clamps the load it interpolates with; past about 2.5 pn the quadratic turns over.
+		const double Q = FMath::Clamp(NormalLoadN / Pn, 0.0, 2.5);
+		// InterpQ: through 0 at no load, w1 at pn and w2 at 2 pn (absolute forces).
+		auto InterpQ = [Q](double W1, double W2) { return Q * (2.0 * W1 - 0.5 * W2 - (W1 - 0.5 * W2) * Q); };
+		auto InterpL = [Q](double W1, double W2) { return W1 + (W2 - W1) * (Q - 1.0); };
+		auto Force = [&](double PerLoad, double Ratio2) { return InterpQ(PerLoad * Pn, PerLoad * Ratio2 * 2.0 * Pn); };
+		const double G = FMath::Max(GripScale, 0.0);
+		OutX.Stiffness = Force(Car.TmeasyStiffnessX, Car.TmeasyStiffnessX2Ratio);
+		OutX.PeakForce = Force(Car.TmeasyPeakMuX, Car.TmeasyPeakMuX2Ratio) * G;
+		OutX.PeakSlip = Car.TmeasyPeakSlipX * G;
+		OutX.SlideForce = Force(Car.TmeasySlideMuX, Car.TmeasySlideMuX2Ratio) * G;
+		OutX.SlideSlip = Car.TmeasySlideSlipX * G;
+		OutY.Stiffness = Force(Car.TmeasyStiffnessY, Car.TmeasyStiffnessY2Ratio);
+		OutY.PeakForce = Force(Car.TmeasyPeakMuY, Car.TmeasyPeakMuY2Ratio) * G;
+		OutY.PeakSlip = FMath::Max(InterpL(Car.TmeasyPeakSlipY, Car.TmeasyPeakSlipY * Car.TmeasyPeakSlipY2Ratio), 0.02) * G;
+		OutY.SlideForce = Force(Car.TmeasySlideMuY, Car.TmeasySlideMuY2Ratio) * G;
+		OutY.SlideSlip = FMath::Max(InterpL(Car.TmeasySlideSlipY, Car.TmeasySlideSlipY * Car.TmeasySlideSlipY2Ratio), 0.1) * G;
+	}
+
+	double TmeasyForce(double S, const FTmeasyCurve& C)
+	{
+		S = FMath::Abs(S);
+		const double Fm = C.PeakForce, Sm = FMath::Max(C.PeakSlip, 1.0e-4), Fs = C.SlideForce, Ss = FMath::Max(C.SlideSlip, Sm + 1.0e-4);
+		if (Fm <= 0.0)
+		{
+			return 0.0;
+		}
+		// The curve must reach its peak: the initial slope is at least the secant to it, twice over.
+		const double Df0 = FMath::Max(2.0 * Fm / Sm, C.Stiffness);
+		if (S >= Ss)
+		{
+			return Fs;
+		}
+		if (S < Sm)
+		{
+			// Adhesion: a rational curve from the initial slope to a zero slope at the peak.
+			const double P = Df0 * Sm / Fm - 2.0;
+			const double Sn = S / Sm;
+			return Df0 * Sm * Sn / (1.0 + (Sn + P) * Sn);
+		}
+		// Peak to full slide: two parabolas meeting at S*, as Chrono's tmxy_combined.
+		const double A = FMath::Square(Fm / Sm) / (Df0 * Sm);
+		const double SStar = Sm + (Fm - Fs) / (A * (Ss - Sm));
+		if (SStar <= Ss)
+		{
+			if (S <= SStar)
+			{
+				return Fm - A * FMath::Square(S - Sm);
+			}
+			const double B = A * (SStar - Sm) / (Ss - SStar);
+			return Fs + B * FMath::Square(Ss - S);
+		}
+		const double Sn = (S - Sm) / (Ss - Sm);
+		return Fm - (Fm - Fs) * Sn * Sn * (3.0 - 2.0 * Sn);
+	}
+
+	double TmeasyCombined(const FSimCruiseCarDefinition& Car, double NormalLoadN, double GripScale,
+		double SlipX, double SlipY, double& OutSecantPerSlip, double& OutPeakSlipX)
+	{
+		FTmeasyCurve X, Y;
+		GetTmeasyCurves(Car, NormalLoadN, GripScale, X, Y);
+		OutPeakSlipX = X.PeakSlip;
+		const double Sc = FMath::Sqrt(SlipX * SlipX + SlipY * SlipY);
+		if (Sc < 1.0e-6)
+		{
+			OutSecantPerSlip = FMath::Max(X.Stiffness, Y.Stiffness);
+			return 0.0;
+		}
+		// Each parameter blended along the slip direction (Chrono ChTMeasyTire::Advance).
+		const double Cx = SlipX / Sc, Cy = SlipY / Sc;
+		FTmeasyCurve C;
+		C.Stiffness = FMath::Sqrt(FMath::Square(X.Stiffness * Cx) + FMath::Square(Y.Stiffness * Cy));
+		C.PeakForce = FMath::Sqrt(FMath::Square(X.PeakForce * Cx) + FMath::Square(Y.PeakForce * Cy));
+		C.PeakSlip = FMath::Sqrt(FMath::Square(X.PeakSlip * Cx) + FMath::Square(Y.PeakSlip * Cy));
+		C.SlideForce = FMath::Sqrt(FMath::Square(X.SlideForce * Cx) + FMath::Square(Y.SlideForce * Cy));
+		C.SlideSlip = FMath::Sqrt(FMath::Square(X.SlideSlip * Cx) + FMath::Square(Y.SlideSlip * Cy));
+		const double F = TmeasyForce(Sc, C);
+		OutSecantPerSlip = F / Sc;
+		return F;
+	}
+
+	static FSimCruiseLongitudinalSubstepOutput SolveTmeasySubstep(
+		const FSimCruiseCarDefinition& Car,
+		const FSimCruiseLongitudinalSubstepInput& Input)
+	{
+		FSimCruiseLongitudinalSubstepOutput Out;
+		const double R = Input.TireRadiusM;
+		const double I = FMath::Max(Input.WheelInertiaKgM2, UE_DOUBLE_SMALL_NUMBER);
+		const double Ds = Input.SubstepS;
+		const double V = Input.ForwardSpeedMps;
+		const double Fz = Input.NormalLoadN;
+		const double Spin = Input.SpinAfterTorqueRadPerSecond;
+		// ABS and traction control keep their own slip measures.
+		Out.SlipRatio = (Input.StartAngularSpeedRadPerSecond * R - V) / FMath::Max(FMath::Abs(V), 5.0);
+		Out.TractionControlSlip = (Input.StartAngularSpeedRadPerSecond * R - V) / FMath::Max(FMath::Abs(V), 1.5);
+		// The force law's slip: over the road speed, floored at 1.5 m/s as the implicit solve is.
+		const double Transport = FMath::Max(FMath::Abs(V), 1.5);
+		const double SlipX = (Input.StartAngularSpeedRadPerSecond * R - V) / Transport;
+		const double SlipY = Input.LateralSlip;
+		double Secant = 0.0, PeakSlipX = 0.1;
+		TmeasyCombined(Car, Fz, Input.GripScale, SlipX, SlipY, Secant, PeakSlipX);
+		Out.PeakSlipRatio = PeakSlipX;
+		// The wheel and the contact solved together on the secant stiffness (never negative),
+		// so a spinning or locking wheel stays stable past the peak.
+		const double Ke = FMath::Max(Secant, 0.0) / Transport;
+		double Fx = Ke * (Spin * R - V) / (1.0 + Ke * R * R * Ds / I);
+		// A wheel the brake holds locked does not turn back up: the road force on it is the
+		// full slip force while the brake out-torques it.
+		const double LockedFx = Ke * -V;
+		if (Input.BrakeTorqueNm > 0.0 && FMath::Abs(Spin) < 1.0e-5 && FMath::Abs(LockedFx * R) <= Input.BrakeTorqueNm)
+		{
+			Fx = LockedFx;
+		}
+		const double Fy = -Secant * SlipY + Input.LateralForceN;
+		Out.GripUseFraction = Fx / FMath::Max(Fz * Car.TmeasyPeakMuX * Input.GripScale, 1.0);
+		double EndSpin = Spin - Fx * R * Ds / I;
+		if (Input.BrakeTorqueNm > 0.0 && FMath::Abs(Spin) < 1.0e-5 && FMath::Abs(Fx * R) <= Input.BrakeTorqueNm)
+		{
+			EndSpin = 0.0;
+		}
+		Out.LongitudinalForceN = Fx;
+		Out.LateralForceN = Fy;
+		Out.EndAngularSpeedRadPerSecond = EndSpin;
+		return Out;
+	}
+
 	FSimCruiseLongitudinalSubstepOutput SolveLongitudinalSubstep(
 		const FSimCruiseCarDefinition& Car,
 		const FSimCruiseLongitudinalSubstepInput& Input)
 	{
+		if (UsesTmeasy(Car))
+		{
+			return SolveTmeasySubstep(Car, Input);
+		}
 		FSimCruiseLongitudinalSubstepOutput Out;
 		const double R = Input.TireRadiusM;
 		const double I = FMath::Max(Input.WheelInertiaKgM2, UE_DOUBLE_SMALL_NUMBER);
@@ -204,6 +343,14 @@ namespace SimCruiseDynamics
 		Sub.TireRadiusM = TireRadiusM;
 		Sub.WheelInertiaKgM2 = WheelInertiaKgM2;
 		Sub.SubstepS = DeltaTimeS;
+		if (UsesTmeasy(Car))
+		{
+			Sub.LateralSlip = FMath::Tan(FMath::Clamp(SlipAngle, -1.4, 1.4));
+			Sub.GripScale = FMath::Max(Input.SurfaceGripMultiplier, 0.0) *
+				(Car.AxleGripMultiplier.IsValidIndex(AxleIndex) ? Car.AxleGripMultiplier[AxleIndex] : 1.0);
+			Sub.LateralForceN = ComputeLateralForceN(Car, Input.NormalLoadN, Mu, 0.0,
+				-(Input.CamberAngleRad + Input.RoadLeanAngleRad), Input.ForwardSpeedMps);
+		}
 		const FSimCruiseLongitudinalSubstepOutput Out = SolveLongitudinalSubstep(Car, Sub);
 
 		Result.LongitudinalForceN = Out.LongitudinalForceN;

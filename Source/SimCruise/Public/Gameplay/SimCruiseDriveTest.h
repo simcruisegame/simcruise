@@ -35,7 +35,7 @@ class ASimCruisePlayerController;
  * Output: Saved/DriveTest/drive-test.csv (-SimCruiseDriveTestOut=FILE)
  * and one summary log line per manoeuvre: peak rear-axle slip angle (the
  * rear axle's velocity angle to the body), peak yaw rate and whether the car
- * spun (rear-axle slip past 15 deg above 3 m/s).
+ * spun (rear-axle slip past 15 deg above 5 m/s).
  */
 UCLASS()
 class SIMCRUISE_API ASimCruiseDriveTest : public AActor

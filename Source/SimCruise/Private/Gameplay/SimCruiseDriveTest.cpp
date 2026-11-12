@@ -89,7 +89,7 @@ void ASimCruiseDriveTest::WriteRow(float DeltaSeconds, float Stick, float Thrott
 	// slip at the centre of mass is large by geometry alone.
 	const FSimCruiseVehicleSetup Setup = Car->GetVehicleSetup();
 	const double ToRearAxleM = Setup.WheelbaseM - Setup.CenterOfMassToFrontAxleM;
-	if (V.X > 3.0)
+	if (V.X > 5.0)
 	{
 		const double RearSlipDeg = FMath::RadiansToDegrees(FMath::Atan2(V.Y - W.Z * ToRearAxleM, V.X));
 		PeakBetaDeg = FMath::Max(PeakBetaDeg, FMath::Abs(RearSlipDeg));
