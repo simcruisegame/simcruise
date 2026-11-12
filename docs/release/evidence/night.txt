@@ -1,0 +1,19 @@
+# Night driving, final 2.0.0 Shipping build (commit b7ac2de, main ff35887 with the cars thread's night fix), Ultra preset, 1920x1080
+# Captures: -SimCruiseDriveCapture -SimCruiseGraphics=ultra; low beams on at night.
+#   Ocean Drive, Miami Beach, -SimCruiseUtc=2026-11-13T02:00:00Z (21:00 local)
+#   Princeton Road, Lancaster County NE (gravel, no street lights), -SimCruiseUtc=2026-11-13T04:00:00Z (22:00 local)
+# Luminance: Rec. 709 luma of the 8-bit sRGB screenshot (0-255), measured with Pillow.
+
+| Shot | Frame mean | Pixels below 8/255 | Road patch mean | Pass |
+|---|---|---|---|---|
+| Rural, driver's seat | 5.0 | 88 % | 37.4 (x 300-1100, y 560-720) | PASS (road clearly above black; the dark rest is unlit fields and sky) |
+| Ocean Drive, driver's seat | 21.8 | 68 % | 44.6 (x 600-1300, y 520-680) | PASS |
+| Rural, chase | 4.2 | 95 % | - | - |
+| Ocean Drive, chase | 24.9 | 69 % | - | - |
+
+Rural road brightness down the centre of the lane (x 500-900), by screen row (the horizon is near row 475):
+row 530: 0.9, 545: 3.2, 560: 7.4, 575: 13.3, 590: 20.4, 620: 35.4, 650: 48.8, 680: 61.1, 710: 70.1
+
+With the true field of view (32.1 deg wide, 18.3 deg tall at 16:9, about 59 px per degree) and the eye about 1.05 m over the road, row 545 is about 1.2 deg below the horizon, about 50 m ahead; row 560 about 42 m. The lit road is visible to about 45-50 m. The rule asks for about 60 m: close; noted for the cars thread (low-beam range is 250 m in the model, so the fall-off is the exposure and the beam pattern, not the range).
+
+Before the night fix (cars thread, 2026-11-12): the eye adapted to a card facing the lamps and the road was nearly black (0.1 cd/m2).

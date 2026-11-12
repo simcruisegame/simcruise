@@ -73,8 +73,13 @@ namespace SimCruiseNeuralPrivate
 
 FSimCruiseNeuralDetail& FSimCruiseNeuralDetail::Get()
 {
-	static FSimCruiseNeuralDetail Instance;
-	return Instance;
+	// Never destroyed (release bug R6): a function-static instance was destroyed by the C
+	// runtime at process exit, after the engine had shut down. Its ONNX Runtime environment then
+	// waited for its thread pool's workers, which were themselves waiting for the loader lock the
+	// exiting thread held, so a Shipping game hung for ever after its window closed. The OS
+	// frees the memory and the threads when the process ends.
+	static FSimCruiseNeuralDetail* Instance = new FSimCruiseNeuralDetail();
+	return *Instance;
 }
 
 int32 FSimCruiseNeuralDetail::WindowCount(int32 Width, int32 Height)

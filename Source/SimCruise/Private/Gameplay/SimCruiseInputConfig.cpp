@@ -36,24 +36,31 @@ const TArray<FSimCruiseBindingSpec>& USimCruiseInputConfig::Bindings()
 		{TEXT("SteerKey"), EKeys::Right},
 		{TEXT("FullBrake"), EKeys::SpaceBar},
 		{TEXT("ParkingBrake"), EKeys::H},
-		{TEXT("ParkingBrake"), EKeys::Gamepad_FaceButton_Bottom},
+		// Release bug #10: the clutch was on LB, the same finger as the brake trigger, so a
+		// downshift under braking needed one finger in two places. The right thumb now holds
+		// the clutch (A) or the parking brake (B) while the bumpers change gear like paddles.
+		{TEXT("ParkingBrake"), EKeys::Gamepad_FaceButton_Right},
 		{TEXT("ToggleTransmission"), EKeys::T},
-		{TEXT("ToggleTransmission"), EKeys::Gamepad_FaceButton_Right},
+		// The right stick does nothing while driving, so its click is free and never pressed by accident.
+		{TEXT("ToggleTransmission"), EKeys::Gamepad_RightThumbstick},
 		{TEXT("Clutch"), EKeys::LeftShift},
 		{TEXT("Clutch"), EKeys::RightShift},
-		{TEXT("Clutch"), EKeys::Gamepad_LeftShoulder},
+		{TEXT("Clutch"), EKeys::Gamepad_FaceButton_Bottom},
 		{TEXT("ShiftUp"), EKeys::E},
 		{TEXT("ShiftUp"), EKeys::Gamepad_RightShoulder},
 		{TEXT("ShiftDown"), EKeys::Q},
-		{TEXT("ShiftDown"), EKeys::Gamepad_FaceButton_Left},
+		{TEXT("ShiftDown"), EKeys::Gamepad_LeftShoulder},
 		{TEXT("StartEngine"), EKeys::I},
-		{TEXT("StartEngine"), EKeys::Gamepad_RightThumbstick},
+		{TEXT("StartEngine"), EKeys::Gamepad_DPad_Left},
 		{TEXT("CycleCamera"), EKeys::C},
 		{TEXT("CycleCamera"), EKeys::Gamepad_FaceButton_Top},
 		{TEXT("CycleHud"), EKeys::F2},
-		{TEXT("CycleHud"), EKeys::Gamepad_LeftThumbstick},
+		// Not on L3: steering hard presses the stick by accident.
+		{TEXT("CycleHud"), EKeys::Gamepad_FaceButton_Left},
 		{TEXT("ToggleStats"), EKeys::F3},
 		{TEXT("CycleLens"), EKeys::F6},
+		// The left-stick click is free since the HUD moved to X; a lens change by accident is harmless.
+		{TEXT("CycleLens"), EKeys::Gamepad_LeftThumbstick},
 		{TEXT("ToggleSound"), EKeys::M},
 		{TEXT("ToggleLights"), EKeys::L},
 		{TEXT("ToggleAtlas"), EKeys::Tab},

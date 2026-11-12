@@ -140,7 +140,7 @@ namespace SimCruisePlacePhotos
 		auto Bin = [](const FColor& C) { return FIntVector(C.R / 24, C.G / 24, C.B / 24); };
 		TMap<FIntVector, int32> Counts;
 		for (const FColor& C : Kept) ++Counts.FindOrAdd(Bin(C));
-		FIntVector Best;
+		FIntVector Best = FIntVector::ZeroValue;
 		int32 BestN = -1;
 		for (const auto& KV : Counts) if (KV.Value > BestN) { BestN = KV.Value; Best = KV.Key; }
 		TArray<uint8> R, G, B;

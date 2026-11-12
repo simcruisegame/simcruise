@@ -1,0 +1,20 @@
+# Settings and saved tuning, final 2.0.0 Shipping build (commit b7ac2de)
+# SIMCRUISE_QA_PREFS_DIR pointed the game at a test preferences.json (the owner's own settings were not touched); a saved Mustang setup was put in Saved/SimCruise/tuning-mustang65.json (final drive 2.80 instead of 3.00, ride height -20 mm) and removed afterwards.
+# SimCruise-Win64-Shipping.exe -SimCruiseSoak=5 -SimCruiseSoakNoTravel -SimCruiseBundledStart -windowed
+
+preferences.json before:
+{"car":"mustang65","sound":false,"hud_level":0,"lens":1,"manual":true,"head_motion":50,"rumble":30}
+
+preferences.json after the run:
+{"car":"mustang65","sound":false,"hud_level":0,"lens":1,"manual":true,"head_motion":50,"rumble":30}
+
+2026-11-12 12:34:38 SOAK start: 5.0 minutes, travel 0
+2026-11-12 12:35:08 SOAK   30 s: driving, 0 km/h, 27 fps avg, worst frame 400 ms, 2530 MB used, 2 recoveries, 0 camera changes, place Ocean Drive, Miami Beach · Art Deco District, car mustang65
+2026-11-12 12:35:38 SOAK   60 s: driving, 0 km/h, 30 fps avg, worst frame 38 ms, 2531 MB used, 7 recoveries, 1 camera changes, place Ocean Drive, Miami Beach · Art Deco District, car mustang65
+2026-11-12 12:39:38 SOAK DONE: 5.0 minutes, drove 1, 33 recoveries, 4 camera changes, 0 car changes, 0 travels, 0 non-finite states, peak 3145 MB used
+
+Result:
+- J1/D3 read: the remembered car came back (the drive started in mustang65); the manual gearbox came back (the soak driver uses no clutch or gears, so the car stayed at 0 km/h and was recovered 33 times); sound off, HUD level 0, lens 1, head motion 50 % and rumble 30 % were read the same way (one JSON reader) and kept in the file. Exit code 0.
+- J1 write: the car change did not happen in this run, so the write was not exercised here; it uses the same writer (whole file to a temporary file, then moved into place).
+- N6: the saved setup loaded at the drive start in the Shipping build with no crash. The menu itself (open with F4/D-pad right, change a row, A saves, B cancels) was not driven by the gate: a person was using the PC, so no keystrokes were sent. SimCruise.Vehicle.Model.Tuning checks what each row changes in the car.
+- The run averaged 30 fps in a 1600x900 window, against 60 fps in the installer and soak runs at the same size; the PC was in use at the time.

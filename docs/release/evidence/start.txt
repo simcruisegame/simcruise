@@ -1,0 +1,24 @@
+# Start and go anywhere, final 2.0.0 Shipping build (commit b7ac2de)
+
+## I1 / I2: a normal start is a random start-pool road
+The 20-minute soak (evidence/soak.txt) is a normal launch with no start flag: it started on "Broadway, Lower Broadway, Nashville, TN" and drove; the 4-minute offline run started on "Route 66 Oatman Road, Sitgreaves Pass, AZ". No crash.
+
+## I3: travel to preset places
+The soak travelled to 3 presets with ASimCruiseGameMode::TravelTo (as the road atlas and the place search do): Monument Valley (US 163, UT), Capitol Avenue (Cheyenne, WY), Clay Center (Charleston, WV). Each loaded and the car drove on; worst frame after a travel 63 ms. No crash.
+
+## I4: offline
+SimCruise-Win64-Shipping.exe -SimCruiseSoak=4 -SimCruiseSoakNoTravel -SimCruiseLiveOffline: every live-data request (weather, air, sea, aircraft, photos) goes to a closed local port. The game started, drove 4 minutes (16 recoveries, 5 camera changes), 0 non-finite states and exited with code 0.
+Limit: the map helper (tools/atlas.exe) still had the network, so the start was a random pool road; the fall-back to the bundled Ocean Drive with the network fully off was not run in this release (it needs the network turned off for the whole PC). Known issue in the release notes.
+
+2026-11-12 12:19:06 SOAK start: 4.0 minutes, travel 0
+2026-11-12 12:19:36 SOAK   30 s: driving, 41 km/h, 52 fps avg, worst frame 400 ms, 2068 MB used, 0 recoveries, 0 camera changes, place Route 66 Oatman Road · Sitgreaves Pass, AZ, car nb2001_aaron
+2026-11-12 12:20:06 SOAK   60 s: driving, 50 km/h, 60 fps avg, worst frame 51 ms, 2055 MB used, 0 recoveries, 1 camera changes, place Route 66 Oatman Road · Sitgreaves Pass, AZ, car nb2001_aaron
+2026-11-12 12:20:36 SOAK   90 s: driving, 8 km/h, 60 fps avg, worst frame 19 ms, 2089 MB used, 0 recoveries, 1 camera changes, place Route 66 Oatman Road · Sitgreaves Pass, AZ, car nb2001_aaron
+2026-11-12 12:21:06 SOAK  120 s: driving, 34 km/h, 60 fps avg, worst frame 18 ms, 2082 MB used, 0 recoveries, 2 camera changes, place Route 66 Oatman Road · Sitgreaves Pass, AZ, car nb2001_aaron
+2026-11-12 12:21:36 SOAK  150 s: driving, 15 km/h, 60 fps avg, worst frame 20 ms, 2009 MB used, 4 recoveries, 3 camera changes, place Route 66 Oatman Road · Sitgreaves Pass, AZ, car nb2001_aaron
+2026-11-12 12:22:06 SOAK  180 s: driving, -5 km/h, 60 fps avg, worst frame 19 ms, 2021 MB used, 7 recoveries, 3 camera changes, place Route 66 Oatman Road · Sitgreaves Pass, AZ, car nb2001_aaron
+2026-11-12 12:22:36 SOAK  210 s: driving, 2 km/h, 60 fps avg, worst frame 20 ms, 2008 MB used, 11 recoveries, 4 camera changes, place Route 66 Oatman Road · Sitgreaves Pass, AZ, car nb2001_aaron
+2026-11-12 12:23:06 SOAK DONE: 4.0 minutes, drove 1, 16 recoveries, 5 camera changes, 0 car changes, 0 travels, 0 non-finite states, peak 2526 MB used
+
+## K2: smoke test
+scripts\release.ps1: SimCruise-Win64-Shipping.exe -SimCruiseShellSelfTest -windowed: exit code 0 (the self-test passed and the game exited).

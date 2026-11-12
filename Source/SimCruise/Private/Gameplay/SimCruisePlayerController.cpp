@@ -239,7 +239,7 @@ void ASimCruisePlayerController::PlayerTick(float DeltaTime)
 			bPreferencesApplied = true;
 			bSoundOn = SimCruisePreferences::GetBool(TEXT("sound"), bSoundOn);
 			Hud->SetLevel(static_cast<ESimCruiseHudLevel>(SimCruisePreferences::GetInt(TEXT("hud_level"), static_cast<int32>(Hud->GetLevel()), 0, 2)));
-			const int32 Lens = SimCruisePreferences::GetInt(TEXT("lens_v2"), static_cast<int32>(Camera->GetLens()), 0, 2);
+			const int32 Lens = SimCruisePreferences::GetInt(TEXT("lens_v3"), static_cast<int32>(Camera->GetLens()), 0, 2);
 			for (const TPair<const TCHAR*, const TCHAR*>& Pref : { TPair<const TCHAR*, const TCHAR*>(TEXT("head_motion"), TEXT("simcruise.Camera.HeadMotion")), TPair<const TCHAR*, const TCHAR*>(TEXT("rumble"), TEXT("simcruise.Rumble.Strength")) })
 			{
 				const int32 Percent = SimCruisePreferences::GetInt(Pref.Key, -1, -1, 100);
@@ -732,7 +732,7 @@ void ASimCruisePlayerController::OnCycleLens()
 	if (ASimCruisePlayerCameraManager* Camera = GetSimCamera())
 	{
 		Camera->CycleLens();
-		SimCruisePreferences::SetInt(TEXT("lens_v2"), static_cast<int32>(Camera->GetLens()));
+		SimCruisePreferences::SetInt(TEXT("lens_v3"), static_cast<int32>(Camera->GetLens()));
 		ShowMessage(FString::Printf(TEXT("Lens · %s"), SimCruiseLens::Label(Camera->GetLens())), 2.f);
 	}
 }
@@ -831,22 +831,22 @@ void ASimCruisePlayerController::TickSelfTest(float DeltaTime)
 			SelfTestViewBefore = Camera ? static_cast<int32>(Camera->GetView()) : -1;
 			SelfTestHudBefore = Hud ? static_cast<int32>(Hud->GetLevel()) : -1;
 			InjectKey(EKeys::Gamepad_FaceButton_Top, true);
-			InjectKey(EKeys::Gamepad_LeftThumbstick, true);
+			InjectKey(EKeys::Gamepad_FaceButton_Left, true);
 			Next();
 		}
 		break;
-	case 6: // Y cycles the camera, L3 the HUD
+	case 6: // Y cycles the camera, X the HUD
 		if (SelfTestClock > 0.05f && SelfTestClock - DeltaTime <= 0.05f)
 		{
 			InjectKey(EKeys::Gamepad_FaceButton_Top, false);
-			InjectKey(EKeys::Gamepad_LeftThumbstick, false);
+			InjectKey(EKeys::Gamepad_FaceButton_Left, false);
 		}
 		if (SelfTestClock > 0.2f)
 		{
 			const int32 ViewNow = Camera ? static_cast<int32>(Camera->GetView()) : -1;
 			const int32 HudNow = Hud ? static_cast<int32>(Hud->GetLevel()) : -1;
 			if (ViewNow != (SelfTestViewBefore + 1) % 3) { Fail(TEXT("Y did not cycle the camera")); break; }
-			if (HudNow != (SelfTestHudBefore + 1) % 3) { Fail(TEXT("L3 did not cycle the HUD")); break; }
+			if (HudNow != (SelfTestHudBefore + 1) % 3) { Fail(TEXT("X did not cycle the HUD")); break; }
 			InjectKey(EKeys::C, true);
 			InjectKey(EKeys::F2, true);
 			Next();
@@ -918,7 +918,7 @@ void ASimCruisePlayerController::TickSelfTest(float DeltaTime)
 	{
 		const bool bPassed = SelfTestFailure.IsEmpty();
 		UE_LOG(LogSimCruiseShell, Display, TEXT("SIMCRUISE SHELL SELF-TEST %s %s"), bPassed ? TEXT("PASSED") : TEXT("FAILED"),
-			bPassed ? TEXT("stick both ways, exact centre, key full lock, Y/L3/C/F2, RT linear, W ramp, LT dead zone") : *SelfTestFailure);
+			bPassed ? TEXT("stick both ways, exact centre, key full lock, Y/X/C/F2, RT linear, W ramp, LT dead zone") : *SelfTestFailure);
 		SelfTestStage = -1;
 		if (bSelfTestQuit)
 		{
@@ -997,7 +997,7 @@ void ASimCruisePlayerController::TickCapture(float DeltaTime)
 	const bool bParkingBrake = S > 11.f && S <= 11.3f;
 	if (bParkingBrake != bCaptureParkingBrake)
 	{
-		InjectKey(EKeys::Gamepad_FaceButton_Bottom, bParkingBrake);
+		InjectKey(EKeys::Gamepad_FaceButton_Right, bParkingBrake);
 		bCaptureParkingBrake = bParkingBrake;
 	}
 

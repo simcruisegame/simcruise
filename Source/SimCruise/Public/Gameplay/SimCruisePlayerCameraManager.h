@@ -43,9 +43,17 @@ public:
 private:
 	ESimCruiseView View = ESimCruiseView::Driver;
 	ESimCruiseView ShownView = ESimCruiseView::Driver;
-	/** True FOV by default: the screen as a window the size it really is (see SimCruiseLens). */
-	ESimCruiseLens Lens = ESimCruiseLens::Screen;
+	/**
+	 * Natural by default (45 deg tall, 74 across 16:9): on a laptop the true FOV (32 deg across)
+	 * is geometrically exact but reads as a head pushed against the windscreen, since the eye's
+	 * own field is far wider than the screen. True FOV and Wide stay on F6.
+	 */
+	ESimCruiseLens Lens = ESimCruiseLens::Natural;
 	bool bSnap = true;
+	/** Where the car was in the last frame, to see a teleport the frame it lands. */
+	FVector LastBodyLocation = FVector::ZeroVector;
+	FQuat LastBodyRotation = FQuat::Identity;
+	bool bHaveLastBody = false;
 	FSimCruiseHeadModel Head;
 	FSimCruiseChaseFrame Chase;
 };

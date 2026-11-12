@@ -27,6 +27,13 @@
 			]
 		},
 		{
+			"Name": "Reflex",
+			"Enabled": true,
+			"PlatformAllowList": [
+				"Win64"
+			]
+		},
+		{
 			"Name": "ModelContextProtocol",
 			"Enabled": true
 		},

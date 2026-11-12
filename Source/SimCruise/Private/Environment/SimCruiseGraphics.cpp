@@ -109,9 +109,8 @@ ESimCruiseGraphicsPreset FSimCruiseGraphics::AutoPick(const FString& AdapterName
 		{TEXT("rtx 50"), ESimCruiseGraphicsPreset::Ultra}, {TEXT("rtx 40"), ESimCruiseGraphicsPreset::Ultra},
 		{TEXT("rtx 3050"), ESimCruiseGraphicsPreset::Medium}, {TEXT("rtx 30"), ESimCruiseGraphicsPreset::Ultra},
 		{TEXT("rx 9"), ESimCruiseGraphicsPreset::Ultra}, {TEXT("rx 7"), ESimCruiseGraphicsPreset::Ultra},
-		// Measured: the RTX 2070 Super Max-Q holds High at 88-99 fps and Ultra at 65-72 fps in the
-		// lab street at 1080p (docs/unreal-architecture.md), with little margin for real places,
-		// so the laptop part starts on High and the desktop 2070/2080 on Ultra.
+		// The desktop 2070/2080 start on Ultra; laptop parts one step lower, Max-Q parts two
+		// (measured on the RTX 2070 Super Max-Q, see below).
 		{TEXT("rtx 2080"), ESimCruiseGraphicsPreset::Ultra}, {TEXT("rtx 2070"), ESimCruiseGraphicsPreset::Ultra},
 		{TEXT("rtx 2060"), ESimCruiseGraphicsPreset::High}, {TEXT("rx 6"), ESimCruiseGraphicsPreset::Ultra},
 		{TEXT("arc"), ESimCruiseGraphicsPreset::Medium}, {TEXT("gtx 16"), ESimCruiseGraphicsPreset::Medium},
@@ -131,6 +130,14 @@ ESimCruiseGraphicsPreset FSimCruiseGraphics::AutoPick(const FString& AdapterName
 	if (Desktop.IsSet())
 	{
 		Pick = bLaptop ? StepDown(Desktop.GetValue()) : Desktop.GetValue();
+		// A Max-Q part is the low-power (about 80 W, down to 28 W under load) variant: one step
+		// more. Measured in the 2.0.0 Shipping build at 1080p on the RTX 2070 Super Max-Q, Ocean
+		// Drive from the driver's seat: High 57 fps (1 % low 44), Medium 77 fps (1 % low 61), so
+		// High misses the 60 fps / 45 fps target in the city (docs/release/evidence/perf.txt).
+		if (Name.Contains(TEXT("max-q")))
+		{
+			Pick = StepDown(Pick);
+		}
 	}
 	else if (bAllowBenchmark)
 	{

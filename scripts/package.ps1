@@ -77,6 +77,19 @@ Copy-Item (Join-Path $Root 'Content\Vehicles\CarPresentation.json') (Join-Path $
 robocopy (Join-Path $Root 'Content\Vehicle\Calibration') (Join-Path $Game 'Content\Vehicle\Calibration') /MIR /NFL /NDL /NJH /NJS /NP | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "Copying calibration failed ($LASTEXITCODE)" }
 $Atlas = Join-Path $Root 'tools\atlas.exe'
+# The helper is not in git: build it from helper\atlas.mjs when Bun is installed, so a
+# package never ships an older helper than its source.
+$Bun = Get-Command bun -ErrorAction SilentlyContinue
+$BunExe = if ($Bun) { $Bun.Source } else { Join-Path $env:USERPROFILE '.bun\bin\bun.exe' }
+if (Test-Path $BunExe) {
+    Write-Host 'Building tools\atlas.exe from helper\atlas.mjs'
+    Push-Location $Root
+    try {
+        & $BunExe install --frozen-lockfile | Out-Null
+        & $BunExe build --compile --minify --target=bun-windows-x64 helper/atlas.mjs --outfile tools/atlas.exe | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Building the atlas helper failed ($LASTEXITCODE)" }
+    } finally { Pop-Location }
+}
 if (Test-Path $Atlas) {
     New-Item -ItemType Directory -Force (Join-Path $Game 'tools') | Out-Null
     Copy-Item $Atlas (Join-Path $Game 'tools') -Force
