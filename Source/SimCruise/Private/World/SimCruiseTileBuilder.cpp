@@ -590,6 +590,8 @@ namespace SimCruiseTileBuilder
 				for (const TPair<int32, int32>& Seg : Segments)
 				{
 					const FSimCruiseRibbon& Ribbon = Roads.Ribbons[Seg.Key];
+					// Under a bridge the ground stays where it is: the river, the road or the valley below.
+					if (Ribbon.St[Seg.Value].bBridge && Ribbon.St[Seg.Value + 1].bBridge) continue;
 					const FSimCruiseRoadHit Hit = Roads.Project(Seg.Key, Seg.Value, P);
 					const bool bFirst = Seg.Value == 0 && Hit.T <= 0.0;
 					const bool bLast = Seg.Value + 2 == Ribbon.St.Num() && Hit.T >= 1.0;

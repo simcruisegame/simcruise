@@ -51,7 +51,30 @@ void ASimCruiseDriveCapture::BeginPlay()
 			PerfSteps.Add(Name + TEXT(":chase"));
 		}
 	}
-	UE_LOG(LogSimCruiseDriveCapture, Display, TEXT("Drive capture: waiting for the car -> %s"), *OutputDir);
+	FString PoseText;
+	if (FParse::Value(FCommandLine::Get(), TEXT("SimCruiseRealismPose="), PoseText, false))
+	{
+		TArray<FString> Entries;
+		PoseText.ParseIntoArray(Entries, TEXT("+"));
+		for (const FString& Entry : Entries)
+		{
+			TArray<FString> Fields;
+			Entry.ParseIntoArray(Fields, TEXT(","));
+			if (Fields.Num() != 5)
+			{
+				UE_LOG(LogSimCruiseDriveCapture, Error, TEXT("Realism pose '%s' is not name,lat,lon,heading,hfov"), *Entry);
+				continue;
+			}
+			FRealismPose Pose;
+			Pose.Name = Fields[0];
+			Pose.LatDeg = FCString::Atod(*Fields[1]);
+			Pose.LonDeg = FCString::Atod(*Fields[2]);
+			Pose.HeadingDeg = FCString::Atod(*Fields[3]);
+			Pose.HorizontalFovDeg = FMath::Clamp(FCString::Atof(*Fields[4]), 5.f, 170.f);
+			RealismPoses.Add(Pose);
+		}
+	}
+	UE_LOG(LogSimCruiseDriveCapture, Display, TEXT("Drive capture: waiting for the car -> %s (%d realism poses)"), *OutputDir, RealismPoses.Num());
 }
 
 ASimCruisePlayerController* ASimCruiseDriveCapture::GetPlayer() const
@@ -135,6 +158,14 @@ void ASimCruiseDriveCapture::Tick(float DeltaSeconds)
 		{
 			StageStarted = Now;
 			SettleFrames = 0;
+			break;
+		}
+		if (SettleFrames > 90 && Now - StageStarted > 8.0 && !RealismPoses.IsEmpty())
+		{
+			Stage = EStage::Realism;
+			RealismIndex = 0;
+			RealismFrames = 0;
+			StageStarted = Now;
 			break;
 		}
 		if (++SettleFrames > 90 && Now - StageStarted > 8.0 && !PerfSteps.IsEmpty())
@@ -221,6 +252,9 @@ void ASimCruiseDriveCapture::Tick(float DeltaSeconds)
 		}
 		break;
 	}
+	case EStage::Realism:
+		TickRealism(DeltaSeconds, Player, Pawn, bShadersBusy);
+		break;
 	case EStage::Perf:
 	{
 		// Each step: apply the preset and view, let shaders, exposure and Lumen settle 6 s
@@ -276,5 +310,69 @@ void ASimCruiseDriveCapture::Tick(float DeltaSeconds)
 	}
 	default:
 		break;
+	}
+}
+
+void ASimCruiseDriveCapture::TickRealism(float DeltaSeconds, ASimCruisePlayerController* Player, APawn* Pawn, bool bShadersBusy)
+{
+	const double Now = FPlatformTime::Seconds();
+	const ASimCruiseGameMode* Mode = GetWorld()->GetAuthGameMode<ASimCruiseGameMode>();
+	const ASimCruiseWorldStreamer* Stream = Mode ? Mode->GetStreamer() : nullptr;
+	if (!Player || !Stream || !Stream->GetFrame().IsValid() || RealismIndex >= RealismPoses.Num())
+	{
+		if (Pawn) { Pawn->SetActorHiddenInGame(false); }
+		if (Player && Pawn) { Player->SetViewTarget(Pawn); }
+		if (PoseCamera) { PoseCamera->Destroy(); PoseCamera = nullptr; }
+		if (!Stream) { UE_LOG(LogSimCruiseDriveCapture, Error, TEXT("Realism poses need the streamed world (-SimCruiseWorld or -SimCruiseStart)")); }
+		Finish();
+		return;
+	}
+	const FRealismPose& Pose = RealismPoses[RealismIndex];
+
+	// Placed again every frame from the world frame, so a floating-origin rebase cannot move it.
+	FVector Eye = Stream->GetFrame().LonLatToWorldCm(Pose.LonDeg, Pose.LatDeg);
+	double GroundCm = 0.0;
+	const bool bGround = Stream->SurfaceHeightAt(Eye, GroundCm);
+	Eye.Z = GroundCm + 165.0;
+	if (!PoseCamera)
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		PoseCamera = GetWorld()->SpawnActor<ACameraActor>(ACameraActor::StaticClass(), FTransform::Identity, Params);
+		if (!PoseCamera) { Finish(); return; }
+		PoseCamera->GetCameraComponent()->bConstrainAspectRatio = false;
+		if (Pawn) { Pawn->SetActorHiddenInGame(true); }
+		if (ASimCruiseHUD* Hud = Cast<ASimCruiseHUD>(Player->GetHUD())) { Hud->SetLevel(ESimCruiseHudLevel::Off); }
+		Player->SetViewTarget(PoseCamera);
+	}
+	// Compass heading (0 north, clockwise) to yaw: the world's X runs east and Y south.
+	PoseCamera->SetActorLocationAndRotation(Eye, FRotator(0.0, Pose.HeadingDeg - 90.0, 0.0));
+	PoseCamera->GetCameraComponent()->SetFieldOfView(Pose.HorizontalFovDeg);
+
+	// Wait for the ground and tiles at the pose, compiled shaders, then 4 s and 120 frames for
+	// exposure, TSR, Lumen and virtual shadow pages; give up on a pose after 300 s.
+	const bool bReady = bGround && Stream->AreTilesReadyAround(Eye, 1) && !bShadersBusy;
+	if (!bReady)
+	{
+		RealismFrames = 0;
+		Clock = 0.f;
+		if (Now - StageStarted > 300.0)
+		{
+			UE_LOG(LogSimCruiseDriveCapture, Error, TEXT("REALISM %s: the world never loaded at %.6f,%.6f; skipped"), *Pose.Name, Pose.LatDeg, Pose.LonDeg);
+			++RealismIndex;
+			StageStarted = Now;
+		}
+		return;
+	}
+	Clock += DeltaSeconds;
+	if (++RealismFrames >= 120 && Clock > 4.f)
+	{
+		Shoot(TEXT("realism-") + Pose.Name, false);
+		UE_LOG(LogSimCruiseDriveCapture, Display, TEXT("REALISM %s: lat %.7f lon %.7f heading %.1f hfov %.1f eye %s ground %.2f m"),
+			*Pose.Name, Pose.LatDeg, Pose.LonDeg, Pose.HeadingDeg, Pose.HorizontalFovDeg, *Eye.ToString(), GroundCm / 100.0);
+		++RealismIndex;
+		RealismFrames = 0;
+		Clock = 0.f;
+		StageStarted = Now;
 	}
 }

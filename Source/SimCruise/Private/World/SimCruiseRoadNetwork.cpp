@@ -63,6 +63,7 @@ namespace
 		FString Class;
 		FString Name;
 		int32 Contract[2] = { INDEX_NONE, INDEX_NONE }; // neighbour seam end each piece end was snapped to
+		bool bBridge = false;
 	};
 
 	struct FPart
@@ -479,13 +480,14 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 	};
 	for (const FSimCruiseRoadRow& Row : Tile.Roads)
 	{
-		if (!IsDrivableClass(Row.Class) || Row.Surface == TEXT("unpaved") || Row.bBridge) continue;
+		if (!IsDrivableClass(Row.Class) || Row.Surface == TEXT("unpaved")) continue;
 		FPiece Piece;
 		Piece.Class = Row.Class;
 		Piece.Name = Row.Name;
 		Piece.WidthM = FMath::Clamp(Row.WidthM, 2.5, 40.0);
 		Piece.OneWay = Row.OneWay;
 		Piece.Rank = ClassRank(Row.Class);
+		Piece.bBridge = Row.bBridge;
 		for (FVector2d U : Row.Points)
 		{
 			for (int32 Axis = 0; Axis < 2; ++Axis)
@@ -753,6 +755,31 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 				St.HalfW = 0.5 * (SumL > 0.0 ? SumW / SumL : Pieces[Own->Piece].WidthM);
 				const int32 OneWay = Pieces[Own->Piece].OneWay;
 				St.Travel = static_cast<int8>(OneWay == 0 ? 0 : (Own->bReversed ? -OneWay : OneWay));
+				St.bBridge = Pieces[Own->Piece].bBridge;
+			}
+			// A bridge spans the gap: its profile runs straight from abutment to abutment
+			// (BridgeDeck.gd), not down to the river or the valley floor the elevation model
+			// has under it. A span that reaches the end of the ribbon keeps the height of its
+			// one abutment.
+			for (int32 k = 0; k <= Count; ++k)
+			{
+				if (!Ribbon.St[k].bBridge) continue;
+				int32 e = k;
+				while (e + 1 <= Count && Ribbon.St[e + 1].bBridge) ++e;
+				const int32 A = k - 1, B = e + 1;
+				if (A >= 0 || B <= Count)
+				{
+					const double ZA = A >= 0 ? Zs[A] : Zs[B];
+					const double ZB = B <= Count ? Zs[B] : Zs[A];
+					const double SA = A >= 0 ? S[A] : S[k], SB = B <= Count ? S[B] : S[e];
+					for (int32 j = k; j <= e; ++j)
+					{
+						const double T = SB > SA ? FMath::Clamp((S[j] - SA) / (SB - SA), 0.0, 1.0) : 0.0;
+						// Never below the ground under the deck (a bridge over a road or a rise).
+						Zs[j] = FMath::Max(FMath::Lerp(ZA, ZB, T), Zs[j] + 0.5);
+					}
+				}
+				k = e;
 			}
 
 			// 3. Profile: robust local-linear fit of the ground under the centreline.
