@@ -241,18 +241,20 @@ float rR = 0.0, rLit = 0.0, rTint = 0.0, rFy = 1e-4;
 bool rShop = false;
 if (kind < 0.5 || (kind > 10.5 && kind < 13.5))
 {
-	const float storey = 3.1;
+	// The storey height rides in the vertex alpha (2.4 m + 4 m x alpha); opaque white is the
+	// usual 3.1 m. Main Street's 19th-century blocks run 4-4.5 m storeys.
+	const float storey = VA > 0.995 ? 3.1 : 2.4 + 4.0 * VA;
 	float level = floor(max(h, 0.0) / storey);
 	float y = h - level * storey;
 	float bayW = 2.5 + 0.8 * frac(seed * 7.13);
 	float x = frac(along / bayW + 0.5) * bayW;
 	float winW = bayW * (0.46 + 0.16 * frac(seed * 3.71));
 	float x0 = 0.5 * (bayW - winW);
-	float y0 = 0.95, y1 = 2.42;
+	float y0 = 0.95, y1 = storey - 0.68;
 	bool shop = kind > 10.5 && kind < 12.5 && level < 0.5;
 	if (shop)
 	{
-		bayW = 3.6; x = frac(along / bayW + 0.5) * bayW; winW = 3.1; x0 = 0.25; y0 = 0.35; y1 = 2.65;
+		bayW = 3.6; x = frac(along / bayW + 0.5) * bayW; winW = 3.1; x0 = 0.25; y0 = 0.35; y1 = storey - 0.45;
 	}
 	// Edges filtered over the pixel's footprint: a window a few pixels across (down the
 	// street) must not alias into a speckle under the temporal jitter.

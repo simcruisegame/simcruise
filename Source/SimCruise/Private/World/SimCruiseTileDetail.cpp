@@ -417,7 +417,9 @@ namespace SimCruiseTileDetail
 			const bool bPitched = bHouse && Unit(Hash(H, 25)) < ChanceOf(TEXT("detail:pitched_roof"), 0.85);
 			const bool bCurtain = bDowntown && Unit(Hash(H, 26)) < ChanceOf(TEXT("detail:curtain_wall"), 0.6);
 			const bool bCornice = bMainStreet && Unit(Hash(H, 27)) < ChanceOf(TEXT("detail:cornice"), 0.8);
-			const double FloorH = bDeco ? 3.1 : bHouse ? 3.0 : bDowntown ? 3.8 : 3.2;
+			// Main Street's commercial blocks of 1880-1930 have tall storeys (a 4.5-5 m shop storey,
+			// 3.8-4.2 m above): 12 m is three storeys there, not four.
+			const double FloorH = bDeco ? 3.1 : bHouse ? 3.0 : bDowntown ? 3.8 : bMainStreet ? 4.2 : 3.2;
 			const double Parapet = bPitched ? 0.0 : bDeco ? (Height > 5.0 ? 0.9 : 0.4) : (bTower ? 1.1 : bMainStreet ? 0.9 : 0.5);
 			FLinearColor Wall = bDeco ? Pick(DecoWalls(), H) : (bTower ? Pick(TowerWalls(), H) : Pick(GenericWalls(), H));
 			// A colour mapped on the building wins; else the region's palette for ordinary buildings
@@ -427,6 +429,8 @@ namespace SimCruiseTileDetail
 			// Main Street's two- and three-storey blocks are mostly brick (the generic palette's last four).
 			if (bMainStreet && !(BP && BP->bHasColour) && Unit(Hash(H, 24)) < 0.6) Wall = GenericWalls()[12 + Hash(H, 28) % 4];
 			if (BP) Wall = BP->Weathered(Wall);
+			// The shader reads a storey height other than 3.1 m from the wall colour's alpha.
+			Wall.A = FMath::IsNearlyEqual(FloorH, 3.1) ? 1.f : static_cast<float>(FMath::Clamp((FloorH - 2.4) / 4.0, 0.0, 0.99));
 			// Half the hotels keep white trim; the rest a contrasting accent.
 			const FLinearColor Accent = (bDeco && Unit(Hash(H, 3)) < Chance(TEXT("detail:accent_trim"), 0.55)) ? Pick(DecoAccents(), Hash(H, 4)) : Srgb(TEXT("FAF8F2"));
 			const FLinearColor Neon = Pick(NeonColours(), Hash(H, 5));
