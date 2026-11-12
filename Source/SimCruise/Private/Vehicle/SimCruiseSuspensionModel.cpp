@@ -72,7 +72,14 @@ namespace SimCruiseDynamics
 		return CoilRate * PoundsPerInchToNewtonsPerMeter * LeverRatio * LeverRatio;
 	}
 
+	static double GetAntiRollBarRateUnscaled(const FSimCruiseCarDefinition& Car, int32 AxleIndex);
+
 	double GetAntiRollBarRateNPerM(const FSimCruiseCarDefinition& Car, int32 AxleIndex)
+	{
+		return GetAntiRollBarRateUnscaled(Car, AxleIndex) * FMath::Max(GetAxleValue(Car.AntiRollBarScaleByAxle, AxleIndex, 1.0), 0.0);
+	}
+
+	static double GetAntiRollBarRateUnscaled(const FSimCruiseCarDefinition& Car, int32 AxleIndex)
 	{
 		const double ExplicitRate = GetAxleValue(Car.AntiRollBarRateNmPerMByAxle, AxleIndex);
 		if (ExplicitRate > 0.0)
@@ -132,7 +139,7 @@ namespace SimCruiseDynamics
 
 		if (Car.DamperModeByAxle.IsValidIndex(AxleIndex) && Car.DamperModeByAxle[AxleIndex] == TEXT("dyno"))
 		{
-			LoadN += GetDamperDynoLoadN(Car, AxleIndex, SuspensionVelocityMps);
+			LoadN += GetDamperDynoLoadN(Car, AxleIndex, SuspensionVelocityMps) * Car.DamperScale;
 		}
 		else
 		{
@@ -147,7 +154,7 @@ namespace SimCruiseDynamics
 			const double DamperSpeedMps = FMath::Abs(SuspensionVelocityMps);
 			const double EffectiveDamperSpeedMps = FMath::Min(DamperSpeedMps, DamperKneeMps) +
 				FMath::Max(DamperSpeedMps - DamperKneeMps, 0.0) * DamperKneeSlope;
-			LoadN -= FMath::Sign(SuspensionVelocityMps) * CriticalDampingNsPerM * DampingRatio * EffectiveDamperSpeedMps;
+			LoadN -= FMath::Sign(SuspensionVelocityMps) * CriticalDampingNsPerM * DampingRatio * EffectiveDamperSpeedMps * Car.DamperScale;
 		}
 
 		return FMath::Clamp(LoadN, 0.0, Car.MaximumTireContactLoadN);

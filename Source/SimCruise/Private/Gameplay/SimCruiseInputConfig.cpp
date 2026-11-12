@@ -66,6 +66,8 @@ const TArray<FSimCruiseBindingSpec>& USimCruiseInputConfig::Bindings()
 		{TEXT("MinimapIn"), EKeys::Equals},
 		{TEXT("MinimapOut"), EKeys::Gamepad_DPad_Down},
 		{TEXT("MinimapOut"), EKeys::Hyphen},
+		{TEXT("Tuning"), EKeys::Gamepad_DPad_Right},
+		{TEXT("Tuning"), EKeys::F4},
 	};
 	return Table;
 }
@@ -99,6 +101,7 @@ USimCruiseInputConfig* USimCruiseInputConfig::Create(UObject* Outer)
 		{TEXT("ToggleStats"), EInputActionValueType::Boolean, &USimCruiseInputConfig::ToggleStats},
 		{TEXT("MinimapIn"), EInputActionValueType::Boolean, &USimCruiseInputConfig::MinimapIn},
 		{TEXT("MinimapOut"), EInputActionValueType::Boolean, &USimCruiseInputConfig::MinimapOut},
+		{TEXT("Tuning"), EInputActionValueType::Boolean, &USimCruiseInputConfig::Tuning},
 	};
 
 	for (const FActionSpec& Spec : Actions)

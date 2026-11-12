@@ -23,6 +23,9 @@ The Unreal client starts in the 2001 roadster in Ocean Drive's lane, Miami Beach
 | Recover to the nearest road | R | View |
 | Sound on / off (engine, tyres, road, wind) | M | — |
 | Road atlas, find a place | Tab, / | Menu, X in the atlas |
+| Tune the car (standing still) | F4 | D-pad Right |
+
+**Tuning.** Stop the car and press D-pad Right (F4). Up/Down (D-pad or stick) chooses a row, Left/Right changes it, X resets the row, Y puts the whole car back as it left the factory, and B (Esc, F4) saves and closes. The rows are front and rear spring rates (lb/in), damping (% of stock), ride height (mm), front and rear anti-roll bars (% of stock, 0 disconnects one), engine torque (%), final drive and steering ratio (a lower ratio is quicker: the stick turns the wheels further and faster). Each stays inside a safe range around the real car's. Under the rows the menu shows the body roll in degrees per g of cornering, so you see what springs and bars do before you drive. The setup is saved per car and comes back next time you drive that car.
 
 The engine sound is on at the start.
 

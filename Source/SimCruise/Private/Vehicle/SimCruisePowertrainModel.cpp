@@ -103,10 +103,10 @@ namespace SimCruiseDynamics
 				const double Alpha = Range > UE_DOUBLE_SMALL_NUMBER
 					? FMath::Clamp((EngineSpeedRpm - Lower.EngineSpeedRpm) / Range, 0.0, 1.0)
 					: 0.0;
-				return FMath::Lerp(Lower.EngineTorqueNm, Upper.EngineTorqueNm, Alpha);
+				return FMath::Lerp(Lower.EngineTorqueNm, Upper.EngineTorqueNm, Alpha) * Car.EngineTorqueScale;
 			}
 		}
-		return Car.TorquePastCurveNm;
+		return Car.TorquePastCurveNm * Car.EngineTorqueScale;
 	}
 
 	void SplitDriveTorqueToWheels(

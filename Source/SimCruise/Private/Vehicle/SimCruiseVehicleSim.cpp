@@ -273,7 +273,7 @@ double FSimCruiseVehicleSim::MotorTorqueNm(double Throttle, double Ratio, double
 	// Constant torque to the base speed, constant power above it, nothing past
 	// the motor's top speed; light regeneration when coasting.
 	const double MotorOmega = DrivenOmega() * SignDirection * Ratio;
-	double Available = FMath::Min(Car.ElectricMotorPeakTorqueNm, Car.ElectricMotorPeakPowerW / FMath::Max(FMath::Abs(MotorOmega), 1.0));
+	double Available = FMath::Min(Car.ElectricMotorPeakTorqueNm, Car.ElectricMotorPeakPowerW / FMath::Max(FMath::Abs(MotorOmega), 1.0)) * Car.EngineTorqueScale;
 	if (FMath::Abs(MotorOmega) * 60.0 / Tau > Car.ElectricMotorMaximumSpeedRpm)
 	{
 		Available = 0.0;
@@ -408,7 +408,12 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 	{
 		State.SteeringRad = State.SteeringInput * Cap;
 	}
-	const double Steering = State.SteeringRad;
+	// Steering compliance: the front tyres' aligning torque (last step's) winds the column,
+	// rack mounts and tie rods, so the road wheels turn a little less than the rack asks.
+	// It is a real share of a road car's understeer (often a quarter to a half of it).
+	const double Steering = Car.SteeringStiffnessNmPerDeg > 0.0
+		? State.SteeringRad + State.RackAligningTorqueNm / SimCruiseUnits::ToDegrees(1.0) / Car.SteeringStiffnessNmPerDeg
+		: State.SteeringRad;
 
 	State.bRoofDown = Up.Dot(FVector3d::UnitZ()) < 0.2;
 	State.FlippedSeconds = State.bRoofDown ? State.FlippedSeconds + Dt : 0.0;

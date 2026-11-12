@@ -128,15 +128,17 @@ FSimCruiseDriverCommand FSimCruiseDriverShaper::Update(const FSimCruiseVehicleSe
 	double ReturnRate = 0.0;
 	if (bUsingThumbstick)
 	{
-		const double Command = ThumbstickCommand(Setup, Pad, ForwardSpeed);
+		// A quicker steering ratio turns the wheels further for the same thumb, up to the range.
+		const double Quick = FMath::Clamp(Setup.SteeringQuickness, 0.5, 2.0);
+		const double Command = FMath::Clamp(ThumbstickCommand(Setup, Pad, ForwardSpeed) * Quick, -1.0, 1.0);
 		Target = Command * (Command > 0.0 ? RangeRight : RangeLeft);
-		ApplyRate = PadApplyRatePerS * Cap;
+		ApplyRate = PadApplyRatePerS * Cap * Quick;
 		ReturnRate = PadReturnRatePerS * Cap;
 	}
 	else
 	{
 		Target = Key * (Key > 0.0 ? RangeRight : RangeLeft);
-		ApplyRate = KeyRackRateRadPerS(Setup, ForwardSpeed);
+		ApplyRate = KeyRackRateRadPerS(Setup, ForwardSpeed) * FMath::Clamp(Setup.SteeringQuickness, 0.5, 2.0);
 		ReturnRate = FMath::Max(ApplyRate * KeyReturnFactor, KeyReturnRateMinRadPerS);
 	}
 

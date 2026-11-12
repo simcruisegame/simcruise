@@ -110,6 +110,8 @@ struct FSimCruiseVehicleSetup
 	double SteeringSlipLimitSurplusRad = FMath::DegreesToRadians(5.0);
 	/** Steering-wheel turns per road-wheel turn; 0 when unsourced. */
 	double SteeringRatio = 0.0;
+	/** Real ratio over the tuned one: above 1 a quicker rack (a stick moves the wheels further and faster). */
+	double SteeringQuickness = 1.0;
 	/** Driver's eye in the pawn's local space, cm, and the direction of a
 	 *  relaxed gaze down the road (local, unit length). */
 	FVector DriverEyeLocalCm = FVector(-50.3, -34.7, 100.9);

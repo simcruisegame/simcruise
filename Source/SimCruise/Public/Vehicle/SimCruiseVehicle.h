@@ -7,6 +7,7 @@
 #include "Gameplay/SimCruiseVehicleControl.h"
 #include "Presentation/SimCruiseCarPresentationComponent.h"
 #include "Vehicle/CarDefinition.h"
+#include "Vehicle/SimCruiseTuning.h"
 #include "Vehicle/SimCruiseVehicleTelemetry.h"
 #include "SimCruiseVehicle.generated.h"
 
@@ -45,6 +46,17 @@ public:
 
 	/** Install a car before spawning finishes (or later: resizes the body and resets). */
 	void SetCarDefinition(const FSimCruiseCarDefinition& Car);
+
+	/** The car as its file describes it, before any tuning. */
+	const FSimCruiseCarDefinition& GetRealCar() const { return RealCar; }
+	/** The real car's setup in tuning units (the "reset" values). */
+	FSimCruiseTuning GetStockTuning() const;
+	const FSimCruiseTuning& GetTuning() const { return Tuning; }
+	/** Rebuild the car from the real one with this tuning (clamped to safe ranges); bSave writes
+	 *  it to Saved/SimCruise/tuning-<id>.json. Resets the drivetrain: apply standing still. */
+	void ApplyTuning(const FSimCruiseTuning& InTuning, bool bSave);
+	/** Apply the driver's saved tuning for this car, if there is one (the player's car only). */
+	bool LoadSavedTuning();
 
 	/**
 	 * Build the car's downloaded model on this pawn (blocking the first time a
@@ -175,6 +187,9 @@ private:
 	bool bHeadLampsShown = false;
 
 	bool bHasDefinition = false;
+	FSimCruiseCarDefinition RealCar;
+	FSimCruiseTuning Tuning;
+	bool bTuned = false;
 	bool bManualRequested = false;
 	FString LastShownGearMessage;
 	bool bMirrorsLive = false;

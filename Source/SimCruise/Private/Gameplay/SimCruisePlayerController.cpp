@@ -12,6 +12,7 @@
 #include "Engine/Engine.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Gameplay/SimCruiseAtlasUI.h"
+#include "Gameplay/SimCruiseTuningUI.h"
 #include "Gameplay/SimCruiseGameMode.h"
 #include "Gameplay/SimCruisePreferences.h"
 #include "SimCruiseGameInstance.h"
@@ -117,6 +118,7 @@ void ASimCruisePlayerController::SetupInputComponent()
 	Input->BindAction(InputConfig->CycleCamera, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnCycleCamera);
 	Input->BindAction(InputConfig->CycleHud, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnCycleHud);
 	Input->BindAction(InputConfig->ToggleAtlas, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnToggleAtlas);
+	Input->BindAction(InputConfig->Tuning, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnTuning);
 	Input->BindAction(InputConfig->FindPlace, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnFindPlace);
 	Input->BindAction(InputConfig->Recover, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnRecover);
 	Input->BindActionValueLambda(InputConfig->MinimapIn, ETriggerEvent::Started, [this](const FInputActionValue&) { if (ASimCruiseHUD* Hud = GetSimHUD()) Hud->ZoomMinimap(-1); });
@@ -136,6 +138,15 @@ void ASimCruisePlayerController::OnPossess(APawn* InPawn)
 	{
 		// The command written this frame must reach the vehicle before it steps.
 		InPawn->AddTickPrerequisiteActor(this);
+	}
+	// The driver's own setup for this car (checks and captures drive the real car).
+	if (ASimCruiseVehicle* Tunable = Cast<ASimCruiseVehicle>(InPawn))
+	{
+		if (!FParse::Param(FCommandLine::Get(), TEXT("SimCruiseRealCar")) && !FParse::Param(FCommandLine::Get(), TEXT("SimCruiseDriveTest"))
+			&& !FParse::Param(FCommandLine::Get(), TEXT("SimCruiseDriveCapture")) && !GIsAutomationTesting)
+		{
+			Tunable->LoadSavedTuning();
+		}
 	}
 	if (ISimCruiseVehicleControl* Vehicle = GetVehicle())
 	{
@@ -435,6 +446,45 @@ void ASimCruisePlayerController::OnToggleAtlas()
 	OpenRoadAtlas();
 }
 
+void ASimCruisePlayerController::OnTuning()
+{
+	if (IsOverlayOpen())
+	{
+		// The menu itself handles its keys; from another screen the key just closes it.
+		CloseOverlays();
+		return;
+	}
+	if (FMath::Abs(Telemetry.BodyVelocityMps.X) > 1.0)
+	{
+		ShowMessage(TEXT("Stop the car to tune it"), 2.f);
+		return;
+	}
+	OpenTuning();
+}
+
+void ASimCruisePlayerController::OpenTuning()
+{
+	ASimCruiseVehicle* Car = Cast<ASimCruiseVehicle>(GetPawn());
+	if (!Car)
+	{
+		return;
+	}
+	CloseOverlays();
+	TuningPanel = SNew(SSimCruiseTuningMenu)
+		.Vehicle(Car)
+		.OnClose_Lambda([this]()
+		{
+			CloseOverlays();
+			// The rebuilt car reports its new ratio and limits.
+			if (ISimCruiseVehicleControl* Vehicle = GetVehicle())
+			{
+				Setup = Vehicle->GetVehicleSetup();
+			}
+			ShowMessage(TEXT("Setup saved for this car"), 2.f);
+		});
+	ShowOverlay(TuningPanel.ToSharedRef(), TuningPanel);
+}
+
 void ASimCruisePlayerController::OnFindPlace()
 {
 	if (IsOverlayOpen())
@@ -572,6 +622,7 @@ void ASimCruisePlayerController::CloseOverlays()
 	OverlayWidget.Reset();
 	SearchPanel.Reset();
 	AtlasPanel.Reset();
+	TuningPanel.Reset();
 	if (bWasOpen)
 	{
 		SetPause(false);

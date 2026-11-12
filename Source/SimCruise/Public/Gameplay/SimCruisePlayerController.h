@@ -109,8 +109,14 @@ private:
 	void OnFindPlace();
 	void OnRecover();
 	void OnToggleSound();
+	/** D-pad Right / F4: the tuning menu, standing still. */
+	void OnTuning();
 
 public:
+	/** Open the tuning menu for the car being driven (tests call it directly). */
+	void OpenTuning();
+	TSharedPtr<class SSimCruiseTuningMenu> GetTuningMenu() const { return TuningPanel; }
+
 	/** Engine sound on (M toggles it). */
 	bool IsSoundOn() const { return bSoundOn; }
 
@@ -143,6 +149,7 @@ protected:
 	TSharedPtr<SWidget> OverlayWidget;
 	TSharedPtr<SSimCruisePlaceSearch> SearchPanel;
 	TSharedPtr<SSimCruiseRoadAtlas> AtlasPanel;
+	TSharedPtr<class SSimCruiseTuningMenu> TuningPanel;
 	FString PendingMessage;
 	float PendingMessageSeconds = 0.f;
 

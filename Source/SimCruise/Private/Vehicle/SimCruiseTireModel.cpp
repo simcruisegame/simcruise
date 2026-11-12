@@ -240,8 +240,22 @@ namespace SimCruiseDynamics
 		Out.PeakSlipRatio = PeakSlipX;
 		// The wheel and the contact solved together on the secant stiffness (never negative),
 		// so a spinning or locking wheel stays stable past the peak.
-		const double Ke = FMath::Max(Secant, 0.0) / Transport;
+		double Ke = FMath::Max(Secant, 0.0) / Transport;
 		double Fx = Ke * (Spin * R - V) / (1.0 + Ke * R * R * Ds / I);
+		// A second pass at the substep's mean slip (start and this pass's end), so the curve's
+		// stiffness does not depend on how long the substep is: a spinning wheel's force then
+		// converges as the physics step shrinks. Under drive only: a braked wheel keeps the
+		// first pass, which the brake benches converge with.
+		if (Spin * R > V && Input.BrakeTorqueNm <= 0.0)
+		{
+			const double EndSpinGuess = Spin - Fx * R * Ds / I;
+			const double MeanSlipX = (0.5 * (Input.StartAngularSpeedRadPerSecond + EndSpinGuess) * R - V) / Transport;
+			double MeanSecant = Secant;
+			TmeasyCombined(Car, Fz, Input.GripScale, MeanSlipX, SlipY, MeanSecant, PeakSlipX);
+			Secant = MeanSecant;
+			Ke = FMath::Max(Secant, 0.0) / Transport;
+			Fx = Ke * (Spin * R - V) / (1.0 + Ke * R * R * Ds / I);
+		}
 		// A wheel the brake holds locked does not turn back up: the road force on it is the
 		// full slip force while the brake out-torques it.
 		const double LockedFx = Ke * -V;

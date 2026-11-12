@@ -615,6 +615,7 @@ bool FSimCruiseCarDefinitionLoader::ParseJson(const FString& JsonText, const FSt
 	SIMCRUISE_READ_NUMBER("tmeasy_peak_slip_x", TmeasyPeakSlipX);
 	SIMCRUISE_READ_NUMBER("tmeasy_peak_slip_y", TmeasyPeakSlipY);
 	SIMCRUISE_READ_NUMBER("tmeasy_slide_slip_x", TmeasySlideSlipX);
+	SIMCRUISE_READ_NUMBER("steering_stiffness_nm_per_deg", SteeringStiffnessNmPerDeg);
 	SIMCRUISE_READ_NUMBER("tmeasy_slide_slip_y", TmeasySlideSlipY);
 	SIMCRUISE_READ_BOOL("abs_enabled", bAbsEnabled);
 	SIMCRUISE_READ_NUMBER("wheel_inertia", WheelRotationalInertiaKgM2);

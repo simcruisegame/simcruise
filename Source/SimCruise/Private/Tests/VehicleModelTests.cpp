@@ -9,6 +9,7 @@
 #include "Vehicle/SimCruiseUnits.h"
 #include "Vehicle/SimCruiseVehicleDynamics.h"
 #include "Vehicle/SimCruiseVehicleSim.h"
+#include "Vehicle/SimCruiseTuning.h"
 
 namespace
 {
@@ -211,6 +212,48 @@ bool FSimCruiseVehicleModelTmeasyTest::RunTest(const FString& Parameters)
 		PeakMzAlpha >= 0.3 * PeakAlpha && PeakMzAlpha <= 0.6 * PeakAlpha);
 	TestTrue(TEXT("past the side-force peak the aligning torque is less than half its peak"),
 		SimCruiseDynamics::TmeasyPneumaticTrailM(Car, Fz, FMath::Tan(FMath::DegreesToRadians(PeakAlpha))) * Lateral(PeakAlpha, 0.0) < 0.5 * PeakMz);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseVehicleModelTuningTest, "SimCruise.Vehicle.Model.Tuning", VehicleTestFlags)
+bool FSimCruiseVehicleModelTuningTest::RunTest(const FString& Parameters)
+{
+	FSimCruiseCarDefinition Car;
+	if (!SimCruiseLoadBenchCar(*this, TEXT("nb2001"), Car))
+	{
+		return false;
+	}
+	const FSimCruiseTuning Stock = FSimCruiseTuning::FromCar(Car, 15.0);
+	TestEqual(TEXT("stock front spring is the car file's coil"), Stock.FrontSpringLbIn, Car.CoilSpringRateLbfPerInByAxle[0]);
+	TestEqual(TEXT("stock final drive"), Stock.FinalDrive, Car.FinalDriveRatio);
+	// The stock setup rebuilds the real car exactly.
+	const FSimCruiseCarDefinition Same = Stock.Apply(Car, Stock);
+	TestEqual(TEXT("stock: same spring rate"), SimCruiseDynamics::GetWheelSpringRateNPerM(Same, 0), SimCruiseDynamics::GetWheelSpringRateNPerM(Car, 0));
+	TestEqual(TEXT("stock: same bar rate"), SimCruiseDynamics::GetAntiRollBarRateNPerM(Same, 1), SimCruiseDynamics::GetAntiRollBarRateNPerM(Car, 1));
+	TestEqual(TEXT("stock: same ride height"), Same.SuspensionMountHeightM, Car.SuspensionMountHeightM);
+	const double RealRoll = FSimCruiseTuning::RollGradientDegPerG(Car);
+	AddInfo(FString::Printf(TEXT("NB body roll %.2f deg/g"), RealRoll));
+	TestTrue(TEXT("a roadster rolls 2-8 deg per g"), RealRoll > 2.0 && RealRoll < 8.0);
+
+	// Stiffer springs and bars roll less; lower sits lower; more torque pulls harder.
+	FSimCruiseTuning Stiff = Stock;
+	Stiff.FrontSpringLbIn *= 2.0;
+	Stiff.RearSpringLbIn *= 2.0;
+	Stiff.FrontBarPct = 200.0;
+	Stiff.RideHeightMm = -30.0;
+	Stiff.TorquePct = 120.0;
+	Stiff.Clamp(Stock);
+	const FSimCruiseCarDefinition Tuned = Stiff.Apply(Car, Stock);
+	TestTrue(TEXT("stiffer springs and bar roll less"), FSimCruiseTuning::RollGradientDegPerG(Tuned) < RealRoll);
+	TestEqual(TEXT("30 mm lower"), Tuned.SuspensionMountHeightM, Car.SuspensionMountHeightM - 0.03, 1.0e-9);
+	TestEqual(TEXT("torque scaled"), SimCruiseDynamics::SampleEngineTorqueNm(Tuned, 5500.0), 1.2 * SimCruiseDynamics::SampleEngineTorqueNm(Car, 5500.0), 1.0e-6);
+	// Safe limits.
+	FSimCruiseTuning Wild = Stock;
+	Wild.RideHeightMm = -500.0;
+	Wild.FinalDrive = 99.0;
+	Wild.Clamp(Stock);
+	TestEqual(TEXT("ride height clamped to -60 mm"), Wild.RideHeightMm, -60.0);
+	TestEqual(TEXT("final drive clamped to +25 %"), Wild.FinalDrive, Stock.FinalDrive * 1.25, 1.0e-9);
 	return true;
 }
 
