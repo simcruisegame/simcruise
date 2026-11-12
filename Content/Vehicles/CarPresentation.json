@@ -422,14 +422,14 @@
      "name": "wing, left upright",
      "box": {
       "centre": [
-       -1.86,
-       -0.42,
-       0.93
+       -1.81,
+       -0.43,
+       0.92
       ],
       "size": [
-       0.08,
+       0.07,
        0.012,
-       0.12
+       0.08
       ],
       "pitch_deg": 0.0
      },
@@ -441,14 +441,14 @@
      "name": "wing, right upright",
      "box": {
       "centre": [
-       -1.86,
-       0.42,
-       0.93
+       -1.81,
+       0.43,
+       0.92
       ],
       "size": [
-       0.08,
+       0.07,
        0.012,
-       0.12
+       0.08
       ],
       "pitch_deg": 0.0
      },
@@ -457,64 +457,121 @@
      "roughness": 0.42
     },
     {
+     "name": "wing, left mount",
+     "box": {
+      "centre": [
+       -1.81,
+       -0.43,
+       0.885
+      ],
+      "size": [
+       0.09,
+       0.03,
+       0.015
+      ],
+      "pitch_deg": 0.0
+     },
+     "colour": "#9a9da0",
+     "metallic": 0.6,
+     "roughness": 0.3
+    },
+    {
+     "name": "wing, right mount",
+     "box": {
+      "centre": [
+       -1.81,
+       0.43,
+       0.885
+      ],
+      "size": [
+       0.09,
+       0.03,
+       0.015
+      ],
+      "pitch_deg": 0.0
+     },
+     "colour": "#9a9da0",
+     "metallic": 0.6,
+     "roughness": 0.3
+    },
+    {
      "name": "wing, plane",
      "box": {
       "centre": [
-       -1.92,
+       -1.84,
        0.0,
-       0.995
+       0.96
       ],
       "size": [
-       0.24,
-       1.3,
+       0.26,
+       1.36,
        0.018
       ],
-      "pitch_deg": 5.0
+      "pitch_deg": 7.0
      },
-     "colour": "#7d8083",
-     "metallic": 0.6,
-     "roughness": 0.35
+     "colour": "#060606",
+     "metallic": 0.0,
+     "roughness": 0.08
     },
     {
-     "name": "wing, left end plate",
+     "name": "wing, trailing lip",
      "box": {
       "centre": [
-       -1.93,
-       -0.655,
-       0.99
+       -1.965,
+       0.0,
+       0.98
       ],
       "size": [
-       0.22,
-       0.006,
-       0.08
+       0.025,
+       1.36,
+       0.03
       ],
       "pitch_deg": 0.0
      },
-     "colour": "#7d8083",
-     "metallic": 0.6,
-     "roughness": 0.35
+     "colour": "#060606",
+     "metallic": 0.0,
+     "roughness": 0.08
     },
     {
-     "name": "wing, right end plate",
+     "name": "wing, left tip",
      "box": {
       "centre": [
-       -1.93,
-       0.655,
-       0.99
+       -1.86,
+       -0.685,
+       0.955
       ],
       "size": [
-       0.22,
+       0.17,
        0.006,
-       0.08
+       0.065
       ],
       "pitch_deg": 0.0
      },
-     "colour": "#7d8083",
+     "colour": "#9a9da0",
      "metallic": 0.6,
-     "roughness": 0.35
+     "roughness": 0.3
+    },
+    {
+     "name": "wing, right tip",
+     "box": {
+      "centre": [
+       -1.86,
+       0.685,
+       0.955
+      ],
+      "size": [
+       0.17,
+       0.006,
+       0.065
+      ],
+      "pitch_deg": 0.0
+     },
+     "colour": "#9a9da0",
+     "metallic": 0.6,
+     "roughness": 0.3
     }
    ],
-   "addons_source": "The owner's car in their two photographs (D:\\sc\\miata-ref, 12 November 2026): a black roll bar (hoop with a diagonal brace and stays to the rear deck) whose top is about level with the windscreen top; the soft top folded down behind it; a silver-grey wing with small silver-grey end plates on short black uprights, about 12 cm above the trunk lid and just past the tail. Heights scaled from the photos against the 0.86 m trunk lid; positions fitted to the model.",
+   "addons_source": "The owner's car in their two photographs (D:\\sc\\miata-ref, 12 November 2026): a black roll bar (hoop with a diagonal brace and stays to the rear deck) whose top is about level with the windscreen top; the soft top folded down behind it; a gloss-black single-element wing almost as wide as the car, its trailing edge raised, on short black uprights with silver bases, small silver-grey rounded tips, about 8 cm above the trunk lid near its rear edge (close-ups of IMG_7407 and IMG_2356).",
    "wheel_design": {
     "style": "mesh",
     "rim_diameter_in": 15,
