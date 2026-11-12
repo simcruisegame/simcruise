@@ -31,4 +31,27 @@ Headless checks run without a window and are how changes are measured; the four 
 
 ## Building for Windows
 
-`sh scripts/build-windows.sh [version]` builds the Windows release on Linux, macOS or Windows (Git Bash). It needs Godot 4.7.2 with its export templates (Editor → Manage Export Templates), Bun and NSIS 3 (`apt install nsis`, `brew install makensis`, or nsis.sourceforge.io on Windows). Bun cross-compiles the map helper to `atlas.exe`, Godot exports `SimCruise.exe` with the game data embedded (the "Windows Desktop" preset in `game/export_presets.cfg`), and NSIS wraps both with the licences into `build/SimCruise-<version>-windows-x64-setup.exe` (`packaging/windows/simcruise.nsi`). A portable `.zip` and `build/SHA256SUMS-windows.txt` are written beside it. The version defaults to `config/version` in `game/project.godot`.
+`sh scripts/build-windows.sh [version]` builds the Windows release on Linux, macOS or Windows (Git Bash). It needs Godot 4.7.2 with its export templates, Bun and NSIS 3 (`apt install nsis`, `brew install makensis`, or on Windows `winget install NSIS.NSIS` or the installer from nsis.sourceforge.io; the script finds `makensis` on PATH, in `MAKENSIS`, or in NSIS's default folder under Program Files). Bun cross-compiles the map helper to `atlas.exe`, Godot exports `SimCruise.exe` with the game data embedded (the "Windows Desktop" preset in `game/export_presets.cfg`), and NSIS wraps both with the licences into `build/SimCruise-<version>-windows-x64-setup.exe` (`packaging/windows/simcruise.nsi`). A portable `.zip` (written with `zip`, Python 3, or Windows' own `tar.exe`, whichever exists) and `build/SHA256SUMS-windows.txt` are written beside it. The version defaults to `config/version` in `game/project.godot`.
+
+Godot refuses a release export unless both the release and the debug template for the platform are installed. Editor → Manage Export Templates installs them, or from a shell:
+
+```sh
+GODOT_BIN=$(sh scripts/install-godot.sh ~/godot-4.7.2 windows | tail -n 1)   # also: macos, linux, all
+```
+
+`scripts/install-godot.sh` downloads the editor for the current system and the 1.3 GB template archive from the official [godotengine/godot 4.7.2-stable release](https://github.com/godotengine/godot/releases/tag/4.7.2-stable), checks both against the release's `SHA512-SUMS.txt`, unpacks only the templates the named platforms need into Godot's `export_templates/4.7.2.stable` folder (`%APPDATA%\Godot\…` on Windows, `~/Library/Application Support/Godot/…` on macOS, `~/.local/share/godot/…` on Linux) and prints the editor's path last. Files already in place are kept.
+
+After a build on Windows, `sh scripts/smoke-windows.sh [zip]` unpacks the portable zip into a temporary folder and starts it without a window: `SimCruise.exe --headless --version`, `atlas.exe` with an unknown request, and 600 headless frames of the game with the map helper switched off (the offline Miami Beach start), failing on a non-zero exit or any script or shader error. It points `APPDATA` at the temporary folder, so your own cache and settings are untouched.
+
+## Releasing
+
+Releases are built by GitHub Actions (`.github/workflows/release.yml`). Pushing a tag `vX.Y.Z` (or running the workflow by hand with an existing tag) does this:
+
+1. **Check**: the tag must equal `config/version` in `game/project.godot`, and `CHANGELOG.md` must have a `## SimCruise X.Y.Z (date)` entry (`sh scripts/release-notes.sh X.Y.Z` prints it); otherwise nothing is built.
+2. **Windows** (windows-2025 runner): Bun, NSIS (Chocolatey when the image lacks it), Godot and the Windows templates through `scripts/install-godot.sh`, then `scripts/build-windows.sh` and `scripts/smoke-windows.sh`.
+3. **macOS** (macos-15, Apple Silicon runner): Bun, Godot and the macOS template, `scripts/build-macos.sh app`, a `--headless --version` start of the signed app, then `scripts/make-dmg.sh` (retried, because `hdiutil` on hosted runners sometimes reports a busy resource).
+4. **Draft release**: the per-platform checksums are verified after transfer, `SHA256SUMS.txt` covers the three files, and a **draft** GitHub release for the tag gets the disk image, the installer, the portable zip and `SHA256SUMS.txt`, with the changelog entry (its relative links pointed at the tagged files) plus a download list and the checksums as notes. Re-running for the same tag replaces the files and notes of a draft; a published release is never changed.
+
+Nothing is published automatically: a maintainer opens the draft on the Releases page, tries the builds, and presses **Publish release**. Action versions are pinned to commit hashes. The manual route in [CONTRIBUTING.md](../CONTRIBUTING.md#versions-and-releases) still works when the hosted runners are unavailable.
+
+`.github/workflows/checks.yml` runs `sh scripts/check.sh` on Linux (ubuntu-24.04, Godot fetched by `scripts/install-godot.sh`, no GPU needed under `--headless`) for every pull request and push to `main` that touches more than documentation, and keeps the check logs as an artifact when something fails.
