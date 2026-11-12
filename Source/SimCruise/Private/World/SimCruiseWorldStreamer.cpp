@@ -1,6 +1,8 @@
 // Copyright SimCruise contributors. All Rights Reserved.
 
 #include "World/SimCruiseWorldStreamer.h"
+
+#include "Live/SimCruiseNeuralDetail.h"
 #include "World/SimCruiseTraffic.h"
 #include "Misc/App.h"
 
@@ -278,6 +280,8 @@ void ASimCruiseWorldStreamer::Launch(const FSimCruiseTileJobTicket& Ticket)
 				if (IFileManager::Get().FileExists(*Cached)) Path = Cached;
 			}
 			USimCruiseWorldResources::DecodeImageFile(Path, Result->AerialPixels, Result->AerialWidth, Result->AerialHeight);
+			// The local AI detail engine (Live/SimCruiseNeuralDetail): its cached sharper photograph, or queued for it.
+			FSimCruiseNeuralDetail::Get().EnhanceAerial(Path, Result->AerialPixels, Result->AerialWidth, Result->AerialHeight);
 		}
 		if (!Box->bClosed) Box->Queue.Enqueue(Result);
 	};

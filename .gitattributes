@@ -43,3 +43,4 @@ helper/lidar-projects.json linguist-generated
 helper/photo-weather-stations.json linguist-generated
 *.uasset binary
 *.umap binary
+*.onnx binary

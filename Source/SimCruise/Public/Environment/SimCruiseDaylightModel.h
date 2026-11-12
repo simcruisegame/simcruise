@@ -70,6 +70,12 @@ struct SIMCRUISE_API FSimCruiseDaylightModel
 	 */
 	static double AerosolExtinctionPerKm(double VisibilityKm);
 
+	/**
+	 * Aerosol extinction near the ground, 1/km, for a column optical depth at 550 nm spread
+	 * over an exponential layer of ScaleHeightKm (sigma0 = tau / H), never below the floor.
+	 */
+	static double AerosolForOpticalDepth(double OpticalDepth, double ScaleHeightKm);
+
 	/** A typical clear-day visibility when no observation exists (aerosol optical depth about 0.1). */
 	static constexpr double DefaultVisibilityKm = 40.0;
 };

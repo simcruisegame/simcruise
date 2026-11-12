@@ -789,6 +789,22 @@ UTexture2D* USimCruiseWorldResources::AddAerial(const FString& Key, const TArray
 	return Texture;
 }
 
+UTexture2D* USimCruiseWorldResources::ReplaceAerial(const FString& Key, const TArray<FColor>& Pixels, int32 Width, int32 Height, UTexture2D*& OutNew)
+{
+	OutNew = nullptr;
+	UTexture2D* Old = FindAerial(Key);
+	if (!Old)
+	{
+		return nullptr;
+	}
+	OutNew = CreateTexture(this, NAME_None, Pixels, Width, Height, true, false);
+	if (OutNew)
+	{
+		Aerials.Add(Key, OutNew);
+	}
+	return Old;
+}
+
 void USimCruiseWorldResources::TrimAerials(const TSet<FString>& Keep)
 {
 	for (auto It = Aerials.CreateIterator(); It; ++It)

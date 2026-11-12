@@ -250,7 +250,13 @@ void ASimCruiseEnvironment::ApplyAtmosphere()
 	// Haze from visibility: clean-air Rayleigh is the atmosphere's own; the rest is aerosol.
 	const double VisibilityKm = Weather.VisibilityM / 1000.0;
 	const double HazeVisibilityKm = FMath::Max(VisibilityKm, HazeFloorVisibilityKm);
-	const double Aerosol = FSimCruiseDaylightModel::AerosolExtinctionPerKm(HazeVisibilityKm);
+	double Aerosol = FSimCruiseDaylightModel::AerosolExtinctionPerKm(HazeVisibilityKm);
+	if (Weather.AerosolOpticalDepth > 0.0f && VisibilityKm >= 10.0)
+	{
+		// A measured column (CAMS aerosol optical depth) beats a visibility guess in clear air:
+		// for an exponential profile the surface extinction is the column over its scale height.
+		Aerosol = FSimCruiseDaylightModel::AerosolForOpticalDepth(Weather.AerosolOpticalDepth, AerosolScaleHeightKm);
+	}
 	const float Albedo = FMath::Clamp(AerosolSingleScatteringAlbedo, 0.5f, 1.0f);
 	Atmosphere->SetMieScattering(AerosolSpectralShape());
 	Atmosphere->SetMieAbsorption(AerosolSpectralShape());

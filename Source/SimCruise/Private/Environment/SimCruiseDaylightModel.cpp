@@ -139,3 +139,8 @@ double FSimCruiseDaylightModel::AerosolExtinctionPerKm(double VisibilityKm)
 	// A clean continental aerosol floor (about 150 km visibility with clean air).
 	return FMath::Max(ExtinctionPerKmForVisibility(VisibilityKm) - RayleighExtinctionPerKm550, 0.014);
 }
+
+double FSimCruiseDaylightModel::AerosolForOpticalDepth(double OpticalDepth, double ScaleHeightKm)
+{
+	return FMath::Max(FMath::Max(OpticalDepth, 0.0) / FMath::Max(ScaleHeightKm, 0.1), 0.014);
+}
