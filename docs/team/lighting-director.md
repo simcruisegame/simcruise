@@ -193,4 +193,5 @@ Source: IES daylight model as coded in `SimCruiseDaylightModel.cpp`, checked by 
 - [L11] SMPTE ST 2084:2014, High Dynamic Range EOTF of Mastering Reference Displays (paid standard; range from the standard's scope, unverified here).
 - [L12] ITU-R Report BT.2408, Guidance for operational practices in HDR television production: https://www.itu.int/dms_pub/itu-r/opb/rep/R-REP-BT.2408-6-2023-TOC-HTM-E.htm
 - [L13] TRL PPR2069, Glare from road vehicle lighting: https://www.trl.co.uk/uploads/trl/documents/PPR2069-Glare-from-road-vehicle-lighting.pdf (not read in full).
+- [L14] Lighting technology survey (surfaces, GI, shadows, reflections, tone mapping, HDR, upscaling; fit at 28 W; top 8 changes): `docs/team/research/lighting-tech.md`.
 - Licences: Epic and Dolby pages are read for reference only. Erkan et al. is CC BY. ISO, SMPTE and IES standards are paid; quote numbers only, with the source.
