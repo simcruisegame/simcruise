@@ -77,29 +77,25 @@ FSimCruiseTuning ASimCruiseVehicle::GetStockTuning() const
 	return FSimCruiseTuning::FromCar(RealCar, CarModel ? CarModel->GetSteeringRatio() : 0.0);
 }
 
-void ASimCruiseVehicle::ApplyTuning(const FSimCruiseTuning& InTuning, bool bSave)
+bool ASimCruiseVehicle::ApplyTuning(const FSimCruiseTuning& InTuning, bool bSave)
 {
 	if (!bHasDefinition)
 	{
-		return;
+		return false;
 	}
 	const FSimCruiseTuning Stock = GetStockTuning();
 	Tuning = InTuning;
 	Tuning.Clamp(Stock);
 	const FSimCruiseCarDefinition Tuned = Tuning.Apply(RealCar, Stock);
-	// Keep the pose: the new definition resets the drivetrain, not where the car stands.
-	const FTransform Pose = GetActorTransform();
+	// The new definition resets the drivetrain, not where the car stands.
 	ApplyBodyShape(Tuned);
 	VehicleMovement->SetCarDefinition(Tuned);
 	bTuned = true;
-	if (bSave)
-	{
-		Tuning.Save(RealCar.Id);
-	}
+	const bool bSaved = !bSave || Tuning.Save(RealCar.Id);
 	UE_LOG(LogTemp, Display, TEXT("SimCruise tuning %s: springs %.0f/%.0f lb/in, damping %.0f %%, ride %+.0f mm, bars %.0f/%.0f %%, torque %.0f %%, final drive %.2f, steering %.1f:1, roll %.2f deg/g"),
 		*RealCar.Id, Tuning.FrontSpringLbIn, Tuning.RearSpringLbIn, Tuning.DampingPct, Tuning.RideHeightMm, Tuning.FrontBarPct, Tuning.RearBarPct,
 		Tuning.TorquePct, Tuning.FinalDrive, Tuning.SteeringRatio, FSimCruiseTuning::RollGradientDegPerG(Tuned));
-	(void)Pose;
+	return bSaved;
 }
 
 bool ASimCruiseVehicle::LoadSavedTuning()

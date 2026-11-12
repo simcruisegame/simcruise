@@ -99,8 +99,8 @@
  "fuel_cut_rpm": 7040.0,
  "max_gear_rpm": 7200.0,
  "engine_inertia": 0.18,
- "engine_friction_nm": 10.0,
- "engine_friction_per_rpm": 0.002,
+ "engine_friction_nm": 12.0,
+ "engine_friction_per_rpm": 0.005,
  "min_omega_auto": 78.0,
  "max_omega": 750.0,
  "stall_omega": 35.0,
@@ -243,6 +243,7 @@
  "target_70_0_ft": 173.0,
  "target_skidpad_g": 0.89,
  "sources": {
+  "engine_friction": "Motoring friction 12 N m + 0.005 N m/rpm (27 N m at 3000 rpm, 42 at 6000): a 1.8 L four's friction mean effective pressure of about 1.9 bar at 3000 rpm (estimate from typical SI-engine FMEP), which sets the engine braking on a lift. Full-throttle torque is the published curve either way.",
   "calibration": "Car and Driver 1999 road test: 0-60 mph 7.97 s, 70-0 mph 173 ft, 300 ft skidpad 0.89 g (README).",
   "springs_bars": "Fat Cat Motorsports NB Ride Harmonizer, NB Sport row.",
   "rear_damper": "Fat Cat Motorsports Bilstein Hard S rear dyno trace (NB1999Sport.gd).",

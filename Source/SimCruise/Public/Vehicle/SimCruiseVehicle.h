@@ -53,8 +53,9 @@ public:
 	FSimCruiseTuning GetStockTuning() const;
 	const FSimCruiseTuning& GetTuning() const { return Tuning; }
 	/** Rebuild the car from the real one with this tuning (clamped to safe ranges); bSave writes
-	 *  it to Saved/SimCruise/tuning-<id>.json. Resets the drivetrain: apply standing still. */
-	void ApplyTuning(const FSimCruiseTuning& InTuning, bool bSave);
+	 *  it to Saved/SimCruise/tuning-<id>.json (false when that write fails). Resets the
+	 *  drivetrain: apply standing still. */
+	bool ApplyTuning(const FSimCruiseTuning& InTuning, bool bSave);
 	/** Apply the driver's saved tuning for this car, if there is one (the player's car only). */
 	bool LoadSavedTuning();
 

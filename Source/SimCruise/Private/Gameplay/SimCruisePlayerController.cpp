@@ -474,13 +474,25 @@ void ASimCruisePlayerController::OpenTuning()
 		.Vehicle(Car)
 		.OnClose_Lambda([this]()
 		{
+			const SSimCruiseTuningMenu::ETuningResult Result = TuningPanel.IsValid() ? TuningPanel->GetResult() : SSimCruiseTuningMenu::ETuningResult::Cancelled;
 			CloseOverlays();
 			// The rebuilt car reports its new ratio and limits.
 			if (ISimCruiseVehicleControl* Vehicle = GetVehicle())
 			{
 				Setup = Vehicle->GetVehicleSetup();
 			}
-			ShowMessage(TEXT("Setup saved for this car"), 2.f);
+			if (Result == SSimCruiseTuningMenu::ETuningResult::Saved)
+			{
+				ShowMessage(TEXT("Setup saved for this car"), 2.f);
+			}
+			else if (Result == SSimCruiseTuningMenu::ETuningResult::SaveFailed)
+			{
+				ShowMessage(TEXT("Setup applied, but it could not be saved"), 3.f);
+			}
+			else
+			{
+				ShowMessage(TEXT("Setup unchanged"), 1.5f);
+			}
 		});
 	ShowOverlay(TuningPanel.ToSharedRef(), TuningPanel);
 }

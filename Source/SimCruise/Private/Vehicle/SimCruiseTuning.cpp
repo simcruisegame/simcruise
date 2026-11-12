@@ -74,12 +74,15 @@ FSimCruiseCarDefinition FSimCruiseTuning::Apply(const FSimCruiseCarDefinition& R
 	Car.DamperScale = DampingPct / 100.0;
 	Car.AntiRollBarScaleByAxle = { FrontBarPct / 100.0, RearBarPct / 100.0 };
 	Car.EngineTorqueScale = TorquePct / 100.0;
+	// More torque than stock comes with a clutch that holds it (as an uprated clutch does): the
+	// stock clutch would slip from about 124 % on the NB.
+	Car.ClutchCapacityNm *= FMath::Max(1.0, Car.EngineTorqueScale);
 	Car.FinalDriveRatio = FinalDrive;
-	// Ride height: the body, its collision and its centre of mass move together over the wheels.
+	// Ride height: the wheels hang from the mounts at the same static length, so moving the mounts
+	// up in the body lowers the body (and its centre of mass) by as much over the road. The body's
+	// collision box and centre of mass keep their places in the body.
 	const double Offset = RideHeightMm / 1000.0;
-	Car.SuspensionMountHeightM += Offset;
-	Car.CollisionShapeCenterYM += Offset;
-	Car.CenterOfGravityHeightM += Offset;
+	Car.SuspensionMountHeightM -= Offset;
 	return Car;
 }
 

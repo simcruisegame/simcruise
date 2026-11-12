@@ -739,9 +739,18 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 			if (State.bManual)
 			{
 				const double Capacity = Car.ClutchCapacityNm * (1.0 - SmoothStep(0.16, 0.88, State.ClutchPedal));
-				ClutchLoad = State.SelectedGear == 0 ? 0.0 : FMath::Clamp(
-					(State.EngineOmegaRadPerSecond - AxleSpeed * ForwardRatio) * Car.ManualClutchCouplingNmPerRadPerSecond,
-					-Capacity, Capacity);
+				// A dry clutch with the pedal up locks: below its capacity it carries whatever torque
+				// keeps engine and gearbox together. That stiffness is the most a substep can take
+				// without overshooting (the 1/(dt I) cap the automatic's coupling uses); slipping
+				// with the pedal part-way down it stays the calibrated viscous coupling.
+				const double LockCoupling = 1.0 / (FMath::Max(Ds, ClutchCalibrationSubstepS) * (1.0 / Car.EngineRotationalInertiaKgM2 + Reflected));
+				const double Engaged = 1.0 - SmoothStep(0.02, 0.16, State.ClutchPedal);
+				const double ManualCoupling = FMath::Lerp(FMath::Min(Car.ManualClutchCouplingNmPerRadPerSecond, LockCoupling), LockCoupling, Engaged);
+				// Locked, the clutch also carries this substep's engine torque, so engine and
+				// gearbox end the substep at one speed instead of slipping by torque / stiffness.
+				const double Gap = State.EngineOmegaRadPerSecond - AxleSpeed * ForwardRatio;
+				const double EngineAhead = Engaged * (Torque + Governor - Drag) * Ds / Car.EngineRotationalInertiaKgM2;
+				ClutchLoad = State.SelectedGear == 0 ? 0.0 : FMath::Clamp((Gap + EngineAhead) * ManualCoupling, -Capacity, Capacity);
 				if (State.bStalled)
 				{
 					Torque = 0.0;

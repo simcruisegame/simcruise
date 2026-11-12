@@ -244,9 +244,9 @@ namespace SimCruiseDynamics
 		double Fx = Ke * (Spin * R - V) / (1.0 + Ke * R * R * Ds / I);
 		// A second pass at the substep's mean slip (start and this pass's end), so the curve's
 		// stiffness does not depend on how long the substep is: a spinning wheel's force then
-		// converges as the physics step shrinks. Under drive only: a braked wheel keeps the
-		// first pass, which the brake benches converge with.
-		if (Spin * R > V && Input.BrakeTorqueNm <= 0.0)
+		// converges as the physics step shrinks. Under engine torque either way (drive, engine
+		// braking, reverse) but not under the brake, whose benches converge with the first pass.
+		if (Input.BrakeTorqueNm <= 0.0)
 		{
 			const double EndSpinGuess = Spin - Fx * R * Ds / I;
 			const double MeanSlipX = (0.5 * (Input.StartAngularSpeedRadPerSecond + EndSpinGuess) * R - V) / Transport;

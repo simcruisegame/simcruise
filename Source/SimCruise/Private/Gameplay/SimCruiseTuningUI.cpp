@@ -36,52 +36,64 @@ void SSimCruiseTuningMenu::Construct(const FArguments& InArgs)
 	};
 
 	using namespace SimCruiseUiStyle;
+	// Readable across a room on a TV: rows at 20 pt (about 27 px), light text on a near-opaque
+	// dark panel (well over 4.5:1), the selected row in lime.
 	TSharedRef<SVerticalBox> List = SNew(SVerticalBox);
 	for (int32 Index = 0; Index < Rows.Num(); ++Index)
 	{
-		List->AddSlot().AutoHeight().Padding(0.f, 3.f)
+		List->AddSlot().AutoHeight().Padding(0.f, 4.f)
 		[
 			SNew(STextBlock)
-			.Font(FCoreStyle::GetDefaultFontStyle("Regular", 16))
+			.Font(FCoreStyle::GetDefaultFontStyle("Mono", 20))
 			.Text(this, &SSimCruiseTuningMenu::RowText, Index)
 			.ColorAndOpacity(this, &SSimCruiseTuningMenu::RowColor, Index)
 		];
 	}
 	const FString CarName = Vehicle.IsValid() ? Vehicle->GetRealCar().Name : FString();
+	FLinearColor Panel = Ink();
+	Panel.A = 0.94f;
 	ChildSlot
 	.HAlign(HAlign_Center)
 	.VAlign(VAlign_Center)
 	[
 		SNew(SBorder)
 		.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
-		.BorderBackgroundColor(Glass())
-		.Padding(28.f)
+		.BorderBackgroundColor(Panel)
+		.Padding(32.f)
 		[
 			SNew(SBox)
-			.MinDesiredWidth(620.f)
+			.MinDesiredWidth(900.f)
 			[
 				SNew(SVerticalBox)
-				+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 12.f)
+				+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 14.f)
 				[
 					SNew(STextBlock)
-					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 22))
+					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 26))
 					.ColorAndOpacity(Paper())
 					.Text(FText::Format(LOCTEXT("Title", "Tuning · {0}"), FText::FromString(CarName)))
 				]
 				+ SVerticalBox::Slot().AutoHeight()[ List ]
-				+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 14.f, 0.f, 0.f)
+				+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 16.f, 0.f, 0.f)
 				[
 					SNew(STextBlock)
-					.Font(FCoreStyle::GetDefaultFontStyle("Regular", 16))
+					.Font(FCoreStyle::GetDefaultFontStyle("Regular", 20))
 					.ColorAndOpacity(Lime())
 					.Text(this, &SSimCruiseTuningMenu::RollText)
 				]
-				+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 14.f, 0.f, 0.f)
+				+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 10.f, 0.f, 0.f)
 				[
 					SNew(STextBlock)
-					.Font(FCoreStyle::GetDefaultFontStyle("Regular", 12))
-					.ColorAndOpacity(Dim())
-					.Text(LOCTEXT("Help", "Up/Down choose · Left/Right change · X reset row · Y real car · B done (saved for this car)"))
+					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 20))
+					.ColorAndOpacity(Paper())
+					.Text_Lambda([this]() { return Notice; })
+				]
+				+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 16.f, 0.f, 0.f)
+				[
+					SNew(STextBlock)
+					.Font(FCoreStyle::GetDefaultFontStyle("Regular", 20))
+					.ColorAndOpacity(Paper())
+					.AutoWrapText(true)
+					.Text(LOCTEXT("Help", "Up/Down choose   Left/Right change   X reset this row   Y reset all (press twice)\nA save for this car   B cancel"))
 				]
 			]
 		]
@@ -138,23 +150,27 @@ void SSimCruiseTuningMenu::Nudge(int32 Steps)
 	Working.Clamp(Stock);
 }
 
-void SSimCruiseTuningMenu::Commit()
+bool SSimCruiseTuningMenu::Commit()
 {
-	if (ASimCruiseVehicle* Car = Vehicle.Get())
-	{
-		Car->ApplyTuning(Working, true);
-	}
+	ASimCruiseVehicle* Car = Vehicle.Get();
+	return Car && Car->ApplyTuning(Working, true);
 }
 
-void SSimCruiseTuningMenu::Close()
+void SSimCruiseTuningMenu::Close(bool bSave)
 {
-	Commit();
+	Result = bSave ? (Commit() ? ETuningResult::Saved : ETuningResult::SaveFailed) : ETuningResult::Cancelled;
 	OnClose.ExecuteIfBound();
 }
 
 FReply SSimCruiseTuningMenu::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	const FKey Key = InKeyEvent.GetKey();
+	const bool bResetKey = Key == EKeys::Gamepad_FaceButton_Top || Key == EKeys::Delete;
+	if (!bResetKey && bConfirmReset)
+	{
+		bConfirmReset = false;
+		Notice = FText::GetEmpty();
+	}
 	if (Key == EKeys::Up || Key == EKeys::Gamepad_DPad_Up || Key == EKeys::W)
 	{
 		Selected = (Selected + Rows.Num() - 1) % Rows.Num();
@@ -170,7 +186,7 @@ FReply SSimCruiseTuningMenu::OnKeyDown(const FGeometry& MyGeometry, const FKeyEv
 		Nudge(-1);
 		return FReply::Handled();
 	}
-	if (Key == EKeys::Right || Key == EKeys::D)
+	if (Key == EKeys::Right || Key == EKeys::D || Key == EKeys::Gamepad_DPad_Right)
 	{
 		Nudge(1);
 		return FReply::Handled();
@@ -183,26 +199,34 @@ FReply SSimCruiseTuningMenu::OnKeyDown(const FGeometry& MyGeometry, const FKeyEv
 		}
 		return FReply::Handled();
 	}
-	if (Key == EKeys::Gamepad_FaceButton_Top || Key == EKeys::Delete)
+	if (bResetKey)
 	{
-		Working = Stock;
+		// Everything back to the real car takes a second press, so one slip of a thumb loses nothing.
+		if (!bConfirmReset)
+		{
+			bConfirmReset = true;
+			Notice = LOCTEXT("ConfirmReset", "Press Y again to put everything back as the real car");
+		}
+		else
+		{
+			bConfirmReset = false;
+			Working = Stock;
+			Notice = LOCTEXT("DidReset", "Back to the real car (A saves it, B keeps your old setup)");
+		}
 		return FReply::Handled();
 	}
-	if (Key == EKeys::Gamepad_FaceButton_Right || Key == EKeys::Escape || Key == EKeys::F4 || Key == EKeys::Enter
-		|| Key == EKeys::Gamepad_FaceButton_Bottom)
+	if (Key == EKeys::Gamepad_FaceButton_Bottom || Key == EKeys::Enter)
 	{
-		Close();
+		Close(true);
 		return FReply::Handled();
 	}
-	// D-pad Right changes the value; the menu key on a pad is B.
-	if (Key == EKeys::Gamepad_DPad_Right)
+	if (Key == EKeys::Gamepad_FaceButton_Right || Key == EKeys::Escape || Key == EKeys::F4)
 	{
-		Nudge(1);
+		Close(false);
 		return FReply::Handled();
 	}
 	return FReply::Unhandled();
 }
-
 FReply SSimCruiseTuningMenu::OnAnalogValueChanged(const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent)
 {
 	// The left stick moves through the rows and values like the D-pad, a step at a time.

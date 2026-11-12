@@ -14,7 +14,7 @@ class SVerticalBox;
  * The tuning menu (D-pad Right or F4, standing still): the car's setup in workshop units,
  * each row inside a safe range around the real car's, the body roll per g it gives, and a
  * reset to the real car. Up and down choose a row, left and right change it, X resets the
- * row, Y resets everything, B or the menu key closes and applies (saved per car).
+ * row, Y twice resets everything to the real car, A saves for this car and applies, B cancels.
  */
 class SIMCRUISE_API SSimCruiseTuningMenu : public SCompoundWidget
 {
@@ -30,8 +30,10 @@ public:
 	virtual FReply OnAnalogValueChanged(const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent) override;
 	virtual bool SupportsKeyboardFocus() const override { return true; }
 
-	/** Apply the working setup to the car and save it (called on close). */
-	void Commit();
+	/** Apply the working setup to the car and save it; false when the save failed. */
+	bool Commit();
+	enum class ETuningResult : uint8 { Open, Saved, SaveFailed, Cancelled };
+	ETuningResult GetResult() const { return Result; }
 
 	/** Change the selected row by Steps (tests). */
 	void Nudge(int32 Steps);
@@ -51,7 +53,7 @@ private:
 	FText RowText(int32 Index) const;
 	FSlateColor RowColor(int32 Index) const;
 	FText RollText() const;
-	void Close();
+	void Close(bool bSave);
 
 	TWeakObjectPtr<ASimCruiseVehicle> Vehicle;
 	FSimpleDelegate OnClose;
@@ -60,4 +62,7 @@ private:
 	TArray<FRow> Rows;
 	int32 Selected = 0;
 	double StickHeldUntil = 0.0;
+	bool bConfirmReset = false;
+	FText Notice;
+	ETuningResult Result = ETuningResult::Open;
 };
