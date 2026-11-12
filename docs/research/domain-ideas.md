@@ -213,6 +213,33 @@ The recordings belong to the owner, so the licence is clean.
 - **Grain, not blur** (F26): fill the cheap periphery with noise matched to a camera sensor, not blur; it hides foveation and gives a camera look.
 - **Discover the detail** (F23): put the most variety where attention widens (stopped, parked, at junctions); a few variants are enough at speed in the periphery.
 
+## Each idea: its to-do item, its licensed source, its test
+
+Item numbers are from the team to-do list of 12 November 2026 ("SimCruise to-do list (team review)"). "New item" means no item covers it yet.
+
+| Idea | To-do item | Data source and licence | Test against reality |
+|---|---|---|---|
+| 1. Gaze Director | 9 (frame budget), 37 (camera look) | OSM road geometry already streamed (ODbL, runtime only). DR(eye)VE gaze set for validation only (licence to check before use) | Predicted map vs DR(eye)VE gaze (NSS, KL); blind A/B foveated vs full with a webcam eye-tracker, no better than chance; `stat GPU` ms saved |
+| 2. Road surface signature | 6 (surface grip), 7 (feel the road), 8 (force feedback), 11 (wet road look) | OSM `surface` (ODbL); FHWA HPMS IRI and FHWA OBSI noise tables (US federal work, public domain) | Third-octave tyre levels at 60 mph within ±2 dB of FHWA; phone accelerometer on the owner's wheel: 1-5 Hz to 20-60 Hz ratio within 20% |
+| 3. Garage Day | 29 (car data card), 30 (normal-speed feel), 23 (Miata against photos: eye height) | The owner's own recordings and measurements (the owner holds all rights) | Engine orders 2 and 4 within ±3 dB; shuffle frequency within 10%; head-vibration peaks within ±1 Hz |
+| 4. Magician's streamer | 9 (frame budget), 17 (world outside Miami) | No new data; overpass and bridge positions from OSM (ODbL) | Pop-in button test: masked swaps detected at less than half the rate of unmasked ones |
+| 5. Honest speed gate | 37 (camera look), 10 (live weather: fog) | METAR visibility from aviationweather.gov (NOAA, US public domain); method from the Coventry FOV study | Speedometer hidden, hold 30/50/70 mph: mean error under 5% |
+| 6. Light trigger | 8 (force feedback), 2 (slide catch) | The car's own aligning torque; Xbox GameInput API (Microsoft SDK licence) | Skidpad bench: trigger peaks at 2-4° front slip, before peak lateral force; understeer recovery rate A/B |
+| 7. Grime floor | 16 (buildings), 18 (realism score), 21 (colour of shade), 9 (frame budget) | ambientCG and Poly Haven textures (CC0); Panoramax photos for the test (CC BY-SA) | Blind "photo or game?" d′ against Panoramax photos of the same spot; Lumen reflection ms saved |
+| 8. Past self and living atlas | 34 (replay and ghost), 26 (a reason to drive) | The player's own drive logs; OSM for the atlas (ODbL, with credit) | Replay within 0.5 m of the drive; atlas mileage within 1% of OSM route length |
+| 9. Real season and night | 14 (new feeds: night sky), 17 (world outside Miami) | USA-NPN Spring Index (CC BY 4.0); Sentinel-2 (Copernicus free and open licence, with notice); NOAA-20 VIIRS VJ146 (NASA open data) | Leaf-out within 7 days of NPN observer records; sky brightness vs VIIRS at 100 points, Spearman r > 0.8 |
+| 10. Traffic clock and manners | 13 and 39 (traffic patterns), 3 (deadlocks) | FHWA TMAS and HPMS, Census LODES (US public domain); SHRP2 Surface Accelerations Reference on VTechWorks (licence to check) | Hold out 10% of TMAS stations: hourly share within 15% MAPE; AI acceleration percentiles per road class vs SHRP2 |
+| 11. Signs from the rulebook, curve book | 17 (world outside Miami), 41 (co-driver) | MUTCD tables (FHWA, public domain); OSM geometry and mapped signs (ODbL) | 318 ±10% curves on US 129; 70% of generated curve signs within 100 ft of a real one in a county sign inventory |
+| 12. Guard rail flutter, tunnel roar | New item: "Sound from the real surroundings" (P1 driving) | OSM `barrier=guard_rail`, walls, tunnels, buildings (ODbL) | Comb-filter notches at f = c/(2d) when passing a rail at known distance d |
+| 13. Second-unit replay director | 38 (photo mode and director cameras), 34 (replay) | Own code; grain from our own model (Newson code licence to check first) | Blind viewer scores vs a replay cut by a person |
+| 14. Comfort gates | 9 (frame budget), 2 (car feel) | Methods from Melzi & Previati 2024 and the Loughborough sickness study | 240 fps phone video: input-to-photon under 40 ms; sickness questionnaire on vs off |
+| Model-year diff, shuffle | 29 (car data card), 30 | miata.net diff guide (facts); SAE 2019-01-0345 (method); Garage Day | Garage Day steps 1 and 4 |
+| Cold start | 33 (road and tyre temperature) | Garage Day step 5 | Idle rpm and pressure rise within 10% of the owner's log |
+| Physical engine | New item: "Engine voice from the spec sheet" (cars) | engine-sim (MIT); SDT (licence to check); owner's recordings | Engine-order levels vs Garage Day step 2 |
+| Honest co-driver | 41 (co-driver) | Place knowledge graph: Wikidata (CC0), OSM (ODbL), NWS alerts and NIFC fires (US public domain) | Every spoken claim traces to a graph fact (under 1% unsupported); notes at least 10 s before the place |
+| Saturday dawn meet | 26 (a reason to drive) | Players' own ghost recordings; OSM parking lots (ODbL) | Frame time at 50 parked cars stays at 33 ms or less |
+| Grain, not blur; discover the detail | 37 (camera look), 16 (buildings), 9 | No new data | Spectrum slope about −1.2 vs licensed photos; repetition-detection test at 10° vs 2° off-gaze |
+
 ## Who owns what
 
 | Idea | Owner thread |
