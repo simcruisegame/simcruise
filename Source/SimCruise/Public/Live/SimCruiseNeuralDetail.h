@@ -81,6 +81,8 @@ private:
 	FString RuntimeName;
 	FCriticalSection RunLock;
 	TSharedPtr<class FSimCruiseNeuralModel> Model;
+	/** Loaded on the game thread in Initialize; the worker only uses it. */
+	class IImageWrapperModule* ImageWrappers = nullptr;
 	double TotalSeconds = 0.0;
 	int32 Images = 0;
 };

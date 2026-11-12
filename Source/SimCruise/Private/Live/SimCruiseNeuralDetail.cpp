@@ -167,6 +167,8 @@ bool FSimCruiseNeuralDetail::Initialize()
 		Model.Reset();
 		return false;
 	}
+	// The worker encodes JPEGs with ImageWrapper; a module may only be loaded on the game thread.
+	ImageWrappers = &FModuleManager::LoadModuleChecked<IImageWrapperModule>(TEXT("ImageWrapper"));
 	bReady = true;
 	UE_LOG(LogSimCruiseNeural, Display, TEXT("AI detail engine ready: Real-ESRGAN General x4v3 on %s, aerial photographs kept at %dx."), *RuntimeName, OutputScale);
 	return true;
@@ -350,8 +352,7 @@ void FSimCruiseNeuralDetail::Process(const FString& SourcePath)
 	}
 	UE_LOG(LogSimCruiseNeural, Display, TEXT("AI detail: %s %dx%d -> %dx%d, %.1f s of inference on %s, %.1f s in all"), *FPaths::GetCleanFilename(SourcePath),
 		W, H, OW, OH, Seconds, *RuntimeName, FPlatformTime::Seconds() - Start);
-	IImageWrapperModule& Wrappers = FModuleManager::LoadModuleChecked<IImageWrapperModule>(TEXT("ImageWrapper"));
-	TSharedPtr<IImageWrapper> Jpeg = Wrappers.CreateImageWrapper(EImageFormat::JPEG);
+	TSharedPtr<IImageWrapper> Jpeg = ImageWrappers ? ImageWrappers->CreateImageWrapper(EImageFormat::JPEG) : nullptr;
 	if (Jpeg && Jpeg->SetRaw(Out.GetData(), Out.Num() * sizeof(FColor), OW, OH, ERGBFormat::BGRA, 8))
 	{
 		FFileHelper::SaveArrayToFile(Jpeg->GetCompressed(92), *CachePath(SourcePath));
