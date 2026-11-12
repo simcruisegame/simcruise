@@ -45,6 +45,8 @@ features stay on hold, as in phase 1, unless the owner moves them in.
 
 ## Change log
 
+- 2026-11-12 22:10: theme 2 adds a fronts-first lock-order sweep and a threshold-braking 70-0 (no grip refit to one bench); theme 9 adds pad reach for every setting; local AI work adds photo-to-albedo normalising and a weights licence check (meeting 22).
+
 - 2026-11-12 21:10: theme 4 test adds seam clearance and edge relative gradient (seam tilt review of a96c7e3). Building brightness fixed on main (81f947e).
 
 - 2026-11-12: draft 1 from the first team review.
