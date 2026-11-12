@@ -62,6 +62,16 @@ FRotator USimCruiseCarPresentationComponent::SpinRotation(float SpinAngleRad)
 	return FRotator(-FMath::RadiansToDegrees(Wrapped), 0.0, 0.0);
 }
 
+double USimCruiseCarPresentationComponent::GetDrawnSpinRad(int32 Wheel) const
+{
+	return Spinners.IsValidIndex(Wheel) && Spinners[Wheel] ? -FMath::DegreesToRadians(Spinners[Wheel]->GetRelativeRotation().Pitch) : 0.0;
+}
+
+double USimCruiseCarPresentationComponent::GetDrawnSteerRad(int32 Wheel) const
+{
+	return Knuckles.IsValidIndex(Wheel) && Knuckles[Wheel] ? -FMath::DegreesToRadians(Knuckles[Wheel]->GetRelativeRotation().Yaw) : 0.0;
+}
+
 void USimCruiseCarPresentationComponent::ClearParts()
 {
 	for (USceneComponent* Part : Parts)

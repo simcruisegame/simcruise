@@ -97,7 +97,15 @@ float3 classColor = float3(0.15, 0.14, 0.11) * bare + float3(0.052, 0.088, 0.026
 // The photograph is taken from above: white roofs, sand and glare. Ground seen from the
 // street is darker (grass ~0.1, concrete ~0.3, sand ~0.35 albedo), so highlights compress.
 float3 shot = photo * AerialGain;
+// Blue and violet casts in a city's photograph are tower shadows and haze, not ground:
+// bare ground, pavement and sidewalks are warm or neutral, so they keep only their tone.
+float cast = saturate((shot.b - shot.r) * 25.0);
+shot = lerp(shot, dot(shot, W) * float3(1.03, 1.0, 0.95), cast * 0.9);
 float sl = max(dot(shot, W), 0.0001);
+// Under a closed canopy the photograph is dark crowns; the ground there is leaf litter and
+// needles, brown and shaded, not lawn.
+float forest = veg * saturate((0.075 - sl) / 0.035);
+classColor = lerp(classColor, float3(0.062, 0.052, 0.036), forest);
 float target = sl < 0.16 ? sl : 0.16 + (sl - 0.16) * 0.4;
 shot *= target / sl;
 // The zoom-14 photograph is about 10 m a pixel: on lawns and sand its blur would be the
@@ -831,6 +839,21 @@ UTexture2D* USimCruiseWorldResources::AddAerial(const FString& Key, const TArray
 	return Texture;
 }
 
+UTexture2D* USimCruiseWorldResources::ReplaceAerial(const FString& Key, const TArray<FColor>& Pixels, int32 Width, int32 Height, UTexture2D*& OutNew)
+{
+	OutNew = nullptr;
+	UTexture2D* Old = FindAerial(Key);
+	if (!Old)
+	{
+		return nullptr;
+	}
+	OutNew = CreateTexture(this, NAME_None, Pixels, Width, Height, true, false);
+	if (OutNew)
+	{
+		Aerials.Add(Key, OutNew);
+	}
+	return Old;
+}
 
 void USimCruiseWorldResources::TrimAerials(const TSet<FString>& Keep)
 {

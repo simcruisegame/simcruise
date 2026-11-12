@@ -21,6 +21,13 @@ The table lists what the map helper (`helper/atlas.mjs`, shipped as `tools/atlas
 | Lane counts and posted speeds for road markings (`lanes`, `lanes:forward`, `lanes:backward`, `oneway`, `maxspeed`) | OpenStreetMap contributors via Esri's OSM North America highways replica, one query per 2 × 2 tile group, cached 28 days, fetched in the background after the tile is drawn, for every streamed tile around the car nearest first | ODbL 1.0 | At runtime |
 | Guard rails and concrete barriers (`barrier=guard_rail`, `barrier=jersey_barrier`) | OpenStreetMap via public Overpass mirrors (or `SIMCRUISE_OVERPASS_URL`), one query per z14 area, cached 90 days | ODbL 1.0 | At runtime, never bundled |
 | Weather and sky | NOAA Aviation Weather Center METAR; NWS observations via Iowa Environmental Mesonet; NOAA GOES cloud mask; NASA GIBS snow | US public domain | At runtime, optional |
+| Live weather now (in-game) | [Open-Meteo](https://open-meteo.com/) forecast API, current conditions; NOAA Aviation Weather Center METAR | CC BY 4.0 (Open-Meteo); US public domain | Live in the game, every 10 min, cached in `Saved/Live` |
+| Live air quality | Open-Meteo air-quality API (Copernicus CAMS) | CC BY 4.0; Copernicus terms | Live, every 30 min |
+| Live sea and tide | Open-Meteo marine API; NOAA CO-OPS water levels (US gauges) | CC BY 4.0; US public domain | Live, every 30 min (tide 6 min) |
+| Live aircraft | [adsb.lol](https://adsb.lol/) ADS-B exchange API | ODbL 1.0 | Live, every 10 s, never stored |
+| Road traffic counts, lanes, roughness (US) | FHWA Highway Performance Monitoring System 2024 via geo.dot.gov ArcGIS; US Census geocoder for the state | US public domain | Live, once a place, cached 7 days |
+| Photographs of the place | Wikimedia Commons API (geosearch), only CC BY, CC BY-SA, CC0 and public-domain files, with artist and licence kept | Each file's own licence | Live, once a place, cached 7 days; metadata only |
+| AI detail model | Real-ESRGAN General x4v3 (Xintao Wang et al.), ONNX export by Qualcomm AI Hub | BSD 3-Clause | Bundled as `data/ai/real-esrgan-general-x4v3.onnx`; its output is cached in `Saved/NeuralDetail` |
 | Street photographs | KartaView, Panoramax (thumbnails and credits only) | CC BY-SA 4.0 | At runtime, optional |
 | Cars, ground textures, fonts | The cars are Sketchfab models listed in `licenses/Traffic models.txt` (the 1999-2005 Miata by Nieve5677, the Mustang, Corvette, Model 3, F-150, Grand Cherokee, Odyssey, CR-V, Tahoe, Accord); Poly Haven Asphalt Floor, Grass Ground and Sandy Gravel 02; Unreal Engine's Roboto font | CC BY 4.0; CC0; Apache 2.0 | Bundled in `data/art/`; the font with the engine |
 

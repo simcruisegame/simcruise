@@ -44,6 +44,8 @@ public:
 	/** Create and cache an aerial texture from decoded pixels (game thread). */
 	UTexture2D* AddAerial(const FString& Key, const TArray<FColor>& Pixels, int32 Width, int32 Height);
 	void TrimAerials(const TSet<FString>& Keep);
+	/** Swaps an aerial for a new image (the AI detail engine's result); returns the old texture, or null. */
+	UTexture2D* ReplaceAerial(const FString& Key, const TArray<FColor>& Pixels, int32 Width, int32 Height, UTexture2D*& OutNew);
 
 	UPROPERTY()
 	TArray<TObjectPtr<UMaterialInterface>> LayerMaterials;

@@ -44,7 +44,11 @@ public class SimCruise : ModuleRules
 			"SlateCore",
 			// Rendering resources, plus frame timing for the environment's graphics presets and perf sampler.
 			"RenderCore",
-			"RHI"
+			"RHI",
+			// Live world (Live/): public real-time feeds over HTTP, and the local AI detail
+			// engine on Unreal's Neural Network Engine (the NNERuntimeORT plugin runs it).
+			"HTTP",
+			"NNE"
 		});
 	}
 }

@@ -596,6 +596,8 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 		}
 
 		double ClutchLoad = 0.0;
+		// Torque the gearbox input receives: the clutch's, multiplied by a slipping torque converter.
+		double OutputLoad = 0.0;
 		if (bElectric)
 		{
 			ClutchLoad = MotorTorqueNm(Throttle, ForwardRatio, SignDirection, Speed);
@@ -654,6 +656,16 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 			{
 				ClutchLoad = 0.0;
 			}
+			OutputLoad = ClutchLoad;
+			// A torque converter (automatics only, not in manual mode) multiplies the torque it
+			// passes while the turbine runs slower than the engine: stall_ratio at a standstill,
+			// falling linearly to 1 at the coupling point (typical 1.8-2.4 and 0.85-0.9).
+			if (!State.bManual && Car.TransmissionKind == TEXT("automatic") && Car.TorqueConverterStallRatio > 1.0 && ClutchLoad > 0.0)
+			{
+				const double SpeedRatio = FMath::Clamp(AxleSpeed * ForwardRatio / FMath::Max(State.EngineOmegaRadPerSecond, 1.0), 0.0, 1.0);
+				const double CouplingPoint = FMath::Max(Car.TorqueConverterCouplingSpeedRatio, 0.1);
+				OutputLoad = ClutchLoad * (1.0 + (Car.TorqueConverterStallRatio - 1.0) * FMath::Max(0.0, 1.0 - SpeedRatio / CouplingPoint));
+			}
 			State.SoundCombustion += (Torque + Governor) / (Substeps * 180.0);
 			State.SoundShaftLoad += ClutchLoad / (Substeps * 180.0);
 			State.EngineOmegaRadPerSecond = FMath::Clamp(
@@ -668,7 +680,11 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 		State.bClutchSaturated = !bElectric && ClutchLoad >= Car.ClutchCapacityNm * 0.98;
 		State.ClutchTorqueNm = ClutchLoad;
 
-		const double AxleTorque = ClutchLoad * ForwardRatio * Car.DrivelineEfficiencyFraction * SignDirection;
+		if (bElectric)
+		{
+			OutputLoad = ClutchLoad;
+		}
+		const double AxleTorque = OutputLoad * ForwardRatio * Car.DrivelineEfficiencyFraction * SignDirection;
 		double WheelOmegas[4];
 		for (int32 WheelIndex = 0; WheelIndex < 4; ++WheelIndex)
 		{

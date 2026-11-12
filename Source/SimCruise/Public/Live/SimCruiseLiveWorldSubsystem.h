@@ -1,0 +1,130 @@
+// Copyright SimCruise contributors. All Rights Reserved.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Interfaces/IHttpRequest.h"
+#include "Live/SimCruiseLiveData.h"
+#include "Subsystems/WorldSubsystem.h"
+#include "SimCruiseLiveWorldSubsystem.generated.h"
+
+class ASimCruiseLiveSky;
+
+/**
+ * The live world: reads free public real-time feeds for the place the car is now and
+ * makes the game world match it (see FSimCruiseLiveData for the feeds).
+ *
+ *   weather   every 10 min   sky cover, haze, mist, rain (wet roads), wind, temperature
+ *   metar     every 10 min   the nearest airport observation overrides what it measures
+ *   air       every 30 min   aerosol optical depth sets the haze in clear air
+ *   sea       every 30 min   waves, sea temperature, tide (NOAA gauge within 30 km if any)
+ *   aircraft  every 10 s     the real aircraft within 25 nm fly overhead (ASimCruiseLiveSky)
+ *   roads     each place     measured daily traffic per road (US), scaled to the hour: TrafficAt
+ *   photos    each place     freely licensed photographs near the car (Wikimedia Commons)
+ *
+ * The car moving more than 5 km reads the slow feeds again for the new place. Every
+ * answer is saved under Saved/Live, so the next start uses the last data at once and an
+ * offline start keeps the last real sky (weather up to 6 hours old). Nothing needs a key.
+ *
+ * Command line: -SimCruiseNoLive turns it off; -SimCruiseLive turns it on in unattended
+ * runs (tests and captures are offline by default). A chosen sky (-SimCruiseConditions,
+ * -SimCruiseCloud, -SimCruiseVisibilityKm, -SimCruiseRain) wins over the live weather.
+ * Console: SimCruise.Live.Report, SimCruise.Live.Refresh.
+ */
+UCLASS()
+class SIMCRUISE_API USimCruiseLiveWorldSubsystem : public UTickableWorldSubsystem
+{
+	GENERATED_BODY()
+
+public:
+	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
+	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
+	virtual void Deinitialize() override;
+	virtual void Tick(float DeltaTime) override;
+	virtual TStatId GetStatId() const override;
+
+	static USimCruiseLiveWorldSubsystem* Get(const UWorld* World);
+
+	/** Read every feed again now. */
+	void RefreshAll();
+
+	FString Report() const;
+
+	/** Saves a telephoto frame toward the nearest live aircraft (SimCruise.Live.Shot). */
+	void Shot(const FString& Name, float FovDeg);
+
+	const FSimCruiseLiveWeather& GetWeather() const { return Weather; }
+	const FSimCruiseLiveAir& GetAir() const { return Air; }
+	const FSimCruiseLiveSea& GetSea() const { return Sea; }
+	bool IsEnabled() const { return bEnabled; }
+
+	/** Road sections with measured traffic around the place (US only; FHWA HPMS). */
+	const TArray<FSimCruiseRoadSection>& GetRoads() const { return Roads; }
+
+	/** Freely licensed photographs near the place (Wikimedia Commons), for builders and the AI. */
+	const TArray<FSimCruisePlacePhoto>& GetPhotos() const { return Photos; }
+
+	/**
+	 * The traffic that belongs on the road at a world position now: vehicles per km on each
+	 * lane and per hour (both directions), from the road's measured daily count, the sky
+	 * clock's local hour and weekday, and the live rain. False when no counted road is within
+	 * 40 m (local streets are not counted; outside the US there is no inventory).
+	 */
+	bool TrafficAt(const FVector& WorldCm, float& OutPerKmLane, float& OutPerHour, FString* OutRoad = nullptr) const;
+
+	/** Local time at the place on the sky clock (UTC plus the place's offset). */
+	FDateTime LocalNow() const;
+
+private:
+	enum class EFeed : uint8 { Weather, Metar, Air, Sea, TideStations, Tide, Aircraft, State, Roads, Photos, Count };
+
+	struct FFeedState
+	{
+		double NextAt = 0.0;
+		bool bInFlight = false;
+		FDateTime LastOkUtc;
+		FString LastError;
+		int32 Failures = 0;
+	};
+
+	bool ObserverLonLat(double& OutLat, double& OutLon) const;
+	void Fetch(EFeed Feed, const FString& Url);
+	void OnFeed(EFeed Feed, const FString& Body, const FDateTime& ReceivedUtc, bool bFromCache);
+	void ApplyWeather();
+	void Announce();
+	FString CachePath(EFeed Feed) const;
+	void LoadCache(double Lat, double Lon);
+	static const TCHAR* FeedName(EFeed Feed);
+	static double PeriodSeconds(EFeed Feed);
+
+	bool bEnabled = false;
+	bool bWeatherFromCommandLine = false;
+	bool bAnnounced = false;
+	float ShotEverySeconds = 0.0f;
+	double NextShotAt = 0.0;
+	int32 ShotCount = 0;
+	double Clock = 0.0;
+	double FeedLat = 0.0;
+	double FeedLon = 0.0;
+	bool bHaveFeedPlace = false;
+	FFeedState Feeds[static_cast<int32>(EFeed::Count)];
+
+	FSimCruiseLiveWeather Weather;
+	TArray<FSimCruiseMetar> Metars;
+	TOptional<FSimCruiseMetar> NearMetar;
+	FSimCruiseLiveAir Air;
+	FSimCruiseLiveSea Sea;
+	TArray<FSimCruiseTideStation> TideStations;
+	TOptional<FSimCruiseTideStation> TideStation;
+	TArray<FSimCruiseLiveAircraft> Aircraft;
+	FString StateCode;
+	TArray<FSimCruiseRoadSection> Roads;
+	TArray<FSimCruisePlacePhoto> Photos;
+
+	TArray<FHttpRequestPtr> Requests;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ASimCruiseLiveSky> Sky;
+
+	FDelegateHandle RebaseHandle;
+};

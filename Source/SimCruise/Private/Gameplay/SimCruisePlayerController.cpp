@@ -13,6 +13,7 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Gameplay/SimCruiseAtlasUI.h"
 #include "Gameplay/SimCruiseGameMode.h"
+#include "Gameplay/SimCruisePreferences.h"
 #include "SimCruiseGameInstance.h"
 #include "World/SimCruiseWorldStreamer.h"
 #include "Gameplay/SimCruiseHUD.h"
@@ -113,6 +114,11 @@ void ASimCruisePlayerController::OnPossess(APawn* InPawn)
 	if (ISimCruiseVehicleControl* Vehicle = GetVehicle())
 	{
 		Setup = Vehicle->GetVehicleSetup();
+		// The remembered gearbox (DrivingPreferences.gd "manual").
+		if (SimCruisePreferences::GetBool(TEXT("manual"), false))
+		{
+			Vehicle->SetManualTransmission(true);
+		}
 	}
 	if (ASimCruisePlayerCameraManager* Camera = GetSimCamera())
 	{
@@ -186,6 +192,20 @@ FSimCruiseRawControls ASimCruisePlayerController::ReadRawControls() const
 void ASimCruisePlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
+	if (!bPreferencesApplied)
+	{
+		ASimCruiseHUD* Hud = GetSimHUD();
+		ASimCruisePlayerCameraManager* Camera = GetSimCamera();
+		if (Hud && Camera)
+		{
+			// The remembered HUD level, lens and sound (DrivingPreferences.gd).
+			bPreferencesApplied = true;
+			bSoundOn = SimCruisePreferences::GetBool(TEXT("sound"), bSoundOn);
+			Hud->SetLevel(static_cast<ESimCruiseHudLevel>(SimCruisePreferences::GetInt(TEXT("hud_level"), static_cast<int32>(Hud->GetLevel()), 0, 2)));
+			const int32 Lens = SimCruisePreferences::GetInt(TEXT("lens"), static_cast<int32>(Camera->GetLens()), 0, 2);
+			for (int32 i = 0; i < 3 && static_cast<int32>(Camera->GetLens()) != Lens; ++i) Camera->CycleLens();
+		}
+	}
 	if (!PendingMessage.IsEmpty())
 	{
 		if (ASimCruiseHUD* Hud = GetSimHUD())
@@ -270,6 +290,7 @@ void ASimCruisePlayerController::OnToggleTransmission()
 		Vehicle->SetManualTransmission(bManual);
 		// Read back now: the atlas toggles it while the game is paused.
 		Vehicle->GetVehicleTelemetry(Telemetry);
+		SimCruisePreferences::SetBool(TEXT("manual"), bManual);
 		ShowMessage(bManual ? TEXT("Manual · clutch + shift to select first gear") : TEXT("Automatic shifting"), 4.f);
 	}
 }
@@ -314,6 +335,7 @@ void ASimCruisePlayerController::OnCycleHud()
 	if (ASimCruiseHUD* Hud = GetSimHUD())
 	{
 		Hud->CycleLevel();
+		SimCruisePreferences::SetInt(TEXT("hud_level"), static_cast<int32>(Hud->GetLevel()));
 	}
 }
 
@@ -477,6 +499,7 @@ void ASimCruisePlayerController::OnRecover()
 void ASimCruisePlayerController::OnToggleSound()
 {
 	bSoundOn = !bSoundOn;
+	SimCruisePreferences::SetBool(TEXT("sound"), bSoundOn);
 	ShowMessage(bSoundOn ? TEXT("Sound on") : TEXT("Sound off"), 2.f);
 }
 
@@ -496,6 +519,7 @@ void ASimCruisePlayerController::OnCycleLens()
 	if (ASimCruisePlayerCameraManager* Camera = GetSimCamera())
 	{
 		Camera->CycleLens();
+		SimCruisePreferences::SetInt(TEXT("lens"), static_cast<int32>(Camera->GetLens()));
 		ShowMessage(FString::Printf(TEXT("Lens · %s"), SimCruiseLens::Label(Camera->GetLens())), 2.f);
 	}
 }

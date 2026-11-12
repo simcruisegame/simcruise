@@ -45,6 +45,24 @@ struct SIMCRUISE_API FSimCruiseWeatherConditions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weather")
 	float StationKm = 0.0f;
 
+	/**
+	 * Column aerosol optical depth at 550 nm from the live air-quality feed (CAMS); negative
+	 * when unknown. When known and the air is not misty it sets the haze instead of visibility.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weather")
+	float AerosolOpticalDepth = -1.0f;
+
+	/** Wind at 10 m, m/s, and the direction it comes from (degrees clockwise from north). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weather")
+	float WindSpeedMs = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weather")
+	float WindFromDeg = 0.0f;
+
+	/** Air temperature at 2 m, degrees C (NaN-free default: a mild 20). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weather")
+	float TemperatureC = 20.0f;
+
 	/** True when these conditions came from an observation rather than the default sky. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weather")
 	bool bObserved = false;

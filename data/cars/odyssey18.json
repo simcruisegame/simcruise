@@ -1,0 +1,181 @@
+{
+ "inertia": [
+  4761,
+  4834,
+  1145
+ ],
+ "collision_box": [
+  1.99,
+  1.04,
+  4.9
+ ],
+ "collision_box_y": 0.89,
+ "mount_height_m": 0.5896,
+ "static_length_m": 0.22,
+ "unsprung_corner_kg": 40.0,
+ "wheel_rate_n_m": [
+  35366,
+  36234
+ ],
+ "reference_corner_load_n": 4991.6,
+ "max_contact_load_n": 27713,
+ "coil_lb_in": [
+  0.0,
+  0.0
+ ],
+ "lever_ratio": [
+  1.0,
+  1.0
+ ],
+ "bar_diameter_m": [
+  0.0,
+  0.0
+ ],
+ "damper": [
+  "ratio",
+  "ratio"
+ ],
+ "damper_dyno": [
+  [],
+  []
+ ],
+ "_comment": "2018 Honda Odyssey: 3.5 L V6, front-wheel drive, nine-speed automatic (EX-L). Model: Sketchfab 'Honda Odessey' by MattDoesBlender (CC BY 4.0).",
+ "id": "odyssey18",
+ "name": "Odyssey EX-L",
+ "make": "Honda",
+ "body": "minivan",
+ "seats": 8,
+ "mass_kg": 2036.0,
+ "front_weight": 0.56,
+ "cg_height_m": 0.64,
+ "wheelbase_m": 3.0,
+ "track_front_m": 1.725,
+ "track_rear_m": 1.725,
+ "tire_width_m": 0.235,
+ "tire_aspect_ratio": 0.6,
+ "rim_in": 18.0,
+ "static_mu": 0.9,
+ "lateral_grip_scale": 0.975,
+ "load_sensitivity": 0.1,
+ "drag_area_m2": 1.0,
+ "parking_rack_deg": 36.0,
+ "road_reference_deg": 34.0,
+ "brake_front_nm": 3000.0,
+ "brake_rear_nm": 1500.0,
+ "parking_brake_nm": 1500.0,
+ "engine": "combustion",
+ "torque_curve": [
+  [
+   700,
+   220
+  ],
+  [
+   2000,
+   290
+  ],
+  [
+   3500,
+   330
+  ],
+  [
+   4700,
+   355
+  ],
+  [
+   6000,
+   332
+  ],
+  [
+   6800,
+   290
+  ]
+ ],
+ "torque_past_curve_nm": 250.0,
+ "idle_rpm": 700.0,
+ "idle_omega": 73.0,
+ "governor_rpm": 725.0,
+ "fuel_cut_rpm": 6800.0,
+ "max_gear_rpm": 6900.0,
+ "engine_inertia": 0.18,
+ "gears": [
+  4.7,
+  2.84,
+  1.91,
+  1.38,
+  1.0,
+  0.81,
+  0.7,
+  0.58,
+  0.48
+ ],
+ "reverse_ratio": 3.8,
+ "final_drive": 3.86,
+ "driveline_efficiency": 0.88,
+ "shift_seconds": 0.2,
+ "upshift_rpm": 6500.0,
+ "upshift_min_omega": 647.0,
+ "downshift_rpm": 1500.0,
+ "clutch_stiffness": 12.0,
+ "clutch_capacity_nm": 500.0,
+ "clutch_back_nm": 450.0,
+ "launch_rpm": 1400,
+ "launch_rpm_per_throttle": 1600.0,
+ "converter_stall_ratio": 1.9,
+ "converter_coupling_ratio": 0.87,
+ "layout": "fwd",
+ "front_diff_bias": 1.0,
+ "transmission": "automatic",
+ "bar_rate_n_m": [
+  24000.0,
+  14000.0
+ ],
+ "damper_ratio_rebound": [
+  0.45,
+  0.45
+ ],
+ "damper_ratio_compression": [
+  0.28,
+  0.28
+ ],
+ "damper_knee_mps": [
+  0.12,
+  0.12
+ ],
+ "damper_knee_slope": [
+  0.45,
+  0.45
+ ],
+ "static_camber_deg": [
+  -0.5,
+  -0.8
+ ],
+ "camber_per_m": [
+  16.0,
+  18.0
+ ],
+ "caster_deg": 5.0,
+ "toe_per_wheel_deg": 0.05,
+ "target_0_60_s": 6.7,
+ "target_70_0_ft": 180.0,
+ "target_skidpad_g": 0.74,
+ "calibration_open": "0-60 mph 8.2 s against 6.7 s: traction control holds the front tyres to about 0.38 g off the line, and the converter model has no lock-up clutch, so it slips about 13 % in second and third where the real nine-speed is locked. Both are powertrain-model gaps, not car data.",
+ "traction_control": true,
+ "abs_enabled": true,
+ "slip_ratio_falloff": 0.1,
+ "model_scene": "data/art/traffic/odyssey-175ce6fb/scene.gltf",
+ "model_rig": {
+  "fit": true
+ },
+ "driver_eye": [
+  -0.4,
+  1.3,
+  0.2
+ ],
+ "sources": {
+  "calibration": "Car and Driver, 2018 Odyssey nine-speed: 180 ft from 70 mph, 0.74 g (stability control off); ten-speed: 184 ft, 0.75 g. Car and Driver timed the ten-speed Elite at 6.6 s to 60 mph and report the 126 lb lighter nine-speed EX-L 0.1 s behind it (6.7 s, the target), both 15.2 s at 95 mph in the quarter mile.",
+  "engine": "280 hp at 6000 rpm, 262 lb-ft at 4700 rpm (Honda J35Y6); curve shape estimated.",
+  "gearing": "ZF 9HP ratios; the 3.86 final drive is an estimate.",
+  "mass": "About 4488 lb for the EX-L.",
+  "estimates": "Weight split, centre of gravity, inertia (scaled), spring and bar rates (1.3/1.5 Hz), dampers, final drive, brakes, tyre grip (calibrated)."
+ }
+}

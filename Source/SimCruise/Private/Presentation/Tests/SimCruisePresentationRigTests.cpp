@@ -226,15 +226,12 @@ bool FSimCruisePresentationRigParkedTest::RunTest(const FString& Parameters)
 		FString Error;
 		FSimCruiseCarPresentationProfile Profile;
 		if (!SimCruisePresentationProfiles::Load(Case.Id, Profile, Error)) { AddError(Error); continue; }
-		if (!TestTrue(FString::Printf(TEXT("%s has parked dimensions"), Case.Id), Profile.Parked.IsSet())) continue;
+		// These cars park, drive in traffic and are drivable: fitted to their driving data (data/cars).
+		FSimCruiseCarDefinition Definition;
+		if (!TestTrue(FString::Printf(TEXT("%s has driving data"), Case.Id), FSimCruiseCarDefinitionLoader::LoadById(Case.Id, Definition, Error))) { AddError(Error); continue; }
 		FSimCruiseGltfModel Model;
 		if (!SimCruiseGltf::Load(FPaths::Combine(FPaths::ProjectDir(), Profile.ModelPath), Model, Error)) { AddError(Error); continue; }
-		FSimCruiseRigInputs Inputs;
-		Inputs.WheelbaseM = Profile.Parked->WheelbaseM;
-		Inputs.FrontTrackM = Profile.Parked->FrontTrackM;
-		Inputs.RearTrackM = Profile.Parked->RearTrackM;
-		Inputs.TireRadiusM = Profile.Parked->TyreRadiusM;
-		Inputs.TireWidthM = Profile.Parked->TyreWidthM;
+		const FSimCruiseRigInputs Inputs = FSimCruiseRigInputs::FromCar(Definition);
 		FSimCruiseRiggedCar R;
 		if (!SimCruiseCarModelRig::Build(Model, Profile, Inputs, R, Error)) { AddError(FString(Case.Id) + TEXT(": ") + Error); continue; }
 		AddInfo(FString::Printf(TEXT("%s: length %.3f m, width %.3f m, track %.3f / %.3f m, tyre radius %.3f m, %lld triangles"), Case.Id,

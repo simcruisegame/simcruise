@@ -27,6 +27,8 @@ public:
 	void CycleView();
 	void SetView(ESimCruiseView InView);
 	ESimCruiseView GetView() const { return View; }
+	/** The view drawn last frame: the chase view stands in for the seat of a car without a cabin. */
+	ESimCruiseView GetShownView() const { return ShownView; }
 	static const TCHAR* ViewName(ESimCruiseView InView);
 
 	void CycleLens();
@@ -40,6 +42,7 @@ public:
 
 private:
 	ESimCruiseView View = ESimCruiseView::Driver;
+	ESimCruiseView ShownView = ESimCruiseView::Driver;
 	ESimCruiseLens Lens = ESimCruiseLens::Natural;
 	bool bSnap = true;
 	FSimCruiseHeadModel Head;
