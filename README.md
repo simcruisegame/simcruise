@@ -37,6 +37,8 @@ No account, no API keys, no subscription, no telemetry. The game talks directly 
 | *Driver's seat, with traffic in the mirror* | *A side street: stop sign at Ocean Drive* |
 | ![The Edison on Ocean Drive with its name in neon and Ocean's Ten on the awning, from the map's named places](docs/images/unreal/buildings-signs-edison.jpg) | ![A row of Ocean Drive fronts: Ocean Blue Hostel and Deco Walk signed over their awnings](docs/images/unreal/buildings-signs-row.jpg) |
 | *Named places sign their own buildings* | *Signs along the row* |
+| ![The Breakwater at night: its name on a neon blade, neon along the parapet, lit rooms](docs/images/unreal/buildings-night-breakwater.jpg) | ![King Street, Charleston: shops signed over their windows, a brick block with a belt course](docs/images/unreal/buildings-town-charleston-king-street.jpg) |
+| *Ocean Drive at night* | *Any town: King Street, Charleston* |
 
 *Captured with `-SimCruiseDriveCapture` (see [docs/unreal-building.md](docs/unreal-building.md#drive-captures)). Map data © OpenStreetMap contributors.*
 
