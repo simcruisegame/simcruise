@@ -1,7 +1,7 @@
 {
 	"tile": "18179_27910",
-	"fetched": "2026-11-12T21:00:41.767Z",
-	"sources": "overpass:43 wikidata:14 photos photos photos",
+	"fetched": "2026-11-12T22:32:36.235Z",
+	"sources": "overpass:43 wikidata:14 photos photos photos photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -24,8 +24,8 @@
 			"name": "Portofino Tower",
 			"osm": "way/117915459",
 			"wikidata": "Q3399359",
-			"colour": "#E9AD83",
-			"colour_source": "measured in File:Portofino Tower South Beach.jpg (2008, , CC BY-SA 1.0; wall 36% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#E8AD83",
+			"colour_source": "measured in File:Portofino Tower South Beach.jpg (2008, , CC BY-SA 1.0; wall 40% of the facade band); wall pixels found by the local scene parser",
 			"image": "Portofino Tower South Beach.jpg",
 			"levels": 44,
 			"building": "apartments"

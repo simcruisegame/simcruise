@@ -1,7 +1,7 @@
 {
 	"tile": "18179_27905",
-	"fetched": "2026-11-12T20:59:54.668Z",
-	"sources": "overpass:166 wikidata:18 photos photos photos",
+	"fetched": "2026-11-12T22:32:27.182Z",
+	"sources": "overpass:166 wikidata:18 photos photos photos photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -177,8 +177,8 @@
 				"neo-expressionism"
 			],
 			"year": 1961,
-			"colour": "#EDE0C5",
-			"colour_source": "measured in File:Cuban Hebrew Congregation.jpg (2017, Phillip Pessar, CC BY 2.0; wall 64% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#EBDEC3",
+			"colour_source": "measured in File:Cuban Hebrew Congregation.jpg (2017, Phillip Pessar, CC BY 2.0; wall 60% of the facade band); wall pixels found by the local scene parser",
 			"image": "Cuban Hebrew Congregation.jpg",
 			"building": "yes",
 			"amenity": "place_of_worship"
@@ -233,7 +233,7 @@
 			"wikidata": "Q3241310",
 			"heritage": "National Register of Historic Places listed place",
 			"colour": "#C8D2D4",
-			"colour_source": "measured in File:Lincoln Road.jpg (2008, , CC BY-SA 3.0; wall 33% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:Lincoln Road.jpg (2008, , CC BY-SA 3.0; wall 35% of the facade band); wall pixels found by the local scene parser",
 			"image": "Lincoln Road.jpg"
 		},
 		{
@@ -247,7 +247,7 @@
 			"year": 1936,
 			"architect": "Thomas W. Lamb",
 			"colour": "#70725E",
-			"colour_source": "measured in File:Miami Beach FL Lincoln Mall Lincoln Theatre01.jpg (2011, Ebyabe, CC BY-SA 3.0; wall 53% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:Miami Beach FL Lincoln Mall Lincoln Theatre01.jpg (2011, Ebyabe, CC BY-SA 3.0; wall 54% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach FL Lincoln Mall Lincoln Theatre01.jpg"
 		},
 		{

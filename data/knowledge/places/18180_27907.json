@@ -1,7 +1,7 @@
 {
 	"tile": "18180_27907",
-	"fetched": "2026-11-12T21:01:27.915Z",
-	"sources": "overpass:178 wikidata:71 photos photos photos",
+	"fetched": "2026-11-12T22:33:20.458Z",
+	"sources": "overpass:178 wikidata:71 photos photos photos photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -91,7 +91,7 @@
 			"year": 1939,
 			"architect": "Lawrence Murray Dixon",
 			"colour": "#DBCEA6",
-			"colour_source": "measured in File:Miami Beach - Marlin Hotel (2024).jpg (2024, P. Hughes, CC BY 4.0; wall 41% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:Miami Beach - Marlin Hotel (2024).jpg (2024, P. Hughes, CC BY 4.0; wall 43% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - Marlin Hotel (2024).jpg",
 			"building": "hotel",
 			"amenity": "hotel"
@@ -114,7 +114,7 @@
 			"year": 1937,
 			"architect": "Lawrence Murray Dixon",
 			"colour": "#CCCEC7",
-			"colour_source": "measured in File:Miami Beach - Hotel Victor 2.jpg (2021, P. Hughes, CC BY-SA 4.0; wall 58% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:Miami Beach - Hotel Victor 2.jpg (2021, P. Hughes, CC BY-SA 4.0; wall 60% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - Hotel Victor 2.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
@@ -145,8 +145,8 @@
 			"year": 1937,
 			"architect": "Albert Anis",
 			"heritage": "National Register of Historic Places contributing property",
-			"colour": "#DAD3C5",
-			"colour_source": "measured in File:Leslie, Ocean Drive, Miami Beach, FL.jpg (2017, Elisa.rolle, CC BY-SA 4.0; wall 29% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#DAD2C5",
+			"colour_source": "measured in File:Leslie, Ocean Drive, Miami Beach, FL.jpg (2017, Elisa.rolle, CC BY-SA 4.0; wall 31% of the facade band); wall pixels found by the local scene parser",
 			"image": "Leslie, Ocean Drive, Miami Beach, FL.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
@@ -163,7 +163,7 @@
 			"year": 1941,
 			"architect": "Richard Kiehnel",
 			"colour": "#BAB6B7",
-			"colour_source": "measured in File:The Carlyle, Miami Beach, east view up, 2018-08-21.jpg (2018, Photograph:  Radomianin, Public domain; wall 47% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:The Carlyle, Miami Beach, east view up, 2018-08-21.jpg (2018, Photograph:  Radomianin, Public domain; wall 48% of the facade band); wall pixels found by the local scene parser",
 			"image": "The Carlyle, Miami Beach, east view up, 2018-08-21.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
@@ -178,7 +178,7 @@
 				"Mediterranean Revival architecture"
 			],
 			"colour": "#72726F",
-			"colour_source": "measured in File:Casa Casuarina 2019.jpg (2019, Vadelmavene, CC BY-SA 4.0; wall 37% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:Casa Casuarina 2019.jpg (2019, Vadelmavene, CC BY-SA 4.0; wall 41% of the facade band); wall pixels found by the local scene parser",
 			"image": "Casa Casuarina 2019.jpg",
 			"building": "yes",
 			"amenity": "hotel"
@@ -195,8 +195,8 @@
 			"year": 1936,
 			"architect": "Henry Hohauser",
 			"heritage": "National Register of Historic Places contributing property",
-			"colour": "#F2F3ED",
-			"colour_source": "measured in File:Congress Hotel South Beach (34378614392).jpg (2017, Phillip Pessar from Miami, USA, CC BY 2.0; wall 52% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#F0F2EB",
+			"colour_source": "measured in File:Congress Hotel South Beach (34378614392).jpg (2017, Phillip Pessar from Miami, USA, CC BY 2.0; wall 46% of the facade band); wall pixels found by the local scene parser",
 			"image": "Congress Hotel South Beach (34378614392).jpg",
 			"building": "hotel",
 			"amenity": "hotel"
@@ -210,8 +210,8 @@
 			"style": [
 				"Art Deco"
 			],
-			"colour": "#F0F5F8",
-			"colour_source": "measured in File:Miami Design Preservation League 1001 Ocean Drive Miami Beach FL 33139 USA.jpg (2024, Spudgun67, CC0; wall 51% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#E2EAF2",
+			"colour_source": "measured in File:Miami Design Preservation League 1001 Ocean Drive Miami Beach FL 33139 USA.jpg (2024, Spudgun67, CC0; wall 46% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Design Preservation League 1001 Ocean Drive Miami Beach FL 33139 USA.jpg",
 			"building": "yes",
 			"amenity": "information"
@@ -244,8 +244,8 @@
 			"year": 1939,
 			"architect": "Anton Skislewicz",
 			"heritage": "National Register of Historic Places contributing property",
-			"colour": "#EDF0EC",
-			"colour_source": "measured in File:Breakwater Ocean Drive.jpg (2016, Gzzz, CC BY-SA 4.0; wall 27% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#E9ECE8",
+			"colour_source": "measured in File:Breakwater Ocean Drive.jpg (2016, Gzzz, CC BY-SA 4.0; wall 25% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - Breakwater Hotel.jpg|Breakwater Ocean Drive.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
@@ -258,7 +258,7 @@
 			"wikidata": "Q8035684",
 			"year": 2005,
 			"colour": "#BAB9B6",
-			"colour_source": "measured in File:World Erotic Art Museum entrance.jpg (2019, Cullen328, CC BY-SA 3.0; wall 40% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:World Erotic Art Museum entrance.jpg (2019, Cullen328, CC BY-SA 3.0; wall 41% of the facade band); wall pixels found by the local scene parser",
 			"image": "World Erotic Art Museum entrance.jpg",
 			"building": "yes",
 			"amenity": "museum"
@@ -356,8 +356,8 @@
 			"osm": "way/449002308",
 			"wikidata": "Q2178180",
 			"year": 1986,
-			"colour": "#E7E7DD",
-			"colour_source": "measured in File:Wolfsonian FL1.jpg (2012, Acroterion, CC BY-SA 4.0; wall 87% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#E6E6DB",
+			"colour_source": "measured in File:Wolfsonian FL1.jpg (2012, Acroterion, CC BY-SA 4.0; wall 85% of the facade band); wall pixels found by the local scene parser",
 			"image": "Wolfsonian FL1.jpg",
 			"building": "yes",
 			"amenity": "museum"
@@ -389,7 +389,7 @@
 			"year": 1939,
 			"architect": "Lawrence Murray Dixon",
 			"colour": "#828C89",
-			"colour_source": "measured in File:Miami Beach - Kent Hotel.jpg (2011, P. Hughes, CC BY-SA 4.0; wall 46% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:Miami Beach - Kent Hotel.jpg (2011, P. Hughes, CC BY-SA 4.0; wall 48% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - Kent Hotel.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
@@ -406,7 +406,7 @@
 			"year": 1938,
 			"architect": "Albert Anis",
 			"colour": "#D8D9D1",
-			"colour_source": "measured in File:Miami Beach - Clevelander Hotel.jpg (2021, P. Hughes, CC BY-SA 4.0; wall 56% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:Miami Beach - Clevelander Hotel.jpg (2021, P. Hughes, CC BY-SA 4.0; wall 59% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - The Clevelander Hotel 01.jpg|Miami Beach - Clevelander Hotel.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
@@ -433,7 +433,7 @@
 			"architect": "Lawrence Murray Dixon",
 			"heritage": "National Register of Historic Places contributing property",
 			"colour": "#D8C082",
-			"colour_source": "measured in File:Tides Hotel Miami Beach.jpg (2012, Alexf, CC BY-SA 3.0; wall 67% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:Tides Hotel Miami Beach.jpg (2012, Alexf, CC BY-SA 3.0; wall 71% of the facade band); wall pixels found by the local scene parser",
 			"image": "Tides Hotel Miami Beach.jpg|Miami Beach - The Tides Hotel 01.jpg",
 			"building": "hotel"
 		},
@@ -484,7 +484,7 @@
 			"architect": "Albert Anis",
 			"heritage": "National Register of Historic Places contributing property",
 			"colour": "#9D9598",
-			"colour_source": "measured in File:Waldorf Towers (Miami Beach)-1.jpg (2014, Visitor7, CC BY-SA 3.0; wall 25% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:Waldorf Towers (Miami Beach)-1.jpg (2014, Visitor7, CC BY-SA 3.0; wall 29% of the facade band); wall pixels found by the local scene parser",
 			"image": "Waldorf Towers (Miami Beach)-1.jpg|Miami Beach - Waldorf Towers Hotel (1950) 01.jpg",
 			"building": "hotel"
 		},
@@ -840,7 +840,7 @@
 			"year": 1937,
 			"architect": "Henry Hohauser",
 			"colour": "#CDD5D5",
-			"colour_source": "measured in File:Miami Beach - The Shepley.jpg (2024, P. Hughes, CC BY 4.0; wall 59% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:Miami Beach - The Shepley.jpg (2024, P. Hughes, CC BY 4.0; wall 61% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - The Shepley.jpg",
 			"building": "hotel"
 		},
@@ -855,7 +855,7 @@
 			"year": 1941,
 			"architect": "Albert Anis",
 			"colour": "#90867E",
-			"colour_source": "measured in File:Miami Beach - Viscay Hotel.jpg (2024, P. Hughes, CC BY 4.0; wall 40% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:Miami Beach - Viscay Hotel.jpg (2024, P. Hughes, CC BY 4.0; wall 42% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - Viscay Hotel.jpg",
 			"building": "hotel"
 		},
@@ -905,8 +905,8 @@
 				"Gothic Revival"
 			],
 			"year": 1926,
-			"colour": "#EBE8DF",
-			"colour_source": "measured in File:Miami Beach - South Beach buildings - Fat Tuesday.jpg (2017, Daniel Di Palma, CC BY-SA 4.0; wall 45% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#E8E4DB",
+			"colour_source": "measured in File:Miami Beach - South Beach buildings - Fat Tuesday.jpg (2017, Daniel Di Palma, CC BY-SA 4.0; wall 38% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - South Beach buildings - Fat Tuesday.jpg"
 		},
 		{

@@ -193,6 +193,8 @@ int32 USimCruisePlaceFactsCommandlet::Main(const FString& Params)
 		// colours measured before (a mapped colour is never touched).
 		FSimCruiseSceneParser::Get().Initialize();
 		const bool bRemeasure = FParse::Param(*Params, TEXT("Remeasure"));
+		// -AlbedoFromPavement: darken over-exposed walls on the photograph's pavement (experimental).
+		const bool bAlbedo = FParse::Param(*Params, TEXT("AlbedoFromPavement"));
 		int32 Measured = 0, Tried = 0;
 		for (const FIntPoint& Tile : Tiles)
 		{
@@ -252,13 +254,15 @@ int32 USimCruisePlaceFactsCommandlet::Main(const FString& Params)
 					TArray<uint8> Labels;
 					int32 GW = 0, GH = 0;
 					const bool bParsed = FSimCruiseSceneParser::Get().IsReady() && FSimCruiseSceneParser::Get().ParseWithTimeout(Pixels, W, H, Labels, GW, GH);
-					const bool bMasked = bParsed && SimCruisePlacePhotos::WallColourMasked(Pixels, W, H, Labels, GW, GH, Wall, Share);
+					bool bNormalised = false;
+					const bool bMasked = bParsed && SimCruisePlacePhotos::WallColourMasked(Pixels, W, H, Labels, GW, GH, Wall, Share, bNormalised, bAlbedo);
 					if (bMasked || (!bParsed && SimCruisePlacePhotos::WallColour(Pixels, W, H, Wall, Share)))
 					{
 						SimCruisePlacePhotos::Apply(R, Wall, Share, Info);
 						if (bMasked)
 						{
-							R.ColourSource += TEXT("; wall pixels found by the local scene parser");
+							R.ColourSource += bNormalised ? TEXT("; wall pixels found by the local scene parser; albedo from the pavement in the photo")
+								: TEXT("; wall pixels found by the local scene parser");
 						}
 						++Measured;
 						UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("%s: wall %s %s"), *R.Name, *R.Colour, *R.ColourSource);

@@ -1,7 +1,7 @@
 {
 	"tile": "18178_27906",
-	"fetched": "2026-11-12T20:59:36.330Z",
-	"sources": "overpass:187 wikidata:6 photos photos photos",
+	"fetched": "2026-11-12T22:32:18.939Z",
+	"sources": "overpass:187 wikidata:6 photos photos photos photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -108,7 +108,7 @@
 			"osm": "way/297682367",
 			"wikidata": "Q42421762",
 			"colour": "#674024",
-			"colour_source": "measured in File:Movie theater in Miami Beach.JPG (2004, User:Wikiwopbop, CC BY-SA 3.0; wall 42% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:Movie theater in Miami Beach.JPG (2004, User:Wikiwopbop, CC BY-SA 3.0; wall 44% of the facade band); wall pixels found by the local scene parser",
 			"image": "Movie theater in Miami Beach.JPG",
 			"building": "commercial",
 			"amenity": "cinema"
@@ -238,7 +238,7 @@
 			"architect": "Herzog & de Meuron",
 			"material": "concrete",
 			"colour": "#7B653A",
-			"colour_source": "measured in File:1111 Lincoln Road at night.jpg (2011, Jonathan Schilling, CC BY-SA 3.0; wall 58% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:1111 Lincoln Road at night.jpg (2011, Jonathan Schilling, CC BY-SA 3.0; wall 63% of the facade band); wall pixels found by the local scene parser",
 			"image": "1111 Lincoln Road at night.jpg"
 		},
 		{

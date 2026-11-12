@@ -1,7 +1,7 @@
 {
 	"tile": "18179_27907",
-	"fetched": "2026-11-12T21:00:21.042Z",
-	"sources": "overpass:236 wikidata:10 photos photos photos",
+	"fetched": "2026-11-12T22:32:32.173Z",
+	"sources": "overpass:236 wikidata:10 photos photos photos photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -190,8 +190,8 @@
 			"name": "South Beach",
 			"wikidata": "Q186106",
 			"year": 1886,
-			"colour": "#F6F3F0",
-			"colour_source": "measured in File:Ocean drive day 2009j.JPG (2009, chensiyuan, CC BY-SA 4.0; wall 31% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#D6D6E4",
+			"colour_source": "measured in File:Ocean drive day 2009j.JPG (2009, chensiyuan, CC BY-SA 4.0; wall 33% of the facade band); wall pixels found by the local scene parser",
 			"image": "Ocean drive day 2009j.JPG"
 		},
 		{

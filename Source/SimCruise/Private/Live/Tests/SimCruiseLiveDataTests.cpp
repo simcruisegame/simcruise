@@ -276,7 +276,7 @@ bool FSimCruiseLiveWallMaskTest::RunTest(const FString&)
 			FColor C(236, 170, 190); // the wall
 			ESimCruiseSceneClass L = ESimCruiseSceneClass::Building;
 			if (y < H / 5) { C = FColor(200, 215, 235); L = ESimCruiseSceneClass::Sky; }
-			else if (y > H * 3 / 4) { C = FColor(90, 90, 95); L = ESimCruiseSceneClass::Road; }
+			else if (y > H * 3 / 4) { C = FColor(90, 90, 95); L = ESimCruiseSceneClass::Terrain; }
 			else if (y > H / 2 && x < W / 2) { C = FColor(30, 60, 170); L = ESimCruiseSceneClass::Car; }
 			Px[y * W + x] = C;
 			Labels[(y * GH / H) * GW + (x * GW / W)] = static_cast<uint8>(L);
@@ -284,14 +284,31 @@ bool FSimCruiseLiveWallMaskTest::RunTest(const FString&)
 	}
 	FColor Wall;
 	float Share = 0.0f;
-	TestTrue(TEXT("a wall is found"), SimCruisePlacePhotos::WallColourMasked(Px, W, H, Labels, GW, GH, Wall, Share));
+	bool bNormalised = false;
+	TestTrue(TEXT("a wall is found"), SimCruisePlacePhotos::WallColourMasked(Px, W, H, Labels, GW, GH, Wall, Share, bNormalised));
+	TestFalse(TEXT("no pavement here, so no albedo scaling"), bNormalised);
 	TestTrue(FString::Printf(TEXT("the pink stucco, not the car (%d %d %d)"), Wall.R, Wall.G, Wall.B),
 		FMath::Abs(Wall.R - 236) < 12 && FMath::Abs(Wall.G - 170) < 12 && FMath::Abs(Wall.B - 190) < 12);
 	TestTrue(TEXT("one colour"), Share > 0.9f);
 
+	// A bright grey sidewalk (sRGB 200, 58 % linear) in the same light: the photograph is
+	// over-exposed for a 0.30 concrete, so the wall comes down by 0.30 / 0.58 (about 0.52):
+	// (236, 170, 190) -> about (176, 126, 141).
+	for (int32 y = H * 3 / 4 + 1; y < H; ++y)
+	{
+		for (int32 x = 0; x < W; ++x)
+		{
+			Px[y * W + x] = FColor(200, 200, 200);
+			Labels[(y * GH / H) * GW + (x * GW / W)] = static_cast<uint8>(ESimCruiseSceneClass::Sidewalk);
+		}
+	}
+	TestTrue(TEXT("still a wall"), SimCruisePlacePhotos::WallColourMasked(Px, W, H, Labels, GW, GH, Wall, Share, bNormalised, true));
+	TestTrue(TEXT("normalised on the sidewalk"), bNormalised);
+	TestTrue(FString::Printf(TEXT("albedo from the grey card (%d %d %d)"), Wall.R, Wall.G, Wall.B), FMath::Abs(Wall.R - 176) <= 6 && FMath::Abs(Wall.G - 126) <= 6 && FMath::Abs(Wall.B - 141) <= 6);
+
 	// No building in the frame: nothing.
 	for (uint8& L : Labels) { L = static_cast<uint8>(ESimCruiseSceneClass::Vegetation); }
-	TestFalse(TEXT("no wall pixels, no colour"), SimCruisePlacePhotos::WallColourMasked(Px, W, H, Labels, GW, GH, Wall, Share));
+	TestFalse(TEXT("no wall pixels, no colour"), SimCruisePlacePhotos::WallColourMasked(Px, W, H, Labels, GW, GH, Wall, Share, bNormalised));
 
 	// Label lookup maps the photograph onto the grid.
 	TestEqual(TEXT("top-left cell"), FSimCruiseSceneParser::ClassAt(Labels, GW, GH, 0, 0, W, H), ESimCruiseSceneClass::Vegetation);
