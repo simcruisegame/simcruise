@@ -87,10 +87,7 @@ async function chunk(X,Y){
  // A neighbouring z14 vector tile is read only when a road crosses into it near
  // this tile; the 3 × 3 ring would request it moments later anyway.
  const readVector=async(nx,ny)=>{const raw=await data('v-'+nx+'-'+ny,meta.tiles[0].replace('{z}','14').replace('{x}',nx).replace('{y}',ny));return vectorTile(raw[0]===31?gunzipSync(raw):raw)};
- // Bridge end heights shared between the tiles a deck crosses (tiny local files).
- const memo={get:key=>{try{return JSON.parse(fs.readFileSync(path.join(cache,'bridge-end-v1-'+key+'.json'),'utf8')).z}catch{return undefined}},
-  set:(key,z)=>{try{fs.writeFileSync(path.join(cache,'bridge-end-v1-'+key+'.json'),JSON.stringify({z:Math.round(z*100)/100}))}catch{}}};
- const terrain=await streamedTerrain(X,Y,tile,dem,widths,(x,y)=>data('h-'+x+'-'+y,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+x+'/'+y+'.png'),ground,readVector,memo);
+ const terrain=await streamedTerrain(X,Y,tile,dem,widths,(x,y)=>data('h-'+x+'-'+y,'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/13/'+x+'/'+y+'.png'),ground,readVector);
  if(measured?.unavailable)terrain.road_grade.elevation_fallback=measured.reason;
  if(!args.includes('--without-road-banks'))applyRoadBanks(X,Y,tile,widths,terrain,cachedBankSurface(X,Y,cache));
  const roads=[],buildings=buildingRows(tile.layers.building,X,Y),land=[],pois=[];

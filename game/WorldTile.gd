@@ -878,9 +878,10 @@ func build(data:Dictionary,size_m:float,mats:Dictionary):
  smooth_road_corridors()
  # Engineered road ribbons (RoadSurface.gd): the grid is pushed below them first.
  road_surface=preload("res://RoadSurface.gd").for_tile(self)
- # Roads without a ribbon keep their ground where they meet one (RoadSurface.keep_segments).
- unribboned=preload("res://RoadSurface.gd").keep_segments(info.get("roads",[]),side)
- if road_surface:info["road_surface_lowered"]=road_surface.lower_grid(info.h,grid_steps,side,grid_bilinear(),unribboned)
+ if road_surface:info["road_surface_lowered"]=road_surface.lower_grid(info.h,grid_steps,side)
+ # Roads without a ribbon keep their ground where they meet a deck's side
+ # (RoadSurface.keep_segments); only a tile with bridges needs them.
+ if not info.get("bridges",[]).is_empty():unribboned=preload("res://RoadSurface.gd").keep_segments(info.get("roads",[]),side)
  # Bridge decks fitted to those ribbons; the grid under their driving surface
  # is pushed below it too (BridgeDeck.gd).
  preload("res://BridgeDeck.gd").prepare(self)

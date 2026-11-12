@@ -19,10 +19,10 @@ extends RefCounted
 ##   * drawn with the tile's own ground material and UVs (position / side), so
 ##     it looks exactly like the ground around it;
 ##   * a collider of its own, so wheel rays meet the ribbon, not the grid;
-##   * terrain grid nodes under the footprint, and the ground triangles its
-##     edges pass over, pushed 6 cm below it before the ground mesh is built,
-##     so faceted ground can never poke through (lower_grid; bridge decks use
-##     the same index and the same pass, BridgeDeck.gd);
+##   * terrain grid nodes under the footprint pushed 6 cm below it before the
+##     ground mesh is built, so faceted ground can never poke through
+##     (lower_grid; bridge decks use the same index, and also push down every
+##     ground triangle their edges pass over, BridgeDeck.gd);
 ##   * height() answers for any point on the ribbon, so WorldTile.height_at()
 ##     (camera, paint, props, placing the car) agrees with the tyres.
 ## Every input is the helper's world-anchored profile, so neighbouring tiles
@@ -50,14 +50,19 @@ static func for_tile(tile) -> RefCounted:
  var rows: Array = tile.info.get("road_surface", [])
  if rows.is_empty() or not enabled():return null
  var s = new()
- # Real deck ends (not cuts at the tile edge): the abutments of join().
+ # Bridge decks (centreline, half width, heights) and their real ends (not
+ # cuts at the tile edge): the abutments of join().
  var abutments := PackedVector2Array()
+ var decks := []
  for row in tile.info.get("bridges", []):
-  if not row is Array or row.size() < 3 or row[2].size() < 2:continue
-  for e in [0, row[2].size() - 1]:
-   var p: Vector2 = Vector2(float(row[2][e][0]), float(row[2][e][1])) * tile.side
+  if not row is Array or row.size() < 5 or row[2].size() < 2 or row[2].size() != row[4].size():continue
+  var line := PackedVector3Array()
+  for k in row[2].size():line.append(Vector3(float(row[2][k][0]) * tile.side, float(row[4][k]), float(row[2][k][1]) * tile.side))
+  decks.append([line, float(row[3]) * .5 + DECK_SHOULDER_M])
+  for p3 in [line[0], line[-1]]:
+   var p := Vector2(p3.x, p3.z)
    if p.x > .05 and p.y > .05 and p.x < tile.side - .05 and p.y < tile.side - .05:abutments.append(p)
- s.build(rows, tile.side, abutments)
+ s.build(rows, tile.side, abutments, decks)
  return s if s.active else null
 
 # Major roads first: at an intersection the minor road meets the major road's
@@ -68,12 +73,10 @@ static func for_tile(tile) -> RefCounted:
 # run their superelevation out, so their cross slopes agree there.
 const RANK := {"motorway":7,"trunk":6,"primary":5,"secondary":4,"tertiary":3,"minor":2,"residential":2,"unclassified":2}
 const JOIN_FADE_M := 15.
-const JOIN_FADE_MAX_M := 60.
-const JOIN_GRADE := .04
 
-func build(rows: Array, side: float, abutments := PackedVector2Array()) -> void:
- _side = side
+func build(rows: Array, side: float, abutments := PackedVector2Array(), decks := []) -> void:
  _abutments = abutments
+ _decks = decks
  var chains := []
  for chain in rows:
   var pts: Array = chain.get("pts", [])
@@ -103,147 +106,234 @@ func build(rows: Array, side: float, abutments := PackedVector2Array()) -> void:
  for chain in chains:
   var sections: Array = chain.sections
   if active:join(sections)
-  # Distance along the chain, so lower_grid leaves the ground alone at its
-  # open ends (where a road without a ribbon, or the ground, carries on).
-  var along := PackedFloat32Array([0.])
-  for i in range(1, sections.size()):along.append(along[i-1] + Vector2(sections[i][2].x, sections[i][2].z).distance_to(Vector2(sections[i-1][2].x, sections[i-1][2].z)))
-  for i in range(1, sections.size()):
-   var prev: Array = sections[i-1];var section: Array = sections[i]
-   if Vector2(prev[2].x, prev[2].z).distance_to(Vector2(section[2].x, section[2].z)) >= 8.:continue
-   var near_end := minf(along[i], along[-1] - along[i-1]) < END_CLEAR_M
-   # Edges lower_grid samples: the station edge a-b once per grid cell (not
-   # at the chain's first section), the long edges b-c and d-a densely.
-   var mask := (0 if near_end else EDGE_LONG << 2 | EDGE_LONG << 6) | (0 if i == 1 or near_end else EDGE_STATION)
-   for k in section.size() - 1:
-    add_quad(prev[k], prev[k+1], section[k+1], section[k], mask, Vector2(prev[2].x, prev[2].z))
+  add_chain(sections, passes_under_deck(sections), chain.rank / 100000)
   active = not quads.is_empty()
+
+## One chain's quads (build, and again after join_ends_to_decks).
+func add_chain(sections: Array, under: bool, rank := 0) -> void:
+ if not _abutments.is_empty():_built.append([sections, under, rank])
+ for i in range(1, sections.size()):
+  var prev: Array = sections[i-1];var section: Array = sections[i]
+  if Vector2(prev[2].x, prev[2].z).distance_to(Vector2(section[2].x, section[2].z)) >= 8.:continue
+  for k in section.size() - 1:
+   add_quad(prev[k], prev[k+1], section[k+1], section[k])
+   if not _abutments.is_empty():under_deck.resize(quads.size());under_deck[-1] = 1 if under else 0
+var _built := []   # [sections, under, class rank] in build order, on a tile with bridges
+
+
+## After the decks are fitted (BridgeDeck.prepare), a ribbon meets a deck as a
+## minor road meets a major one: where it lies on a deck within
+## DECK_JOIN_REACH_M of its own height, its vertices take the deck's height and
+## the correction fades out along it over JOIN_FADE_M. Two cases, both only on a
+## tile with bridges:
+##   * a ribbon ending where its own deck was left out (no deck built has a
+##     real end there) meets the deck it runs onto: Linden St ending on the
+##     Cambridge St bridge, Allston MA, stood 0.77 m above it once its few
+##     metres of deck were left out (BridgeDeck.without_slivers);
+##   * a ribbon of a lower class than a deck it crosses at nearly the deck's
+##     level joins it, as at an at-grade junction: Frazier Ave, Chattanooga TN,
+##     rose 0.19 m through the Veterans Bridge deck crossing it.
+## Every other approach already has its deck fitted to it (BridgeDeck.fit), and
+## a ribbon is never moved onto a deck of its own class or lower (moving an
+## approach onto the twin carriageway's deck beside it left a 1.2 m step).
+## Returns the chains changed; the quads are rebuilt when any was.
+const DECK_JOIN_REACH_M := 1.
+const POKE_M := .3
+## deck_ends: per deck built, its real end points; deck_ranks: its RANK.
+func join_ends_to_decks(decks, deck_ends: Array, deck_ranks := PackedInt32Array()) -> int:
+ if _built.is_empty() or decks == null:return 0
+ var owner: PackedInt32Array = decks.get_meta("owner", PackedInt32Array())
+ var changed := 0
+ for entry in _built:
+  var sections: Array = entry[0];var rank: int = entry[2]
+  var orphan := []
+  for c in [Vector2(sections[0][2].x, sections[0][2].z), Vector2(sections[-1][2].x, sections[-1][2].z)]:
+   var abut := false;var built := false
+   for p in _abutments:abut = abut or p.distance_to(c) <= ABUTMENT_SNAP_M
+   for ends in deck_ends:
+    for e in ends:built = built or e.distance_to(c) <= ABUTMENT_SNAP_M
+   orphan.append(abut and not built)
+  # Per section: 2 any deck (an orphan end's zone), 1 only decks of a higher
+  # class than this road, 0 none.
+  var at := []
+  var along := 0.;var total := 0.
+  for i in range(1, sections.size()):total += Vector2(sections[i][2].x, sections[i][2].z).distance_to(Vector2(sections[i-1][2].x, sections[i-1][2].z))
+  for i in sections.size():
+   if i > 0:along += Vector2(sections[i][2].x, sections[i][2].z).distance_to(Vector2(sections[i-1][2].x, sections[i-1][2].z))
+   at.append(2 if (orphan[0] and along < ABUTMENT_M) or (orphan[1] and total - along < ABUTMENT_M) else 1)
+  var deck_at := func(p: Vector2, y: float, mode: int) -> float:
+   var best := NAN
+   for idx in decks.bins.get(Vector2i(floori(p.x / BIN), floori(p.y / BIN)), []):
+    if mode == 1 and (idx >= owner.size() or owner[idx] >= deck_ranks.size() or deck_ranks[owner[idx]] <= rank):continue
+    var q: Array = decks.quads[idx]
+    var h := tri_height(p, q[0], q[1], q[2])
+    if is_nan(h):h = tri_height(p, q[0], q[2], q[3])
+    if is_nan(h) or absf(h - y) > DECK_JOIN_REACH_M:continue
+    # A road crossing a deck of a higher class joins it only where it would
+    # stand above the deck or within POKE_M below it (it pokes through), and
+    # not at an abutment, where the junction is the approaches' (join()).
+    if mode == 1 and h - y > POKE_M:continue
+    if mode == 1 and near_abutment(p):continue
+    if is_nan(best) or absf(h - y) < absf(best - y):best = h
+   return best
+  var delta := PackedFloat32Array();delta.resize(sections.size())
+  var covered := []
+  for i in sections.size():
+   var sum := 0.;var count := 0
+   for v in sections[i]:
+    var hd: float = deck_at.call(Vector2(v.x, v.z), v.y, at[i])
+    if not is_nan(hd):sum += hd - v.y;count += 1
+   covered.append(count > 0)
+   delta[i] = sum / count if count > 0 else 0.
+  if not covered.has(true):continue
+  var station := PackedFloat32Array();station.resize(sections.size())
+  for i in range(1, sections.size()):
+   station[i] = station[i-1] + Vector2(sections[i][2].x, sections[i][2].z).distance_to(Vector2(sections[i-1][2].x, sections[i-1][2].z))
+  var moved := false
+  for i in sections.size():
+   var best := 0.;var weight := 0.
+   for j in sections.size():
+    if not covered[j]:continue
+    var w := clampf(1. - absf(station[i] - station[j]) / JOIN_FADE_M, 0., 1.)
+    w = w * w * (3. - 2. * w)
+    if w > weight:weight = w;best = delta[j]
+   if weight <= 0.:continue
+   for k in sections[i].size():
+    var v: Vector3 = sections[i][k]
+    var hd: float = deck_at.call(Vector2(v.x, v.z), v.y, at[i])
+    var y := hd if not is_nan(hd) else v.y + best * weight
+    if absf(y - v.y) > .005:moved = true
+    sections[i][k] = Vector3(v.x, y, v.z)
+  if moved:changed += 1
+ if changed > 0:
+  var built := _built.duplicate()
+  quads.clear();bins.clear();masks.clear();under_deck.clear();_built.clear()
+  for entry in built:add_chain(entry[0], entry[1], entry[2])
+ return changed
 
 ## Snap a lower-ranked ribbon onto the ribbons already built where they
 ## overlap; the station-wise correction fades out over JOIN_FADE_M.
+##
+## One exception, and only beside a bridge: on a road with an end within
+## ABUTMENT_M of a real deck end (an abutment the helper gave this tile), a
+## vertex within ABUTMENT_M of the abutment is never joined
+## onto a ribbon that passes under a deck of this tile (passes_under_deck) and
+## lies more than UNDER_JOIN_M from it: the two overlap there only because one
+## runs beneath the abutment, on another level. River St, Allston MA, was
+## pulled 1.7 m down onto Soldiers Field Road under its own abutment, and
+## Cambridge St 2.5 m down onto the Mass Pike's shoulder, and the fitted deck
+## ends followed them (a 2.3 m step; the Miata rolled over); the Cambridge St
+## junction 7 m from River St's abutment was torn into a 2 m V where half its
+## vertices took the parkway's height. A junction there with a road that does
+## not pass under the bridge is joined as anywhere else. Away from abutments,
+## and on a tile without a bridge, ribbons join exactly as they always did.
 func join(sections: Array) -> void:
  var delta := PackedFloat32Array();delta.resize(sections.size())
  var covered := []
- var crossing := []
- # Sections within ABUTMENT_M of a chain end where a bridge deck begins: a
- # road crossing there passes under the bridge, so it is joined only when its
- # height is within JOIN_REACH_M (level), never snapped to as a junction. River
- # St, Allston MA, was pulled 1.7 m down onto Soldiers Field Road under its own
- # abutment, and its deck was fitted down after it (a 2.3 m step).
- var at_abutment := []
- var from_start := 0.;var to_end := 0.
- for i in range(1, sections.size()):to_end += Vector2(sections[i][2].x, sections[i][2].z).distance_to(Vector2(sections[i-1][2].x, sections[i-1][2].z))
- var abut_a := false;var abut_b := false
- for p in _abutments:
-  abut_a = abut_a or p.distance_to(Vector2(sections[0][2].x, sections[0][2].z)) <= ABUTMENT_SNAP_M
-  abut_b = abut_b or p.distance_to(Vector2(sections[-1][2].x, sections[-1][2].z)) <= ABUTMENT_SNAP_M
- for i in sections.size():
-  if i > 0:
-   var l := Vector2(sections[i][2].x, sections[i][2].z).distance_to(Vector2(sections[i-1][2].x, sections[i-1][2].z))
-   from_start += l;to_end -= l
-  at_abutment.append((abut_a and from_start < ABUTMENT_M) or (abut_b and to_end < ABUTMENT_M))
+ # Only a road ending within ABUTMENT_M of an abutment (an approach, or a
+ # street meeting it there); a road passing by joins as it always did.
+ var ends_near := not _abutments.is_empty() and (near_abutment(Vector2(sections[0][2].x, sections[0][2].z), ABUTMENT_M) or near_abutment(Vector2(sections[-1][2].x, sections[-1][2].z), ABUTMENT_M))
  for i in sections.size():
   var sum := 0.;var count := 0
-  # The centreline on another ribbon: a junction, joined whatever the
-  # difference. Only the edges overlapping: side by side (twin carriageways,
-  # a ramp merging) when the heights are close, or a road on another level
-  # (a street ending at the abutment of a bridge over a motorway) when not.
-  var c := Vector2(sections[i][2].x, sections[i][2].z)
-  var centre: bool = not is_nan(height(c)) and not unshared(c) and not at_abutment[i]
-  crossing.append(centre)
   for v in sections[i]:
-   var p := Vector2(v.x, v.z)
-   var hi := height(p) if centre else level(p, v.y)
-   if not is_nan(hi) and not unshared(p):sum += hi - v.y;count += 1
+   var hi := level_height(Vector2(v.x, v.z), v.y) if ends_near else height(Vector2(v.x, v.z))
+   if not is_nan(hi):sum += hi - v.y;count += 1
   covered.append(count > 0)
   delta[i] = sum / count if count > 0 else 0.
- # Station spacing along this chain, for the fade, and each station's distance
- # inside the tile edge.
+ # Station spacing along this chain, for the fade.
  var station := PackedFloat32Array();station.resize(sections.size())
- var edge := PackedFloat32Array()
- for sec in sections:edge.append(minf(minf(sec[2].x, sec[2].z), minf(_side - sec[2].x, _side - sec[2].z)))
  for i in range(1, sections.size()):
   station[i] = station[i-1] + Vector2(sections[i][2].x, sections[i][2].z).distance_to(Vector2(sections[i-1][2].x, sections[i-1][2].z))
  for i in sections.size():
-  var best := 0.;var weight := 0.;var sum_w := 0.
+  var best := 0.;var weight := 0.
   for j in sections.size():
    if not covered[j]:continue
-   # The fade grows with the height it absorbs, so its steepest grade stays
-   # near 6 % (smoothstep: 1.5 · delta / length). A fixed 15 m fade took a
-   # 1.8 m snap onto a bridge approach in 12 m (Western Ave, Allston MA: 7-8 g).
-   var fade := clampf(absf(delta[j]) / JOIN_GRADE, JOIN_FADE_M, JOIN_FADE_MAX_M)
-   # A junction the neighbouring tile cannot see (more than the 6 m apron
-   # inside this tile) fades out before the tile edge: the neighbour builds
-   # the same road from the same profile but cannot join it there, so a fade
-   # reaching the seam left the two tiles' overlapping ribbons up to 0.6 m
-   # apart (a motorway ramp leaving Cambridge St 14 m from a seam, Allston MA:
-   # a dead stop at 20 m/s). A junction nearer the edge is in both tiles.
-   if edge[j] > SEAM_SHARED_M:fade = minf(fade, edge[j])
-   var w := clampf(1. - absf(station[i] - station[j]) / fade, 0., 1.)
+   var w := clampf(1. - absf(station[i] - station[j]) / JOIN_FADE_M, 0., 1.)
    w = w * w * (3. - 2. * w)
-   # The correction is the weighted mean of the overlaps in reach, not the
-   # nearest one's: between two overlaps of different heights the nearest
-   # switched from one to the other in a single station (0.9 m in 2 m on
-   # Cambridge St beside a motorway ramp, Allston MA).
-   best += w * delta[j];sum_w += w
-   weight = maxf(weight, w)
+   if w > weight:weight = w;best = delta[j]
   if weight <= 0.:continue
-  best /= sum_w
   for k in sections[i].size():
    var v: Vector3 = sections[i][k]
-   var y := v.y + best * weight
-   # At a junction the vertices on the other ribbon take its height. Side by
-   # side the whole section moves by the faded correction: snapping only the
-   # vertices that overlap tears a section between two levels.
-   var p := Vector2(v.x, v.z)
-   var hi := height(p) if crossing[i] and not unshared(p) else NAN
-   sections[i][k] = Vector3(v.x, hi if not is_nan(hi) else y, v.z)
+   var hi := level_height(Vector2(v.x, v.z), v.y) if ends_near else height(Vector2(v.x, v.z))
+   sections[i][k] = Vector3(v.x, hi if not is_nan(hi) else v.y + best * weight, v.z)
 const ABUTMENT_M := 20.
 const ABUTMENT_SNAP_M := 3.
+const DECK_SHOULDER_M := .6      # BridgeDeck.SHOULDER_M
+const UNDER_CLEARANCE_M := .5    # a ribbon crossing this far below a deck runs under it
+const UNDER_ALIGN := .866        # cos 30°: closer to the deck's direction is alongside, not across
+const UNDER_END_CLEAR_M := 6.    # ... away from the deck's real ends (its own approaches)
 var _abutments := PackedVector2Array()
-const SEAM_SHARED_M := 6.
-const SEAM_CLEAR_M := 15.
-var _side := 0.
-var axes := PackedVector2Array()   # per quad: its road's centreline at that station
+var _decks := []
+var under_deck := PackedByteArray()   # per ribbon quad: its road passes under a deck (only with abutments)
 
-## Whether the ribbons covering p, near the tile edge, are ones the
-## neighbouring tile may not hold: each tile holds the helper's chains to 6 m
-## past its edges, so a ribbon whose centreline is further inside than that is
-## missing from the neighbour, even when its edge reaches the seam (a 19 m
-## motorway ramp beside Cambridge St, Allston MA). A ribbon joined onto it there
-## would part from the neighbour's copy at the seam (0.4-0.6 m, a dead stop at
-## 20 m/s), so near the edge only ribbons both tiles hold are joined.
-func unshared(p: Vector2) -> bool:
- if minf(minf(p.x, p.y), minf(_side - p.x, _side - p.y)) >= SEAM_CLEAR_M:return false
- var any := false
+## Whether a road runs under a bridge deck of this tile: a centreline station
+## inside a deck's footprint, at least UNDER_CLEARANCE_M below the deck and
+## more than UNDER_END_CLEAR_M from every real deck end (where the bridge's own
+## approaches meet it).
+func passes_under_deck(sections: Array) -> bool:
+ if _abutments.is_empty():return false
+ for i in sections.size():
+  var sec: Array = sections[i]
+  var c := Vector2(sec[2].x, sec[2].z)
+  var near_end := false
+  for p in _abutments:near_end = near_end or p.distance_to(c) <= UNDER_END_CLEAR_M
+  if near_end:continue
+  var o: Array = sections[maxi(i - 1, 0)] if i > 0 else sections[mini(1, sections.size() - 1)]
+  var along := (c - Vector2(o[2].x, o[2].z)).normalized()
+  for d in _decks:
+   var line: PackedVector3Array = d[0]
+   for k in range(1, line.size()):
+    var a := Vector2(line[k-1].x, line[k-1].z);var b := Vector2(line[k].x, line[k].z)
+    var q := Geometry2D.get_closest_point_to_segment(c, a, b)
+    if q.distance_to(c) > d[1]:continue
+    # Crossing the deck (not running alongside it at its level, a carriageway
+    # the deck shares a footprint with) and below it.
+    if absf(along.dot((b - a).normalized())) > UNDER_ALIGN:continue
+    var t := clampf(a.distance_to(q) / maxf(a.distance_to(b), 1e-4), 0., 1.)
+    if lerpf(line[k-1].y, line[k].y, t) - sec[2].y >= UNDER_CLEARANCE_M:return true
+ return false
+
+func near_abutment(p: Vector2, reach := UNDER_END_CLEAR_M) -> bool:
+ for a in _abutments:
+  if a.distance_to(p) <= reach:return true
+ return false
+
+## The ribbon height join() meets at p: height(), or near an abutment the
+## height leaving out roads under a deck on another level.
+func level_height(p: Vector2, y: float) -> float:
+ if not _abutments.is_empty() and near_abutment(p, ABUTMENT_M):return height_above_deck_roads(p, y)
+ return height(p)
+
+## height(), leaving out ribbons that pass under a deck (join() at an abutment)
+## where they are on another level than y: within UNDER_JOIN_M of this road
+## such a ribbon meets it at the abutment, a junction like any other (a
+## street along the bank at Veterans Bridge, Chattanooga TN, stood 0.15 m
+## above the approach it meets).
+const UNDER_JOIN_M := 1.
+func height_above_deck_roads(p: Vector2, y: float) -> float:
+ var best := NAN
  for idx in bins.get(Vector2i(floori(p.x / BIN), floori(p.y / BIN)), []):
   var q: Array = quads[idx]
-  if is_nan(tri_height(p, q[0], q[1], q[2])) and is_nan(tri_height(p, q[0], q[2], q[3])):continue
-  any = true
-  var a := axes[idx]
-  if minf(minf(a.x, a.y), minf(_side - a.x, _side - a.y)) <= SEAM_SHARED_M:return false
- return any
-
-## The ribbon height at p closest to y, when it is within JOIN_REACH_M of it
-## (else NAN): a ribbon further above or below is another level.
-const JOIN_REACH_M := 1.
-func level(p: Vector2, y: float) -> float:
- var best := NAN
- for h in heights(p):
-  if absf(h - y) <= JOIN_REACH_M and (is_nan(best) or absf(h - y) < absf(best - y)):best = h
+  var h := tri_height(p, q[0], q[1], q[2])
+  if is_nan(h):h = tri_height(p, q[0], q[2], q[3])
+  if is_nan(h):continue
+  if idx < under_deck.size() and under_deck[idx] == 1 and absf(h - y) > UNDER_JOIN_M:continue
+  if is_nan(best) or h > best:best = h
  return best
 
-## mask: which edges lower_grid samples, two bits per edge (a-b, b-c, c-d,
-## d-a from the low bits): 0 none, EDGE_LONG every ~1 m, EDGE_STATION once per
-## grid cell.
+## mask: which edges lower_grid's edge pass samples, two bits per edge (a-b,
+## b-c, c-d, d-a from the low bits): 0 none, EDGE_LONG every ~1 m,
+## EDGE_STATION once per grid cell. Only bridge decks are given the edge pass
+## (BridgeDeck.gd edge_masks); a road ribbon pushes down only the grid nodes
+## under it, as it always has.
 const EDGE_LONG := 1
 const EDGE_STATION := 2
 const END_CLEAR_M := 4.
 var masks := PackedInt32Array()
-func add_quad(a: Vector3, b: Vector3, c: Vector3, d: Vector3, mask := EDGE_STATION | EDGE_LONG << 2 | EDGE_LONG << 6, axis := Vector2(NAN, NAN)) -> void:
+func add_quad(a: Vector3, b: Vector3, c: Vector3, d: Vector3, mask := 0) -> void:
  var idx := quads.size()
  quads.append([a, b, c, d])
  masks.append(mask)
- axes.append(Vector2((a.x + c.x) * .5, (a.z + c.z) * .5) if is_nan(axis.x) else axis)
  var lo := Vector2(minf(minf(a.x, b.x), minf(c.x, d.x)), minf(minf(a.z, b.z), minf(c.z, d.z)))
  var hi := Vector2(maxf(maxf(a.x, b.x), maxf(c.x, d.x)), maxf(maxf(a.z, b.z), maxf(c.z, d.z)))
  for x in range(floori(lo.x / BIN), floori(hi.x / BIN) + 1):
@@ -282,12 +372,16 @@ func heights(p: Vector2) -> PackedFloat64Array:
  return out
 
 ## Push the terrain grid just below the surface (before the ground mesh is
-## built), so faceted ground can never poke through it: first the nodes under
-## it, then every ground triangle the surface's edges pass over. Before, only
-## nodes under the ribbon moved, and a triangle reaching out to a higher node
-## beside a road in a cut stood up to 0.2 m above the shoulder and the lane
-## edge: a bump for the tyres, and the collider disagreed with height_at()
-## (checks/RoadProfile.gd). Where the ground triangle under an edge sample
+## built), so faceted ground can never poke through it. For road ribbons
+## (deck false) only the grid nodes under them move, exactly as before bridges
+## changed anything. For bridge decks (deck true, BridgeDeck.prepare) the edge
+## nodes read a deck clipped at the tile edge just inside, and every ground
+## triangle the deck's masked edges pass over is pushed down too: a triangle
+## reaching out to a higher node beside an abutment stood up to 1.5 m above
+## the deck (Cambridge St, Allston MA). This edge pass once ran under every
+## ribbon too, and it roughened at-grade roads with no bridge (Commonwealth
+## Ave, Allston MA, 2.4 -> 9.7 deg/m; the Miata left the road), so it is
+## confined to decks. Where the ground triangle under an edge sample
 ## stands above the surface, its corners drop by the least that brings it
 ## UNDER_M below (weighted by how close each corner is to the sample), like the
 ## ditch beside a cut; ground that is already below keeps its height. bilinear:
@@ -296,9 +390,7 @@ func heights(p: Vector2) -> PackedFloat64Array:
 const EDGE_SAMPLE_M := .5
 ## keep: roads without a ribbon (service roads, tracks) as [a, b, reach]
 ## segments in tile metres (keep_segments): the ground they drive on is not
-## pushed down where they meet a ribbon's side, or a car on them would drop off
-## the ribbon edge into the dip (Anabel's Way and the fire station drive at
-## Stowe VT met VT-108 with 0.1-0.3 m steps).
+## pushed down by the deck edge pass where they meet a deck's side, or a car on## them would drop off its edge into the dip (when the pass ran under ribbons## too, Anabel's Way and the fire station drive at Stowe VT met VT-108 with## 0.1-0.3 m steps).
 static func keep_segments(roads: Array, side: float) -> Dictionary:
  var out := {}
  for r in roads:
@@ -322,7 +414,7 @@ static func _kept(keep: Dictionary, p: Vector2) -> bool:
   if Geometry2D.get_closest_point_to_segment(p, seg[0], seg[1]).distance_to(p) <= seg[2]:return true
  return false
 
-func lower_grid(h_in: Array, n: int, side: float, bilinear := false, keep := {}) -> int:
+func lower_grid(h_in: Array, n: int, side: float, bilinear := false, keep := {}, deck := false) -> int:
  var cell := side / n
  var moved := {}
  # A packed copy: the edge pass reads the grid hundreds of thousands of times.
@@ -332,7 +424,7 @@ func lower_grid(h_in: Array, n: int, side: float, bilinear := false, keep := {})
    var r := height(Vector2(i, j) * cell)
    # A surface clipped at the tile edge (a deck row) ends exactly on the edge
    # nodes; read it just inside, as the neighbour does from its side.
-   if is_nan(r) and (i == 0 or j == 0 or i == n or j == n):
+   if deck and is_nan(r) and (i == 0 or j == 0 or i == n or j == n):
     r = height((Vector2(i, j) * cell).clamp(Vector2.ONE * .05, Vector2.ONE * (side - .05)))
    if is_nan(r):continue
    var k := j * (n + 1) + i
@@ -343,7 +435,7 @@ func lower_grid(h_in: Array, n: int, side: float, bilinear := false, keep := {})
  # open end of a ribbon or a deck, where the road carries on over the ground
  # and a ground lowered there is a step down off the end.
  var spacing := [0., clampf(cell * .3, EDGE_SAMPLE_M, 1.25), cell]
- if not quads.is_empty():
+ if deck and not quads.is_empty():
   for idx in quads.size():
    var q: Array = quads[idx];var mask := masks[idx]
    for e in 4:

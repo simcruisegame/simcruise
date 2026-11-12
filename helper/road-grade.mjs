@@ -213,14 +213,19 @@ function gaussianLinear(S,Z,W,s){
 // Samples, robust weights, profile and superelevation for one chain.
 function chainProfile(parts,sample,inside,designSpeed,bridgeAt=[false,false]){
  const rows=[];
+ const chainTotal=parts.reduce((sum,p)=>sum+p.length,0);
  for(const part of parts){
   const {piece,s,length,reversed,offset}=part;
   let seg=0;
-  // Every 2 m, and the piece's exact end: without it a chain stopped up to 2 m
-  // short of where it meets a bridge deck, leaving a gap the tyres fell into.
+  // Every 2 m, and the piece's exact end where the chain meets a bridge deck:
+  // without it the chain stopped up to 2 m short of the deck, leaving a gap
+  // the tyres fell into. Other chain ends keep the 2 m stations, so a road
+  // without a bridge is fitted exactly as before.
   const stations=[];
   for(let l=0;l<=length+1e-9;l+=STEP)stations.push(l);
-  if(length-stations[stations.length-1]>.05)stations.push(length);
+  const endStation=offset+(reversed?0:length);
+  const atDeck=(bridgeAt[0]&&endStation<1e-6)||(bridgeAt[1]&&Math.abs(endStation-chainTotal)<1e-6);
+  if(atDeck&&length-stations[stations.length-1]>.05)stations.push(length);
   for(const l of stations){
    while(seg<s.length-2&&l>s[seg+1])seg++;
    const a=piece.pts[seg],b=piece.pts[seg+1],t=(l-s[seg])/Math.max(s[seg+1]-s[seg],1e-9);
@@ -341,7 +346,7 @@ function roadSurface(chains,{tx0,ty0,scale}){
 // (AASHTO Green Book: superelevation is optional on low-speed urban streets), so 0.
 function designSpeed(cls){return ['motorway','trunk'].includes(cls)?90:['primary','secondary'].includes(cls)?60:0}
 
-export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured=null,readVector=null,memo=null){
+export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured=null,readVector=null){
  const legacy=await mosaic(X,Y,centerDEM,readDEM);
  const mx=Math.floor(X/4),my=Math.floor(Y/4),parent=2**VECTOR_ZOOM;
  const lat=Math.atan(Math.sinh(Math.PI*(1-2*(my+.5)/parent)));
@@ -469,6 +474,9 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
   }
  }
  summary.bench.roads=chains.length;
+ // Before anything reads the approach profiles (benches, ribbons, deck ends).
+ const reconciled=reconcileBridgeEnds(chainPieces(structures.filter(p=>p.bridge)).filter(parts=>parts.some(p=>near(p.piece.pts,SAMPLE_APRON))),terminals,scale);
+ if(reconciled)summary.bench.bridgeEndsReconciled=reconciled;
  superelevationRunout(banked,roads);
 
  // Coarse ground: the source surface.
@@ -563,12 +571,28 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
   }
  }
  summary.conditioned=summary.bench.vertices;
- const worldKey=(x,y)=>{const [wx,wy]=toWorld(x,y);return Math.round(wx*2e4)+'-'+Math.round(wy*2e4)};
- // A deck with neither end measured near this tile (the middle tiles of a long
- // bridge) is left out. Reading the elevation model at the clipped ends put the
- // Mackinac Bridge's mid-span decks at lake level, 2.4-5 m below the decks the
- // tiles nearer the shores interpolated, so every such seam was a step.
- const bridges=await bridgeDecks(structures.filter(p=>p.bridge),terminals,sample,inside,{tx0,ty0,scale},memo,worldKey,roads);
+ // A deck end beyond what every tile of the deck can fit alike is read from the
+ // Terrarium elevation model at the end itself (bridgeDecks, END_SHARED), never
+ // at a cut: reading it at the clipped ends put the Mackinac Bridge's mid-span
+ // decks at lake level. Only an end where the loaded map data stops (a bridge
+ // longer than the vector tiles followed) is unknown.
+ const farTiles=new Map();
+ const farGround=async(x,y)=>{
+  const [wx,wy]=toWorld(x,y);
+  const px=wx*32-.5,py=wy*32-.5,ix=Math.floor(px),iy=Math.floor(py),fx=px-ix,fy=py-iy;
+  const at=async(ix,iy)=>{
+   const tx=Math.floor(ix/SOURCE_SIZE),ty=Math.floor(iy/SOURCE_SIZE),key=tx+','+ty;
+   if(!farTiles.has(key))farTiles.set(key,Promise.resolve().then(()=>readDEM((tx+2**DEM_ZOOM)%2**DEM_ZOOM,limit(ty,0,2**DEM_ZOOM-1))).then(b=>decode(b)).catch(()=>null));
+   const im=await farTiles.get(key);
+   if(!im||im.width!==SOURCE_SIZE||im.channels<3)return NaN;
+   const i=((iy-ty*SOURCE_SIZE)*im.width+ix-tx*SOURCE_SIZE)*im.channels;
+   return im.data[i]*256+im.data[i+1]+im.data[i+2]/256-32768;
+  };
+  const a=await at(ix,iy)*(1-fx)+await at(ix+1,iy)*fx;
+  const b=await at(ix,iy+1)*(1-fx)+await at(ix+1,iy+1)*fx;
+  return a*(1-fy)+b*fy;
+ };
+ const bridges=await bridgeDecks(structures.filter(p=>p.bridge),terminals,sample,inside,{tx0,ty0,scale},farGround,roads);
  summary.bench.bridges=bridges.length;
  return {h,grid:FINE,road_grade:summary,bridges,road_surface:roadSurface(surfaceChains,{tx0,ty0,scale})};
 }
@@ -585,8 +609,107 @@ export async function streamedTerrain(X,Y,tile,centerDEM,widths,readDEM,measured
 // road a 4.6 m service deck). Rows: [class, name, points in tile units clipped
 // to the tile, width, deck height per point, layer, oneway].
 const BRIDGE_TURN=.5; // cos 60°: a sharper joint starts a new deck row
-async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,worldKey,roads=new Map()){
- const rows=[],items=[];
+// Every tile a deck crosses must build the same deck, so an end's height may
+// come from this tile's own fit (approach profile, bench, 3DEP ground) only
+// when the end lies within END_SHARED of every z16 tile the deck crosses: each
+// of them then fits that end from the same data. Otherwise every tile takes
+// the end from farGround (the Terrarium elevation model at the end itself,
+// world-anchored and readable anywhere), and the game fits the deck's last
+// metres to the approach the tile holding that end built (BridgeDeck.gd).
+// Before, an end out of reach came from heights earlier tiles had left in the
+// cache, so whether a deck existed, and its height at a seam, depended on the
+// order the tiles were fetched in (the Mass Pike viaduct in Allston MA: 6.58 m
+// one way, a missing deck the other).
+const END_SHARED=90;
+// Where p lies within JOINT_M of a deck shape's centreline and more than
+// JOINT_M from both its ends: {d, k, t} on segment k, or null.
+const JOINT_M=3;
+function onInterior(o,p){
+ let best=null;
+ for(let k=1;k<o.pts.length;k++){
+  const ax=o.pts[k-1][0],ay=o.pts[k-1][1],dx=o.pts[k][0]-ax,dy=o.pts[k][1]-ay,l2=dx*dx+dy*dy;
+  if(l2<1e-6)continue;
+  const t=limit(((p[0]-ax)*dx+(p[1]-ay)*dy)/l2,0,1),d=Math.hypot(p[0]-ax-t*dx,p[1]-ay-t*dy);
+  const at=o.s[k-1]+(o.s[k]-o.s[k-1])*t;
+  if(d<=JOINT_M&&at>JOINT_M&&at<o.length-JOINT_M&&(!best||d<best.d))best={d,k,t};
+ }
+ return best;
+}
+function profileOn(o,h){return o.z[h.k-1]+(o.z[h.k]-o.z[h.k-1])*h.t}
+// z16 tiles (as [i, j] in a parent's metres / scale) a polyline passes through
+// or within `margin` metres of.
+function tilesNear(pts,margin,scale){
+ const out=new Map();
+ const add=(x,y)=>{
+  for(let i=Math.floor((x-margin)/scale);i<=Math.floor((x+margin)/scale);i++)
+   for(let m=Math.floor((y-margin)/scale);m<=Math.floor((y+margin)/scale);m++)out.set(i+','+m,[i,m]);
+ };
+ if(pts.length===1)add(pts[0][0],pts[0][1]);
+ for(let k=1;k<pts.length;k++){
+  const n=Math.max(1,Math.ceil(Math.hypot(pts[k][0]-pts[k-1][0],pts[k][1]-pts[k-1][1])/2));
+  for(let j=0;j<=n;j++)add(pts[k-1][0]+(pts[k][0]-pts[k-1][0])*j/n,pts[k-1][1]+(pts[k][1]-pts[k-1][1])*j/n);
+ }
+ return [...out.values()];
+}
+function withinTile([i,m],p,reach,scale){return p[0]>=i*scale-reach&&p[0]<=(i+1)*scale+reach&&p[1]>=m*scale-reach&&p[1]<=(m+1)*scale+reach}
+// A chain end on a z14 edge is where the loaded map data stops, not the bridge.
+function atVectorEdge(p,scale){const size=4*scale;return Math.abs(p[0]/size-Math.round(p[0]/size))*size<.5||Math.abs(p[1]/size-Math.round(p[1]/size))*size<.5}
+
+// A bridge's two ends cannot be further apart in height than a deck can climb
+// between them. Where the approaches' fitted end heights are (River Road, Stowe
+// VT: 203.2 and 213.2 m, 21.7 m apart, a 46 % deck, because the 3DEP ground
+// beside the east abutment stands 16 m above the road), the end whose approach
+// is steeper over its last 20 m is the one the elevation model misled: its end
+// fix is changed so that it meets the other end within DECK_MAX_GRADE, and its
+// approach blends back to its own profile over FIX_SPAN as any end fix does.
+// Every tile that holds the bridge, either approach's last FIX_SPAN or ground
+// benched from it (RECONCILE_REACH) must read both ends from the same data
+// (END_SHARED), or the bridge is left as measured; a road with no bridge end is
+// never touched.
+const DECK_MAX_GRADE=.08,RECONCILE_REACH=70;
+function reconcileBridgeEnds(bridgeChains,terminals,scale){
+ let changed=0;
+ for(const parts of bridgeChains){
+  const pts=[];
+  for(const part of parts){const p=part.reversed?part.piece.pts.slice().reverse():part.piece.pts;for(const q of p)pts.push(q)}
+  if(pts.length<2)continue;
+  const ends=[pts[0],pts[pts.length-1]];
+  if(ends.some(p=>atVectorEdge(p,scale)))continue;
+  const s=arcLength(pts),length=s[s.length-1];
+  if(length<2)continue;
+  const meet=ends.map(p=>{
+   let best=null;
+   for(const t of terminals){const d=Math.hypot(t.x-p[0],t.y-p[1]);if(d<=3&&(!best||d<best.d))best={d,t}}
+   return best?.t;
+  });
+  if(!meet[0]||!meet[1]||meet[0].profile===meet[1].profile)continue;
+  const tiles=new Map();
+  for(const t of [...tilesNear(pts,1,scale),...tilesNear([ends[0]],RECONCILE_REACH,scale),...tilesNear([ends[1]],RECONCILE_REACH,scale)])tiles.set(t.join(','),t);
+  if(![...tiles.values()].every(t=>ends.every(p=>withinTile(t,p,END_SHARED,scale))))continue;
+  const z=meet.map(t=>profileAtHeight(t.profile,t.station));
+  if(!z.every(Number.isFinite))continue;
+  const allowed=DECK_MAX_GRADE*length;
+  if(Math.abs(z[0]-z[1])<=allowed+.01)continue;
+  // Grade of each approach over its last 20 m.
+  const steep=meet.map((t,k)=>{
+   const inward=t.station<1e-6?20:-20;
+   const far=profileAtHeight(t.profile,t.station+inward);
+   return Number.isFinite(far)?Math.abs(z[k]-far)/20:Infinity;
+  });
+  const moved=steep[0]>steep[1]?0:1,keep=1-moved;
+  const target=z[keep]+Math.sign(z[moved]-z[keep])*allowed;
+  const t=meet[moved],need=target-z[moved];
+  const fix=t.profile.fix.find(f=>Math.abs(f.end-t.station)<.01);
+  if(fix)fix.delta+=need;
+  else t.profile.fix.push({end:t.station,delta:need});
+  changed++;
+ }
+ return changed;
+}
+async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},farGround=null,roads=new Map()){
+ const rows=[],items=[],shapes=[];
+ const tilesCrossed=pts=>tilesNear(pts,1,scale);
+ const atDataEdge=p=>atVectorEdge(p,scale);
  const benchAt=p=>{
   let best=null;
   for(const sgm of roads.get(Math.floor(p[0]/BIN)+','+Math.floor(p[1]/BIN))??[]){
@@ -618,28 +741,60 @@ async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,w
   }
   const s=arcLength(pts),length=s[s.length-1];
   if(length<2)continue;
-  // An end measured here (its approach profile has data) is remembered in the
-  // cache, so a tile too far from that end to measure it uses the same height.
+  shapes.push({parts,pts,owner,s,length});
+ }
+ // The decks this tile draws, and every deck one of their ends lies on (a ramp
+ // or side road whose bridge ends on another bridge): only these need heights,
+ // so the others' ends cost no elevation reads.
+ const drawn=shapes.filter(c=>crossesBox(c.pts,tx0,ty0,tx0+scale,ty0+scale));
+ const wanted=new Set(drawn);
+ for(const c of drawn)for(const e of [c.pts[0],c.pts[c.pts.length-1]])for(const o of shapes)if(o!==c&&onInterior(o,e))wanted.add(o);
+ for(const c of shapes){
+  if(!wanted.has(c))continue;
+  const {pts,s,length}=c;
+  const crossed=tilesCrossed(pts);
+  const shared=p=>crossed.every(t=>withinTile(t,p,END_SHARED,scale));
+  // An end is measured from what every tile of the deck reads alike (see
+  // END_SHARED), never from heights earlier tiles left in the cache.
   const endHeight=async(p)=>{
+   if(atDataEdge(p))return NaN;
+   if(!shared(p)||!inside(p[0],p[1])){
+    const z=farGround?await farGround(p[0],p[1]):NaN;
+    return Number.isFinite(z)?Math.round(z*100)/100:NaN;
+   }
    let best=null;
    for(const t of terminals){const d=Math.hypot(t.x-p[0],t.y-p[1]);if(d<=3&&(!best||d<best.d))best={d,t}}
-   const key=worldKey(p[0],p[1]);
-   if(inside(p[0],p[1])){
-    let z=best?profileAtHeight(best.t.profile,best.t.station):NaN;
-    if(!Number.isFinite(z))z=benchAt(p);
-    if(Number.isFinite(z)){z=Math.round(z*100)/100;memo?.set(key,z);return z}
-   }
-   const known=memo?.get(key);
-   if(Number.isFinite(known))return known;
-   return inside(p[0],p[1])?sample(p[0],p[1]):NaN;
+   let z=best?profileAtHeight(best.t.profile,best.t.station):NaN;
+   if(!Number.isFinite(z))z=benchAt(p);
+   if(Number.isFinite(z))return Math.round(z*100)/100;
+   return sample(p[0],p[1]);
   };
   let za=await endHeight(pts[0]),zb=await endHeight(pts[pts.length-1]);
   if(!Number.isFinite(za)&&!Number.isFinite(zb))continue;
   if(!Number.isFinite(za))za=zb;
   if(!Number.isFinite(zb))zb=za;
-  const z=s.map(l=>za+(zb-za)*l/length);
-  items.push({parts,pts,owner,s,z});
+  c.z=s.map(l=>za+(zb-za)*l/length);
  }
+ // A deck end on another deck's interior is a joint (a ramp leaving a bridge
+ // where chainPieces linked the bridge's two halves instead): it takes that
+ // deck's height there. Measured from the road or ground under the joint, the
+ // ramp leaving Veterans Bridge, Chattanooga TN, started 4.8 m below the bridge.
+ // Read from every deck's own straight profile first, so the order of the
+ // chains does not matter.
+ const joined=new Map();
+ for(const c of drawn){
+  if(!c.z)continue;
+  const ends=[0,c.pts.length-1].map(k=>{
+   for(const o of shapes){if(o===c||!o.z)continue;const h=onInterior(o,c.pts[k]);if(h)return profileOn(o,h)}
+   return NaN;
+  });
+  if(ends.some(Number.isFinite))joined.set(c,ends);
+ }
+ for(const [c,[ja,jb]] of joined){
+  const za=Number.isFinite(ja)?ja:c.z[0],zb=Number.isFinite(jb)?jb:c.z[c.z.length-1];
+  c.z=c.s.map(l=>Math.round((za+(zb-za)*l/c.length)*100)/100);
+ }
+ for(const c of drawn)if(c.z)items.push(c);
  // Every deck's straight profile first, then each one's corrections from the
  // others' (deckOnGrade), so the order of the chains does not matter.
  const graded=items.map(item=>deckOnGrade(item,roads,inside,items));
@@ -695,9 +850,33 @@ async function bridgeDecks(pieces,terminals,sample,inside,{tx0,ty0,scale},memo,w
 // within 60 m of the point it moves, inside every tile's 150 m sample apron,
 // so both tiles of a seam move a deck cut identically.
 const DECK_STEP=4,GRADE_BAND=3,GRADE_RATE=.04,GRADE_FADE_MIN=15,GRADE_FADE_MAX=60;
+// Whether a road's centreline, within CROSS_LOOK of `station` along it, passes
+// from one side of the deck centreline `pts` to the other (more than 0.5 m
+// each way, beside the deck's interior, not past its ends).
+const CROSS_LOOK=40;
+function crossesDeck(profile,station,pts){
+ let left=false,right=false;
+ for(let i=0;i<profile.S.length;i++){
+  if(Math.abs(profile.S[i]-station)>CROSS_LOOK)continue;
+  const x=profile.X[i],y=profile.Y[i];
+  let best=null;
+  for(let k=1;k<pts.length;k++){
+   const ax=pts[k-1][0],ay=pts[k-1][1],dx=pts[k][0]-ax,dy=pts[k][1]-ay,l2=dx*dx+dy*dy;
+   if(l2<1e-6)continue;
+   const raw=((x-ax)*dx+(y-ay)*dy)/l2,t=limit(raw,0,1);
+   const d=Math.hypot(x-ax-t*dx,y-ay-t*dy);
+   if(!best||d<best.d)best={d,raw,k,side:dx*(y-ay)-dy*(x-ax)};
+  }
+  if(!best||(best.k===1&&best.raw<0)||(best.k===pts.length-1&&best.raw>1))continue;
+  if(best.d<.5)continue;
+  if(best.side>0)left=true;else right=true;
+  if(left&&right)return true;
+ }
+ return false;
+}
 function deckOnGrade(item,roads,inside,items){
  const {pts,owner,parts,s,z}=item;
- const anchors=[];
+ const anchors=[],crossing=new Map();
  for(let i=0;i<pts.length;i++){
   const p=pts[i];if(!inside(p[0],p[1]))continue;
   const j=Math.min(i+1,pts.length-1),k=Math.max(i-1,0);
@@ -714,6 +893,13 @@ function deckOnGrade(item,roads,inside,items){
    if((q.raw<0||q.raw>1)&&Math.min(station,sgm.total-station)<.01)continue;
    const align=Math.abs((ux*(sgm.bx-sgm.ax)+uy*(sgm.by-sgm.ay))/(ul*sgm.l));
    if(align<Math.SQRT1_2)continue;
+   // A road whose centreline crosses the deck's near here passes under the
+   // bridge at a shallow angle, it does not run beside it: the Mass Pike under
+   // Cambridge St, Allston MA, crossed at 30° and pulled the deck down onto
+   // itself, 0.1 m from its lanes instead of over them.
+   const key=sgm.chain+':'+station.toFixed(2);
+   if(!crossing.has(key))crossing.set(key,crossesDeck(sgm.profile,station,pts));
+   if(crossing.get(key))continue;
    // The road's surface under the deck's centreline: its profile tilted by its
    // cross slope at that offset, as the ribbon is built.
    const [zc,e,tx,ty]=profileAt(sgm.profile,station);

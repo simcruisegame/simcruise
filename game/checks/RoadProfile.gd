@@ -29,7 +29,9 @@ const REFERENCE_MPS=20.1  # 45 mph: the vertical speed a crease imposes on a tyr
 var step_m=1.
 var side_m=0.
 
+var errors
 func _initialize():
+ errors=preload("res://checks/ScriptErrorWatch.gd").install()
  var args=OS.get_cmdline_user_args()
  var tiles=DEFAULT_TILES.duplicate()
  for arg in args:
@@ -123,7 +125,10 @@ func _initialize():
  for line in ends.missed_at.slice(0,12):print("  deck not reached "+line)
  # The roughest ends, so a bad one is found without a probe.
  ends.each.sort_custom(func(a,b):return a[0]>b[0])
- for e in ends.each.slice(0,6):print("  end %s: step %.3f m per 0.5 m, grade change %.2f°/m"%[e[2],e[0],e[1]])
+ for e in ends.each.slice(0,6):
+  print("  end %s: step %.3f m per 0.5 m, grade change %.2f°/m"%[e[2],e[0],e[1]])
+  # --ends-detail: the surface every 0.5 m from 6 m out to 6 m onto the deck.
+  if "--ends-detail" in args:print("    "+e[3])
  # A deck cut at a tile edge must meet the neighbour's part of it at the same
  # height. The seam check above reads only the ground grid, so a step between
  # two tiles' decks (2.4-5 m on the Mackinac Bridge when mid-span decks took
@@ -132,7 +137,10 @@ func _initialize():
  print("DECK SEAMS %d deck cuts matched across tile edges · largest step %.3f m%s · %d with no deck on the other side"%[cut.matched,cut.step,(" (%s)"%cut.where) if cut.where!="" else "",cut.lone])
  var surface_failed=worst_gap>GAP_LIMIT_M or off_deck_m>0. or ends.missed>0 or cut.step>GAP_LIMIT_M
  if surface_failed:print("SURFACE FAIL")
- quit(2 if seam.introduced>1e-3 else (3 if surface_failed else (1 if failed>0 else 0)))
+ var code=2 if seam.introduced>1e-3 else (3 if surface_failed else (1 if failed>0 else 0))
+ # A script error aborts only the function it happens in; never pass over one.
+ if errors.count>0:print("SCRIPT ERRORS %d, first: %s"%[errors.count,errors.first]);print("FAIL script errors");code=maxi(code,5)
+ quit(code)
 
 const GAP_LIMIT_M=.1
 var worst_gap=0.
@@ -224,7 +232,8 @@ func bridge_ends(tile,data:Dictionary,faces:PackedVector3Array,index:Dictionary,
     var g1=rad_to_deg(atan((zs[k]-zs[k-2])/1.));var g0=rad_to_deg(atan((zs[k-2]-zs[k-4])/1.))
     end_kink=maxf(end_kink,absf(g1-g0))
     ends.kink=maxf(ends.kink,absf(g1-g0))
-   ends.each.append([end_step,end_kink,"%s %s %s (%.1f, %.1f)"%[id,str(row[0]),str(row[1]) if str(row[1])!="" else "-",at.x,at.y]])
+   var profile_text=" ".join(Array(zs).map(func(z):return "%.2f"%z))
+   ends.each.append([end_step,end_kink,"%s %s %s (%.1f, %.1f)"%[id,str(row[0]),str(row[1]) if str(row[1])!="" else "-",at.x,at.y],profile_text])
 
 var edges={}
 var raw_edges={}

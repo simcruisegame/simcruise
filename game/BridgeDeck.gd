@@ -75,11 +75,17 @@ static func prepare(tile)->void:
   for k in pts.size():
    var p=Vector3(float(pts[k][0])*tile.side,float(heights[k]),float(pts[k][1])*tile.side)
    # A segment shorter than 0.3 m has no reliable direction; its parapets would
-   # stand across the road.
-   if path.size()>0 and Vector2(p.x-path[-1].x,p.z-path[-1].z).length()<.3:continue
+   # stand across the road. The row's last point is kept instead of the one
+   # before it: it is often the cut on the tile edge, and dropping it left the
+   # deck 0.2 m short of the edge, a real end with no apron and no deck in the
+   # tile corner (a motorway ramp at 19821_24240, Allston MA).
+   if path.size()>0 and Vector2(p.x-path[-1].x,p.z-path[-1].z).length()<.3:
+    if k==pts.size()-1 and path.size()>1:path[-1]=p
+    continue
    path.append(p)
   if path.size()<2:continue
   decks.append({"path":resample(path),"width":float(row[3]),"cls":str(row[0]),"oneway":row.size()>6 and int(row[6])!=0})
+ decks=without_slivers(tile,decks)
  # Every end is fitted against the helper's heights of the other decks, so the
  # order of the rows does not matter.
  var helper=[]
@@ -113,7 +119,47 @@ static func prepare(tile)->void:
  index.set_meta("owner",owner)
  tile.deck_surface=index
  tile.bridge_decks=decks
- tile.info["deck_lowered"]=index.lower_grid(tile.info.h,tile.grid_steps,tile.side,tile.grid_bilinear(),tile.unribboned)
+ # Ribbons ending on a deck take its fitted height (RoadSurface.join_ends_to_decks);
+ # the ground under a ribbon that moved is pushed below it again.
+ var deck_ends=[]
+ for d in decks:
+  var ends=PackedVector2Array()
+  for p in [d.path[0],d.path[-1]]:
+   if not on_tile_edge(tile,p):ends.append(Vector2(p.x,p.z))
+  deck_ends.append(ends)
+ var deck_ranks=PackedInt32Array()
+ for d in decks:deck_ranks.append(preload("res://RoadSurface.gd").RANK.get(d.cls,1))
+ if tile.road_surface and tile.road_surface.join_ends_to_decks(index,deck_ends,deck_ranks)>0:
+  tile.info["ribbons_joined_to_decks"]=true
+  tile.road_surface.lower_grid(tile.info.h,tile.grid_steps,tile.side)
+ tile.info["deck_lowered"]=index.lower_grid(tile.info.h,tile.grid_steps,tile.side,tile.grid_bilinear(),tile.unribboned,true)
+
+# A deck lying almost wholly on a longer deck (a side street's few metres of
+# bridge where it meets the bridge road, Linden St on Cambridge St, Allston MA)
+# is part of that deck's carriageway, not a deck of its own: built, it stood up
+# to 0.34 m above the bridge road it overlaps across the whole junction, a step
+# either way. Such a deck is left out; the longer deck carries its traffic.
+const SLIVER_SHARE=.75
+const SLIVER_MAX_M=12.   # longer, it is a deck of its own (twin carriageways overlap too)
+static func without_slivers(tile,decks:Array)->Array:
+ var out=[]
+ for i in decks.size():
+  var d=decks[i];var path:PackedVector3Array=d.path
+  # A row cut at the tile edge is part of a longer deck in the neighbour.
+  if on_tile_edge(tile,path[0]) or on_tile_edge(tile,path[-1]):out.append(d);continue
+  var s=stations(path);var L=s[-1]
+  var covered=0.
+  for k in range(1,path.size()):
+   var mid=(path[k-1]+path[k])*.5;var p=Vector2(mid.x,mid.z)
+   for j in decks.size():
+    if j==i:continue
+    var o=decks[j];var os=stations(o.path)
+    if os[-1]<=L:continue
+    var h=polyline_height(o.path,p,o.width*.5+SHOULDER_M)
+    if not is_nan(h) and absf(h-mid.y)<FIT_REACH_M:covered+=s[k]-s[k-1];break
+  if L>0. and L<=SLIVER_MAX_M and covered>=SLIVER_SHARE*L:continue
+  out.append(d)
+ return out
 
 # After the ground mesh: draw the prepared decks and build their collider from
 # the same quads deck_at() and height_at() read.

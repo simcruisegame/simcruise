@@ -47,7 +47,9 @@ var speed_i=0.
 var bridge_pieces=[]
 var on_stop=[false,false,false,false]
 
+var errors
 func _initialize():
+ errors=preload("res://checks/ScriptErrorWatch.gd").install()
  var args=OS.get_cmdline_user_args()
  var folder="";var road_name="";var classes=[];var reverse="--reverse" in args
  for a in args:
@@ -270,6 +272,8 @@ func finish(reason:String):
  print("RESULT ride: air_events=%d air_seconds=%.2f launches=%d jolts>0.5g=%d jolts>1g=%d max_vertical_g=%.2f max_up_mps=%.2f bump_stop_ticks=%d off_road=%d impacts=%d roof_ticks=%d max_cross_m=%.1f"%[
   stats.air_events,stats.air_ticks/60.,stats.launch,stats.jolt_05,stats.jolt_10,stats.max_vert_g,stats.max_up_mps,stats.bump_stop,stats.off_road,stats.impacts,stats.roof,stats.max_cross_m])
  var ok=reason=="finished" and stats.launch==0 and stats.roof==0 and stats.impacts==0
+ # A script error aborts only the function it happens in; never pass over one.
+ if errors.count>0:print("SCRIPT ERRORS %d, first: %s"%[errors.count,errors.first]);print("FAIL script errors");ok=false
  quit(0 if ok else 1)
 
 func materials()->Dictionary:
