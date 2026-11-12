@@ -12,6 +12,8 @@
 struct FSimCruiseCarTrackResult
 {
 	double ZeroToSixtyS = TNumericLimits<double>::Max();
+	/** 0-60 mph timed as US magazines do: the clock starts after the first foot of travel (a drag strip's rollout). */
+	double ZeroToSixtyRolloutS = TNumericLimits<double>::Max();
 	double SeventyToZeroFt = 0.0;
 	double SkidpadG = 0.0;
 	bool bCompleted = false;

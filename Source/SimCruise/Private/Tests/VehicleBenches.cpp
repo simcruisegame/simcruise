@@ -58,6 +58,9 @@ namespace
 		/** Launch control: hold the brake with the full accelerator this long, then let go (0: none). */
 		double LaunchHoldS = 0.0;
 		double LaunchHeldS = 0.0;
+		/** Where the launch began, and when the car had rolled its first foot. */
+		double LaunchStartX = TNumericLimits<double>::Max();
+		double RolloutT = -1.0;
 		bool bAccelerationOnly = false;
 		bool bTrace = !FPlatformMisc::GetEnvironmentVariable(TEXT("SIMCRUISE_BENCH_TRACE")).IsEmpty();
 		FVector3d StartBodyPositionM = FVector3d::ZeroVector;
@@ -138,9 +141,18 @@ namespace
 						(St.Wheels[2].AngularSpeedRadPerSecond * C.Sim.GetTireRadiusM() - Speed) / FMath::Max(Speed, 1.0), St.TcCut, St.ClutchTorqueNm,
 						St.Wheels[0].LoadN + St.Wheels[1].LoadN, St.Wheels[2].LoadN + St.Wheels[3].LoadN);
 				}
+				if (LaunchStartX == TNumericLimits<double>::Max())
+				{
+					LaunchStartX = OriginX;
+				}
+				if (RolloutT < 0.0 && FMath::Abs(OriginX - LaunchStartX) >= 0.3048)
+				{
+					RolloutT = T;
+				}
 				if (Speed >= 26.8224 && !bReached)
 				{
 					Result.ZeroToSixtyS = T - Dt + (26.8224 - Last) / FMath::Max(0.0001, Speed - Last) * Dt;
+					Result.ZeroToSixtyRolloutS = Result.ZeroToSixtyS - FMath::Max(RolloutT, 0.0);
 					bReached = true;
 					if (bAccelerationOnly)
 					{

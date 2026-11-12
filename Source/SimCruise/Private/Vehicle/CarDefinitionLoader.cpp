@@ -706,6 +706,7 @@ bool FSimCruiseCarDefinitionLoader::ParseJson(const FString& JsonText, const FSt
 	SIMCRUISE_READ_ARRAY("damper_knee_mps", DamperKneeSpeedMPerSecondByAxle);
 	SIMCRUISE_READ_ARRAY("damper_knee_slope", DamperKneeSlopeByAxle);
 	SIMCRUISE_READ_NUMBER("target_0_60_s", TargetZeroToSixtySeconds);
+	SIMCRUISE_READ_BOOL("target_0_60_rollout", bTargetZeroToSixtyWithRollout);
 	SIMCRUISE_READ_NUMBER("target_70_0_ft", TargetSeventyToZeroFeet);
 	SIMCRUISE_READ_NUMBER("target_skidpad_g", TargetSkidpadG);
 	SIMCRUISE_READ_STRING("calibration_open", CalibrationOpen);

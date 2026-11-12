@@ -244,6 +244,8 @@ struct FSimCruiseCarDefinition
 
 	// Published/calibration targets retain their original units.
 	double TargetZeroToSixtySeconds = 7.97;
+	/** The 0-60 target is a magazine time with a 1 ft rollout (Car and Driver, Motor Trend): compare the bench's rollout time. */
+	bool bTargetZeroToSixtyWithRollout = false;
 	double TargetSeventyToZeroFeet = 173.0;
 	double TargetSkidpadG = 0.89;
 

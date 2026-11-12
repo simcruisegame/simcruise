@@ -63,8 +63,8 @@
  "brake_rear_nm": 1300.0,
  "parking_brake_nm": 1300.0,
  "engine": "electric",
- "motor_peak_torque_nm": 430.0,
- "motor_peak_power_w": 184928,
+ "motor_peak_torque_nm": 415.0,
+ "motor_peak_power_w": 178600,
  "motor_max_rpm": 17000.0,
  "regen_torque_nm": 110.0,
  "gears": [
@@ -117,6 +117,11 @@
  "traction_control": true,
  "abs_enabled": true,
  "slip_ratio_falloff": 0.1,
+ "tyre_model": "tmeasy",
+ "tmeasy_peak_mu_x": 0.9744,
+ "tmeasy_slide_mu_x": 0.7795,
+ "tmeasy_peak_mu_y": 0.9578,
+ "tmeasy_slide_mu_y": 0.7978,
  "model_scene": "data/art/traffic/model3-3a602469/scene.gltf",
  "model_rig": {
   "fit": true
@@ -128,14 +133,14 @@
  ],
  "sources": {
   "calibration": "Car and Driver measured a Model 3 Standard at 5.4 s to 60 mph and 0.88 g on 235/45R-18 all-season tyres. The 70-0 mph target (165 ft) is an estimate.",
-  "motor": "About 286 hp quoted for the current Standard; 430 N m motor torque and a 9.04 reduction are estimates from earlier RWD versions.",
+  "motor": "About 286 hp quoted for the current Standard; 415 N m motor torque (re-estimated on the TMeasy tyre, which wastes less in slip than the legacy curve, from the 430 N m first estimate) and a 9.04 reduction are estimates from earlier RWD versions.",
   "mass": "About 3627 lb for the RWD sedan.",
   "estimates": "Weight split, centre of gravity, inertia (scaled), spring and bar rates (1.5/1.7 Hz), dampers, regeneration, brakes, tyre grip (calibrated)."
  },
  "torque_curve": [
   [
    0,
-   430.0
+   415.0
   ],
   [
    17000.0,

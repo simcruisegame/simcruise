@@ -107,16 +107,16 @@
  "engine_inertia": 0.3,
  "max_omega": 720.0,
  "gears": [
-  2.905,
-  1.759,
-  1.419,
-  1.096,
-  0.879,
-  0.701,
-  0.576,
-  0.469
+  2.91,
+  1.76,
+  1.22,
+  0.88,
+  0.65,
+  0.51,
+  0.4,
+  0.33
  ],
- "reverse_ratio": 2.75,
+ "reverse_ratio": 2.63,
  "final_drive": 5.17,
  "driveline_efficiency": 0.9,
  "shift_seconds": 0.08,
@@ -165,9 +165,9 @@
  "target_70_0_ft": 148.0,
  "target_skidpad_g": 1.03,
  "sources": {
-  "calibration": "Car and Driver: 2.8 s to 60 mph and 149 ft from 70 mph (first test), 148 ft and 1.03 g (long-term 2021 Z51); 3647 lb measured; 40/60 weight split (Chevrolet).",
+  "calibration": "Car and Driver: 2.8 s to 60 mph and 149 ft from 70 mph (first test), 148 ft and 1.03 g (long-term 2021 Z51); 3647 lb measured; 40/60 weight split (Chevrolet). The 0-60 target is timed with Car and Driver's 1 ft rollout (target_0_60_rollout).",
   "engine": "495 hp at 6450 rpm, 470 lb-ft at 5150 rpm with the Z51 exhaust (Chevrolet); curve shape estimated.",
-  "gearing": "Eight-speed DCT ratios and 5.17 final drive: unverified.",
+  "gearing": "TREMEC TR-9080 dual clutch: 2.91/1.76/1.22/0.88/0.65/0.51/0.40/0.33, reverse 2.63; Z51 final drive 5.17 (1.46 transfer gear x 3.55 ring and pinion; National Corvette Museum gear table, corvsport 2022 specifications).",
   "tyres": "Staggered 245/35ZR19 front, 305/30ZR20 rear: the rear axle grips 25 % harder (axle_grip, estimate); the model uses one rolling radius, the rear's.",
   "launch": "Automatic launch at 3000 rpm at full pedal (1800 + 1200 per unit of throttle; estimate, 580 Nm on this curve). The launch is tyre-limited with traction control on, so a higher speed only revs the engine longer before the clutch bites (4000 rpm: 3.61 s, 3000 rpm: 3.58 s on CarTrack).",
   "estimates": "Centre of gravity, inertia (scaled, 15 % less yaw for the mid engine), spring and bar rates (2.0/2.2 Hz), dampers, launch, brakes, tyre grip (calibrated).",
@@ -178,7 +178,7 @@
   1.5
  ],
  "traction_control": true,
- "calibration_open": "0-60 mph 3.50 s against 2.8 s. Launch control is now modelled and the bench uses it (brake and full throttle 2 s, then release, at 3500 rpm), but the launch is traction-limited, so it changes nothing measurable (3.46 s from pedal-down before). Car and Driver's 2.8 s omits a 1 ft rollout (about 0.3 s here), which leaves about 0.4 s of rear-tyre grip at launch: a tyre-model item (the rear 305/30ZR20 Michelin Pilot Sport 4S on a car with 60 % of its weight at the rear).",
+ "calibration_open": "0-60 mph 3.22 s with Car and Driver's 1 ft rollout (3.53 s from rest) against their 2.8 s. Launch control (3500 rpm) and the real TR-9080 ratios are modelled; the launch is limited by rear-tyre grip on the legacy tyre curve. The physics lane's TMeasy fit gives 3.31 s from rest (about 3.0 s with rollout).",
  "model_scene": "data/art/traffic/c8-790c40cc/scene.gltf",
  "model_rig": {
   "fit": true
@@ -198,5 +198,6 @@
   "steering_ratio": 15.7,
   "handling": "Mid-engine balance: 1.03 g on the skidpad (Car and Driver, Z51); a variable-ratio electric rack; stable on lift-off with stability control.",
   "sources": "Turning circle 38.1 ft: Edmunds 2020 Corvette Stingray specifications. Curb 3,535 lb: Edmunds. Weight split 39.4/60.6: Corvette Story 2020 specifications. Steering 15.7:1: Chevrolet 2020 specifications. Skidpad: Car and Driver long-term Z51."
- }
+ },
+ "target_0_60_rollout": true
 }

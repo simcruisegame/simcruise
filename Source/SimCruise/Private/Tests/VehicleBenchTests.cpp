@@ -42,12 +42,14 @@ namespace
 			return false;
 		}
 		Test.TestFalse(TEXT("the car hit nothing on the bench pad"), R.bCollided);
-		const bool bAccel = FMath::Abs(R.ZeroToSixtyS - Car.TargetZeroToSixtySeconds) <= ZeroToSixtyBandS;
+		const double ZeroToSixty = Car.bTargetZeroToSixtyWithRollout ? R.ZeroToSixtyRolloutS : R.ZeroToSixtyS;
+		const bool bAccel = FMath::Abs(ZeroToSixty - Car.TargetZeroToSixtySeconds) <= ZeroToSixtyBandS;
 		const bool bBrake = FMath::Abs(R.SeventyToZeroFt - Car.TargetSeventyToZeroFeet) <= SeventyToZeroBandFt;
 		const bool bSkid = FMath::Abs(R.SkidpadG - Car.TargetSkidpadG) <= SkidpadBandG;
 		const FString Line = FString::Printf(
 			TEXT("CARTRACK %-11s 0-60 %s (target %.2f)  70-0 %.1f ft (target %.1f)  skidpad %.3f g (target %.2f)  %s  [%lld steps at %.0f Hz, %.1f us/step vehicle, %.1f s sim in %.1f s wall]"),
-			CarId, *Seconds(R.ZeroToSixtyS), Car.TargetZeroToSixtySeconds, R.SeventyToZeroFt, Car.TargetSeventyToZeroFeet,
+			CarId, *(Seconds(ZeroToSixty) + (Car.bTargetZeroToSixtyWithRollout ? FString::Printf(TEXT(" rollout, %s from rest"), *Seconds(R.ZeroToSixtyS)) : FString())),
+			Car.TargetZeroToSixtySeconds, R.SeventyToZeroFt, Car.TargetSeventyToZeroFeet,
 			R.SkidpadG, Car.TargetSkidpadG, (bAccel && bBrake && bSkid) ? TEXT("PASS") : TEXT("OFF"),
 			R.PhysicsSteps, 1.0 / SimCruiseShippingFixedStepS, R.MeanStepMicroseconds, R.SimSeconds, R.WallSeconds);
 		UE_LOG(LogTemp, Display, TEXT("%s"), *Line);
@@ -74,7 +76,7 @@ namespace
 				Test.AddError(FString::Printf(TEXT("%s outside its band"), *What));
 			}
 		};
-		Check(bAccel, TEXT("0-60"), FString::Printf(TEXT("0-60 mph %s vs %.2f +/- %.2f s"), *Seconds(R.ZeroToSixtyS), Car.TargetZeroToSixtySeconds, ZeroToSixtyBandS));
+		Check(bAccel, TEXT("0-60"), FString::Printf(TEXT("0-60 mph %s vs %.2f +/- %.2f s"), *Seconds(ZeroToSixty), Car.TargetZeroToSixtySeconds, ZeroToSixtyBandS));
 		Check(bBrake, TEXT("70-0"), FString::Printf(TEXT("70-0 mph %.1f ft vs %.1f +/- %.0f ft"), R.SeventyToZeroFt, Car.TargetSeventyToZeroFeet, SeventyToZeroBandFt));
 		Check(bSkid, TEXT("skidpad"), FString::Printf(TEXT("skidpad %.3f g vs %.2f +/- %.2f g"), R.SkidpadG, Car.TargetSkidpadG, SkidpadBandG));
 		return true;

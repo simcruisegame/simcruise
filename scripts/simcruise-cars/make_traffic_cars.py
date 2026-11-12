@@ -60,7 +60,7 @@ CARS.append(derive({
     "static_mu": 0.9821, "lateral_grip_scale": 1.0251, "drag_area_m2": 0.51,
     "parking_rack_deg": 35.0, "road_reference_deg": 33.0,
     "brake_front_nm": 2200.0, "brake_rear_nm": 1300.0, "parking_brake_nm": 1300.0,
-    "engine": "electric", "motor_peak_torque_nm": 430.0, "motor_peak_power_w": 184928, "motor_max_rpm": 17000.0, "regen_torque_nm": 110.0,
+    "engine": "electric", "motor_peak_torque_nm": 415.0, "motor_peak_power_w": 178600, "motor_max_rpm": 17000.0, "regen_torque_nm": 110.0,
     "torque_curve": [[0, 430], [17000, 104]],
     "gears": [1.0], "reverse_ratio": 1.0, "final_drive": 9.04, "driveline_efficiency": 0.95, "shift_seconds": 0.0,
     "idle_rpm": 0.0, "idle_omega": 0.0, "min_omega_auto": 0.0, "max_omega": 1900.0,
@@ -70,11 +70,12 @@ CARS.append(derive({
     "static_camber_deg": [-0.6, -1.0], "camber_per_m": [18.0, 20.0], "caster_deg": 6.0, "toe_per_wheel_deg": 0.05,
     "target_0_60_s": 5.4, "target_70_0_ft": 165.0, "target_skidpad_g": 0.88,
     "traction_control": True, "abs_enabled": True, "slip_ratio_falloff": 0.1,
+    "tyre_model": "tmeasy", "tmeasy_peak_mu_x": 0.9744, "tmeasy_slide_mu_x": 0.7795, "tmeasy_peak_mu_y": 0.9578, "tmeasy_slide_mu_y": 0.7978,
     "model_scene": "data/art/traffic/model3-3a602469/scene.gltf", "model_rig": {"fit": True},
     "driver_eye": [-0.37, 1.14, -0.07],
     "sources": {
         "calibration": "Car and Driver measured a Model 3 Standard at 5.4 s to 60 mph and 0.88 g on 235/45R-18 all-season tyres. The 70-0 mph target (165 ft) is an estimate.",
-        "motor": "About 286 hp quoted for the current Standard; 430 N m motor torque and a 9.04 reduction are estimates from earlier RWD versions.",
+        "motor": "About 286 hp quoted for the current Standard; 415 N m motor torque (re-estimated on the TMeasy tyre, which wastes less in slip than the legacy curve, from the 430 N m first estimate) and a 9.04 reduction are estimates from earlier RWD versions.",
         "mass": "About 3627 lb for the RWD sedan.",
         "estimates": "Weight split, centre of gravity, inertia (scaled), spring and bar rates (1.5/1.7 Hz), dampers, regeneration, brakes, tyre grip (calibrated)."},
 }, 1.73, 1.0, 4.69, (1.5, 1.7), 35.0, 0.217))
