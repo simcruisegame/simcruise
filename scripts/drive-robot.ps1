@@ -44,7 +44,7 @@ foreach ($Car in $Cars) {
         $Csv = (Join-Path $Out "robot-$Tag.csv") -replace '\\', '/'
         $Args = @('-game', '-SimCruiseWorld', '-SimCruiseBundledStart', "-SimCruiseCar=$Car", '-NoLiveCoding', '-SimCruiseNoLive', '-SimCruiseNoNeural',
             '-SimCruiseDriveTest', '-SimCruiseDriveTestPad', "-SimCruiseDriveTestOut=$Csv", '-windowed', '-ResX=1280', '-ResY=720', '-log', "-abslog=$Log")
-        if ($Run.Cap -gt 0) { $Args += "-ExecCmds=`"t.MaxFPS $($Run.Cap)`"" }
+        if ($Run.Cap -gt 0) { $Args += "-SimCruiseDriveTestMaxFps=$($Run.Cap)" }
         Write-Host "Drive robot: $Tag"
         & powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'editor.ps1') @Args | Out-Null
         $Lines = Select-String -Path $Log -Pattern 'DRIVETEST ([a-z0-9_]+): peak (\d+) km/h, peak rear-axle slip ([\d.]+) deg, peak yaw rate ([\d.]+) deg/s' -AllMatches
