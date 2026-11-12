@@ -79,6 +79,9 @@ namespace
 		}
 	};
 
+	/** The helper's height for a footprint with no measured or tagged height (render_height || 5). */
+	bool IsUnknownHeight(double HeightM) { return FMath::Abs(HeightM - 5.0) < 1e-3; }
+
 	/** A ring's footprint cleaned to metres, with its signed area. */
 	bool FootprintMetres(const FSimCruiseBuildingRow& Row, double Side, TArray<FVector2d>& Ring, double& Area)
 	{
@@ -383,6 +386,50 @@ namespace SimCruiseTileDetail
 			if (Best != INDEX_NONE) PlacesOf.Add(Best, p);
 		}
 
+		// Unknown heights. The helper writes 5 m for a footprint with no height (Overture's
+		// render_height default): two thirds of Ocean Drive, whose hotels are three and four
+		// storeys. Such a building takes the lower-quartile height of the measured buildings
+		// within 120 m (a street keeps its scale), up to 14 m, a storey more or less by hash; a hotel at least
+		// three storeys; a house at most two. With fewer than three measured neighbours it
+		// keeps 5 m.
+		TArray<double> HeightOf;
+		HeightOf.SetNumUninitialized(Data.Buildings.Num());
+		{
+			TArray<FVector2d> Centres;
+			Centres.SetNum(Rings.Num());
+			for (int32 b = 0; b < Rings.Num(); ++b)
+			{
+				FVector2d C = FVector2d::ZeroVector;
+				for (const FVector2d& P : Rings[b]) C += P;
+				Centres[b] = Rings[b].Num() > 0 ? C / Rings[b].Num() : FVector2d::ZeroVector;
+			}
+			for (int32 b = 0; b < Data.Buildings.Num(); ++b)
+			{
+				const double Raw = Data.Buildings[b].HeightM;
+				HeightOf[b] = Raw;
+				if (!IsUnknownHeight(Raw) || Rings[b].Num() < 3 || Data.Buildings[b].MinHeightM > 0.5) continue;
+				TArray<double> Known;
+				for (int32 o = 0; o < Rings.Num(); ++o)
+				{
+					if (o == b || Rings[o].Num() < 3 || IsUnknownHeight(Data.Buildings[o].HeightM) || Data.Buildings[o].MinHeightM > 0.5) continue;
+					if (FVector2d::DistSquared(Centres[o], Centres[b]) < 120.0 * 120.0) Known.Add(Data.Buildings[o].HeightM);
+				}
+				if (Known.Num() < 3) continue;
+				Known.Sort();
+				// The lower quartile, not the median: the measured buildings are the notable, taller
+				// ones (towers get surveyed); an unmeasured one is ordinary, and at most four storeys.
+				double Est = Known[Known.Num() / 4];
+				const uint32 Hb = Hash(GetTypeHash(Data.Id), static_cast<uint32>(b) * 31u + 7u);
+				Est += 3.2 * (static_cast<int32>(Hb % 3) - 1);
+				bool bHotelHere = false;
+				TArray<int32> Here;
+				PlacesOf.MultiFind(b, Here);
+				for (const int32 p : Here) bHotelHere |= SignStyleFor(Data.Pois[p].Kind).bHotel;
+				if (bHotelHere) Est = FMath::Max(Est, 10.5);
+				HeightOf[b] = FMath::Clamp(Est, 3.5, 14.0);
+			}
+		}
+
 		for (int32 b = 0; b < Data.Buildings.Num(); ++b)
 		{
 			const FSimCruiseBuildingRow& Row = Data.Buildings[b];
@@ -392,7 +439,10 @@ namespace SimCruiseTileDetail
 			double Ground = TNumericLimits<double>::Max();
 			for (const FVector2d& P : Footprint) Ground = FMath::Min(Ground, Data.HeightAtUnit(P / X.Side));
 			const double Sign = Area >= 0.0 ? 1.0 : -1.0;
-			const double Height = FMath::Clamp(Row.HeightM, 2.8, 650.0);
+			const FSimCruiseBuildingPlan* PlanOf = bGraph ? Plan.Find(b) : nullptr;
+			// A house keeps to two storeys when its height was a guess.
+			const double Guess = (IsUnknownHeight(Row.HeightM) && PlanOf && PlanOf->P(TEXT("recipe:house")) >= 0.5f) ? FMath::Min(HeightOf[b], 7.5) : HeightOf[b];
+			const double Height = FMath::Clamp(Guess, 2.8, 650.0);
 			const double Top = Ground + Height;
 			const bool bFloating = Row.MinHeightM > 0.5;
 			const double Bottom = bFloating ? Ground + Row.MinHeightM : Ground - 0.3;
@@ -400,7 +450,7 @@ namespace SimCruiseTileDetail
 
 			const uint32 H = Hash(GetTypeHash(Data.Id), static_cast<uint32>(b));
 			FWriter W{ Mesh, static_cast<float>(Unit(Hash(H, 7))) };
-			const FSimCruiseBuildingPlan* BP = bGraph ? Plan.Find(b) : nullptr;
+			const FSimCruiseBuildingPlan* BP = PlanOf;
 			const bool bGraphDeco = BP && BP->P(TEXT("recipe:deco")) >= 0.5f;
 			const bool bGraphTower = BP && !bGraphDeco && BP->P(TEXT("recipe:resort_tower")) >= 0.5f;
 			const bool bRegionDeco = (BP ? (bGraphDeco || bGraphTower) : Place == EBuildingStyle::MiamiBeachDeco) && !bFloating;
@@ -445,6 +495,9 @@ namespace SimCruiseTileDetail
 			const FLinearColor Neon = Pick(NeonColours(), Hash(H, 5));
 			const bool bNeonParapet = bDeco && Unit(Hash(H, 6)) < Chance(TEXT("detail:neon_parapet"), 0.5);
 			const bool bEyebrowsAround = bDeco && Unit(Hash(H, 8)) < Chance(TEXT("detail:eyebrows_wrap"), 0.5);
+			const bool bFloorBands = bDeco && Unit(Hash(H, 33)) < Chance(TEXT("detail:parapet_bands"), 0.3);
+			// Bands need a colour that shows on the stucco: the trim, or a deco accent when the trim is white.
+			const FLinearColor BandColour = Accent.GetLuminance() < 0.6f ? Accent : Pick(DecoAccents(), Hash(H, 34) % 6);
 			const int32 Floors = FMath::Max(1, FMath::FloorToInt((Height + 0.2) / FloorH));
 			TArray<int32> Places;
 			PlacesOf.MultiFind(b, Places);
@@ -594,6 +647,31 @@ namespace SimCruiseTileDetail
 					if (Letter >= 0.3)
 					{
 						AddSign(Text, (A + C) * 0.5 + N2 * 0.47, N2, 0.5 * (Z0 + Z1), Letter, Z1 - Z0, true, true, Colour);
+						bHotelSign = true;
+						continue;
+					}
+				}
+				// No central tower: a blade standing out of the front, the name letter over letter on
+				// both faces, rising over the parapet (the Colony, the Breakwater, the Avalon).
+				if (bHotel && bDeco && Edge == Longest && TowerForm != 0 && Height >= 5.5 && Unit(Hash(H, 35)) < Chance(TEXT("detail:vertical_sign"), 0.5))
+				{
+					const int32 Letters = FMath::Max(1, Text.Replace(TEXT(" "), TEXT("")).Len());
+					const double Z0 = Ground + FloorH + 0.4;
+					const double Z1 = FMath::Max(Top + Parapet + 1.6, Z0 + Letters * 0.6);
+					const double Letter = FMath::Min(0.7, (Z1 - Z0 - 0.4) / (Letters * 1.05));
+					if (Letter >= 0.3)
+					{
+						// Off centre when a pylon or fin stands at the middle.
+						const double At = TowerForm < 0 ? 0.5 * Len : FMath::Clamp(0.5 * Len - 0.3 * Len, 1.5, Len - 1.5);
+						const FVector2d Root = A + T * At;
+						constexpr double Reach = 1.15, Thick = 0.16;
+						W.Slab(Root - T * (0.5 * Thick), Root + T * (0.5 * Thick), N2, 0.0, Reach, Z0, Z1, Wall, Kind::Trim, 0.0, Ground, false, true);
+						// Neon round the blade's outer edge.
+						W.Slab(Root - T * 0.03, Root + T * 0.03, N2, Reach, Reach + 0.05, Z0 + 0.15, Z1 - 0.15, Colour, Kind::Neon, 0.0, Ground, false, true);
+						for (const double Side : { -1.0, 1.0 })
+						{
+							AddSign(Text, Root + T * (Side * (0.5 * Thick + 0.02)) + N2 * (0.5 * Reach), T * Side, 0.5 * (Z0 + Z1), Letter, Z1 - Z0 - 0.3, true, true, Colour);
+						}
 						bHotelSign = true;
 						continue;
 					}
@@ -775,6 +853,17 @@ namespace SimCruiseTileDetail
 						const double Z = Ground + k * FloorH + 2.45;
 						if (Z > Top - 0.25) break;
 						W.Slab(BandA, BandC, N2, 0.0, 0.5, Z, Z + 0.1, Accent, Kind::Trim, Along0, Ground);
+					}
+				}
+				// Painted bands along the floor lines in the trim colour, round the street fronts
+				// (the Breakwater's blue stripes, the Avalon's yellow): flush paint, not ledges.
+				if (bDeco && bFloorBands && Front[i] && Floors >= 2)
+				{
+					for (int32 k = 1; k < Floors; ++k)
+					{
+						const double Z = Ground + k * FloorH;
+						if (Z > Top - 0.4) break;
+						W.Slab(Arc[i] ? BandA : A, Arc[i] ? BandC : C, N2, 0.0, 0.015, Z - 0.22, Z + 0.2, BandColour, Kind::Trim, Along0, Ground, false, true);
 					}
 				}
 				// Speed lines near the parapet, and a neon tube along it on some hotels.

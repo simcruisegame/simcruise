@@ -83,8 +83,11 @@ bool FSimCruiseOceanDriveSignsTest::RunTest(const FString& Parameters)
 		const FSimCruiseSign* Found = Build->Signs.FindByPredicate([&](const FSimCruiseSign& S) { return S.Text == Hotel; });
 		if (!TestNotNull(FString::Printf(TEXT("%s is signed"), Hotel), Found)) continue;
 		TestTrue(FString::Printf(TEXT("%s is neon"), Hotel), Found->bNeon);
-		// Ocean Drive runs north-south with the hotels on its west side: their fronts face east (yaw ~0).
-		TestTrue(FString::Printf(TEXT("%s faces the ocean (yaw %.0f)"), Hotel, Found->YawDeg), FMath::Abs(FRotator::NormalizeAxis(Found->YawDeg)) < 30.f);
+		// Ocean Drive runs north-south with the hotels on its west side: their fronts face east (yaw ~0);
+		// the letters on a blade standing out of that front face north and south.
+		const float Yaw = FMath::Abs(FRotator::NormalizeAxis(Found->YawDeg));
+		const bool bFacesOcean = Found->bStacked ? (Yaw < 30.f || FMath::Abs(Yaw - 90.f) < 30.f) : Yaw < 30.f;
+		TestTrue(FString::Printf(TEXT("%s faces the ocean or stands on a blade out of its ocean front (yaw %.0f)"), Hotel, Found->YawDeg), bFacesOcean);
 		TestTrue(FString::Printf(TEXT("%s is above head height (%.1f m)"), Hotel, Found->LocationCm.Z / 100.0), Found->LocationCm.Z / 100.0 > 2.5);
 	}
 	return true;
