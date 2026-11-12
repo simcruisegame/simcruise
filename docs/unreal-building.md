@@ -205,6 +205,8 @@ The drive robot runs the pad manoeuvres as a regression check: `powershell -Exec
 
 Frame time on the drive: `-SimCruiseDrivePerf=medium,high,ultra` (with `-SimCruiseDriveCapture`, ideally `-fullscreen -ResX=1920 -ResY=1080`) waits for the car, then for each preset samples 10 s parked in the driver's seat and 10 s in the chase view, and logs one `SimCruisePerf:` line each (also appended to `Saved/Profiling/SimCruisePerf.csv`). `-SimCruiseDrivePerfProfile` adds a `ProfileGPU` pass breakdown after each window.
 
+Signs cost (2026-11-12, this laptop, Ultra 1920x1080, Ocean Drive start, 159 signs on the 9 tiles): with signs 36.2-37.7 fps in the driver's seat and 45.2-48.0 in the chase view over four runs; with `-DPCVars=simcruise.World.Signs=0` 37.6-37.9 and 43.0-48.1 over two. GPU time is the same (24.8-25.7 ms); the difference is under 1 fps, inside the run-to-run spread. Set cvars that tiles read at install with `-DPCVars=`, not `-ExecCmds` (which runs after the first tiles are in).
+
 Night captures: the same command with `-SimCruiseUtc=2026-11-12T01:30:00Z` (20:30 in Miami Beach).
 
 ## Tests

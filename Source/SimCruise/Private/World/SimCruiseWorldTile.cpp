@@ -25,6 +25,8 @@
 
 namespace
 {
+	TAutoConsoleVariable<int32> CVarSigns(TEXT("simcruise.World.Signs"), 1,
+		TEXT("1: the named places' lettering on their buildings (tiles installed after the change); 0: none, for measuring their cost."));
 	TAutoConsoleVariable<int32> CVarParkedCars(TEXT("simcruise.World.ParkedCars"), 1,
 		TEXT("1: parked cars in the parking lanes' stalls (drawn runs only); 0: empty stalls."));
 
@@ -348,7 +350,7 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 	}
 	SignComponents.Reset();
 	const int32 SignsSlot = static_cast<int32>(ESimCruiseTileLayer::Signs);
-	if (Resources && Materials.IsValidIndex(SignsSlot))
+	if (Resources && Materials.IsValidIndex(SignsSlot) && CVarSigns.GetValueOnGameThread() != 0)
 	{
 		for (int32 s = 0; s < InBuild->Signs.Num(); ++s)
 		{
