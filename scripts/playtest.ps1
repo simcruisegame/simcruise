@@ -72,14 +72,21 @@ try {
     if ($LASTEXITCODE -ne 0) { Write-Host 'PACKAGE FAILED'; exit 1 }
 
     $Exe = Join-Path $Worktree 'Saved\Package\Windows\SimCruise.exe'
-    Write-Host 'Smoke test: the packaged game, headless, -SimCruiseShellSelfTest'
+    # Off-screen, not -nullrhi: a cooked game without a renderer asserts when it builds the car
+    # and world meshes at run time ("RenderData should not initialize resources in headless cooked runs").
+    Write-Host 'Smoke test: the packaged game, off-screen, -SimCruiseShellSelfTest'
     $Smoke = 'not run'
-    $Proc = Start-Process -FilePath $Exe -ArgumentList '-nullrhi -unattended -nopause -nosplash -SimCruiseShellSelfTest' -PassThru -WindowStyle Hidden
+    $GameLog = Join-Path $Worktree 'Saved\Package\Windows\SimCruise\Saved\Logs\SimCruise.log'
+    if (Test-Path $GameLog) { Remove-Item $GameLog -Force }
+    $Proc = Start-Process -FilePath $Exe -ArgumentList '-RenderOffscreen -windowed -ResX=640 -ResY=360 -unattended -nopause -nosplash -SimCruiseShellSelfTest' -PassThru -WindowStyle Hidden
     if (-not $Proc.WaitForExit($SmokeMinutes * 60 * 1000)) {
         Stop-ProcessTree -ProcessId $Proc.Id
         $Smoke = "TIMED OUT after $SmokeMinutes min"
     } else {
-        $Smoke = if ($Proc.ExitCode -eq 0) { 'PASSED' } else { "FAILED (exit $($Proc.ExitCode))" }
+        # The launcher's exit code is not always the game's (777003 seen after a clean exit 0),
+        # so the self-test's own line in the game log decides.
+        $Passed = (Test-Path $GameLog) -and (Select-String -Path $GameLog -SimpleMatch 'SELF-TEST PASSED' -Quiet)
+        $Smoke = if ($Passed) { "PASSED (exit $($Proc.ExitCode))" } else { "FAILED (exit $($Proc.ExitCode); see $GameLog)" }
     }
 }
 finally { Exit-EditorLock }
@@ -109,5 +116,5 @@ Get-ChildItem $OutDir -Filter 'SimCruise-*.zip' | Sort-Object LastWriteTime -Des
     if (Test-Path $N) { Remove-Item $N -Force }
 }
 Write-Host "PLAYTEST BUILD: $Target"
-if ($Smoke -ne 'PASSED') { exit 1 }
+if ($Smoke -notlike 'PASSED*') { exit 1 }
 exit 0
