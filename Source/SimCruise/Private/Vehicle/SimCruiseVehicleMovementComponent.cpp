@@ -15,6 +15,7 @@
 #include "PhysicsProxy/SingleParticlePhysicsProxy.h"
 #include "Vehicle/CarDefinitionLoader.h"
 #include "Vehicle/SimCruiseUnits.h"
+#include "World/SimCruiseWorldTile.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSimCruiseVehicle, Log, All);
 
@@ -48,6 +49,8 @@ struct FSimCruiseVehiclePhysicsState
 	FVector3d InertiaKgCm2 = FVector3d::OneVector;
 	/** Times the physics thread put back mass properties the game thread had recomputed. */
 	int32 MassPropertyRestores = 0;
+	/** Water on the road, 0 dry .. 1 soaked (the environment's live rain), set from the game thread. */
+	float RoadWetness = 0.f;
 
 	FSimCruiseVehiclePhysicsState()
 	{
@@ -248,7 +251,8 @@ static void StepVehicleOnPhysicsThread(FSimCruiseVehiclePhysicsState& S, double 
 	UWorld* World = S.World.Get();
 	const ECollisionChannel Channel = S.Channel;
 	const FCollisionQueryParams& QueryParams = S.QueryParams;
-	auto Ground = [World, Channel, &QueryParams](const FVector3d& StartM, const FVector3d& EndM, FSimCruiseGroundHit& OutHit)
+	const float Wetness = FMath::Clamp(S.RoadWetness, 0.f, 1.f);
+	auto Ground = [World, Channel, &QueryParams, Wetness](const FVector3d& StartM, const FVector3d& EndM, FSimCruiseGroundHit& OutHit)
 	{
 		if (World == nullptr)
 		{
@@ -262,6 +266,13 @@ static void StepVehicleOnPhysicsThread(FSimCruiseVehiclePhysicsState& S, double 
 		}
 		OutHit.PointM = SimCruiseUnits::ToSILength(FVector3d(Hit.ImpactPoint));
 		OutHit.NormalM = FVector3d(Hit.ImpactNormal).GetSafeNormal();
+		// The surface under the tyre: asphalt, gravel or the ground beside the road, and the rain on it.
+		float DryGrip = 1.f, WetLoss = 0.3f;
+		if (const ASimCruiseWorldTile* Tile = Cast<ASimCruiseWorldTile>(Hit.GetActor()))
+		{
+			Tile->SurfaceGripAtFace(Hit.FaceIndex, DryGrip, WetLoss);
+		}
+		OutHit.SurfaceGrip = DryGrip * (1.f - WetLoss * Wetness);
 		return true;
 	};
 
@@ -403,6 +414,7 @@ void USimCruiseVehicleMovementComponent::ConfigureBody()
 	S.World = GetWorld();
 	S.Channel = GroundTraceChannel;
 	S.QueryParams = FCollisionQueryParams(SCENE_QUERY_STAT(SimCruiseSuspension), false, GetOwner());
+	S.QueryParams.bReturnFaceIndex = true;
 	S.MaxWheelSubstepSeconds = MaxWheelSubstepSeconds;
 	S.Sim.bSteeringAssist = bSteeringAssist;
 	S.bActive = true;
@@ -550,6 +562,12 @@ void USimCruiseVehicleMovementComponent::RequestEngineStart()
 {
 	FScopeLock Lock(&PhysicsState->Mutex);
 	PhysicsState->bPendingEngineStart = true;
+}
+
+void USimCruiseVehicleMovementComponent::SetRoadWetness(float Wetness)
+{
+	FScopeLock Lock(&PhysicsState->Mutex);
+	PhysicsState->RoadWetness = FMath::Clamp(Wetness, 0.f, 1.f);
 }
 
 void USimCruiseVehicleMovementComponent::SetSteeringAssist(bool bAssist)

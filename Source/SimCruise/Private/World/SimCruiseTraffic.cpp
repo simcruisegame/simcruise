@@ -15,6 +15,7 @@
 #include "HAL/IConsoleManager.h"
 #include "Presentation/SimCruiseCarAssets.h"
 #include "World/SimCruiseRoadNetwork.h"
+#include "World/SimCruiseSignals.h"
 #include "World/SimCruiseTileBuilder.h"
 #include "World/SimCruiseWorldStreamer.h"
 #include "World/SimCruiseWorldTile.h"
@@ -505,10 +506,26 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 			if (bClear) { Car.StopState = 3; ++StopsPassed; }
 		}
 	}
+	// A traffic signal ahead showing red (or yellow too late to stop for): its stop line is a
+	// stopped car to the IDM, as a stop sign's is; the front bumper stops at the line.
+	if (const ASimCruiseSignals* Signals = CachedSignals.Get())
+	{
+		FVector Line;
+		if (Signals->IsStopFor(Here.LocationCm, FVector2D(Fwd), 60.0, Line))
+		{
+			const double ToLine = FVector2d::DotProduct(FVector2d((Line.X - Here.LocationCm.X) / 100.0, (Line.Y - Here.LocationCm.Y) / 100.0), Fwd);
+			if (ToLine > -0.5)
+			{
+				const double G = FMath::Max(ToLine - 0.5 * Car.LengthM + 2.0, 0.05);
+				if (Gap < 0.0 || G < Gap) { Gap = G; Closing = Car.Speed; Why = 4; BlockerCm = FVector::ZeroVector; }
+				++SignalHolds;
+			}
+		}
+	}
 	// A left turn gives way to oncoming traffic (traffic going straight or turning right has
 	// the right of way): hold just short of the junction's centre while anything coming the
 	// other way will reach it within 4.5 s.
-	const bool bLeftTurn = Car.bNextChosen && Car.NextTurnDeg < -30.0 && Car.StopState != 1 && Car.StopState != 2;
+	const bool bLeftTurn =Car.bNextChosen && Car.NextTurnDeg < -30.0 && Car.StopState != 1 && Car.StopState != 2;
 	if (bLeftTurn && Remaining < 25.0)
 	{
 		const FPose Centre = PoseAt(Car.Tile, Car.Ribbon, Car.Dir, Car.DecisionS, Car.Lane);
@@ -818,6 +835,11 @@ void ASimCruiseTraffic::Tick(float DeltaSeconds)
 		return;
 	}
 	SinceStart += DeltaSeconds;
+	if (!CachedSignals.IsValid() && SinceStart - LastSignalLookup > 2.0)
+	{
+		LastSignalLookup = SinceStart;
+		CachedSignals = ASimCruiseSignals::Find(GetWorld());
+	}
 	// A test drives traffic round a fixed point with no player car in the way (far off) and a
 	// camera looking down from high above, which sees nothing on the streets.
 	const FVector Focus = bTestFocus ? TestFocusCm : Player->GetActorLocation();

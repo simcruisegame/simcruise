@@ -87,6 +87,53 @@ FLinearColor SimCruiseParkedCars::ColourFor(uint8 Byte)
 	return ParkedColourFor(Byte);
 }
 
+void ASimCruiseWorldTile::SurfaceGripAtFace(int32 FaceIndex, float& OutDryGrip, float& OutWetLoss) const
+{
+	// Peak friction relative to dry asphalt (0.8-0.9), from Wong, Theory of Ground Vehicles,
+	// table 1.3: wet asphalt or concrete 0.5-0.7 (about 0.7 of dry), gravel 0.6 (0.7 of dry,
+	// little changed when wet), earth road 0.68 dry and 0.55 wet (0.8 and 0.65 of dry asphalt;
+	// the tile's ground: verges, lawns, soil).
+	OutDryGrip = 1.f;
+	OutWetLoss = 0.3f;
+	TSharedPtr<const FSurfaceMap, ESPMode::ThreadSafe> Map;
+	{
+		FScopeLock Lock(&SurfaceLock);
+		Map = SurfaceMap;
+	}
+	if (!Map.IsValid() || FaceIndex < 0)
+	{
+		return;
+	}
+	int32 Section = INDEX_NONE;
+	for (int32 S = Map->FirstFace.Num() - 1; S >= 0; --S)
+	{
+		if (FaceIndex >= Map->FirstFace[S]) { Section = S; break; }
+	}
+	if (Section == INDEX_NONE)
+	{
+		return;
+	}
+	switch (static_cast<ESimCruiseTileLayer>(Map->Layer[Section]))
+	{
+	case ESimCruiseTileLayer::Asphalt:
+	{
+		const int32 Local = FaceIndex - Map->AsphaltFirstFace;
+		if (Map->GravelAsphalt.IsValidIndex(Local) && Map->GravelAsphalt[Local])
+		{
+			OutDryGrip = 0.7f;
+			OutWetLoss = 0.1f;
+		}
+		break;
+	}
+	case ESimCruiseTileLayer::Terrain:
+		OutDryGrip = 0.8f;
+		OutWetLoss = 0.19f;
+		break;
+	default:
+		break;
+	}
+}
+
 ASimCruiseWorldTile::ASimCruiseWorldTile()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -141,9 +188,39 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 	}
 
 	const TArray<FVector2D> NoUV;
+	// The surface under each collision face, for the tyres' grip: the procedural mesh numbers
+	// its collision faces section by section, in section order.
+	TSharedPtr<FSurfaceMap, ESPMode::ThreadSafe> Surfaces = MakeShared<FSurfaceMap, ESPMode::ThreadSafe>();
+	int32 FaceCount = 0;
 	for (int32 i = 0; i < static_cast<int32>(ESimCruiseTileLayer::Count); ++i)
 	{
 		FSimCruiseMeshData& Layer = InBuild->Layers[i];
+		{
+			const ESimCruiseTileLayer SurfaceKind = static_cast<ESimCruiseTileLayer>(i);
+			const bool bSolid = SurfaceKind == ESimCruiseTileLayer::Terrain || SurfaceKind == ESimCruiseTileLayer::Asphalt || SurfaceKind == ESimCruiseTileLayer::Concrete
+				|| SurfaceKind == ESimCruiseTileLayer::Building || SurfaceKind == ESimCruiseTileLayer::Props;
+			if (bSolid && !Layer.IsEmpty())
+			{
+				Surfaces->FirstFace.Add(FaceCount);
+				Surfaces->Layer.Add(static_cast<uint8>(i));
+				const int32 Faces = Layer.Indices.Num() / 3;
+				if (SurfaceKind == ESimCruiseTileLayer::Asphalt)
+				{
+					// Vertex colour R marks gravel (an unpaved road, a rural shoulder).
+					Surfaces->AsphaltFirstFace = FaceCount;
+					Surfaces->GravelAsphalt.Init(false, Faces);
+					if (Layer.Colors.Num() == Layer.Positions.Num())
+					{
+						for (int32 F = 0; F < Faces; ++F)
+						{
+							const float R = (Layer.Colors[Layer.Indices[3 * F]].R + Layer.Colors[Layer.Indices[3 * F + 1]].R + Layer.Colors[Layer.Indices[3 * F + 2]].R) / 3.f;
+							Surfaces->GravelAsphalt[F] = R > 0.5f;
+						}
+					}
+				}
+				FaceCount += Faces;
+			}
+		}
 		if (Layer.IsEmpty())
 		{
 			continue;
@@ -177,6 +254,11 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 		Layer.Indices.Empty();
 		Layer.UV0.Empty();
 		Layer.UV1.Empty();
+	}
+
+	{
+		FScopeLock Lock(&SurfaceLock);
+		SurfaceMap = Surfaces;
 	}
 
 	// Parked cars wait for PlaceParkedCars (drawn runs only: they are scenery and obstacles).

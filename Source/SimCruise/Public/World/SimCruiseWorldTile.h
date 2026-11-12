@@ -64,6 +64,13 @@ public:
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
+	/**
+	 * Dry grip of the surface under a collision face, as a multiplier on dry asphalt
+	 * (FHitResult::FaceIndex of a trace with bReturnFaceIndex), and how much rain takes
+	 * from it when soaked (0..1). Safe to call from the physics thread.
+	 */
+	void SurfaceGripAtFace(int32 FaceIndex, float& OutDryGrip, float& OutWetLoss) const;
+
 	/** Night lighting of the tile's materials, 0..1: lit windows and street-light lenses (neon brightens). */
 	void SetLightsOn(float Amount);
 	float GetLightsOn() const { return LightsOn; }
@@ -101,4 +108,15 @@ private:
 	TArray<FSimCruiseParkedCar> ParkedWaiting;
 	/** Static mesh slot -> tile layer. */
 	TArray<int32> RenderSlots;
+
+	/** Collision faces in section order: where each layer's faces start, and which asphalt faces are gravel. */
+	struct FSurfaceMap
+	{
+		TArray<int32> FirstFace;
+		TArray<uint8> Layer;
+		int32 AsphaltFirstFace = -1;
+		TBitArray<> GravelAsphalt;
+	};
+	TSharedPtr<const FSurfaceMap, ESPMode::ThreadSafe> SurfaceMap;
+	mutable FCriticalSection SurfaceLock;
 };

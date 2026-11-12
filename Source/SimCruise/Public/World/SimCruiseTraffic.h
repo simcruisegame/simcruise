@@ -182,4 +182,8 @@ private:
 	double SinceStart = 0.0;
 	double ReportClock = 5.0;
 	int32 RibbonChanges = 0, Spawned = 0, StopsPassed = 0, LaneChanges = 0, LeftTurnYields = 0, QueueGiveUps = 0;
+	/** Car-frames held at a red or late yellow signal (for the report). */
+	int64 SignalHolds = 0;
+	TWeakObjectPtr<const class ASimCruiseSignals> CachedSignals;
+	double LastSignalLookup = -10.0;
 };

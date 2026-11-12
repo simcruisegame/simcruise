@@ -375,6 +375,14 @@ void ASimCruiseVehicle::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	UpdateHeadLamps();
+	// Rain on the road reaches the tyres' grip.
+	if (const USimCruiseEnvironmentSubsystem* Environments = USimCruiseEnvironmentSubsystem::Get(GetWorld()))
+	{
+		if (const ASimCruiseEnvironment* Environment = Environments->GetEnvironment())
+		{
+			VehicleMovement->SetRoadWetness(Environment->GetRoadWetness());
+		}
+	}
 	// Live mirrors for the car being driven, from the driver's seat (from outside they are
 	// a few pixels; parked and traffic cars never have them).
 	const APlayerController* PC = Cast<APlayerController>(GetController());

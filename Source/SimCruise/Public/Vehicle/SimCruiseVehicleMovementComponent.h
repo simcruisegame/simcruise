@@ -101,6 +101,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "SimCruise|Vehicle|Controls")
 	void RequestEngineStart();
 
+	/** Water on the road (0 dry .. 1 soaked): the tyres' grip falls with it, by surface. */
+	void SetRoadWetness(float Wetness);
+
 	/** Assisted steering for keys and sticks; off for a steering wheel or a bench servo. */
 	UFUNCTION(BlueprintCallable, Category = "SimCruise|Vehicle|Controls")
 	void SetSteeringAssist(bool bAssist);
