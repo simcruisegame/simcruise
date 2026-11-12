@@ -10,9 +10,9 @@ With the editor closed (Windows, from the checkout):
 
 It builds the editor target (skip with `-NoBuild`), fetches each pose's photograph into `Saved\Realism\photos` (with Bun and `lab/taste/scripts/panoramax-near.mjs`; the photographs are never committed), opens the game once per pose under the PC-wide editor lock with `-SimCruiseDriveCapture -SimCruiseRealismPose=...` at the photograph's time and size, with moving traffic off, and scores the captures. It prints one line per pose and appends them to `Saved\Realism\history.csv`, labelled with the commit:
 
-    REALISM lummus: 41.7 / 100  layout 38.2  tone 52.0  colour 61.3  structure 35.9  detail 44.0  sky 30.1
+    REALISM lummus: 44.6 / 100  layout 31.6  tone 34.9  colour 50.1  structure 51.5  detail 62.8  sky 41.9
 
-(The numbers above are an example of the format, not a measurement.)
+That line is the measured baseline for commit d1ae119 (12 November 2026, Ultra, 1600 x 720, the bundled Miami Beach world, moving traffic off).
 
 Score two pictures by hand: `python lab/realism/score.py GAME.png PHOTO.jpg` (add `--json` for one JSON line). The checks: `python lab/realism/test_score.py`. The scorer needs Python 3 with NumPy and Pillow.
 
