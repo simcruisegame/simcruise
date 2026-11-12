@@ -501,6 +501,17 @@ namespace SimCruiseTileDetail
 			const int32 Floors = FMath::Max(1, FMath::FloorToInt((Height + 0.2) / FloorH));
 			TArray<int32> Places;
 			PlacesOf.MultiFind(b, Places);
+			// Sidewalk cafes: a hotel, restaurant, cafe or bar on the building sets tables under
+			// umbrellas along its street front (Ocean Drive's porches and sidewalks).
+			bool bDiners = false;
+			for (const int32 p : Places)
+			{
+				const FString& K = Data.Pois[p].Kind;
+				bDiners |= K == TEXT("restaurant") || K == TEXT("cafe") || K == TEXT("bar") || K == TEXT("lodging") || K == TEXT("ice_cream") || K == TEXT("fast_food");
+			}
+			const bool bCafe = bDiners && !bFloating && Unit(Hash(H, 36)) < ChanceOf(TEXT("detail:outdoor_seating"), bDeco ? 0.75 : 0.35);
+			static const TCHAR* UmbrellaHex[] = { TEXT("F2C14E"), TEXT("F5F1E6"), TEXT("E5739A"), TEXT("38B6C2"), TEXT("E07A5F"), TEXT("34558B"), TEXT("2F8F8A"), TEXT("C0392B") };
+			const FLinearColor Umbrella = Srgb(UmbrellaHex[Hash(H, 37) % 8]);
 
 			// Street fronts on the footprint as mapped; porches on the fronts that can take one.
 			const int32 N0 = Footprint.Num();
@@ -825,6 +836,52 @@ namespace SimCruiseTileDetail
 						const double S = FMath::Lerp(0.3, Len - 0.3, k / static_cast<double>(Columns - 1));
 						const FVector2d P0 = A + T * (S - 0.17), P1 = A + T * (S + 0.17);
 						W.Slab(P0, P1, N2, -0.36, -0.02, Floor, Ceiling, Accent, Kind::Trim, 0.0, Ground, true, false);
+					}
+				}
+
+				// Tables under market umbrellas on the sidewalk (or the porch) in front of the street
+				// front, every 3.2 m, clear of the carriageway.
+				if (bCafe && Front[i] && !Arc[i] && Len >= 5.0)
+				{
+					FSimCruiseMeshData& PropsMesh = B.Layer(ESimCruiseTileLayer::Props);
+					FWriter Pw{ PropsMesh, W.Seed };
+					const FLinearColor Pole = Srgb(TEXT("D8D8D2")), Table = Srgb(TEXT("E9E7E1"));
+					const double Out = bPorch ? -0.5 * PorchDepth[i] : 2.3;
+					const double Floor = bPorch ? Ground + 0.45 : Ground + 0.1;
+					for (double Sx = 1.6; Sx <= Len - 1.6; Sx += 3.2)
+					{
+						const FVector2d P = A + T * Sx + N2 * Out;
+						FSimCruiseRoadHit Hit;
+						if (!bPorch && Roads.FindCarriageway(P, Hit, INDEX_NONE, 0.6)) continue;
+						// Pole and table.
+						Pw.Slab(P - T * 0.025, P + T * 0.025, N2, -0.025, 0.025, Floor, Floor + 2.35, Pole, Kind::Metal, 0.0, Ground, true, false);
+						Pw.Slab(P - T * 0.4, P + T * 0.4, N2, -0.4, 0.4, Floor + 0.72, Floor + 0.76, Table, Kind::Trim, 0.0, Ground, true, true);
+						// The canopy: an octagonal cone, 2.6 m across, its rim at 2.15 m.
+						const FVector3d Apex(P.X, P.Y, Floor + 2.6);
+						FVector3d Rim[8];
+						for (int32 k = 0; k < 8; ++k)
+						{
+							const double Ang = UE_DOUBLE_TWO_PI * (k + 0.5) / 8.0;
+							Rim[k] = FVector3d(P.X + 1.3 * FMath::Cos(Ang), P.Y + 1.3 * FMath::Sin(Ang), Floor + 2.15);
+						}
+						const int32 Top0 = PropsMesh.Positions.Num();
+						PropsMesh.Add(FVector(Apex * 100.0), FVector::UpVector, Umbrella, FVector2D(0.0, 2.6), FVector2D(Kind::Trim, W.Seed));
+						for (int32 k = 0; k < 8; ++k)
+						{
+							const FVector Nrm = FVector(FVector3d(Rim[k].X - P.X, Rim[k].Y - P.Y, 1.3 * 1.3 / 0.45).GetSafeNormal());
+							PropsMesh.Add(FVector(Rim[k] * 100.0), Nrm, Umbrella, FVector2D(k * 1.0, 2.15), FVector2D(Kind::Trim, W.Seed));
+						}
+						const int32 Under0 = PropsMesh.Positions.Num();
+						PropsMesh.Add(FVector((Apex - FVector3d(0, 0, 0.02)) * 100.0), -FVector::UpVector, Umbrella * 0.75f, FVector2D(0.0, 2.6), FVector2D(Kind::Trim, W.Seed));
+						for (int32 k = 0; k < 8; ++k)
+						{
+							PropsMesh.Add(FVector((Rim[k] - FVector3d(0, 0, 0.02)) * 100.0), -FVector::UpVector, Umbrella * 0.75f, FVector2D(k * 1.0, 2.15), FVector2D(Kind::Trim, W.Seed));
+						}
+						for (int32 k = 0; k < 8; ++k)
+						{
+							PropsMesh.Tri(Top0, Top0 + 1 + k, Top0 + 1 + (k + 1) % 8, FVector::UpVector);
+							PropsMesh.Tri(Under0, Under0 + 1 + k, Under0 + 1 + (k + 1) % 8, -FVector::UpVector);
+						}
 					}
 				}
 
