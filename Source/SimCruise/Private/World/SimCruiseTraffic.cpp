@@ -362,6 +362,7 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 		const double Along = FVector2d::DotProduct(D, Fwd);
 		const double Across = FMath::Abs(D.X * Fwd.Y - D.Y * Fwd.X);
 		if (Along <= 0.0 || Along > 80.0 || Across > 1.9) return;
+		if (CVarTrafficGridlockRules.GetValueOnGameThread() != 0 && FMath::Abs(OtherCm.Z - Here.LocationCm.Z) > 300.0) return;
 		const double G = Along - 0.5 * (Car.LengthM + OtherLength);
 		if (Gap < 0.0 || G < Gap)
 		{
@@ -400,11 +401,13 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 	// the one with the other on its right gives way and the other goes. A car stood still for
 	// 6 s no longer waits for a crossing car that is itself standing (a gridlock breaks the way
 	// drivers break one, by creeping through).
-	auto Crossing = [&](const FVector& OtherCm, const FVector2d& OtherHeading, double OtherSpeed, double OtherProbe)
+	auto Crossing = [&](const FVector& OtherCm, const FVector2d& OtherHeading, double OtherSpeed, double OtherProbe, const ASimCruiseTrafficCar* OtherCar)
 	{
 		const bool bRules = CVarTrafficGridlockRules.GetValueOnGameThread() != 0;
 		const double Along = FVector2d::DotProduct(OtherHeading, Fwd);
 		if (bRules ? FMath::Abs(Along) > 0.7 : Along > 0.5) return;
+		// A car on a bridge over this road, or on the road under it, is not in the way.
+		if (bRules && FMath::Abs(OtherCm.Z - Here.LocationCm.Z) > 300.0) return;
 		const FVector2d OtherM(OtherCm.X / 100.0, OtherCm.Y / 100.0);
 		const double D = InPath(HereM, Fwd, Probe, OtherM);
 		if (D < 0.0) return;
@@ -419,7 +422,10 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 			const FVector2d Right(-Fwd.Y, Fwd.X);
 			if (FVector2d::DotProduct(OtherM - HereM, Right) < 0.0) return;
 		}
-		if (Car.StandS > 6.0 && OtherSpeed < 0.3) return;
+		// Three or four cars round a junction can each wait for the next: after 6 s the one that
+		// has stood longest (ties by identity) creeps through, and the others wait for it.
+		if (Car.StandS > 6.0 && OtherSpeed < 0.3 && OtherCar &&
+			(OtherCar->StandS < Car.StandS - 1e-3 || (FMath::IsNearlyEqual(OtherCar->StandS, Car.StandS, 1e-3) && OtherCar > &Car))) return;
 		const double G = FMath::Max(D - 0.5 * Car.LengthM - 2.0, 0.05);
 		if (Gap < 0.0 || G < Gap) { Gap = G; Closing = Car.Speed; Why = 3; BlockerCm = OtherCm; }
 	};
@@ -428,11 +434,11 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 		// A car waiting behind its stop line is not in the way.
 		if (!Other || Other == &Car || Other->Ribbon == INDEX_NONE || Other->StopState == 2) continue;
 		const double Yaw = FMath::DegreesToRadians(Other->GetActorRotation().Yaw);
-		Crossing(Other->GetActorLocation(), FVector2d(FMath::Cos(Yaw), FMath::Sin(Yaw)), Other->Speed, FMath::Clamp(Other->Speed * 2.5, 8.0, 25.0));
+		Crossing(Other->GetActorLocation(), FVector2d(FMath::Cos(Yaw), FMath::Sin(Yaw)), Other->Speed, FMath::Clamp(Other->Speed * 2.5, 8.0, 25.0), Other);
 	}
 	const FVector2d PlayerHeading = FVector2d(PlayerVelCm.X, PlayerVelCm.Y).GetSafeNormal();
 	// The player never gives way to traffic by rule here: traffic always waits for the player.
-	if (!PlayerHeading.IsNearlyZero()) Crossing(PlayerCm, PlayerHeading, PlayerVelCm.Size2D() / 100.0, -1.0);
+	if (!PlayerHeading.IsNearlyZero()) Crossing(PlayerCm, PlayerHeading, PlayerVelCm.Size2D() / 100.0, -1.0, nullptr);
 
 	// Speed: the class's limit, and slower into a turn (about 0.25 g round a corner).
 	double V0 = Car.DesiredSpeed;
@@ -792,20 +798,35 @@ bool ASimCruiseTraffic::Spawn(const FVector& FocusCm, const FVector& PlayerFwd, 
 	return false;
 }
 
+int32 ASimCruiseTraffic::CountStuckCars(double Seconds) const
+{
+	int32 Count = 0;
+	for (const ASimCruiseTrafficCar* Car : Cars)
+	{
+		Count += Car && Car->Ribbon != INDEX_NONE && Car->StandS > Seconds ? 1 : 0;
+	}
+	return Count;
+}
+
 void ASimCruiseTraffic::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
 	const APawn* Player = PC ? PC->GetPawn() : nullptr;
-	if (!Streamer.IsValid() || !Player || !Streamer->GetFrame().IsValid())
+	if (!Streamer.IsValid() || (!Player && !bTestFocus) || !Streamer->GetFrame().IsValid())
 	{
 		return;
 	}
 	SinceStart += DeltaSeconds;
-	const FVector Focus = Player->GetActorLocation();
-	const FVector PlayerVel = Player->GetVelocity();
-	const FVector CameraCm = PC->PlayerCameraManager ? PC->PlayerCameraManager->GetCameraLocation() : Focus;
-	const FVector CameraFwd = PC->PlayerCameraManager ? PC->PlayerCameraManager->GetCameraRotation().Vector() : Player->GetActorForwardVector();
+	// A test drives traffic round a fixed point with no player car in the way (far off) and a
+	// camera looking down from high above, which sees nothing on the streets.
+	const FVector Focus = bTestFocus ? TestFocusCm : Player->GetActorLocation();
+	const FVector PlayerCm = bTestFocus ? TestFocusCm + FVector(0.0, 0.0, 1.0e6) : Focus;
+	const FVector PlayerVel = bTestFocus ? FVector::ZeroVector : Player->GetVelocity();
+	const FVector CameraCm = bTestFocus ? TestFocusCm + FVector(0.0, 0.0, 1.0e6)
+		: (PC->PlayerCameraManager ? PC->PlayerCameraManager->GetCameraLocation() : Focus);
+	const FVector CameraFwd = bTestFocus ? FVector::UpVector
+		: (PC->PlayerCameraManager ? PC->PlayerCameraManager->GetCameraRotation().Vector() : Player->GetActorForwardVector());
 	const double Dt = FMath::Min(static_cast<double>(DeltaSeconds), 0.1);
 	const bool bNight = Streamer->GetLightsOn() > 0.5f;
 	// Heard only with an audio device (not in headless runs).
@@ -816,10 +837,21 @@ void ASimCruiseTraffic::Tick(float DeltaSeconds)
 		if (Car && Car->Ribbon != INDEX_NONE)
 		{
 			Car->bLamps = bNight;
-			Advance(*Car, Dt, Focus, PlayerVel);
+			Advance(*Car, Dt, PlayerCm, PlayerVel);
 			UpdateVoice(*Car, FVector::Dist(Car->GetActorLocation(), CameraCm) / 100.0, bSound);
 		}
-		if (!Car || Car->Ribbon == INDEX_NONE || FVector::Dist(Car->GetActorLocation(), Focus) > RemoveM * 100.0)
+		// A queue behind a car or the player that stands for good (you parked in the lane) would
+		// grow without end: a car stuck in it for 25 s turns off out of sight, as drivers find
+		// another way. Only when nothing can see it go.
+		bool bGivesUp = false;
+		if (Car && Car->Ribbon != INDEX_NONE && Car->StandS > 25.0 && (Car->Why == 1 || Car->Why == 2) &&
+			CVarTrafficGridlockRules.GetValueOnGameThread() != 0)
+		{
+			const FVector ToCar = Car->GetActorLocation() - CameraCm;
+			bGivesUp = ToCar.Size() > 6000.0 || FVector::DotProduct(ToCar.GetSafeNormal(), CameraFwd) < 0.2;
+			QueueGiveUps += bGivesUp ? 1 : 0;
+		}
+		if (!Car || Car->Ribbon == INDEX_NONE || bGivesUp || FVector::Dist(Car->GetActorLocation(), Focus) > RemoveM * 100.0)
 		{
 			if (Car) Car->Destroy();
 			Cars.RemoveAtSwap(I);
@@ -862,6 +894,6 @@ void ASimCruiseTraffic::Tick(float DeltaSeconds)
 	const int32 Want = FMath::Max(0, CVarTrafficCars.GetValueOnGameThread());
 	for (int32 Tries = 0; Tries < 2 && Cars.Num() < Want; ++Tries)
 	{
-		Spawn(Focus, Player->GetActorForwardVector(), CameraCm, CameraFwd, SinceStart < 3.0);
+		Spawn(Focus, Player ? Player->GetActorForwardVector() : FVector::ForwardVector, CameraCm, CameraFwd, SinceStart < 3.0 || bTestFocus);
 	}
 }

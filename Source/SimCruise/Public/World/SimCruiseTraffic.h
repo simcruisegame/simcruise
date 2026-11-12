@@ -145,6 +145,14 @@ public:
 	TWeakObjectPtr<ASimCruiseWorldStreamer> Streamer;
 
 	int32 NumCars() const { return Cars.Num(); }
+	/** Tests: drive the traffic round this point with no player (bTestFocus). */
+	bool bTestFocus = false;
+	FVector TestFocusCm = FVector::ZeroVector;
+
+	/** Cars that have stood still longer than Seconds (the deadlock soak test reads it). */
+	int32 CountStuckCars(double Seconds = 20.0) const;
+	/** Cars that left a queue behind a car standing for good (you parked in the lane). */
+	int32 GetQueueGiveUps() const { return QueueGiveUps; }
 
 	/** Remove every car (a jump to another place: their roads are gone). */
 	void ClearCars();
@@ -173,5 +181,5 @@ private:
 	uint32 Random = 0x5eed1234;
 	double SinceStart = 0.0;
 	double ReportClock = 5.0;
-	int32 RibbonChanges = 0, Spawned = 0, StopsPassed = 0, LaneChanges = 0, LeftTurnYields = 0;
+	int32 RibbonChanges = 0, Spawned = 0, StopsPassed = 0, LaneChanges = 0, LeftTurnYields = 0, QueueGiveUps = 0;
 };
