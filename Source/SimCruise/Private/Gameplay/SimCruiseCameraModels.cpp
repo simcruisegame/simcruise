@@ -71,6 +71,37 @@ FSimCruiseHeadModel::FSimCruiseHeadModel()
 {
 }
 
+namespace SimCruiseCameraModels
+{
+	/**
+	 * The acceleration between two velocity samples. With a physics time on both
+	 * (the vehicle's asynchronous 360 Hz step), the difference is over that time:
+	 * a 60 fps frame holds 5, 6 or 7 steps, so dividing by the frame time alone
+	 * gives a +/-17 % jitter. A frame with no new physics result keeps the last
+	 * acceleration. Without a physics time, the frame time is used.
+	 */
+	FVector Acceleration(const FVector& Velocity, FVector& PreviousVelocity, double SimTimeS, double& PreviousSimTimeS, double FrameS,
+		FVector& LastAcceleration)
+	{
+		if (SimTimeS > 0.0 && PreviousSimTimeS > 0.0)
+		{
+			const double StepS = SimTimeS - PreviousSimTimeS;
+			if (StepS <= 1e-6)
+			{
+				return LastAcceleration;
+			}
+			LastAcceleration = (Velocity - PreviousVelocity) / StepS;
+		}
+		else
+		{
+			LastAcceleration = (Velocity - PreviousVelocity) / FrameS;
+		}
+		PreviousVelocity = Velocity;
+		PreviousSimTimeS = SimTimeS;
+		return LastAcceleration;
+	}
+}
+
 void FSimCruiseHeadModel::Reset()
 {
 	HeadOffset = FVector::ZeroVector;
@@ -95,14 +126,16 @@ FSimCruiseEyePose FSimCruiseHeadModel::Update(const FTransform& Body, const FVec
 	if (!bStarted || FVector::Dist(WorldVelocityMps, PreviousVelocity) > 25.0)
 	{
 		PreviousVelocity = WorldVelocityMps;
+		PreviousSimTimeS = Telemetry.SimTimeS;
+		LastAcceleration = FVector::ZeroVector;
 		bStarted = true;
 		for (int32 I = 0; I < 4; ++I)
 		{
 			Travel[I] = Telemetry.Wheels[I].SuspensionTravelM;
 		}
 	}
-	const FVector Raw = (WorldVelocityMps - PreviousVelocity) / FrameS;
-	PreviousVelocity = WorldVelocityMps;
+	const FVector Raw = SimCruiseCameraModels::Acceleration(WorldVelocityMps, PreviousVelocity, Telemetry.SimTimeS, PreviousSimTimeS,
+		FrameS, LastAcceleration);
 
 	// Specific force the seat applies, in body axes: acceleration minus gravity.
 	// Contact and tile-seam spikes are clamped before the filter.
@@ -240,7 +273,7 @@ void FSimCruiseChaseFrame::Update(ESimCruiseView View, const FTransform& Body, c
 	OutLocation = Pivot + SmoothedOffset;
 }
 
-FVector2D FSimCruiseGMeter::Update(const FTransform& Body, const FVector& WorldVelocityMps, double DeltaTimeS)
+FVector2D FSimCruiseGMeter::Update(const FTransform& Body, const FVector& WorldVelocityMps, double DeltaTimeS, double SimTimeS)
 {
 	if (DeltaTimeS <= 0.0)
 	{
@@ -251,10 +284,11 @@ FVector2D FSimCruiseGMeter::Update(const FTransform& Body, const FVector& WorldV
 	if (!bStarted || FVector::Dist(WorldVelocityMps, PreviousVelocity) > 25.0)
 	{
 		PreviousVelocity = WorldVelocityMps;
+		PreviousSimTimeS = SimTimeS;
+		LastAcceleration = FVector::ZeroVector;
 		bStarted = true;
 	}
-	const FVector Raw = (WorldVelocityMps - PreviousVelocity) / FrameS;
-	PreviousVelocity = WorldVelocityMps;
+	const FVector Raw = SimCruiseCameraModels::Acceleration(WorldVelocityMps, PreviousVelocity, SimTimeS, PreviousSimTimeS, FrameS, LastAcceleration);
 	const FVector Specific = Body.GetRotation().UnrotateVector(Raw + FVector(0.0, 0.0, G)).BoundToCube(30.0);
 	const FVector2D Sample(Specific.X / G, Specific.Y / G);
 	Value += (Sample - Value) * Approach(Dt, 0.15);

@@ -93,14 +93,14 @@ bool FSimCruiseInputBindingsTest::RunTest(const FString& Parameters)
 		{TEXT("SteerPad"), EKeys::Gamepad_LeftX}, {TEXT("SteerKey"), EKeys::A}, {TEXT("SteerKey"), EKeys::D},
 		{TEXT("SteerKey"), EKeys::Left}, {TEXT("SteerKey"), EKeys::Right},
 		{TEXT("FullBrake"), EKeys::SpaceBar},
-		{TEXT("ParkingBrake"), EKeys::H}, {TEXT("ParkingBrake"), EKeys::Gamepad_FaceButton_Bottom},
-		{TEXT("ToggleTransmission"), EKeys::T}, {TEXT("ToggleTransmission"), EKeys::Gamepad_FaceButton_Right},
-		{TEXT("Clutch"), EKeys::LeftShift}, {TEXT("Clutch"), EKeys::Gamepad_LeftShoulder},
+		{TEXT("ParkingBrake"), EKeys::H}, {TEXT("ParkingBrake"), EKeys::Gamepad_FaceButton_Right},
+		{TEXT("ToggleTransmission"), EKeys::T}, {TEXT("ToggleTransmission"), EKeys::Gamepad_DPad_Right},
+		{TEXT("Clutch"), EKeys::LeftShift}, {TEXT("Clutch"), EKeys::Gamepad_FaceButton_Bottom},
 		{TEXT("ShiftUp"), EKeys::E}, {TEXT("ShiftUp"), EKeys::Gamepad_RightShoulder},
-		{TEXT("ShiftDown"), EKeys::Q}, {TEXT("ShiftDown"), EKeys::Gamepad_FaceButton_Left},
-		{TEXT("StartEngine"), EKeys::I}, {TEXT("StartEngine"), EKeys::Gamepad_RightThumbstick},
+		{TEXT("ShiftDown"), EKeys::Q}, {TEXT("ShiftDown"), EKeys::Gamepad_LeftShoulder},
+		{TEXT("StartEngine"), EKeys::I}, {TEXT("StartEngine"), EKeys::Gamepad_DPad_Left},
 		{TEXT("CycleCamera"), EKeys::C}, {TEXT("CycleCamera"), EKeys::Gamepad_FaceButton_Top},
-		{TEXT("CycleHud"), EKeys::F2}, {TEXT("CycleHud"), EKeys::Gamepad_LeftThumbstick},
+		{TEXT("CycleHud"), EKeys::F2}, {TEXT("CycleHud"), EKeys::Gamepad_FaceButton_Left},
 		{TEXT("ToggleAtlas"), EKeys::Tab}, {TEXT("ToggleAtlas"), EKeys::Gamepad_Special_Right},
 		{TEXT("FindPlace"), EKeys::Slash},
 		{TEXT("Recover"), EKeys::R}, {TEXT("Recover"), EKeys::Gamepad_Special_Left},
@@ -475,6 +475,40 @@ bool FSimCruiseHeadFrameRateTest::RunTest(const FString& Parameters)
 	const FVector2D Held = Meter.Get();
 	Meter.Update(FTransform::Identity, Velocity, 0.0);
 	TestTrue(TEXT("g-meter holds while paused"), Meter.Get().Equals(Held, 1e-9));
+	return true;
+}
+
+/**
+ * Release bug #4: the asynchronous 360 Hz physics step does not line up with the
+ * frames, so a 60 fps frame sees 5, 6 or 7 new steps. Differentiating the velocity
+ * over the frame time made the g-meter and the head model jitter by about 17 %;
+ * over the physics time they read a steady value.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseCameraPhysicsTimeTest, "SimCruise.Gameplay.Camera.PhysicsTimeNoJitter", Flags)
+bool FSimCruiseCameraPhysicsTimeTest::RunTest(const FString& Parameters)
+{
+	constexpr double G = 9.80665;
+	constexpr double StepS = 1.0 / 360.0;
+	FSimCruiseGMeter Meter;
+	FVector Velocity(20.0, 0.0, 0.0);
+	double SimTime = 1.0;
+	static const int32 Pattern[] = {6, 5, 7, 6, 6, 5, 7, 0, 12};
+	double MinG = 10.0, MaxG = -10.0;
+	for (int32 I = 0; I < 360; ++I)
+	{
+		const int32 Steps = Pattern[I % UE_ARRAY_COUNT(Pattern)];
+		Velocity += FVector(-0.8 * G, 0.0, 0.0) * Steps * StepS;
+		SimTime += Steps * StepS;
+		const FVector2D Reading = Meter.Update(FTransform::Identity, Velocity, 1.0 / 60.0, SimTime);
+		if (I > 120)
+		{
+			MinG = FMath::Min(MinG, Reading.X);
+			MaxG = FMath::Max(MaxG, Reading.X);
+		}
+	}
+	AddInfo(FString::Printf(TEXT("g-meter with uneven physics steps per frame: %.4f .. %.4f g"), MinG, MaxG));
+	TestNearlyEqual(TEXT("g-meter reads 0.8 g braking"), (MinG + MaxG) * 0.5, -0.8, 0.01);
+	TestTrue(TEXT("g-meter steady (spread under 0.01 g)"), MaxG - MinG < 0.01);
 	return true;
 }
 

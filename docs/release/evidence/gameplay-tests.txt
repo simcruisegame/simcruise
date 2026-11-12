@@ -1,0 +1,51 @@
+# Gameplay, audio, drive, presentation, environment and atlas tests, commit aa97be1, 2026-11-12T10:19Z
+
+46 passed, 0 failed, 0 logged errors in 355 s (log: D:\sc\lane-release\Saved\Logs\SimCruiseChecks.log)
+CHECKS PASSED
+
+Success SimCruise.Atlas.AsyncQueue
+Success SimCruise.Atlas.ProcessResults
+Success SimCruise.Audio.CrossPlaneV8
+Success SimCruise.Audio.InlineFour
+Success SimCruise.Audio.RoadNoise
+Success SimCruise.Drive.LowBeams
+Success SimCruise.Drive.Mapping
+Success SimCruise.Drive.OceanDrive
+Success SimCruise.Drive.ShellControl
+Success SimCruise.Environment.Daylight.Illuminance
+Success SimCruise.Environment.Daylight.Visibility
+Success SimCruise.Environment.Graphics.AutoPick
+Success SimCruise.Environment.Moon.Meeus
+Success SimCruise.Environment.Sky.Actor
+Success SimCruise.Environment.Solar.Calendar
+Success SimCruise.Environment.Solar.GodotAgreement
+Success SimCruise.Environment.Solar.Refraction
+Success SimCruise.Environment.Solar.SpaReference
+Success SimCruise.Environment.Solar.WorldFrame
+Success SimCruise.Environment.Weather.Conditions
+Success SimCruise.Environment.Weather.RoadWetness
+Success SimCruise.Gameplay.Camera.ChaseShowsSlip
+Success SimCruise.Gameplay.Camera.HeadModel
+Success SimCruise.Gameplay.Camera.HeadModelFrameRate
+Success SimCruise.Gameplay.Haptics.SlipRumble
+Success SimCruise.Gameplay.Hud.Levels
+Success SimCruise.Gameplay.Input.BindingsMatchControlsDoc
+Success SimCruise.Gameplay.Input.DeadZonesAndDirections
+Success SimCruise.Gameplay.Loop.PlaceholderConventionsAndSlideCatch
+Success SimCruise.Gameplay.Places.Query
+Success SimCruise.Gameplay.Places.StartPool
+Success SimCruise.Gameplay.Steering.CountersteerAllowance
+Success SimCruise.Gameplay.Steering.KeyTapAtHighwaySpeed
+Success SimCruise.Gameplay.Steering.PedalRamps
+Success SimCruise.Gameplay.Steering.RangeMatchesGodot
+Success SimCruise.Gameplay.Steering.StickAndKeysCentreExactly
+Success SimCruise.Presentation.CarClock
+Success SimCruise.Presentation.Component.BuildsAndPoses
+Success SimCruise.Presentation.Component.Conventions
+Success SimCruise.Presentation.Gltf.LoadsTheThreeCars
+Success SimCruise.Presentation.LowBeamPattern
+Success SimCruise.Presentation.Rig.MeridianZ
+Success SimCruise.Presentation.Rig.Mustang65
+Success SimCruise.Presentation.Rig.Nb1999
+Success SimCruise.Presentation.Rig.ParkedCars
+Success SimCruise.Presentation.Roles.Guess

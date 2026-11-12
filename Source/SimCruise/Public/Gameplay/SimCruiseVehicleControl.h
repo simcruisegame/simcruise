@@ -93,6 +93,10 @@ struct FSimCruiseDriveTelemetry
 	double RoadRoughness = 0.0;
 	/** Both front tyres' aligning torque about the steering axes (N m, + steering right). */
 	double RackAligningTorqueNm = 0.0;
+	/** Physics time of the state above, s (0 when the vehicle does not report it). The
+	 *  cameras and the g-meter differentiate the velocity over this, not over the frame,
+	 *  because the asynchronous physics step does not line up with the rendered frames. */
+	double SimTimeS = 0.0;
 	FSimCruiseDriveWheelTelemetry Wheels[4];
 };
 

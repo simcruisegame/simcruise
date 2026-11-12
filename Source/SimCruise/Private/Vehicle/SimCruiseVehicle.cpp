@@ -328,6 +328,7 @@ void ASimCruiseVehicle::ToDriveTelemetry(const FSimCruiseCarDefinition& Car, con
 	Out.BodyVelocityMps = In.BodyVelocityLocalMps;
 	Out.BodyAngularVelocityRadPerS = In.BodyAngularVelocityLocalRadPerSecond;
 	Out.EngineSpeedRpm = In.EngineRpm;
+	Out.SimTimeS = In.SimTimeS;
 	Out.Gear = In.Gear;
 	Out.bManualTransmission = In.bManual;
 	Out.bEngineStalled = In.bStalled;

@@ -46,6 +46,10 @@ private:
 	/** True FOV by default: the screen as a window the size it really is (see SimCruiseLens). */
 	ESimCruiseLens Lens = ESimCruiseLens::Screen;
 	bool bSnap = true;
+	/** Where the car was in the last frame, to see a teleport the frame it lands. */
+	FVector LastBodyLocation = FVector::ZeroVector;
+	FQuat LastBodyRotation = FQuat::Identity;
+	bool bHaveLastBody = false;
 	FSimCruiseHeadModel Head;
 	FSimCruiseChaseFrame Chase;
 };

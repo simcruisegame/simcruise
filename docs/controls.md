@@ -10,13 +10,13 @@ The Unreal client starts in the 2001 roadster in Ocean Drive's lane, Miami Beach
 | Brake, then reverse once stopped (below about 1 mph; a trigger pressed too lightly to brake coasts) | S or Down | Left trigger |
 | Steer | A / D or Left / Right | Left stick |
 | Full brake (service brake) | Space | — |
-| Parking brake, rear wheels | H (hold) | A (hold) |
-| Automatic / manual gearbox | T | B |
-| Clutch (manual mode) | Shift (hold) | LB (hold) |
-| Shift up / shift down (manual mode) | E / Q | RB / X |
-| Restart a stalled engine | I, with the clutch held | Right-stick click, with the clutch held |
+| Parking brake, rear wheels | H (hold) | B (hold) |
+| Automatic / manual gearbox | T | D-pad right |
+| Clutch (manual mode) | Shift (hold) | A (hold) |
+| Shift up / shift down (manual mode) | E / Q | RB / LB |
+| Restart a stalled engine | I, with the clutch held | D-pad left, with the clutch held |
 | Camera: driver's seat, chase | C | Y |
-| Hide or show the driving HUD | F2 | Left-stick click |
+| Hide or show the driving HUD | F2 | X |
 | Frame time and stats | F3 | — |
 | Driver view: true FOV (the default), wide, natural | F6 | — |
 | Head lamps on / off | L | — |
@@ -33,7 +33,9 @@ The engine sound is on at the start.
 
 **Automatic gearbox.** It changes up early with a light pedal and holds each gear longer the deeper you press, kicks down when you floor it, never changes up while you brake and holds its gear through a corner.
 
-**Manual gearbox.** Press T (B) to take over the five-speed. Hold the clutch (Shift / LB), tap E (RB) for first, add throttle and let the clutch out. Shifts need the clutch; the gearbox refuses a gear that would over-rev the engine, and a stalled engine restarts with I (right-stick click) while the clutch is held.
+**Manual gearbox.** Press T (D-pad right) to take over the gearbox. Hold the clutch (Shift / A), tap E (RB) for first, add throttle and let the clutch out. Shifts need the clutch; the gearbox refuses a gear that would over-rev the engine, and a stalled engine restarts with I (D-pad left) while the clutch is held. On the pad the right thumb holds the clutch and the bumpers change gear like paddles (RB up, LB down), so you can brake with LT, hold the clutch and change down at the same time.
+
+**New pad layout in 2.0.0.** The clutch moved from LB to A, the parking brake from A to B, shift down from X to LB, the gearbox switch from B to D-pad right, the engine restart from the right-stick click to D-pad left and the HUD from the left-stick click to X. The reason: the clutch on LB used the same finger as the brake trigger, and hard steering pressed the left stick by accident.
 
 **True field of view.** From the driver's seat the game shows the world at the angle your screen really covers at your eye, as if the screen were a window: a 15.6" 16:9 laptop at 60 cm spans 32° across (2·atan(width / 2·distance)). Set your screen's diagonal and your eye's distance on the road atlas (Tab: Screen, Eye to screen), or with `simcruise.Lens.ScreenInches` and `simcruise.Lens.ViewDistanceCm`. View · Wide (67° tall) shows more of the cabin for tight streets. The eye sits at each car's real driver's head position; the chase view keeps its wider angle.
 

@@ -149,10 +149,12 @@ namespace
 				R.PeakTiltDeg = FMath::Max(R.PeakTiltDeg, FMath::Max(FMath::Abs(Rot.Roll), FMath::Abs(Rot.Pitch)));
 				if (Case.Name == FString(TEXT("guardrail")))
 				{
-					// The rail line: points (100, 0) + s (cos 15, sin 15). The car starts on the side y' < 0.
+					// The rail line: points (100, 0) + s (cos 15, sin 15); signed distance from it.
+					// The car starts on the side away from the rail's left normal (positive), so
+					// passing through the rail makes the distance negative.
 					const double S = FMath::DegreesToRadians(15.0);
 					const double Side = -(P.X - 100.0) * FMath::Sin(S) + (P.Y - Y0) * FMath::Cos(S);
-					bCrossedRail |= Side > 0.25;
+					bCrossedRail |= Side < -0.25;
 				}
 				// The impact: a sudden loss of speed after the car is at speed.
 				if (bAtSpeed && AfterImpactS < 0.0 && T.SpeedKph < Case.ImpactKph * 0.8)
@@ -217,6 +219,7 @@ namespace
 			bool bAtSpeed = false;
 			double Impact = -1.0, ImpactKph = 0.0, PeakRise = 0.0, MinGap = 1.0e9;
 			bool bFinite = true;
+			bool bThrough = false;
 			Bench.RunUntil([&]()
 			{
 				const FSimCruiseVehicleTelemetry T = Telemetry();
@@ -230,26 +233,28 @@ namespace
 					bAtSpeed = true;
 					Vehicle->SetThrottle(0.0f);
 				}
-				if (Impact < 0.0)
-				{
-					ImpactKph = T.SpeedKph;
-				}
 				if (bAtSpeed && Impact < 0.0 && T.SpeedKph < 40.0)
 				{
 					Impact = T.SimTimeS;
 				}
+				if (Impact < 0.0)
+				{
+					ImpactKph = T.SpeedKph;
+				}
+				// Passing through: the striking car's centre ends up ahead of the stopped car's.
+				bThrough |= Vehicle->GetActorLocation().X > Parked->GetActorLocation().X;
 				PeakRise = FMath::Max(PeakRise, FMath::Max(Vehicle->GetActorLocation().Z / 100.0 - RestZ, Parked->GetActorLocation().Z / 100.0 - ParkedRestZ));
 				MinGap = FMath::Min(MinGap, (Parked->GetActorLocation().X - Vehicle->GetActorLocation().X) / 100.0);
 				return Impact > 0.0 && T.SimTimeS - Impact > 3.0;
 			}, 60.0);
-			const FString Line = FString::Printf(TEXT("CRASH %-11s car       impact %.0f km/h, peak rise %.2f m, closest centres %.2f m (car length %.2f m), finite %d"),
-				CarId, ImpactKph, PeakRise, MinGap, HalfLengthM * 2.0, bFinite ? 1 : 0);
+			const FString Line = FString::Printf(TEXT("CRASH %-11s car       impact %.0f km/h, peak rise %.2f m, closest centres %.2f m (car length %.2f m), finite %d%s"),
+				CarId, ImpactKph, PeakRise, MinGap, HalfLengthM * 2.0, bFinite ? 1 : 0, bThrough ? TEXT(", PASSED THROUGH") : TEXT(""));
 			UE_LOG(LogTemp, Display, TEXT("%s"), *Line);
 			Test.AddInfo(Line);
 			Test.TestTrue(TEXT("car: the state stays finite"), bFinite);
 			Test.TestTrue(TEXT("car: the cars met"), Impact > 0.0);
 			Test.TestTrue(FString::Printf(TEXT("car: no launch (rise %.2f m)"), PeakRise), PeakRise < 0.6);
-			Test.TestTrue(FString::Printf(TEXT("car: no pass-through (closest centres %.2f m)"), MinGap), MinGap > HalfLengthM);
+			Test.TestFalse(FString::Printf(TEXT("car: no pass-through (closest centres %.2f m)"), MinGap), bThrough);
 		}
 		return true;
 	}

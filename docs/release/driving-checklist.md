@@ -15,7 +15,7 @@ Published data: `docs/cars.md` (road-test sources for each car). The 3 % band is
 | A1 | Miata NB `nb2001`: 0-60, 70-0, skidpad | each within 3 % of the published figure | `scripts\check.ps1 -Filter SimCruise.Vehicle` (`CarTrack.nb2001`) | `docs/release/evidence/vehicle-tests.txt` | TODO |
 | A2 | Miata NB `nb2001_aaron`: 0-60, 70-0, skidpad | same | `CarTrack.nb2001_aaron` | same | TODO |
 | A3 | 1965 Mustang `mustang65`: 0-60, 70-0, skidpad | same | `CarTrack.mustang65` | same | TODO |
-| A4 | Corvette C8 `meridian_z`: 0-60, 70-0, skidpad | same | `CarTrack.meridian_z` | same | TODO |
+| A4 | Corvette C8 `meridian_z`: 0-60 (with 1 ft rollout, as Car and Driver times it), 70-0, skidpad | same | `CarTrack.meridian_z` | same | TODO |
 | A5 | Understeer gradient | the LiftOff bench of each car passes its band (understeer gradient in range, no reverse while rolling forward) | `SimCruise.Vehicle.LiftOff.<car>` | same | TODO |
 | A6 | Drive robot: no spin | `scripts\drive-robot.ps1` prints `DRIVE ROBOT PASSED` for the 4 cars (rear-axle slip less than 15 deg in the 6 judged manoeuvres) | drive robot on the test pad | `docs/release/evidence/drive-robot.txt` | TODO |
 | A7 | All other vehicle tests | every `SimCruise.Vehicle.*` test passes | `scripts\check.ps1 -Filter SimCruise.Vehicle` | `docs/release/evidence/vehicle-tests.txt` | TODO |
@@ -80,7 +80,7 @@ Published data: `docs/cars.md` (road-test sources for each car). The 3 % band is
 
 | # | Item | Pass rule | How measured | Evidence | Result |
 |---|---|---|---|---|---|
-| I1 | Default start | the Shipping game opens on Ocean Drive and the car drives | smoke test and play test | `docs/release/evidence/start.txt` | TODO |
+| I1 | Default start | a normal launch opens on a random start-pool road (or Ocean Drive when that fails) and the car drives | smoke test and play test | `docs/release/evidence/start.txt` | TODO |
 | I2 | Random start | `-SimCruiseRandomStart` puts the car on a road; no crash | play test | same | TODO |
 | I3 | Preset travel | travel to a preset place loads the place; no crash | play test | same | TODO |
 | I4 | Offline fallback | with no network the game opens on the bundled Ocean Drive; no crash | play test with the network blocked | same | TODO |

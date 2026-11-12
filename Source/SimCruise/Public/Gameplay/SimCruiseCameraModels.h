@@ -103,6 +103,8 @@ private:
 	FVector HeadVelocity = FVector::ZeroVector;
 	FVector Felt = FVector::ZeroVector;
 	FVector PreviousVelocity = FVector::ZeroVector;
+	FVector LastAcceleration = FVector::ZeroVector;
+	double PreviousSimTimeS = 0.0;
 	FVector Vibration = FVector::ZeroVector;
 	double Travel[4] = {0.0, 0.0, 0.0, 0.0};
 	double TravelSlow = 0.0;
@@ -160,11 +162,14 @@ class SIMCRUISE_API FSimCruiseGMeter
 public:
 	void Reset() { bStarted = false; Value = FVector2D::ZeroVector; }
 	/** Returns (longitudinal, lateral) g, positive = accelerating / turning right. */
-	FVector2D Update(const FTransform& Body, const FVector& WorldVelocityMps, double DeltaTimeS);
+	/** SimTimeS: the physics time of WorldVelocityMps (0 = unknown: use the frame time). */
+	FVector2D Update(const FTransform& Body, const FVector& WorldVelocityMps, double DeltaTimeS, double SimTimeS = 0.0);
 	const FVector2D& Get() const { return Value; }
 
 private:
 	FVector PreviousVelocity = FVector::ZeroVector;
+	FVector LastAcceleration = FVector::ZeroVector;
+	double PreviousSimTimeS = 0.0;
 	FVector2D Value = FVector2D::ZeroVector;
 	bool bStarted = false;
 };

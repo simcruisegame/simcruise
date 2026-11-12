@@ -71,6 +71,26 @@ void ASimCruisePlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float 
 	const FTransform Body = Pawn->GetActorTransform();
 	const FVector WorldVelocityMps = Body.GetRotation().RotateVector(Telemetry.BodyVelocityMps);
 
+	// A recover, a car change or a travel moves the car on the physics thread a frame
+	// or more after the request, so a snap on the request frame came too early and the
+	// chase camera swooped from the old place. Snap on the frame the car is seen to jump:
+	// farther than it could drive in the frame, with 5 m to spare.
+	const FVector BodyLocation = Body.GetLocation();
+	if (bHaveLastBody)
+	{
+		const double JumpCm = FVector::Dist(BodyLocation, LastBodyLocation);
+		const double DriveCm = (WorldVelocityMps.Size() * 2.0 + 10.0) * 100.0 * FMath::Max(static_cast<double>(DeltaTime), 1.0 / 30.0);
+		// A recover in place turns the car upright: more than 45 degrees in one frame.
+		const double TurnDeg = FMath::RadiansToDegrees(Body.GetRotation().AngularDistance(LastBodyRotation));
+		if (JumpCm > DriveCm + 500.0 || TurnDeg > 45.0)
+		{
+			bSnap = true;
+		}
+	}
+	LastBodyLocation = BodyLocation;
+	LastBodyRotation = Body.GetRotation();
+	bHaveLastBody = true;
+
 	double Aspect = 16.0 / 9.0;
 	if (PCOwner)
 	{
