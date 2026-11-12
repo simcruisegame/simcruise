@@ -333,6 +333,39 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 		}
 	}
 	double BrakeAmount = bFoot ? 1.0 : (State.bServiceBrake ? FMath::Max(Back, Gas) : 0.0);
+	// Launch control: the brake (or the full service brake) and the full accelerator together
+	// at a standstill arm it; letting go of the brake launches from its engine speed until the
+	// accelerator lifts or the car passes 15 m/s.
+	if (Car.LaunchControlRpm > 0.0 && !State.bManual && !IsElectric())
+	{
+		const bool bHolding = (bFoot || Back > 0.5) && Gas > 0.8 && FMath::Abs(Speed) < 0.45;
+		if (bHolding)
+		{
+			State.bLaunchArmed = true;
+			State.bLaunching = false;
+		}
+		else if (State.bLaunchArmed)
+		{
+			State.bLaunchArmed = false;
+			State.bLaunching = Gas > 0.8 && Back < 0.1 && !bFoot;
+		}
+		if (State.bLaunching && (Gas < 0.5 || Speed > 15.0))
+		{
+			State.bLaunching = false;
+		}
+		if (State.bLaunchArmed)
+		{
+			State.bInReverse = false;
+			State.bServiceBrake = true;
+			BrakeAmount = 1.0;
+			Throttle = Gas;
+		}
+	}
+	else
+	{
+		State.bLaunchArmed = false;
+		State.bLaunching = false;
+	}
 	if (State.bManual)
 	{
 		Throttle = Gas;
@@ -628,7 +661,8 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 			ClutchLoad = FMath::Clamp((State.EngineOmegaRadPerSecond - AxleSpeed * ForwardRatio) * Coupling,
 				-Car.ClutchBackTorqueNm, Car.ClutchCapacityNm);
 			// The launch speed follows the pedal, not the torque traction control leaves.
-			const double LaunchTargetRpm = Car.LaunchSpeedRpm + PedalThrottle * Car.LaunchSpeedRpmPerThrottleFraction;
+			const double LaunchTargetRpm = State.bLaunching ? Car.LaunchControlRpm
+				: Car.LaunchSpeedRpm + PedalThrottle * Car.LaunchSpeedRpmPerThrottleFraction;
 			if (State.bManual)
 			{
 				const double Capacity = Car.ClutchCapacityNm * (1.0 - SmoothStep(0.16, 0.88, State.ClutchPedal));
@@ -645,6 +679,15 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 			else if (AxleSpeed * ForwardRatio * 60.0 / Tau < LaunchTargetRpm && ClutchLoad > 0.0)
 			{
 				ClutchLoad = FMath::Min(ClutchLoad, FMath::Max(0.0, Torque - Drag + (Rpm - LaunchTargetRpm) * 0.16));
+			}
+			// Launch control armed: the clutch is open and the engine is held at its launch speed.
+			if (State.bLaunchArmed)
+			{
+				ClutchLoad = 0.0;
+				if (Rpm > Car.LaunchControlRpm)
+				{
+					Torque = 0.0;
+				}
 			}
 			// A gear change interrupts the drive, except on a dual clutch.
 			if (State.ShiftTimeS > 0.0 && Car.TransmissionKind != TEXT("dct"))

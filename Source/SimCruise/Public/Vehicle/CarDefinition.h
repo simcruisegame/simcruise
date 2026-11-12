@@ -146,6 +146,12 @@ struct FSimCruiseCarDefinition
 	double TorqueConverterStallRatio = 1.0;
 	/** Turbine over impeller speed where the converter stops multiplying and couples. */
 	double TorqueConverterCouplingSpeedRatio = 0.85;
+	/**
+	 * Launch control (0 = none): with the brake and the full accelerator held at a standstill
+	 * the engine is held at this speed, and on letting go of the brake the clutch launches the
+	 * car from it, as a magazine's launch-control run does.
+	 */
+	double LaunchControlRpm = 0.0;
 	double ManualClutchCouplingNmPerRadPerSecond = 10.0;
 	FString TransmissionKind = TEXT("manual");
 	FString DrivetrainLayout = TEXT("rwd");

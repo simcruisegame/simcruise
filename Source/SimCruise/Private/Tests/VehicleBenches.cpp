@@ -55,6 +55,9 @@ namespace
 		static constexpr double Radius = 45.72;
 		double Dt = 1.0 / 360.0;
 		double TargetSkidpadG = 0.89;
+		/** Launch control: hold the brake with the full accelerator this long, then let go (0: none). */
+		double LaunchHoldS = 0.0;
+		double LaunchHeldS = 0.0;
 		bool bAccelerationOnly = false;
 		bool bTrace = !FPlatformMisc::GetEnvironmentVariable(TEXT("SIMCRUISE_BENCH_TRACE")).IsEmpty();
 		FVector3d StartBodyPositionM = FVector3d::ZeroVector;
@@ -118,6 +121,15 @@ namespace
 				break;
 			case 1:
 				C.Controls.Throttle = 1.0;
+				// A launch-control run, as the magazines time it: brake and full throttle held,
+				// then the brake released; the clock starts on the release.
+				if (LaunchHeldS < LaunchHoldS)
+				{
+					C.Controls.Brake = 1.0;
+					LaunchHeldS += Dt;
+					T = 0.0;
+					break;
+				}
 				if (bTrace && !bReached && Tick % FMath::Max<int64>(1, FMath::RoundToInt64(0.25 / Dt)) == 0)
 				{
 					const FSimCruiseVehicleSimState& St = C.Sim.State;
@@ -475,6 +487,7 @@ FSimCruiseCarTrackResult SimCruiseRunCarTrack(const FSimCruiseCarDefinition& Car
 	TSharedRef<FCarTrackDriver> Driver = MakeShared<FCarTrackDriver>();
 	Driver->Dt = FixedStepS;
 	Driver->TargetSkidpadG = Car.TargetSkidpadG;
+	Driver->LaunchHoldS = Car.LaunchControlRpm > 0.0 ? 2.0 : 0.0;
 	Driver->bAccelerationOnly = bAccelerationOnly;
 	Driver->WindowSize = FMath::Max(1, FMath::RoundToInt32(1.0 / FixedStepS));
 	const FVector3d Ground(0.0, 0.0, 0.18);

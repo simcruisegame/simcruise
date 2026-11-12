@@ -124,6 +124,9 @@ struct FSimCruiseVehicleSimState
 	int32 SelectedGear = 1;
 	double ClutchPedal = 0.0;
 	bool bStalled = false;
+	/** Launch control: armed (brake and full accelerator at a standstill) and launching. */
+	bool bLaunchArmed = false;
+	bool bLaunching = false;
 	double TcCut = 0.0;
 	double TcIntegral = 0.0;
 	double TcSlip = 0.0;
