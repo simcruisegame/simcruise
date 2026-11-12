@@ -9,6 +9,8 @@
 #include "Gameplay/SimCruiseDriveCapture.h"
 #include "Gameplay/SimCruiseDriveTest.h"
 #include "Gameplay/SimCruiseHUD.h"
+#include "Gameplay/SimCruiseLatencyProbe.h"
+#include "Gameplay/SimCruiseSoak.h"
 #include "Gameplay/SimCruisePlaceholderVehicle.h"
 #include "Gameplay/SimCruisePlayerCameraManager.h"
 #include "Gameplay/SimCruisePlayerController.h"
@@ -65,7 +67,7 @@ namespace
 		if (FParse::Param(Cmd, TEXT("SimCruiseRandomStart"))) return true;
 		static const TCHAR* BundledFlags[] = {
 			TEXT("SimCruiseBundledStart"), TEXT("SimCruiseDriveCapture"), TEXT("SimCruiseDriveTest"), TEXT("SimCruiseShellSelfTest"),
-			TEXT("SimCruiseShellCapture"), TEXT("SimCruiseLab"),
+			TEXT("SimCruiseShellCapture"), TEXT("SimCruiseLab"), TEXT("SimCruiseLatencyProbe"),
 		};
 		for (const TCHAR* Flag : BundledFlags)
 		{
@@ -271,6 +273,19 @@ void ASimCruiseGameMode::BeginWorldDrive()
 		FActorSpawnParameters Params;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		World->SpawnActor<ASimCruiseDriveTest>(ASimCruiseDriveTest::StaticClass(), FTransform::Identity, Params);
+	}
+	if (FParse::Param(Cmd, TEXT("SimCruiseLatencyProbe")))
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		World->SpawnActor<ASimCruiseLatencyProbe>(ASimCruiseLatencyProbe::StaticClass(), FTransform::Identity, Params);
+	}
+	FString SoakMinutes;
+	if (FParse::Value(Cmd, TEXT("SimCruiseSoak="), SoakMinutes))
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		World->SpawnActor<ASimCruiseSoak>(ASimCruiseSoak::StaticClass(), FTransform::Identity, Params);
 	}
 	UE_LOG(LogSimCruiseDrive, Display, TEXT("Drive at %s in %s: waiting for the tiles around the start"), *First.Title, *CarId);
 }
