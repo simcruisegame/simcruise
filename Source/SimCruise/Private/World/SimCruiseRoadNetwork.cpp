@@ -49,7 +49,12 @@ namespace
 	{
 		if (Class == TEXT("motorway") || Class == TEXT("trunk")) return 90.0;
 		if (Class == TEXT("primary") || Class == TEXT("secondary")) return 60.0;
-		return 0.0; // low-speed streets keep a normal crown (AASHTO)
+		// County and rural roads bank their bends too (AASHTO Green Book 3.3: e max 4-8 % on
+		// rural roads at their 50-70 km/h design speeds); residential streets and service ways
+		// keep a normal crown (low-speed urban streets, AASHTO 3.3.6).
+		if (Class == TEXT("tertiary")) return 55.0;
+		if (Class == TEXT("unclassified") || Class == TEXT("track")) return 45.0;
+		return 0.0;
 	}
 
 	struct FPiece
@@ -876,10 +881,24 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 				const double W0 = Ribbon.bStartOnBoundary ? Smooth01(1.0 - FromStart / PinSpanM) : 0.0;
 				const double W1 = Ribbon.bEndOnBoundary ? Smooth01(1.0 - FromEnd / PinSpanM) : 0.0;
 				St.Z += Delta0 * W0 + Delta1 * W1;
-				double Runout = 1.0;
-				if (Ribbon.bStartOnBoundary) Runout = FMath::Min(Runout, Smooth01(FromStart / PinSpanM));
-				if (Ribbon.bEndOnBoundary) Runout = FMath::Min(Runout, Smooth01(FromEnd / PinSpanM));
-				St.E = (FMath::IsFinite(E[k]) ? E[k] : 0.0) * Runout;
+				// Banking runs on across tile seams: an end with the neighbour's contract eases to the
+				// neighbour's edge superelevation over the pin span; an end without one keeps its
+				// own (the neighbour, built later, takes it as its contract). It used to run out
+				// to flat over the last 30 m of every tile, so long bends lost their banking at
+				// each seam.
+				double Ek = FMath::IsFinite(E[k]) ? E[k] : 0.0;
+				for (int32 End = 0; End < 2; ++End)
+				{
+					if (!Contract[End]) continue;
+					const double Wb = Smooth01(1.0 - (End == 0 ? FromStart : FromEnd) / PinSpanM);
+					if (Wb <= 0.0) continue;
+					const FSimCruiseSeamEnd& Ce = *Contract[End];
+					const FSimCruiseRibbonStation& EndSt = End == 0 ? Ribbon.St[0] : Ribbon.St[Count];
+					const bool bSame = FVector2d::DotProduct(EndSt.T, Ce.T) >= 0.0;
+					const double Their = Ce.HalfW > 0.1 ? (Ce.HL - Ce.HR) / (2.0 * Ce.HalfW) : 0.0;
+					Ek = FMath::Lerp(Ek, bSame ? Their : -Their, Wb);
+				}
+				St.E = Ek;
 				const double Crown = SimCruiseRoadSection::Crown * (1.0 - FMath::Min(1.0, FMath::Abs(St.E) / SimCruiseRoadSection::Crown));
 				St.HC = St.Z;
 				St.HL = St.Z + St.E * St.HalfW - Crown * St.HalfW;
