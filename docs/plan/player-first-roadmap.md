@@ -36,6 +36,24 @@ I looked at the v2.0.0 screenshots as a player. What I see:
   not choose a great road, there is no start or end, and nothing remembers the
   drive.
 
+### Bug list from Aaron's v2.0.0 playtest (12 November 2026)
+
+Aaron's own words, then the known bugs that match them. P0 = a player
+notices in the first five minutes.
+
+| # | Sev | What the player sees | Known cause or lead | Owner |
+|---|---|---|---|---|
+| B1 | P0 | "The view in the car was not correct" (field of view off) | Only two lenses; eye point not set from the real seat; no live sliders; no hood in view | driving thread (now top work) |
+| B2 | P0 | "It still did not drive like the real car" | Bench numbers pass, but the feel on a pad was never tested by a person; steering and trigger shaping, rumble and camera motion change the feel as much as the tyres | driving thread (now top work) |
+| B3 | P0 | "Could not adjust the vehicle as discussed" | Tuning menu (D-pad Right) never driven by hand in the package (release row N6); not shown in any on-screen hint | driving thread (now top work) |
+| B4 | P0 | "Too bright" | Exposure and tone curve wash out the sky and the road; no colour grade; wall albedo was only a small part | world-look owner (5.2) |
+| B5 | P0 | "Traffic was bad" | Few cars, spawn 60-260 m and removed at 320 m (cars vanish in view), no oncoming flow on many roads, parked cars appear in view | traffic owner (5.3) |
+| B6 | P0 | "Did not look real" | Empty roadside, neon-green fields in November (R7), flat white gravel, tree LOD rings overlap near the car | world-look + roadside owners (5.2, 5.4) |
+| B7 | P1 | "A lot of bugs" | Known open: ground through the road at tile seams on short ribbons; chase camera jumps in front of palms; Mustang launch spin; C8 0-60; Model 3 spin; HUD text too small; tiles appear in view without a fade | see the expert joint review; triage into the next playtest build |
+
+Aaron's process note: *put more changes in before you test the game.* See
+section 6, "Playtest builds".
+
 ## 2. If I played SimCruise, what would I want?
 
 I would want to type "Tail of the Dragon" or "the road to my house", and in
@@ -65,8 +83,9 @@ give.)
 
 **What makes a session fun:**
 
-- The car responds the way you expect (this is mostly done: the physics is
-  good, Aaron said "car drives good").
+- The car responds the way you expect. The benches pass, but after v2.0.0
+  Aaron said it still does not drive like the real car, so the feel on the
+  pad is first work again (section 5.0).
 - The view and the picture make you believe you are there (sections 5.1, 5.2).
 - The road is alive: traffic to pass, follow and avoid (section 5.3).
 - The road edge tells you speed and place: poles going past, signs, mailboxes
@@ -116,7 +135,7 @@ copy no game.
 9. **Playtest by feel, with fresh eyes, every week.** Numbers guard against
    regressions, but the gate for a feature is "a player notices and likes it".
 
-## 5. The roadmap: five big things, in order
+## 5. The roadmap: the big things, in order
 
 Each item has a "done when" that a player notices, an owner, and a size.
 Numbers and tests stay, but as guards, not as the goal.
@@ -129,6 +148,21 @@ Numbers and tests stay, but as guards, not as the goal.
 - **Rural:** a two-lane country road with farms (the Nebraska gravel road, or a
   paved road near it).
 - **Aaron's road:** one road Aaron drives in real life (Aaron to choose).
+
+### 5.0 Drive like the real car, and let me adjust it — FIRST (driving thread, already started)
+
+- Pad feel: steering speed, trigger curves and rumble tuned by playing on the
+  hero roads, not only by benches. The car's physics stays; the feel between
+  the stick and the tyres is the work.
+- The setup menu (suspension, gearing, steering ratio, body roll, as agreed)
+  shown on screen ("D-pad Right: setup"), usable with the pad, and it saves.
+- Blind A/B in the game (see idea I3): two setups on the same corner, the
+  player picks which one is more like the real car.
+
+**Done when:** Aaron opens the setup menu without help, changes the steering
+ratio and the springs, feels the change on the next corner, and says the
+Miata drives like his car.
+**Owner:** "Make the driving and traffic feel real". **Size:** M.
 
 ### 5.1 The view from the seat (camera and field of view) — FIRST
 
@@ -148,8 +182,9 @@ The biggest complaint, and the fastest fix.
 **Done when:** Aaron drives the Miata on the hero roads and says the cockpit
 "feels like my seat" without opening a menu, or sets it once in under 30
 seconds and never again. At 100 km/h the speed feels right.
-**Owner:** "Make every traffic car drivable" (it owns the lens and eye point),
-with the cinematographer and ux-accessibility experts. **Size:** S to M.
+**Owner:** the driving thread now owns the in-car view with 5.0 (the cars
+thread made the lens and can help), with the cinematographer and
+ux-accessibility experts. **Size:** S to M.
 
 ### 5.2 A picture that looks like a photo (exposure, tone, colour, haze) — FIRST, in parallel
 
@@ -241,7 +276,7 @@ atlas and search). **Size:** M.
 | Wave | Start | Items | Release |
 |---|---|---|---|
 | 0 | now | Finish v2.0.1 as planned (do not stop it) | v2.0.1 |
-| A | after v2.0.1 freeze | 5.1 view, 5.2 picture (parallel) | v2.1 "It looks right" |
+| A | now (driving thread) and after v2.0.1 freeze | 5.0 drive and adjust, 5.1 view, 5.2 picture (parallel) | v2.1 "It looks and drives right" |
 | B | when A is in Aaron's hands | 5.3 traffic, 5.4 roadside (parallel) | v2.2 "It feels alive" |
 | C | with B, or after | 5.5 reason to drive | v2.3 "Your road, right now" |
 
@@ -250,7 +285,90 @@ hero road, put next to real photos or licensed dashcam video of the same
 place, plus Aaron's own drive. The "Add screenshot checks to play tests"
 thread builds this capture as one script, and the release gate adds it.
 
-## 7. What to stop or pause
+### Playtest builds: big, tested batches (Aaron's rule)
+
+Aaron asked for more changes before each test. From now on:
+
+1. **No small builds for Aaron.** A playtest build goes to Aaron only at the
+   end of a wave, with a large batch: every item of the wave, and every P0 and
+   P1 bug from the last playtest fixed or listed as still open.
+2. **We play it first.** Before Aaron gets it, the build passes a
+   "pre-flight": the drive robot drives every hero road with each of the 3
+   cars, records a 60-second video per road, and a check looks for white sky,
+   empty roads, cars or tiles that pop in view, ground through the road, and
+   stuck traffic (see idea I6). A Claude reviewer watches the videos and
+   writes the list of what a player would still notice. Any P0 stops the build.
+3. **Each build comes with a one-page "What you should notice" list**, with
+   before/after pictures for each of Aaron's notes, so that Aaron can check
+   each point in a 15-minute drive.
+4. Engineers still merge small changes to main all day (the check stays);
+   only the build that Aaron plays is batched.
+
+## 7. Original ideas, backed by game design research
+
+Each idea uses a method from the research below and adds something only
+SimCruise can do.
+
+- **I1. Auto colour grade from reality.** For each hero road, take licensed
+  photos at known times; the game renders the same view at the same sun, and
+  an optimiser on the CPU tunes exposure, tone curve and colour grade until the
+  histograms and colours match. The "directed picture" of big games, but
+  directed by the real place. (Method: art direction against references.)
+- **I2. Your seat from one phone photo.** Aaron sits in his Miata and takes one
+  photo from eye height. The game finds the dash, wheel and A-pillar in the
+  photo and solves the eye point and field of view from them. The in-game view
+  then matches his real view. (Method: sim-racing FOV setting, made automatic.)
+- **I3. Blind A/B handling.** On any corner, press a button: the game replays
+  the corner with setup A and setup B, unnamed, and the player picks the one
+  that feels more like the real car. Over a few picks the game learns the
+  player's car. (Method: playtest loops and "game feel" tuning, put inside the
+  game.)
+- **I4. Real density, out of sight.** A pool of traffic cars fills each road
+  to a target density by road type (the method of open-city racing games),
+  with the target from public hourly traffic-count patterns (FHWA, free and
+  legal) for this hour and day. Cars spawn and leave only out of view.
+- **I5. Speed you can feel from the road edge.** Utility poles, posts and
+  markings at their real spacing give optic flow: things rush past the edge of
+  the view. This gives the sense of speed without a fake wide lens. (Method:
+  "feeling of speed" is objects passing near the camera.)
+- **I6. A playtester robot with eyes.** The drive robot records the hero
+  roads, and a small local vision model flags pop-in, white sky, empty roads
+  and seams before a person plays. (Method: playtest early and often; the
+  machine finds the cheap problems so the person finds the deep ones.)
+- **I7. Drive postcards.** Each finished drive becomes a card: the route on
+  the map, the best photo (picked by the local AI), the real weather and time,
+  the car. A collection of "roads I have driven" is the long-term loop.
+  (Method: memories and collections keep players coming back.)
+
+### Research used
+
+- Steve Swink, *Game Feel*: real-time control, simulated space and polish
+  together make feel; summary at
+  [lizengland.com](https://lizengland.com/blog/review-game-feel-by-steve-swink/).
+- Christer Ericson, playtest and design guidelines for a racing game: test
+  with outside players early and often, the player always feels in control,
+  never interrupt play, landmarks and light show direction
+  ([realtimecollisiondetection.net](https://realtimecollisiondetection.net/blog/?p=10)).
+- "AI Madness: Using AI to Bring Open-City Racing to Life": a shared car pool,
+  target density per road type, a random speed offset per car, simulation
+  bubble and cheap far cars
+  ([gamedeveloper.com](https://www.gamedeveloper.com/programming/ai-madness-using-ai-to-bring-open-city-racing-to-life)).
+- GDC talks on living worlds: "Living City in Mafia 2"
+  ([GDC Vault](https://gdcvault.com/play/1013728/contactUs)), "Populating the
+  World With an..." ([GDC Vault](https://gdcvault.com/play/1029282/Populating-the-World-With-an)),
+  "Free Range AI" ([GDC Vault](https://gdcvault.com/play/1020110/Free-Range-AI-Creating-Compelling)).
+- Feeling of speed: FOV alone does not sell speed; objects rushing past,
+  camera distance and responsive control do
+  ([critpoints.net](https://critpoints.net/2016/11/24/feeling-of-speed/)).
+- How a team made speed feel fast in Unreal
+  ([unrealengine.com](https://www.unrealengine.com/developer-interviews/how-formula-fusion-nailed-the-feeling-of-fast)).
+- Sim-racing field of view practice
+  ([fanatec.com](https://www.fanatec.com/eu/en/explorer/games/gaming-tips/optimizing-fov-for-sim-racing-getting-the-view-right/)).
+- Playtesting for very small teams, GDC 2026
+  ([GDC Vault](https://gdcvault.com/play/1035679/Playtesting-Process-for-Ultra-Small));
+  playtesting God of War ([GDC Vault](https://gdcvault.com/play/1025978/Playtesting-God-of-War)).
+
+## 8. What to stop or pause
 
 Pause until wave B is done (unless Aaron moves something back in):
 
@@ -266,8 +384,8 @@ Pause until wave B is done (unless Aaron moves something back in):
 - **Tuning brightness one material at a time** (wall albedo, trim caps, sign
   ink). Fold it into 5.2.
 - **More physics fidelity work** (C8 0-60, Garage Day, ISO 3888 and 4138
-  suites, HDR10 output). The car already drives well. Keep the tests as guards
-  and fix regressions only.
+  suites, HDR10 output). The work on the car is now the feel on the pad and
+  the setup menu (5.0), not more bench accuracy. Keep the tests as guards.
 - **Hourly expert meetings that review every commit.** Change them to one
   review per wave that judges the five-minute player test videos and says what
   a player would notice next.
@@ -276,7 +394,7 @@ Pause until wave B is done (unless Aaron moves something back in):
 Keep: the v2.0.1 release, the check and release gates, the "no money, legal
 APIs only" rules, and the push from the PC.
 
-## 8. Decisions for Aaron
+## 9. Decisions for Aaron
 
 1. Is the core fantasy right: *"It is my car, on my road, right now"*?
 2. Is the order right: view and picture first, then traffic and roadside,
