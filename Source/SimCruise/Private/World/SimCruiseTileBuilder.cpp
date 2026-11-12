@@ -9,6 +9,7 @@
 #include "World/SimCruiseTileData.h"
 #include "World/SimCruiseStreetFurniture.h"
 #include "World/SimCruiseTileDetail.h"
+#include "World/SimCruiseWorldResources.h"
 
 namespace
 {
@@ -1265,6 +1266,8 @@ namespace SimCruiseTileBuilder
 				}
 			}
 			B.RenderData = MakeRenderData(Parts);
+			// The ground mask's mip chain too, so the game thread only uploads it.
+			USimCruiseWorldResources::BuildMipChain(B.Mask, SimCruiseGroundMask::Size, SimCruiseGroundMask::Size, true, B.MaskMips);
 		}
 
 		B.BuildMs = (FPlatformTime::Seconds() - Started) * 1000.0;

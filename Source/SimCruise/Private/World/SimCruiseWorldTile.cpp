@@ -154,6 +154,7 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 	TileId = InBuild->Tile;
 	bCollisionReady = false;
 	PendingSteps.Reset();
+	CollisionSections.Reset();
 	// What runs now is what the tile must have to be drawn (the static mesh, its materials);
 	// the rest (collision, ground mask, palms, signs) queues as steps for ContinueInstall, so
 	// a tile streaming in costs a few milliseconds a frame instead of up to 140 ms in one.
@@ -245,28 +246,51 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 			Layer.Positions.Empty(); Layer.Normals.Empty(); Layer.Colors.Empty(); Layer.Indices.Empty(); Layer.UV0.Empty(); Layer.UV1.Empty();
 			continue;
 		}
-		PendingSteps.Add([this, InBuild, i, bCollision]()
+		CollisionSections.Add(bCollision ? i : INDEX_NONE);
+		PendingSteps.Add([this, InBuild, i]()
 		{
 			FSimCruiseMeshData& L = InBuild->Layers[i];
-			// A tangent square to every normal: the default (1, 0, 0) degenerates on walls and
-			// curb faces that look along X, and the shading frame (and the normal) collapses.
-			TArray<FProcMeshTangent> LayerTangents;
-			LayerTangents.SetNumUninitialized(L.Normals.Num());
-			for (int32 v = 0; v < L.Normals.Num(); ++v)
-			{
-				const FVector& N = L.Normals[v];
-				const FVector T = FMath::Abs(N.Z) < 0.9 ? FVector::CrossProduct(FVector::UpVector, N).GetSafeNormal() : FVector::CrossProduct(N, FVector::RightVector).GetSafeNormal() * -1.0;
-				LayerTangents[v] = FProcMeshTangent(T.IsNearlyZero() ? FVector::ForwardVector : T, false);
-			}
 			const TArray<FVector2D> NoUVs;
-			const bool bLayerUVs = L.UV0.Num() == L.Positions.Num() && L.UV1.Num() == L.Positions.Num();
-			Mesh->CreateMeshSection_LinearColor(i, L.Positions, L.Indices, L.Normals, bLayerUVs ? L.UV0 : NoUVs, bLayerUVs ? L.UV1 : NoUVs, NoUVs, NoUVs,
-				L.Colors, LayerTangents, bCollision, false);
+			if (RenderMesh)
+			{
+				// Collision only (the static mesh draws): positions and triangles, no normals,
+				// tangents, colours or UVs, and no collision yet (cooked once, at the end).
+				const TArray<FVector> NoNormals;
+				const TArray<FLinearColor> NoColours;
+				const TArray<FProcMeshTangent> NoTangents;
+				Mesh->CreateMeshSection_LinearColor(i, L.Positions, L.Indices, NoNormals, NoUVs, NoUVs, NoUVs, NoUVs, NoColours, NoTangents, false, false);
+			}
+			else
+			{
+				// Headless runs draw nothing but keep the full section (tests read it).
+				TArray<FProcMeshTangent> LayerTangents;
+				LayerTangents.SetNumUninitialized(L.Normals.Num());
+				for (int32 v = 0; v < L.Normals.Num(); ++v)
+				{
+					const FVector& N = L.Normals[v];
+					const FVector T = FMath::Abs(N.Z) < 0.9 ? FVector::CrossProduct(FVector::UpVector, N).GetSafeNormal() : FVector::CrossProduct(N, FVector::RightVector).GetSafeNormal() * -1.0;
+					LayerTangents[v] = FProcMeshTangent(T.IsNearlyZero() ? FVector::ForwardVector : T, false);
+				}
+				const bool bLayerUVs = L.UV0.Num() == L.Positions.Num() && L.UV1.Num() == L.Positions.Num();
+				Mesh->CreateMeshSection_LinearColor(i, L.Positions, L.Indices, L.Normals, bLayerUVs ? L.UV0 : NoUVs, bLayerUVs ? L.UV1 : NoUVs, NoUVs, NoUVs,
+					L.Colors, LayerTangents, false, false);
+			}
 			if (Materials.IsValidIndex(i)) Mesh->SetMaterial(i, Materials[i]);
 			// The game thread copy is gone once the section owns it.
 			L.Positions.Empty(); L.Normals.Empty(); L.Colors.Empty(); L.Indices.Empty(); L.UV0.Empty(); L.UV1.Empty();
 		});
 	}
+	// All collision sections in: one cook and one physics body for the tile (each section
+	// with collision used to cook the whole tile again and swap the body).
+	PendingSteps.Add([this]()
+	{
+		for (const int32 Section : CollisionSections)
+		{
+			if (Section == INDEX_NONE) continue;
+			if (FProcMeshSection* S = Mesh->GetProcMeshSection(Section)) S->bEnableCollision = true;
+		}
+		Mesh->ClearCollisionConvexMeshes(); // public; it rebuilds the collision once
+	});
 
 	{
 		FScopeLock Lock(&SurfaceLock);
@@ -320,9 +344,11 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 
 	if (Resources)
 	{
-		// The ground mask (1024 px with its mips) is made in a step of its own; until then the
-		// tile draws with the blank one (a frame or two, far ahead of the car).
-		MaskTexture = nullptr;
+		// The ground mask: its mips were built on the worker, so here it is only uploaded (no
+		// blank mask for a frame or two any more).
+		MaskTexture = InBuild->MaskMips.Num() > 0
+			? USimCruiseWorldResources::CreateTextureFromMips(this, NAME_None, MoveTemp(InBuild->MaskMips), SimCruiseGroundMask::Size, SimCruiseGroundMask::Size, true, false)
+			: nullptr;
 		const FVector2d Anchor = SimCruiseTileBuilder::TextureAnchorM(TileId, InBuild->TileSizeM);
 		const FIntPoint AerialTile = SimCruiseGeo::AerialTileOf(TileId);
 		const FLinearColor Cell(TileId.X - AerialTile.X * 4, TileId.Y - AerialTile.Y * 4, Aerial ? 1.f : 0.f, 0.f);
@@ -334,7 +360,7 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 			MID->SetVectorParameterValue(TEXT("Anchor"), FLinearColor(Anchor.X, Anchor.Y, 0.f, 0.f));
 			MID->SetScalarParameterValue(TEXT("TileSizeCm"), InBuild->TileSizeM * 100.0);
 			MID->SetVectorParameterValue(TEXT("Cell"), Cell);
-			MID->SetTextureParameterValue(TEXT("Mask"), Resources->BlankTexture.Get());
+			MID->SetTextureParameterValue(TEXT("Mask"), MaskTexture ? MaskTexture.Get() : Resources->BlankTexture.Get());
 			MID->SetTextureParameterValue(TEXT("Aerial"), Aerial ? Aerial : Resources->BlankTexture.Get());
 			MID->SetTextureParameterValue(TEXT("Grass"), Resources->GrassTexture);
 			MID->SetTextureParameterValue(TEXT("Sand"), Resources->SandTexture);
@@ -356,7 +382,7 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 	if (Resources)
 	{
 		// First of the steps: the ground mask (the collision sections queued above run after it).
-		PendingSteps.Insert([this, InBuild]()
+		if (!MaskTexture) PendingSteps.Insert([this, InBuild]()
 		{
 			MaskTexture = USimCruiseWorldResources::CreateTexture(this, NAME_None, InBuild->Mask, SimCruiseGroundMask::Size, SimCruiseGroundMask::Size, true, false);
 			InBuild->Mask.Empty();

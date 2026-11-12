@@ -121,6 +121,7 @@ struct SIMCRUISE_API FSimCruiseTileBuild
 	double TileSizeM = 0.0;
 	FSimCruiseMeshData Layers[static_cast<int32>(ESimCruiseTileLayer::Count)];
 	TArray<FColor> Mask;                   // SimCruiseGroundMask::Size^2, linear
+	TArray<TArray<FColor>> MaskMips;       // its mip chain, built on the worker (drawn runs)
 	FString AerialKey;
 	FSimCruiseRoadNetwork Roads;
 

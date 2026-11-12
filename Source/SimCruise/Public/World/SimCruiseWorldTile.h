@@ -118,6 +118,8 @@ private:
 	TArray<int32> RenderSlots;
 	/** Install steps not run yet, in order (ContinueInstall). */
 	TArray<TFunction<void()>> PendingSteps;
+	/** Mesh sections that get collision once they are all in. */
+	TArray<int32> CollisionSections;
 
 	/** Collision faces in section order: where each layer's faces start, and which asphalt faces are gravel. */
 	struct FSurfaceMap
