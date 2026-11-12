@@ -19,6 +19,7 @@ enum class ESimCruiseTileLayer : uint8
 	Building,
 	Props,      // street furniture and palm trunks (opaque, the building material's kinds)
 	Foliage,    // palm fronds (masked, two-sided)
+	Signs,      // lettering on the facades: no mesh, the material of the tile's text components
 	Count
 };
 
@@ -91,6 +92,28 @@ struct FSimCruiseParkedCar
 	uint8 Colour = 0;
 };
 
+/**
+ * Lettering on a facade: a named place's sign (FSimCruisePoi), drawn on the game thread
+ * as a text component in the Signs layer's material.
+ */
+struct FSimCruiseSign
+{
+	FString Text;
+	/** Centre of the lettering, tile cm, just proud of the wall. */
+	FVector LocationCm = FVector::ZeroVector;
+	/** The way the letters face (out of the wall), degrees about z. */
+	float YawDeg = 0.f;
+	/** Cap height, cm. */
+	float LetterCm = 50.f;
+	/** The widest (or, stacked, the tallest) the lettering may be, cm. */
+	float MaxSpanCm = 1000.f;
+	/** Letters one above the other: a vertical blade on a tower. */
+	bool bStacked = false;
+	/** Neon tubes (lit day and night) or painted letters (lit at night by the facade's lamps). */
+	bool bNeon = false;
+	FLinearColor Colour = FLinearColor::White;
+};
+
 /** Everything one tile needs on the game thread; built off it. */
 struct SIMCRUISE_API FSimCruiseTileBuild
 {
@@ -125,6 +148,9 @@ struct SIMCRUISE_API FSimCruiseTileBuild
 
 	/** Parked cars in the painted stalls of parking lanes. */
 	TArray<FSimCruiseParkedCar> ParkedCars;
+
+	/** Lettering of the named places on their buildings. */
+	TArray<FSimCruiseSign> Signs;
 
 	/** Street-light sources (tile cm, the lamp head's lens centre) for the night light pool. */
 	TArray<FVector> LampPointsCm;

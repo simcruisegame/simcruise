@@ -67,6 +67,30 @@ namespace SimCruiseTileDetail
 	 */
 	SIMCRUISE_API void AddStopSign(FSimCruiseMeshData& Props, const FVector2d& BaseM, double GroundZM, const FVector2d& Facing);
 
+	/** How a named place signs its building: 0 none, 1 painted letters, 2 neon letters; a hotel ranks first on its building. */
+	struct FSignStyle
+	{
+		int32 Rank = 0;       // 0: no sign; 3 hotel, 2 bar or club, 1 shop, restaurant, office
+		bool bNeon = false;
+		bool bHotel = false;
+	};
+	SIMCRUISE_API FSignStyle SignStyleFor(const FString& PoiKind);
+
+	/**
+	 * The words on a place's sign from its map name: the branch or location tail
+	 * ("Cardozo Hotel South Beach" -> "CARDOZO", "Mercato Di Mare - Ocean Drive" ->
+	 * "Mercato Di Mare"); hotels in capitals without "Hotel". Empty when nothing is left.
+	 */
+	SIMCRUISE_API FString SignText(const FString& Name, bool bHotel);
+
+	/**
+	 * Footprint corner rounding (Streamline Moderne): convex corners of street fronts become
+	 * quarter arcs. Ring in metres, Sign the winding (+1/-1), Front per edge. Out: the new ring,
+	 * per new edge its source edge (or INDEX_NONE on an arc).
+	 */
+	SIMCRUISE_API void RoundCorners(const TArray<FVector2d>& Ring, double Sign, const TArray<bool>& Front, const TArray<bool>& Keep,
+		double MaxRadiusM, TArray<FVector2d>& OutRing, TArray<int32>& OutSource);
+
 	/** True when a point (tile metres) lies inside any building footprint of the tile. */
 	SIMCRUISE_API bool IsInsideBuilding(const FSimCruiseTileData& Data, double Side, const FVector2d& P);
 }

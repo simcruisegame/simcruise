@@ -28,6 +28,8 @@
 #include "Materials/MaterialExpressionCameraVectorWS.h"
 #include "Materials/MaterialExpressionConstant.h"
 #include "Materials/MaterialExpressionCustom.h"
+#include "Materials/MaterialExpressionFontSampleParameter.h"
+#include "Engine/Font.h"
 #include "Materials/MaterialExpressionLocalPosition.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
@@ -54,6 +56,7 @@ namespace SimCruiseWorldMaterials
 		case ESimCruiseTileLayer::Building: return TEXT("Building");
 		case ESimCruiseTileLayer::Props: return TEXT("Props");
 		case ESimCruiseTileLayer::Foliage: return TEXT("Foliage");
+		case ESimCruiseTileLayer::Signs: return TEXT("Signs");
 		default: return TEXT("Unknown");
 		}
 	}
@@ -387,6 +390,26 @@ Nrm = normalize(VN);
 return max(col, 0.0);
 )HLSL");
 
+		// Lettering (text components): the glyph's distance field cuts the letter out. Neon
+		// tubes (vertex alpha 1) glow day and night like the facades' neon (kind 3); painted
+		// letters (alpha 0.5) are lit at night by the lamps that light the facade.
+		const TCHAR* SignsCode = TEXT(R"HLSL(
+float d = Glyph;
+float w = max(fwidth(d), 1e-4);
+Mask = saturate((d - 0.5) / w + 0.5);
+float3 c = VC.rgb;
+Nrm = normalize(VN);
+if (VA > 0.75)
+{
+	Roughness = 0.25;
+	Emis = c * (300.0 + 2500.0 * Lights) * lerp(0.6, 1.0, smoothstep(0.5, 0.65, d));
+	return c * 0.55 + 0.35;
+}
+Roughness = 0.45;
+Emis = c * Lights * 60.0;
+return c;
+)HLSL");
+
 		// Palm fronds: pinnate leaflets cut out of a V-shaped card, ragged and torn.
 		const TCHAR* FoliageCode = TEXT(R"HLSL(
 float s = UV0.x;
@@ -547,6 +570,23 @@ return col;
 			Custom->RebuildOutputs();
 			Material->GetEditorOnlyData()->OpacityMask.Connect(3, Custom);
 			Material->GetEditorOnlyData()->SubsurfaceColor.Connect(4, Custom);
+			break;
+		}
+		case ESimCruiseTileLayer::Signs:
+		{
+			Custom->Code = SignsCode;
+			Custom->AdditionalOutputs.Add({ FName(TEXT("Mask")), CMOT_Float1 });
+			Custom->AdditionalOutputs.Add({ FName(TEXT("Emis")), CMOT_Float3 });
+			UMaterialExpressionFontSampleParameter* Glyph = AddExpression<UMaterialExpressionFontSampleParameter>(Material);
+			Glyph->ParameterName = TEXT("Font"); // the name text components set their font pages by
+			Glyph->Font = LoadObject<UFont>(nullptr, TEXT("/Engine/EngineFonts/RobotoDistanceField.RobotoDistanceField"));
+			Glyph->FontTexturePage = 0;
+			AddInput(Custom, TEXT("Glyph"), Glyph, 4); // the alpha: the distance field
+			AddInput(Custom, TEXT("Lights"), ScalarParam(Material, TEXT("Lights"), 0.f));
+			Material->BlendMode = BLEND_Masked;
+			Custom->RebuildOutputs();
+			Material->GetEditorOnlyData()->OpacityMask.Connect(3, Custom);
+			Material->GetEditorOnlyData()->EmissiveColor.Connect(4, Custom);
 			break;
 		}
 		case ESimCruiseTileLayer::Water:
@@ -788,6 +828,7 @@ UTexture2D* USimCruiseWorldResources::AddAerial(const FString& Key, const TArray
 	}
 	return Texture;
 }
+
 
 void USimCruiseWorldResources::TrimAerials(const TSet<FString>& Keep)
 {

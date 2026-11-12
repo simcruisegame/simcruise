@@ -65,6 +65,14 @@ struct FSimCruiseBuildingRow
 	FString Use;
 };
 
+/** helper `pois` row: [[x, y], name, kind] — a named place (OpenStreetMap / Overture), e.g. "lodging", "restaurant". */
+struct FSimCruisePoi
+{
+	FVector2d Unit = FVector2d::ZeroVector; // tile units
+	FString Name;
+	FString Kind;
+};
+
 struct FSimCruiseTileData
 {
 	FIntPoint Id = FIntPoint::ZeroValue;
@@ -80,6 +88,7 @@ struct FSimCruiseTileData
 	TArray<FVector2d> BuildingCentres; // first vertex of each footprint (the built-up rule)
 	TArray<TArray<FVector2d>> BuildingFootprints;
 	TArray<FSimCruiseBuildingRow> Buildings;
+	TArray<FSimCruisePoi> Pois;
 	FString AerialKey;                 // a-<x>-<y>.jpg of the zoom-14 photograph, may be empty
 	int32 Requests = 0;
 	FString SourcePath;

@@ -8,6 +8,7 @@
 #include "Components/ExponentialHeightFogComponent.h"
 #include "Components/SkyLightComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/TextRenderComponent.h"
 #include "Engine/DirectionalLight.h"
 #include "Engine/ExponentialHeightFog.h"
 #include "Engine/SkyLight.h"
@@ -162,6 +163,58 @@ bool ASimCruiseWorldPreview::PlaceShot(const FString& Shot)
 		const FVector Left = FRotationMatrix(Rotation).GetUnitAxis(EAxis::Y) * -35.0;
 		Camera->SetActorLocationAndRotation(Location + Left + FVector(0, 0, 110), Rotation + FRotator(-2.0, 0, 0));
 		TargetCm = Location;
+		return true;
+	}
+	if (Shot == TEXT("deco") || Shot == TEXT("deco2"))
+	{
+		// The hotel fronts on Ocean Drive's west side, seen from the park-side sidewalk at
+		// eye height, the way a photographer stands for them (compare with photographs).
+		if (!Streamer->FindRoadPose(TEXT("Ocean Drive"), StartCm + (Shot == TEXT("deco2") ? FVector(0.0, 9000.0, 0.0) : FVector::ZeroVector), 900.0, Location, Rotation))
+		{
+			UE_LOG(LogSimCruisePreview, Warning, TEXT("No Ocean Drive near the start"));
+			return false;
+		}
+		const FVector West(-1.0, 0.0, 0.0);
+		const FVector Eye = Location - West * 900.0 + FVector(0, 0, 160);
+		const FVector Look = Location + West * 2200.0 + FVector(0, 0, 900);
+		Camera->SetActorLocationAndRotation(Eye, (Look - Eye).Rotation());
+		Cam->SetFieldOfView(75.f);
+		TargetCm = Location;
+		return true;
+	}
+	if (Shot.StartsWith(TEXT("sign")))
+	{
+		// A named place's lettering seen from across the street (sign = the hotel nearest the
+		// start, sign2 the next): its text is in the log, to check against photographs.
+		TArray<UTextRenderComponent*> Found;
+		for (int32 dy = -1; dy <= 1; ++dy)
+		for (int32 dx = -1; dx <= 1; ++dx)
+		{
+			const ASimCruiseWorldTile* Tile = Streamer->GetTile(Streamer->GetFrame().TileAtWorldCm(StartCm) + FIntPoint(dx, dy));
+			if (!Tile) continue;
+			for (UTextRenderComponent* Text : Tile->GetSigns())
+			{
+				if (Text && Text->TextRenderColor.A > 200) Found.Add(Text); // neon: the hotels and bars
+			}
+		}
+		Found.Sort([&](const UTextRenderComponent& L, const UTextRenderComponent& R) { return FVector::Dist2D(L.GetComponentLocation(), StartCm) < FVector::Dist2D(R.GetComponentLocation(), StartCm); });
+		const int32 Index = FCString::Atoi(*Shot.RightChop(4));
+		if (!Found.IsValidIndex(Index))
+		{
+			UE_LOG(LogSimCruisePreview, Warning, TEXT("No sign %d near the start (%d found)"), Index, Found.Num());
+			return false;
+		}
+		const UTextRenderComponent* Text = Found[Index];
+		const FVector At = Text->GetComponentLocation();
+		const FVector Out = Text->GetForwardVector();
+		double Ground = At.Z;
+		Streamer->SurfaceHeightAt(At + Out * 2400.0, Ground);
+		const FVector Eye = FVector(At.X, At.Y, 0.0) + Out * 2400.0 + FVector(0, 0, Ground + 170.0);
+		const FVector Look = At - FVector(0, 0, 300.0);
+		Camera->SetActorLocationAndRotation(Eye, (Look - Eye).Rotation());
+		Cam->SetFieldOfView(70.f);
+		UE_LOG(LogSimCruisePreview, Display, TEXT("SIGN %s at %s"), *Text->Text.ToString(), *At.ToString());
+		TargetCm = At;
 		return true;
 	}
 	if (Shot == TEXT("top") || Shot == TEXT("seam"))

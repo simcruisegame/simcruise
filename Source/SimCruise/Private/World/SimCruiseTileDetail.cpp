@@ -2,6 +2,7 @@
 
 #include "World/SimCruiseTileDetail.h"
 
+
 #include "World/SimCruiseRoadNetwork.h"
 #include "World/SimCruiseTileData.h"
 #include "HAL/IConsoleManager.h"
@@ -112,18 +113,22 @@ namespace
 		return bIn;
 	}
 
-	/** Facade faces a public street (not an alley or a service way) within about 12 m. */
-	bool FacesStreet(const FSimCruiseRoadNetwork& Roads, const FVector2d& Mid, const FVector2d& N2)
+	/**
+	 * The class rank (FSimCruiseRoadNetwork::ClassRank) of the public street a facade faces
+	 * within about 12 m, or -1 (none, or an alley or service way).
+	 */
+	int32 StreetRankFaced(const FSimCruiseRoadNetwork& Roads, const FVector2d& Mid, const FVector2d& N2)
 	{
 		for (const double D : { 3.0, 7.0, 11.0 })
 		{
 			FSimCruiseRoadHit Hit;
 			if (Roads.FindCarriageway(Mid + N2 * D, Hit))
 			{
-				return Hit.Ribbon < 0 || !Roads.Ribbons[Hit.Ribbon].bService;
+				if (Hit.Ribbon < 0) return 0;
+				return Roads.Ribbons[Hit.Ribbon].bService ? -1 : Roads.Ribbons[Hit.Ribbon].Rank;
 			}
 		}
-		return false;
+		return -1;
 	}
 
 	// Ocean Drive's 1930s hotels in their restored colours (Leonard Horowitz's 1980s
@@ -211,6 +216,115 @@ namespace SimCruiseTileDetail
 		return false;
 	}
 
+	FSignStyle SignStyleFor(const FString& K)
+	{
+		FSignStyle S;
+		if (K == TEXT("lodging") || K == TEXT("hotel") || K == TEXT("motel") || K == TEXT("hostel") || K == TEXT("guest_house"))
+		{
+			S.Rank = 3; S.bNeon = true; S.bHotel = true;
+		}
+		else if (K == TEXT("bar") || K == TEXT("nightclub") || K == TEXT("pub") || K == TEXT("cinema") || K == TEXT("theatre"))
+		{
+			S.Rank = 2; S.bNeon = true;
+		}
+		else
+		{
+			static const TSet<FString> Painted = { TEXT("restaurant"), TEXT("cafe"), TEXT("fast_food"), TEXT("ice_cream"), TEXT("bakery"),
+				TEXT("shop"), TEXT("clothing_store"), TEXT("grocery"), TEXT("supermarket"), TEXT("convenience"), TEXT("pharmacy"), TEXT("bank"),
+				TEXT("alcohol_shop"), TEXT("art_gallery"), TEXT("museum"), TEXT("hairdresser"), TEXT("bicycle_rental"), TEXT("beer"),
+				TEXT("laundry"), TEXT("office"), TEXT("library"), TEXT("post"), TEXT("post_office"), TEXT("fire_station"), TEXT("police"),
+				TEXT("town_hall"), TEXT("hospital"), TEXT("doctors"), TEXT("veterinary"), TEXT("yoga"), TEXT("boxing"), TEXT("car"),
+				TEXT("bicycle"), TEXT("fuel"), TEXT("school"), TEXT("college"), TEXT("sports_centre") };
+			if (Painted.Contains(K)) S.Rank = 1;
+		}
+		return S;
+	}
+
+	FString SignText(const FString& Name, bool bHotel)
+	{
+		FString T = Name;
+		// A branch or location tail after a separator.
+		for (const TCHAR* Sep : { TEXT(" | "), TEXT(" - "), TEXT(" – "), TEXT(" @ "), TEXT(" (") })
+		{
+			const int32 At = T.Find(Sep);
+			if (At > 0) T.LeftInline(At);
+		}
+		// Words that name the area rather than the place.
+		const TCHAR* Tails[] = { TEXT(" South Beach"), TEXT(" Miami Beach"), TEXT(" Miami"), TEXT(" Ocean Drive"), TEXT(" Collins Avenue"),
+			TEXT(" Downtown"), TEXT(" Beach Front"), TEXT(" Beachfront") };
+		const TCHAR* HotelWords[] = { TEXT(" Hotel"), TEXT(" Hotels"), TEXT(" Resort"), TEXT(" & Spa"), TEXT(" and Spa"), TEXT(" Suites"), TEXT(" Inn") };
+		for (int32 Pass = 0; Pass < 3; ++Pass)
+		{
+			for (const TCHAR* Tail : Tails)
+			{
+				if (T.EndsWith(Tail, ESearchCase::IgnoreCase) && T.Len() > FCString::Strlen(Tail) + 2) T.LeftChopInline(FCString::Strlen(Tail));
+			}
+			if (bHotel)
+			{
+				for (const TCHAR* W : HotelWords)
+				{
+					if (T.EndsWith(W, ESearchCase::IgnoreCase) && T.Len() > FCString::Strlen(W) + 2) T.LeftChopInline(FCString::Strlen(W));
+				}
+			}
+			T.TrimStartAndEndInline();
+		}
+		if (bHotel && T.StartsWith(TEXT("Hotel "), ESearchCase::IgnoreCase) && T.Len() > 8) T.RightChopInline(6);
+		T.TrimStartAndEndInline();
+		// Long names keep their first words.
+		while (T.Len() > 22)
+		{
+			int32 Space = INDEX_NONE;
+			if (!T.FindLastChar(TEXT(' '), Space) || Space < 4) { T.LeftInline(22); break; }
+			T.LeftInline(Space);
+		}
+		return bHotel ? T.ToUpper() : T;
+	}
+
+	void RoundCorners(const TArray<FVector2d>& Ring, double Sign, const TArray<bool>& Front, const TArray<bool>& Keep, double MaxRadiusM,
+		TArray<FVector2d>& OutRing, TArray<int32>& OutSource)
+	{
+		const int32 N = Ring.Num();
+		OutRing.Reset();
+		OutSource.Reset();
+		auto Dir = [&](int32 i) { return (Ring[(i + 1) % N] - Ring[i]).GetSafeNormal(); };
+		auto Len = [&](int32 i) { return FVector2d::Distance(Ring[i], Ring[(i + 1) % N]); };
+		auto Normal = [&](int32 i) { const FVector2d D = Dir(i); return FVector2d(D.Y, -D.X) * Sign; };
+		constexpr int32 Segments = 4;
+		for (int32 i = 0; i < N; ++i)
+		{
+			const int32 Prev = (i + N - 1) % N;
+			const FVector2d D0 = Dir(Prev), D1 = Dir(i);
+			const FVector2d N0 = Normal(Prev), N1 = Normal(i);
+			// Convex (the next edge turns in), near square (45-135 degrees), on a street front,
+			// both sides long enough, and neither side kept sharp (a porch's corners).
+			const bool bConvex = FVector2d::DotProduct(D1, N0) < -0.7;
+			const double Turn = FMath::Acos(FMath::Clamp(FVector2d::DotProduct(D0, D1), -1.0, 1.0));
+			const double Short = FMath::Min(Len(Prev), Len(i));
+			const bool bRound = bConvex && Turn > FMath::DegreesToRadians(45.0) && Turn < FMath::DegreesToRadians(135.0)
+				&& (Front[Prev] || Front[i]) && !Keep[Prev] && !Keep[i] && Short >= 5.0;
+			if (!bRound)
+			{
+				OutRing.Add(Ring[i]);
+				OutSource.Add(i);
+				continue;
+			}
+			const double Radius = FMath::Min(MaxRadiusM, 0.22 * Short);
+			const double Tangent = Radius * FMath::Tan(0.5 * Turn);
+			const FVector2d P0 = Ring[i] - D0 * Tangent;
+			const FVector2d Centre = P0 - N0 * Radius;
+			const double A0 = FMath::Atan2(N0.Y, N0.X);
+			double Delta = FMath::Atan2(N1.Y, N1.X) - A0;
+			while (Delta > UE_DOUBLE_PI) Delta -= UE_DOUBLE_TWO_PI;
+			while (Delta < -UE_DOUBLE_PI) Delta += UE_DOUBLE_TWO_PI;
+			for (int32 k = 0; k <= Segments; ++k)
+			{
+				const double A = A0 + Delta * k / Segments;
+				OutRing.Add(Centre + FVector2d(FMath::Cos(A), FMath::Sin(A)) * Radius);
+				OutSource.Add(k < Segments ? INDEX_NONE : i); // the arc's chords, then the edge on from P1
+			}
+		}
+	}
+
 	void BuildBuildings(const FContext& X)
 	{
 		FSimCruiseTileBuild& B = X.B;
@@ -219,14 +333,48 @@ namespace SimCruiseTileDetail
 		FSimCruiseMeshData& Mesh = B.Layer(ESimCruiseTileLayer::Building);
 		const EBuildingStyle Place = StyleForPlace(X.LatDeg, X.LonDeg);
 
+		// Footprints in metres, and each named place on its building: the footprint it stands
+		// in, or the nearest within 12 m (map points often sit on the sidewalk at the door).
+		TArray<TArray<FVector2d>> Rings;
+		TArray<double> Areas;
+		Rings.SetNum(Data.Buildings.Num());
+		Areas.Init(0.0, Data.Buildings.Num());
+		for (int32 b = 0; b < Data.Buildings.Num(); ++b)
+		{
+			if (!FootprintMetres(Data.Buildings[b], X.Side, Rings[b], Areas[b])) Rings[b].Reset();
+		}
+		TMultiMap<int32, int32> PlacesOf;
+		for (int32 p = 0; p < Data.Pois.Num(); ++p)
+		{
+			if (SignStyleFor(Data.Pois[p].Kind).Rank == 0) continue;
+			const FVector2d P = Data.Pois[p].Unit * X.Side;
+			int32 Best = INDEX_NONE;
+			double BestD = 12.0;
+			for (int32 b = 0; b < Rings.Num(); ++b)
+			{
+				const TArray<FVector2d>& R = Rings[b];
+				if (R.Num() < 3 || Data.Buildings[b].MinHeightM > 0.5) continue;
+				FBox2d Box(R);
+				if (!Box.ExpandBy(BestD).IsInside(P)) continue;
+				if (PointInRing(R, P)) { Best = b; break; }
+				for (int32 i = 0; i < R.Num(); ++i)
+				{
+					const FVector2d Q = FMath::ClosestPointOnSegment2D(P, R[i], R[(i + 1) % R.Num()]);
+					const double D = FVector2d::Distance(P, Q);
+					if (D < BestD) { BestD = D; Best = b; }
+				}
+			}
+			if (Best != INDEX_NONE) PlacesOf.Add(Best, p);
+		}
+
 		for (int32 b = 0; b < Data.Buildings.Num(); ++b)
 		{
 			const FSimCruiseBuildingRow& Row = Data.Buildings[b];
-			TArray<FVector2d> Ring;
-			double Area = 0.0;
-			if (!FootprintMetres(Row, X.Side, Ring, Area)) continue;
+			if (Rings[b].Num() < 3) continue;
+			const TArray<FVector2d>& Footprint = Rings[b];
+			const double Area = Areas[b];
 			double Ground = TNumericLimits<double>::Max();
-			for (const FVector2d& P : Ring) Ground = FMath::Min(Ground, Data.HeightAtUnit(P / X.Side));
+			for (const FVector2d& P : Footprint) Ground = FMath::Min(Ground, Data.HeightAtUnit(P / X.Side));
 			const double Sign = Area >= 0.0 ? 1.0 : -1.0;
 			const double Height = FMath::Clamp(Row.HeightM, 2.8, 650.0);
 			const double Top = Ground + Height;
@@ -248,27 +396,196 @@ namespace SimCruiseTileDetail
 			const bool bNeonParapet = bDeco && Unit(Hash(H, 6)) < 0.5;
 			const bool bEyebrowsAround = bDeco && Unit(Hash(H, 8)) < 0.5;
 			const int32 Floors = FMath::Max(1, FMath::FloorToInt((Height + 0.2) / FloorH));
-			const int32 N = Ring.Num();
+			TArray<int32> Places;
+			PlacesOf.MultiFind(b, Places);
 
-			auto EdgeNormal = [&](int32 i)
+			// Street fronts on the footprint as mapped; porches on the fronts that can take one.
+			const int32 N0 = Footprint.Num();
+			auto EdgeNormalOf = [&](const TArray<FVector2d>& R, int32 i)
 			{
-				const FVector2d D = Ring[(i + 1) % N] - Ring[i];
+				const FVector2d D = R[(i + 1) % R.Num()] - R[i];
 				return FVector2d(D.Y, -D.X).GetSafeNormal() * Sign;
 			};
-			auto EdgeDir = [&](int32 i) { return (Ring[(i + 1) % N] - Ring[i]).GetSafeNormal(); };
-
-			// The street front: the longest edge facing a public street carries the tower.
-			int32 Longest = INDEX_NONE;
-			double LongestLen = 0.0;
-			TArray<bool> Front;
-			Front.Init(false, N);
-			for (int32 i = 0; i < N; ++i)
+			auto EdgeDirOf = [&](const TArray<FVector2d>& R, int32 i) { return (R[(i + 1) % R.Num()] - R[i]).GetSafeNormal(); };
+			TArray<bool> Front0, Porch0;
+			TArray<double> PorchDepth0;
+			TArray<int32> Rank0;
+			Rank0.Init(-1, N0);
+			Front0.Init(false, N0);
+			Porch0.Init(false, N0);
+			PorchDepth0.Init(0.0, N0);
+			for (int32 i = 0; i < N0; ++i)
 			{
-				const FVector2d A = Ring[i], C = Ring[(i + 1) % N];
+				const FVector2d A = Footprint[i], C = Footprint[(i + 1) % N0];
 				const double Len = FVector2d::Distance(A, C);
 				if (Len < 0.5) continue;
-				Front[i] = (bDeco || bTower) && FacesStreet(Roads, (A + C) * 0.5, EdgeNormal(i));
-				if (Front[i] && Len > LongestLen) { LongestLen = Len; Longest = i; }
+				const FVector2d N2 = EdgeNormalOf(Footprint, i);
+				Rank0[i] = (bDeco || bTower || Places.Num() > 0) ? StreetRankFaced(Roads, (A + C) * 0.5, N2) : -1;
+				Front0[i] = Rank0[i] >= 0;
+				// A porch: Ocean Drive's raised front terraces under the upper floors, here when
+				// both corners are convex and the building is deep enough to give up 2.2 m.
+				const double PrevLen = FVector2d::Distance(Footprint[(i + N0 - 1) % N0], A);
+				const double NextLen = FVector2d::Distance(C, Footprint[(i + 2) % N0]);
+				const bool bConvexA = FVector2d::DotProduct(EdgeDirOf(Footprint, (i + N0 - 1) % N0), N2) > 0.5;
+				const bool bConvexC = FVector2d::DotProduct(EdgeDirOf(Footprint, (i + 1) % N0), N2) < -0.5;
+				PorchDepth0[i] = FMath::Min(2.2, 0.35 * FMath::Min(PrevLen, NextLen));
+				Porch0[i] = bDeco && Front0[i] && Len >= 8.0 && Height >= 6.0 && bConvexA && bConvexC && PorchDepth0[i] >= 1.5 && Unit(Hash(H, 9)) < 0.8;
+			}
+
+			// Streamline Moderne: most of the district's hotels round their street corners, and
+			// the eyebrows and speed lines wrap round them (the Carlyle, the Cardozo, the Leslie).
+			TArray<FVector2d> Ring;
+			TArray<int32> Source;
+			if (bDeco && Height >= 6.0 && Unit(Hash(H, 21)) < 0.7)
+			{
+				RoundCorners(Footprint, Sign, Front0, Porch0, 2.2, Ring, Source);
+			}
+			else
+			{
+				Ring = Footprint;
+				for (int32 i = 0; i < N0; ++i) Source.Add(i);
+			}
+			const int32 N = Ring.Num();
+			auto EdgeNormal = [&](int32 i) { return EdgeNormalOf(Ring, i); };
+			TArray<bool> Front, Arc, PorchEdge;
+			TArray<double> PorchDepth;
+			for (int32 i = 0; i < N; ++i)
+			{
+				const int32 S = Source[i];
+				Arc.Add(S == INDEX_NONE);
+				Front.Add(S == INDEX_NONE ? true : Front0[S]);
+				PorchEdge.Add(S == INDEX_NONE ? false : Porch0[S]);
+				PorchDepth.Add(S == INDEX_NONE ? 0.0 : PorchDepth0[S]);
+			}
+
+			// The main front carries the tower and the hotel's name: on a corner, the side on the
+			// bigger street (the Carlyle fronts Ocean Drive, not 13th Street), then the longer.
+			int32 Longest = INDEX_NONE;
+			double LongestLen = 0.0, BestScore = -1.0;
+			for (int32 i = 0; i < N; ++i)
+			{
+				const double Len = FVector2d::Distance(Ring[i], Ring[(i + 1) % N]);
+				if (!Front[i] || Arc[i] || Len < 6.0) continue;
+				const double Score = Rank0[Source[i]] * 1000.0 + Len;
+				if (Score > BestScore) { BestScore = Score; LongestLen = Len; Longest = i; }
+			}
+			// The tower's form: a stepped central tower (the Colony, the Breakwater), three
+			// pylons with flagpoles (the Carlyle), or twin fins (the Avalon, the Majestic).
+			const double FormPick = Unit(Hash(H, 22));
+			const bool bHasTower = bDeco && Longest != INDEX_NONE && LongestLen >= 10.0 && Height >= 6.0;
+			const int32 TowerForm = !bHasTower ? -1 : FormPick < 0.45 ? 0 : FormPick < 0.8 ? 1 : 2;
+
+			// Where the lettering goes: each named place on the street edge nearest it, the
+			// hotel first; spans already lettered on an edge are not used again.
+			Places.Sort([&](int32 L, int32 R) { return SignStyleFor(Data.Pois[L].Kind).Rank > SignStyleFor(Data.Pois[R].Kind).Rank; });
+			TArray<TArray<FVector3d>> Taken;  // per edge: (from, to along it, band: 0 fascia, 1 parapet)
+			Taken.SetNum(N);
+			bool bHotelSign = false;
+			auto AddSign = [&](const FString& Text, const FVector2d& At, const FVector2d& N2, double Z, double LetterM, double MaxSpanM, bool bStacked, bool bNeonSign, const FLinearColor& Colour)
+			{
+				FSimCruiseSign S;
+				S.Text = Text;
+				S.LocationCm = Cm3(At, Z);
+				S.YawDeg = static_cast<float>(FMath::RadiansToDegrees(FMath::Atan2(N2.Y, N2.X)));
+				S.LetterCm = static_cast<float>(LetterM * 100.0);
+				S.MaxSpanCm = static_cast<float>(MaxSpanM * 100.0);
+				S.bStacked = bStacked;
+				S.bNeon = bNeonSign;
+				S.Colour = Colour;
+				B.Signs.Add(MoveTemp(S));
+			};
+			// Painted letters contrast with the wall: the trim colour when it is dark enough, else near black.
+			const FLinearColor Ink = Accent.GetLuminance() < 0.25f ? Accent : (Wall.GetLuminance() > 0.2f ? FLinearColor(0.025f, 0.025f, 0.03f) : FLinearColor(0.85f, 0.84f, 0.8f));
+
+			TArray<bool> Awning;
+			Awning.Init(false, N);
+			for (int32 i = 0; i < N; ++i)
+			{
+				const double Len = FVector2d::Distance(Ring[i], Ring[(i + 1) % N]);
+				Awning[i] = bDeco && Front[i] && !Arc[i] && !PorchEdge[i] && Len >= 3.0 && Unit(Hash(H, 12 + i)) < 0.75;
+			}
+
+			for (const int32 p : Places)
+			{
+				const FSimCruisePoi& Poi = Data.Pois[p];
+				const FSignStyle Style = SignStyleFor(Poi.Kind);
+				const FString Text = SignText(Poi.Name, Style.bHotel);
+				if (Text.IsEmpty()) continue;
+				const FVector2d P = Poi.Unit * X.Side;
+				int32 Edge = INDEX_NONE;
+				double EdgeD = TNumericLimits<double>::Max();
+				for (int32 i = 0; i < N; ++i)
+				{
+					if (!Front[i] || Arc[i] || FVector2d::Distance(Ring[i], Ring[(i + 1) % N]) < 3.0) continue;
+					const double D = FVector2d::Distance(P, FMath::ClosestPointOnSegment2D(P, Ring[i], Ring[(i + 1) % N]));
+					if (D < EdgeD) { EdgeD = D; Edge = i; }
+				}
+				const bool bHotel = Style.bHotel && !bHotelSign;
+				if (bHotel && Longest != INDEX_NONE) Edge = Longest; // a hotel signs its main front
+				if (Edge == INDEX_NONE) continue;
+				const FVector2d A = Ring[Edge], C = Ring[(Edge + 1) % N];
+				const double Len = FVector2d::Distance(A, C);
+				const FVector2d T = (C - A) / Len;
+				const FVector2d N2 = EdgeNormal(Edge);
+				const FLinearColor Colour = Style.bNeon ? (bHotel ? Neon : Pick(NeonColours(), Hash(H, 60 + p))) : Ink;
+
+				// The hotel: up the central tower's face, letter over letter; on the parapet; or
+				// over the porch or shopfronts (the Carlyle).
+				if (bHotel && Edge == Longest && TowerForm == 0)
+				{
+					const double Width = FMath::Clamp(LongestLen * 0.16, 2.2, 3.6);
+					const double Rise = 2.0 + 2.5 * Unit(Hash(H, 11));
+					const double Z0 = Ground + FloorH + 0.8, Z1 = Top + Parapet + Rise - 0.5;
+					const int32 Letters = FMath::Max(1, Text.Replace(TEXT(" "), TEXT("")).Len());
+					const double Letter = FMath::Min3((Width - 0.5) / 0.8, 0.95, (Z1 - Z0) / (Letters * 1.05));
+					if (Letter >= 0.3)
+					{
+						AddSign(Text, (A + C) * 0.5 + N2 * 0.47, N2, 0.5 * (Z0 + Z1), Letter, Z1 - Z0, true, true, Colour);
+						bHotelSign = true;
+						continue;
+					}
+				}
+				const bool bParapet = bHotel && Height >= 6.0 && Unit(Hash(H, 23)) < 0.5;
+				double Z, Letter;
+				double Out = 0.04;
+				if (bParapet)
+				{
+					Letter = FMath::Clamp(Parapet * 0.72, 0.3, 0.75);
+					Z = Top + 0.5 * Parapet;
+				}
+				else if (Awning[Edge] && !bHotel)
+				{
+					// On the awning's valance, 1.3 m out.
+					Letter = 0.17;
+					Z = Ground + 2.5 - 0.14;
+					Out = 1.32;
+				}
+				else if (Height >= FloorH + 1.2)
+				{
+					// The fascia between the shop glass (or porch) and the first-floor windows.
+					Letter = bHotel ? 0.55 : 0.4;
+					Z = Ground + FloorH + 0.42;
+				}
+				else
+				{
+					Letter = 0.32;
+					Z = FMath::Min(Ground + 2.92, Top - 0.25);
+				}
+				// Along the edge at the place, inside the free span.
+				const double Want = FMath::Min(Text.Len() * 0.62 * Letter + 0.2, Len - 0.8);
+				if (Want < 1.0) continue;
+				double S = FMath::Clamp(FVector2d::DotProduct(P - A, T), 0.4 + 0.5 * Want, Len - 0.4 - 0.5 * Want);
+				if (bHotel) S = 0.5 * Len;
+				const double Band = bParapet ? 1.0 : 0.0;
+				bool bFree = true;
+				for (const FVector3d& Span : Taken[Edge])
+				{
+					if (Span.Z == Band && S + 0.5 * Want > Span.X && S - 0.5 * Want < Span.Y) bFree = false;
+				}
+				if (!bFree) continue;
+				Taken[Edge].Add(FVector3d(S - 0.5 * Want - 0.3, S + 0.5 * Want + 0.3, Band));
+				AddSign(Text, A + T * S + N2 * Out, N2, Z, Letter, Want, false, Style.bNeon, Colour);
+				if (bHotel) bHotelSign = true;
 			}
 
 			for (int32 i = 0; i < N; ++i)
@@ -279,29 +596,28 @@ namespace SimCruiseTileDetail
 				const FVector2d T = (C - A) / Len;
 				const FVector2d N2 = EdgeNormal(i);
 				const double Along0 = -0.5 * Len; // windows centre on each facade
-
-				// A porch: Ocean Drive's raised front terraces under the upper floors, here when
-				// both corners are convex and the building is deep enough to give up 2.2 m.
-				const double PrevLen = FVector2d::Distance(Ring[(i + N - 1) % N], A);
-				const double NextLen = FVector2d::Distance(C, Ring[(i + 2) % N]);
-				const bool bConvexA = FVector2d::DotProduct(EdgeDir((i + N - 1) % N), N2) > 0.5;
-				const bool bConvexC = FVector2d::DotProduct(EdgeDir((i + 1) % N), N2) < -0.5;
-				const double PorchDepth = FMath::Min(2.2, 0.35 * FMath::Min(PrevLen, NextLen));
-				const bool bPorch = bDeco && Front[i] && Len >= 8.0 && Height >= 6.0 && bConvexA && bConvexC && PorchDepth >= 1.5 && Unit(Hash(H, 9)) < 0.8;
+				const bool bPorch = PorchEdge[i];
+				// Ends that meet a rounded corner run on into it (no gap in the wrapped bands).
+				const bool bArcBefore = Arc[(i + N - 1) % N], bArcAfter = Arc[(i + 1) % N];
+				const double Ext = Arc[i] ? 0.06 : 0.0;
+				const FVector2d BandA = Arc[i] ? A - T * Ext : (bArcBefore ? A : A + T * 0.15);
+				const FVector2d BandC = Arc[i] ? C + T * Ext : (bArcAfter ? C : C - T * 0.15);
 
 				const double WallStart = bPorch ? Ground + FloorH : Bottom;
 				// Street fronts: shop glass in the ground storey, and on Art Deco hotels the
-				// coloured uplight wash that lights Ocean Drive at night.
-				const float WallKind = !Front[i] ? Kind::Wall : bPorch ? (bDeco ? Kind::DecoUpper : Kind::Wall) : (bDeco ? Kind::DecoFront : Kind::WallFront);
+				// coloured uplight wash that lights Ocean Drive at night. A rounded corner is
+				// plain stucco (its windows would be cut by the chords).
+				const float WallKind = Arc[i] ? Kind::Trim : !Front[i] ? Kind::Wall : bPorch ? (bDeco ? Kind::DecoUpper : Kind::Wall) : (bDeco ? Kind::DecoFront : Kind::WallFront);
 				W.Panel(A, C, WallStart, Top + Parapet, N2, Wall, WallKind, Along0, Ground);
 				// The parapet's inside, seen from above and from taller neighbours.
 				W.Panel(C, A, Top, Top + Parapet, -N2, Wall, Kind::Trim, Along0, Ground);
 
 				if (bPorch)
 				{
+					const double PorchD = PorchDepth[i];
 					const double Floor = Ground + 0.45;
 					const double Ceiling = Ground + FloorH;
-					const FVector2d Ai = A - N2 * PorchDepth, Ci = C - N2 * PorchDepth;
+					const FVector2d Ai = A - N2 * PorchD, Ci = C - N2 * PorchD;
 					const FLinearColor Tile = Srgb(TEXT("D9D2C3"));
 					W.Panel(A, C, Ground - 0.1, Floor, N2, Tile, Kind::Terrazzo, Along0, Ground);
 					const FVector2d FloorQ[4] = { A, C, Ci, Ai };
@@ -318,7 +634,7 @@ namespace SimCruiseTileDetail
 				}
 
 				// Canvas awnings over the shopfronts: 1.3 m deep, sloping out from the storey line.
-				if (bDeco && Front[i] && !bPorch && Len >= 3.0 && Unit(Hash(H, 12 + i)) < 0.75)
+				if (Awning[i])
 				{
 					const FLinearColor Canvas = Unit(Hash(H, 31 + i)) < 0.5 ? Accent : Pick(DecoAccents(), Hash(H, 41 + i));
 					const double Zi = Ground + 2.95, Zo = Ground + 2.5;
@@ -333,14 +649,15 @@ namespace SimCruiseTileDetail
 					W.Panel(A1, C1, Zo - 0.28, Zo, N2, Canvas, Kind::Trim, Along0, Ground);
 				}
 
-				// Eyebrows: cantilevered sunshades over each upper storey's windows.
-				if (bDeco && Floors >= 2 && Len >= 3.0 && (Front[i] || bEyebrowsAround))
+				// Eyebrows: cantilevered sunshades over each upper storey's windows, wrapping the
+				// rounded corners.
+				if (bDeco && Floors >= 2 && (Len >= 3.0 || Arc[i]) && (Front[i] || bEyebrowsAround))
 				{
 					for (int32 k = 1; k < Floors; ++k)
 					{
 						const double Z = Ground + k * FloorH + 2.45;
 						if (Z > Top - 0.25) break;
-						W.Slab(A + T * 0.15, C - T * 0.15, N2, 0.0, 0.5, Z, Z + 0.1, Accent, Kind::Trim, Along0, Ground);
+						W.Slab(BandA, BandC, N2, 0.0, 0.5, Z, Z + 0.1, Accent, Kind::Trim, Along0, Ground);
 					}
 				}
 				// Speed lines near the parapet, and a neon tube along it on some hotels.
@@ -348,11 +665,11 @@ namespace SimCruiseTileDetail
 				{
 					for (const double Dz : { 0.35, 0.62, 0.89 })
 					{
-						W.Slab(A, C, N2, 0.0, 0.05, Top - Dz, Top - Dz + 0.11, Accent, Kind::Trim, Along0, Ground);
+						W.Slab(Arc[i] ? BandA : A, Arc[i] ? BandC : C, N2, 0.0, 0.05, Top - Dz, Top - Dz + 0.11, Accent, Kind::Trim, Along0, Ground);
 					}
 					if (bNeonParapet)
 					{
-						W.Slab(A + T * 0.1, C - T * 0.1, N2, 0.02, 0.07, Top + Parapet - 0.18, Top + Parapet - 0.13, Neon, Kind::Neon, Along0, Ground);
+						W.Slab(Arc[i] ? BandA : A + T * 0.1, Arc[i] ? BandC : C - T * 0.1, N2, 0.02, 0.07, Top + Parapet - 0.18, Top + Parapet - 0.13, Neon, Kind::Neon, Along0, Ground);
 					}
 				}
 				// Balconies on the condominium towers: a slab and a glass rail every storey.
@@ -368,27 +685,65 @@ namespace SimCruiseTileDetail
 				}
 			}
 
-			// The stepped tower over the entrance, with neon up its edges.
-			if (bDeco && Longest != INDEX_NONE && LongestLen >= 10.0 && Height >= 6.0)
+			if (TowerForm >= 0)
 			{
 				const FVector2d A = Ring[Longest], C = Ring[(Longest + 1) % N];
 				const FVector2d T = (C - A).GetSafeNormal();
 				const FVector2d N2 = EdgeNormal(Longest);
 				const FVector2d Mid = (A + C) * 0.5;
-				const double Width = FMath::Clamp(LongestLen * 0.16, 2.2, 3.6);
-				const double Rise = 2.0 + 2.5 * Unit(Hash(H, 11));
 				const double Z0 = Ground + FloorH;
-				const double Z1 = Top + Parapet + Rise;
-				const FVector2d P0 = Mid - T * (0.5 * Width), P1 = Mid + T * (0.5 * Width);
-				W.Slab(P0, P1, N2, -0.6, 0.45, Z0, Z1, Wall, Kind::Trim, -0.5 * Width, Ground, true, true);
-				const FVector2d Q0 = Mid - T * (0.28 * Width), Q1 = Mid + T * (0.28 * Width);
-				W.Slab(Q0, Q1, N2, -0.4, 0.25, Z1, Z1 + 1.3, Accent, Kind::Trim, -0.28 * Width, Ground, true, false);
-				for (const double Sx : { -1.0, 1.0 })
+				const FLinearColor Steel = Srgb(TEXT("B8BCBE"));
+				if (TowerForm == 0)
 				{
-					const FVector2d E = Mid + T * (Sx * (0.5 * Width - 0.1));
-					W.Slab(E - T * 0.03, E + T * 0.03, N2, 0.45, 0.51, Z0 + 0.6, Z1 - 0.15, Neon, Kind::Neon, 0.0, Ground, false, true);
+					// The stepped tower over the entrance, with neon up its edges.
+					const double Width = FMath::Clamp(LongestLen * 0.16, 2.2, 3.6);
+					const double Rise = 2.0 + 2.5 * Unit(Hash(H, 11));
+					const double Z1 = Top + Parapet + Rise;
+					const FVector2d P0 = Mid - T * (0.5 * Width), P1 = Mid + T * (0.5 * Width);
+					W.Slab(P0, P1, N2, -0.6, 0.45, Z0, Z1, Wall, Kind::Trim, -0.5 * Width, Ground, true, true);
+					const FVector2d Q0 = Mid - T * (0.28 * Width), Q1 = Mid + T * (0.28 * Width);
+					W.Slab(Q0, Q1, N2, -0.4, 0.25, Z1, Z1 + 1.3, Accent, Kind::Trim, -0.28 * Width, Ground, true, false);
+					for (const double Sx : { -1.0, 1.0 })
+					{
+						const FVector2d E = Mid + T * (Sx * (0.5 * Width - 0.1));
+						W.Slab(E - T * 0.03, E + T * 0.03, N2, 0.45, 0.51, Z0 + 0.6, Z1 - 0.15, Neon, Kind::Neon, 0.0, Ground, false, true);
+					}
+					W.Slab(P0 + T * 0.1, P1 - T * 0.1, N2, 0.45, 0.51, Z1 - 0.21, Z1 - 0.15, Neon, Kind::Neon, 0.0, Ground, false, true);
 				}
-				W.Slab(P0 + T * 0.1, P1 - T * 0.1, N2, 0.45, 0.51, Z1 - 0.21, Z1 - 0.15, Neon, Kind::Neon, 0.0, Ground, false, true);
+				else if (TowerForm == 1)
+				{
+					// Three pylons rising through the parapet, the parapet stepped up between them,
+					// a flagpole on each.
+					const double Spacing = FMath::Clamp(LongestLen * 0.15, 2.4, 4.6);
+					const double Rise = 0.9 + 0.8 * Unit(Hash(H, 11));
+					W.Slab(Mid - T * Spacing, Mid + T * Spacing, N2, -0.3, 0.02, Top + Parapet - 0.05, Top + Parapet + 0.7, Wall, Kind::Trim, -Spacing, Ground, true, false);
+					for (int32 k = -1; k <= 1; ++k)
+					{
+						const FVector2d Pc = Mid + T * (k * Spacing);
+						const double Z1 = Top + Parapet + Rise + (k == 0 ? 0.5 : 0.0);
+						W.Slab(Pc - T * 0.32, Pc + T * 0.32, N2, -0.4, 0.32, Z0 + 0.4, Z1, Wall, Kind::Trim, -0.32, Ground, true, true);
+						// Grooves: two slim ribs down each pylon's face.
+						for (const double Sx : { -0.16, 0.16 })
+						{
+							W.Slab(Pc + T * (Sx - 0.035), Pc + T * (Sx + 0.035), N2, 0.32, 0.38, Z0 + 0.6, Z1 - 0.3, Accent, Kind::Trim, 0.0, Ground, false, true);
+						}
+						const FVector2d F = Pc - N2 * 0.04;
+						W.Slab(F - T * 0.025, F + T * 0.025, N2, -0.025, 0.025, Z1, Z1 + 4.5, Steel, Kind::Metal, 0.0, Ground, true, false);
+					}
+				}
+				else
+				{
+					// Twin fins standing out of the front, framing the entrance bay, taller than the roof.
+					const double Gap = FMath::Clamp(LongestLen * 0.12, 1.6, 3.2);
+					const double Z1 = Top + Parapet + 1.6 + 1.6 * Unit(Hash(H, 11));
+					for (const double Sx : { -1.0, 1.0 })
+					{
+						const FVector2d Pc = Mid + T * (Sx * Gap);
+						W.Slab(Pc - T * 0.12, Pc + T * 0.12, N2, -0.3, 0.85, Z0 - 0.2, Z1, Accent, Kind::Trim, 0.0, Ground, true, true);
+						W.Slab(Pc - T * 0.03, Pc + T * 0.03, N2, 0.85, 0.9, Z0 + 0.3, Z1 - 0.2, Neon, Kind::Neon, 0.0, Ground, false, true);
+					}
+					W.Slab(Mid - T * Gap, Mid + T * Gap, N2, -0.3, 0.02, Top + Parapet - 0.05, Top + Parapet + 0.9, Wall, Kind::Trim, -Gap, Ground, true, false);
+				}
 			}
 
 			// Roof: a light, gravel-and-membrane cool roof.

@@ -9,6 +9,7 @@
 #include "ProceduralMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/TextRenderComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/Material.h"
 #include "StaticMeshResources.h"
@@ -256,6 +257,63 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 				RenderMesh->SetMaterial(Slot, MID);
 			}
 		}
+	}
+
+	// The named places' lettering: one text component each, in the Signs material.
+	for (UTextRenderComponent* Old : SignComponents)
+	{
+		if (Old) Old->DestroyComponent();
+	}
+	SignComponents.Reset();
+	const int32 SignsSlot = static_cast<int32>(ESimCruiseTileLayer::Signs);
+	if (Resources && Materials.IsValidIndex(SignsSlot))
+	{
+		for (int32 s = 0; s < InBuild->Signs.Num(); ++s)
+		{
+			const FSimCruiseSign& Sign = InBuild->Signs[s];
+			UTextRenderComponent* Text = NewObject<UTextRenderComponent>(this, *FString::Printf(TEXT("Sign%d"), s));
+			Text->SetMobility(EComponentMobility::Movable);
+			Text->SetupAttachment(Mesh);
+			Text->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Text->SetCastShadow(false);
+			Text->SetTextMaterial(Materials[SignsSlot]);
+			Text->SetHorizontalAlignment(EHTA_Center);
+			Text->SetVerticalAlignment(EVRTA_TextCenter);
+			// The glyphs' cap height is about 0.7 of the world size (Roboto).
+			Text->SetWorldSize(Sign.LetterCm / 0.7f);
+			FString Shown = Sign.Text;
+			if (Sign.bStacked)
+			{
+				// One letter a line, the way the blade signs on the towers read.
+				Shown.Reset();
+				for (int32 c = 0; c < Sign.Text.Len(); ++c)
+				{
+					if (FChar::IsWhitespace(Sign.Text[c])) continue;
+					if (!Shown.IsEmpty()) Shown += TEXT("<br>"); // the text component's line break
+					Shown.AppendChar(Sign.Text[c]);
+				}
+				Text->SetVertSpacingAdjust(-0.12f * Sign.LetterCm / 0.7f);
+			}
+			Text->SetText(FText::FromString(Shown));
+			const FLinearColor C = Sign.Colour;
+			Text->SetTextRenderColor(FLinearColor(C.R, C.G, C.B, Sign.bNeon ? 1.f : 0.5f).ToFColor(false));
+			Text->SetRelativeLocationAndRotation(Sign.LocationCm, FRotator(0.0, Sign.YawDeg, 0.0));
+			// Narrow (or shorten) the lettering to the room it has.
+			const FVector Size = Text->GetTextLocalSize();
+			const double Span = Sign.bStacked ? Size.Z : Size.Y;
+			if (Span > Sign.MaxSpanCm && Span > 1.0)
+			{
+				const float Squeeze = static_cast<float>(Sign.MaxSpanCm / Span);
+				if (Sign.bStacked) Text->SetWorldSize(Text->WorldSize * Squeeze);
+				else Text->SetXScale(Squeeze);
+			}
+			Text->SetCachedMaxDrawDistance(35000.f);
+			Text->RegisterComponent();
+			AddInstanceComponent(Text);
+			SignComponents.Add(Text);
+		}
+		UE_LOG(LogTemp, Display, TEXT("SimCruise tile %d_%d: %d signs"), TileId.X, TileId.Y, SignComponents.Num());
+		InBuild->Signs.Empty();
 	}
 }
 

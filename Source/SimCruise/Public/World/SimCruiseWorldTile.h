@@ -9,6 +9,7 @@
 
 class UProceduralMeshComponent;
 class UInstancedStaticMeshComponent;
+class UTextRenderComponent;
 class UStaticMeshComponent;
 class UMaterialInstanceDynamic;
 class UTexture2D;
@@ -41,6 +42,8 @@ public:
 
 	FIntPoint GetTileId() const { return TileId; }
 	const FSimCruiseTileBuild* GetBuild() const { return Build.Get(); }
+	/** The named places' lettering on this tile. */
+	const TArray<TObjectPtr<UTextRenderComponent>>& GetSigns() const { return SignComponents; }
 
 	/** Drivable surface height (m) at tile metres: the carriageway where there is one, else the ground. */
 	double SurfaceHeightAt(const FVector2d& TileMetres) const;
@@ -83,6 +86,10 @@ public:
 	TArray<TObjectPtr<UInstancedStaticMeshComponent>> PalmComponents;
 
 	/** The tile's parked cars (attached, so they move with the floating origin). */
+	/** The named places' lettering (FSimCruiseTileBuild::Signs). */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UTextRenderComponent>> SignComponents;
+
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<AActor>> ParkedCars;
 

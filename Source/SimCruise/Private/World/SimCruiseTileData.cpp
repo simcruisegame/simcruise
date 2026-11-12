@@ -350,6 +350,21 @@ namespace SimCruiseTileData
 			}
 		}
 
+		const TArray<TSharedPtr<FJsonValue>>* Pois = nullptr;
+		if (Root->TryGetArrayField(TEXT("pois"), Pois))
+		{
+			for (const TSharedPtr<FJsonValue>& RowValue : *Pois)
+			{
+				const TArray<TSharedPtr<FJsonValue>>* Row = nullptr;
+				if (!RowValue->TryGetArray(Row) || Row->Num() < 3) continue;
+				FSimCruisePoi Poi;
+				if (!ReadPoint((*Row)[0], Poi.Unit)) continue;
+				Poi.Name = StringAt(*Row, 1).TrimStartAndEnd();
+				Poi.Kind = StringAt(*Row, 2);
+				if (!Poi.Name.IsEmpty()) Out.Pois.Add(MoveTemp(Poi));
+			}
+		}
+
 		Root->TryGetStringField(TEXT("aerial_key"), Out.AerialKey);
 		if (Out.AerialKey.IsEmpty())
 		{
