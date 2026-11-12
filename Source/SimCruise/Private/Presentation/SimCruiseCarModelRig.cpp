@@ -1537,6 +1537,10 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 			// Parts wholly inside the wheel's cylinder turn with it.
 			TArray<const FComponent*> Joined;
 			bool bHubTurns = false;
+			// Sectors (of 16 around the column) where a turning part reaches the rim.
+			uint32 RimSectors = 0;
+			const FVector RimU = (FVector(0, 1, 0) - N * (N | FVector(0, 1, 0))).GetSafeNormal();
+			const FVector RimV = N ^ RimU;
 			for (const FComponent& Part : Parts)
 			{
 				bool bInside = !Part.bClipped;
@@ -1556,15 +1560,23 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 					if (InDisc(V, -0.12, 0.09, R * 0.3))
 					{
 						bHubTurns = true;
-						break;
+					}
+					const FVector D = V - Centre;
+					const FVector Flat = D - N * (D | N);
+					if (Flat.Size() > R * 0.85)
+					{
+						RimSectors |= 1u << (int32(FMath::FloorToDouble((FMath::Atan2(Flat | RimV, Flat | RimU) + UE_DOUBLE_PI) / UE_DOUBLE_TWO_PI * 16.0)) & 15);
 					}
 				}
 			}
-			// Spokes and hub welded to the column (the rim alone was found): cut
-			// the triangles inside the wheel's disc from the parts that reach the
-			// hub; the column and the dash beyond the disc stay.
-			if (!bHubTurns)
+			// Spokes and hub welded to the column (the rim alone was found), or a
+			// loose badge turning while rim and spokes are welded to the column (the
+			// NB's Nardi wheel): cut the triangles inside the wheel's disc from the
+			// parts that reach the hub; the column and the dash beyond the disc stay.
+			if (!bHubTurns || FMath::CountBits(RimSectors) < 13)
 			{
+				// The original cut (spokes welded to the column, nothing turning yet) keeps its depth.
+				const double CutDepthM = bHubTurns ? 0.045 : 0.12;
 				for (const FComponent* Part : Joined)
 				{
 					bool bReachesHub = false;
@@ -1581,8 +1593,10 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 					{
 						const FJob& Job = Context.Jobs[Tri.Job];
 						const TArray<uint32>& List = Job.Dest[DestBody];
-						if (InDisc(Job.Pos[List[Tri.Offset]], -0.12, 0.09, R * 1.02) && InDisc(Job.Pos[List[Tri.Offset + 1]], -0.12, 0.09, R * 1.02) &&
-							InDisc(Job.Pos[List[Tri.Offset + 2]], -0.12, 0.09, R * 1.02))
+						// Only a slab around the rim's plane: the gauges and the column
+						// shroud a few centimetres further from the driver stay put.
+						if (InDisc(Job.Pos[List[Tri.Offset]], -CutDepthM, 0.09, R * 1.02) && InDisc(Job.Pos[List[Tri.Offset + 1]], -CutDepthM, 0.09, R * 1.02) &&
+							InDisc(Job.Pos[List[Tri.Offset + 2]], -CutDepthM, 0.09, R * 1.02))
 						{
 							Turning.Add(Tri);
 							++CutTriangles;

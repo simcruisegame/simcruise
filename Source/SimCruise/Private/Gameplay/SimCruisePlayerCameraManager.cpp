@@ -7,6 +7,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Gameplay/SimCruiseVehicleControl.h"
 #include "HAL/IConsoleManager.h"
+#include "Presentation/SimCruiseCarPresentationComponent.h"
 
 static TAutoConsoleVariable<float> CVarScreenHeightCm(
 	TEXT("simcruise.Lens.ScreenHeightCm"), 19.4f,
@@ -79,7 +80,14 @@ void ASimCruisePlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float 
 		}
 	}
 
-	if (View == ESimCruiseView::Driver)
+	// A model without a cabin (no steering wheel found: an empty shell, as the
+	// downloaded CR-V and Odyssey are) is watched from the chase view instead.
+	const USimCruiseCarPresentationComponent* Car = Pawn->FindComponentByClass<USimCruiseCarPresentationComponent>();
+	const bool bHasCabin = !Car || Car->GetCarId().IsEmpty() || Car->HasSteeringWheel();
+	const ESimCruiseView Shown = (View == ESimCruiseView::Driver && !bHasCabin) ? ESimCruiseView::Chase : View;
+	ShownView = Shown;
+
+	if (Shown == ESimCruiseView::Driver)
 	{
 		if (bSnap)
 		{
@@ -97,7 +105,7 @@ void ASimCruisePlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float 
 
 	FVector Goal;
 	FVector LookAt;
-	Chase.Update(View, Body, Telemetry.BodyVelocityMps, DeltaTime, bSnap, Goal, LookAt);
+	Chase.Update(Shown, Body, Telemetry.BodyVelocityMps, DeltaTime, bSnap, Goal, LookAt);
 	bSnap = false;
 
 	if (UWorld* World = GetWorld())

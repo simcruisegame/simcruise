@@ -25,6 +25,8 @@ namespace
 		TEXT("How many moving cars drive round the player's car (0: none)."));
 	TAutoConsoleVariable<int32> CVarTrafficSound(TEXT("simcruise.Traffic.Sound"), 1,
 		TEXT("1: traffic cars within 40 m are heard (their engines, in place); 0: silent traffic."));
+	TAutoConsoleVariable<int32> CVarTrafficGridlockRules(TEXT("simcruise.Traffic.GridlockRules"), 1,
+		TEXT("1: crossing cars give way to the right and break a gridlock after 6 s; 0: the old rule (every car waits for any car across its path), for comparison."));
 	constexpr double VoiceRangeM = 40.0;
 
 	constexpr double SpawnMinM = 60.0, SpawnMaxM = 260.0, RemoveM = 320.0;
@@ -353,7 +355,7 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 	const FVector2d Fwd = Here.Heading;
 	// The car ahead in this lane (traffic or the player): bumper-to-bumper gap and closing speed.
 	double Gap = -1.0, Closing = 0.0;
-	int32 Why = 0, Source = 1;
+	int32 Why = 0, Source = 1; FVector BlockerCm = FVector::ZeroVector;
 	auto Consider = [&](const FVector& OtherCm, const FVector2d& OtherVel, double OtherLength)
 	{
 		const FVector2d D((OtherCm.X - Here.LocationCm.X) / 100.0, (OtherCm.Y - Here.LocationCm.Y) / 100.0);
@@ -365,7 +367,7 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 		{
 			Gap = FMath::Max(G, 0.05);
 			Closing = Car.Speed - FVector2d::DotProduct(OtherVel, Fwd);
-			Why = Source;
+			Why = Source; BlockerCm = OtherCm;
 		}
 	};
 	for (const ASimCruiseTrafficCar* Other : Cars)
@@ -381,29 +383,56 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 	// Anything crossing the path just ahead (a car turning or crossing at a junction): brake
 	// as for a stopped car where it is.
 	const double Probe = FMath::Clamp(Car.Speed * 2.5, 8.0, 25.0);
-	auto Crossing = [&](const FVector& OtherCm, const FVector2d& OtherHeading)
+	const FVector2d HereM(Here.LocationCm.X / 100.0, Here.LocationCm.Y / 100.0);
+	// Distance ahead along a path from From (heading H, probe length L) at which Target lies
+	// within 3 m of it, or -1.
+	auto InPath = [](const FVector2d& From, const FVector2d& H, double L, const FVector2d& Target)
 	{
-		if (FVector2d::DotProduct(OtherHeading, Fwd) > 0.5) return;
-		for (double D = 4.0; D <= Probe; D += 4.0)
+		for (double D = 4.0; D <= L; D += 4.0)
 		{
-			const FVector2d P(Here.LocationCm.X / 100.0 + Fwd.X * D, Here.LocationCm.Y / 100.0 + Fwd.Y * D);
-			if (FVector2d::Distance(P, FVector2d(OtherCm.X / 100.0, OtherCm.Y / 100.0)) < 3.0)
-			{
-				const double G = FMath::Max(D - 0.5 * Car.LengthM - 2.0, 0.05);
-				if (Gap < 0.0 || G < Gap) { Gap = G; Closing = Car.Speed; Why = 3; }
-				return;
-			}
+			if (FVector2d::Distance(From + H * D, Target) < 3.0) return D;
 		}
+		return -1.0;
+	};
+	// Only a car at an angle crosses the path: one going the same way or coming the other way
+	// is in a lane, and a car in this lane is already the car ahead. Two cars that each stand
+	// in the other's path would wait for each other for ever: as at an uncontrolled junction,
+	// the one with the other on its right gives way and the other goes. A car stood still for
+	// 6 s no longer waits for a crossing car that is itself standing (a gridlock breaks the way
+	// drivers break one, by creeping through).
+	auto Crossing = [&](const FVector& OtherCm, const FVector2d& OtherHeading, double OtherSpeed, double OtherProbe)
+	{
+		const bool bRules = CVarTrafficGridlockRules.GetValueOnGameThread() != 0;
+		const double Along = FVector2d::DotProduct(OtherHeading, Fwd);
+		if (bRules ? FMath::Abs(Along) > 0.7 : Along > 0.5) return;
+		const FVector2d OtherM(OtherCm.X / 100.0, OtherCm.Y / 100.0);
+		const double D = InPath(HereM, Fwd, Probe, OtherM);
+		if (D < 0.0) return;
+		if (!bRules)
+		{
+			const double G = FMath::Max(D - 0.5 * Car.LengthM - 2.0, 0.05);
+			if (Gap < 0.0 || G < Gap) { Gap = G; Closing = Car.Speed; Why = 3; BlockerCm = OtherCm; }
+			return;
+		}
+		if (OtherProbe > 0.0 && InPath(OtherM, OtherHeading, OtherProbe, HereM) >= 0.0)
+		{
+			const FVector2d Right(-Fwd.Y, Fwd.X);
+			if (FVector2d::DotProduct(OtherM - HereM, Right) < 0.0) return;
+		}
+		if (Car.StandS > 6.0 && OtherSpeed < 0.3) return;
+		const double G = FMath::Max(D - 0.5 * Car.LengthM - 2.0, 0.05);
+		if (Gap < 0.0 || G < Gap) { Gap = G; Closing = Car.Speed; Why = 3; BlockerCm = OtherCm; }
 	};
 	for (const ASimCruiseTrafficCar* Other : Cars)
 	{
 		// A car waiting behind its stop line is not in the way.
 		if (!Other || Other == &Car || Other->Ribbon == INDEX_NONE || Other->StopState == 2) continue;
 		const double Yaw = FMath::DegreesToRadians(Other->GetActorRotation().Yaw);
-		Crossing(Other->GetActorLocation(), FVector2d(FMath::Cos(Yaw), FMath::Sin(Yaw)));
+		Crossing(Other->GetActorLocation(), FVector2d(FMath::Cos(Yaw), FMath::Sin(Yaw)), Other->Speed, FMath::Clamp(Other->Speed * 2.5, 8.0, 25.0));
 	}
 	const FVector2d PlayerHeading = FVector2d(PlayerVelCm.X, PlayerVelCm.Y).GetSafeNormal();
-	if (!PlayerHeading.IsNearlyZero()) Crossing(PlayerCm, PlayerHeading);
+	// The player never gives way to traffic by rule here: traffic always waits for the player.
+	if (!PlayerHeading.IsNearlyZero()) Crossing(PlayerCm, PlayerHeading, PlayerVelCm.Size2D() / 100.0, -1.0);
 
 	// Speed: the class's limit, and slower into a turn (about 0.25 g round a corner).
 	double V0 = Car.DesiredSpeed;
@@ -449,7 +478,8 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 				// Another car waiting at its own stop line: all-way stop order, first to stop goes first.
 				if (OtherCar && OtherCar->StopState == 2)
 				{
-					return Dist < 25.0 && (OtherCar->WaitS > Car.WaitS + 1e-3 || (FMath::IsNearlyEqual(OtherCar->WaitS, Car.WaitS, 1e-3) && OtherCar < &Car));
+					// After 10 s a waiting car stops deferring to others that wait too (they wait on something else).
+					return Dist < 25.0 && (Car.WaitS < 10.0 || CVarTrafficGridlockRules.GetValueOnGameThread() == 0) && (OtherCar->WaitS > Car.WaitS + 1e-3 || (FMath::IsNearlyEqual(OtherCar->WaitS, Car.WaitS, 1e-3) && OtherCar < &Car));
 				}
 				// Moving through the junction (not alongside in this lane).
 				if (Dist < 10.0 && OtherSpeed > 0.5 && FVector2d::DotProduct(OtherHeading, Fwd) < 0.9) return true;
@@ -506,10 +536,18 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 	{
 		Car.bYielding = false;
 	}
-	Car.Why = Why;
+	Car.Why = Why; Car.BlockerCm = BlockerCm;
 	const double Accel = SimCruiseTrafficModel::IdmAcceleration(Car.Speed, V0, Gap, Closing);
 	Car.Accel = Accel;
 	Car.Speed = FMath::Max(0.0, Car.Speed + Accel * Dt);
+	const double StoodBefore = Car.StandS;
+	Car.StandS = Car.Speed < 0.3 ? Car.StandS + Dt : 0.0;
+	if (StoodBefore < 30.0 && Car.StandS >= 30.0)
+	{
+		UE_LOG(LogTemp, Display, TEXT("SimCruise traffic stuck 30 s: car at %s (stop state %d, why %d, %.0f m to its junction) waits for %s"),
+			*Car.GetActorLocation().ToCompactString(), Car.StopState, Why, FVector::Dist2D(Car.GetActorLocation(), Car.JunctionCm) / 100.0,
+			Why == 2 ? TEXT("the player") : (BlockerCm.IsZero() ? TEXT("its stop line or a gap") : *BlockerCm.ToCompactString()));
+	}
 	Car.bBraking = Accel < -0.6 || (Car.Speed < 0.2 && Gap >= 0.0 && Gap < 6.0);
 	Car.S += Car.Dir * Car.Speed * Dt;
 
@@ -612,7 +650,8 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 	// Wheels: rolling with the distance, steered by the yaw rate (bicycle model).
 	Car.Spin = FMath::Fmod(Car.Spin + Car.Speed * Dt / FMath::Max(Car.TyreRadiusCm / 100.0, 0.1), UE_DOUBLE_TWO_PI);
 	const double YawRate = FMath::DegreesToRadians(FRotator::NormalizeAxis(Yaw - PrevYaw)) / FMath::Max(Dt, 1e-3);
-	const double Steer = Car.Speed > 0.5 ? FMath::Atan(2.6 * YawRate / Car.Speed) : Car.SteerRad;
+	const double WheelbaseM = FMath::Max((Car.Presentation->GetStaticHubLocation(0).X - Car.Presentation->GetStaticHubLocation(2).X) / 100.0, 1.5);
+	const double Steer = Car.Speed > 0.5 ? FMath::Atan(WheelbaseM * YawRate / Car.Speed) : Car.SteerRad;
 	Car.SteerRad += (FMath::Clamp(Steer, -0.6, 0.6) - Car.SteerRad) * (1.0 - FMath::Exp(-Dt / 0.15));
 }
 
@@ -792,22 +831,33 @@ void ASimCruiseTraffic::Tick(float DeltaSeconds)
 		ReportClock = 5.0;
 		int32 Moving = 0, AtStops = 0, Standing = 0, Heard = 0;
 		int32 WhyCount[6] = {};
+		int32 Stuck = 0;
+		int32 StuckWhy[6] = {};
 		double Sum = 0.0;
-		for (const ASimCruiseTrafficCar* Car : Cars)
+		// Wheels seen rolling: a moving car whose drawn front-left wheel has turned since the last report.
+		int32 Rolling = 0;
+		double MaxSteerDeg = 0.0;
+		for (ASimCruiseTrafficCar* Car : Cars)
 		{
 			if (!Car) continue;
+			const double Drawn = Car->Presentation->GetDrawnSpinRad(0);
+			Rolling += Car->Speed > 1.0 && FMath::Abs(FMath::UnwindRadians(Drawn - Car->ReportedSpinRad)) > 1e-3 ? 1 : 0;
+			Car->ReportedSpinRad = Drawn;
+			MaxSteerDeg = FMath::Max(MaxSteerDeg, FMath::Abs(FMath::RadiansToDegrees(Car->Presentation->GetDrawnSteerRad(0))));
 			Sum += Car->Speed;
 			Moving += Car->Speed > 1.0 ? 1 : 0;
 			AtStops += Car->StopState == 2 ? 1 : 0;
 			Heard += Car->Voice && Car->Voice->IsPlaying() ? 1 : 0;
+			if (Car->StandS > 20.0) { ++Stuck; ++StuckWhy[FMath::Clamp(Car->Why, 0, 5)]; }
 			if (Car->Speed < 0.3 && Car->StopState != 2)
 			{
 				++Standing;
 				++WhyCount[FMath::Clamp(Car->Why, 0, 5)];
 			}
 		}
-		UE_LOG(LogTemp, Display, TEXT("SimCruise traffic: %d cars (%d heard), %d moving, %d waiting at stops, %d standing elsewhere (lane %d, player %d, crossing %d, stop line %d, giving way %d, none %d), mean %.1f m/s, %d ribbon changes, %d lane changes, %d left-turn yields, %d spawned, %d stops passed"),
-			Cars.Num(), Heard, Moving, AtStops, Standing, WhyCount[1], WhyCount[2], WhyCount[3], WhyCount[4], WhyCount[5], WhyCount[0], Cars.Num() ? Sum / Cars.Num() : 0.0, RibbonChanges, LaneChanges, LeftTurnYields, Spawned, StopsPassed);
+		UE_LOG(LogTemp, Display, TEXT("SimCruise traffic wheels: %d of %d moving cars drawn rolling; largest drawn steer %.1f deg"), Rolling, Moving, MaxSteerDeg);
+		UE_LOG(LogTemp, Display, TEXT("SimCruise traffic: %d cars (%d heard), %d moving, %d waiting at stops, %d standing elsewhere (lane %d, player %d, crossing %d, stop line %d, giving way %d, none %d), mean %.1f m/s, %d ribbon changes, %d lane changes, %d left-turn yields, %d spawned, %d stops passed; %d stuck over 20 s (lane %d, player %d, crossing %d, stop line %d, giving way %d, none %d)"),
+			Cars.Num(), Heard, Moving, AtStops, Standing, WhyCount[1], WhyCount[2], WhyCount[3], WhyCount[4], WhyCount[5], WhyCount[0], Cars.Num() ? Sum / Cars.Num() : 0.0, RibbonChanges, LaneChanges, LeftTurnYields, Spawned, StopsPassed, Stuck, StuckWhy[1], StuckWhy[2], StuckWhy[3], StuckWhy[4], StuckWhy[5], StuckWhy[0]);
 	}
 	const int32 Want = FMath::Max(0, CVarTrafficCars.GetValueOnGameThread());
 	for (int32 Tries = 0; Tries < 2 && Cars.Num() < Want; ++Tries)

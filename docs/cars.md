@@ -4,7 +4,7 @@ Every car in SimCruise is a JSON file in [`data/cars/`](../data/cars/). Powertra
 
 ## The garage
 
-Four cars; the player car is the 2001 roadster:
+Nine cars: these four, and the five traffic cars below. The player car is the 2001 roadster:
 
 | File | Name | Layout | Reference car | 0–60 mph | 70–0 mph | Skidpad |
 |---|---|---|---|---|---|---|
@@ -12,6 +12,36 @@ Four cars; the player car is the 2001 roadster:
 | `nb1999.json` | 1999 Roadster Sport (calibration reference) | front engine, rear drive, 5-speed manual | 1999 Mazda MX-5 Miata Sport | 7.99 s (7.97) | 172.9 ft (173) | 0.884 g (0.89) |
 | `meridian_z.json` | Corvette Stingray Z51 (C8), formerly Meridian Z | mid-engine V8, rear drive, 8-speed dual clutch | 2020 Chevrolet Corvette Z51 | 3.55 s (2.8†) | 152.0 ft (148) | 1.025 g (1.03) |
 | `mustang65.json` | 1965 Mustang 289 | front engine, rear drive, 289 V8 four-barrel, 4-speed manual | 1965 Ford Mustang 289/210 | 9.00 s (8.9) | 259.3 ft (264‡) | 0.699 g (0.70*) |
+
+### The traffic cars you can drive
+
+Every model that parks and drives in traffic is also a car you can drive (pick it with **Car** in the road atlas, or `-SimCruiseCar=<id>`). Each has its own driving file with its real counterpart's data, and the Unreal bench (`SimCruise.Vehicle.CarTrack.<id>`, 12 November 2026) drives it against the real car's instrumented test:
+
+| File | Name | Layout | 0–60 mph | 70–0 mph | Skidpad | Target source |
+|---|---|---|---|---|---|---|
+| `model3.json` | Tesla Model 3 Rear-Wheel Drive | rear motor, single speed | 5.34 s (5.4) | 165.6 ft (165\*) | 0.896 g (0.88) | Car and Driver |
+| `f150raptor18.json` | Ford F-150 Raptor SuperCab | 3.5 twin-turbo V6, 10-speed automatic, 4A | 5.50 s (5.7†) | 206.3 ft (206) | 0.674 g (0.68) | Car and Driver, 2017-2018 SuperCab |
+| `grandcherokee13.json` | Jeep Grand Cherokee SRT8 | 6.4 V8, 5-speed automatic, AWD | 4.95 s (5.0) | 155.8 ft (152\*) | 0.869 g (0.87) | Edmunds |
+| `odyssey18.json` | Honda Odyssey EX-L | 3.5 V6, 9-speed automatic, FWD | 8.24 s (6.7†) | 183.5 ft (180) | 0.750 g (0.74) | Car and Driver |
+| `crv25.json` | Honda CR-V EX | 1.5 turbo, CVT, FWD | 8.25 s (8.3\*) | 175.8 ft (175\*) | 0.814 g (0.82\*) | estimates |
+
+\* estimated or derived target (named in the file's `sources`). † open item, stated in the file: the Raptor's launch is traction-limited and lands between Car and Driver's 2017 (5.0 s) and 2018 (5.7 s) SuperCab tests; the Odyssey's front tyres hold it to about 0.38 g off the line under traction control, and the converter has no lock-up clutch, so it slips about 13 % in second and third where the real nine-speed is locked. The Model 3's data is the retired Volta's (it was this car under another name). The Accord and the Tahoe still cannot drive or park: the Accord's wheels are merged into its body and the Tahoe's materials are unnamed.
+
+The CR-V and Odyssey models have no cabin inside, so the game shows them from the chase view when you choose the driver's seat (and the engine and road sound take the outside pickup). The Odyssey model is the Japanese-market 2020 facelift body on the US 2018 car's data.
+
+**Torque converter.** An `automatic` now multiplies the torque it passes while its turbine runs slower than the engine, as a real converter does: `converter_stall_ratio` at a standstill (1.8–2.0 here) falling linearly to 1 at `converter_coupling_ratio` (0.87). Cars without the field (every earlier car: they are manual or dual-clutch) are unchanged. The automatics also set `upshift_min_omega` to 95 % of `upshift_rpm`: with a slipping converter an upshift could come early enough for the kickdown to take it back (a 1-2-1-2 hunt that cost the Odyssey 0.6 s).
+
+### The method: a real car's data, then the bench
+
+Every car follows the same steps, so a new car is measured, not guessed. `scripts/simcruise-cars/make_traffic_cars.py` writes the five files above this way and is the template for the next one.
+
+1. **Published data first**, each with its source in `sources`: mass as tested, weight split, wheelbase and track, tyre sizes, engine power and torque peaks, gear and final-drive ratios, drive layout.
+2. **Targets from one instrumented test**: 0–60 mph (from rest; the bench has no 1 ft rollout), 70–0 mph and skidpad g, from Car and Driver, Motor Trend or Edmunds. A target scaled or estimated (60–0 to 70–0, a sister model) says so.
+3. **Estimates labelled**: centre of gravity, inertia (from the body box), spring rates from ride frequencies of the class, dampers, brake torque, converter.
+4. **Calibrate only the estimates on the bench**: braking distance sets `static_mu`, the skidpad sets `lateral_grip_scale`, the launch sets launch speed and converter inside real limits. Published torque is never scaled.
+5. **Stability gate**: `SimCruise.Vehicle.LiftOff.<id>` must not spin at 0.3 or 0.5 g lift-off or trail braking; `StaticLoad.<id>` must carry the weight at the file's split and ride height.
+6. **What is left open is written down** in `calibration_open`, with the reason, so the test reports it instead of failing.
+7. **Look at it**: the turntable (`-SimCruiseTurntable=<id>`) photographs the fitted model, the cockpit and the steered cockpit, to compare with photographs of the real car.
 
 § The NB2 row is the Unreal bench (`SimCruise.Vehicle.CarTrack.nb2001`). The downloaded model (niev, CC BY 4.0) is the 2001-05 NB2 facelift, so the player car is labelled as one (owner decision, 11 November 2026): the BP-Z3 engine with sequential valve timing (142 hp at 7000 rpm, 125 lb-ft at 5500 rpm, Mazda US specification), 2,387 lb curb weight; chassis, tyres, brakes and gearing carried over from the 1999 Sport. Its 0-60 target is the one published NB2 figure found (7.8 s, Consumer Guide); no published NB2 70-0 or skidpad was found, so the 1999 numbers stand in as stated open items. The NB2 body is stiffer than the NB1, which the simulation cannot show yet (no chassis compliance). Tyres carry no brand lettering (owner decision): the tyre material replaces every model's tyre texture with plain rubber.
 

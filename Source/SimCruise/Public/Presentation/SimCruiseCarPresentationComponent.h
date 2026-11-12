@@ -126,6 +126,10 @@ public:
 	double GetSteeringRatio() const { return SteeringRatio; }
 	/** The steering-wheel angle shown for the current state, radians (+ = anticlockwise as the driver sees it). */
 	double GetSteeringWheelAngleRad() const { return SteeringWheelAngle; }
+	/** The roll a road wheel is drawn with (its spinner's pitch), radians in (-pi, pi]; 0 without wheels. */
+	double GetDrawnSpinRad(int32 Wheel) const;
+	/** The steer a front wheel is drawn with (its knuckle's yaw), radians, positive to the left. */
+	double GetDrawnSteerRad(int32 Wheel) const;
 
 	/** Driver eye, component space, cm (from the car data). */
 	FVector GetDriverEye() const { return DriverEyeCm; }

@@ -139,6 +139,13 @@ struct FSimCruiseCarDefinition
 	double ClutchBackTorqueNm = 200.0;
 	double LaunchSpeedRpm = 1000.0;
 	double LaunchSpeedRpmPerThrottleFraction = 2250.0;
+	/**
+	 * Torque converter of an "automatic": output over input torque at stall (speed ratio 0),
+	 * falling linearly to 1 at the coupling point. 1 (the default) is no converter.
+	 */
+	double TorqueConverterStallRatio = 1.0;
+	/** Turbine over impeller speed where the converter stops multiplying and couples. */
+	double TorqueConverterCouplingSpeedRatio = 0.85;
 	double ManualClutchCouplingNmPerRadPerSecond = 10.0;
 	FString TransmissionKind = TEXT("manual");
 	FString DrivetrainLayout = TEXT("rwd");

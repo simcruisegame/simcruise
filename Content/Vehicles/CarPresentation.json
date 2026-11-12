@@ -85,7 +85,21 @@
     "radio_mhz": 91.3,
     "source": "display_baseColor.png paints 5:12 between x 650-990 and y 15-112 of 1024 x 128; the dash shows it upside down (seven-segment 5 reads as 2), as 2:15. The NB clock is a 12-hour green LCD. The same mesh maps the texture's wrapped copy (V -0.91..0) onto the radio's LCD, which the stock radio uses for the tuned station: WLRN, Miami's public radio, at 91.3 FM."
    },
-   "roles_source": "'white' is the cluster's numerals and ticks and the console's labels (meshes only on the dash, x -9..47, y -83..-49 cm in the model): backlit like the real panel, 25 nits, which daylight in the cabin drowns and night shows."
+   "roles_source": "'white' is the cluster's numerals and ticks and the console's labels (meshes only on the dash, x -9..47, y -83..-49 cm in the model): backlit like the real panel, 25 nits, which daylight in the cabin drowns and night shows.",
+   "steering_wheel": {
+    "centre": [
+     0.11,
+     -0.351,
+     0.713
+    ],
+    "axis": [
+     -0.829,
+     0.035,
+     0.559
+    ],
+    "radius": 0.185,
+    "source": "Centre and column from the model (the rig's own ring search, which found the 0.162 m horn ring); radius 0.185 m: the NB's 370 mm wheel, measured on the model's rim (estimate)."
+   }
   },
   "nb1999": {
    "model": "data/art/traffic/miata_nb-5d103c56/scene.gltf",
@@ -171,13 +185,36 @@
     "radio_mhz": 91.3,
     "source": "display_baseColor.png paints 5:12 between x 650-990 and y 15-112 of 1024 x 128; the dash shows it upside down (seven-segment 5 reads as 2), as 2:15. The NB clock is a 12-hour green LCD. The same mesh maps the texture's wrapped copy (V -0.91..0) onto the radio's LCD, which the stock radio uses for the tuned station: WLRN, Miami's public radio, at 91.3 FM."
    },
-   "roles_source": "'white' is the cluster's numerals and ticks and the console's labels (meshes only on the dash, x -9..47, y -83..-49 cm in the model): backlit like the real panel, 25 nits, which daylight in the cabin drowns and night shows."
+   "roles_source": "'white' is the cluster's numerals and ticks and the console's labels (meshes only on the dash, x -9..47, y -83..-49 cm in the model): backlit like the real panel, 25 nits, which daylight in the cabin drowns and night shows.",
+   "steering_wheel": {
+    "centre": [
+     0.11,
+     -0.351,
+     0.713
+    ],
+    "axis": [
+     -0.829,
+     0.035,
+     0.559
+    ],
+    "radius": 0.185,
+    "source": "Centre and column from the model (the rig's own ring search, which found the 0.162 m horn ring); radius 0.185 m: the NB's 370 mm wheel, measured on the model's rim (estimate)."
+   }
   },
   "mustang65": {
    "model": "data/art/traffic/mustang65-05f2a294/scene.gltf",
    "engine_sound": {
     "layout": "v8_crossplane",
-    "bank_of_event": [1, 0, 1, 1, 0, 1, 0, 0],
+    "bank_of_event": [
+     1,
+     0,
+     1,
+     1,
+     0,
+     1,
+     0,
+     0
+    ],
     "near_gain": 1.0,
     "far_gain": 0.62,
     "source": "Ford 289 V8: firing order 1-5-4-2-6-3-7-8, cylinders 1-4 on the right (passenger) bank and 5-8 on the left (Ford service manual numbering); dual exhausts, the driver's-side pipe nearer. Bank gains 1.0 / 0.62 are an estimate (no recording synchronised with rpm)."
@@ -275,7 +312,16 @@
    "model": "data/art/traffic/c8-790c40cc/scene.gltf",
    "engine_sound": {
     "layout": "v8_crossplane",
-    "bank_of_event": [0, 1, 0, 1, 1, 0, 1, 0],
+    "bank_of_event": [
+     0,
+     1,
+     0,
+     1,
+     1,
+     0,
+     1,
+     0
+    ],
     "near_gain": 1.0,
     "far_gain": 0.62,
     "source": "GM LT2 6.2 L V8: firing order 1-8-7-2-6-5-4-3, odd cylinders on the left (driver's side) bank and even on the right (GM numbering); quad tips, the driver's-side pair nearer. Bank gains 1.0 / 0.62 are an estimate (no recording synchronised with rpm)."
@@ -330,10 +376,8 @@
   "model3": {
    "model": "data/art/traffic/model3-3a602469/scene.gltf",
    "credit": "\"Tesla M3 model\" by wintrez (https://sketchfab.com/3d-models/tesla-m3-model-3a602469d7874d1397efa67182198705), CC BY 4.0",
-   "parked": {
-    "wheelbase_m": 2.875, "front_track_m": 1.580, "rear_track_m": 1.580, "tyre_radius_m": 0.334, "tyre_width_m": 0.235,
-    "source": "Tesla Model 3 (2017-2023) specifications: wheelbase 113.2 in, track 62.2 in; 235/45R18 tyres (radius 228.6 + 105.8 mm)."
-   },
+   "steering_ratio": 10.3,
+   "steering_ratio_source": "About 10:1 overall (two turns lock to lock), Tesla Model 3; estimate from reviews, unverified.",
    "roles": {
     "carpaint": "paint",
     "OrangeLights": "lamp_amber",
@@ -347,10 +391,8 @@
   "f150raptor18": {
    "model": "data/art/traffic/f150raptor18-096aa1ba/scene.gltf",
    "credit": "\"2018 Ford F-150 Raptor\" by Galaxy Car Showroom (https://sketchfab.com/3d-models/2018-ford-f-150-raptor-096aa1ba46984eeeb196b75f4d213a0a), CC BY 4.0",
-   "parked": {
-    "wheelbase_m": 3.393, "front_track_m": 1.869, "rear_track_m": 1.869, "tyre_radius_m": 0.436, "tyre_width_m": 0.315,
-    "source": "Ford F-150 Raptor SuperCab (2017-2020) specifications: wheelbase 133.6 in, length 220.0 in, track 73.6 in; LT315/70R17 tyres (radius 215.9 + 220.5 mm). The model's length to wheelbase (1.658) is the SuperCab's (1.647), not the SuperCrew's (1.599)."
-   },
+   "steering_ratio": 17.0,
+   "steering_ratio_source": "About 17:1 electric power steering (F-150, 2015-2020); estimate for the Raptor, unverified.",
    "roles": {
     "F-150_Paint": "paint",
     "Red_Glass": "lamp_rear",
@@ -362,10 +404,8 @@
   "grandcherokee13": {
    "model": "data/art/traffic/grandcherokee13-74686a75/scene.gltf",
    "credit": "\"2013 Jeep Grand Cherokee SRT8\" by Galaxy Car Showroom (https://sketchfab.com/3d-models/2013-jeep-grand-cherokee-srt8-74686a75e26146a19337724a7e1d458a), CC BY 4.0",
-   "parked": {
-    "wheelbase_m": 2.915, "front_track_m": 1.628, "rear_track_m": 1.635, "tyre_radius_m": 0.387, "tyre_width_m": 0.295,
-    "source": "Jeep Grand Cherokee SRT8 (WK2, 2012-2013) specifications: wheelbase 114.8 in, track 64.1 / 64.4 in; 295/45ZR20 tyres (radius 254 + 132.8 mm)."
-   },
+   "steering_ratio": 15.7,
+   "steering_ratio_source": "About 15.7:1 (Grand Cherokee WK2 hydraulic rack); estimate, unverified.",
    "roles": {
     "carskin_skin1": "paint",
     "magsilver_tire": "wheel_alloy",
@@ -377,10 +417,8 @@
   "odyssey18": {
    "model": "data/art/traffic/odyssey-175ce6fb/scene.gltf",
    "credit": "\"Honda Odessey\" by MattDoesBlender (https://sketchfab.com/3d-models/honda-odessey-175ce6fbbb11469ab068965ce4854554), CC BY 4.0",
-   "parked": {
-    "wheelbase_m": 3.000, "front_track_m": 1.725, "rear_track_m": 1.725, "tyre_radius_m": 0.370, "tyre_width_m": 0.235,
-    "source": "Honda Odyssey (2018-2024) specifications: wheelbase 118.1 in, track 67.9 in; 235/60R18 tyres (radius 228.6 + 141 mm)."
-   },
+   "steering_ratio": 16.0,
+   "steering_ratio_source": "About 16:1 (Odyssey, 2018); estimate, unverified.",
    "roles": {
     "Body": "paint",
     "kaca_Material": "glass",
@@ -392,10 +430,8 @@
   "crv25": {
    "model": "data/art/traffic/crv25-91c66738/scene.gltf",
    "credit": "\"2025 Honda CR-V 1.5 VTEC Turbo CVT\" by Palma123 JAAT (https://sketchfab.com/3d-models/2025-honda-cr-v-15-vtec-turbo-cvt-91c6673859444597bf006a0ef8570005), CC BY 4.0",
-   "parked": {
-    "wheelbase_m": 2.700, "front_track_m": 1.623, "rear_track_m": 1.641, "tyre_radius_m": 0.370, "tyre_width_m": 0.235,
-    "source": "Honda CR-V (2023-2025) specifications: wheelbase 106.3 in, track 63.9 / 64.6 in, length 184.8 in; 235/60R18 tyres (radius 228.6 + 141 mm)."
-   },
+   "steering_ratio": 14.3,
+   "steering_ratio_source": "About 14.3:1 variable-ratio rack (CR-V, 2023); estimate, unverified.",
    "roles": {
     "paintBlue": "paint",
     "GlassClear": "glass",

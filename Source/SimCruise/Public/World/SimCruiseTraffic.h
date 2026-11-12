@@ -84,6 +84,8 @@ public:
 	double BlendYawDeg = 0.0;
 	double SteerRad = 0.0;
 	double Spin = 0.0;
+	/** The front-left wheel's drawn roll at the last traffic report (checks that the wheels visibly roll). */
+	double ReportedSpinRad = 0.0;
 	bool bBraking = false;
 	bool bLamps = false;
 	/** The successor chosen ahead of the ribbon's end (tile, ribbon, dir, entry S); Ribbon INDEX_NONE until chosen. */
@@ -110,6 +112,10 @@ public:
 	/** What set the gap last frame: 0 nothing, 1 a car in the lane, 2 the player, 3 a crossing car, 4 a stop line, 5 giving way on a left turn. */
 	int32 Why = 0;
 	bool bYielding = false;
+	/** Seconds at a standstill (below 0.3 m/s), for the deadlock report and the gridlock breaker. */
+	double StandS = 0.0;
+	/** Where the thing this car waited for last frame stood (the car or player ahead or across; zero for a stop line or a yield). */
+	FVector BlockerCm = FVector::ZeroVector;
 	/** Where the chosen way on starts (m along the ribbon), whether that is the ribbon's end, and whether it is straight on. */
 	double DecisionS = 0.0;
 	bool bDecisionAtEnd = true;

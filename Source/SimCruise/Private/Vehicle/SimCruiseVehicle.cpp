@@ -379,7 +379,7 @@ void ASimCruiseVehicle::Tick(float DeltaSeconds)
 	// a few pixels; parked and traffic cars never have them).
 	const APlayerController* PC = Cast<APlayerController>(GetController());
 	const ASimCruisePlayerCameraManager* Camera = PC ? Cast<ASimCruisePlayerCameraManager>(PC->PlayerCameraManager) : nullptr;
-	const bool bInSeat = !Camera || Camera->GetView() == ESimCruiseView::Driver;
+	const bool bInSeat = !Camera || Camera->GetShownView() == ESimCruiseView::Driver;
 	const bool bWantMirrors = IsPlayerControlled() && bInSeat && CVarMirrors.GetValueOnGameThread() != 0 && CarModel;
 	if (bWantMirrors != bMirrorsLive && CarModel)
 	{
