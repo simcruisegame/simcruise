@@ -16,6 +16,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Live/SimCruiseLiveSky.h"
 #include "Live/SimCruiseNeuralDetail.h"
+#include "Live/SimCruiseSceneParser.h"
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Misc/App.h"
@@ -343,6 +344,26 @@ void USimCruiseLiveWorldSubsystem::Tick(float DeltaTime)
 	}
 
 	TickPhotoDownloads();
+	// -SimCruiseParseDir=<folder>: after 8 s, label up to 8 photographs there with the local scene
+	// parser on a worker (look tests of the parser in a running game).
+	if (!bParseTestStarted && Clock > 8.0)
+	{
+		bParseTestStarted = true;
+		FString Dir;
+		if (FParse::Value(FCommandLine::Get(), TEXT("SimCruiseParseDir="), Dir) && FSimCruiseSceneParser::Get().Initialize())
+		{
+			TArray<FString> Files;
+			IFileManager::Get().FindFiles(Files, *(Dir / TEXT("*.jpg")), true, false);
+			Files.SetNum(FMath::Min(Files.Num(), 8));
+			Async(EAsyncExecution::Thread, [Dir, Files]()
+			{
+				for (const FString& F : Files)
+				{
+					FSimCruiseSceneParser::Get().ParseFileToPicture(Dir / F);
+				}
+			});
+		}
+	}
 	ApplyRoadWater();
 
 	for (int32 Index = 0; Index < static_cast<int32>(EFeed::Count); ++Index)

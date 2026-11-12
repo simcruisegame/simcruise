@@ -1,7 +1,7 @@
 {
 	"tile": "18178_27908",
-	"fetched": "2026-11-12T07:31:33.477Z",
-	"sources": "overpass:70 wikidata:6 photos photos",
+	"fetched": "2026-11-12T20:59:37.901Z",
+	"sources": "overpass:70 wikidata:6 photos photos photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{

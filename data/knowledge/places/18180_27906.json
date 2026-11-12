@@ -1,7 +1,7 @@
 {
 	"tile": "18180_27906",
-	"fetched": "2026-11-12T07:31:49.240Z",
-	"sources": "overpass:183 wikidata:62 photos photos",
+	"fetched": "2026-11-12T21:01:06.535Z",
+	"sources": "overpass:183 wikidata:62 photos photos photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -10,8 +10,8 @@
 			"name": "Loews Miami Beach Hotel",
 			"osm": "way/100348830",
 			"wikidata": "Q111393196",
-			"colour": "#EDEDE5",
-			"colour_source": "measured in File:Miami Beach - Loews Miami Beach from boardwalk.jpg (2011, P. Hughes, CC BY-SA 4.0; wall 39% of the facade band)",
+			"colour": "#EDECE4",
+			"colour_source": "measured in File:Miami Beach - Loews Miami Beach from boardwalk.jpg (2011, P. Hughes, CC BY-SA 4.0; wall 32% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - Loews Miami Beach from boardwalk.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
@@ -117,8 +117,8 @@
 				"Art Deco architecture"
 			],
 			"year": 1938,
-			"colour": "#B4B4B0",
-			"colour_source": "measured in File:Southbeachcameo01.JPG (2006, Daniel di Palma, CC BY-SA 2.5; wall 54% of the facade band)",
+			"colour": "#B3B3B1",
+			"colour_source": "measured in File:Southbeachcameo01.JPG (2006, Daniel di Palma, CC BY-SA 2.5; wall 55% of the facade band); wall pixels found by the local scene parser",
 			"image": "Southbeachcameo01.JPG",
 			"building": "yes"
 		},
@@ -297,8 +297,8 @@
 			],
 			"year": 1915,
 			"heritage": "National Register of Historic Places listed place",
-			"colour": "#B6B7B0",
-			"colour_source": "measured in File:SouthBeachMiamiBeach.jpg (2008, Massimo Catarinella, CC BY-SA 3.0; wall 35% of the facade band)",
+			"colour": "#B0B4B1",
+			"colour_source": "measured in File:SouthBeachMiamiBeach.jpg (2008, Massimo Catarinella, CC BY-SA 3.0; wall 45% of the facade band); wall pixels found by the local scene parser",
 			"image": "SouthBeachMiamiBeach.jpg",
 			"district": true
 		},
@@ -394,8 +394,8 @@
 			"year": 1938,
 			"architect": "Henry Hohauser",
 			"heritage": "National Register of Historic Places contributing property",
-			"colour": "#DDDDD9",
-			"colour_source": "measured in File:Miami Beach - Crescent Hotel.jpg (2021, P. Hughes, CC BY-SA 4.0; wall 43% of the facade band)",
+			"colour": "#DCDCD8",
+			"colour_source": "measured in File:Miami Beach - Crescent Hotel.jpg (2021, P. Hughes, CC BY-SA 4.0; wall 43% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - Crescent Hotel.jpg",
 			"building": "hotel"
 		},
@@ -501,8 +501,8 @@
 			],
 			"year": 1940,
 			"architect": "Lawrence Murray Dixon",
-			"colour": "#E5E5E7",
-			"colour_source": "measured in File:McAlpin-Ocean Plaza.jpg (2016, Gzzz, CC BY-SA 4.0; wall 42% of the facade band)",
+			"colour": "#E3E4E6",
+			"colour_source": "measured in File:McAlpin-Ocean Plaza.jpg (2016, Gzzz, CC BY-SA 4.0; wall 53% of the facade band); wall pixels found by the local scene parser",
 			"image": "McAlpin-Ocean Plaza.jpg",
 			"building": "hotel"
 		},
@@ -614,8 +614,8 @@
 			],
 			"year": 1955,
 			"architect": "A. Herbert Mathes",
-			"colour": "#BEC3B9",
-			"colour_source": "measured in File:Miami Beach - Parisian Hotel.jpg (2024, P. Hughes, CC BY 4.0; wall 44% of the facade band)",
+			"colour": "#C0C7BE",
+			"colour_source": "measured in File:Miami Beach - Parisian Hotel.jpg (2024, P. Hughes, CC BY 4.0; wall 38% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - Parisian Hotel.jpg",
 			"building": "hotel"
 		},
@@ -787,8 +787,8 @@
 			],
 			"year": 1937,
 			"architect": "Henry Hohauser",
-			"colour": "#CFD6D6",
-			"colour_source": "measured in File:Miami Beach - The Shepley.jpg (2024, P. Hughes, CC BY 4.0; wall 58% of the facade band)",
+			"colour": "#CDD5D5",
+			"colour_source": "measured in File:Miami Beach - The Shepley.jpg (2024, P. Hughes, CC BY 4.0; wall 59% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - The Shepley.jpg",
 			"building": "hotel"
 		},
@@ -815,7 +815,7 @@
 			"year": 1925,
 			"architect": "Robert A. Taylor",
 			"colour": "#B8998D",
-			"colour_source": "measured in File:Miami Beach Clay Hotel R01.jpg (2006, Marc Ryckaert, CC BY-SA 4.0; wall 46% of the facade band)",
+			"colour_source": "measured in File:Miami Beach Clay Hotel R01.jpg (2006, Marc Ryckaert, CC BY-SA 4.0; wall 43% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach Clay Hotel R01.jpg",
 			"building": "hotel"
 		},

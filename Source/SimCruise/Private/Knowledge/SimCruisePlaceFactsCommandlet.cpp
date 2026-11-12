@@ -5,6 +5,7 @@
 #include "GenericPlatform/GenericPlatformHttp.h"
 #include "HAL/FileManager.h"
 #include "HAL/PlatformProcess.h"
+#include "Live/SimCruiseSceneParser.h"
 #include "HttpManager.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpRequest.h"
@@ -188,6 +189,10 @@ int32 USimCruisePlaceFactsCommandlet::Main(const FString& Params)
 	// -Photos: each building with its own Wikidata photograph gets its wall colour measured.
 	if (FParse::Param(*Params, TEXT("Photos")))
 	{
+		// The local scene parser (CPU) finds the wall pixels; -Remeasure measures again the
+		// colours measured before (a mapped colour is never touched).
+		FSimCruiseSceneParser::Get().Initialize();
+		const bool bRemeasure = FParse::Param(*Params, TEXT("Remeasure"));
 		int32 Measured = 0, Tried = 0;
 		for (const FIntPoint& Tile : Tiles)
 		{
@@ -216,7 +221,8 @@ int32 USimCruisePlaceFactsCommandlet::Main(const FString& Params)
 			for (FSimCruisePlaceRecord& R : Records)
 			{
 				// A mapped colour wins; a measured one is kept.
-				if (R.Image.IsEmpty() || !R.Colour.IsEmpty()) continue;
+				const bool bMeasuredBefore = R.ColourSource.StartsWith(TEXT("measured in File:"));
+				if (R.Image.IsEmpty() || (!R.Colour.IsEmpty() && !(bRemeasure && bMeasuredBefore))) continue;
 				bChanged = true;
 				++Tried;
 				// Each of its photographs in turn, until one is a recent colour photo with a clear wall.
@@ -241,9 +247,19 @@ int32 USimCruisePlaceFactsCommandlet::Main(const FString& Params)
 					FColor Wall;
 					float Share = 0.0f;
 					FPlatformProcess::Sleep(0.3f);
-					if (SimCruisePlacePhotos::DecodeImage(Bytes, Pixels, W, H) && SimCruisePlacePhotos::WallColour(Pixels, W, H, Wall, Share))
+					if (!SimCruisePlacePhotos::DecodeImage(Bytes, Pixels, W, H)) continue;
+					// The local scene parser finds the wall pixels when it can; the colour rule otherwise.
+					TArray<uint8> Labels;
+					int32 GW = 0, GH = 0;
+					const bool bParsed = FSimCruiseSceneParser::Get().IsReady() && FSimCruiseSceneParser::Get().ParseWithTimeout(Pixels, W, H, Labels, GW, GH);
+					const bool bMasked = bParsed && SimCruisePlacePhotos::WallColourMasked(Pixels, W, H, Labels, GW, GH, Wall, Share);
+					if (bMasked || (!bParsed && SimCruisePlacePhotos::WallColour(Pixels, W, H, Wall, Share)))
 					{
 						SimCruisePlacePhotos::Apply(R, Wall, Share, Info);
+						if (bMasked)
+						{
+							R.ColourSource += TEXT("; wall pixels found by the local scene parser");
+						}
 						++Measured;
 						UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("%s: wall %s %s"), *R.Name, *R.Colour, *R.ColourSource);
 						break;

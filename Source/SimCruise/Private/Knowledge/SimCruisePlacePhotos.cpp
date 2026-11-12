@@ -2,6 +2,8 @@
 
 #include "Knowledge/SimCruisePlacePhotos.h"
 
+#include "Live/SimCruiseSceneParser.h"
+
 #include "Dom/JsonObject.h"
 #include "GenericPlatform/GenericPlatformHttp.h"
 #include "IImageWrapper.h"
@@ -109,6 +111,31 @@ namespace SimCruisePlacePhotos
 		return Info.Year >= 1990 && !Info.bPostcard && !Info.ThumbUrl.IsEmpty() && (Lower.Contains(TEXT(".jpg")) || Lower.Contains(TEXT(".jpeg")));
 	}
 
+	/** The biggest coarse colour bin (24 levels a step) with its neighbours: its median and its share of Kept. */
+	static bool DominantColour(const TArray<FColor>& Kept, FColor& OutColour, float& OutShare)
+	{
+		// Coarse colour bins (24 levels a step), the biggest bin with its neighbours.
+		auto Bin = [](const FColor& C) { return FIntVector(C.R / 24, C.G / 24, C.B / 24); };
+		TMap<FIntVector, int32> Counts;
+		for (const FColor& C : Kept) ++Counts.FindOrAdd(Bin(C));
+		FIntVector Best = FIntVector::ZeroValue;
+		int32 BestN = -1;
+		for (const auto& KV : Counts) if (KV.Value > BestN) { BestN = KV.Value; Best = KV.Key; }
+		TArray<uint8> R, G, B;
+		for (const FColor& C : Kept)
+		{
+			const FIntVector Q = Bin(C);
+			if (FMath::Abs(Q.X - Best.X) <= 1 && FMath::Abs(Q.Y - Best.Y) <= 1 && FMath::Abs(Q.Z - Best.Z) <= 1)
+			{
+				R.Add(C.R); G.Add(C.G); B.Add(C.B);
+			}
+		}
+		OutShare = float(R.Num()) / Kept.Num();
+		auto Median = [](TArray<uint8>& V) { V.Sort(); return V[V.Num() / 2]; };
+		OutColour = FColor(Median(R), Median(G), Median(B), 255);
+		return true;
+	}
+
 	bool WallColour(const TArray<FColor>& Pixels, int32 W, int32 H, FColor& OutColour, float& OutShare)
 	{
 		if (W < 16 || H < 16 || Pixels.Num() < W * H) return false;
@@ -136,26 +163,43 @@ namespace SimCruisePlacePhotos
 		}
 		// A black-and-white picture tells nothing about the paint.
 		if (All == 0 || Kept.Num() < 200 || SatSum / All < 0.04) return false;
-		// Coarse colour bins (24 levels a step), the biggest bin with its neighbours.
-		auto Bin = [](const FColor& C) { return FIntVector(C.R / 24, C.G / 24, C.B / 24); };
-		TMap<FIntVector, int32> Counts;
-		for (const FColor& C : Kept) ++Counts.FindOrAdd(Bin(C));
-		FIntVector Best = FIntVector::ZeroValue;
-		int32 BestN = -1;
-		for (const auto& KV : Counts) if (KV.Value > BestN) { BestN = KV.Value; Best = KV.Key; }
-		TArray<uint8> R, G, B;
-		for (const FColor& C : Kept)
+		return DominantColour(Kept, OutColour, OutShare) && OutShare >= 0.2f;
+	}
+
+	bool WallColourMasked(const TArray<FColor>& Pixels, int32 W, int32 H, const TArray<uint8>& Labels, int32 GW, int32 GH, FColor& OutColour, float& OutShare)
+	{
+		if (W < 16 || H < 16 || Pixels.Num() < W * H || GW < 1 || GH < 1 || Labels.Num() < GW * GH) return false;
+		const int32 Step = FMath::Max(1, W / 160);
+		TArray<FColor> Kept;
+		double SatSum = 0.0;
+		int32 All = 0, Walls = 0;
+		for (int32 y = 0; y < H; y += Step)
 		{
-			const FIntVector Q = Bin(C);
-			if (FMath::Abs(Q.X - Best.X) <= 1 && FMath::Abs(Q.Y - Best.Y) <= 1 && FMath::Abs(Q.Z - Best.Z) <= 1)
+			for (int32 x = 0; x < W; x += Step)
 			{
-				R.Add(C.R); G.Add(C.G); B.Add(C.B);
+				++All;
+				// Inside the wall only: a cell counts when it and its four neighbours are building or
+				// wall, so the parser's ragged edge against the sky and the trees stays out.
+				auto IsWall = [&](int32 Px, int32 Py)
+				{
+					const ESimCruiseSceneClass C = FSimCruiseSceneParser::ClassAt(Labels, GW, GH, Px, Py, W, H);
+					return C == ESimCruiseSceneClass::Building || C == ESimCruiseSceneClass::Wall;
+				};
+				const int32 Cx = FMath::Max(1, W / GW), Cy = FMath::Max(1, H / GH);
+				if (!IsWall(x, y)) continue;
+				++Walls;
+				if (!IsWall(x - Cx, y) || !IsWall(x + Cx, y) || !IsWall(x, y - Cy) || !IsWall(x, y + Cy)) continue;
+				const FColor C = Pixels[y * W + x];
+				const int32 Mx = FMath::Max3(C.R, C.G, C.B), Mn = FMath::Min3(C.R, C.G, C.B);
+				SatSum += Mx > 0 ? double(Mx - Mn) / Mx : 0.0;
+				// Deep shadow, and strongly blue pixels (sky the parser took for wall, or tinted
+				// glass), say nothing about the paint; pastel blue stucco (B - R under 40) stays.
+				const bool bBlue = C.B > C.R + 40 && C.B > C.G + 15;
+				if (Mx >= 95 && !bBlue) Kept.Add(C);
 			}
 		}
-		OutShare = float(R.Num()) / Kept.Num();
-		auto Median = [](TArray<uint8>& V) { V.Sort(); return V[V.Num() / 2]; };
-		OutColour = FColor(Median(R), Median(G), Median(B), 255);
-		return OutShare >= 0.2f;
+		if (All == 0 || Walls < All * 0.08 || Kept.Num() < 200 || SatSum / FMath::Max(Walls, 1) < 0.04) return false;
+		return DominantColour(Kept, OutColour, OutShare) && OutShare >= 0.2f;
 	}
 
 	bool DecodeImage(const TArray<uint8>& Bytes, TArray<FColor>& OutPixels, int32& OutWidth, int32& OutHeight)

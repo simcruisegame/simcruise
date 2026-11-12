@@ -1,7 +1,7 @@
 {
 	"tile": "18180_27905",
-	"fetched": "2026-11-12T07:31:45.122Z",
-	"sources": "overpass:107 wikidata:60 photos photos",
+	"fetched": "2026-11-12T21:00:55.368Z",
+	"sources": "overpass:107 wikidata:60 photos photos photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -12,7 +12,7 @@
 			"wikidata": "Q7012600",
 			"year": 1987,
 			"colour": "#DFE0D5",
-			"colour_source": "measured in File:Miami New World Center.jpg (2014, Alexf, CC BY-SA 3.0; wall 38% of the facade band)",
+			"colour_source": "measured in File:Miami New World Center.jpg (2014, Alexf, CC BY-SA 3.0; wall 49% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami New World Center.jpg",
 			"amenity": "school"
 		},
@@ -27,8 +27,8 @@
 			],
 			"year": 1936,
 			"architect": "Thomas W. Lamb",
-			"colour": "#72725C",
-			"colour_source": "measured in File:Miami Beach FL Lincoln Mall Lincoln Theatre01.jpg (2011, Ebyabe, CC BY-SA 3.0; wall 59% of the facade band)",
+			"colour": "#70725E",
+			"colour_source": "measured in File:Miami Beach FL Lincoln Mall Lincoln Theatre01.jpg (2011, Ebyabe, CC BY-SA 3.0; wall 53% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach FL Lincoln Mall Lincoln Theatre01.jpg",
 			"levels": 4,
 			"building": "commercial"
@@ -142,8 +142,8 @@
 			],
 			"year": 1940,
 			"architect": "Lawrence Murray Dixon",
-			"colour": "#F5F8F6",
-			"colour_source": "measured in File:Ritz Plaza Hotel Miami Beach 1.jpg (2016, Gzzz, CC BY-SA 4.0; wall 43% of the facade band)",
+			"colour": "#F5F7F6",
+			"colour_source": "measured in File:Ritz Plaza Hotel Miami Beach 1.jpg (2016, Gzzz, CC BY-SA 4.0; wall 44% of the facade band); wall pixels found by the local scene parser",
 			"image": "Ritz Plaza Hotel Miami Beach 1.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
@@ -161,8 +161,8 @@
 			"year": 1947,
 			"architect": "Robert Swartburg",
 			"heritage": "National Register of Historic Places contributing property",
-			"colour": "#F1F2F2",
-			"colour_source": "measured in File:Delano South Beach.jpg (2016, Gzzz, CC BY-SA 4.0; wall 67% of the facade band)",
+			"colour": "#F0F1F1",
+			"colour_source": "measured in File:Delano South Beach.jpg (2016, Gzzz, CC BY-SA 4.0; wall 56% of the facade band); wall pixels found by the local scene parser",
 			"image": "Delano South Beach.jpg",
 			"levels": 50,
 			"building": "construction",
@@ -194,8 +194,8 @@
 			],
 			"year": 2011,
 			"architect": "Frank Gehry",
-			"colour": "#6F5B4A",
-			"colour_source": "measured in File:New World Center main entrance and lobby.jpg (2011, Jonathan Schilling, CC BY-SA 3.0; wall 64% of the facade band)",
+			"colour": "#705948",
+			"colour_source": "measured in File:New World Center main entrance and lobby.jpg (2011, Jonathan Schilling, CC BY-SA 3.0; wall 42% of the facade band); wall pixels found by the local scene parser",
 			"image": "New World Center main entrance and lobby.jpg",
 			"building": "yes",
 			"amenity": "concert_hall"
@@ -367,8 +367,8 @@
 				"Art Deco architecture"
 			],
 			"heritage": "National Register of Historic Places listed place",
-			"colour": "#F9FEF8",
-			"colour_source": "measured in File:Collins District.JPG (2013, MosheA, CC BY-SA 3.0; wall 23% of the facade band)",
+			"colour": "#F9FDF8",
+			"colour_source": "measured in File:Collins District.JPG (2013, MosheA, CC BY-SA 3.0; wall 39% of the facade band); wall pixels found by the local scene parser",
 			"image": "Collins District.JPG",
 			"district": true
 		},
@@ -396,6 +396,8 @@
 			"wikidata": "Q96212269",
 			"year": 1951,
 			"architect": "Henry Hohauser",
+			"colour": "#CCD3E1",
+			"colour_source": "measured in File:Jackie Gleason Theater.jpg (2014, Visitor7, CC BY-SA 3.0; wall 48% of the facade band); wall pixels found by the local scene parser",
 			"image": "Jackie Gleason Theater.jpg"
 		},
 		{
@@ -483,8 +485,8 @@
 			"lon": -80.130039999999994,
 			"name": "Loews Miami Beach Hotel",
 			"wikidata": "Q111393196",
-			"colour": "#EDEDE5",
-			"colour_source": "measured in File:Miami Beach - Loews Miami Beach from boardwalk.jpg (2011, P. Hughes, CC BY-SA 4.0; wall 39% of the facade band)",
+			"colour": "#EDECE4",
+			"colour_source": "measured in File:Miami Beach - Loews Miami Beach from boardwalk.jpg (2011, P. Hughes, CC BY-SA 4.0; wall 32% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - Loews Miami Beach from boardwalk.jpg",
 			"building": "hotel"
 		},
@@ -526,8 +528,8 @@
 			],
 			"year": 1947,
 			"architect": "B. Robert Swartburg",
-			"colour": "#DEE1E1",
-			"colour_source": "measured in File:Marseilles Hotel Miami Beach Swartburg.jpg (2021, Barmych, CC BY-SA 4.0; wall 49% of the facade band)",
+			"colour": "#DEE0E0",
+			"colour_source": "measured in File:Marseilles Hotel Miami Beach Swartburg.jpg (2021, Barmych, CC BY-SA 4.0; wall 48% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - Marseilles Hotel 01.jpg|Marseilles Hotel Miami Beach Swartburg.jpg",
 			"building": "hotel"
 		},
@@ -740,8 +742,8 @@
 			"style": [
 				"Art Deco architecture"
 			],
-			"colour": "#EDEEED",
-			"colour_source": "measured in File:Miami Beach - Lincoln Arms Apartment Building.jpg (2024, P. Hughes, CC BY 4.0; wall 55% of the facade band)",
+			"colour": "#EDEDED",
+			"colour_source": "measured in File:Miami Beach - Lincoln Arms Apartment Building.jpg (2024, P. Hughes, CC BY 4.0; wall 39% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - Lincoln Arms Apartment Building.jpg",
 			"building": "hotel"
 		},
@@ -785,6 +787,8 @@
 				"mid-century modern"
 			],
 			"year": 1956,
+			"colour": "#EEF4FB",
+			"colour_source": "measured in File:Miami Beach Federal Building.jpg (2018, Photograph:  Radomianin, Public domain; wall 77% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach Federal Building.jpg"
 		}
 	]

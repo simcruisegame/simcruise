@@ -1,7 +1,7 @@
 {
 	"tile": "18181_27905",
-	"fetched": "2026-11-12T07:32:10.768Z",
-	"sources": "overpass:35 wikidata:18 photos photos",
+	"fetched": "2026-11-12T21:02:07.554Z",
+	"sources": "overpass:35 wikidata:18 photos photos photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -102,8 +102,8 @@
 			"year": 1947,
 			"architect": "B. Robert Swartburg",
 			"heritage": "National Register of Historic Places contributing property",
-			"colour": "#F1F2F2",
-			"colour_source": "measured in File:Delano South Beach.jpg (2016, Gzzz, CC BY-SA 4.0; wall 67% of the facade band)",
+			"colour": "#F0F1F1",
+			"colour_source": "measured in File:Delano South Beach.jpg (2016, Gzzz, CC BY-SA 4.0; wall 56% of the facade band); wall pixels found by the local scene parser",
 			"image": "Delano South Beach.jpg",
 			"building": "hotel"
 		},
@@ -117,8 +117,8 @@
 			],
 			"year": 1940,
 			"architect": "Lawrence Murray Dixon",
-			"colour": "#F5F8F6",
-			"colour_source": "measured in File:Ritz Plaza Hotel Miami Beach 1.jpg (2016, Gzzz, CC BY-SA 4.0; wall 43% of the facade band)",
+			"colour": "#F5F7F6",
+			"colour_source": "measured in File:Ritz Plaza Hotel Miami Beach 1.jpg (2016, Gzzz, CC BY-SA 4.0; wall 44% of the facade band); wall pixels found by the local scene parser",
 			"image": "Ritz Plaza Hotel Miami Beach 1.jpg",
 			"building": "hotel"
 		},
@@ -191,8 +191,8 @@
 			],
 			"year": 1947,
 			"architect": "B. Robert Swartburg",
-			"colour": "#DEE1E1",
-			"colour_source": "measured in File:Marseilles Hotel Miami Beach Swartburg.jpg (2021, Barmych, CC BY-SA 4.0; wall 49% of the facade band)",
+			"colour": "#DEE0E0",
+			"colour_source": "measured in File:Marseilles Hotel Miami Beach Swartburg.jpg (2021, Barmych, CC BY-SA 4.0; wall 48% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - Marseilles Hotel 01.jpg|Marseilles Hotel Miami Beach Swartburg.jpg",
 			"building": "hotel"
 		},

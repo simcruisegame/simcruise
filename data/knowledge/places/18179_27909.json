@@ -1,7 +1,7 @@
 {
 	"tile": "18179_27909",
-	"fetched": "2026-11-12T07:31:38.258Z",
-	"sources": "overpass:182 wikidata:17 photos photos",
+	"fetched": "2026-11-12T21:00:40.006Z",
+	"sources": "overpass:182 wikidata:17 photos photos photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -1017,8 +1017,8 @@
 			"wikidata": "Q4897552",
 			"architect": "A. Fraser Rose",
 			"heritage": "National Register of Historic Places listed place",
-			"colour": "#D9CEB5",
-			"colour_source": "measured in File:Miami Beach FL Beth Jacob Hall msm01.jpg (2011, Ebyabe, CC BY-SA 3.0; wall 37% of the facade band)",
+			"colour": "#D8CDB3",
+			"colour_source": "measured in File:Miami Beach FL Beth Jacob Hall msm01.jpg (2011, Ebyabe, CC BY-SA 3.0; wall 41% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach FL Beth Jacob Hall msm01.jpg"
 		},
 		{

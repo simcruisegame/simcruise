@@ -1,7 +1,9 @@
 // Copyright SimCruise contributors. All Rights Reserved.
 
 #include "Environment/SimCruiseDaylightModel.h"
+#include "Knowledge/SimCruisePlacePhotos.h"
 #include "Live/SimCruiseLiveData.h"
+#include "Live/SimCruiseSceneParser.h"
 #include "Misc/AutomationTest.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
@@ -254,6 +256,45 @@ bool FSimCruiseLivePhotosTest::RunTest(const FString&)
 	FString State;
 	TestTrue(TEXT("Census state"), FSimCruiseLiveData::ParseState(TEXT(R"({"result":{"geographies":{"States":[{"STUSAB":"FL","NAME":"Florida"}]}}})"), State, Error) && State == TEXT("FL"));
 	TestFalse(TEXT("outside the US"), FSimCruiseLiveData::ParseState(TEXT(R"({"result":{"geographies":{"States":[]}}})"), State, Error));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseLiveWallMaskTest, "SimCruise.Live.WallMask", Flags)
+bool FSimCruiseLiveWallMaskTest::RunTest(const FString&)
+{
+	// A pink Deco wall on the left, a blue car in front of it, sky and a green awning: the colour
+	// rule would see the awning and the car; the parser's labels keep only the wall.
+	const int32 W = 320, H = 240, GW = 40, GH = 30;
+	TArray<FColor> Px;
+	Px.SetNum(W * H);
+	TArray<uint8> Labels;
+	Labels.SetNum(GW * GH);
+	for (int32 y = 0; y < H; ++y)
+	{
+		for (int32 x = 0; x < W; ++x)
+		{
+			FColor C(236, 170, 190); // the wall
+			ESimCruiseSceneClass L = ESimCruiseSceneClass::Building;
+			if (y < H / 5) { C = FColor(200, 215, 235); L = ESimCruiseSceneClass::Sky; }
+			else if (y > H * 3 / 4) { C = FColor(90, 90, 95); L = ESimCruiseSceneClass::Road; }
+			else if (y > H / 2 && x < W / 2) { C = FColor(30, 60, 170); L = ESimCruiseSceneClass::Car; }
+			Px[y * W + x] = C;
+			Labels[(y * GH / H) * GW + (x * GW / W)] = static_cast<uint8>(L);
+		}
+	}
+	FColor Wall;
+	float Share = 0.0f;
+	TestTrue(TEXT("a wall is found"), SimCruisePlacePhotos::WallColourMasked(Px, W, H, Labels, GW, GH, Wall, Share));
+	TestTrue(FString::Printf(TEXT("the pink stucco, not the car (%d %d %d)"), Wall.R, Wall.G, Wall.B),
+		FMath::Abs(Wall.R - 236) < 12 && FMath::Abs(Wall.G - 170) < 12 && FMath::Abs(Wall.B - 190) < 12);
+	TestTrue(TEXT("one colour"), Share > 0.9f);
+
+	// No building in the frame: nothing.
+	for (uint8& L : Labels) { L = static_cast<uint8>(ESimCruiseSceneClass::Vegetation); }
+	TestFalse(TEXT("no wall pixels, no colour"), SimCruisePlacePhotos::WallColourMasked(Px, W, H, Labels, GW, GH, Wall, Share));
+
+	// Label lookup maps the photograph onto the grid.
+	TestEqual(TEXT("top-left cell"), FSimCruiseSceneParser::ClassAt(Labels, GW, GH, 0, 0, W, H), ESimCruiseSceneClass::Vegetation);
 	return true;
 }
 

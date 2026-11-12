@@ -1,7 +1,7 @@
 {
 	"tile": "18179_27906",
-	"fetched": "2026-11-12T07:31:35.360Z",
-	"sources": "overpass:282 wikidata:12 photos photos",
+	"fetched": "2026-11-12T20:59:58.441Z",
+	"sources": "overpass:282 wikidata:12 photos photos photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -225,8 +225,8 @@
 			"name": "Lincoln Road",
 			"wikidata": "Q3241310",
 			"heritage": "National Register of Historic Places listed place",
-			"colour": "#DEE0DB",
-			"colour_source": "measured in File:Lincoln Road.jpg (2008, , CC BY-SA 3.0; wall 39% of the facade band)",
+			"colour": "#C8D2D4",
+			"colour_source": "measured in File:Lincoln Road.jpg (2008, , CC BY-SA 3.0; wall 33% of the facade band); wall pixels found by the local scene parser",
 			"image": "Lincoln Road.jpg"
 		},
 		{
@@ -239,8 +239,8 @@
 			],
 			"year": 1915,
 			"heritage": "National Register of Historic Places listed place",
-			"colour": "#B6B7B0",
-			"colour_source": "measured in File:SouthBeachMiamiBeach.jpg (2008, Massimo Catarinella, CC BY-SA 3.0; wall 35% of the facade band)",
+			"colour": "#B0B4B1",
+			"colour_source": "measured in File:SouthBeachMiamiBeach.jpg (2008, Massimo Catarinella, CC BY-SA 3.0; wall 45% of the facade band); wall pixels found by the local scene parser",
 			"image": "SouthBeachMiamiBeach.jpg",
 			"district": true
 		},

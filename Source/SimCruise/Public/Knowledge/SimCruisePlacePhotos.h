@@ -39,6 +39,15 @@ namespace SimCruisePlacePhotos
 
 	/** The wall colour (sRGB) in the facade band of an image; Share is the part of the kept pixels it covers. */
 	SIMCRUISE_API bool WallColour(const TArray<FColor>& Pixels, int32 Width, int32 Height, FColor& OutColour, float& OutShare);
+
+	/**
+	 * The wall colour measured only where the local scene parser (FSimCruiseSceneParser) labels
+	 * the photograph building or wall, anywhere in the frame: no guessing which pixels are sky,
+	 * leaves, cars or street. Labels is the parser's grid (GridWidth x GridHeight over the photo).
+	 * Needs walls on at least 8 % of the frame. Share is the dominant colour's part of the wall.
+	 */
+	SIMCRUISE_API bool WallColourMasked(const TArray<FColor>& Pixels, int32 Width, int32 Height, const TArray<uint8>& Labels, int32 GridWidth, int32 GridHeight,
+		FColor& OutColour, float& OutShare);
 	SIMCRUISE_API bool DecodeImage(const TArray<uint8>& Bytes, TArray<FColor>& OutPixels, int32& OutWidth, int32& OutHeight);
 
 	/** A record's photographs are kept as "a.jpg|b.jpg". */

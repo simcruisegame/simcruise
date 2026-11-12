@@ -159,6 +159,7 @@ private:
 	double WorstFrameS = 0.0;
 	double NextFrameReportAt = 30.0;
 	bool bViewShotTaken = true;
+	bool bParseTestStarted = false;
 	double Clock = 0.0;
 	double FeedLat = 0.0;
 	double FeedLon = 0.0;
