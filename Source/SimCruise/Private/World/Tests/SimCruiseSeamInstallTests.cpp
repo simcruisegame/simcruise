@@ -11,6 +11,7 @@
 #include "World/SimCruiseTileBuilder.h"
 #include "World/SimCruiseTileData.h"
 #include "World/SimCruiseWorldSubsystem.h"
+#include "World/SimCruiseWorldResources.h"
 #include "World/SimCruiseWorldTile.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
@@ -125,9 +126,91 @@ bool FSimCruiseStepInstallTest::RunTest(const FString& Parameters)
 		// ContinueInstall with nothing left does nothing.
 		TestTrue(TEXT("nothing to continue"), Tile->ContinueInstall(5.0) < 5.0);
 		Tile->Destroy();
+
+		// With the world's resources the install is staged: steps remain, the tile is not
+		// collision-ready until they are done, and each ContinueInstall runs at least one.
+		USimCruiseWorldResources* Resources = NewObject<USimCruiseWorldResources>();
+		Resources->AddToRoot();
+		Resources->Initialise();
+		ASimCruiseWorldTile* Staged = World->SpawnActor<ASimCruiseWorldTile>(ASimCruiseWorldTile::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, Params);
+		Staged->Install(BuildWith(FIntPoint(18180, 27908), Side, None), Resources, nullptr, false);
+		TestTrue(TEXT("staged: steps remain after the install"), Staged->HasPendingInstall());
+		TestFalse(TEXT("staged: not collision-ready while steps remain"), Staged->IsCollisionReady());
+		int32 Steps = 0;
+		while (Staged->HasPendingInstall() && Steps < 100)
+		{
+			Staged->ContinueInstall(0.0); // a zero budget still runs one step
+			++Steps;
+		}
+		AddInfo(FString::Printf(TEXT("%d install steps"), Steps));
+		TestTrue(TEXT("staged: several steps (collision sections, one cook, palms, signs)"), Steps >= 3 && Steps < 100);
+		FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
+		TestTrue(TEXT("staged: collision ready once the steps are done"), Staged->IsCollisionReady());
+		Staged->Destroy();
+		Resources->RemoveFromRoot();
 	}
 	GEngine->DestroyWorldContext(World);
 	World->DestroyWorld(false);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseSlopedSeamTest, "SimCruise.World.SlopedSeam", SimCruiseSeamInstallTest::Flags)
+bool FSimCruiseSlopedSeamTest::RunTest(const FString& Parameters)
+{
+	// Two small synthetic tiles on a hillside: the ground rises 6 % east and falls 8 % across
+	// the road (north to south), and one road runs east across their shared edge.
+	constexpr double Side = 550.0;
+	auto TileJson = [](int32 X, double Z0, const TCHAR* Road)
+	{
+		FString H;
+		const int32 Grid = 8;
+		for (int32 j = 0; j <= Grid; ++j)
+		for (int32 i = 0; i <= Grid; ++i)
+		{
+			const double East = (i / double(Grid)) * Side, South = (j / double(Grid)) * Side;
+			if (!H.IsEmpty()) H += TEXT(",");
+			H += FString::Printf(TEXT("%.3f"), Z0 + 0.06 * East - 0.08 * (South - 0.5 * Side) * 0.1);
+		}
+		return FString::Printf(TEXT("{\"id\":[%d,500],\"grid\":%d,\"h\":[%s],\"roads\":[%s]}"), X, Grid, *H, Road);
+	};
+	FSimCruiseTileData A, B;
+	FString Error;
+	const bool bA = SimCruiseTileData::Parse(TileJson(100, 0.0, TEXT("[\"tertiary\",0,\"Hill Road\",[[0.2,0.5],[0.6,0.52],[1.0,0.5]],7]")), A, Error);
+	const bool bB = SimCruiseTileData::Parse(TileJson(101, 0.06 * Side, TEXT("[\"tertiary\",0,\"Hill Road\",[[0.0,0.5],[0.4,0.48],[0.8,0.5]],7]")), B, Error);
+	if (!TestTrue(FString::Printf(TEXT("synthetic tiles parse (%s)"), *Error), bA && bB)) return false;
+	TMap<FIntPoint, TSharedPtr<FSimCruiseTileBuild>> Done;
+	const TSharedRef<FSimCruiseTileBuild> BA = SimCruiseTileBuilder::Build(A, Side);
+	Done.Add(A.Id, BA);
+	const TArray<FSimCruiseSeamEnd> Contracts = SimCruiseTileBuilder::NeighbourContracts(B.Id, Side, [&Done](const FIntPoint& T) -> const FSimCruiseTileBuild*
+	{
+		const TSharedPtr<FSimCruiseTileBuild>* Found = Done.Find(T);
+		return Found ? Found->Get() : nullptr;
+	});
+	const TSharedRef<FSimCruiseTileBuild> BB = SimCruiseTileBuilder::Build(B, Side, Contracts);
+	const FSimCruiseRibbon* RA = BA->Roads.Ribbons.FindByPredicate([](const FSimCruiseRibbon& R) { return R.bEndOnBoundary || R.bStartOnBoundary; });
+	const FSimCruiseRibbon* RB = BB->Roads.Ribbons.FindByPredicate([](const FSimCruiseRibbon& R) { return R.bEndOnBoundary || R.bStartOnBoundary; });
+	if (!TestNotNull(TEXT("road on tile A"), RA) || !TestNotNull(TEXT("road on tile B"), RB)) return false;
+	const FSimCruiseRibbonStation& EA = RA->bEndOnBoundary ? RA->St.Last() : RA->St[0];
+	const FSimCruiseRibbonStation& EB = RB->bStartOnBoundary ? RB->St[0] : RB->St.Last();
+	// The sections meet exactly, banking and all.
+	const bool bSame = FVector2d::DotProduct(EA.T, EB.T) >= 0.0;
+	TestTrue(FString::Printf(TEXT("centre heights meet (%.4f / %.4f)"), EA.HC, EB.HC), FMath::Abs(EA.HC - EB.HC) < 1e-3);
+	TestTrue(TEXT("edge heights meet"), FMath::Abs((bSame ? EA.HL : EA.HR) - EB.HL) < 1e-3 && FMath::Abs((bSame ? EA.HR : EA.HL) - EB.HR) < 1e-3);
+	TestTrue(TEXT("the seam keeps its banking"), FMath::Abs((bSame ? EA.E : -EA.E) - EB.E) < 1e-3);
+	// Grade change from the seam pins: at most 1 % plus the hill's own change of grade.
+	double Worst = 0.0;
+	for (const FSimCruiseRibbon* R : { RA, RB })
+	{
+		for (int32 k = 2; k < R->St.Num(); ++k)
+		{
+			const double D1 = R->St[k - 1].S - R->St[k - 2].S, D2 = R->St[k].S - R->St[k - 1].S;
+			if (D1 < 1.0 || D2 < 1.0) continue;
+			const double G1 = (R->St[k - 1].Z - R->St[k - 2].Z) / D1, G2 = (R->St[k].Z - R->St[k - 1].Z) / D2;
+			Worst = FMath::Max(Worst, FMath::Abs(FMath::Abs(G2) - 0.06));
+		}
+	}
+	AddInfo(FString::Printf(TEXT("worst departure from the hill's 6 %% grade: %.4f"), Worst));
+	TestTrue(FString::Printf(TEXT("seam pins bend the grade by about 1 %% at most (%.4f)"), Worst), Worst < 0.02);
 	return true;
 }
 
