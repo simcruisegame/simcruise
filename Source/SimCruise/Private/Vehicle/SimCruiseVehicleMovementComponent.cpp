@@ -51,6 +51,9 @@ struct FSimCruiseVehiclePhysicsState
 	int32 MassPropertyRestores = 0;
 	/** Water on the road, 0 dry .. 1 soaked (the environment's live rain), set from the game thread. */
 	float RoadWetness = 0.f;
+	/** The air: density (kg/m3) and wind at the car's height (m/s, world axes). */
+	double AirDensity = 1.225;
+	FVector3d WindMps = FVector3d::ZeroVector;
 
 	FSimCruiseVehiclePhysicsState()
 	{
@@ -254,6 +257,8 @@ static void StepVehicleOnPhysicsThread(FSimCruiseVehiclePhysicsState& S, double 
 	const ECollisionChannel Channel = S.Channel;
 	const FCollisionQueryParams& QueryParams = S.QueryParams;
 	const float Wetness = FMath::Clamp(S.RoadWetness, 0.f, 1.f);
+	S.Sim.AirDensityKgPerM3 = S.AirDensity;
+	S.Sim.WindMps = S.WindMps;
 	auto Ground = [World, Channel, &QueryParams, Wetness](const FVector3d& StartM, const FVector3d& EndM, FSimCruiseGroundHit& OutHit)
 	{
 		if (World == nullptr)
@@ -564,6 +569,13 @@ void USimCruiseVehicleMovementComponent::RequestEngineStart()
 {
 	FScopeLock Lock(&PhysicsState->Mutex);
 	PhysicsState->bPendingEngineStart = true;
+}
+
+void USimCruiseVehicleMovementComponent::SetAir(double DensityKgPerM3, const FVector& WindMps)
+{
+	FScopeLock Lock(&PhysicsState->Mutex);
+	PhysicsState->AirDensity = FMath::Clamp(DensityKgPerM3, 0.5, 1.6);
+	PhysicsState->WindMps = FVector3d(WindMps);
 }
 
 void USimCruiseVehicleMovementComponent::SetRoadWetness(float Wetness)

@@ -382,6 +382,17 @@ void ASimCruiseVehicle::Tick(float DeltaSeconds)
 		if (const ASimCruiseEnvironment* Environment = Environments->GetEnvironment())
 		{
 			VehicleMovement->SetRoadWetness(Environment->GetRoadWetness());
+			// The air: ISA pressure at the car's height above sea level, the live temperature
+			// (dry air, R = 287.05 J/(kg K)), and the live wind at about 0.7 of its 10 m speed
+			// (a suburban log profile at car height). The map's +X is east and +Y south; the
+			// wind comes from WindFromDeg (clockwise from north).
+			const FSimCruiseWeatherConditions& Weather = Environment->GetWeather();
+			const double HeightM = Environment->ElevationM + GetActorLocation().Z / 100.0;
+			const double PressurePa = 101325.0 * FMath::Pow(FMath::Max(1.0 - 2.25577e-5 * HeightM, 0.1), 5.25588);
+			const double Density = PressurePa / (287.05 * (Weather.TemperatureC + 273.15));
+			const double Toward = FMath::DegreesToRadians(Weather.WindFromDeg + 180.0);
+			const FVector Wind(FMath::Sin(Toward), -FMath::Cos(Toward), 0.0);
+			VehicleMovement->SetAir(Density, Wind * (0.7 * Weather.WindSpeedMs));
 		}
 	}
 	// Live mirrors for the car being driven, from the driver's seat (from outside they are

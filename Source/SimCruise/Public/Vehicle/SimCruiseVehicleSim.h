@@ -215,6 +215,11 @@ public:
 	/** Assisted steering (a person on keys or a stick); Direct for benches and real wheels. */
 	bool bSteeringAssist = true;
 
+	/** The air the car drives through: density (kg/m3; ISA sea level by default) and the wind
+	 *  at the car's height (m/s, world axes). Drag acts on the car's speed through the air. */
+	double AirDensityKgPerM3 = 1.225;
+	FVector3d WindMps = FVector3d::ZeroVector;
+
 private:
 	double MotorTorqueNm(double Throttle, double Ratio, double SignDirection, double SpeedMps);
 

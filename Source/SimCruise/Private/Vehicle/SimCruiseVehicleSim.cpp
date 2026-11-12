@@ -33,8 +33,6 @@ namespace
 	constexpr double AbsProportional = 0.3;
 	constexpr double AbsTargetOverPeak = 1.0;
 
-	constexpr double AirDensityKgPerM3 = 1.225;
-
 	// Godot ran the driveline at 60 Hz with 6 substeps; the cars' launches were calibrated there.
 	constexpr double ClutchCalibrationSubstepS = 1.0 / 360.0;
 
@@ -847,10 +845,17 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 		OutForces.ForceN += Force;
 		OutForces.TorqueNm += (Row.Point - Body.CenterOfMassM).Cross(Force);
 	}
+	// Drag on the speed through the air: a headwind adds to it, a tailwind takes from it, a
+	// crosswind pushes the car sideways (at the centre of mass; no yaw moment from it yet).
+	const FVector3d AirVelocity = Velocity - WindMps;
+	const double AirSpeed = AirVelocity.Size();
+	if (AirSpeed > 0.02)
+	{
+		OutForces.ForceN += -AirVelocity / AirSpeed * 0.5 * AirDensityKgPerM3 * Car.DragAreaM2 * AirSpeed * AirSpeed;
+	}
 	const double SpeedMagnitude = Velocity.Size();
 	if (SpeedMagnitude > 0.02)
 	{
-		OutForces.ForceN += -Velocity / SpeedMagnitude * 0.5 * AirDensityKgPerM3 * Car.DragAreaM2 * SpeedMagnitude * SpeedMagnitude;
 		const FVector3d Rolling(Velocity.X, Velocity.Y, 0.0);
 		const double RollingSpeed = Rolling.Size();
 		if (RollingSpeed > 0.01 && State.WheelContactCount > 0)
