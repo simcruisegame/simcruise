@@ -20,6 +20,16 @@ From a Visual Studio Developer PowerShell or a shell with the compiler environme
 
 After the editor target builds, open `D:\simcruise\SimCruise.uproject` in Unreal Editor 5.8.4.
 
+## Several agents on one PC
+
+Several Claude Code sessions can work on SimCruise at once on one PC. These rules keep them from breaking each other's builds and runs:
+
+- **One checkout or worktree per session.** `D:\simcruise` is the main checkout: the editor, MCP sessions and play tests run there. Code work goes in the lane worktrees `D:\sc\lane1`, `D:\sc\lane2` and `D:\sc\lane3` (`git worktree add D:\sc\lane1 -b <branch> origin/main`). Each worktree has its own `Binaries/`, `Intermediate/` and `Saved/`, so a build in one does not touch another; the first build in a new worktree is a full build. Reuse a lane for the next task (`git switch -c <branch> origin/main`) instead of making a new worktree.
+- **Builds queue.** `Build.bat ... -WaitMutex` (as in `scripts\check.ps1`) waits for another Unreal Build Tool run instead of failing.
+- **One editor at a time.** `scripts\check.ps1` and `scripts\editor.ps1` take a PC-wide lock (`scripts\EditorLock.ps1`, a named mutex that Windows frees when its process ends) before they start the editor, so test runs, play tests and MCP sessions take turns on the GPU and on MCP port 8000. Open the editor with `powershell -ExecutionPolicy Bypass -File scripts\editor.ps1` (extra arguments go to the editor).
+- **Test runs always end.** `scripts\check.ps1` stops the editor and everything it started after `-TimeoutMinutes` (default 20) and fails.
+- **Live Coding is off** (`Config/DefaultEditorPerProjectUserSettings.ini`), because an open editor with Live Coding blocks `Build.bat` for every checkout. Rebuild and restart the editor instead.
+
 Build the `SimCruise` game target the same way when you need `-game` runs or a package. If any Unreal Editor with Live Coding is running on the machine (for any project), UnrealBuildTool refuses with "Unable to build while Live Coding is active"; add `-NoHotReloadFromIDE` to build a different checkout (a worktree) without closing it.
 
 ## A Windows package
@@ -128,7 +138,7 @@ Frame timing per preset at 1080p (use `-fullscreen -ResX=1920 -ResY=1080`, vsync
 
 ## Unreal editor skill connection
 
-The project enables Epic's `ModelContextProtocol` and `AllToolsets` editor plugins, so Claude Code can drive a running Unreal Editor through Epic's `unreal-engine-skills-for-claude-code` plugin. It is in the `claude-plugins-official` marketplace; install it with `/plugin install unreal-engine-skills-for-claude-code@claude-plugins-official`. `.mcp.json` points Claude Code at `http://127.0.0.1:8000/mcp`. To have the editor start the MCP server on launch, add this to your own `Saved/Config/WindowsEditor/EditorPerProjectUserSettings.ini` (per user, not in git). Otherwise, run `ModelContextProtocol.StartServer` in the editor console:
+The project enables Epic's `ModelContextProtocol` and `AllToolsets` editor plugins, so Claude Code can drive a running Unreal Editor through Epic's `unreal-engine-skills-for-claude-code` plugin. It is in the `claude-plugins-official` marketplace, and the committed `.claude/settings.json` enables it for every checkout (by hand: `/plugin install unreal-engine-skills-for-claude-code@claude-plugins-official`). Its start hook needs Git Bash on `PATH`. `.mcp.json` also lists `blender` ([blender-mcp](https://github.com/ahujasid/blender-mcp), started with `uvx blender-mcp`) for the Blender car pipeline in `authoring/cars/`; it needs `uv` and the blender-mcp add-on running in Blender, and Claude Code asks before it uses either server. `.mcp.json` points Claude Code at `http://127.0.0.1:8000/mcp`. To have the editor start the MCP server on launch, add this to your own `Saved/Config/WindowsEditor/EditorPerProjectUserSettings.ini` (per user, not in git). Otherwise, run `ModelContextProtocol.StartServer` in the editor console:
 
 ```ini
 [/Script/ModelContextProtocolEngine.ModelContextProtocolSettings]

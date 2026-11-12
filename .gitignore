@@ -17,7 +17,8 @@ build/
 *.pyc
 .venv/
 *.dmg
-.claude/
+.claude/*
+!.claude/settings.json
 
 # Unreal Engine generated files
 Binaries/

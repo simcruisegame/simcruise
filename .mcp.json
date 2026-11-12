@@ -3,6 +3,14 @@
     "unreal-mcp": {
       "type": "http",
       "url": "http://127.0.0.1:8000/mcp"
+    },
+    "blender": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "uvx",
+        "blender-mcp"
+      ]
     }
   }
 }
