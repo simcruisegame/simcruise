@@ -405,13 +405,27 @@ namespace SimCruiseTileDetail
 			{
 				return BP ? FMath::Min(1.0, static_cast<double>(BP->P(Detail, static_cast<float>(Default * DecoSure))) / DecoSure) : Default;
 			};
-			const double FloorH = bDeco ? 3.1 : 3.2;
-			const double Parapet = bDeco ? (Height > 5.0 ? 0.9 : 0.4) : (bTower ? 1.1 : 0.5);
+			// The town recipes for the rest of the US (the graph's recipe:house, main_street, downtown):
+			// a house under a pitched roof, a Main Street block with a cornice and belt course, a
+			// downtown tower in a glass curtain wall. Their details read the graph's chances directly.
+			auto Recipe = [BP](const TCHAR* Key) { return BP && BP->P(Key) >= 0.5f; };
+			auto ChanceOf = [BP](const TCHAR* Detail, double Default) { return BP ? static_cast<double>(BP->P(Detail, static_cast<float>(Default))) : Default; };
+			const bool bPlain = !bDeco && !bTower && !bFloating;
+			const bool bHouse = bPlain && Height <= 14.0 && Recipe(TEXT("recipe:house"));
+			const bool bMainStreet = bPlain && !bHouse && Recipe(TEXT("recipe:main_street"));
+			const bool bDowntown = bPlain && !bHouse && !bMainStreet && Height >= 20.0 && (Recipe(TEXT("recipe:downtown")) || (!BP && Height > 45.0));
+			const bool bPitched = bHouse && Unit(Hash(H, 25)) < ChanceOf(TEXT("detail:pitched_roof"), 0.85);
+			const bool bCurtain = bDowntown && Unit(Hash(H, 26)) < ChanceOf(TEXT("detail:curtain_wall"), 0.6);
+			const bool bCornice = bMainStreet && Unit(Hash(H, 27)) < ChanceOf(TEXT("detail:cornice"), 0.8);
+			const double FloorH = bDeco ? 3.1 : bHouse ? 3.0 : bDowntown ? 3.8 : 3.2;
+			const double Parapet = bPitched ? 0.0 : bDeco ? (Height > 5.0 ? 0.9 : 0.4) : (bTower ? 1.1 : bMainStreet ? 0.9 : 0.5);
 			FLinearColor Wall = bDeco ? Pick(DecoWalls(), H) : (bTower ? Pick(TowerWalls(), H) : Pick(GenericWalls(), H));
 			// A colour mapped on the building wins; else the region's palette for ordinary buildings
 			// (the deco and tower palettes above are matched to Ocean Drive photographs).
 			if (BP && BP->bColourFromData) Wall = BP->Wall;
 			else if (BP && BP->bHasColour && !bDeco && !bTower) Wall = BP->Wall;
+			// Main Street's two- and three-storey blocks are mostly brick (the generic palette's last four).
+			if (bMainStreet && !(BP && BP->bHasColour) && Unit(Hash(H, 24)) < 0.6) Wall = GenericWalls()[12 + Hash(H, 28) % 4];
 			if (BP) Wall = BP->Weathered(Wall);
 			// Half the hotels keep white trim; the rest a contrasting accent.
 			const FLinearColor Accent = (bDeco && Unit(Hash(H, 3)) < Chance(TEXT("detail:accent_trim"), 0.55)) ? Pick(DecoAccents(), Hash(H, 4)) : Srgb(TEXT("FAF8F2"));
@@ -443,7 +457,7 @@ namespace SimCruiseTileDetail
 				const double Len = FVector2d::Distance(A, C);
 				if (Len < 0.5) continue;
 				const FVector2d N2 = EdgeNormalOf(Footprint, i);
-				Rank0[i] = (bDeco || bTower || Places.Num() > 0) ? StreetRankFaced(Roads, (A + C) * 0.5, N2) : -1;
+				Rank0[i] = (bDeco || bTower || bMainStreet || bDowntown || Places.Num() > 0) ? StreetRankFaced(Roads, (A + C) * 0.5, N2) : -1;
 				Front0[i] = Rank0[i] >= 0;
 				// A porch: Ocean Drive's raised front terraces under the upper floors, here when
 				// both corners are convex and the building is deep enough to give up 2.2 m.
@@ -634,9 +648,47 @@ namespace SimCruiseTileDetail
 				// coloured uplight wash that lights Ocean Drive at night. A rounded corner is
 				// plain stucco (its windows would be cut by the chords).
 				const float WallKind = Arc[i] ? Kind::Trim : !Front[i] ? Kind::Wall : bPorch ? (bDeco ? Kind::DecoUpper : Kind::Wall) : (bDeco ? Kind::DecoFront : Kind::WallFront);
-				W.Panel(A, C, WallStart, Top + Parapet, N2, Wall, WallKind, Along0, Ground);
+				if (bCurtain)
+				{
+					// A glass curtain wall over a lobby storey: mullions every 1.5 m and a spandrel
+					// band at every floor slab.
+					const double Lobby = Ground + 4.5;
+					W.Panel(A, C, WallStart, Lobby, N2, Wall, Front[i] ? Kind::WallFront : Kind::Wall, Along0, Ground);
+					W.Panel(A, C, Lobby, Top + Parapet, N2, Wall, Kind::Railing, Along0, Ground);
+					const FLinearColor Frame = Srgb(TEXT("3A3F44"));
+					const int32 Mullions = FMath::FloorToInt(Len / 1.5);
+					for (int32 k = 1; k < Mullions; ++k)
+					{
+						const FVector2d P = A + T * (k * Len / Mullions);
+						W.Slab(P - T * 0.035, P + T * 0.035, N2, 0.0, 0.12, Lobby, Top + Parapet, Frame, Kind::Metal, 0.0, Ground, false, false);
+					}
+					for (double Z = Lobby + FloorH; Z < Top - 0.5; Z += FloorH)
+					{
+						W.Slab(A, C, N2, 0.0, 0.06, Z - 0.45, Z + 0.05, Frame, Kind::Metal, Along0, Ground, false, true);
+					}
+				}
+				else
+				{
+					W.Panel(A, C, WallStart, Top + Parapet, N2, Wall, WallKind, Along0, Ground);
+				}
 				// The parapet's inside, seen from above and from taller neighbours.
-				W.Panel(C, A, Top, Top + Parapet, -N2, Wall, Kind::Trim, Along0, Ground);
+				if (Parapet > 0.05) W.Panel(C, A, Top, Top + Parapet, -N2, Wall, Kind::Trim, Along0, Ground);
+				// Main Street: a projecting cornice under the parapet's coping and a belt course
+				// over the shopfronts, in a cream or darker trim (the commercial blocks of 1880-1930).
+				if (bMainStreet && Front[i] && Len >= 2.0)
+				{
+					const FLinearColor Cornice = Unit(Hash(H, 29)) < 0.5 ? Srgb(TEXT("E8DFC9")) : Wall * 0.72f;
+					if (bCornice)
+					{
+						W.Slab(A, C, N2, 0.0, 0.42, Top + Parapet - 0.32, Top + Parapet - 0.08, Cornice, Kind::Trim, Along0, Ground, false, true);
+						W.Slab(A, C, N2, 0.0, 0.18, Top + Parapet - 0.62, Top + Parapet - 0.32, Cornice, Kind::Trim, Along0, Ground, false, true);
+						W.Slab(A, C, N2, 0.0, 0.08, Top - 0.45, Top - 0.2, Cornice, Kind::Trim, Along0, Ground, false, true);
+					}
+					if (Height >= FloorH + 2.0)
+					{
+						W.Slab(A, C, N2, 0.0, 0.12, Ground + FloorH - 0.05, Ground + FloorH + 0.25, Cornice, Kind::Trim, Along0, Ground, false, true);
+					}
+				}
 
 				if (bPorch)
 				{
@@ -772,7 +824,79 @@ namespace SimCruiseTileDetail
 				}
 			}
 
+			// A house's pitched roof over the footprint's box (when the footprint nearly fills it):
+			// a hip or a gable along the long side, a 6:12 pitch, 0.35 m eaves.
+			bool bRoofDone = false;
+			if (bPitched)
+			{
+				int32 LongEdge = 0;
+				double LongLen = 0.0;
+				for (int32 i = 0; i < N; ++i)
+				{
+					const double D = FVector2d::Distance(Ring[i], Ring[(i + 1) % N]);
+					if (D > LongLen) { LongLen = D; LongEdge = i; }
+				}
+				const FVector2d U = EdgeDirOf(Ring, LongEdge);
+				const FVector2d V(-U.Y, U.X);
+				double U0 = 1e9, U1 = -1e9, V0 = 1e9, V1 = -1e9;
+				for (const FVector2d& P : Ring)
+				{
+					U0 = FMath::Min(U0, FVector2d::DotProduct(P, U)); U1 = FMath::Max(U1, FVector2d::DotProduct(P, U));
+					V0 = FMath::Min(V0, FVector2d::DotProduct(P, V)); V1 = FMath::Max(V1, FVector2d::DotProduct(P, V));
+				}
+				const double BoxArea = (U1 - U0) * (V1 - V0);
+				if (BoxArea > 1.0 && FMath::Abs(Area) / BoxArea > 0.78 && (V1 - V0) >= 3.0)
+				{
+					constexpr double Eave = 0.35;
+					U0 -= Eave; U1 += Eave; V0 -= Eave; V1 += Eave;
+					const double Half = 0.5 * (V1 - V0);
+					const double Rise = FMath::Min(0.5 * Half, 3.5);
+					const double Zr = Top + Rise;
+					auto At = [&](double Uu, double Vv, double Z) { const FVector2d P = U * Uu + V * Vv; return FVector3d(P.X, P.Y, Z); };
+					const bool bTile = Unit(Hash(H, 30)) < ChanceOf(TEXT("detail:tile_roof"), 0.1);
+					static const TCHAR* Shingles[] = { TEXT("5E5E5C"), TEXT("4A4642"), TEXT("6F6457"), TEXT("545A61"), TEXT("3F3D3B"), TEXT("7A746C") };
+					static const TCHAR* Tiles[] = { TEXT("B5603E"), TEXT("C2734D"), TEXT("A45237"), TEXT("C98A62") };
+					const FLinearColor RoofC = bTile ? Srgb(Tiles[Hash(H, 31) % 4]) : Srgb(Shingles[Hash(H, 31) % 6]);
+					const double Vm = 0.5 * (V0 + V1);
+					auto Face = [&](std::initializer_list<FVector3d> Pts, const FLinearColor& C, float SurfaceKind, const FVector& Facing)
+					{
+						TArray<FVector3d> P(Pts);
+						const FVector Nrm = FVector(FVector3d::CrossProduct(P[1] - P[0], P[2] - P[0]).GetSafeNormal());
+						const FVector Out = FVector::DotProduct(Nrm, Facing) >= 0.0 ? Nrm : -Nrm;
+						const int32 First = Mesh.Positions.Num();
+						for (const FVector3d& Q : P)
+						{
+							Mesh.Add(FVector(Q * 100.0), Out, C, FVector2D(FVector2d::DotProduct(FVector2d(Q.X, Q.Y), U), Q.Z - Ground), FVector2D(SurfaceKind, W.Seed));
+						}
+						for (int32 k = 1; k + 1 < P.Num(); ++k) Mesh.Tri(First, First + k, First + k + 1, Out);
+					};
+					const FVector Up = FVector::UpVector;
+					const FVector Uo(U.X, U.Y, 0.0), Vo(V.X, V.Y, 0.0);
+					const bool bHip = Unit(Hash(H, 32)) < 0.55 && (U1 - U0) > (V1 - V0) * 1.05;
+					const double R0 = bHip ? U0 + Half : U0, R1 = bHip ? U1 - Half : U1;
+					// The two long slopes.
+					Face({ At(U0, V0, Top), At(U1, V0, Top), At(R1, Vm, Zr), At(R0, Vm, Zr) }, RoofC, Kind::Roof, Up - Vo);
+					Face({ At(U1, V1, Top), At(U0, V1, Top), At(R0, Vm, Zr), At(R1, Vm, Zr) }, RoofC, Kind::Roof, Up + Vo);
+					if (bHip)
+					{
+						Face({ At(U0, V1, Top), At(U0, V0, Top), At(R0, Vm, Zr) }, RoofC, Kind::Roof, Up - Uo);
+						Face({ At(U1, V0, Top), At(U1, V1, Top), At(R1, Vm, Zr) }, RoofC, Kind::Roof, Up + Uo);
+					}
+					else
+					{
+						// Gable ends: the wall carried up to the ridge on the wall line.
+						const double Zg = Zr - Rise * Eave / Half;
+						Face({ At(U0 + Eave, V0 + Eave, Top), At(U0 + Eave, V1 - Eave, Top), At(U0 + Eave, Vm, Zg) }, Wall, Kind::Trim, -Uo);
+						Face({ At(U1 - Eave, V1 - Eave, Top), At(U1 - Eave, V0 + Eave, Top), At(U1 - Eave, Vm, Zg) }, Wall, Kind::Trim, Uo);
+					}
+					// Soffits under the eaves.
+					Face({ At(U0, V0, Top - 0.02), At(U1, V0, Top - 0.02), At(U1, V1, Top - 0.02), At(U0, V1, Top - 0.02) }, Srgb(TEXT("E8E6E0")), Kind::Trim, -Up);
+					bRoofDone = true;
+				}
+			}
+
 			// Roof: a light, gravel-and-membrane cool roof.
+			if (!bRoofDone)
 			{
 				TArray<int32> Tris;
 				const FLinearColor RoofColour = bRegionDeco ? Srgb(TEXT("C9C6BF")) : FLinearColor(0.42f, 0.41f, 0.39f);

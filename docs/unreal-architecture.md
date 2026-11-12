@@ -202,8 +202,14 @@ once; the others wait for that file.
   corners (Streamline Moderne, `RoundCorners`) so the eyebrows wrap them, and
   the main front (on the bigger street at a corner) carries one of three
   tower forms: a stepped central tower, three pylons with flagpoles or twin
-  fins. Elsewhere, wall colours come from the Godot client's 12 common US
-  exterior paints and 4 brick colours. Windows, shopfronts and the rooms
+  fins. Elsewhere the place graph's recipes (`recipe:house`,
+  `recipe:main_street`, `recipe:downtown`) shape them: houses under hip or
+  gable roofs with eaves, Main Street brick blocks with a cornice and a belt
+  course, downtown towers in glass curtain walls with mullions and
+  spandrels; each detail reads the graph's chance (`detail:pitched_roof`,
+  `detail:tile_roof`, `detail:cornice`, `detail:curtain_wall`). Wall colours
+  come from the graph, else the Godot client's 12 common US exterior paints
+  and 4 brick colours. Windows, shopfronts and the rooms
   behind them are drawn by the building shader.
 - Signs: every named place in the tile's `pois` with a sign-worthy kind
   (`SignStyleFor`: hotels and bars in neon, shops, restaurants and offices in

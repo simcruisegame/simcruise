@@ -165,6 +165,21 @@ bool ASimCruiseWorldPreview::PlaceShot(const FString& Shot)
 		TargetCm = Location;
 		return true;
 	}
+	if (Shot == TEXT("street") || Shot == TEXT("streetside"))
+	{
+		// Any place: on the nearest public road to the start at eye height, looking along it
+		// (street) or turned 50 degrees toward the buildings on its right (streetside).
+		if (!Streamer->FindRoadPose(FString(), StartCm, 400.0, Location, Rotation))
+		{
+			UE_LOG(LogSimCruisePreview, Warning, TEXT("No road near the start"));
+			return false;
+		}
+		const FVector Left = FRotationMatrix(Rotation).GetUnitAxis(EAxis::Y) * -35.0;
+		Camera->SetActorLocationAndRotation(Location + Left + FVector(0, 0, 150), Rotation + FRotator(Shot == TEXT("street") ? -1.0 : 4.0, Shot == TEXT("street") ? 0.0 : 50.0, 0.0));
+		Cam->SetFieldOfView(75.f);
+		TargetCm = Location;
+		return true;
+	}
 	if (Shot == TEXT("deco") || Shot == TEXT("deco2"))
 	{
 		// The hotel fronts on Ocean Drive's west side, seen from the park-side sidewalk at
