@@ -39,12 +39,12 @@ From the 2.0.0 Shipping build, Ultra preset, 1920x1080.
 
 | | |
 |---|---|
-| ![The 2001 Miata on Ocean Drive, Miami Beach: Lummus Park palms, Art Deco hotels, parked cars](docs/images/release-2.0.0/01-miata-ocean-drive-chase.jpg) | ![From the Miata's seat with the true field of view: the road, the dash and the gauges as a 15.6 inch screen at 60 cm shows them](docs/images/release-2.0.0/02-miata-cockpit-true-fov.jpg) |
-| *2001 Miata, Ocean Drive* | *The driver's seat, true field of view* |
+| ![The 2001 Miata on Ocean Drive, Miami Beach: Lummus Park palms, Art Deco hotels, parked cars](docs/images/release-2.0.0/01-miata-ocean-drive-chase.jpg) | ![From the Miata's seat with the natural lens: the cabin, the gauges, the mirrors and Ocean Drive ahead](docs/images/release-2.0.0/02-miata-cockpit.jpg) |
+| *2001 Miata, Ocean Drive* | *The driver's seat (natural lens, the default)* |
 | ![The 1965 Mustang convertible on Ocean Drive](docs/images/release-2.0.0/03-mustang-1965-ocean-drive.jpg) | ![The Corvette Stingray C8 on Ocean Drive](docs/images/release-2.0.0/05-corvette-c8-ocean-drive.jpg) |
 | *1965 Mustang 289* | *Corvette Stingray (C8)* |
-| ![Ocean Drive at 21:00: low beams, street lights, neon on the Breakwater](docs/images/release-2.0.0/07-ocean-drive-night-chase.jpg) | ![The Corvette's cockpit with the HUD, the place card and the minimap](docs/images/release-2.0.0/06-corvette-c8-cockpit-hud.jpg) |
-| *Ocean Drive at night* | *Corvette cockpit with the HUD* |
+| ![Ocean Drive at 21:00: low beams, street lights, neon on the Breakwater](docs/images/release-2.0.0/07-ocean-drive-night-chase.jpg) | ![The Corvette's cockpit: the digital cluster, the paddles and the centre screen](docs/images/release-2.0.0/06-corvette-c8-cockpit.jpg) |
+| *Ocean Drive at night* | *Corvette cockpit* |
 | ![Princeton Road, a gravel road in Lancaster County, Nebraska](docs/images/release-2.0.0/09-rural-gravel-road-nebraska.jpg) | ![The same road at night from the driver's seat, lit only by the low beams](docs/images/release-2.0.0/10-rural-night-low-beams.jpg) |
 | *A gravel road in Nebraska* | *The same road at night* |
 

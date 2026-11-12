@@ -110,7 +110,7 @@ Published data: `docs/cars.md` (road-test sources for each car). The 3 % band is
 
 | # | Item | Pass rule | How measured | Evidence | Result |
 |---|---|---|---|---|---|
-| M1 | Cockpit and bumper views use the field of view of the human eye | the horizontal FOV comes from the screen size and the eye distance (default 15.6 inch at 60 cm, about 32 deg); the True and Wide presets and the size and distance settings work; the eye point is each car's driver head position; the chase view keeps its wide FOV | Shipping build screenshots and the lens settings | `docs/images/release-2.0.0/02`, `04`, `06` | **PASS**: cockpit shots of the 3 cars at the true FOV (32.1 deg at 15.6 inch, 60 cm); `Gameplay.Lens.TrueFov` passes; chase keeps its FOV; Screen and Eye-to-screen settings on the road atlas |
+| M1 | Cockpit and bumper views use the field of view of the human eye | the horizontal FOV comes from the screen size and the eye distance (default 15.6 inch at 60 cm, about 32 deg); the True and Wide presets and the size and distance settings work; the eye point is each car's driver head position; the chase view keeps its wide FOV | Shipping build screenshots and the lens settings | `docs/images/release-2.0.0/02`, `04`, `06` | **PASS**: the true FOV (32.1 deg at 15.6 inch, 60 cm) works and is selectable with F6, the left-stick click and the road atlas (`Gameplay.Lens.TrueFov`, the binding test); cockpit shots of the 3 cars at the true FOV (first run) and at the natural lens, the default since 7267a09 at the owner's request; the chase view keeps its FOV |
 
 ## N. Release package
 
