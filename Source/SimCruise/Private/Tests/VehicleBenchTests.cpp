@@ -144,6 +144,64 @@ namespace
 		return true;
 	}
 
+	/**
+	 * ISO 7975 braking in a turn: steady at 0.5 g on a 100 m circle, then the throttle off and a
+	 * fixed brake pedal with the wheel held. A road car slows without spinning at every pedal,
+	 * and without ABS its fronts lock before its rears (the proportioning valve's job): a car
+	 * that locks its rears first swaps ends.
+	 */
+	bool RunBrakeInTurnTest(FAutomationTestBase& Test, const TCHAR* CarId)
+	{
+		FSimCruiseCarDefinition Car;
+		if (!SimCruiseLoadBenchCar(Test, CarId, Car))
+		{
+			return false;
+		}
+		const FSimCruiseLiftOffResult R = SimCruiseRunBrakeInTurn(Car, SimCruiseShippingFixedStepS, { 0.3, 0.45, 0.6, 0.8, 1.0 });
+		if (!Test.TestTrue(TEXT("bench completed"), R.bCompleted))
+		{
+			return false;
+		}
+		const bool bOpen = IsOpenItem(Car, TEXT("brake-in-turn"));
+		for (const FSimCruiseLiftOffCase& Case : R.Cases)
+		{
+			const TCHAR* Lock = Case.FirstLockAxle == 0 ? TEXT("front") : Case.FirstLockAxle == 1 ? TEXT("REAR") : TEXT("none");
+			const FString When = Case.FirstLockAxle >= 0 ? FString::Printf(TEXT(" at %.2f s"), Case.FirstLockS) : FString();
+			const FString Line = Case.bSteady
+				? FString::Printf(TEXT("BRAKETURN %-11s pedal %.2f  steady %.2f g  decel_g %.2f  peak_beta %+.1f  yaw_ratio_1s %.2f  first lock %s%s  %s"),
+					CarId, Case.BrakePedal, Case.SteadyLateralG, Case.DecelG, Case.PeakBetaDeg, Case.YawRatio1s, Lock, *When,
+					Case.bSpun ? TEXT("SPIN") : TEXT("ok"))
+				: FString::Printf(TEXT("BRAKETURN %-11s pedal %.2f  no steady state"), CarId, Case.BrakePedal);
+			UE_LOG(LogTemp, Display, TEXT("%s"), *Line);
+			Test.AddInfo(Line);
+			auto Fail = [&Test, &Car, bOpen](const FString& What)
+			{
+				if (bOpen)
+				{
+					Test.AddInfo(FString::Printf(TEXT("%s, stated open item: %s"), *What, *Car.CalibrationOpen));
+				}
+				else
+				{
+					Test.AddError(What);
+				}
+			};
+			if (!Case.bSteady)
+			{
+				Test.AddError(FString::Printf(TEXT("pedal %.2f: the circle driver found no steady state"), Case.BrakePedal));
+				continue;
+			}
+			if (Case.bSpun)
+			{
+				Fail(FString::Printf(TEXT("pedal %.2f: spun braking in the turn (peak sideslip %.1f deg)"), Case.BrakePedal, Case.PeakBetaDeg));
+			}
+			if (!Car.bAbsEnabled && Case.FirstLockAxle == 1)
+			{
+				Fail(FString::Printf(TEXT("pedal %.2f: a rear wheel locked before the fronts"), Case.BrakePedal));
+			}
+		}
+		return true;
+	}
+
 	bool RunStaticLoadTest(FAutomationTestBase& Test, const TCHAR* CarId)
 	{
 		FSimCruiseCarDefinition Car;
@@ -193,6 +251,10 @@ SIMCRUISE_VEHICLE_BENCH(CarTrack, f150raptor18)
 SIMCRUISE_VEHICLE_BENCH(CarTrack, grandcherokee13)
 SIMCRUISE_VEHICLE_BENCH(CarTrack, odyssey18)
 SIMCRUISE_VEHICLE_BENCH(CarTrack, crv25)
+SIMCRUISE_VEHICLE_BENCH(BrakeInTurn, nb1999)
+SIMCRUISE_VEHICLE_BENCH(BrakeInTurn, nb2001)
+SIMCRUISE_VEHICLE_BENCH(BrakeInTurn, nb2001_aaron)
+SIMCRUISE_VEHICLE_BENCH(BrakeInTurn, mustang65)
 SIMCRUISE_VEHICLE_BENCH(LiftOff, nb1999)
 SIMCRUISE_VEHICLE_BENCH(LiftOff, nb2001)
 SIMCRUISE_VEHICLE_BENCH(LiftOff, nb2001_aaron)

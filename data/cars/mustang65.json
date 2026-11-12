@@ -168,7 +168,7 @@
   "tyres": "6.50-14 bias-ply (Car Life test car).",
   "estimates": "Mass (convertible V8 about 2,890 lb), centre of gravity, inertia, spring rates (about 1.15/1.3 Hz), dampers, brake torques, tyre grip and the 0.70 g skidpad target (no period skidpad test found)."
  },
- "calibration_open": "Skidpad target 0.70 g is an estimate for 1965 bias-ply tyres, not a measurement.",
+ "calibration_open": "Skidpad target 0.70 g is an estimate for 1965 bias-ply tyres, not a measurement. Brake-in-turn: with 4-wheel drums and no proportioning valve the car spins at 0.8-1.0 pedal in a 0.5 g bend once the rears lock after the fronts; period-true for a drum-braked 1965 car, not checked against a measured test.",
  "traction_control": false,
  "model_scene": "data/art/traffic/mustang65-05f2a294/scene.gltf",
  "model_rig": {
