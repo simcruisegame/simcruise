@@ -194,8 +194,9 @@ bool ASimCruiseVehicle::AttachCarModel()
 		Light->SetIntensity(static_cast<float>(LowBeamPeakCandela));
 		Light->SetInnerConeAngle(static_cast<float>(LowBeamCoreHalfAngleDeg));
 		Light->SetOuterConeAngle(static_cast<float>(LowBeamEdgeHalfAngleDeg));
-		// Where the beam falls to about a lux: sqrt(15000 cd / 1 lx) = 120 m.
-		Light->SetAttenuationRadius(static_cast<float>(SimCruiseUnits::ToUnrealLength(FMath::Sqrt(LowBeamPeakCandela))));
+		// Unreal fades a light to zero at its radius: at 122 m (where the peak gives 1 lux) the
+		// fade dimmed the whole beam; at 250 m the road ahead keeps its inverse-square light.
+		Light->SetAttenuationRadius(static_cast<float>(SimCruiseUnits::ToUnrealLength(LowBeamRangeM)));
 		Light->SetSourceRadius(6.f);
 		Light->SetUseTemperature(true);
 		Light->SetTemperature(3200.f);
@@ -255,8 +256,7 @@ void ASimCruiseVehicle::UpdateHeadLamps()
 		{
 			if (ASimCruiseEnvironment* Environment = Subsystem->GetEnvironment())
 			{
-				const double Lux = bLit && !HeadLampLights.IsEmpty()
-					? HeadLampLights.Num() * LowBeamPeakCandela / FMath::Square(NightAdaptationDistanceM) : 0.0;
+				const double Lux = bLit && !HeadLampLights.IsEmpty() ? NightAdaptationLux : 0.0;
 				Environment->SetArtificialIlluminanceLux(Lux);
 			}
 		}

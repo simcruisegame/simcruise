@@ -33,6 +33,17 @@ namespace SimCruiseLens
 		}
 	}
 
+	double ScreenHeightCm(double DiagonalInches, double AspectRatio)
+	{
+		return DiagonalInches * 2.54 / FMath::Sqrt(1.0 + FMath::Square(FMath::Max(AspectRatio, 0.1)));
+	}
+
+	double TrueHorizontalFovDeg(double DiagonalInches, double AspectRatio, double ViewDistanceCm)
+	{
+		const double Width = ScreenHeightCm(DiagonalInches, AspectRatio) * FMath::Max(AspectRatio, 0.1);
+		return FMath::RadiansToDegrees(2.0 * FMath::Atan(Width * 0.5 / FMath::Max(ViewDistanceCm, 20.0)));
+	}
+
 	double HorizontalFromVerticalDeg(double VerticalDeg, double AspectRatio)
 	{
 		const double HalfV = FMath::DegreesToRadians(VerticalDeg) * 0.5;
@@ -43,7 +54,7 @@ namespace SimCruiseLens
 	{
 		switch (Lens)
 		{
-		case ESimCruiseLens::Screen: return TEXT("true to screen");
+		case ESimCruiseLens::Screen: return TEXT("true FOV (as your eye sees the screen)");
 		case ESimCruiseLens::Wide: return TEXT("wide (67°)");
 		default: return TEXT("natural (45°)");
 		}

@@ -73,7 +73,8 @@ void FSimCruiseInlineFourSynth::Render(float* Out, int32 Frames, const FInputs& 
 	const double Rpm = In.Rpm;
 	// The phase runs over one firing period (inline four: two a revolution) or, for a V8,
 	// over the whole 720-degree cycle of eight events.
-	const double TargetHz = FMath::Clamp(Rpm, 0.0, 7200.0) / (bV8 ? 120.0 : 30.0);
+	// The pitch follows the engine to just past its own limiter (the overshoot a fuel cut allows).
+	const double TargetHz = FMath::Clamp(Rpm, 0.0, In.LimiterRpm + 200.0) / (bV8 ? 120.0 : 30.0);
 	const double SpeedHz = bV8 ? 215.0 / 4.0 : 215.0;
 	// The engine speed follows the physics continuously: rev limiter, shifts and stalls.
 	if (!bFired)

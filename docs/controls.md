@@ -18,7 +18,7 @@ The Unreal client starts in the 2001 roadster in Ocean Drive's lane, Miami Beach
 | Camera: driver's seat, chase | C | Y |
 | Hide or show the driving HUD | F2 | Left-stick click |
 | Frame time and stats | F3 | — |
-| Driver lens (natural, true to screen, wide) | F6 | — |
+| Driver view: true FOV (the default), wide, natural | F6 | — |
 | Head lamps on / off | L | — |
 | Recover to the nearest road | R | View |
 | Sound on / off (engine, tyres, road, wind) | M | — |
@@ -34,6 +34,10 @@ The engine sound is on at the start.
 **Automatic gearbox.** It changes up early with a light pedal and holds each gear longer the deeper you press, kicks down when you floor it, never changes up while you brake and holds its gear through a corner.
 
 **Manual gearbox.** Press T (B) to take over the five-speed. Hold the clutch (Shift / LB), tap E (RB) for first, add throttle and let the clutch out. Shifts need the clutch; the gearbox refuses a gear that would over-rev the engine, and a stalled engine restarts with I (right-stick click) while the clutch is held.
+
+**True field of view.** From the driver's seat the game shows the world at the angle your screen really covers at your eye, as if the screen were a window: a 15.6" 16:9 laptop at 60 cm spans 32° across (2·atan(width / 2·distance)). Set your screen's diagonal and your eye's distance on the road atlas (Tab: Screen, Eye to screen), or with `simcruise.Lens.ScreenInches` and `simcruise.Lens.ViewDistanceCm`. View · Wide (67° tall) shows more of the cabin for tight streets. The eye sits at each car's real driver's head position; the chase view keeps its wider angle.
+
+**Night.** Your eye adapts to the road your low beams light (about 0.5 cd/m², what real lamp-lit asphalt measures), and the beams reach 250 m.
 
 **A USB steering wheel.** Plug in a racing wheel with a Windows GameInput driver (Logitech G920/G923, Thrustmaster and Fanatec wheels with Xbox support) before starting the game; the HUD names it. The rim turns the car's front wheels 1:1 at the car's real steering ratio (Miata 15:1, Mustang 21.7:1, Corvette 15.7:1) over the wheel's own rotation, with none of the pad's speed shaping. Throttle, brake and clutch pedals map directly, the paddles (or a sequential shifter) change gear, and the handbrake lever holds the rear wheels. Force feedback is the tyres' aligning torque through the steering ratio, as the real column carries it: heavy as the front tyres build grip, going light as they pass their peak and slide. A light centring spring and the column's damping sit under it. `simcruise.Wheel.Force 0..1` (default 0.6) sets the strength, `simcruise.Wheel.MaxTorqueNm` (default 2.5) sets your wheel's peak torque, and `simcruise.Wheel.ForceSign -1` flips a wheel that pushes the wrong way. Not yet tested on a physical wheel; wheels with only a DirectInput driver (the PlayStation G29) are not read yet.
 

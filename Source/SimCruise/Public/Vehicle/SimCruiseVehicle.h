@@ -139,11 +139,20 @@ public:
 	 */
 	static constexpr double LowBeamPeakCandela = 15000.0;
 	static constexpr double LowBeamAimDownDeg = 1.5;
-	static constexpr double LowBeamCoreHalfAngleDeg = 8.0;
+	/** The cone's full-intensity core: the beam's own shape comes from the light function (SimCruiseLowBeamPattern), so the cone must not dim it a second time. */
+	static constexpr double LowBeamCoreHalfAngleDeg = 30.0;
 	/** A real low beam spreads about 40 deg to each side at low intensity; a round cone this wide also spills upward (no cut-off yet). */
 	static constexpr double LowBeamEdgeHalfAngleDeg = 32.0;
-	/** Where the driver adapts at night: a grey card this far ahead, facing the car. */
-	static constexpr double NightAdaptationDistanceM = 30.0;
+	/**
+	 * What the driver's eye adapts to at night in its own low beams: the luminance of the lit
+	 * road ahead (dry asphalt under low beams reads about 0.4-2 cd/m2), not a card facing the
+	 * lamps, which metered about 2 cd/m2 and left the 0.1 cd/m2 road black.
+	 */
+	static constexpr double NightAdaptationLuminanceCdM2 = 0.5;
+	/** That luminance as the illuminance on a middle-grey (18 %) Lambertian surface, lux. */
+	static constexpr double NightAdaptationLux = NightAdaptationLuminanceCdM2 * UE_DOUBLE_PI / 0.18;
+	/** How far the beam reaches before Unreal cuts the light off, metres (the 15000 cd peak gives 0.24 lx there). */
+	static constexpr double LowBeamRangeM = 250.0;
 
 	/** The beam lights (empty until AttachCarModel, or when the model has no head lamps). */
 	const TArray<TObjectPtr<USpotLightComponent>>& GetHeadLampLights() const { return HeadLampLights; }

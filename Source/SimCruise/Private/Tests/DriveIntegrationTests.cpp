@@ -268,17 +268,17 @@ bool FSimCruiseDriveOceanDriveTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseDriveLowBeamsTest, "SimCruise.Drive.LowBeams", SimCruiseDriveTest::Flags)
 bool FSimCruiseDriveLowBeamsTest::RunTest(const FString& Parameters)
 {
-	// The exposure a driver adapts to at night: starlight alone, then a grey
-	// card 30 m ahead in the car's own low beams.
+	// The exposure a driver adapts to at night: starlight alone, then the road lit by the
+	// car's own low beams (0.5 cd/m2, inside the 0.4-2 cd/m2 of real lamp-lit asphalt).
 	const double Dark = FSimCruiseDaylightModel::ReferenceEV100(-25.0, 0.1, 0.0);
-	const double BeamLux = 2.0 * ASimCruiseVehicle::LowBeamPeakCandela / FMath::Square(ASimCruiseVehicle::NightAdaptationDistanceM);
+	const double BeamLux = ASimCruiseVehicle::NightAdaptationLux;
 	const double Lit = FSimCruiseDaylightModel::ReferenceEV100(-25.0, 0.1, BeamLux);
 	const double Noon = FSimCruiseDaylightModel::ReferenceEV100(60.0, 0.1, 0.0);
 	const double NoonLit = FSimCruiseDaylightModel::ReferenceEV100(60.0, 0.1, BeamLux);
-	AddInfo(FString::Printf(TEXT("DRIVE night EV100 %.1f; with the low beams (%.0f lx at %.0f m) %.1f; noon %.2f -> %.2f"),
-		Dark, BeamLux, ASimCruiseVehicle::NightAdaptationDistanceM, Lit, Noon, NoonLit));
+	AddInfo(FString::Printf(TEXT("DRIVE night EV100 %.1f; adapted to the lamp-lit road (%.2f cd/m2, %.1f lx on grey) %.1f; noon %.2f -> %.2f"),
+		Dark, ASimCruiseVehicle::NightAdaptationLuminanceCdM2, BeamLux, Lit, Noon, NoonLit));
 	TestTrue(TEXT("a moonless night is far below the lamp-lit road"), Dark < -5.0);
-	TestTrue(TEXT("the lamp-lit road meters like a dash camera at night (EV100 2..6)"), Lit > 2.0 && Lit < 6.0);
+	TestTrue(TEXT("adapted to a 0.4-2 cd/m2 lamp-lit road (EV100 1.7..3.7)"), Lit > 1.6 && Lit < 3.7);
 	TestTrue(TEXT("lamps make no difference by day"), FMath::Abs(NoonLit - Noon) < 0.01);
 
 	FSimCruiseCarDefinition Car;

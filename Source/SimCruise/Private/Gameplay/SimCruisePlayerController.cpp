@@ -239,7 +239,7 @@ void ASimCruisePlayerController::PlayerTick(float DeltaTime)
 			bPreferencesApplied = true;
 			bSoundOn = SimCruisePreferences::GetBool(TEXT("sound"), bSoundOn);
 			Hud->SetLevel(static_cast<ESimCruiseHudLevel>(SimCruisePreferences::GetInt(TEXT("hud_level"), static_cast<int32>(Hud->GetLevel()), 0, 2)));
-			const int32 Lens = SimCruisePreferences::GetInt(TEXT("lens"), static_cast<int32>(Camera->GetLens()), 0, 2);
+			const int32 Lens = SimCruisePreferences::GetInt(TEXT("lens_v2"), static_cast<int32>(Camera->GetLens()), 0, 2);
 			for (const TPair<const TCHAR*, const TCHAR*>& Pref : { TPair<const TCHAR*, const TCHAR*>(TEXT("head_motion"), TEXT("simcruise.Camera.HeadMotion")), TPair<const TCHAR*, const TCHAR*>(TEXT("rumble"), TEXT("simcruise.Rumble.Strength")) })
 			{
 				const int32 Percent = SimCruisePreferences::GetInt(Pref.Key, -1, -1, 100);
@@ -247,6 +247,11 @@ void ASimCruisePlayerController::PlayerTick(float DeltaTime)
 				if (Percent >= 0 && Var) Var->Set(Percent / 100.f, ECVF_SetByCode);
 			}
 			for (int32 i = 0; i < 3 && static_cast<int32>(Camera->GetLens()) != Lens; ++i) Camera->CycleLens();
+			// The screen the true-FOV lens is computed for: diagonal in tenths of an inch, eye distance in cm.
+			const int32 Tenths = SimCruisePreferences::GetInt(TEXT("screen_tenths_inch"), -1, -1, 1000);
+			const int32 Distance = SimCruisePreferences::GetInt(TEXT("view_distance_cm"), -1, -1, 400);
+			if (Tenths > 0) if (IConsoleVariable* Var = IConsoleManager::Get().FindConsoleVariable(TEXT("simcruise.Lens.ScreenInches"))) Var->Set(Tenths / 10.f, ECVF_SetByCode);
+			if (Distance > 0) if (IConsoleVariable* Var = IConsoleManager::Get().FindConsoleVariable(TEXT("simcruise.Lens.ViewDistanceCm"))) Var->Set(static_cast<float>(Distance), ECVF_SetByCode);
 		}
 	}
 	if (!PendingMessage.IsEmpty())
@@ -542,6 +547,10 @@ FSimCruiseAtlasView ASimCruisePlayerController::AtlasView() const
 		FString::Printf(TEXT("HUD · %s"), Hud ? HudNames[FMath::Clamp(static_cast<int32>(Hud->GetLevel()), 0, 2)] : TEXT("Glance")),
 		FString::Printf(TEXT("Head motion · %d%%"), FMath::RoundToInt(100.f * SimCruiseSettingValue(TEXT("simcruise.Camera.HeadMotion")))),
 		FString::Printf(TEXT("Rumble · %d%%"), FMath::RoundToInt(100.f * SimCruiseSettingValue(TEXT("simcruise.Rumble.Strength")))),
+		FString::Printf(TEXT("View · %s"), GetSimCamera() && GetSimCamera()->GetLens() == ESimCruiseLens::Screen ? TEXT("True FOV")
+			: GetSimCamera() && GetSimCamera()->GetLens() == ESimCruiseLens::Wide ? TEXT("Wide") : TEXT("Natural")),
+		FString::Printf(TEXT("Screen · %.1f in"), SimCruiseSettingValue(TEXT("simcruise.Lens.ScreenInches"))),
+		FString::Printf(TEXT("Eye to screen · %.0f cm"), SimCruiseSettingValue(TEXT("simcruise.Lens.ViewDistanceCm"))),
 	};
 	return View;
 }
@@ -620,6 +629,28 @@ void ASimCruisePlayerController::ChangeSetting(int32 Index)
 	case 1: OnCycleHud(); break;
 	case 2: Step(TEXT("simcruise.Camera.HeadMotion"), { 1.f, 0.5f, 0.f }, TEXT("head_motion")); break;
 	case 3: Step(TEXT("simcruise.Rumble.Strength"), { 1.f, 0.6f, 0.3f, 0.f }, TEXT("rumble")); break;
+	case 4: OnCycleLens(); break;
+	case 5:
+	{
+		// Common laptop and monitor diagonals.
+		static const float Sizes[] = { 13.3f, 14.f, 15.6f, 17.3f, 24.f, 27.f, 32.f, 43.f, 55.f, 65.f };
+		const float Now = SimCruiseSettingValue(TEXT("simcruise.Lens.ScreenInches"));
+		float Next = Sizes[0];
+		for (int32 i = 0; i < UE_ARRAY_COUNT(Sizes); ++i) if (Sizes[i] > Now + 0.05f) { Next = Sizes[i]; break; }
+		if (IConsoleVariable* Var = IConsoleManager::Get().FindConsoleVariable(TEXT("simcruise.Lens.ScreenInches"))) Var->Set(Next, ECVF_SetByCode);
+		SimCruisePreferences::SetInt(TEXT("screen_tenths_inch"), FMath::RoundToInt(Next * 10.f));
+		break;
+	}
+	case 6:
+	{
+		static const float Distances[] = { 40.f, 50.f, 60.f, 70.f, 80.f, 100.f, 150.f, 200.f, 250.f };
+		const float Now = SimCruiseSettingValue(TEXT("simcruise.Lens.ViewDistanceCm"));
+		float Next = Distances[0];
+		for (int32 i = 0; i < UE_ARRAY_COUNT(Distances); ++i) if (Distances[i] > Now + 0.5f) { Next = Distances[i]; break; }
+		if (IConsoleVariable* Var = IConsoleManager::Get().FindConsoleVariable(TEXT("simcruise.Lens.ViewDistanceCm"))) Var->Set(Next, ECVF_SetByCode);
+		SimCruisePreferences::SetInt(TEXT("view_distance_cm"), FMath::RoundToInt(Next));
+		break;
+	}
 	default: break;
 	}
 }
@@ -701,7 +732,7 @@ void ASimCruisePlayerController::OnCycleLens()
 	if (ASimCruisePlayerCameraManager* Camera = GetSimCamera())
 	{
 		Camera->CycleLens();
-		SimCruisePreferences::SetInt(TEXT("lens"), static_cast<int32>(Camera->GetLens()));
+		SimCruisePreferences::SetInt(TEXT("lens_v2"), static_cast<int32>(Camera->GetLens()));
 		ShowMessage(FString::Printf(TEXT("Lens · %s"), SimCruiseLens::Label(Camera->GetLens())), 2.f);
 	}
 }

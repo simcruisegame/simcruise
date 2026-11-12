@@ -9,9 +9,12 @@
 #include "HAL/IConsoleManager.h"
 #include "Presentation/SimCruiseCarPresentationComponent.h"
 
+static TAutoConsoleVariable<float> CVarScreenInches(
+	TEXT("simcruise.Lens.ScreenInches"), 15.6f,
+	TEXT("The screen's diagonal in inches, for the true-FOV lens (its height follows the window's aspect)."));
 static TAutoConsoleVariable<float> CVarScreenHeightCm(
-	TEXT("simcruise.Lens.ScreenHeightCm"), 19.4f,
-	TEXT("Physical height of the picture in cm for the 'true to screen' lens (19.4 = 15.6\" 16:9)."));
+	TEXT("simcruise.Lens.ScreenHeightCm"), 0.f,
+	TEXT("The picture's physical height in cm for the true-FOV lens; 0 derives it from simcruise.Lens.ScreenInches."));
 static TAutoConsoleVariable<float> CVarViewDistanceCm(
 	TEXT("simcruise.Lens.ViewDistanceCm"), 60.f,
 	TEXT("Eye-to-screen distance in cm for the 'true to screen' lens."));
@@ -97,7 +100,9 @@ void ASimCruisePlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float 
 		const FSimCruiseEyePose Eye = Head.Update(Body, WorldVelocityMps, Setup, Telemetry, DeltaTime);
 		OutVT.POV.Location = Eye.Location;
 		OutVT.POV.Rotation = Eye.ToRotator();
-		const double Vertical = SimCruiseLens::VerticalFovDeg(Lens, CVarScreenHeightCm.GetValueOnGameThread(), CVarViewDistanceCm.GetValueOnGameThread());
+		const double HeightCm = CVarScreenHeightCm.GetValueOnGameThread() > 0.f ? CVarScreenHeightCm.GetValueOnGameThread()
+			: SimCruiseLens::ScreenHeightCm(CVarScreenInches.GetValueOnGameThread(), Aspect);
+		const double Vertical = SimCruiseLens::VerticalFovDeg(Lens, HeightCm, CVarViewDistanceCm.GetValueOnGameThread());
 		OutVT.POV.FOV = static_cast<float>(SimCruiseLens::HorizontalFromVerticalDeg(Vertical, Aspect));
 		bSnap = false;
 		return;

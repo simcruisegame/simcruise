@@ -43,7 +43,8 @@ public:
 private:
 	ESimCruiseView View = ESimCruiseView::Driver;
 	ESimCruiseView ShownView = ESimCruiseView::Driver;
-	ESimCruiseLens Lens = ESimCruiseLens::Natural;
+	/** True FOV by default: the screen as a window the size it really is (see SimCruiseLens). */
+	ESimCruiseLens Lens = ESimCruiseLens::Screen;
 	bool bSnap = true;
 	FSimCruiseHeadModel Head;
 	FSimCruiseChaseFrame Chase;

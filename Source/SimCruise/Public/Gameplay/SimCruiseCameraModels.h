@@ -19,7 +19,7 @@ enum class ESimCruiseView : uint8
 enum class ESimCruiseLens : uint8
 {
 	Natural,   // 45 deg vertical: about a 30 mm lens on full frame
-	Screen,    // the angle the physical screen subtends at the eye
+	Screen,    // true FOV: the angle the physical screen subtends at the eye (the default)
 	Wide,      // 67 deg: the previous Godot view, for tight streets
 };
 
@@ -37,6 +37,14 @@ namespace SimCruiseLens
 	/** Unreal takes a horizontal FOV; convert for the viewport's aspect (width/height). */
 	SIMCRUISE_API double HorizontalFromVerticalDeg(double VerticalDeg, double AspectRatio);
 	SIMCRUISE_API const TCHAR* Label(ESimCruiseLens Lens);
+
+	/** A screen's picture height from its diagonal (inches) and aspect (width/height), cm. */
+	SIMCRUISE_API double ScreenHeightCm(double DiagonalInches, double AspectRatio);
+	/**
+	 * The true horizontal field of view: the angle the screen's width subtends at the eye,
+	 * 2 atan(width / (2 distance)); 15.6 in 16:9 at 60 cm is 32.1 degrees.
+	 */
+	SIMCRUISE_API double TrueHorizontalFovDeg(double DiagonalInches, double AspectRatio, double ViewDistanceCm);
 }
 
 /** Driver eye pose in world space. */

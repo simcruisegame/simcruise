@@ -512,7 +512,7 @@ void SSimCruiseRoadAtlas::Construct(const FArguments& InArgs)
 	OnSetting = InArgs._OnSetting;
 	OnClose = InArgs._OnClose;
 	TSharedRef<SHorizontalBox> SettingsRow = SNew(SHorizontalBox);
-	for (int32 Index = 0; Index < 4; ++Index)
+	for (int32 Index = 0; Index < 7; ++Index)
 	{
 		TSharedPtr<STextBlock> Text;
 		SettingsRow->AddSlot().AutoWidth().Padding(0, 0, 8, 0)
