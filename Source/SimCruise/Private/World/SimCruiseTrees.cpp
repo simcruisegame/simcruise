@@ -50,6 +50,8 @@ Roughness = 0.95;
 return b;
 )HLSL");
 
+#if WITH_EDITOR
+	// Material graph building is editor-only; a packaged game loads the saved materials.
 	template <typename T>
 	T* AddExpression(UMaterial* Material)
 	{
@@ -74,6 +76,7 @@ return b;
 		P->SamplerType = SAMPLERTYPE_Color;
 		return P;
 	}
+#endif
 
 	FString TreeArt(const FString& File)
 	{

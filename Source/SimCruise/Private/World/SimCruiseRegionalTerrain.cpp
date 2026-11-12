@@ -59,6 +59,8 @@ return float3(0.0, 0.0, -drop * 100.0);
 return length(WP.xy - Cam.xy) > 55000.0 ? 1.0 : 0.0;
 )HLSL");
 
+#if WITH_EDITOR
+	// Material graph building is editor-only; a packaged game loads the saved materials.
 	template <typename T>
 	T* AddExpression(UMaterial* Material)
 	{
@@ -83,6 +85,7 @@ return length(WP.xy - Cam.xy) > 55000.0 ? 1.0 : 0.0;
 		Node->Code = Code;
 		return Node;
 	}
+#endif
 
 	bool ReadGrid(const FString& Path, TArray<FVector>& OutPositions, TArray<int32>& OutIndices)
 	{
