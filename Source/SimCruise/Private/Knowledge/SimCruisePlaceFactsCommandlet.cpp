@@ -9,6 +9,7 @@
 #include "HttpModule.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
+#include "Knowledge/SimCruisePlaceAI.h"
 #include "Knowledge/SimCruisePlaceFacts.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
@@ -20,7 +21,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogSimCruisePlaceFactsCommandlet, Log, All);
 namespace
 {
 	/** A blocking HTTP call for the commandlet (ticks the HTTP manager itself). */
-	bool Fetch(const FString& Url, const FString& Verb, const FString& Body, const FString& Accept, FString& Out)
+	bool Fetch(const FString& Url, const FString& Verb, const FString& Body, const FString& Accept, FString& Out, float Timeout = 60.0f, const TCHAR* ContentType = TEXT("application/x-www-form-urlencoded"))
 	{
 		const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Req = FHttpModule::Get().CreateRequest();
 		Req->SetURL(Url);
@@ -29,10 +30,11 @@ namespace
 		Req->SetHeader(TEXT("Accept"), Accept);
 		if (!Body.IsEmpty())
 		{
-			Req->SetHeader(TEXT("Content-Type"), TEXT("application/x-www-form-urlencoded"));
+			Req->SetHeader(TEXT("Content-Type"), ContentType);
 			Req->SetContentAsString(Body);
 		}
-		Req->SetTimeout(60.0f);
+		Req->SetTimeout(Timeout);
+		Req->SetActivityTimeout(Timeout); // a local model answers only when done
 		bool bDone = false, bOk = false;
 		Req->OnProcessRequestComplete().BindLambda([&](FHttpRequestPtr, FHttpResponsePtr Response, bool bConnected)
 		{
@@ -42,7 +44,7 @@ namespace
 			bDone = true;
 		});
 		Req->ProcessRequest();
-		const double End = FPlatformTime::Seconds() + 70.0;
+		const double End = FPlatformTime::Seconds() + Timeout + 10.0;
 		while (!bDone && FPlatformTime::Seconds() < End)
 		{
 			FHttpModule::Get().GetHttpManager().Tick(0.05f);
@@ -86,7 +88,8 @@ int32 USimCruisePlaceFactsCommandlet::Main(const FString& Params)
 	}
 	const bool bAll = FParse::Param(*Params, TEXT("All"));
 	int32 Failures = 0;
-	for (const FIntPoint& Tile : Tiles)
+	const bool bDoOsm = !FParse::Param(*Params, TEXT("NoOSM"));
+	for (const FIntPoint& Tile : (bDoOsm ? Tiles : TArray<FIntPoint>()))
 	{
 		// A tile already fetched from both sources is kept (-All fetches again).
 		FString Old;
@@ -119,6 +122,48 @@ int32 USimCruisePlaceFactsCommandlet::Main(const FString& Params)
 			FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 		UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("%s: %d useful of %d OSM + %d Wikidata -> %s"), *SimCruiseTileName(Tile), Useful.Num(), Osm.Num(), Wd.Num(), *Path);
 		FPlatformProcess::Sleep(2.0f);
+	}
+	// -AI: the local model reads each area of these tiles (data/knowledge/areas).
+	if (FParse::Param(*Params, TEXT("AI")))
+	{
+		FString Tags;
+		const FString Model = Fetch(SimCruisePlaceAI::OllamaUrl() + TEXT("/api/tags"), TEXT("GET"), FString(), TEXT("application/json"), Tags, 10.0f)
+			? SimCruisePlaceAI::PickModel(Tags) : FString();
+		if (Model.IsEmpty())
+		{
+			UE_LOG(LogSimCruisePlaceFactsCommandlet, Warning, TEXT("No local model at %s."), *SimCruisePlaceAI::OllamaUrl());
+			return 1;
+		}
+		TSet<FIntPoint> Areas;
+		for (const FIntPoint& Tile : Tiles) Areas.Add(SimCruisePlaceAI::AreaOf(Tile));
+		for (const FIntPoint& Area : Areas)
+		{
+			double Lat, Lon;
+			SimCruisePlaceAI::AreaCentre(Area, Lat, Lon);
+			FString Geo, Ex, Chat, Error;
+			TArray<int64> Ids;
+			FSimCruiseAreaPrior Prior;
+			Prior.Model = Model;
+			TArray<FString> Lines;
+			if (!Fetch(SimCruisePlaceAI::GeosearchUrl(Lat, Lon), TEXT("GET"), FString(), TEXT("application/json"), Geo) || !SimCruisePlaceAI::ParseGeosearch(Geo, Ids, Error)) { ++Failures; continue; }
+			if (Ids.Num() > 0)
+			{
+				if (!Fetch(SimCruisePlaceAI::ExtractsUrl(Ids), TEXT("GET"), FString(), TEXT("application/json"), Ex) || !SimCruisePlaceAI::ParseExtracts(Ex, Ids, Lines, Prior.Sources, Error)) { ++Failures; continue; }
+				const TArray<FString> Sources = Prior.Sources;
+				const double T0 = FPlatformTime::Seconds();
+				if (!Fetch(SimCruisePlaceAI::OllamaUrl() + TEXT("/api/chat"), TEXT("POST"), SimCruisePlaceAI::ChatRequest(SimCruisePlaceGraph::Rules(), Model, FString(), Lat, Lon, Lines),
+					TEXT("application/json"), Chat, 600.0f, TEXT("application/json")) || !SimCruisePlaceAI::ParseChat(SimCruisePlaceGraph::Rules(), Chat, Prior, Error))
+				{
+					UE_LOG(LogSimCruisePlaceFactsCommandlet, Warning, TEXT("Area %d_%d: the local model failed %s"), Area.X, Area.Y, *Error);
+					++Failures;
+					continue;
+				}
+				Prior.Sources = Sources;
+				UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("Area %d_%d: %.0f s on the CPU"), Area.X, Area.Y, FPlatformTime::Seconds() - T0);
+			}
+			FFileHelper::SaveStringToFile(SimCruisePlaceAI::ToJson(Area, Prior), *SimCruisePlaceAI::BundledPath(Area), FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+			UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("Area %d_%d: %s"), Area.X, Area.Y, *SimCruisePlaceAI::ToJson(Area, Prior));
+		}
 	}
 	return Failures == 0 ? 0 : 1;
 }

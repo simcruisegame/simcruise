@@ -190,7 +190,7 @@ namespace SimCruisePlaceGraph
 	 * nearest within 18 m).
 	 */
 	SIMCRUISE_API void BakeTile(const FSimCruisePlaceRules& Rules, const FSimCruiseTileData& Data, double LatDeg, double LonDeg, double SideM,
-		const TArray<FSimCruisePlaceRecord>& Records, FSimCruiseTilePlan& Out);
+		const TArray<FSimCruisePlaceRecord>& Records, FSimCruiseTilePlan& Out, const FSimCruiseFactSet* AreaFacts = nullptr);
 
 	/** The building's facts with the live facts added and the live rules run (light:*, street:*, surface:*). */
 	SIMCRUISE_API void LiveView(const FSimCruisePlaceRules& Rules, const FSimCruiseBuildingPlan& Plan, const FSimCruiseFactSet& Live, FSimCruiseFactSet& Out);

@@ -1,15 +1,1013 @@
 {
 	"tile": "18179_27909",
-	"fetched": "2026-11-12T04:03:54.114Z",
-	"sources": "overpass:0 wikidata:17",
+	"fetched": "2026-11-12T06:27:23.294Z",
+	"sources": "overpass:182 wikidata:17",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
-			"lat": 25.77252,
-			"lon": -80.134420000000006,
+			"lat": 25.774740999999999,
+			"lon": -80.136875000000003,
+			"name": "Shell",
+			"osm": "way/120105966",
+			"building": "roof",
+			"amenity": "fuel"
+		},
+		{
+			"lat": 25.774788000000001,
+			"lon": -80.135745,
+			"osm": "way/255394177",
+			"levels": 3,
+			"building": "retail"
+		},
+		{
+			"lat": 25.774117,
+			"lon": -80.137643999999995,
+			"name": "The Flower Bazaar",
+			"osm": "way/255394184",
+			"building": "retail",
+			"amenity": "shop"
+		},
+		{
+			"lat": 25.771811,
+			"lon": -80.136270999999994,
+			"osm": "way/255394193",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773060000000001,
+			"lon": -80.136199000000005,
+			"osm": "way/255394197",
+			"levels": 3,
+			"building": "residential"
+		},
+		{
+			"lat": 25.770903000000001,
+			"lon": -80.137871000000004,
+			"osm": "way/255394204",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.771298999999999,
+			"lon": -80.135182999999998,
+			"osm": "way/255394228",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773216000000001,
+			"lon": -80.138490000000004,
+			"osm": "way/255394231",
+			"building": "school"
+		},
+		{
+			"lat": 25.774049999999999,
+			"lon": -80.135244999999998,
+			"osm": "way/255394234",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773896000000001,
+			"lon": -80.136244000000005,
+			"osm": "way/255394237",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770945999999999,
+			"lon": -80.136253999999994,
+			"osm": "way/255394238",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771488999999999,
+			"lon": -80.137527000000006,
+			"osm": "way/255394240",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771277000000001,
+			"lon": -80.137506000000002,
+			"osm": "way/255394241",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770188000000001,
+			"lon": -80.136233000000004,
+			"osm": "way/255394245",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772516,
+			"lon": -80.136295000000004,
+			"osm": "way/255394252",
+			"levels": 2,
+			"building": "retail"
+		},
+		{
+			"lat": 25.773481,
+			"lon": -80.136348999999996,
+			"osm": "way/255394257",
+			"levels": 5,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773886999999998,
+			"lon": -80.13646,
+			"osm": "way/255394271",
+			"levels": 1,
+			"building": "residential"
+		},
+		{
+			"lat": 25.772079000000002,
+			"lon": -80.137417999999997,
+			"osm": "way/255394275",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773087,
+			"lon": -80.135244,
+			"name": "The Fountain Condo Vacation Rentals",
+			"osm": "way/255394286",
+			"levels": 3,
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.771695999999999,
+			"lon": -80.136261000000005,
+			"osm": "way/255394298",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773910000000001,
+			"lon": -80.135225000000005,
+			"osm": "way/255394311",
+			"levels": 2,
+			"building": "residential"
+		},
+		{
+			"lat": 25.772271,
+			"lon": -80.135177999999996,
+			"osm": "way/255394316",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773228,
+			"lon": -80.135140000000007,
+			"osm": "way/255394335",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771433999999999,
+			"lon": -80.135171999999997,
+			"osm": "way/255394337",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771688000000001,
+			"lon": -80.134495000000001,
+			"osm": "way/255394342",
+			"building": "retail"
+		},
+		{
+			"lat": 25.773045,
+			"lon": -80.136848999999998,
+			"osm": "way/255394343",
+			"levels": 2,
+			"building": "residential"
+		},
+		{
+			"lat": 25.773209000000001,
+			"lon": -80.135695999999996,
+			"osm": "way/255394346",
+			"levels": 3,
+			"building": "residential"
+		},
+		{
+			"lat": 25.771280000000001,
+			"lon": -80.137296000000006,
+			"osm": "way/255394349",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772110000000001,
+			"lon": -80.136268000000001,
+			"osm": "way/255394362",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773166,
+			"lon": -80.137450999999999,
+			"osm": "way/255394366",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771419000000002,
+			"lon": -80.136285000000001,
+			"osm": "way/255394372",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770529,
+			"lon": -80.137675999999999,
+			"osm": "way/255394375",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773322,
+			"lon": -80.136920000000003,
+			"osm": "way/255394382",
+			"levels": 2,
+			"building": "residential"
+		},
+		{
+			"lat": 25.773195000000001,
+			"lon": -80.136334000000005,
+			"osm": "way/255394386",
+			"levels": 4,
+			"building": "residential"
+		},
+		{
+			"lat": 25.771277000000001,
+			"lon": -80.137732999999997,
+			"osm": "way/255394388",
+			"levels": 1,
+			"building": "house"
+		},
+		{
+			"lat": 25.772894999999998,
+			"lon": -80.137564999999995,
+			"osm": "way/255394391",
+			"levels": 1,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773053000000001,
+			"lon": -80.136668,
+			"osm": "way/255394394",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772915000000001,
+			"lon": -80.136716000000007,
+			"osm": "way/255394418",
+			"levels": 1,
+			"building": "residential"
+		},
+		{
+			"lat": 25.771208999999999,
+			"lon": -80.134073000000001,
+			"osm": "way/255394421",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772919000000002,
+			"lon": -80.136923999999993,
+			"osm": "way/255394424",
+			"levels": 2,
+			"building": "residential"
+		},
+		{
+			"lat": 25.772815000000001,
+			"lon": -80.135199,
+			"name": "The Brooklyn South Beach",
+			"osm": "way/255394427",
+			"levels": 2,
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.772943000000001,
+			"lon": -80.135682000000003,
+			"osm": "way/255394443",
+			"levels": 3,
+			"building": "residential"
+		},
+		{
+			"lat": 25.772243,
+			"lon": -80.136291999999997,
+			"osm": "way/255394458",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772611999999999,
+			"lon": -80.135163000000006,
+			"name": "Armitage Place No 3 Condo",
+			"osm": "way/255394459",
+			"levels": 5,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771498000000001,
+			"lon": -80.137297000000004,
+			"osm": "way/255394462",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773482000000001,
+			"lon": -80.135699000000002,
+			"osm": "way/255394470",
+			"levels": 2,
+			"building": "residential"
+		},
+		{
+			"lat": 25.773171999999999,
+			"lon": -80.134111000000004,
+			"name": "Hotel Saint Augustine",
+			"osm": "way/255394472",
+			"levels": 2,
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.770462999999999,
+			"lon": -80.138765000000006,
+			"name": "Rebecca Towers",
+			"osm": "way/258423137",
+			"levels": 13,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770765999999998,
+			"lon": -80.138987,
+			"name": "Rebecca Towers",
+			"osm": "way/258423140",
+			"levels": 13,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.774054,
+			"lon": -80.139717000000005,
+			"osm": "way/258423143",
+			"building": "retail"
+		},
+		{
+			"lat": 25.772904,
+			"lon": -80.139216000000005,
+			"osm": "way/263002518",
+			"building": "school"
+		},
+		{
+			"lat": 25.771616000000002,
+			"lon": -80.136759999999995,
+			"name": "Ilona Lofts",
+			"osm": "way/263075194",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771348,
+			"lon": -80.136736999999997,
+			"osm": "way/263075195",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771552,
+			"lon": -80.136269999999996,
+			"osm": "way/263075200",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772068999999998,
+			"lon": -80.136784000000006,
+			"name": "Sundance Loft",
+			"osm": "way/263075203",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.77195,
+			"lon": -80.136415,
+			"osm": "way/263075205",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771660000000001,
+			"lon": -80.137409000000005,
+			"osm": "way/263075206",
+			"levels": 1,
+			"building": "residential"
+		},
+		{
+			"lat": 25.772556000000002,
+			"lon": -80.137975999999995,
+			"osm": "way/263075208",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773233000000001,
+			"lon": -80.137957999999998,
+			"osm": "way/263075210",
+			"building": "commercial"
+		},
+		{
+			"lat": 25.772760000000002,
+			"lon": -80.137584000000004,
+			"osm": "way/263075212",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772614000000001,
+			"lon": -80.137568999999999,
+			"osm": "way/263075214",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772767999999999,
+			"lon": -80.137378999999996,
+			"name": "Fletamentos Y Cargas Miami",
+			"osm": "way/263075215",
+			"building": "commercial"
+		},
+		{
+			"lat": 25.772637,
+			"lon": -80.137359000000004,
+			"osm": "way/263075217",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772486000000001,
+			"lon": -80.137434999999996,
+			"name": "The Gramercy Condominium Association Of South Beach, Inc.",
+			"osm": "way/263075219",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770230000000002,
+			"lon": -80.136679999999998,
+			"osm": "way/321671537",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770876999999999,
+			"lon": -80.136709999999994,
+			"osm": "way/321671538",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770188000000001,
+			"lon": -80.137403000000006,
+			"osm": "way/321671539",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770199999999999,
+			"lon": -80.137034999999997,
+			"osm": "way/321671540",
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770890000000001,
+			"lon": -80.137366,
+			"osm": "way/321671541",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770883999999999,
+			"lon": -80.137623000000005,
+			"osm": "way/321671542",
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770900999999999,
+			"lon": -80.137054000000006,
+			"osm": "way/321671543",
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770567,
+			"lon": -80.137130999999997,
+			"osm": "way/321671545",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770883000000001,
+			"lon": -80.135501000000005,
+			"osm": "way/321672225",
+			"levels": 8,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770332,
+			"lon": -80.135553999999999,
+			"osm": "way/321672229",
+			"levels": 8,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771713999999999,
+			"lon": -80.135131000000001,
+			"osm": "way/381591047",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771574999999999,
+			"lon": -80.135175000000004,
+			"osm": "way/381591048",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770969999999998,
+			"lon": -80.134432000000004,
+			"osm": "way/433295353",
+			"building": "commercial"
+		},
+		{
+			"lat": 25.772908000000001,
+			"lon": -80.134163000000001,
+			"osm": "way/433295429",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773744000000001,
+			"lon": -80.136257999999998,
+			"osm": "way/435237379",
+			"levels": 1,
+			"building": "residential"
+		},
+		{
+			"lat": 25.772656999999999,
+			"lon": -80.136312000000004,
+			"osm": "way/435238335",
+			"levels": 2,
+			"building": "commercial"
+		},
+		{
+			"lat": 25.772061000000001,
+			"lon": -80.137904000000006,
+			"name": "Absolut Lofts",
+			"osm": "way/435388022",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773347000000001,
+			"lon": -80.135699000000002,
+			"osm": "way/435389075",
+			"levels": 2,
+			"building": "residential"
+		},
+		{
+			"lat": 25.773361000000001,
+			"lon": -80.135212999999993,
+			"name": "Orange - Hotel Suites",
+			"osm": "way/435519287",
+			"levels": 2,
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.771813000000002,
+			"lon": -80.136643000000007,
+			"osm": "way/435530177",
+			"building": "service"
+		},
+		{
+			"lat": 25.773181999999998,
+			"lon": -80.136725999999996,
+			"osm": "way/435530958",
+			"levels": 1,
+			"building": "residential"
+		},
+		{
+			"lat": 25.772497000000001,
+			"lon": -80.136780999999999,
+			"osm": "way/435531490",
+			"levels": 5,
+			"building": "residential"
+		},
+		{
+			"lat": 25.772131000000002,
+			"lon": -80.135161999999994,
+			"osm": "way/435541029",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771286,
+			"lon": -80.136127000000002,
+			"osm": "way/435568941",
+			"levels": 1,
+			"building": "house"
+		},
+		{
+			"lat": 25.773903000000001,
+			"lon": -80.135739000000001,
+			"osm": "way/435577389",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773719,
+			"lon": -80.137911000000003,
+			"osm": "way/435578588",
+			"building": "service"
+		},
+		{
+			"lat": 25.773060000000001,
+			"lon": -80.136414000000002,
+			"osm": "way/435584180",
+			"levels": 4,
+			"building": "residential"
+		},
+		{
+			"lat": 25.771909000000001,
+			"lon": -80.135689999999997,
+			"name": "Armitage Place No 1A Condo",
+			"osm": "way/435585435",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.77129,
+			"lon": -80.136348999999996,
+			"osm": "way/435730459",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772559999999999,
+			"lon": -80.134224000000003,
 			"name": "Jewish Museum of Florida",
+			"osm": "way/435731605",
 			"wikidata": "Q3178486",
-			"year": 1936
+			"year": 1936,
+			"building": "yes",
+			"amenity": "museum"
+		},
+		{
+			"lat": 25.773699000000001,
+			"lon": -80.138110999999995,
+			"name": "UltraShape Spa",
+			"osm": "way/435732506",
+			"building": "retail"
+		},
+		{
+			"lat": 25.770455999999999,
+			"lon": -80.134746000000007,
+			"osm": "way/435735948",
+			"levels": 6,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772860000000001,
+			"lon": -80.134715999999997,
+			"osm": "way/435737624",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773772000000001,
+			"lon": -80.135261999999997,
+			"osm": "way/435738779",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773800000000001,
+			"lon": -80.136728000000005,
+			"osm": "way/435739275",
+			"levels": 1,
+			"building": "residential"
+		},
+		{
+			"lat": 25.773782000000001,
+			"lon": -80.137630999999999,
+			"osm": "way/435740561",
+			"building": "commercial"
+		},
+		{
+			"lat": 25.773222000000001,
+			"lon": -80.135339000000002,
+			"osm": "way/435744605",
+			"levels": 2,
+			"building": "residential"
+		},
+		{
+			"lat": 25.773795,
+			"lon": -80.136850999999993,
+			"osm": "way/435747964",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.774038999999998,
+			"lon": -80.135721000000004,
+			"osm": "way/435748506",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773503999999999,
+			"lon": -80.135212999999993,
+			"osm": "way/435748949",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772189000000001,
+			"lon": -80.135677000000001,
+			"name": "Armitage Condo",
+			"osm": "way/435809523",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773178999999999,
+			"lon": -80.136905999999996,
+			"osm": "way/435881591",
+			"levels": 2,
+			"building": "residential"
+		},
+		{
+			"lat": 25.773077000000001,
+			"lon": -80.134703000000002,
+			"osm": "way/435883959",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.770990999999999,
+			"lon": -80.134647000000001,
+			"osm": "way/436033976",
+			"building": "commercial"
+		},
+		{
+			"lat": 25.772946999999998,
+			"lon": -80.135197000000005,
+			"osm": "way/436034159",
+			"levels": 1,
+			"building": "residential"
+		},
+		{
+			"lat": 25.773902,
+			"lon": -80.138621000000001,
+			"osm": "way/436035140",
+			"building": "retail"
+		},
+		{
+			"lat": 25.774094999999999,
+			"lon": -80.137420000000006,
+			"osm": "way/436040344",
+			"building": "commercial"
+		},
+		{
+			"lat": 25.773412,
+			"lon": -80.137360000000001,
+			"name": "Balit Construction Corporation",
+			"osm": "way/436040636",
+			"building": "commercial"
+		},
+		{
+			"lat": 25.773713999999998,
+			"lon": -80.137792000000005,
+			"osm": "way/436041756",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773789000000001,
+			"lon": -80.136985999999993,
+			"osm": "way/436110162",
+			"levels": 5,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772631000000001,
+			"lon": -80.137950000000004,
+			"osm": "way/436122467",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.774000999999998,
+			"lon": -80.134613000000002,
+			"osm": "way/436122991",
+			"levels": 8,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771654999999999,
+			"lon": -80.137908999999993,
+			"osm": "way/436126247",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772237000000001,
+			"lon": -80.134308000000004,
+			"osm": "way/436126373",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771652,
+			"lon": -80.139645000000002,
+			"osm": "way/481648945",
+			"levels": 2,
+			"building": "retail"
+		},
+		{
+			"lat": 25.771235000000001,
+			"lon": -80.138012000000003,
+			"osm": "way/637335320",
+			"levels": 1,
+			"building": "house"
+		},
+		{
+			"lat": 25.771902999999998,
+			"lon": -80.137379999999993,
+			"osm": "way/637335321",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771364999999999,
+			"lon": -80.138014999999996,
+			"osm": "way/637335325",
+			"levels": 1,
+			"building": "house"
+		},
+		{
+			"lat": 25.773755999999999,
+			"lon": -80.135767000000001,
+			"osm": "way/640954026",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773278000000001,
+			"lon": -80.134692000000001,
+			"osm": "way/640954030",
+			"levels": 2,
+			"building": "house"
+		},
+		{
+			"lat": 25.772936999999999,
+			"lon": -80.136285000000001,
+			"osm": "way/646882859",
+			"levels": 2,
+			"building": "house"
+		},
+		{
+			"lat": 25.773334999999999,
+			"lon": -80.136342999999997,
+			"osm": "way/646882863",
+			"levels": 3,
+			"building": "residential"
+		},
+		{
+			"lat": 25.773468999999999,
+			"lon": -80.136692999999994,
+			"osm": "way/646882864",
+			"levels": 1,
+			"building": "house"
+		},
+		{
+			"lat": 25.773427999999999,
+			"lon": -80.137518,
+			"osm": "way/646882869",
+			"levels": 1,
+			"building": "house"
+		},
+		{
+			"lat": 25.773757,
+			"lon": -80.136446000000007,
+			"osm": "way/828252896",
+			"levels": 1,
+			"building": "house"
+		},
+		{
+			"lat": 25.774186,
+			"lon": -80.135226000000003,
+			"name": "Urbanica Euclid",
+			"osm": "way/828252897",
+			"levels": 4,
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.772644,
+			"lon": -80.135699000000002,
+			"name": "Louver House",
+			"osm": "way/828252898",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.772648,
+			"lon": -80.136645999999999,
+			"osm": "way/828252899",
+			"levels": 2,
+			"building": "residential"
+		},
+		{
+			"lat": 25.772766000000001,
+			"lon": -80.136814999999999,
+			"osm": "way/828252900",
+			"levels": 1,
+			"building": "residential"
+		},
+		{
+			"lat": 25.772632000000002,
+			"lon": -80.136904000000001,
+			"osm": "way/828252901",
+			"levels": 2,
+			"building": "residential"
+		},
+		{
+			"lat": 25.773326000000001,
+			"lon": -80.136722000000006,
+			"osm": "way/828252902",
+			"levels": 2,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.773029999999999,
+			"lon": -80.137428999999997,
+			"osm": "way/828252903",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771961000000001,
+			"lon": -80.136194000000003,
+			"osm": "way/828252904",
+			"levels": 1,
+			"building": "house"
+		},
+		{
+			"lat": 25.771849,
+			"lon": -80.135142000000002,
+			"osm": "way/828252906",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771439000000001,
+			"lon": -80.139866999999995,
+			"osm": "way/945873462",
+			"building": "retail"
+		},
+		{
+			"lat": 25.774179,
+			"lon": -80.135727000000003,
+			"osm": "way/1078462682",
+			"levels": 5,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.771569,
+			"lon": -80.135626999999999,
+			"osm": "relation/6462105",
+			"levels": 4,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.774101000000002,
+			"lon": -80.136349999999993,
+			"name": "Urbanica The Meridian Hotel",
+			"osm": "relation/13421427",
+			"wikidata": "Q111393216",
+			"building": "hotel",
+			"amenity": "hotel"
 		},
 		{
 			"lat": 25.772221999999999,
@@ -18,13 +1016,6 @@
 			"wikidata": "Q4897552",
 			"architect": "A. Fraser Rose",
 			"heritage": "National Register of Historic Places listed place"
-		},
-		{
-			"lat": 25.774014999999999,
-			"lon": -80.136358999999999,
-			"name": "Urbanica The Meridian Hotel",
-			"wikidata": "Q111393216",
-			"building": "hotel"
 		},
 		{
 			"lat": 25.77421,

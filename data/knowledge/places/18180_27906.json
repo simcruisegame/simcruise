@@ -1,9 +1,282 @@
 {
 	"tile": "18180_27906",
-	"fetched": "2026-11-12T04:09:19.385Z",
-	"sources": "overpass:0 wikidata:62",
+	"fetched": "2026-11-12T06:27:56.597Z",
+	"sources": "overpass:183 wikidata:62",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
+		{
+			"lat": 25.789414000000001,
+			"lon": -80.129344000000003,
+			"name": "Loews Miami Beach Hotel",
+			"osm": "way/100348830",
+			"wikidata": "Q111393196",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.788813999999999,
+			"lon": -80.129243000000002,
+			"osm": "way/100348831",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.785875999999998,
+			"lon": -80.131054000000006,
+			"name": "Nassau Suite Hotel",
+			"osm": "way/255410036",
+			"wikidata": "Q124337701",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1936,
+			"architect": "Albert Anis",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.787337999999998,
+			"lon": -80.132281000000006,
+			"name": "Hudson",
+			"osm": "way/255410075",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.785249,
+			"lon": -80.133309999999994,
+			"name": "Everglades Building",
+			"osm": "way/297279370",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.785169,
+			"lon": -80.133771999999993,
+			"osm": "way/300089862",
+			"building": "apartments"
+		},
+		{
+			"lat": 25.790013999999999,
+			"lon": -80.132499999999993,
+			"osm": "way/301241461",
+			"levels": 6,
+			"building": "office"
+		},
+		{
+			"lat": 25.786504999999998,
+			"lon": -80.129868999999999,
+			"name": "The Betsy South Beach",
+			"osm": "way/337803266",
+			"wikidata": "Q111393202",
+			"style": [
+				"Colonial Revival architecture"
+			],
+			"year": 1942,
+			"architect": "Lawrence Murray Dixon",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.785323000000002,
+			"lon": -80.130045999999993,
+			"name": "Eurostars Winter Haven",
+			"osm": "way/380861954",
+			"wikidata": "Q111393204",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1939,
+			"architect": "Albert Anis",
+			"heritage": "National Register of Historic Places contributing property",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.788903000000001,
+			"lon": -80.131038000000004,
+			"name": "16th and Collins",
+			"osm": "way/381111098",
+			"levels": 7,
+			"building": "garages",
+			"amenity": "parking"
+		},
+		{
+			"lat": 25.787106999999999,
+			"lon": -80.131360000000001,
+			"name": "Cameo Theatre",
+			"osm": "way/433295502",
+			"wikidata": "Q7721082",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1938,
+			"building": "yes"
+		},
+		{
+			"lat": 25.787389000000001,
+			"lon": -80.132800000000003,
+			"name": "York Towers",
+			"osm": "way/435378208",
+			"levels": 3,
+			"building": "apartments"
+		},
+		{
+			"lat": 25.789517,
+			"lon": -80.131518999999997,
+			"name": "Lincoln Place",
+			"osm": "way/435585345",
+			"levels": 8,
+			"building": "commercial"
+		},
+		{
+			"lat": 25.789643000000002,
+			"lon": -80.130610000000004,
+			"name": "Iberostar Waves Berkeley Shore",
+			"osm": "way/435733155",
+			"wikidata": "Q111393190",
+			"style": [
+				"Art Deco architecture"
+			],
+			"year": 1940,
+			"architect": "Albert Anis",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.787072999999999,
+			"lon": -80.132619000000005,
+			"osm": "way/435736930",
+			"building": "commercial"
+		},
+		{
+			"lat": 25.787054999999999,
+			"lon": -80.13006,
+			"name": "Crowne Plaza South Beach - Z Ocean Hotel",
+			"osm": "way/435807813",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.789427,
+			"lon": -80.130720999999994,
+			"name": "Hyatt Centric South Beach Miami",
+			"osm": "way/564984247",
+			"wikidata": "Q111393194",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.789601000000001,
+			"lon": -80.132789000000002,
+			"name": "Public Parking",
+			"osm": "way/564987071",
+			"building": "garages",
+			"amenity": "parking"
+		},
+		{
+			"lat": 25.789041999999998,
+			"lon": -80.129480999999998,
+			"osm": "way/587485170",
+			"building": "roof"
+		},
+		{
+			"lat": 25.788910999999999,
+			"lon": -80.132202000000007,
+			"osm": "way/587787069",
+			"levels": 3,
+			"building": "retail"
+		},
+		{
+			"lat": 25.788696999999999,
+			"lon": -80.132079000000004,
+			"osm": "way/587787072",
+			"building": "retail"
+		},
+		{
+			"lat": 25.789370999999999,
+			"lon": -80.132119000000003,
+			"osm": "way/587787073",
+			"building": "retail"
+		},
+		{
+			"lat": 25.788730000000001,
+			"lon": -80.128651000000005,
+			"osm": "way/589931277",
+			"levels": 1,
+			"building": "cabin"
+		},
+		{
+			"lat": 25.789966,
+			"lon": -80.131558999999996,
+			"osm": "way/590645538",
+			"levels": 1,
+			"building": "tweak"
+		},
+		{
+			"lat": 25.789697,
+			"lon": -80.131217000000007,
+			"osm": "way/590645539",
+			"levels": 4,
+			"building": "garages",
+			"amenity": "parking"
+		},
+		{
+			"lat": 25.787803,
+			"lon": -80.132175000000004,
+			"osm": "way/640170844",
+			"roof": "flat",
+			"building": "yes"
+		},
+		{
+			"lat": 25.787085999999999,
+			"lon": -80.132035000000002,
+			"name": "El Paseo Hotel",
+			"osm": "way/640953833",
+			"wikidata": "Q111393198",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.786778000000002,
+			"lon": -80.132103999999998,
+			"name": "Esmé Miami Beach",
+			"osm": "way/827412350",
+			"wikidata": "Q112026580",
+			"building": "hotel",
+			"amenity": "hotel"
+		},
+		{
+			"lat": 25.786816999999999,
+			"lon": -80.132454999999993,
+			"osm": "way/827412351",
+			"building": "commercial"
+		},
+		{
+			"lat": 25.786754999999999,
+			"lon": -80.132754000000006,
+			"osm": "way/827412352",
+			"levels": 3,
+			"building": "commercial"
+		},
+		{
+			"lat": 25.788499000000002,
+			"lon": -80.129777000000004,
+			"osm": "way/1056133230",
+			"building": "roof"
+		},
+		{
+			"lat": 25.785435,
+			"lon": -80.131139000000005,
+			"osm": "way/1180950694",
+			"building": "roof"
+		},
+		{
+			"lat": 25.788910999999999,
+			"lon": -80.132202000000007,
+			"osm": "relation/8293830",
+			"building": "retail"
+		},
 		{
 			"lat": 25.785833,
 			"lon": -80.134167000000005,
@@ -15,16 +288,6 @@
 			"year": 1915,
 			"heritage": "National Register of Historic Places listed place",
 			"district": true
-		},
-		{
-			"lat": 25.787099999999999,
-			"lon": -80.131439999999998,
-			"name": "Cameo Theatre",
-			"wikidata": "Q7721082",
-			"style": [
-				"Art Deco architecture"
-			],
-			"year": 1938
 		},
 		{
 			"lat": 25.785969999999999,
@@ -73,39 +336,6 @@
 			"building": "hotel"
 		},
 		{
-			"lat": 25.78969,
-			"lon": -80.13064,
-			"name": "Iberostar Waves Berkeley Shore",
-			"wikidata": "Q111393190",
-			"style": [
-				"Art Deco architecture"
-			],
-			"year": 1940,
-			"architect": "Albert Anis",
-			"building": "hotel"
-		},
-		{
-			"lat": 25.789429999999999,
-			"lon": -80.130350000000007,
-			"name": "Hyatt Centric South Beach Miami",
-			"wikidata": "Q111393194",
-			"building": "hotel"
-		},
-		{
-			"lat": 25.789339999999999,
-			"lon": -80.130039999999994,
-			"name": "Loews Miami Beach Hotel",
-			"wikidata": "Q111393196",
-			"building": "hotel"
-		},
-		{
-			"lat": 25.786984,
-			"lon": -80.132030999999998,
-			"name": "El Paseo Hotel",
-			"wikidata": "Q111393198",
-			"building": "hotel"
-		},
-		{
 			"lat": 25.78829,
 			"lon": -80.130139999999997,
 			"name": "Royal Palm South Beach Miami, a Tribute Portfolio Resort",
@@ -117,31 +347,6 @@
 			"lon": -80.130470000000003,
 			"name": "Crowne Plaza South Beach - Z Ocean Hotel",
 			"wikidata": "Q111393200",
-			"building": "hotel"
-		},
-		{
-			"lat": 25.7865,
-			"lon": -80.129660000000001,
-			"name": "The Betsy Hotel",
-			"wikidata": "Q111393202",
-			"style": [
-				"Colonial Revival architecture"
-			],
-			"year": 1942,
-			"architect": "Lawrence Murray Dixon",
-			"building": "hotel"
-		},
-		{
-			"lat": 25.785309999999999,
-			"lon": -80.129890000000003,
-			"name": "Winter Haven Hotel",
-			"wikidata": "Q111393204",
-			"style": [
-				"Art Deco architecture"
-			],
-			"year": 1939,
-			"architect": "Albert Anis",
-			"heritage": "National Register of Historic Places contributing property",
 			"building": "hotel"
 		},
 		{
@@ -160,13 +365,6 @@
 			"lon": -80.130825000000002,
 			"name": "The Hall South Beach Miami",
 			"wikidata": "Q111887633",
-			"building": "hotel"
-		},
-		{
-			"lat": 25.78679,
-			"lon": -80.131984000000003,
-			"name": "Esme Miami Beach",
-			"wikidata": "Q112026580",
 			"building": "hotel"
 		},
 		{
@@ -472,18 +670,6 @@
 				"Mediterranean Revival architecture"
 			],
 			"year": 1921
-		},
-		{
-			"lat": 25.785855000000002,
-			"lon": -80.130925000000005,
-			"name": "Nassau Hotel",
-			"wikidata": "Q124337701",
-			"style": [
-				"Art Deco architecture"
-			],
-			"year": 1936,
-			"architect": "Albert Anis",
-			"building": "hotel"
 		},
 		{
 			"lat": 25.784841,

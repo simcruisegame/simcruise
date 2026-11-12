@@ -521,7 +521,7 @@ namespace SimCruisePlaceGraph
 	}
 
 	void BakeTile(const FSimCruisePlaceRules& Rules, const FSimCruiseTileData& Data, double LatDeg, double LonDeg, double SideM,
-		const TArray<FSimCruisePlaceRecord>& Records, FSimCruiseTilePlan& Out)
+		const TArray<FSimCruisePlaceRecord>& Records, FSimCruiseTilePlan& Out, const FSimCruiseFactSet* AreaFacts)
 	{
 		const double T0 = FPlatformTime::Seconds();
 		Out = FSimCruiseTilePlan();
@@ -530,6 +530,8 @@ namespace SimCruisePlaceGraph
 
 		// Tile facts: regions and climate, water on the tile, districts from the open data.
 		Rules.RegionFacts(LatDeg, LonDeg, Out.TileFacts);
+		// The local AI's reading of the area (weak: below a building's own data and the spread).
+		if (AreaFacts) Out.TileFacts.Append(*AreaFacts);
 		for (const FSimCruiseLandPolygon& L : Data.Land)
 		{
 			if (L.Layer == TEXT("water") || L.Class == TEXT("ocean") || L.Class == TEXT("sea") || L.Class == TEXT("lake"))

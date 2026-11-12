@@ -79,11 +79,32 @@ turns it off.
 - `SimCruise.Knowledge.Live`: the live facts.
 - `SimCruise.Knowledge.Report`: tiles, buildings, matched records, bake time.
 
+## Local AI for the gaps
+
+`SimCruisePlaceAI` reads, it does not guess. For each area (a zoom-14 tile, about 2.2 km)
+Wikipedia's geosearch lists the articles about places within 1.5 km of its centre (free
+API; text CC BY-SA 4.0). Their lead extracts go to a small language model on the CPU
+through Ollama on localhost (`num_gpu` 0 and 4 threads, so the 28 W GPU keeps rendering).
+The model must answer in a JSON schema whose words are the graph's own tokens: the
+styles with shares, the main decade, the palette and the roof form.
+
+| Area | Model guessing from memory (4 B) | Model reading the extracts (3 B) |
+|---|---|---|
+| Ocean Drive, Miami Beach | Pueblo Revival, 1967 | Art Deco 0.75, MiMo 0.25, 1930s |
+| Back Bay, Boston | | Victorian 0.75, Neoclassical 0.25, 1890s, red brick |
+| Santa Fe Plaza | | Pueblo Revival 0.85, 1920s, adobe |
+| Maryvale, Phoenix | | nothing (no extracts): an honest empty answer |
+
+The answer becomes weak tile facts: style at 0.6 x its share, era, palette and roof at
+0.4. They sit below a building's own open data (1.0) and the spread from dated neighbours
+(0.7), and alone they cannot switch a recipe. 8-90 s per area, once, in the background;
+answers are cached in `Saved/Knowledge/areas/`, and the start areas ship in
+`data/knowledge/areas/` (`-run=SimCruisePlaceFacts -AI -NoOSM`). Without Ollama, or with
+`-SimCruiseNoPlaceAI`, the graph works without it. The model is the smallest local chat
+model of 1-8 GB (`simcruise.Knowledge.OllamaUrl` sets the server).
+
 ## Next
 
-- A local CPU model for the gaps: a small language model (llama.cpp class, 1-3 B
-  parameters, quantised) in a background thread writes facts with a low confidence
-  ("a 1950s motel in Phoenix: style, colour, sign") into the same cache.
 - Photographs as evidence: wall colours sampled from street-level and Commons photos of
   the building, and the AI detail engine conditioned on them.
 - More recipes that read the existing detail facts: Mediterranean (tile roofs, arches),

@@ -10,6 +10,7 @@
 #include "HttpModule.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Kismet/GameplayStatics.h"
+#include "Knowledge/SimCruisePlaceAI.h"
 #include "Knowledge/SimCruisePlaceFacts.h"
 // The live feeds (Source/SimCruise/*/Live) join when that code is in the tree; until then
 // other systems push live facts with SimCruisePlaceHub::SetLive.
@@ -128,7 +129,10 @@ namespace SimCruisePlaceHub
 	{
 		TArray<FSimCruisePlaceRecord> Records;
 		SimCruisePlaceFacts::ForTile(Data.Id, Records);
-		SimCruisePlaceGraph::BakeTile(SimCruisePlaceGraph::Rules(), Data, LatDeg, LonDeg, SideM, Records, Out);
+		FSimCruiseAreaPrior Prior;
+		FSimCruiseFactSet AreaFacts;
+		if (SimCruisePlaceAI::ForArea(SimCruisePlaceAI::AreaOf(Data.Id), Prior)) SimCruisePlaceAI::ToFacts(Prior, AreaFacts);
+		SimCruisePlaceGraph::BakeTile(SimCruisePlaceGraph::Rules(), Data, LatDeg, LonDeg, SideM, Records, Out, &AreaFacts);
 		StorePlan(Out);
 	}
 }
@@ -147,6 +151,7 @@ void USimCruisePlaceGraphSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	Super::OnWorldBeginPlay(InWorld);
 	const TCHAR* Cmd = FCommandLine::Get();
 	const bool bForce = FParse::Param(Cmd, TEXT("SimCruiseLive"));
+	bAI = !FParse::Param(Cmd, TEXT("SimCruiseNoPlaceAI"));
 	bNetwork = !FParse::Param(Cmd, TEXT("SimCruiseNoLive")) && !FParse::Param(Cmd, TEXT("SimCruiseNoPlaceFetch"))
 		&& (bForce || (!FApp::IsUnattended() && !GIsAutomationTesting));
 	const FSimCruisePlaceRules& R = SimCruisePlaceGraph::Rules();
@@ -201,6 +206,11 @@ void USimCruisePlaceGraphSubsystem::Tick(float DeltaTime)
 	{
 		NextFetch = Now + 2.0;
 		FetchAhead();
+	}
+	if (bNetwork && bAI && AIStep == EAIStep::Idle && Now >= NextAI)
+	{
+		NextAI = Now + 5.0;
+		StartAI();
 	}
 }
 
@@ -519,4 +529,114 @@ bool USimCruisePlaceGraphSubsystem::GetPlaceCard(FSimCruisePlaceCard& Out) const
 	Out = Card;
 	Out.Alpha = static_cast<float>(FMath::Clamp(FMath::Min(Age, CardSeconds - Age) / CardFadeSeconds, 0.0, 1.0));
 	return true;
+}
+
+// ---------------------------------------------------------------------------------------------
+// The local AI reads the area (SimCruisePlaceAI)
+
+namespace
+{
+	using FAIThen = TFunction<void(USimCruisePlaceGraphSubsystem&, bool, const FString&)>;
+
+	void AIRequest(TWeakObjectPtr<USimCruisePlaceGraphSubsystem> Weak, const FString& Url, const FString& Verb, const FString& Body, float Timeout, FAIThen Then)
+	{
+		const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Req = FHttpModule::Get().CreateRequest();
+		Req->SetURL(Url);
+		Req->SetVerb(Verb);
+		Req->SetHeader(TEXT("User-Agent"), UserAgent);
+		if (!Body.IsEmpty())
+		{
+			Req->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+			Req->SetContentAsString(Body);
+		}
+		Req->SetTimeout(Timeout);
+		Req->SetActivityTimeout(Timeout); // a local model answers only when done
+		Req->OnProcessRequestComplete().BindLambda([Weak, Then](FHttpRequestPtr, FHttpResponsePtr Response, bool bConnected)
+		{
+			if (!Weak.IsValid()) return;
+			const bool bOk = bConnected && Response.IsValid() && Response->GetResponseCode() == 200;
+			Then(*Weak, bOk, bOk ? Response->GetContentAsString() : FString());
+		});
+		Req->ProcessRequest();
+	}
+}
+
+void USimCruisePlaceGraphSubsystem::AIFail(const FString& Why)
+{
+	AIStep = EAIStep::Idle;
+	AIFailed.Add(AIArea);
+	LastError = Why;
+	UE_LOG(LogSimCruisePlaceGraph, Display, TEXT("Place AI %d_%d: %s"), AIArea.X, AIArea.Y, *Why);
+}
+
+void USimCruisePlaceGraphSubsystem::StartAI()
+{
+	double Lat, Lon;
+	if (!ObserverLonLat(Lat, Lon)) return;
+	const FVector2d T = SimCruiseGeo::LonLatToTile(Lon, Lat);
+	const FIntPoint Area = SimCruisePlaceAI::AreaOf(FIntPoint(FMath::FloorToInt(T.X), FMath::FloorToInt(T.Y)));
+	if (SimCruisePlaceAI::IsKnown(Area) || AIFailed.Contains(Area)) return;
+	AIArea = Area;
+	AIPrior = FSimCruiseAreaPrior();
+	AILines.Reset();
+	AIStep = EAIStep::Busy;
+	const TWeakObjectPtr<USimCruisePlaceGraphSubsystem> Weak(this);
+
+	// 1. Is the local model there? (Ollama /api/tags: the smallest chat model that fits beside the game.)
+	AIRequest(Weak, SimCruisePlaceAI::OllamaUrl() + TEXT("/api/tags"), TEXT("GET"), FString(), 5.0f, [Weak](USimCruisePlaceGraphSubsystem& S, bool bOk, const FString& Tags)
+	{
+		S.AIModel = bOk ? SimCruisePlaceAI::PickModel(Tags) : FString();
+		if (S.AIModel.IsEmpty())
+		{
+			S.bAI = false; // no local model: stop asking
+			S.AIStep = EAIStep::Idle;
+			UE_LOG(LogSimCruisePlaceGraph, Display, TEXT("Place AI off: no local model at %s (install Ollama and a 2-6 GB model)."), *SimCruisePlaceAI::OllamaUrl());
+			return;
+		}
+		double CLat, CLon;
+		SimCruisePlaceAI::AreaCentre(S.AIArea, CLat, CLon);
+		// 2. The Wikipedia articles about places near the area's centre.
+		AIRequest(Weak, SimCruisePlaceAI::GeosearchUrl(CLat, CLon), TEXT("GET"), FString(), 30.0f, [Weak, CLat, CLon](USimCruisePlaceGraphSubsystem& S, bool bOk, const FString& Geo)
+		{
+			TArray<int64> Ids;
+			FString Error;
+			if (!bOk || !SimCruisePlaceAI::ParseGeosearch(Geo, Ids, Error)) { S.AIFail(TEXT("Wikipedia geosearch failed")); return; }
+			if (Ids.Num() == 0)
+			{
+				// Nothing written about this area: an empty answer, so it is not asked again.
+				S.AIPrior.Model = S.AIModel;
+				SimCruisePlaceAI::Store(S.AIArea, S.AIPrior);
+				S.AIStep = EAIStep::Idle;
+				return;
+			}
+			// 3. Their lead extracts.
+			AIRequest(Weak, SimCruisePlaceAI::ExtractsUrl(Ids), TEXT("GET"), FString(), 30.0f, [Weak, Ids, CLat, CLon](USimCruisePlaceGraphSubsystem& S, bool bOk, const FString& Ex)
+			{
+				FString Error;
+				if (!bOk || !SimCruisePlaceAI::ParseExtracts(Ex, Ids, S.AILines, S.AIPrior.Sources, Error)) { S.AIFail(TEXT("Wikipedia extracts failed")); return; }
+				const UWorld* World = S.GetWorld();
+				const USimCruiseWorldSubsystem* WS = World ? World->GetSubsystem<USimCruiseWorldSubsystem>() : nullptr;
+				const ASimCruiseWorldStreamer* Streamer = WS ? WS->GetStreamer() : nullptr;
+				const FString Label = Streamer ? Streamer->GetTitle() : FString();
+				const double T0 = FPlatformTime::Seconds();
+				// 4. The local model reads them (CPU only) and answers in the graph's words.
+				AIRequest(Weak, SimCruisePlaceAI::OllamaUrl() + TEXT("/api/chat"), TEXT("POST"),
+					SimCruisePlaceAI::ChatRequest(SimCruisePlaceGraph::Rules(), S.AIModel, Label, CLat, CLon, S.AILines), 600.0f,
+					[T0](USimCruisePlaceGraphSubsystem& S, bool bOk, const FString& Chat)
+				{
+					FString Error;
+					const TArray<FString> Sources = S.AIPrior.Sources;
+					if (!bOk || !SimCruisePlaceAI::ParseChat(SimCruisePlaceGraph::Rules(), Chat, S.AIPrior, Error)) { S.AIFail(TEXT("local model failed: ") + Error); return; }
+					S.AIPrior.Sources = Sources;
+					SimCruisePlaceAI::Store(S.AIArea, S.AIPrior);
+					S.AIStep = EAIStep::Idle;
+					++S.AIAreas;
+					FSimCruiseFactSet F;
+					SimCruisePlaceAI::ToFacts(S.AIPrior, F);
+					UE_LOG(LogSimCruisePlaceGraph, Display, TEXT("Place AI %d_%d (%s, %.0f s on the CPU, %d articles):\n%s"), S.AIArea.X, S.AIArea.Y, *S.AIPrior.Model,
+						FPlatformTime::Seconds() - T0, Sources.Num(), *F.Describe());
+				});
+			});
+		});
+	});
 }

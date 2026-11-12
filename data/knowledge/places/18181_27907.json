@@ -1,7 +1,28 @@
 {
 	"tile": "18181_27907",
-	"fetched": "2026-11-12T04:19:38.685Z",
-	"sources": "overpass:0 wikidata:1",
+	"fetched": "2026-11-12T06:02:55.705Z",
+	"sources": "overpass:3 wikidata:1",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
-	"records": []
+	"records": [
+		{
+			"lat": 25.782250999999999,
+			"lon": -80.128091999999995,
+			"osm": "way/567439899",
+			"building": "lifeguard_tower"
+		},
+		{
+			"lat": 25.783829000000001,
+			"lon": -80.127877999999995,
+			"name": "Candy Colored Lifeguard Tower",
+			"osm": "way/567439901",
+			"building": "lifeguard_tower"
+		},
+		{
+			"lat": 25.780152000000001,
+			"lon": -80.128328999999994,
+			"osm": "way/795003997",
+			"colour": "#FFC0CB",
+			"building": "lifeguard_tower"
+		}
+	]
 }

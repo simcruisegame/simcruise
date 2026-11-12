@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Knowledge/SimCruisePlaceAI.h"
 #include "Knowledge/SimCruisePlaceGraph.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "SimCruisePlaceGraphSubsystem.generated.h"
@@ -62,6 +63,8 @@ public:
 private:
 	void UpdateLiveFacts();
 	void UpdateCard(double Now);
+	void StartAI();
+	void AIFail(const FString& Why);
 	void FetchAhead();
 	void StartFetch(const FIntPoint& Tile);
 	void OnOverpass(const FIntPoint& Tile, const FString& Body, bool bOk);
@@ -82,6 +85,18 @@ private:
 	double CardStart = -100.0;
 	TSet<FString> CardsShown;
 	bool bCardShotPending = false;
+
+	// The local AI (one area at a time).
+	enum class EAIStep : uint8 { Idle, Busy };
+	EAIStep AIStep = EAIStep::Idle;
+	bool bAI = true;
+	double NextAI = 0.0;
+	FIntPoint AIArea = FIntPoint::ZeroValue;
+	FString AIModel;
+	FSimCruiseAreaPrior AIPrior;
+	TArray<FString> AILines;
+	TSet<FIntPoint> AIFailed;
+	int32 AIAreas = 0;
 };
 
 /** Thread-safe store shared by the tile builders (worker threads) and the game thread. */
