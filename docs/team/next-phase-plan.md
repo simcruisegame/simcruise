@@ -45,5 +45,6 @@ features stay on hold, as in phase 1, unless the owner moves them in.
 ## Change log
 
 - 2026-11-12: draft 1 from the first team review.
+- 2026-11-12 14:07: tuning menu (4abe190) becomes the base for theme 3; ride-height and clutch P1s sent to release.
 - 2026-11-12 12:52: items 1, 8, 10 fixed on main; theme 7 builds on the new step installer (47a9edf).
 - 2026-11-12: lighting-director joined (owner request); theme 7b added.
