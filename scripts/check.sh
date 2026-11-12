@@ -61,7 +61,11 @@ LightingCheck:0 DaylightWeatherCheck:0 HeadCameraCheck:0 HudLevelCheck:0 RoadNoi
 VegetationCheck:0 RoadProfile:0 RoadBankMeshCheck:0 CrownArrivalOrder:0 SignalControlCheck:0
 StorefrontCheck:0 ObservedPaintCheck:0 LaneMarkingCheck:0 PhotoFacadeCheck:0 LandmarkRoof:0
 HistoricAnchorageCheck:0 SustainedSurfaceCheck:0 DriftHold:60 BumpDrive:60 CarTrack:60
+<<<<<<< HEAD
 AmbientCheck:0 TrafficCheck:0 SBend:60 LiftOff:60 TractionControlCheck:60 CombinedSlip:60 AbsReverse:60 CarRoster:0"
+=======
+AmbientCheck:0 TrafficCheck:0 SBend:60 LiftOff:60 TractionControlCheck:60 CombinedSlip:60 AbsReverse:60 ParkBrakeHold:60 SteeringWheelCheck:60"
+>>>>>>> cars/rig-infra
 
 fps_for() {
   for entry in $default_suite; do

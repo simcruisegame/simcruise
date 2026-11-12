@@ -1,0 +1,172 @@
+{
+ "inertia": [
+  2017,
+  2249,
+  542
+ ],
+ "collision_box": [
+  1.68,
+  0.59,
+  4.37
+ ],
+ "collision_box_y": 0.65,
+ "mount_height_m": 0.5396,
+ "static_length_m": 0.217,
+ "unsprung_corner_kg": 35.0,
+ "wheel_rate_n_m": [
+  37521,
+  28747
+ ],
+ "reference_corner_load_n": 3265.6,
+ "max_contact_load_n": 18135,
+ "coil_lb_in": [
+  0.0,
+  0.0
+ ],
+ "lever_ratio": [
+  1.0,
+  1.0
+ ],
+ "bar_diameter_m": [
+  0.0,
+  0.0
+ ],
+ "damper": [
+  "ratio",
+  "ratio"
+ ],
+ "damper_dyno": [
+  [],
+  []
+ ],
+ "_comment": "Front-drive compact with a turbo four and six-speed manual. Reference: 2022 Honda Civic Si sedan (fictional name and body).",
+ "id": "kestrel_s",
+ "name": "Kestrel S",
+ "make": "Hoshi",
+ "body": "sedan",
+ "seats": 5,
+ "mass_kg": 1332.0,
+ "front_weight": 0.61,
+ "cg_height_m": 0.52,
+ "wheelbase_m": 2.735,
+ "track_front_m": 1.547,
+ "track_rear_m": 1.575,
+ "tire_width_m": 0.235,
+ "tire_aspect_ratio": 0.4,
+ "rim_in": 18.0,
+ "static_mu": 1.0477,
+ "lateral_grip_scale": 1.035,
+ "drag_area_m2": 0.63,
+ "parking_rack_deg": 36.0,
+ "steering_ratio": 11.46,
+ "road_reference_deg": 34.0,
+ "brake_front_nm": 1900.0,
+ "brake_rear_nm": 750.0,
+ "parking_brake_nm": 1000.0,
+ "engine": "combustion",
+ "torque_curve": [
+  [
+   800,
+   150
+  ],
+  [
+   1500,
+   220
+  ],
+  [
+   1800,
+   260
+  ],
+  [
+   5000,
+   260
+  ],
+  [
+   6000,
+   237
+  ],
+  [
+   6500,
+   210
+  ]
+ ],
+ "torque_past_curve_nm": 190.0,
+ "idle_rpm": 750.0,
+ "idle_omega": 79.0,
+ "governor_rpm": 775.0,
+ "fuel_cut_rpm": 6600.0,
+ "max_gear_rpm": 6800.0,
+ "engine_inertia": 0.16,
+ "gears": [
+  3.643,
+  2.08,
+  1.361,
+  1.024,
+  0.83,
+  0.686
+ ],
+ "reverse_ratio": 3.673,
+ "final_drive": 4.105,
+ "driveline_efficiency": 0.92,
+ "shift_seconds": 0.18,
+ "upshift_rpm": 6500.0,
+ "upshift_min_omega": 560.0,
+ "downshift_rpm": 1900.0,
+ "clutch_capacity_nm": 340.0,
+ "clutch_back_nm": 320.0,
+ "launch_rpm": 1000.0,
+ "launch_rpm_per_throttle": 1500.0,
+ "layout": "fwd",
+ "front_diff_bias": 2.0,
+ "transmission": "manual",
+ "bar_rate_n_m": [
+  26000.0,
+  15000.0
+ ],
+ "damper_ratio_rebound": [
+  0.5,
+  0.5
+ ],
+ "damper_ratio_compression": [
+  0.3,
+  0.3
+ ],
+ "damper_knee_mps": [
+  0.12,
+  0.12
+ ],
+ "damper_knee_slope": [
+  0.45,
+  0.45
+ ],
+ "static_camber_deg": [
+  -0.8,
+  -1.2
+ ],
+ "camber_per_m": [
+  20.0,
+  22.0
+ ],
+ "caster_deg": 6.5,
+ "toe_per_wheel_deg": 0.05,
+ "target_0_60_s": 6.8,
+ "target_70_0_ft": 160.0,
+ "target_skidpad_g": 0.94,
+ "sources": {
+  "steering": "Steering ratio 11.46:1, 2.17 turns lock to lock (Honda, 2022 Civic Si specifications).",
+  "calibration": "Car and Driver test of the 2022 Civic Si as reported: 0-60 mph 6.8 s, 70-0 mph 160 ft, 0.94 g; curb weight 2937 lb.",
+  "engine": "200 hp, 192 lb-ft (Honda); curve shape estimated.",
+  "gearing": "Six-speed ratios and final drive: published Si figures, unverified for 2022.",
+  "launch": "Automatic mode lets the clutch in at 2500 rpm at full pedal (1000 + 1500 per unit of throttle; estimate, the driver's choice on the real manual car). The curve has its full 260 Nm from 1800 rpm and the launch is tyre-limited with traction control on, so a higher launch speed only revs the engine longer before the clutch bites (4000 rpm: about 0.1 s slower on CarTrack).",
+  "estimates": "Weight split, centre of gravity, inertia (scaled), spring and bar rates (ride frequency 1.6/1.8 Hz), dampers, brakes, tyre grip (calibrated)."
+ },
+ "traction_control": true,
+ "model_scene": "res://art/cars/kestrel_s.glb",
+ "driver_eye": [
+  -0.36,
+  1.14,
+  -0.021
+ ],
+ "abs_enabled": true,
+ "slip_ratio_falloff": 0.1
+}

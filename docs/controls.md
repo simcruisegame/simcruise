@@ -10,7 +10,7 @@ The game opens in the cockpit on a random road from a pool of 36 verified US dri
 | Brake, then reverse once stopped (below about 1 mph; a trigger pressed too lightly to brake coasts) | S or ↓ | Left trigger |
 | Steer | A / D or ← / → | Left stick |
 | Full brake (service brake) | Space | — |
-| Parking brake, rear wheels | H (hold) | A (hold) |
+| Parking brake, rear wheels (holds the car still, also on a 10 % grade) | H (hold) | A (hold) |
 | Automatic ↔ manual gearbox | T | B |
 | Clutch (manual mode) | Shift (hold) | LB (hold) |
 | Shift up / shift down (manual mode) | E / Q | RB / X |
