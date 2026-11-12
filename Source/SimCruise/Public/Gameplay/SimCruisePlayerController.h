@@ -7,6 +7,7 @@
 #include "Gameplay/SimCruiseDriverShaping.h"
 #include "Gameplay/SimCruiseHaptics.h"
 #include "Gameplay/SimCruiseVehicleControl.h"
+#include "Gameplay/SimCruiseWheelDevice.h"
 #include "SimCruisePlayerController.generated.h"
 
 class USimCruiseInputConfig;
@@ -121,6 +122,11 @@ protected:
 
 	FSimCruiseDriverShaper Shaper;
 	FSimCruiseHapticsModel Haptics;
+	/** A USB racing wheel, read each frame (nothing happens without one). */
+	FSimCruiseWheelDevice WheelDevice;
+	/** Read the wheel into Raw and drive its force feedback from the last frame's telemetry. */
+	void UpdateWheel(FSimCruiseRawControls& Raw, float DeltaTime);
+	bool bWheelSeen = false;
 	FSimCruiseVehicleSetup Setup;
 	FSimCruiseDriveTelemetry Telemetry;
 	FSimCruiseDriverCommand LastCommand;

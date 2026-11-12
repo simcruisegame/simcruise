@@ -94,6 +94,18 @@ struct FSimCruiseRawControls
 	bool bFullServiceBrake = false;
 	bool bParkingBrake = false;
 	bool bClutch = false;
+	/**
+	 * A USB racing wheel (FSimCruiseWheelDevice): its rim angle turned into the rack angle at
+	 * the car's real steering ratio, applied 1:1 with no speed shaping or filtering, and its
+	 * pedals as they are (no trigger curve). Wheel pedals add to the pad's and keys'.
+	 */
+	bool bWheel = false;
+	double WheelRackRad = 0.0;
+	double WheelThrottle = 0.0;
+	double WheelBrake = 0.0;
+	/** The wheel's clutch pedal, used when the wheel has one (bWheelClutch). */
+	bool bWheelClutch = false;
+	double WheelClutch = 0.0;
 };
 
 /** Stateful steering rack and pedal positions for one driver. */

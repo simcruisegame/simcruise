@@ -27,12 +27,17 @@
 #include "Modules/ModuleManager.h"
 #include "UnrealClient.h"
 #include "Vehicle/SimCruiseVehicle.h"
+#include "Presentation/SimCruiseCarPresentationComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSimCruiseShell, Log, All);
 
 static TAutoConsoleVariable<float> CVarRumbleStrength(
 	TEXT("simcruise.Rumble.Strength"), 1.f,
 	TEXT("Pad rumble strength 0..1 (0 turns it off). Rumble reads tyre slip, ABS and road texture; it adds no force."));
+
+static TAutoConsoleVariable<float> CVarWheelForce(
+	TEXT("simcruise.Wheel.Force"), 0.6f,
+	TEXT("USB steering wheel force-feedback strength 0..1 (0 turns it off)."));
 
 ASimCruisePlayerController::ASimCruisePlayerController()
 {
@@ -44,7 +49,9 @@ ASimCruisePlayerController::ASimCruisePlayerController()
 void ASimCruisePlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-	RumbleBackend = FModuleManager::Get().IsModuleLoaded(TEXT("GameInputBase")) ? ESimCruiseRumbleBackend::GameInput : ESimCruiseRumbleBackend::XInput;
+	// The GameInput plugin is loaded for racing wheels only (Config/Windows/WindowsInput.ini turns
+	// its pad processing off), so pads, and their rumble, stay on XInput.
+	RumbleBackend = ESimCruiseRumbleBackend::XInput;
 	if (IsLocalController())
 	{
 		SetInputMode(FInputModeGameOnly());
@@ -223,7 +230,8 @@ void ASimCruisePlayerController::PlayerTick(float DeltaTime)
 		return;
 	}
 	Vehicle->GetVehicleTelemetry(Telemetry);
-	const FSimCruiseRawControls Raw = ReadRawControls();
+	FSimCruiseRawControls Raw = ReadRawControls();
+	UpdateWheel(Raw, DeltaTime);
 	if (FMath::Abs(Raw.PadSteer) > 0.0 || Raw.PadThrottle > 0.0 || Raw.PadBrake > 0.0)
 	{
 		bUsingGamepad = true;
@@ -237,6 +245,53 @@ void ASimCruisePlayerController::PlayerTick(float DeltaTime)
 	UpdateRumble(DeltaTime);
 	TickSelfTest(DeltaTime);
 	TickCapture(DeltaTime);
+}
+
+void ASimCruisePlayerController::UpdateWheel(FSimCruiseRawControls& Raw, float DeltaTime)
+{
+	FSimCruiseWheelReading Wheel;
+	if (!WheelDevice.Poll(Wheel))
+	{
+		return;
+	}
+	if (!bWheelSeen)
+	{
+		bWheelSeen = true;
+		ShowMessage(FString::Printf(TEXT("Steering wheel: %s"), *WheelDevice.GetName()), 5.f);
+	}
+	// The rim angle through the car's real steering ratio (the cockpit wheel's), 1:1.
+	double Ratio = 15.0;
+	if (const APawn* Car = GetPawn())
+	{
+		if (const USimCruiseCarPresentationComponent* Model = Car->FindComponentByClass<USimCruiseCarPresentationComponent>())
+		{
+			Ratio = FMath::Max(Model->GetSteeringRatio(), 1.0);
+		}
+	}
+	const double RimRad = FMath::DegreesToRadians(Wheel.Wheel * Wheel.HalfRotationDeg);
+	Raw.bWheel = true;
+	Raw.WheelRackRad = RimRad / Ratio;
+	Raw.WheelThrottle = Wheel.Throttle;
+	Raw.WheelBrake = Wheel.Brake;
+	Raw.bWheelClutch = Wheel.bHasClutch;
+	Raw.WheelClutch = Wheel.Clutch;
+	Raw.bParkingBrake = Raw.bParkingBrake || Wheel.Handbrake > 0.5;
+	if (Wheel.bNextGear) OnShiftUp();
+	if (Wheel.bPreviousGear) OnShiftDown();
+	bUsingGamepad = false;
+
+	// Force feedback until the tyres' aligning torque reaches the telemetry: the centring a
+	// real rack gives, growing with speed (caster trail), and the column's damping.
+	const float Strength = FMath::Clamp(CVarWheelForce.GetValueOnGameThread(), 0.f, 1.f);
+	if (IsPaused() || Strength <= 0.f)
+	{
+		WheelDevice.Stop();
+		return;
+	}
+	const double Speed = FMath::Abs(Telemetry.BodyVelocityMps.X);
+	const double Spring = (0.08 + 0.55 * FMath::Clamp(Speed / 25.0, 0.0, 1.0)) * Strength;
+	const double Damper = (0.25 - 0.1 * FMath::Clamp(Speed / 25.0, 0.0, 1.0)) * Strength;
+	WheelDevice.SetForces(Spring, Damper, 0.0);
 }
 
 void ASimCruisePlayerController::UpdateRumble(float DeltaTime)

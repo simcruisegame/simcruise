@@ -50,5 +50,17 @@ public class SimCruise : ModuleRules
 			"HTTP",
 			"NNE"
 		});
+
+		// USB racing wheels (Gameplay/SimCruiseWheelDevice): Windows GameInput, read directly
+		// for the wheel, pedals and force feedback.
+		if (Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			PrivateDependencyModuleNames.AddRange(new string[] { "GameInputBase", "GameInputWindowsLibrary" });
+			PrivateDefinitions.Add("SIMCRUISE_WITH_GAMEINPUT=1");
+		}
+		else
+		{
+			PrivateDefinitions.Add("SIMCRUISE_WITH_GAMEINPUT=0");
+		}
 	}
 }

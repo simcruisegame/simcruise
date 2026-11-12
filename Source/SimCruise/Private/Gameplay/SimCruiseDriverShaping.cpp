@@ -149,16 +149,27 @@ FSimCruiseDriverCommand FSimCruiseDriverShaper::Update(const FSimCruiseVehicleSe
 	}
 
 	RackRad = AdvanceSteering(RackRad, Target, DeltaTimeS, ApplyRate, ReturnRate);
+	if (Raw.bWheel)
+	{
+		// A real steering wheel drives the rack directly, as the column does.
+		RackRad = Raw.WheelRackRad;
+		bUsingThumbstick = false;
+	}
 	RackRad = FMath::Clamp(RackRad, -Setup.ParkingRackAngleRad, Setup.ParkingRackAngleRad);
 
 	KeyThrottle = KeyPedal(KeyThrottle, Raw.bKeyThrottle, KeyThrottleRisePerS, DeltaTimeS);
 	KeyBrake = KeyPedal(KeyBrake, Raw.bKeyBrake, KeyBrakeRisePerS, DeltaTimeS);
 	const double ClutchTarget = Raw.bClutch ? 1.0 : 0.0;
 	Clutch = Clutch + FMath::Clamp(ClutchTarget - Clutch, -ClutchReleasePerS * DeltaTimeS, ClutchPressPerS * DeltaTimeS);
+	if (Raw.bWheel && Raw.bWheelClutch)
+	{
+		Clutch = FMath::Max(Raw.bClutch ? Clutch : 0.0, FMath::Clamp(Raw.WheelClutch, 0.0, 1.0));
+	}
 
 	FSimCruiseDriverCommand Command;
-	Command.Throttle = static_cast<float>(FMath::Clamp(FMath::Max(TriggerThrottle(Raw.PadThrottle, CVarTriggerGamma.GetValueOnGameThread()), KeyThrottle), 0.0, 1.0));
-	Command.Brake = static_cast<float>(FMath::Clamp(FMath::Max(Raw.PadBrake, KeyBrake), 0.0, 1.0));
+	Command.Throttle = static_cast<float>(FMath::Clamp(FMath::Max3(TriggerThrottle(Raw.PadThrottle, CVarTriggerGamma.GetValueOnGameThread()), KeyThrottle,
+		Raw.bWheel ? Raw.WheelThrottle : 0.0), 0.0, 1.0));
+	Command.Brake = static_cast<float>(FMath::Clamp(FMath::Max3(Raw.PadBrake, KeyBrake, Raw.bWheel ? Raw.WheelBrake : 0.0), 0.0, 1.0));
 	Command.Clutch = static_cast<float>(Clutch);
 	Command.ParkingBrake = Raw.bParkingBrake ? 1.f : 0.f;
 	Command.bFullServiceBrake = Raw.bFullServiceBrake;

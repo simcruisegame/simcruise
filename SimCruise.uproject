@@ -20,6 +20,13 @@
 			"Enabled": true
 		},
 		{
+			"Name": "GameInput",
+			"Enabled": true,
+			"PlatformAllowList": [
+				"Win64"
+			]
+		},
+		{
 			"Name": "ModelContextProtocol",
 			"Enabled": true
 		},
