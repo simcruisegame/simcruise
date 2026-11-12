@@ -48,6 +48,52 @@ namespace
 	}
 }
 
+namespace
+{
+	TAutoConsoleVariable<int32> CVarFrameCap(TEXT("simcruise.FrameCap"), 60,
+		TEXT("Frame-rate cap for the drive, frames per second (0 = no cap). Applied at the start of a drive (t.MaxFPS changes it at once)."));
+	TAutoConsoleVariable<int32> CVarReflex(TEXT("simcruise.Reflex"), 1,
+		TEXT("NVIDIA Reflex: 0 off, 1 low latency, 3 low latency + boost. Needs an NVIDIA GPU and driver 455 or newer."));
+}
+
+void SimCruiseFramePacing::Apply()
+{
+	FString Ignored;
+	const bool bMeasuring = FParse::Value(FCommandLine::Get(), TEXT("SimCruiseDrivePerf="), Ignored);
+	if (IConsoleVariable* MaxFps = IConsoleManager::Get().FindConsoleVariable(TEXT("t.MaxFPS")))
+	{
+		const int32 Cap = bMeasuring ? 0 : FMath::Max(0, CVarFrameCap.GetValueOnGameThread());
+		// A cap the player set with t.MaxFPS on the command line or console wins.
+		if (MaxFps->GetFloat() <= 0.f || bMeasuring)
+		{
+			MaxFps->Set(static_cast<float>(Cap), ECVF_SetByGameSetting);
+		}
+	}
+	const int32 Mode = FMath::Clamp(CVarReflex.GetValueOnGameThread(), 0, 3);
+	int32 Handlers = 0;
+	for (IMaxTickRateHandlerModule* Handler : IModularFeatures::Get().GetModularFeatureImplementations<IMaxTickRateHandlerModule>(
+			 IMaxTickRateHandlerModule::GetModularFeatureName()))
+	{
+		if (Handler->GetAvailable())
+		{
+			Handler->SetEnabled(Mode != 0);
+			Handler->SetFlags(static_cast<uint32>(Mode));
+			++Handlers;
+		}
+	}
+	for (ILatencyMarkerModule* Markers : IModularFeatures::Get().GetModularFeatureImplementations<ILatencyMarkerModule>(
+			 ILatencyMarkerModule::GetModularFeatureName()))
+	{
+		if (Markers->GetAvailable())
+		{
+			Markers->SetEnabled(Mode != 0);
+		}
+	}
+	UE_LOG(LogSimCruiseLatency, Display, TEXT("Frame pacing: cap %s, Reflex mode %d (%s)"),
+		bMeasuring ? TEXT("off (measuring)") : *FString::FromInt(CVarFrameCap.GetValueOnGameThread()), Mode,
+		Handlers > 0 ? TEXT("available") : TEXT("not available on this GPU"));
+}
+
 ASimCruiseLatencyProbe::ASimCruiseLatencyProbe()
 {
 	PrimaryActorTick.bCanEverTick = true;

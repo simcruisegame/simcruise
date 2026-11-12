@@ -131,6 +131,7 @@ void ASimCruiseGameMode::InitGame(const FString& MapName, const FString& Options
 
 void ASimCruiseGameMode::StartPlay()
 {
+	SimCruiseFramePacing::Apply();
 	if (bWorldDrive)
 	{
 		BeginWorldDrive();

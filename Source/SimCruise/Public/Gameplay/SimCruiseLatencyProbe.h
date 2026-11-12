@@ -7,6 +7,19 @@
 #include "SimCruiseLatencyProbe.generated.h"
 
 /**
+ * Frame pacing for the drive (release bug CR2): a frame-rate cap and NVIDIA Reflex.
+ * simcruise.FrameCap (default 60, 0 = none) caps the frame rate: a laptop GPU that
+ * runs 60-90 fps uncapped then holds an even 60 with headroom for tile streaming and
+ * runs cooler. simcruise.Reflex (default 1: low latency; 0 off; 3 low latency + boost)
+ * lets the CPU wait for the GPU instead of queueing frames, on NVIDIA GPUs with the
+ * Reflex driver. Frame-rate measurement runs (-SimCruiseDrivePerf=) are not capped.
+ */
+namespace SimCruiseFramePacing
+{
+	SIMCRUISE_API void Apply();
+}
+
+/**
  * -SimCruiseLatencyProbe: measures the delay from a stick input to the picture.
  *
  * When the car stands at its start with its tiles built, the probe gives the
