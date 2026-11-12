@@ -8,6 +8,7 @@
 #include "Misc/Paths.h"
 #include "UObject/Package.h"
 #include "UObject/SavePackage.h"
+#include "World/SimCruiseGuardRails.h"
 #include "World/SimCruiseRegionalTerrain.h"
 #include "World/SimCruiseTrees.h"
 #include "World/SimCruiseWorldResources.h"
@@ -106,6 +107,9 @@ int32 USimCruiseBuildWorldMaterialsCommandlet::Main(const FString& Params)
 		FPackageName::ObjectPathToPackageName(ASimCruiseTrees::LeafMaterialPath()));
 	SaveCopy(ASimCruiseTrees::BuildBarkMaterial(GetTransientPackage(), TEXT("M_SimCruiseTreeBarkBuild"), RF_Transient),
 		FPackageName::ObjectPathToPackageName(ASimCruiseTrees::BarkMaterialPath()));
+	// Guard rails (World/SimCruiseGuardRails).
+	SaveCopy(ASimCruiseGuardRails::BuildMaterial(GetTransientPackage(), TEXT("M_SimCruiseGuardRailBuild"), RF_Transient),
+		FPackageName::ObjectPathToPackageName(ASimCruiseGuardRails::MaterialPath()));
 	return Failures == 0 ? 0 : 1;
 #else
 	return 1;

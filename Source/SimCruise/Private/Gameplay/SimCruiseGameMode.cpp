@@ -20,6 +20,7 @@
 #include "Vehicle/CarDefinitionLoader.h"
 #include "Vehicle/SimCruiseVehicle.h"
 #include "Misc/App.h"
+#include "World/SimCruiseGuardRails.h"
 #include "World/SimCruiseRegionalTerrain.h"
 #include "World/SimCruiseTrees.h"
 #include "World/SimCruiseWorldStreamer.h"
@@ -224,6 +225,16 @@ void ASimCruiseGameMode::BeginWorldDrive()
 		if (ASimCruiseTrees* Trees = World->SpawnActor<ASimCruiseTrees>(ASimCruiseTrees::StaticClass(), FTransform::Identity, Params))
 		{
 			Trees->Streamer = Streamer;
+		}
+	}
+	// Guard rails where the ground falls away beside the road (AASHTO warrant).
+	if (!FParse::Param(Cmd, TEXT("SimCruiseNoGuardRails")))
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		if (ASimCruiseGuardRails* Rails = World->SpawnActor<ASimCruiseGuardRails>(ASimCruiseGuardRails::StaticClass(), FTransform::Identity, Params))
+		{
+			Rails->Streamer = Streamer;
 		}
 	}
 
