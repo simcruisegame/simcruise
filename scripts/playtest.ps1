@@ -57,6 +57,12 @@ if (Test-Path $Atlas) {
     Copy-Item $Atlas (Join-Path $Worktree 'tools') -Force
 }
 
+# package.ps1 first runs an editor commandlet, so the worktree's editor module must be built
+# (a new worktree has none). Unreal Build Tool queues on its own mutex.
+Write-Host "Building SimCruiseEditor in $Worktree"
+& (Join-Path $EngineDir 'Engine\Build\BatchFiles\Build.bat') SimCruiseEditor Win64 Development "-Project=$(Join-Path $Worktree 'SimCruise.uproject')" -WaitMutex -NoHotReloadFromIDE | Out-Host
+if ($LASTEXITCODE -ne 0) { Write-Host 'EDITOR BUILD FAILED'; exit 1 }
+
 if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "play-test build of $Commit")) { exit 1 }
 try {
     Write-Host "Packaging $Commit in $Worktree"
