@@ -98,3 +98,10 @@ Published data: `docs/cars.md` (road-test sources for each car). The 3 % band is
 | K1 | 20 minute soak, packaged build | no crash; no `Error:` lines from SimCruise log categories; no ensure | packaged game, drive robot in a loop for 20 minutes | `docs/release/evidence/soak.txt` | TODO |
 | K2 | Smoke test | `-SimCruiseShellSelfTest` passes in the Shipping package | smoke test | `docs/release/evidence/start.txt` | TODO |
 | K3 | Full automation suite | every `SimCruise.*` test passes | `scripts\check.ps1` | `docs/release/evidence/*-tests.txt` | TODO |
+
+## L. Night driving
+
+| # | Item | Pass rule | How measured | Evidence | Result |
+|---|---|---|---|---|---|
+| L1 | Rural road at night, low beams | the road is visible about 60 m ahead; the frame is not mostly black (mean road luminance clearly above black) | Shipping screenshot at night (`-SimCruiseUtc=` after dark) on the rural preset, road pixels measured | `docs/release/evidence/night.txt` | TODO (re-test after the cars thread's low-beam and night-exposure fixes are on main) |
+| L2 | Ocean Drive at night, low beams | same | same on Ocean Drive | same | TODO (same) |

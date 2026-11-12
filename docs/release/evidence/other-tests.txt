@@ -1,0 +1,19 @@
+# Knowledge, live, env and neural tests, commit da53362, 2026-11-12T10:48Z
+
+14 passed, 0 failed, 0 logged errors in 1392 s (log: D:\sc\lane-release\Saved\Logs\SimCruiseChecks.log)
+CHECKS PASSED
+
+Success SimCruise.Knowledge.BakeTile
+Success SimCruise.Knowledge.BundledOceanDrive
+Success SimCruise.Knowledge.LocalAI
+Success SimCruise.Knowledge.ParseOpenData
+Success SimCruise.Knowledge.PhotoColour
+Success SimCruise.Knowledge.PlaceCard
+Success SimCruise.Knowledge.RulesInfer
+Success SimCruise.Live.Aircraft
+Success SimCruise.Live.Fuse
+Success SimCruise.Live.Haze
+Success SimCruise.Live.Photos
+Success SimCruise.Live.Sea
+Success SimCruise.Live.Traffic
+Success SimCruise.Live.Weather

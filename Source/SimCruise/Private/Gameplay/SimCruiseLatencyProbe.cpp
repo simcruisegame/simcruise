@@ -12,7 +12,10 @@
 #include "Kismet/GameplayStatics.h"
 #include "Misc/App.h"
 #include "Misc/CommandLine.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
 #include "Misc/Parse.h"
+#include "Misc/Paths.h"
 #include "Performance/LatencyMarkerModule.h"
 #include "Performance/MaxTickRateHandlerModule.h"
 #include "RHI.h"
@@ -20,6 +23,17 @@
 #include "World/SimCruiseWorldStreamer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSimCruiseLatency, Log, All);
+
+namespace
+{
+	/** Shipping builds write no log: the result lines also go to Saved/Profiling/SimCruiseLatency.log. */
+	void Record(const FString& Line)
+	{
+		const FString Path = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("Profiling"), TEXT("SimCruiseLatency.log"));
+		FFileHelper::SaveStringToFile(FDateTime::Now().ToString(TEXT("%Y-%m-%d %H:%M:%S ")) + Line + LINE_TERMINATOR, *Path,
+			FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM, &IFileManager::Get(), FILEWRITE_Append);
+	}
+}
 
 namespace
 {
@@ -85,7 +99,7 @@ void ASimCruiseLatencyProbe::BeginPlay()
 			Handler->SetFlags(static_cast<uint32>(FMath::Max(ReflexMode, 0)));
 		}
 	}
-	UE_LOG(LogSimCruiseLatency, Display, TEXT("Latency probe: waiting for the car (%d latency marker modules, Reflex mode %d)"), Modules.Num(), ReflexMode);
+	{ const FString RecordLine = FString::Printf(TEXT("Latency probe: waiting for the car (%d latency marker modules, Reflex mode %d)"), Modules.Num(), ReflexMode); UE_LOG(LogSimCruiseLatency, Display, TEXT("%s"), *RecordLine); Record(RecordLine); }
 }
 
 void ASimCruiseLatencyProbe::Tick(float DeltaSeconds)
@@ -174,8 +188,8 @@ void ASimCruiseLatencyProbe::Tick(float DeltaSeconds)
 			const int64 Frames = static_cast<int64>(GFrameCounter - InputFrame);
 			Samples.Add(TotalMs);
 			FrameSamples.Add(static_cast<double>(Frames));
-			UE_LOG(LogSimCruiseLatency, Display, TEXT("SimCruiseLatency: trial %d, %lld frames to the first moved rack, %.1f ms to that frame + %.1f ms game-to-render (%s) = %.1f ms; frame %.1f ms"),
-				Trial + 1, Frames, ToFrameMs, RenderMs, bMarkers ? TEXT("Reflex markers") : TEXT("estimate"), TotalMs, DeltaSeconds * 1000.0);
+			{ const FString RecordLine = FString::Printf(TEXT("SimCruiseLatency: trial %d, %lld frames to the first moved rack, %.1f ms to that frame + %.1f ms game-to-render (%s) = %.1f ms; frame %.1f ms"),
+				Trial + 1, Frames, ToFrameMs, RenderMs, bMarkers ? TEXT("Reflex markers") : TEXT("estimate"), TotalMs, DeltaSeconds * 1000.0); UE_LOG(LogSimCruiseLatency, Display, TEXT("%s"), *RecordLine); Record(RecordLine); }
 			++Trial;
 			StickSign = -StickSign;
 			Stage = EStage::Rest;
@@ -183,7 +197,7 @@ void ASimCruiseLatencyProbe::Tick(float DeltaSeconds)
 		}
 		else if (Now - StageStarted > StepTimeoutSeconds)
 		{
-			UE_LOG(LogSimCruiseLatency, Warning, TEXT("SimCruiseLatency: trial %d, the rack did not move within %.1f s"), Trial + 1, StepTimeoutSeconds);
+			{ const FString RecordLine = FString::Printf(TEXT("SimCruiseLatency: trial %d, the rack did not move within %.1f s"), Trial + 1, StepTimeoutSeconds); UE_LOG(LogSimCruiseLatency, Warning, TEXT("%s"), *RecordLine); Record(RecordLine); }
 			++Trial;
 			Stage = EStage::Rest;
 			StageStarted = Now;
@@ -205,12 +219,12 @@ void ASimCruiseLatencyProbe::Finish()
 		double Sum = 0.0, FrameSum = 0.0;
 		for (double S : Samples) { Sum += S; }
 		for (double F : FrameSamples) { FrameSum += F; }
-		UE_LOG(LogSimCruiseLatency, Display, TEXT("SimCruiseLatency summary: %d trials, mean %.1f ms, median %.1f ms, max %.1f ms, mean %.1f frames"),
-			Samples.Num(), Sum / Samples.Num(), Sorted[Sorted.Num() / 2], Sorted.Last(), FrameSum / FrameSamples.Num());
+		{ const FString RecordLine = FString::Printf(TEXT("SimCruiseLatency summary: %d trials, mean %.1f ms, median %.1f ms, max %.1f ms, mean %.1f frames"),
+			Samples.Num(), Sum / Samples.Num(), Sorted[Sorted.Num() / 2], Sorted.Last(), FrameSum / FrameSamples.Num()); UE_LOG(LogSimCruiseLatency, Display, TEXT("%s"), *RecordLine); Record(RecordLine); }
 	}
 	else
 	{
-		UE_LOG(LogSimCruiseLatency, Error, TEXT("SimCruiseLatency summary: no trials measured"));
+		{ const FString RecordLine = FString::Printf(TEXT("SimCruiseLatency summary: no trials measured")); UE_LOG(LogSimCruiseLatency, Error, TEXT("%s"), *RecordLine); Record(RecordLine); }
 	}
 	if (FParse::Param(FCommandLine::Get(), TEXT("SimCruiseKeepOpen")))
 	{
