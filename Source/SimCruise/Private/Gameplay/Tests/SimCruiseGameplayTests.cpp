@@ -104,7 +104,7 @@ bool FSimCruiseInputBindingsTest::RunTest(const FString& Parameters)
 		{TEXT("ToggleAtlas"), EKeys::Tab}, {TEXT("ToggleAtlas"), EKeys::Gamepad_Special_Right},
 		{TEXT("FindPlace"), EKeys::Slash},
 		{TEXT("Recover"), EKeys::R}, {TEXT("Recover"), EKeys::Gamepad_Special_Left},
-		{TEXT("ToggleSound"), EKeys::M}, {TEXT("ToggleLights"), EKeys::L}, {TEXT("CycleLens"), EKeys::F6}, {TEXT("CycleLens"), EKeys::Gamepad_LeftThumbstick}, {TEXT("ToggleStats"), EKeys::F3},
+		{TEXT("ToggleSound"), EKeys::M}, {TEXT("ToggleLights"), EKeys::L}, {TEXT("CycleLens"), EKeys::F6},{TEXT("ToggleStats"), EKeys::F3},
 	};
 	for (const FExpect& E : Expected)
 	{
@@ -122,6 +122,8 @@ bool FSimCruiseInputBindingsTest::RunTest(const FString& Parameters)
 	{
 		TestEqual(FString::Printf(TEXT("%s bound once"), *Pair.Key.ToString()), Pair.Value, 1);
 	}
+	// The steering stick's click does nothing: it is pressed by accident in hard steering.
+	TestFalse(TEXT("left-stick click unbound"), Uses.Contains(EKeys::Gamepad_LeftThumbstick));
 	TestTrue(TEXT("A and D cancel"), Config->SteerKey->AccumulationBehavior == EInputActionAccumulationBehavior::Cumulative);
 	TestTrue(TEXT("stick is an axis"), Config->SteerPad->ValueType == EInputActionValueType::Axis1D);
 	TestTrue(TEXT("trigger is an axis"), Config->ThrottlePad->ValueType == EInputActionValueType::Axis1D);

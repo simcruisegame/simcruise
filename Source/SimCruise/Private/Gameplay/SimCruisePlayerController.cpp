@@ -558,7 +558,8 @@ FSimCruiseAtlasView ASimCruisePlayerController::AtlasView() const
 		FString::Printf(TEXT("Stick steering speed · %d%%"), FMath::RoundToInt(100.f * SimCruiseSettingValue(TEXT("simcruise.Pad.SteerSpeed")))),
 		FString::Printf(TEXT("Stick response · %s"), SimCruiseSettingValue(TEXT("simcruise.Pad.SteerLinearity")) > 0.75f ? TEXT("Linear")
 			: SimCruiseSettingValue(TEXT("simcruise.Pad.SteerLinearity")) > 0.25f ? TEXT("Between") : TEXT("Fine centre")),
-		FString::Printf(TEXT("Stick dead zone · %d%%"), FMath::RoundToInt(100.f * SimCruiseSettingValue(TEXT("simcruise.Pad.SteerDeadZone")))),
+		// The total: the input's fixed 12 % plus the player's extra over the rest of the travel.
+		FString::Printf(TEXT("Stick dead zone · %d%%"), FMath::RoundToInt(100.f * (0.12f + 0.88f * SimCruiseSettingValue(TEXT("simcruise.Pad.SteerDeadZone"))))),
 		FString::Printf(TEXT("Throttle trigger · %s"), SimCruiseSettingValue(TEXT("simcruise.TriggerGamma")) < 1.2f ? TEXT("Linear")
 			: SimCruiseSettingValue(TEXT("simcruise.TriggerGamma")) < 1.6f ? TEXT("Gentle") : SimCruiseSettingValue(TEXT("simcruise.TriggerGamma")) < 2.1f ? TEXT("Progressive")
 			: TEXT("Very progressive")),

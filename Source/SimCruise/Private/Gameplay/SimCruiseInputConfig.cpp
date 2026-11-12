@@ -58,9 +58,9 @@ const TArray<FSimCruiseBindingSpec>& USimCruiseInputConfig::Bindings()
 		// Not on L3: steering hard presses the stick by accident.
 		{TEXT("CycleHud"), EKeys::Gamepad_FaceButton_Left},
 		{TEXT("ToggleStats"), EKeys::F3},
+		// The lens is F6 and the road atlas's View setting only: the left-stick click is pressed by
+		// accident in hard steering, and a lens change mid-corner is not harmless (the 2.0.0 playtest).
 		{TEXT("CycleLens"), EKeys::F6},
-		// The left-stick click is free since the HUD moved to X; a lens change by accident is harmless.
-		{TEXT("CycleLens"), EKeys::Gamepad_LeftThumbstick},
 		{TEXT("ToggleSound"), EKeys::M},
 		{TEXT("ToggleLights"), EKeys::L},
 		{TEXT("ToggleAtlas"), EKeys::Tab},
