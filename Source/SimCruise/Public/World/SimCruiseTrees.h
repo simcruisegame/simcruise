@@ -77,6 +77,15 @@ private:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UTexture2D>> Textures;
 
+	/** Low shrubs (sagebrush, rangeland scrub) from the USDA RAP shrub cover and RCMAP shrub height. */
+	UPROPERTY(Transient)
+	TObjectPtr<UHierarchicalInstancedStaticMeshComponent> ShrubRing;
+	struct FShrubFetch;
+	/** Zoom-12 districts: 256 x 256 px, R cover %, G height cm (the helper's shrub-cover). */
+	TMap<FIntPoint, TArray<FColor>> ShrubMasks;
+	TMap<FIntPoint, TSharedPtr<FShrubFetch, ESPMode::ThreadSafe>> ShrubFetches;
+	int32 Shrubs = 0;
+
 	/** Solid trunks for the nearest trees (Grove.gd: 32 pooled trunk bodies). */
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<class UCapsuleComponent>> Trunks;

@@ -111,6 +111,12 @@ return b;
 	}
 }
 
+struct ASimCruiseTrees::FShrubFetch
+{
+	std::atomic<bool> bDone{ false };
+	TArray<FColor> Pixels;
+};
+
 struct ASimCruiseTrees::FFetch
 {
 	std::atomic<bool> bDone{ false };
@@ -335,6 +341,22 @@ bool ASimCruiseTrees::BuildMeshes()
 			Rings.Add(Ring);
 		}
 	}
+	// Shrubs: the low-detail broadleaf crown, small and sage-green (big sagebrush, rabbitbrush).
+	{
+		UMaterialInstanceDynamic* Sage = Leaf(TEXT("cluster-leaf.png"));
+		Sage->SetVectorParameterValue(TEXT("Tint"), FLinearColor(0.62f, 0.64f, 0.5f));
+		ShrubRing = NewObject<UHierarchicalInstancedStaticMeshComponent>(this);
+		ShrubRing->SetStaticMesh(Meshes[2]);
+		ShrubRing->SetMaterial(0, Bark);
+		ShrubRing->SetMaterial(1, Sage);
+		ShrubRing->SetMobility(EComponentMobility::Movable);
+		ShrubRing->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		ShrubRing->SetupAttachment(RootComponent);
+		ShrubRing->SetCullDistances(0, 25000);
+		ShrubRing->SetCastShadow(true);
+		ShrubRing->bAffectDistanceFieldLighting = false;
+		ShrubRing->RegisterComponent();
+	}
 	for (int32 i = 0; i < 32; ++i)
 	{
 		UCapsuleComponent* Trunk = NewObject<UCapsuleComponent>(this);
@@ -421,7 +443,59 @@ void ASimCruiseTrees::Refresh()
 	{
 		Rings[i]->AddInstances(Lists[i], false, true, false);
 	}
-	UE_LOG(LogSimCruiseTrees, Display, TEXT("%d trees on %d tiles"), Placed, Shown.Num());
+
+	// Shrubs: each 34 m cell of the zoom-12 shrub map holds its cover fraction of crowns of its
+	// height (crown about 2.2 times as wide as tall), at most sixteen drawn per cell.
+	TArray<FTransform> ShrubList;
+	if (ShrubRing)
+	{
+		ShrubRing->ClearInstances();
+		for (const FIntPoint& Id : Shown)
+		{
+			const ASimCruiseWorldTile* Tile = Stream->GetTile(Id);
+			const TArray<FColor>* Mask = ShrubMasks.Find(FIntPoint(Id.X >> 4, Id.Y >> 4));
+			if (!Tile || !Tile->GetBuild() || !Mask || Mask->Num() != 256 * 256) continue;
+			const FVector Origin = Tile->GetActorLocation();
+			const double Px = Side / 16.0;
+			TMultiMap<FIntPoint, FVector3d> RoadCells;
+			for (const FSimCruiseRibbon& Ribbon : Tile->GetBuild()->Roads.Ribbons)
+				for (const FSimCruiseRibbonStation& St : Ribbon.St)
+					RoadCells.Add(FIntPoint(FMath::FloorToInt(St.C.X / 20.0), FMath::FloorToInt(St.C.Y / 20.0)), FVector3d(St.C.X, St.C.Y, St.HalfW));
+			for (int32 j = 0; j < 16; ++j)
+			for (int32 i = 0; i < 16; ++i)
+			{
+				const FColor C = (*Mask)[((Id.Y & 15) * 16 + j) * 256 + (Id.X & 15) * 16 + i];
+				const double Cover = C.R / 100.0, HeightM = C.G / 100.0;
+				if (Cover <= 0.03 || HeightM < 0.08) continue;
+				const double Crown = FMath::Clamp(HeightM * 2.2, 0.5, 3.0);
+				const int32 Count = FMath::Min(16, FMath::RoundToInt(Cover * Px * Px / (Crown * Crown) * 0.15));
+				for (int32 n = 0; n < Count; ++n)
+				{
+					const uint32 H = Hash2(Id.X * 4099 + i * 131 + n, Id.Y * 7919 + j * 197 + n * 31);
+					const FVector2D Local((i + (H & 1023) / 1024.0) * Px, (j + ((H >> 10) & 1023) / 1024.0) * Px);
+					bool bOnRoad = false;
+					const FIntPoint Cell(FMath::FloorToInt(Local.X / 20.0), FMath::FloorToInt(Local.Y / 20.0));
+					for (int32 dx = -1; dx <= 1 && !bOnRoad; ++dx)
+					for (int32 dy = -1; dy <= 1 && !bOnRoad; ++dy)
+					{
+						TArray<FVector3d> Points;
+						RoadCells.MultiFind(Cell + FIntPoint(dx, dy), Points);
+						for (const FVector3d& P : Points) if (FVector2D::Distance(Local, FVector2D(P.X, P.Y)) < P.Z + 2.0) { bOnRoad = true; break; }
+					}
+					if (bOnRoad) continue;
+					FVector At = Origin + FVector(Local.X * 100.0, Local.Y * 100.0, 0.0);
+					double Z = 0.0;
+					if (!Stream->SurfaceHeightAt(At, Z)) continue;
+					At.Z = Z - 5.0;
+					const double Vary = 0.7 + ((H >> 20) & 255) / 255.0 * 0.6;
+					ShrubList.Add(FTransform(FRotator(0.0, (H >> 3) % 360, 0.0), At, FVector(Crown * Vary, Crown * Vary, HeightM * Vary * 1.3)));
+				}
+			}
+		}
+		ShrubRing->AddInstances(ShrubList, false, true, false);
+	}
+	Shrubs = ShrubList.Num();
+	UE_LOG(LogSimCruiseTrees, Display, TEXT("%d trees and %d shrubs on %d tiles"), Placed, Shrubs, Shown.Num());
 }
 
 void ASimCruiseTrees::Tick(float DeltaSeconds)
@@ -512,6 +586,47 @@ void ASimCruiseTrees::Tick(float DeltaSeconds)
 	if (const APlayerController* Player = GetWorld()->GetFirstPlayerController(); Player && Player->GetPawn())
 	{
 		UpdateTrunks(Player->GetPawn()->GetActorLocation());
+	}
+
+	// Shrub maps for the districts under the tiles (one fetch at a time; outside the
+	// helper's continental range the answer is "unsupported" and no shrubs are drawn).
+	for (auto It = ShrubFetches.CreateIterator(); It; ++It)
+	{
+		if (!It.Value()->bDone) continue;
+		ShrubMasks.Add(It.Key(), MoveTemp(It.Value()->Pixels));
+		It.RemoveCurrent();
+		ShownOrigin = FIntPoint(MAX_int32, MAX_int32); // place them
+	}
+	if (ShrubFetches.Num() == 0 && Config.IsConfigured())
+	{
+		for (const FIntPoint& Id : Present)
+		{
+			const FIntPoint District(Id.X >> 4, Id.Y >> 4);
+			if (ShrubMasks.Contains(District)) continue;
+			TSharedPtr<FShrubFetch, ESPMode::ThreadSafe> Job = MakeShared<FShrubFetch, ESPMode::ThreadSafe>();
+			ShrubFetches.Add(District, Job);
+			Async(EAsyncExecution::ThreadPool, [Job, Config, District]()
+			{
+				FSimCruiseAtlasRequest Request;
+				Request.Command = TEXT("shrub-cover");
+				Request.Args = { FString::FromInt(District.X), FString::FromInt(District.Y) };
+				Request.TimeoutSeconds = 90.0;
+				const FSimCruiseAtlasResult Result = FSimCruiseAtlasClient::RunBlocking(Config, Request, nullptr);
+				FString Status, Png;
+				const TSharedPtr<FJsonObject> Doc = Result.IsOk() && Result.Json->Type == EJson::Object ? Result.Json->AsObject() : nullptr;
+				int32 W = 0, H = 0;
+				if (Doc && Doc->TryGetStringField(TEXT("status"), Status) && Status == TEXT("available") && Doc->TryGetStringField(TEXT("png"), Png)
+					&& USimCruiseWorldResources::DecodeImageFile(FPaths::Combine(Config.CacheDir, Png), Job->Pixels, W, H) && W == 256 && H == 256)
+				{
+				}
+				else
+				{
+					Job->Pixels.Reset();
+				}
+				Job->bDone = true;
+			});
+			break;
+		}
 	}
 
 	// Re-place when the tiles with trees change or the floating origin moves.
