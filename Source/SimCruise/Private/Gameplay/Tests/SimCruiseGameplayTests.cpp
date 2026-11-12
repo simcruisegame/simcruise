@@ -94,7 +94,7 @@ bool FSimCruiseInputBindingsTest::RunTest(const FString& Parameters)
 		{TEXT("SteerKey"), EKeys::Left}, {TEXT("SteerKey"), EKeys::Right},
 		{TEXT("FullBrake"), EKeys::SpaceBar},
 		{TEXT("ParkingBrake"), EKeys::H}, {TEXT("ParkingBrake"), EKeys::Gamepad_FaceButton_Right},
-		{TEXT("ToggleTransmission"), EKeys::T}, {TEXT("ToggleTransmission"), EKeys::Gamepad_DPad_Right},
+		{TEXT("ToggleTransmission"), EKeys::T}, {TEXT("ToggleTransmission"), EKeys::Gamepad_RightThumbstick},
 		{TEXT("Clutch"), EKeys::LeftShift}, {TEXT("Clutch"), EKeys::Gamepad_FaceButton_Bottom},
 		{TEXT("ShiftUp"), EKeys::E}, {TEXT("ShiftUp"), EKeys::Gamepad_RightShoulder},
 		{TEXT("ShiftDown"), EKeys::Q}, {TEXT("ShiftDown"), EKeys::Gamepad_LeftShoulder},

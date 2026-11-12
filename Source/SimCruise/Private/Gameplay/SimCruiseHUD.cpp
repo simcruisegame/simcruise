@@ -368,7 +368,7 @@ void ASimCruiseHUD::DrawFull(float Scale)
 	DrawTextAt(FString::Printf(TEXT("%s  ·  %s%s"), *Mode, *View, bAbs ? TEXT("  ·  ABS") : TEXT("")), false, 11.f * Scale, 600.f * Scale, Y + 48.f * Scale, Dim);
 
 	const bool bPad = Controller && Controller->IsUsingGamepad();
-	FString Hint = bPad ? TEXT("RT / LT  drive     Y  camera     D-pad right  manual     View  recover     X  HUD")
+	FString Hint = bPad ? TEXT("RT / LT  drive     Y  camera     R3  manual     View  recover     X  HUD")
 	                    : TEXT("W / S  drive     A / D  steer     C  camera     T  manual     R  recover     F2  HUD");
 	if (bManual)
 	{

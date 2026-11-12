@@ -41,7 +41,8 @@ const TArray<FSimCruiseBindingSpec>& USimCruiseInputConfig::Bindings()
 		// the clutch (A) or the parking brake (B) while the bumpers change gear like paddles.
 		{TEXT("ParkingBrake"), EKeys::Gamepad_FaceButton_Right},
 		{TEXT("ToggleTransmission"), EKeys::T},
-		{TEXT("ToggleTransmission"), EKeys::Gamepad_DPad_Right},
+		// The right stick does nothing while driving, so its click is free and never pressed by accident.
+		{TEXT("ToggleTransmission"), EKeys::Gamepad_RightThumbstick},
 		{TEXT("Clutch"), EKeys::LeftShift},
 		{TEXT("Clutch"), EKeys::RightShift},
 		{TEXT("Clutch"), EKeys::Gamepad_FaceButton_Bottom},
