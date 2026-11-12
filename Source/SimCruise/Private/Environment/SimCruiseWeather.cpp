@@ -17,6 +17,16 @@ namespace
 	}
 }
 
+bool FSimCruiseWeather::IsRainWx(const FString& Wx)
+{
+	return MatchesPrecipitation(Wx, TEXT("(^|[\\s+-])(FZ)?(SH|TS)?(RA|DZ)"));
+}
+
+bool FSimCruiseWeather::IsSnowWx(const FString& Wx)
+{
+	return MatchesPrecipitation(Wx, TEXT("(^|[\\s+-])(SH|TS)?(SN|SG|PL|GR|GS)"));
+}
+
 bool FSimCruiseWeather::ParseConditionsJson(const FString& Json, FSimCruiseWeatherConditions& Out, FString& OutError)
 {
 	TSharedPtr<FJsonObject> Root;
@@ -57,8 +67,8 @@ bool FSimCruiseWeather::ParseConditionsJson(const FString& Json, FSimCruiseWeath
 	FString Wx;
 	if (Root->TryGetStringField(TEXT("wx"), Wx) && !Wx.IsEmpty())
 	{
-		Out.bRaining = MatchesPrecipitation(Wx, TEXT("(^|[\\s+-])(FZ)?(SH|TS)?(RA|DZ)"));
-		Out.bSnowing = MatchesPrecipitation(Wx, TEXT("(^|[\\s+-])(SH|TS)?(SN|SG|PL|GR|GS)"));
+		Out.bRaining = IsRainWx(Wx);
+		Out.bSnowing = IsSnowWx(Wx);
 	}
 	else
 	{
