@@ -149,9 +149,14 @@ ASimCruiseWorldTile::ASimCruiseWorldTile()
 
 void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild, USimCruiseWorldResources* Resources, UTexture2D* Aerial, bool bAsyncCollision)
 {
+
 	Build = InBuild;
 	TileId = InBuild->Tile;
 	bCollisionReady = false;
+	PendingSteps.Reset();
+	// What runs now is what the tile must have to be drawn (the static mesh, its materials);
+	// the rest (collision, ground mask, palms, signs) queues as steps for ContinueInstall, so
+	// a tile streaming in costs a few milliseconds a frame instead of up to 140 ms in one.
 	Mesh->bUseAsyncCooking = bAsyncCollision;
 	Mesh->ClearAllMeshSections();
 
@@ -185,11 +190,15 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 		RenderMesh->SetStaticMesh(Static);
 		RenderMesh->RegisterComponent();
 		AddInstanceComponent(RenderMesh);
-		// Drawn by the static mesh: the procedural mesh keeps only the collision.
+		// Drawn by the static mesh: the procedural mesh keeps only the collision. Hidden is not
+		// enough: a hidden primitive still gets a scene proxy, rebuilt with every section's GPU
+		// buffers each time a section is added. Above every detail mode it is never added to the
+		// scene (its physics state does not depend on that).
 		Mesh->SetVisibility(false, false);
+		Mesh->DetailMode = EDetailMode::DM_MAX;
+		Mesh->MarkRenderStateDirty();
 	}
 
-	const TArray<FVector2D> NoUV;
 	// The surface under each collision face, for the tyres' grip: the procedural mesh numbers
 	// its collision faces section by section, in section order.
 	TSharedPtr<FSurfaceMap, ESPMode::ThreadSafe> Surfaces = MakeShared<FSurfaceMap, ESPMode::ThreadSafe>();
@@ -227,16 +236,6 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 		{
 			continue;
 		}
-		// A tangent square to every normal: the default (1, 0, 0) degenerates on walls and
-		// curb faces that look along X, and the shading frame (and the normal) collapses.
-		TArray<FProcMeshTangent> Tangents;
-		Tangents.SetNumUninitialized(Layer.Normals.Num());
-		for (int32 v = 0; v < Layer.Normals.Num(); ++v)
-		{
-			const FVector& N = Layer.Normals[v];
-			const FVector T = FMath::Abs(N.Z) < 0.9 ? FVector::CrossProduct(FVector::UpVector, N).GetSafeNormal() : FVector::CrossProduct(N, FVector::RightVector).GetSafeNormal() * -1.0;
-			Tangents[v] = FProcMeshTangent(T.IsNearlyZero() ? FVector::ForwardVector : T, false);
-		}
 		const ESimCruiseTileLayer Kind = static_cast<ESimCruiseTileLayer>(i);
 		const bool bCollision = Kind == ESimCruiseTileLayer::Terrain || Kind == ESimCruiseTileLayer::Asphalt || Kind == ESimCruiseTileLayer::Concrete
 			|| Kind == ESimCruiseTileLayer::Building || Kind == ESimCruiseTileLayer::Props;
@@ -246,16 +245,27 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 			Layer.Positions.Empty(); Layer.Normals.Empty(); Layer.Colors.Empty(); Layer.Indices.Empty(); Layer.UV0.Empty(); Layer.UV1.Empty();
 			continue;
 		}
-		const bool bUVs = Layer.UV0.Num() == Layer.Positions.Num() && Layer.UV1.Num() == Layer.Positions.Num();
-		Mesh->CreateMeshSection_LinearColor(i, Layer.Positions, Layer.Indices, Layer.Normals, bUVs ? Layer.UV0 : NoUV, bUVs ? Layer.UV1 : NoUV, NoUV, NoUV,
-			Layer.Colors, Tangents, bCollision, false);
-		// The game thread copy is gone once the section owns it.
-		Layer.Positions.Empty();
-		Layer.Normals.Empty();
-		Layer.Colors.Empty();
-		Layer.Indices.Empty();
-		Layer.UV0.Empty();
-		Layer.UV1.Empty();
+		PendingSteps.Add([this, InBuild, i, bCollision]()
+		{
+			FSimCruiseMeshData& L = InBuild->Layers[i];
+			// A tangent square to every normal: the default (1, 0, 0) degenerates on walls and
+			// curb faces that look along X, and the shading frame (and the normal) collapses.
+			TArray<FProcMeshTangent> LayerTangents;
+			LayerTangents.SetNumUninitialized(L.Normals.Num());
+			for (int32 v = 0; v < L.Normals.Num(); ++v)
+			{
+				const FVector& N = L.Normals[v];
+				const FVector T = FMath::Abs(N.Z) < 0.9 ? FVector::CrossProduct(FVector::UpVector, N).GetSafeNormal() : FVector::CrossProduct(N, FVector::RightVector).GetSafeNormal() * -1.0;
+				LayerTangents[v] = FProcMeshTangent(T.IsNearlyZero() ? FVector::ForwardVector : T, false);
+			}
+			const TArray<FVector2D> NoUVs;
+			const bool bLayerUVs = L.UV0.Num() == L.Positions.Num() && L.UV1.Num() == L.Positions.Num();
+			Mesh->CreateMeshSection_LinearColor(i, L.Positions, L.Indices, L.Normals, bLayerUVs ? L.UV0 : NoUVs, bLayerUVs ? L.UV1 : NoUVs, NoUVs, NoUVs,
+				L.Colors, LayerTangents, bCollision, false);
+			if (Materials.IsValidIndex(i)) Mesh->SetMaterial(i, Materials[i]);
+			// The game thread copy is gone once the section owns it.
+			L.Positions.Empty(); L.Normals.Empty(); L.Colors.Empty(); L.Indices.Empty(); L.UV0.Empty(); L.UV1.Empty();
+		});
 	}
 
 	{
@@ -283,6 +293,7 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 	}
 	PalmComponents.Reset();
 	if (Resources && !InBuild->PalmInstances.IsEmpty())
+	PendingSteps.Add([this, InBuild, Resources]()
 	{
 		for (int32 Variant = 0; Variant < Resources->PalmMeshes.Num(); ++Variant)
 		{
@@ -305,12 +316,13 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 			PalmComponents.Add(Palms);
 		}
 		InBuild->PalmInstances.Empty();
-	}
+	});
 
 	if (Resources)
 	{
-		MaskTexture = USimCruiseWorldResources::CreateTexture(this, NAME_None, InBuild->Mask, SimCruiseGroundMask::Size, SimCruiseGroundMask::Size, true, false);
-		InBuild->Mask.Empty();
+		// The ground mask (1024 px with its mips) is made in a step of its own; until then the
+		// tile draws with the blank one (a frame or two, far ahead of the car).
+		MaskTexture = nullptr;
 		const FVector2d Anchor = SimCruiseTileBuilder::TextureAnchorM(TileId, InBuild->TileSizeM);
 		const FIntPoint AerialTile = SimCruiseGeo::AerialTileOf(TileId);
 		const FLinearColor Cell(TileId.X - AerialTile.X * 4, TileId.Y - AerialTile.Y * 4, Aerial ? 1.f : 0.f, 0.f);
@@ -322,7 +334,7 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 			MID->SetVectorParameterValue(TEXT("Anchor"), FLinearColor(Anchor.X, Anchor.Y, 0.f, 0.f));
 			MID->SetScalarParameterValue(TEXT("TileSizeCm"), InBuild->TileSizeM * 100.0);
 			MID->SetVectorParameterValue(TEXT("Cell"), Cell);
-			MID->SetTextureParameterValue(TEXT("Mask"), MaskTexture);
+			MID->SetTextureParameterValue(TEXT("Mask"), Resources->BlankTexture.Get());
 			MID->SetTextureParameterValue(TEXT("Aerial"), Aerial ? Aerial : Resources->BlankTexture.Get());
 			MID->SetTextureParameterValue(TEXT("Grass"), Resources->GrassTexture);
 			MID->SetTextureParameterValue(TEXT("Sand"), Resources->SandTexture);
@@ -334,13 +346,25 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 			MID->SetVectorParameterValue(TEXT("AsphaltMean"), Resources->AsphaltMean);
 			MID->SetScalarParameterValue(TEXT("Lights"), LightsOn);
 			Materials.Add(MID);
-			Mesh->SetMaterial(i, MID);
 			const int32 Slot = RenderSlots.IndexOfByKey(i);
 			if (RenderMesh && Slot != INDEX_NONE)
 			{
 				RenderMesh->SetMaterial(Slot, MID);
 			}
 		}
+	}
+	if (Resources)
+	{
+		// First of the steps: the ground mask (the collision sections queued above run after it).
+		PendingSteps.Insert([this, InBuild]()
+		{
+			MaskTexture = USimCruiseWorldResources::CreateTexture(this, NAME_None, InBuild->Mask, SimCruiseGroundMask::Size, SimCruiseGroundMask::Size, true, false);
+			InBuild->Mask.Empty();
+			for (UMaterialInstanceDynamic* MID : Materials)
+			{
+				if (MID) MID->SetTextureParameterValue(TEXT("Mask"), MaskTexture);
+			}
+		}, 0);
 	}
 
 	// The named places' lettering: one text component each, in the Signs material.
@@ -351,6 +375,7 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 	SignComponents.Reset();
 	const int32 SignsSlot = static_cast<int32>(ESimCruiseTileLayer::Signs);
 	if (Resources && Materials.IsValidIndex(SignsSlot) && CVarSigns.GetValueOnGameThread() != 0)
+	PendingSteps.Add([this, InBuild, SignsSlot]()
 	{
 		for (int32 s = 0; s < InBuild->Signs.Num(); ++s)
 		{
@@ -398,6 +423,11 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 		}
 		UE_LOG(LogTemp, Display, TEXT("SimCruise tile %d_%d: %d signs"), TileId.X, TileId.Y, SignComponents.Num());
 		InBuild->Signs.Empty();
+	});
+	// Headless runs (no Resources) and anything else: everything at once, as before.
+	if (!Resources)
+	{
+		while (PendingSteps.Num() > 0) ContinueInstall(1e9);
 	}
 }
 
@@ -431,8 +461,30 @@ double ASimCruiseWorldTile::SurfaceHeightAt(const FVector2d& TileMetres) const
 	return Build->TerrainHeightAt(TileMetres);
 }
 
+double ASimCruiseWorldTile::ContinueInstall(double BudgetMs)
+{
+	const double Start = FPlatformTime::Seconds();
+	double Used = 0.0;
+	while (PendingSteps.Num() > 0)
+	{
+		TFunction<void()> Step = MoveTemp(PendingSteps[0]);
+		PendingSteps.RemoveAt(0, EAllowShrinking::No);
+		const double StepStart = FPlatformTime::Seconds();
+		Step();
+		const double StepMs = (FPlatformTime::Seconds() - StepStart) * 1000.0;
+		UE_CLOG(StepMs > 20.0, LogTemp, Display, TEXT("SimCruise tile %d_%d: an install step took %.1f ms (%d left)"), TileId.X, TileId.Y, StepMs, PendingSteps.Num());
+		Used = (FPlatformTime::Seconds() - Start) * 1000.0;
+		if (Used >= BudgetMs) break;
+	}
+	return Used;
+}
+
 bool ASimCruiseWorldTile::IsCollisionReady() const
 {
+	if (PendingSteps.Num() > 0)
+	{
+		return false; // collision sections still to come
+	}
 	if (bCollisionReady || !Build.IsValid() || !Mesh)
 	{
 		return bCollisionReady;

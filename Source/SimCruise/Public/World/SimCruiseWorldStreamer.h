@@ -150,6 +150,8 @@ private:
 	FSimCruiseTileManager Manager;
 	TSharedPtr<FSimCruiseAtlasClient, ESPMode::ThreadSafe> Atlas;
 	TSharedPtr<FInbox, ESPMode::ThreadSafe> Inbox;
+	/** A finished tile held back a frame while its aerial photograph was made. */
+	TSharedPtr<FResult, ESPMode::ThreadSafe> Deferred;
 
 	UPROPERTY(Transient)
 	TMap<FIntPoint, TObjectPtr<ASimCruiseWorldTile>> Tiles;

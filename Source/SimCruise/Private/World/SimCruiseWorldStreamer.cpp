@@ -514,11 +514,27 @@ void ASimCruiseWorldStreamer::TickStreaming(float DeltaSeconds)
 	// Install at most one finished tile per frame (mesh sections and collision are game-thread work).
 	TSharedPtr<FResult, ESPMode::ThreadSafe> Result;
 	int32 Installed = 0;
-	while (Installed < 1 && Inbox->Queue.Dequeue(Result))
+	auto NextResult = [this](TSharedPtr<FResult, ESPMode::ThreadSafe>& Out)
+	{
+		if (Deferred.IsValid()) { Out = MoveTemp(Deferred); Deferred.Reset(); return true; }
+		return Inbox->Queue.Dequeue(Out);
+	};
+	// The tiles' remaining install steps, about 6 ms a frame (at least one step).
+	double InstallBudget = 6.0;
+	for (const TPair<FIntPoint, TObjectPtr<ASimCruiseWorldTile>>& Pair : Tiles)
+	{
+		if (InstallBudget <= 0.0) break;
+		if (Pair.Value && Pair.Value->HasPendingInstall()) InstallBudget -= FMath::Max(Pair.Value->ContinueInstall(InstallBudget), 0.01);
+	}
+	// A tile still finishing its install steps holds the next one back: one at a time.
+	bool bBusy = false;
+	for (const TPair<FIntPoint, TObjectPtr<ASimCruiseWorldTile>>& Pair : Tiles) bBusy |= Pair.Value && Pair.Value->HasPendingInstall();
+	while (!bBusy && Installed < 1 && NextResult(Result))
 	{
 		if (!Result.IsValid()) continue;
 		if (Result->AerialPixels.Num() > 0 && !Resources->FindAerial(Result->AerialKey))
 		{
+			// The photograph gets a frame of its own (its upload); the tile installs next frame.
 			if (Result->AerialMips.Num() > 0)
 			{
 				Resources->AddAerialMips(Result->AerialKey, MoveTemp(Result->AerialMips), Result->AerialWidth, Result->AerialHeight);
@@ -527,6 +543,9 @@ void ASimCruiseWorldStreamer::TickStreaming(float DeltaSeconds)
 			{
 				Resources->AddAerial(Result->AerialKey, Result->AerialPixels, Result->AerialWidth, Result->AerialHeight);
 			}
+			Result->AerialPixels.Empty();
+			Deferred = Result;
+			break;
 		}
 		const bool bOk = Result->Build.IsValid() && Result->Error.IsEmpty();
 		if (!Manager.Complete(Result->Ticket, bOk, Now))
