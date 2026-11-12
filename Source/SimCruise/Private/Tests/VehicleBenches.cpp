@@ -444,6 +444,7 @@ namespace
 					Case.SteadyLateralG = FMath::Abs(V0 * R0) / Gravity;
 					Case.SteadyBetaDeg = B0;
 					Case.SteadyGear = C.Sim.State.Gear + 1;
+					Case.SteadyRackDeg = FMath::Abs(SimCruiseUnits::ToDegrees(C.Sim.State.SteeringRad));
 					Turn = HoldTurn;
 					Gas = HoldGas;
 					State = 2;

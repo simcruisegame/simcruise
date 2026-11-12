@@ -118,6 +118,27 @@ namespace
 				Test.AddError(FString::Printf(TEXT("%.1f g %s: the automatic selected reverse while rolling forward"), Case.TargetG, Case.bBrake ? TEXT("brake") : TEXT("lift")));
 			}
 		}
+		// Understeer gradient, ISO 4138's constant-radius method: on the fixed circle the steer
+		// angle the car needs grows with lateral acceleration by K deg/g (0 = neutral). Road cars
+		// understeer; surveys put the average at about 2.6 deg/g for European and 4.4 for
+		// American cars (Crolla's handling course notes).
+		const FSimCruiseLiftOffCase* Low = nullptr;
+		const FSimCruiseLiftOffCase* Mid = nullptr;
+		for (const FSimCruiseLiftOffCase& Case : R.Cases)
+		{
+			if (!Case.bSteady || Case.bBrake) continue;
+			if (FMath::IsNearlyEqual(Case.TargetG, 0.3, 0.01)) Low = &Case;
+			if (FMath::IsNearlyEqual(Case.TargetG, 0.5, 0.01)) Mid = &Case;
+		}
+		if (Low && Mid && Mid->SteadyLateralG - Low->SteadyLateralG > 0.05)
+		{
+			const double K = (Mid->SteadyRackDeg - Low->SteadyRackDeg) / (Mid->SteadyLateralG - Low->SteadyLateralG);
+			const FString Line = FString::Printf(TEXT("UNDERSTEER %-11s %.2f deg/g (road-wheel steer %.2f deg at %.2f g, %.2f deg at %.2f g)"),
+				CarId, K, Low->SteadyRackDeg, Low->SteadyLateralG, Mid->SteadyRackDeg, Mid->SteadyLateralG);
+			UE_LOG(LogTemp, Display, TEXT("%s"), *Line);
+			Test.AddInfo(Line);
+			Test.TestTrue(TEXT("understeers below the limit (0 to 8 deg/g, ISO 4138 constant radius)"), K > 0.0 && K < 8.0);
+		}
 		return true;
 	}
 

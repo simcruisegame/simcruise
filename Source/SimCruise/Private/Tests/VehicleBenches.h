@@ -44,6 +44,8 @@ struct FSimCruiseLiftOffCase
 	double SteadyLateralG = 0.0;
 	int32 SteadyGear = 0;
 	double SteadyBetaDeg = 0.0;
+	/** Mean front road-wheel angle holding the steady circle (deg). */
+	double SteadyRackDeg = 0.0;
 	double YawRatio1s = 0.0;
 	double YawOvershoot = 0.0;
 	double Beta1sDeg = 0.0;
