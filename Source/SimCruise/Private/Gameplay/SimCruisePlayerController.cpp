@@ -35,6 +35,14 @@ static TAutoConsoleVariable<float> CVarRumbleStrength(
 	TEXT("simcruise.Rumble.Strength"), 1.f,
 	TEXT("Pad rumble strength 0..1 (0 turns it off). Rumble reads tyre slip, ABS and road texture; it adds no force."));
 
+static TAutoConsoleVariable<float> CVarWheelMaxTorque(
+	TEXT("simcruise.Wheel.MaxTorqueNm"), 2.5f,
+	TEXT("The steering wheel's peak force-feedback torque, N m (2.2-2.5 for Logitech G29/G923, 5-25 for direct-drive bases): the rim torque that maps to full force."));
+
+static TAutoConsoleVariable<int32> CVarWheelForceSign(
+	TEXT("simcruise.Wheel.ForceSign"), 1,
+	TEXT("1 or -1: flips the force-feedback direction for a wheel whose driver reports force the other way round (untested hardware)."));
+
 static TAutoConsoleVariable<float> CVarWheelForce(
 	TEXT("simcruise.Wheel.Force"), 0.6f,
 	TEXT("USB steering wheel force-feedback strength 0..1 (0 turns it off)."));
@@ -282,18 +290,24 @@ void ASimCruisePlayerController::UpdateWheel(FSimCruiseRawControls& Raw, float D
 	if (Wheel.bPreviousGear) OnShiftDown();
 	bUsingGamepad = false;
 
-	// Force feedback until the tyres' aligning torque reaches the telemetry: the centring a
-	// real rack gives, growing with speed (caster trail), and the column's damping.
+	// Force feedback: what the column carries in the real car. The tyres' aligning torque about
+	// the steering axes reaches the rim divided by the steering ratio (+ turns the wheels right),
+	// so the rim goes light as the fronts pass their peak and slide. A light spring holds the rim
+	// at rest and the column damps it; both stay small beside the tyre torque.
 	const float Strength = FMath::Clamp(CVarWheelForce.GetValueOnGameThread(), 0.f, 1.f);
 	if (IsPaused() || Strength <= 0.f)
 	{
 		WheelDevice.Stop();
 		return;
 	}
+	const double RimTorqueNm = Telemetry.RackAligningTorqueNm / Ratio;
+	const double MaxTorqueNm = FMath::Max(static_cast<double>(CVarWheelMaxTorque.GetValueOnGameThread()), 0.1);
+	const double Sign = CVarWheelForceSign.GetValueOnGameThread() < 0 ? -1.0 : 1.0;
+	const double Constant = FMath::Clamp(Sign * RimTorqueNm / MaxTorqueNm, -1.0, 1.0) * Strength;
 	const double Speed = FMath::Abs(Telemetry.BodyVelocityMps.X);
-	const double Spring = (0.08 + 0.55 * FMath::Clamp(Speed / 25.0, 0.0, 1.0)) * Strength;
-	const double Damper = (0.25 - 0.1 * FMath::Clamp(Speed / 25.0, 0.0, 1.0)) * Strength;
-	WheelDevice.SetForces(Spring, Damper, 0.0);
+	const double Spring = 0.06 * Strength;
+	const double Damper = (0.18 - 0.08 * FMath::Clamp(Speed / 25.0, 0.0, 1.0)) * Strength;
+	WheelDevice.SetForces(Spring, Damper, Constant);
 }
 
 void ASimCruisePlayerController::UpdateRumble(float DeltaTime)
