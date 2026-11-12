@@ -27,7 +27,11 @@ if (-not (Test-Path $Editor)) { Write-Host "No Unreal Editor at $Editor (set -En
 
 if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "editor on $Root")) { exit 3 }
 try {
-    $ArgLine = (@("`"$Project`"") + @($EditorArgs)) -join ' '
+    # Live Coding off: while an editor with Live Coding runs, Unreal Build Tool refuses every
+    # build on the PC, so other checkouts could not build.
+    $Extra = @($EditorArgs)
+    if (-not ($Extra -contains '-NoLiveCoding')) { $Extra += '-NoLiveCoding' }
+    $ArgLine = (@("`"$Project`"") + $Extra) -join ' '
     $P = Start-Process -FilePath $Editor -ArgumentList $ArgLine -PassThru
     $P.WaitForExit()
     exit $P.ExitCode
