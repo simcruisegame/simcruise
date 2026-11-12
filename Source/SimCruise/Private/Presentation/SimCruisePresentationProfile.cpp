@@ -331,6 +331,37 @@ bool SimCruisePresentationProfiles::Load(const FString& CarId, FSimCruiseCarPres
 			OutProfile.RoleAreas.Add(Area);
 		}
 	}
+	const TArray<TSharedPtr<FJsonValue>>* AddonList = nullptr;
+	if (Car->TryGetArrayField(TEXT("addons"), AddonList) && AddonList)
+	{
+		for (const TSharedPtr<FJsonValue>& Value : *AddonList)
+		{
+			const TSharedPtr<FJsonObject> Object = Value.IsValid() ? Value->AsObject() : nullptr;
+			if (!Object.IsValid()) continue;
+			FSimCruiseCarPresentationProfile::FAddon Addon;
+			Object->TryGetStringField(TEXT("name"), Addon.Name);
+			const TSharedPtr<FJsonObject>* Tube = nullptr;
+			const TSharedPtr<FJsonObject>* Box = nullptr;
+			if (Object->TryGetObjectField(TEXT("tube"), Tube) && Tube && ReadVector(*Tube, TEXT("from"), Addon.FromM) && ReadVector(*Tube, TEXT("to"), Addon.ToM))
+			{
+				(*Tube)->TryGetNumberField(TEXT("radius"), Addon.RadiusM);
+			}
+			else if (Object->TryGetObjectField(TEXT("box"), Box) && Box && ReadVector(*Box, TEXT("centre"), Addon.CentreM) && ReadVector(*Box, TEXT("size"), Addon.SizeM))
+			{
+				Addon.bBox = true;
+				(*Box)->TryGetNumberField(TEXT("pitch_deg"), Addon.PitchDeg);
+			}
+			else
+			{
+				OutError = Where + TEXT(": an addon needs a tube (from, to, radius) or a box (centre, size)");
+				return false;
+			}
+			ReadColorValue(Object->TryGetField(TEXT("colour")), Addon.Colour);
+			Object->TryGetNumberField(TEXT("metallic"), Addon.Metallic);
+			Object->TryGetNumberField(TEXT("roughness"), Addon.Roughness);
+			OutProfile.Addons.Add(Addon);
+		}
+	}
 	const TSharedPtr<FJsonObject>* Steering = nullptr;
 	if (Car->TryGetObjectField(TEXT("steering_wheel"), Steering) && Steering)
 	{

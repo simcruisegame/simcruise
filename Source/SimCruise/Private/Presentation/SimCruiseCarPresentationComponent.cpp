@@ -72,6 +72,53 @@ double USimCruiseCarPresentationComponent::GetDrawnSteerRad(int32 Wheel) const
 	return Knuckles.IsValidIndex(Wheel) && Knuckles[Wheel] ? -FMath::DegreesToRadians(Knuckles[Wheel]->GetRelativeRotation().Yaw) : 0.0;
 }
 
+void USimCruiseCarPresentationComponent::AddAddons()
+{
+	static UStaticMesh* Cylinder = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+	static UStaticMesh* Cube = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+	for (const FSimCruiseCarPresentationProfile::FAddon& Addon : Built->Profile.Addons)
+	{
+		UStaticMesh* Mesh = Addon.bBox ? Cube : Cylinder;
+		if (!Mesh) continue;
+		FTransform Relative;
+		if (Addon.bBox)
+		{
+			// The engine cube is 1 m on a side about its centre.
+			Relative = FTransform(FRotator(-Addon.PitchDeg, 0.0, 0.0), Addon.CentreM * 100.0, Addon.SizeM);
+		}
+		else
+		{
+			// The engine cylinder is 1 m across and 1 m long along Z, about its centre.
+			const FVector Axis = Addon.ToM - Addon.FromM;
+			const double Length = Axis.Size();
+			if (Length < 1e-3) continue;
+			const FQuat Turn = FQuat::FindBetweenNormals(FVector::UpVector, Axis / Length);
+			Relative = FTransform(Turn, (Addon.FromM + Addon.ToM) * 50.0, FVector(Addon.RadiusM * 2.0, Addon.RadiusM * 2.0, Length));
+		}
+		UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create(SimCruiseCarMaterials::GetMaster(ESimCruiseCarMaster::Opaque), this);
+		MID->SetVectorParameterValue(TEXT("BaseColor"), Addon.Colour);
+		MID->SetVectorParameterValue(TEXT("Surface"), FLinearColor(static_cast<float>(Addon.Metallic), static_cast<float>(Addon.Roughness), 0.f, 0.05f));
+		MID->SetVectorParameterValue(TEXT("Detail"), FLinearColor(0.f, 0.f, 0.f, 1.f));
+		MID->SetVectorParameterValue(TEXT("TextureFlags"), FLinearColor(0.f, 0.f, 0.f, 0.f));
+		MID->SetVectorParameterValue(TEXT("Extra"), FLinearColor(0.f, 0.f, 0.f, 0.f));
+		MID->SetVectorParameterValue(TEXT("Emissive"), FLinearColor(0.f, 0.f, 0.f, 0.f));
+		UObject* Outer = GetOwner() ? static_cast<UObject*>(GetOwner()) : static_cast<UObject*>(this);
+		UStaticMeshComponent* Part = NewObject<UStaticMeshComponent>(Outer, FreeName(Outer, UStaticMeshComponent::StaticClass(), FName(TEXT("addon"))));
+		Part->SetMobility(EComponentMobility::Movable);
+		Part->SetupAttachment(this);
+		Part->SetRelativeTransform(Relative);
+		Part->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Part->SetCanEverAffectNavigation(false);
+		Part->SetStaticMesh(Mesh);
+		for (int32 Slot = 0; Slot < Mesh->GetStaticMaterials().Num(); ++Slot)
+		{
+			Part->SetMaterial(Slot, MID);
+		}
+		Part->RegisterComponent();
+		Parts.Add(Part);
+	}
+}
+
 void USimCruiseCarPresentationComponent::ClearParts()
 {
 	for (USceneComponent* Part : Parts)
@@ -216,6 +263,7 @@ bool USimCruiseCarPresentationComponent::InitializeForCar(const FString& InCarId
 		Spinners.Add(AddPart(Knuckle, Built->Wheels[W], FTransform::Identity));
 		AddPart(Knuckle, Built->Uprights[W], FTransform::Identity);
 	}
+	AddAddons();
 	if (Built->bHasSteeringWheel)
 	{
 		SteeringRest = Built->SteeringWheel.PartToVehicle;

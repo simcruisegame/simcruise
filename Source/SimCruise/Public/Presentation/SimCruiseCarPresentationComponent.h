@@ -176,6 +176,8 @@ public:
 
 private:
 	void ClearParts();
+	/** The profile's add-on parts (roll bar, wing) from the engine's basic shapes. */
+	void AddAddons();
 	UStaticMeshComponent* MakeMeshComponent(USceneComponent* Parent, FName Name, class UStaticMesh* Mesh, const FTransform& Relative,
 		const TArray<int32>& SectionMaterials);
 	UMaterialInstanceDynamic* MaterialFor(int32 MaterialIndex);

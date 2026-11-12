@@ -133,6 +133,28 @@ struct FSimCruiseCarPresentationProfile
 	FVector SteeringWheelAxis = FVector(-1, 0, 0);
 	double SteeringWheelRadiusM = 0.19;
 
+	/**
+	 * Parts the model lacks, drawn from simple shapes (an owner's roll bar, wing): a tube
+	 * between two points, or a box at a centre, in the vehicle frame (X forward, Y right,
+	 * Z up, metres, origin midway between the axles on the ground).
+	 */
+	struct FAddon
+	{
+		FString Name;
+		bool bBox = false;
+		FVector FromM = FVector::ZeroVector;
+		FVector ToM = FVector::ZeroVector;
+		double RadiusM = 0.02;
+		FVector CentreM = FVector::ZeroVector;
+		FVector SizeM = FVector(0.1);
+		/** Box rotation about the car's Y axis, degrees (a wing's angle of attack, nose down positive). */
+		double PitchDeg = 0.0;
+		FLinearColor Colour = FLinearColor(0.02f, 0.02f, 0.02f);
+		double Metallic = 0.0;
+		double Roughness = 0.45;
+	};
+	TArray<FAddon> Addons;
+
 	/** The role for an author material: the profile's override, else the name guess. */
 	ESimCruiseCarMaterialRole RoleFor(const FString& MaterialName, const FString& OwnerLabel) const;
 };
