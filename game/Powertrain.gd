@@ -167,12 +167,50 @@ const ABS_GAIN_PER_S = 20.
 const ABS_PROPORTIONAL = .3
 const ABS_TARGET_OVER_PEAK = 1.
 var contact_rows := []
+# Standstill. Below walking pace the slip-angle law above is a regularized
+# damper (side force proportional to the side velocity over 1.8 m/s), and a
+# braked wheel held at zero spin is the same damper along the road. A damper
+# cannot hold a car: on any slope it creeps at force/damping (0.12-0.41 m/s on
+# a 10 % grade, 1.5-5 cm/s across one), and on grippy tyres it is stiffer than
+# one 60 Hz tick can integrate (the Corvette's rear contacts reached 2.5 × the
+# explicit limit, so a parked C8 rocked side to side at 0.07 m/s for ever).
+# A real tyre at rest is a spring: the tread sticks to the road and the carcass
+# deflects (static friction). Each contact therefore carries a stick deflection
+# (x along the wheel, y across it) that follows the contact patch's slip; its
+# spring and damper are sized on the tick and the body's effective mass at that
+# contact, so they are stable for every car, and it slides once the spring
+# reaches the friction limit (Coulomb) or, along the wheel, the brake's hold.
+# Across, it relaxes over the tyre's own length as the wheel rolls, so its
+# steady force equals the slip-angle law's linear part. It takes over fully
+# below 0.2 m/s and hands back to the rolling law by 0.8 m/s, where the
+# relaxation length starts. Along the wheel it acts only while a brake holds
+# the wheel still; a free or driven wheel keeps the rolling law.
+const STICK_FULL_MPS = .2
+const STICK_NONE_MPS = .8
+const STICK_STIFFNESS = .1        # k·dt²/m per contact
+const STICK_DAMPING = .5          # c·dt/m per contact
+# The regularized slip-angle law, where its relaxation length is short, damps
+# the side velocity no harder than this many times the contact's effective
+# mass per tick (above 2 the explicit tick overshoots and grows).
+const SLIP_DAMPING_LIMIT = 1.8
+var stick := [Vector2.ZERO,Vector2.ZERO,Vector2.ZERO,Vector2.ZERO]
+var stick_fx := [0.,0.,0.,0.]
+var stick_wx := [0.,0.,0.,0.]
+var contact_mass := []            # per contact: Vector2(along, across), a quarter of the body's effective mass there
 func row_speed(i:int)->float:
  return float(contact_rows[i][5]) if i<contact_rows.size() and not contact_rows[i].is_empty() else 0.
 
-func contact_slip(i: int, longitudinal: float, transverse: float, dt: float, fz: float = -1.) -> float:
+func contact_slip(i: int, longitudinal: float, transverse: float, dt: float, fz: float = -1., cornering: float = 0.) -> float:
  var speed := absf(longitudinal)
- var target := atan2(transverse,maxf(1.8,speed))
+ # The 1.8 m/s floor regularizes the slip angle at a crawl, where the law acts
+ # as a side damper of cornering/floor. Where the relaxation length is still
+ # short that damper must stay inside one tick's stable range
+ # (SLIP_DAMPING_LIMIT): grippy, heavily loaded contacts get a higher floor.
+ var floor_mps := 1.8
+ if cornering>0. and i<contact_mass.size():
+  var stable:float=cornering*dt/(SLIP_DAMPING_LIMIT*float(contact_mass[i].y))
+  floor_mps=maxf(1.8,lerpf(1.8,stable,1.-smoothstep(.8,3.5,speed)))
+ var target := atan2(transverse,maxf(floor_mps,speed))
  # Below walking speed the existing regularized contact also handles static
  # friction. Blend continuously into the rolling-tire model as travel builds.
  # A lightly loaded tyre builds side force over a shorter distance.
@@ -197,6 +235,16 @@ func setup():
  var box=BoxShape3D.new();box.size=spec.collision_box;var c=CollisionShape3D.new();c.shape=box;c.position.y=spec.collision_box_y;add_child(c)
  for pos in MOUNTS:
   var wh=Node3D.new();wh.position=pos-Vector3.UP*spec.hub_drop_m;add_child(wh);connected_wheels.append(wh)
+ # Effective mass of the body at each contact patch, along and across the car:
+ # 1/m_eff = 1/m + n·((I⁻¹(r×n))×r), with r from the centre of mass to the
+ # patch at static ride. All four contacts act on one body, so each gets a quarter.
+ contact_mass.clear()
+ for pos in MOUNTS:
+  var r:Vector3=pos-Vector3.UP*(spec.static_length_m+R)-center_of_mass
+  contact_mass.append(Vector2(effective_mass(r,Vector3.FORWARD),effective_mass(r,Vector3.RIGHT))*.25)
+func effective_mass(r:Vector3,n:Vector3)->float:
+ var t:=r.cross(n);var a:=Vector3(t.x/inertia.x,t.y/inertia.y,t.z/inertia.z)
+ return 1./(1./mass+a.cross(r).dot(n))
 func _notification(what):
  # Decided at add_child time (a SceneTree bench's root is not in the tree yet
  # during _initialize, so _enter_tree would land after the bench picked a mode).
@@ -209,7 +257,7 @@ func restart(pos:Vector3,head:float):
  # zeroed the body's own, so the order used to rely on that side effect.
  freeze=true;global_transform=Transform3D(Basis(Vector3.UP,head),pos)
  freeze=false;linear_velocity=Vector3.ZERO;angular_velocity=Vector3.ZERO;sleeping=false
- rolling_slip.fill(0.)
+ rolling_slip.fill(0.);stick.fill(Vector2.ZERO);stick_wx.fill(0.)
  sound_throttle=0.;sound_combustion=0.;sound_shaft_load=0.
  selected_gear=0 if manual else 1;clutch_pedal=0.;stalled=false
  roof_down=false;flipped_seconds=0.;stuck_seconds=0.;stranded_seconds=0.
@@ -332,21 +380,48 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
   elif rpm<spec.downshift_rpm and gear>0:next-=1
   if next!=gear:gear=next;shift_time=spec.shift_seconds;forward_ratio=GEARS[gear]*FINAL_DRIVE
  var net=[0.,0.,0.,0.];var side=[0.,0.,0.,0.];contact_rows=points
+ if contact_mass.size()!=4:contact_mass=[Vector2.ONE*mass*.25,Vector2.ONE*mass*.25,Vector2.ONE*mass*.25,Vector2.ONE*mass*.25]
+ var parking=InputMap.has_action("parking_brake") and Input.is_action_pressed("parking_brake")
  for i in 4:
   if points[i].is_empty():
    spring_load[i]=0
    rolling_slip[i]=0.
+   stick[i]=Vector2.ZERO;stick_wx[i]=0.
    continue
   var row=points[i];var fz=float(row[2]);spring_load[i]=fz
-  var slip_angle=0.
-  if fz>0:slip_angle=contact_slip(i,row[5],row[6],dt,fz)
-  else:rolling_slip[i]=0.
   # Saturating slip-angle curve; a loaded outside tyre gains less grip per unit of load.
   var mu=clampf(static_mu*(1.-spec.load_sensitivity*(fz/spec.reference_corner_load_n-1)),spec.mu_min,spec.mu_max)*surface_grip[i]*float(spec.axle_grip[0 if i<2 else 1])
+  var slip_angle=0.
+  if fz>0:slip_angle=contact_slip(i,row[5],row[6],dt,fz,fz*mu*LATERAL_GRIP_SCALE*spec.slip_stiffness)
+  else:rolling_slip[i]=0.
   var lateral=-fz*mu*LATERAL_GRIP_SCALE*tanh(slip_angle*spec.slip_stiffness)*(1.-spec.slip_falloff*smoothstep(spec.slip_falloff_from,spec.slip_falloff_to,absf(slip_angle)))
   var road_lean=asin(clampf(b.x.dot(row[1]),-1.,1.))
   lateral-=fz*spec.camber_thrust*(wheel_camber[i]+road_lean)*minf(1.,absf(row[5])/3.)
-  side[i]=lateral;row.append(mu)
+  row.append(mu)
+  # Standstill and walking pace (see STICK_* above).
+  var along:float=row[5];var across:float=row[6];var m_c:Vector2=contact_mass[i]
+  var w=1.-smoothstep(STICK_FULL_MPS,STICK_NONE_MPS,absf(along))
+  var u:Vector2=stick[i]
+  stick_wx[i]=0.
+  if w>0. and fz>0.:
+   var k=STICK_STIFFNESS*m_c/(dt*dt);var c=STICK_DAMPING*m_c/dt
+   # Across: relaxes over C/k as the wheel rolls, C the law's cornering stiffness.
+   var cornering=fz*mu*LATERAL_GRIP_SCALE*spec.slip_stiffness
+   u.y=u.y*exp(-absf(along)*dt*k.y/maxf(cornering,1.))+across*dt
+   var cap_y=fz*mu*LATERAL_GRIP_SCALE
+   if absf(u.y*k.y)>cap_y:u.y=signf(u.y)*cap_y/k.y
+   lateral=lerpf(lateral,clampf(-(k.y*u.y+c.y*across),-cap_y,cap_y),w)
+   # Along: only while a brake holds the wheel still.
+   var hold=brake_amount*(spec.brake_front_nm if i<2 else spec.brake_rear_nm)+(spec.parking_brake_nm if parking and i>1 else 0.)
+   if hold>0. and omega[i]==0.:
+    u.x+=along*dt
+    var cap_x=minf(fz*mu,hold/R)
+    if absf(u.x*k.x)>cap_x:u.x=signf(u.x)*cap_x/k.x
+    stick_fx[i]=clampf(-(k.x*u.x+c.x*along),-cap_x,cap_x);stick_wx[i]=w
+   else:u.x=0.
+  else:u=Vector2.ZERO
+  stick[i]=u
+  side[i]=lateral
  var throttle_aid=spec.traction_control
  if not throttle_aid or throttle<=0.:tc_cut=0.;tc_integral=0.;tc_slip=0.;tc_slip_filtered=0.
  var pedal_throttle=throttle
@@ -447,6 +522,8 @@ func drive(dt,gas,back,turn,foot,thumbstick:=false):
    # Solve wheel inertia and contact force together for stable rolling at low speed.
    var long_stiff=(fz*spec.longitudinal_stiffness)/maxf(1.5,absf(row[5]))
    var fx=long_stiff*(spin*R-float(row[5]))/(1.+long_stiff*R*R*ds/WHEEL_I)
+   # A wheel the brake holds still sticks to the road (STICK_* above).
+   if stick_wx[i]>0. and br>0. and is_zero_approx(spin):fx=lerpf(fx,stick_fx[i],stick_wx[i])
    var fy=float(side[i]);var budget=Vector2(fx,fy/LATERAL_GRIP_SCALE).length()
    if budget>fxmax and budget>.01:fx*=fxmax/budget;fy*=fxmax/budget
    grip_use[i]=fx/maxf(fz*float(row[7]),1.)
