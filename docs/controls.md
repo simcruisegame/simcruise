@@ -18,7 +18,7 @@ The Unreal client starts in the 2001 roadster in Ocean Drive's lane, Miami Beach
 | Camera: driver's seat, chase | C | Y |
 | Hide or show the driving HUD | F2 | X |
 | Frame time and stats | F3 | — |
-| Driver lens: natural (the default), true FOV, wide | F6 | Left-stick click |
+| Driver lens: natural (the default), true FOV, wide | F6 | Menu, then D-pad to View, then A |
 | Head lamps on / off | L | — |
 | Recover to the nearest road | R | View |
 | Sound on / off (engine, tyres, road, wind) | M | — |
