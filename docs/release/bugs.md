@@ -8,7 +8,7 @@ Owners: **release** (this gate; fixed on `release/v2.0.0`), **physics** (lane1),
 |---|---|---|---|---|
 | R1 | Corvette C8 0-60 mph is slower than published | `scripts\check.ps1 -Filter SimCruise.Vehicle.CarTrack.meridian_z`: 3.22 s with a 1 ft rollout (coordinator figure, 4de89c5) against Car and Driver's 2.8 s | physics / cars | open: waits for the C8 on the TMeasy tyre |
 | R2 | Shipping compile warning C4701 "potentially uninitialized local variable 'Best'" | `Build.bat SimCruise Win64 Shipping`: `Source/SimCruise/Private/Knowledge/SimCruisePlacePhotos.cpp(150)` | release | fixed: `Best` starts at zero (Kept has at least 200 colours, so it is always set) |
-| R3 | Model 3 oversteers on the TMeasy tyre | `SimCruise.Vehicle.LiftOff.model3`: understeer gradient -0.14 deg/g (band 0 to 8), SPIN at 0.7 g (peak beta 45 deg). Came with 4de89c5 | cars | open (routed) |
+| R3 | Model 3 oversteers on the TMeasy tyre | `SimCruise.Vehicle.LiftOff.model3`: understeer gradient -0.14 deg/g (band 0 to 8), SPIN at 0.7 g (peak beta 45 deg). Came with 4de89c5 | cars | fixed on main d5eefb2 (front-biased anti-roll bars, +0.21 deg/g). Known issue for 2.0.0: a spin remains in the 0.7 g trail-brake case (no stability control model) |
 
 ## Code review (12 items, verified 2026-11-12 against main 391cffc)
 
