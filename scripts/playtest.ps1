@@ -47,6 +47,8 @@ if (-not (Test-Path (Join-Path $Worktree '.git'))) {
     & git -C $Root worktree add --detach $Worktree $Ref
     if ($LASTEXITCODE -ne 0) { throw "git worktree add $Worktree failed" }
 } else {
+    # package.ps1 re-saves the generated materials under Content, so the last build left them changed.
+    & git -C $Worktree checkout --quiet -- Content
     if (& git -C $Worktree status --porcelain --untracked-files=no) { throw "$Worktree has local changes; it is only for play-test builds" }
     & git -C $Worktree checkout --quiet --detach $Ref
     if ($LASTEXITCODE -ne 0) { throw "git checkout $Ref in $Worktree failed" }
