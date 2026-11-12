@@ -22,7 +22,7 @@ texture. Each claim has a measured test.
 | 1 | Same car at every frame rate | Physics time budget, controls time-stamped and interpolated on the physics thread, camera maths on physics time, measured 28 W preset per machine, frame cap and pacing | M | Bench with uneven frame times passes for all 3 cars; 2 runs per preset meet budget; frame-time std dev < 1 ms | Async physics edge cases in UE 5.8 | Miata physics thread + performance-engineer |
 | 2 | Brakes and drivetrain like the real car | Brake system model (proportioning valve / EBD, ABS per car, pad heat), stick/slip clutch, engine braking with pumping loss, correct diff per year | M | Non-ABS Miata locks fronts first; 70-0 within ±5 ft of tests; coast-down within 10 % of owner log | Few public numbers for the C8 and Mustang | automotive-engineer + physicist |
 | 3 | Garage Day: measure the owner's own Miata | Corner weights, alignment, bump gap, steering lock, 60-0, coast-downs, diff type, engine sound recording | S team / M owner | Estimates in `nb2001_aaron.json` replaced by measured values with dates | Owner time; equipment (borrow, do not buy) | automotive-engineer + owner |
-| 4 | Feel the road | Wheel mass and tyre spring, ISO 8608 road texture anchored to world position (fills existing roughness inputs), AASHTO banking, grade and vertical curves continuous across tile seams, hilly test fixture | M-L | 10-15 Hz wheel hop on bump bench; profile spectrum matches road class; no roll/pitch event at seams | Higher physics cost on 28 W | physicist + gis-data-scientist |
+| 4 | Feel the road | Wheel mass and tyre spring, ISO 8608 road texture anchored to world position (fills existing roughness inputs), AASHTO banking, grade and vertical curves continuous across tile seams, hilly test fixture | M-L | 10-15 Hz wheel hop on bump bench; profile spectrum matches road class; no roll/pitch event at seams; no ground above the road edge at any seam; edge relative gradient ≤ 0.65 % | Higher physics cost on 28 W | physicist + gis-data-scientist |
 | 5 | Handling test suite with real targets | ISO 4138, 7401, 7975, 3888-1 with a band per car; nightly driving regression (3 cars at 60 and 15 fps, physics-time check, diff vs last release); 2-hour soak | S-M | Suite runs nightly in `check.ps1`; release diff report | Bands need real data | qa-playtester + physicist |
 | 6 | Camera feel and honest speed | Smoothed chase camera, swept collision, shake from suspension, lens chosen by measurement for the 15.6 in screen, speed-judgement test with speedometer hidden | M | < 5 % speed error with speedometer hidden; 5 of 6 drivers prefer it blind | Personal taste differs | cinematographer + magician |
 | 7 | The magician's streamer | One scheduler hides every swap (tiles, LOD, parked cars, lights) out of view, faded, or behind a masking event; tile install split over frames | M | Pop-in button test: seen swaps < half of today; no streaming frame > 25 ms at 130 km/h | Complexity in streamer | magician + performance-engineer |
@@ -44,6 +44,8 @@ features stay on hold, as in phase 1, unless the owner moves them in.
 4. Default lens: true field of view (about 32° on the laptop, most honest speed) or a wider "natural" view (about 2.4x, more awareness)? Theme 6 tests both.
 
 ## Change log
+
+- 2026-11-12 21:10: theme 4 test adds seam clearance and edge relative gradient (seam tilt review of a96c7e3). Building brightness fixed on main (81f947e).
 
 - 2026-11-12: draft 1 from the first team review.
 - 2026-11-12 16:53: lens default question added (true FOV landed in ff35887).
