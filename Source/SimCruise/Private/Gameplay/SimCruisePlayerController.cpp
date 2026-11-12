@@ -240,9 +240,13 @@ void ASimCruisePlayerController::PlayerTick(float DeltaTime)
 			bSoundOn = SimCruisePreferences::GetBool(TEXT("sound"), bSoundOn);
 			Hud->SetLevel(static_cast<ESimCruiseHudLevel>(SimCruisePreferences::GetInt(TEXT("hud_level"), static_cast<int32>(Hud->GetLevel()), 0, 2)));
 			const int32 Lens = SimCruisePreferences::GetInt(TEXT("lens_v3"), static_cast<int32>(Camera->GetLens()), 0, 2);
-			for (const TPair<const TCHAR*, const TCHAR*>& Pref : { TPair<const TCHAR*, const TCHAR*>(TEXT("head_motion"), TEXT("simcruise.Camera.HeadMotion")), TPair<const TCHAR*, const TCHAR*>(TEXT("rumble"), TEXT("simcruise.Rumble.Strength")) })
+			using FPref = TPair<const TCHAR*, const TCHAR*>;
+			for (const FPref& Pref : { FPref(TEXT("head_motion"), TEXT("simcruise.Camera.HeadMotion")), FPref(TEXT("rumble"), TEXT("simcruise.Rumble.Strength")),
+				FPref(TEXT("pad_steer_speed"), TEXT("simcruise.Pad.SteerSpeed")), FPref(TEXT("pad_steer_linearity"), TEXT("simcruise.Pad.SteerLinearity")),
+				FPref(TEXT("pad_steer_dead_zone"), TEXT("simcruise.Pad.SteerDeadZone")), FPref(TEXT("trigger_gamma"), TEXT("simcruise.TriggerGamma")) })
 			{
-				const int32 Percent = SimCruisePreferences::GetInt(Pref.Key, -1, -1, 100);
+				// Stored as hundredths (the throttle curve's 1.8 as 180).
+				const int32 Percent = SimCruisePreferences::GetInt(Pref.Key, -1, -1, 300);
 				IConsoleVariable* Var = IConsoleManager::Get().FindConsoleVariable(Pref.Value);
 				if (Percent >= 0 && Var) Var->Set(Percent / 100.f, ECVF_SetByCode);
 			}
@@ -551,6 +555,13 @@ FSimCruiseAtlasView ASimCruisePlayerController::AtlasView() const
 			: GetSimCamera() && GetSimCamera()->GetLens() == ESimCruiseLens::Wide ? TEXT("Wide") : TEXT("Natural")),
 		FString::Printf(TEXT("Screen · %.1f in"), SimCruiseSettingValue(TEXT("simcruise.Lens.ScreenInches"))),
 		FString::Printf(TEXT("Eye to screen · %.0f cm"), SimCruiseSettingValue(TEXT("simcruise.Lens.ViewDistanceCm"))),
+		FString::Printf(TEXT("Stick steering speed · %d%%"), FMath::RoundToInt(100.f * SimCruiseSettingValue(TEXT("simcruise.Pad.SteerSpeed")))),
+		FString::Printf(TEXT("Stick response · %s"), SimCruiseSettingValue(TEXT("simcruise.Pad.SteerLinearity")) > 0.75f ? TEXT("Linear")
+			: SimCruiseSettingValue(TEXT("simcruise.Pad.SteerLinearity")) > 0.25f ? TEXT("Between") : TEXT("Fine centre")),
+		FString::Printf(TEXT("Stick dead zone · %d%%"), FMath::RoundToInt(100.f * SimCruiseSettingValue(TEXT("simcruise.Pad.SteerDeadZone")))),
+		FString::Printf(TEXT("Throttle trigger · %s"), SimCruiseSettingValue(TEXT("simcruise.TriggerGamma")) < 1.2f ? TEXT("Linear")
+			: SimCruiseSettingValue(TEXT("simcruise.TriggerGamma")) < 1.6f ? TEXT("Gentle") : SimCruiseSettingValue(TEXT("simcruise.TriggerGamma")) < 2.1f ? TEXT("Progressive")
+			: TEXT("Very progressive")),
 	};
 	return View;
 }
@@ -651,6 +662,10 @@ void ASimCruisePlayerController::ChangeSetting(int32 Index)
 		SimCruisePreferences::SetInt(TEXT("view_distance_cm"), FMath::RoundToInt(Next));
 		break;
 	}
+	case 7: Step(TEXT("simcruise.Pad.SteerSpeed"), { 1.f, 1.25f, 1.5f, 0.6f, 0.8f }, TEXT("pad_steer_speed")); break;
+	case 8: Step(TEXT("simcruise.Pad.SteerLinearity"), { 0.f, 0.5f, 1.f }, TEXT("pad_steer_linearity")); break;
+	case 9: Step(TEXT("simcruise.Pad.SteerDeadZone"), { 0.f, 0.05f, 0.1f, 0.15f }, TEXT("pad_steer_dead_zone")); break;
+	case 10: Step(TEXT("simcruise.TriggerGamma"), { 1.8f, 2.4f, 1.f, 1.4f }, TEXT("trigger_gamma")); break;
 	default: break;
 	}
 }

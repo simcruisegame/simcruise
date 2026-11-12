@@ -72,6 +72,9 @@ namespace SimCruiseShaping
 	/** A key held (Pressed) or released moves the pedal at a foot's pace. */
 	SIMCRUISE_API double KeyPedal(double Current, bool bPressed, double RisePerS, double DeltaTimeS);
 
+	/** A dead zone at the stick's centre (0..0.25 of its travel), the rest rescaled to reach full lock. */
+	SIMCRUISE_API double StickDeadZone(double Stick, double DeadZone);
+
 	/** Right trigger (0..1) to accelerator pedal (0..1): Trigger^Gamma, Gamma clamped to 1..3. */
 	SIMCRUISE_API double TriggerThrottle(double Trigger, double Gamma);
 	constexpr double DefaultTriggerGamma = 1.8;

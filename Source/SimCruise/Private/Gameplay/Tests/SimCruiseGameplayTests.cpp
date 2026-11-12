@@ -274,6 +274,11 @@ bool FSimCruisePedalTest::RunTest(const FString& Parameters)
 		static_cast<float>(FMath::Pow(0.37, SimCruiseShaping::DefaultTriggerGamma)), 1e-6f);
 	TestNearlyEqual(TEXT("half trigger is light part throttle"), static_cast<float>(SimCruiseShaping::TriggerThrottle(0.5, SimCruiseShaping::DefaultTriggerGamma)), 0.287f, 0.002f);
 	TestEqual(TEXT("full trigger is full throttle"), SimCruiseShaping::TriggerThrottle(1.0, SimCruiseShaping::DefaultTriggerGamma), 1.0);
+	// The player's steering dead zone: inside it nothing, past it the rest of the travel still reaches full lock.
+	TestEqual(TEXT("no dead zone passes the stick"), SimCruiseShaping::StickDeadZone(0.03, 0.0), 0.03);
+	TestEqual(TEXT("inside a 10 % dead zone is centre"), SimCruiseShaping::StickDeadZone(-0.08, 0.1), 0.0);
+	TestNearlyEqual(TEXT("past it the travel is rescaled"), SimCruiseShaping::StickDeadZone(0.55, 0.1), 0.5, 1e-9);
+	TestEqual(TEXT("full stick is still full lock"), SimCruiseShaping::StickDeadZone(-1.0, 0.1), -1.0);
 	TestNearlyEqual(TEXT("trigger brake passes straight through"), Command.Brake, 0.81f, 1e-6f);
 
 	Trigger.bClutch = true;

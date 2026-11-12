@@ -10,8 +10,29 @@ static TAutoConsoleVariable<float> CVarTriggerGamma(
 	TEXT("Right-trigger throttle curve: pedal = trigger^gamma (1 = linear, 1.8 default, up to 3)."),
 	ECVF_Default);
 
+// The player's stick preferences (road atlas, Controls row). The defaults are the shaping as researched.
+static TAutoConsoleVariable<float> CVarPadSteerSpeed(
+	TEXT("simcruise.Pad.SteerSpeed"), 1.f,
+	TEXT("How fast the thumbstick moves the wheel, x the researched hand rate (0.5-2, default 1)."),
+	ECVF_Default);
+static TAutoConsoleVariable<float> CVarPadSteerDeadZone(
+	TEXT("simcruise.Pad.SteerDeadZone"), 0.f,
+	TEXT("Extra thumbstick dead zone for steering, 0-0.25 of the travel (the rest is rescaled to the full range)."),
+	ECVF_Default);
+static TAutoConsoleVariable<float> CVarPadSteerLinearity(
+	TEXT("simcruise.Pad.SteerLinearity"), 0.f,
+	TEXT("0 = fine centre (the stick's middle for lane corrections, default), 1 = linear stick to wheel."),
+	ECVF_Default);
+
 namespace SimCruiseShaping
 {
+	double StickDeadZone(double Stick, double DeadZone)
+	{
+		DeadZone = FMath::Clamp(DeadZone, 0.0, 0.25);
+		const double Magnitude = FMath::Abs(Stick);
+		return Magnitude <= DeadZone ? 0.0 : FMath::Sign(Stick) * FMath::Min(1.0, (Magnitude - DeadZone) / (1.0 - DeadZone));
+	}
+
 	static double MoveToward(double From, double To, double Delta)
 	{
 		if (FMath::Abs(To - From) <= Delta)
@@ -117,7 +138,7 @@ FSimCruiseDriverCommand FSimCruiseDriverShaper::Update(const FSimCruiseVehicleSe
 	RangeRight = RangeTowardRad(Setup, ForwardSpeed, Beta, 1.0);
 	RangeLeft = RangeTowardRad(Setup, ForwardSpeed, Beta, -1.0);
 
-	double Pad = FMath::Clamp(Raw.PadSteer, -1.0, 1.0);
+	double Pad = StickDeadZone(FMath::Clamp(Raw.PadSteer, -1.0, 1.0), CVarPadSteerDeadZone.GetValueOnAnyThread());
 	double Key = FMath::Clamp(Raw.KeySteer, -1.0, 1.0);
 	if (FMath::Abs(Pad) < SteerDeadBand) { Pad = 0.0; }
 	if (FMath::Abs(Key) < SteerDeadBand) { Key = 0.0; }
@@ -130,10 +151,13 @@ FSimCruiseDriverCommand FSimCruiseDriverShaper::Update(const FSimCruiseVehicleSe
 	{
 		// A quicker steering ratio turns the wheels further for the same thumb, up to the range.
 		const double Quick = FMath::Clamp(Setup.SteeringQuickness, 0.5, 2.0);
-		const double Command = FMath::Clamp(ThumbstickCommand(Setup, Pad, ForwardSpeed) * Quick, -1.0, 1.0);
+		const double Linearity = FMath::Clamp(static_cast<double>(CVarPadSteerLinearity.GetValueOnAnyThread()), 0.0, 1.0);
+		const double Shaped = FMath::Lerp(ThumbstickCommand(Setup, Pad, ForwardSpeed), Pad, Linearity);
+		const double Command = FMath::Clamp(Shaped * Quick, -1.0, 1.0);
 		Target = Command * (Command > 0.0 ? RangeRight : RangeLeft);
-		ApplyRate = PadApplyRatePerS * Cap * Quick;
-		ReturnRate = PadReturnRatePerS * Cap;
+		const double HandSpeed = FMath::Clamp(static_cast<double>(CVarPadSteerSpeed.GetValueOnAnyThread()), 0.5, 2.0);
+		ApplyRate = PadApplyRatePerS * Cap * Quick * HandSpeed;
+		ReturnRate = PadReturnRatePerS * Cap * HandSpeed;
 	}
 	else
 	{
