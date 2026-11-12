@@ -232,8 +232,10 @@ float vertical = 1.0 - saturate(abs(VN.z) * 2.0 - 0.5);
 float2 tuv = lerp(m, float2(along + seed * 37.0, h), vertical);
 float grain = dot(Texture2DSample(Grain, GrainSampler, tuv / 1.3).rgb, W) / meanL;
 float stain = dot(Texture2DSample(Grain, GrainSampler, float2(along * 0.11, h * 0.035) + seed * 5.3).rgb, W) / meanL;
-float3 stucco = VC.rgb * lerp(1.0, grain, 0.09) * lerp(1.0, stain, 0.12);
-stucco *= lerp(0.84, 1.0, saturate(h / 0.8));
+// Weathering (lighting review 2026-11-12): broad staining at a quarter of the colour, and the
+// splash zone at the foot of the wall a fifth darker up to 1.2 m.
+float3 stucco = VC.rgb * lerp(1.0, grain, 0.09) * lerp(1.0, stain, 0.25);
+stucco *= lerp(0.78, 1.0, smoothstep(0.0, 1.2, h));
 float3 col = stucco;
 float rough = 0.88;
 float metal = 0.0;
@@ -278,7 +280,13 @@ if (kind < 0.5 || (kind > 10.5 && kind < 13.5))
 	float3 glass = lerp(float3(0.006, 0.007, 0.008), VC.rgb * 0.12, tinted * 0.55);
 	float pane = inWin * (1.0 - frame);
 	col = lerp(stucco, glass, pane);
-	col = lerp(col, float3(0.86, 0.86, 0.83), frame);
+	// Rain runs dirt off each sill: a streak under the window, darkest at the sill, fading over
+	// a metre (one window in three barely streaked).
+	float under = step(x0 + 0.05, x) * step(x, x0 + winW - 0.05) * (1.0 - inWin);
+	float below = y0 - y;
+	float streak = under * step(0.0, below) * exp(-below / 0.7) * (0.06 + 0.12 * frac(r * 5.3));
+	col *= 1.0 - streak;
+	col = lerp(col, float3(0.75, 0.75, 0.72), frame);
 	col *= 1.0 - 0.45 * reveal * (1.0 - frame);
 	rough = lerp(0.9, 0.04, pane);
 	float lit = shop ? step(r, 0.72) : step(r, 0.36);

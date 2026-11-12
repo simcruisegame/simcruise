@@ -24,6 +24,25 @@ namespace
 
 	FLinearColor Srgb(const TCHAR* Hex) { return FLinearColor::FromSRGBColor(FColor::FromHex(Hex)); }
 
+	/**
+	 * Painted exterior walls in the weather reflect at most about 72 % (luminance): new white
+	 * exterior paint is LRV 80-85, and sun, salt and dirt take it down. Measured at Lummus Park
+	 * (24 April 2025 photograph, same pose and hour): the sunlit white hotel fronts read a
+	 * median sRGB 191 where the game's 0.88 white read 210, with the promenade concrete equal
+	 * (159) in both. Colours lighter than the cap keep their hue and scale down.
+	 */
+	constexpr float MaxWallAlbedo = 0.75f;
+	constexpr float MaxTrimAlbedo = 0.80f;
+	/** Concrete towers: weathered painted concrete, darker than stucco (raw concrete is 0.2-0.45). */
+	constexpr float MaxTowerAlbedo = 0.55f;
+	FLinearColor WeatheredPaint(const FLinearColor& C, float Max = MaxWallAlbedo)
+	{
+		const float L = C.GetLuminance();
+		if (L <= Max || L <= 0.f) return C;
+		const float K = Max / L;
+		return FLinearColor(C.R * K, C.G * K, C.B * K, C.A);
+	}
+
 	/** Writes quads with the two texture coordinates the building material reads. */
 	struct FWriter
 	{
@@ -488,10 +507,11 @@ namespace SimCruiseTileDetail
 			// Main Street's two- and three-storey blocks are mostly brick (the generic palette's last four).
 			if (bMainStreet && !(BP && BP->bHasColour) && Unit(Hash(H, 24)) < 0.6) Wall = GenericWalls()[12 + Hash(H, 28) % 4];
 			if (BP) Wall = BP->Weathered(Wall);
+			Wall = WeatheredPaint(Wall, bTower || bDowntown ? MaxTowerAlbedo : MaxWallAlbedo);
 			// The shader reads a storey height other than 3.1 m from the wall colour's alpha.
 			Wall.A = FMath::IsNearlyEqual(FloorH, 3.1) ? 1.f : static_cast<float>(FMath::Clamp((FloorH - 2.4) / 4.0, 0.0, 0.99));
 			// Half the hotels keep white trim; the rest a contrasting accent.
-			const FLinearColor Accent = (bDeco && Unit(Hash(H, 3)) < Chance(TEXT("detail:accent_trim"), 0.55)) ? Pick(DecoAccents(), Hash(H, 4)) : Srgb(TEXT("FAF8F2"));
+			const FLinearColor Accent = WeatheredPaint((bDeco && Unit(Hash(H, 3)) < Chance(TEXT("detail:accent_trim"), 0.55)) ? Pick(DecoAccents(), Hash(H, 4)) : Srgb(TEXT("FAF8F2")), MaxTrimAlbedo);
 			const FLinearColor Neon = Pick(NeonColours(), Hash(H, 5));
 			const bool bNeonParapet = bDeco && Unit(Hash(H, 6)) < Chance(TEXT("detail:neon_parapet"), 0.5);
 			const bool bEyebrowsAround = bDeco && Unit(Hash(H, 8)) < Chance(TEXT("detail:eyebrows_wrap"), 0.5);
@@ -785,6 +805,7 @@ namespace SimCruiseTileDetail
 							const FVector2d L0 = A + T * S0, L1 = A + T * (S0 + Width);
 							FLinearColor LotWall = Lot == 0 ? Wall : MainStreetWalls()[Hash(H, 220 + Lot) % static_cast<uint32>(MainStreetWalls().Num())];
 							if (BP && Lot > 0) LotWall = BP->Weathered(LotWall);
+							LotWall = WeatheredPaint(LotWall);
 							LotWall.A = Wall.A;
 							const double Rise = 0.35 * (Hash(H, 240 + Lot) % 3);
 							W.Panel(L0, L1, WallStart, Top + Parapet + Rise, N2, LotWall, WallKind, -0.5 * Width, Ground);
