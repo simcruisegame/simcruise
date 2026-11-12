@@ -105,3 +105,9 @@ Published data: `docs/cars.md` (road-test sources for each car). The 3 % band is
 |---|---|---|---|---|---|
 | L1 | Rural road at night, low beams | the road is visible about 60 m ahead; the frame is not mostly black (mean road luminance clearly above black) | Shipping screenshot at night (`-SimCruiseUtc=` after dark) on the rural preset, road pixels measured | `docs/release/evidence/night.txt` | TODO (re-test after the cars thread's low-beam and night-exposure fixes are on main) |
 | L2 | Ocean Drive at night, low beams | same | same on Ocean Drive | same | TODO (same) |
+
+## M. Cockpit field of view
+
+| # | Item | Pass rule | How measured | Evidence | Result |
+|---|---|---|---|---|---|
+| M1 | Cockpit and bumper views use the field of view of the human eye | the horizontal FOV comes from the screen size and the eye distance (default 15.6 inch at 60 cm, about 32 deg); the True and Wide presets and the size and distance settings work; the eye point is each car's driver head position; the chase view keeps its wide FOV | Shipping build screenshots and the lens settings | `docs/release/evidence/cameras/` | TODO (re-test when the cars thread's change is on main) |
