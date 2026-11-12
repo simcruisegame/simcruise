@@ -8,6 +8,11 @@ const handoffMs = 60_000;
 const staleState = /^elevation-retry-\d+-\d+\.json$/;
 const staleStateMs = 86_400_000;
 
+// Eviction is housekeeping: a file it cannot remove now never fails the request that ran it.
+function removeQuietly(file) {
+ try { fs.rmSync(file, {force:true}); return true; } catch { return false; }
+}
+
 function trimSourceState(absolute, time) {
  const state = path.join(absolute, '.source-state');
  let names = [];
@@ -16,7 +21,7 @@ function trimSourceState(absolute, time) {
   if (!staleState.test(name)) continue;
   const file = path.join(state, name);
   const st = fs.lstatSync(file, {throwIfNoEntry:false});
-  if (st?.isFile() && time - st.mtimeMs > staleStateMs) fs.rmSync(file, {force:true});
+  if (st?.isFile() && time - st.mtimeMs > staleStateMs) removeQuietly(file);
  }
 }
 
@@ -57,7 +62,9 @@ export function trimSourceCache(directory, budget, result, time = Date.now()) {
   if (!st) {size-=row.size;continue;}
   if (!st.isFile() || Math.max(st.atimeMs,st.mtimeMs)!==row.lastUse) continue;
   if (fs.existsSync(path.join(absolute,'.source-state',path.basename(row.file)+'.lock'))) continue;
-  fs.rmSync(row.file,{force:true});
+  // Another helper may hold the file open (Windows refuses with EBUSY, EPERM or EFAULT):
+  // keep it for a later trim instead of failing this request.
+  if (!removeQuietly(row.file)) continue;
   size-=row.size;
  }
 }

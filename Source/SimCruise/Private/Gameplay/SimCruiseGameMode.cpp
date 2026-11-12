@@ -483,9 +483,11 @@ bool ASimCruiseGameMode::TryPlacePendingPlayers()
 		const double Waited = FPlatformTime::Seconds() - WaitStartedSeconds;
 		const bool bTimedOut = Waited > StartTimeoutSeconds;
 		// Tiles that cannot load (offline, no helper, nothing there): the next place, else the
-		// bundled one (Drive.gd start_next). The bundled place itself loads from disk.
+		// bundled one (Drive.gd start_next). The bundled place itself loads from disk. A failed
+		// tile is retried after 15 s, so one passing failure (a busy cache file, a slow server)
+		// must not give the place up: offline, all nine fail at once.
 		const int32 Failed = Stream->NumTilesFailed();
-		if (!bReady && (Failed >= 2 || (Failed >= 1 && Waited > 30.0)) && !IsBundledPlace(CurrentPlace))
+		if (!bReady && (Failed >= 4 || (Failed >= 1 && Waited > 90.0)) && !IsBundledPlace(CurrentPlace))
 		{
 			TravelFailed(FString::Printf(TEXT("%d tiles failed to load"), Failed));
 			return false;
