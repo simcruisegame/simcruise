@@ -11,6 +11,7 @@
 #include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
 #include "Misc/App.h"
+#include "Misc/CoreDelegates.h"
 #include "Misc/CommandLine.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
@@ -52,8 +53,37 @@ namespace
 {
 	TAutoConsoleVariable<int32> CVarFrameCap(TEXT("simcruise.FrameCap"), 60,
 		TEXT("Frame-rate cap for the drive, frames per second (0 = no cap). Applied at the start of a drive (t.MaxFPS changes it at once)."));
-	TAutoConsoleVariable<int32> CVarReflex(TEXT("simcruise.Reflex"), 1,
-		TEXT("NVIDIA Reflex: 0 off, 1 low latency, 3 low latency + boost. Needs an NVIDIA GPU and driver 455 or newer."));
+	TAutoConsoleVariable<int32> CVarReflex(TEXT("simcruise.Reflex"), 0,
+		TEXT("NVIDIA Reflex: 0 off (default), 1 low latency, 3 low latency + boost. Needs an NVIDIA GPU and driver 455 or newer. -SimCruiseReflex=<n> sets it at the start."));
+
+	/**
+	 * Release bug R6: with Reflex's sleep mode and latency markers on, the Shipping game hung in
+	 * its shutdown (window gone, no CPU, never exited). Both are turned off before the engine exits.
+	 */
+	void DisableReflex()
+	{
+		for (IMaxTickRateHandlerModule* Handler : IModularFeatures::Get().GetModularFeatureImplementations<IMaxTickRateHandlerModule>(
+				 IMaxTickRateHandlerModule::GetModularFeatureName()))
+		{
+			Handler->SetEnabled(false);
+			Handler->SetFlags(0);
+		}
+		for (ILatencyMarkerModule* Markers : IModularFeatures::Get().GetModularFeatureImplementations<ILatencyMarkerModule>(
+				 ILatencyMarkerModule::GetModularFeatureName()))
+		{
+			Markers->SetEnabled(false);
+		}
+	}
+
+	void DisableReflexBeforeExit()
+	{
+		static bool bRegistered = false;
+		if (!bRegistered)
+		{
+			bRegistered = true;
+			FCoreDelegates::OnEnginePreExit.AddStatic(&DisableReflex);
+		}
+	}
 }
 
 void SimCruiseFramePacing::Apply()
@@ -69,29 +99,36 @@ void SimCruiseFramePacing::Apply()
 			MaxFps->Set(static_cast<float>(Cap), ECVF_SetByGameSetting);
 		}
 	}
-	const int32 Mode = FMath::Clamp(CVarReflex.GetValueOnGameThread(), 0, 3);
+	int32 Mode = CVarReflex.GetValueOnGameThread();
+	FParse::Value(FCommandLine::Get(), TEXT("SimCruiseReflex="), Mode);
+	Mode = FMath::Clamp(Mode, 0, 3);
 	int32 Handlers = 0;
-	for (IMaxTickRateHandlerModule* Handler : IModularFeatures::Get().GetModularFeatureImplementations<IMaxTickRateHandlerModule>(
-			 IMaxTickRateHandlerModule::GetModularFeatureName()))
+	// Off: the Reflex modules are not touched at all.
+	if (Mode != 0)
 	{
-		if (Handler->GetAvailable())
+		DisableReflexBeforeExit();
+		for (IMaxTickRateHandlerModule* Handler : IModularFeatures::Get().GetModularFeatureImplementations<IMaxTickRateHandlerModule>(
+				 IMaxTickRateHandlerModule::GetModularFeatureName()))
 		{
-			Handler->SetEnabled(Mode != 0);
-			Handler->SetFlags(static_cast<uint32>(Mode));
-			++Handlers;
+			if (Handler->GetAvailable())
+			{
+				Handler->SetEnabled(true);
+				Handler->SetFlags(static_cast<uint32>(Mode));
+				++Handlers;
+			}
 		}
-	}
-	for (ILatencyMarkerModule* Markers : IModularFeatures::Get().GetModularFeatureImplementations<ILatencyMarkerModule>(
-			 ILatencyMarkerModule::GetModularFeatureName()))
-	{
-		if (Markers->GetAvailable())
+		for (ILatencyMarkerModule* Markers : IModularFeatures::Get().GetModularFeatureImplementations<ILatencyMarkerModule>(
+				 ILatencyMarkerModule::GetModularFeatureName()))
 		{
-			Markers->SetEnabled(Mode != 0);
+			if (Markers->GetAvailable())
+			{
+				Markers->SetEnabled(true);
+			}
 		}
 	}
 	UE_LOG(LogSimCruiseLatency, Display, TEXT("Frame pacing: cap %s, Reflex mode %d (%s)"),
 		bMeasuring ? TEXT("off (measuring)") : *FString::FromInt(CVarFrameCap.GetValueOnGameThread()), Mode,
-		Handlers > 0 ? TEXT("available") : TEXT("not available on this GPU"));
+		Mode == 0 ? TEXT("off") : Handlers > 0 ? TEXT("available") : TEXT("not available on this GPU"));
 }
 
 ASimCruiseLatencyProbe::ASimCruiseLatencyProbe()
@@ -127,6 +164,9 @@ void ASimCruiseLatencyProbe::BeginPlay()
 	StageStarted = FPlatformTime::Seconds();
 	const TArray<ILatencyMarkerModule*> Modules =
 		IModularFeatures::Get().GetModularFeatureImplementations<ILatencyMarkerModule>(ILatencyMarkerModule::GetModularFeatureName());
+	// The probe reads the game-to-render time from the Reflex latency markers; they and the
+	// sleep mode are turned off before the engine exits (release bug R6).
+	DisableReflexBeforeExit();
 	for (ILatencyMarkerModule* Module : Modules)
 	{
 		if (Module && Module->GetAvailable() && !Module->GetEnabled())
@@ -134,17 +174,9 @@ void ASimCruiseLatencyProbe::BeginPlay()
 			Module->SetEnabled(true);
 		}
 	}
-	// -SimCruiseReflex=<0|1|3>: NVIDIA Reflex low-latency mode off, on, on + boost (for A/B runs).
-	int32 ReflexMode = -1;
-	if (FParse::Value(FCommandLine::Get(), TEXT("SimCruiseReflex="), ReflexMode))
-	{
-		for (IMaxTickRateHandlerModule* Handler : IModularFeatures::Get().GetModularFeatureImplementations<IMaxTickRateHandlerModule>(
-				 IMaxTickRateHandlerModule::GetModularFeatureName()))
-		{
-			Handler->SetEnabled(ReflexMode != 0);
-			Handler->SetFlags(static_cast<uint32>(FMath::Max(ReflexMode, 0)));
-		}
-	}
+	// -SimCruiseReflex=<0|1|3> (read by SimCruiseFramePacing::Apply at the start of the drive).
+	int32 ReflexMode = 0;
+	FParse::Value(FCommandLine::Get(), TEXT("SimCruiseReflex="), ReflexMode);
 	{ const FString RecordLine = FString::Printf(TEXT("Latency probe: waiting for the car (%d latency marker modules, Reflex mode %d)"), Modules.Num(), ReflexMode); UE_LOG(LogSimCruiseLatency, Display, TEXT("%s"), *RecordLine); Record(RecordLine); }
 }
 

@@ -10,9 +10,11 @@
  * Frame pacing for the drive (release bug CR2): a frame-rate cap and NVIDIA Reflex.
  * simcruise.FrameCap (default 60, 0 = none) caps the frame rate: a laptop GPU that
  * runs 60-90 fps uncapped then holds an even 60 with headroom for tile streaming and
- * runs cooler. simcruise.Reflex (default 1: low latency; 0 off; 3 low latency + boost)
+ * runs cooler. simcruise.Reflex (default 0: off; 1 low latency; 3 low latency + boost)
  * lets the CPU wait for the GPU instead of queueing frames, on NVIDIA GPUs with the
- * Reflex driver. Frame-rate measurement runs (-SimCruiseDrivePerf=) are not capped.
+ * Reflex driver; it is off by default because a Shipping game with it on hung at exit
+ * (release bug R6; it is now turned off before the engine exits). Frame-rate measurement
+ * runs (-SimCruiseDrivePerf=) are not capped.
  */
 namespace SimCruiseFramePacing
 {
