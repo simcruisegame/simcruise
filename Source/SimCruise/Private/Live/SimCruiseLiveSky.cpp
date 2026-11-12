@@ -3,9 +3,10 @@
 #include "Live/SimCruiseLiveSky.h"
 
 #include "Camera/PlayerCameraManager.h"
-#include "Components/SceneCaptureComponent2D.h"
+#include "Camera/CameraActor.h"
+#include "Camera/CameraComponent.h"
+#include "UnrealClient.h"
 #include "Components/StaticMeshComponent.h"
-#include "Engine/TextureRenderTarget2D.h"
 #include "IImageWrapper.h"
 #include "IImageWrapperModule.h"
 #include "Misc/FileHelper.h"
@@ -249,34 +250,27 @@ FString ASimCruiseLiveSky::StartShot(const FString& Name, float FovDeg)
 	{
 		return FString();
 	}
-	if (!ShotTarget)
+	// The driver's own renderer, exposure and all: a camera on a 30 m mast over the car
+	// becomes the view for two seconds, then the frame is saved and the view goes back.
+	APlayerController* Controller = UGameplayStatics::GetPlayerController(this, 0);
+	if (!Controller)
 	{
-		ShotTarget = NewObject<UTextureRenderTarget2D>(this);
-		ShotTarget->RenderTargetFormat = RTF_RGBA8;
-		ShotTarget->InitAutoFormat(1600, 900);
-		ShotTarget->UpdateResourceImmediate(true);
+		return FString();
 	}
-	if (!ShotCapture)
+	if (!ShotCamera)
 	{
-		ShotCapture = NewObject<USceneCaptureComponent2D>(this);
-		ShotCapture->SetupAttachment(RootComponent);
-		ShotCapture->CaptureSource = SCS_FinalColorLDR;
-		ShotCapture->bAlwaysPersistRenderingState = true;
-		ShotCapture->TextureTarget = ShotTarget;
-		ShotCapture->RegisterComponent();
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		ShotCamera = GetWorld()->SpawnActor<ACameraActor>(ACameraActor::StaticClass(), FTransform::Identity, Params);
 	}
-	ShotCapture->FOVAngle = FovDeg;
-	// The main camera's exposure, fixed (a scene capture has no adaptation history): manual
-	// exposure at the sky's display EV100, multiplier 1 / (1.2 x 2^EV100).
-	FPostProcessSettings& Post = ShotCapture->PostProcessSettings;
-	Post.bOverride_AutoExposureMethod = true;
-	Post.AutoExposureMethod = AEM_Manual;
-	Post.bOverride_AutoExposureApplyPhysicalCameraExposure = true;
-	Post.AutoExposureApplyPhysicalCameraExposure = false;
-	Post.bOverride_AutoExposureBias = true;
-	Post.AutoExposureBias = -ShotEV100 - FMath::Log2(1.2f);
-	ShotCapture->PostProcessBlendWeight = 1.0f;
-	ShotCapture->bCaptureEveryFrame = true;
+	if (!ShotCamera)
+	{
+		return FString();
+	}
+	ShotCamera->GetCameraComponent()->SetFieldOfView(FovDeg);
+	ShotCamera->GetCameraComponent()->bConstrainAspectRatio = false;
+	ShotReturnTarget = Controller->GetViewTarget();
+	Controller->SetViewTarget(ShotCamera);
 	ShotName = Name;
 	ShotHex = Best->Report.Hex;
 	ShotSeconds = 0.0f;
@@ -288,39 +282,43 @@ FString ASimCruiseLiveSky::StartShot(const FString& Name, float FovDeg)
 
 void ASimCruiseLiveSky::TickShot(float DeltaSeconds, const FVector& ViewCm)
 {
-	if (ShotName.IsEmpty() || !ShotCapture)
+	if (ShotName.IsEmpty() || !ShotCamera)
 	{
 		return;
 	}
+	APlayerController* Controller = UGameplayStatics::GetPlayerController(this, 0);
 	const FPlane* Plane = Planes.Find(ShotHex);
-	if (!Plane)
+	auto Finish = [&]()
 	{
-		ShotName.Reset();
-		ShotCapture->bCaptureEveryFrame = false;
-		return;
-	}
-	// From a 30 m mast over the camera, clear of the street's buildings.
-	const FVector From = ViewCm + FVector(0.0, 0.0, 3000.0);
-	ShotCapture->SetWorldLocationAndRotation(From, (Plane->LastWorldCm - From).Rotation());
-	ShotSeconds += DeltaSeconds;
-	if (ShotSeconds < 2.0f)
-	{
-		return;
-	}
-	TArray<FColor> Pixels;
-	FTextureRenderTargetResource* Resource = ShotTarget->GameThread_GetRenderTargetResource();
-	if (Resource && Resource->ReadPixels(Pixels) && Pixels.Num() == ShotTarget->SizeX * ShotTarget->SizeY)
-	{
-		for (FColor& C : Pixels) { C.A = 255; }
-		IImageWrapperModule& Wrappers = FModuleManager::LoadModuleChecked<IImageWrapperModule>(TEXT("ImageWrapper"));
-		TSharedPtr<IImageWrapper> Png = Wrappers.CreateImageWrapper(EImageFormat::PNG);
-		if (Png && Png->SetRaw(Pixels.GetData(), Pixels.Num() * sizeof(FColor), ShotTarget->SizeX, ShotTarget->SizeY, ERGBFormat::BGRA, 8))
+		if (Controller && ShotReturnTarget.IsValid())
 		{
-			FFileHelper::SaveArrayToFile(Png->GetCompressed(), *(FPaths::ProjectSavedDir() / TEXT("Screenshots") / (ShotName + TEXT(".png"))));
+			Controller->SetViewTarget(ShotReturnTarget.Get());
 		}
+		ShotName.Reset();
+	};
+	if (!Plane || !Controller)
+	{
+		Finish();
+		return;
 	}
-	ShotName.Reset();
-	ShotCapture->bCaptureEveryFrame = false;
+	// While the shot camera is the view, the player camera manager reports the mast: keep
+	// the mast where it started.
+	if (ShotSeconds == 0.0f)
+	{
+		ShotFrom = (ShotReturnTarget.IsValid() ? ShotReturnTarget->GetActorLocation() : ViewCm) + FVector(0.0, 0.0, 3000.0);
+	}
+	ShotCamera->SetActorLocationAndRotation(ShotFrom, (Plane->LastWorldCm - ShotFrom).Rotation());
+	ShotSeconds += DeltaSeconds;
+	if (ShotSeconds > 2.5f && !bShotRequested)
+	{
+		FScreenshotRequest::RequestScreenshot(FPaths::ProjectSavedDir() / TEXT("Screenshots") / (ShotName + TEXT(".png")), false, false);
+		bShotRequested = true;
+	}
+	if (ShotSeconds > 3.0f)
+	{
+		bShotRequested = false;
+		Finish();
+	}
 }
 
 void ASimCruiseLiveSky::UpdatePlane(FPlane& Plane, const FDateTime& NowUtc, const FVector& ViewCm, float DeltaSeconds)

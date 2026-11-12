@@ -141,6 +141,15 @@ col = lerp(col, gravel, VC.r);
 Roughness = saturate(0.80 + 0.10 * (1.0 - a) + 0.05 * VC.r);
 float3 g = float3(-(ax - a), -(ay - a), 0.0) * Bump;
 Nrm = normalize(VN + g);
+// Rain (Wet 0..1, the environment's road water, from the live weather): water fills the
+// pores and darkens the stone (dark asphalt to about 0.6 of its dry albedo, Lekner and Dorf
+// 1988), the surface turns glossy, and on a soaked road water stands in the low spots.
+float damp = saturate(Wet * 2.0);
+float low = macro * lerp(1.0, macro2, 0.5);
+float puddle = saturate((Wet - 0.4) * 2.5) * smoothstep(0.93, 0.82, low);
+col *= lerp(1.0, 0.6, damp) * lerp(1.0, 0.85, puddle);
+Roughness = lerp(lerp(Roughness, 0.35, damp), 0.04, puddle);
+Nrm = normalize(lerp(VN + g, VN, puddle));
 return max(col, 0.0);
 )HLSL");
 
@@ -512,6 +521,7 @@ return col;
 			AddInput(Custom, TEXT("AsphaltMean"), VectorParam(Material, TEXT("AsphaltMean"), FLinearColor(0.2f, 0.2f, 0.2f)));
 			AddInput(Custom, TEXT("Tint"), VectorParam(Material, TEXT("Tint"), FLinearColor(0.085f, 0.083f, 0.08f)));
 			AddInput(Custom, TEXT("Bump"), ScalarParam(Material, TEXT("Bump"), 0.25f));
+			AddInput(Custom, TEXT("Wet"), ScalarParam(Material, TEXT("Wet"), 0.f));
 			break;
 		case ESimCruiseTileLayer::Concrete:
 			Custom->Code = ConcreteCode;

@@ -89,6 +89,27 @@ private:
 
 	bool ObserverLonLat(double& OutLat, double& OutLon) const;
 	void Fetch(EFeed Feed, const FString& Url);
+
+	/**
+	 * The one request budget for every live request: at most 3 in flight, each host no more
+	 * often than its spacing (1 s; Wikimedia 1.5 s), and at most 600 requests an hour in all.
+	 * True takes a slot now; false means try again on a later tick.
+	 */
+	bool TakeRequestSlot(const FString& Url);
+
+	/** Puts the road water (the environment's, or WetOverride) on every asphalt material ("Wet"). */
+	void ApplyRoadWater();
+	double NextRoadWaterAt = 0.0;
+	float AppliedRoadWater = -1.0f;
+
+public:
+	/** Test override of the road water 0..1 (SimCruise.Live.Wet); negative follows the weather. */
+	float WetOverride = -1.0f;
+
+private:
+	TMap<FString, double> HostNextAt;
+	TArray<double> RecentRequests;
+	int32 InFlight = 0;
 	void OnFeed(EFeed Feed, const FString& Body, const FDateTime& ReceivedUtc, bool bFromCache);
 	void ApplyWeather();
 	void Announce();
@@ -103,6 +124,7 @@ private:
 	float ShotEverySeconds = 0.0f;
 	double NextShotAt = 0.0;
 	int32 ShotCount = 0;
+	bool bViewShotTaken = true;
 	double Clock = 0.0;
 	double FeedLat = 0.0;
 	double FeedLon = 0.0;
@@ -120,6 +142,12 @@ private:
 	FString StateCode;
 	TArray<FSimCruiseRoadSection> Roads;
 	TArray<FSimCruisePlacePhoto> Photos;
+	/** Photographs still to read, one every 1.5 s (Wikimedia asks clients to be gentle). */
+	TArray<int32> PhotoQueue;
+	double NextPhotoAt = 0.0;
+	bool bPhotoInFlight = false;
+	void TickPhotoDownloads();
+	FString PhotoPath(const FSimCruisePlacePhoto& Photo) const;
 
 	TArray<FHttpRequestPtr> Requests;
 
