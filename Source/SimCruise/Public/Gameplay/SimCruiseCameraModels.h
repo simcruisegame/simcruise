@@ -18,8 +18,8 @@ enum class ESimCruiseView : uint8
  *  horizontal angle follows the window's aspect ratio. */
 enum class ESimCruiseLens : uint8
 {
-	Natural,   // 45 deg vertical: about a 30 mm lens on full frame
-	Screen,    // true FOV: the angle the physical screen subtends at the eye (the default)
+	Natural,   // 45 deg vertical (74 across 16:9): the default
+	Screen,    // true FOV: the angle the physical screen subtends at the eye
 	Wide,      // 67 deg: the previous Godot view, for tight streets
 };
 

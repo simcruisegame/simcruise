@@ -239,7 +239,7 @@ void ASimCruisePlayerController::PlayerTick(float DeltaTime)
 			bPreferencesApplied = true;
 			bSoundOn = SimCruisePreferences::GetBool(TEXT("sound"), bSoundOn);
 			Hud->SetLevel(static_cast<ESimCruiseHudLevel>(SimCruisePreferences::GetInt(TEXT("hud_level"), static_cast<int32>(Hud->GetLevel()), 0, 2)));
-			const int32 Lens = SimCruisePreferences::GetInt(TEXT("lens_v2"), static_cast<int32>(Camera->GetLens()), 0, 2);
+			const int32 Lens = SimCruisePreferences::GetInt(TEXT("lens_v3"), static_cast<int32>(Camera->GetLens()), 0, 2);
 			for (const TPair<const TCHAR*, const TCHAR*>& Pref : { TPair<const TCHAR*, const TCHAR*>(TEXT("head_motion"), TEXT("simcruise.Camera.HeadMotion")), TPair<const TCHAR*, const TCHAR*>(TEXT("rumble"), TEXT("simcruise.Rumble.Strength")) })
 			{
 				const int32 Percent = SimCruisePreferences::GetInt(Pref.Key, -1, -1, 100);
@@ -732,7 +732,7 @@ void ASimCruisePlayerController::OnCycleLens()
 	if (ASimCruisePlayerCameraManager* Camera = GetSimCamera())
 	{
 		Camera->CycleLens();
-		SimCruisePreferences::SetInt(TEXT("lens_v2"), static_cast<int32>(Camera->GetLens()));
+		SimCruisePreferences::SetInt(TEXT("lens_v3"), static_cast<int32>(Camera->GetLens()));
 		ShowMessage(FString::Printf(TEXT("Lens · %s"), SimCruiseLens::Label(Camera->GetLens())), 2.f);
 	}
 }
