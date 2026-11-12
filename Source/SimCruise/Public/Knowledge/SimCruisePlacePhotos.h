@@ -41,6 +41,10 @@ namespace SimCruisePlacePhotos
 	SIMCRUISE_API bool WallColour(const TArray<FColor>& Pixels, int32 Width, int32 Height, FColor& OutColour, float& OutShare);
 	SIMCRUISE_API bool DecodeImage(const TArray<uint8>& Bytes, TArray<FColor>& OutPixels, int32& OutWidth, int32& OutHeight);
 
+	/** A record's photographs are kept as "a.jpg|b.jpg". */
+	SIMCRUISE_API TArray<FString> Images(const FString& List);
+	SIMCRUISE_API void AddImage(FString& List, const FString& File);
+
 	/** Puts a measured colour on a record ("#RRGGBB" and its source line). */
 	SIMCRUISE_API void Apply(FSimCruisePlaceRecord& Record, const FColor& Colour, float Share, const FSimCruisePhotoInfo& Info);
 }

@@ -1,7 +1,7 @@
 {
 	"tile": "18180_27906",
-	"fetched": "2026-11-12T07:02:17.975Z",
-	"sources": "overpass:183 wikidata:62 photos",
+	"fetched": "2026-11-12T07:31:49.240Z",
+	"sources": "overpass:183 wikidata:62 photos photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -373,7 +373,7 @@
 				"Art Deco architecture"
 			],
 			"year": 1936,
-			"image": "Miami Beach - Cavalier Hotel.jpg",
+			"image": "Miami Beach - Cavalier Hotel.jpg|Art Deco Cavalier Hotel, Miami Beach, Florida LCCN2011631110.tif",
 			"building": "hotel"
 		},
 		{
@@ -424,7 +424,7 @@
 			],
 			"year": 1939,
 			"architect": "Henry Hohauser",
-			"image": "Miami Beach - Hotel New Yorker.jpg",
+			"image": "Miami Beach - Hotel New Yorker.jpg|Miami Beach - Hotel New Yorker (1940).jpg",
 			"building": "hotel"
 		},
 		{

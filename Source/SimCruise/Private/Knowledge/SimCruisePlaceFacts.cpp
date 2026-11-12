@@ -222,9 +222,9 @@ namespace SimCruisePlaceFacts
 			if (R.Heritage.IsEmpty() && !IsBareId(Heritage)) R.Heritage = Heritage;
 			const FString Material = Val(TEXT("materialLabel"));
 			if (R.Material.IsEmpty() && !IsBareId(Material)) R.Material = Material;
-			// The newest-looking photograph: Commons names often carry the year; keep the later one.
+			// Every photograph of the item (an archive postcard and a recent photo are both common).
 			const FString Image = SimCruisePlacePhotos::FileFromCommonsUrl(Val(TEXT("image")));
-			if (!Image.IsEmpty() && (R.Image.IsEmpty() || Image > R.Image)) R.Image = Image;
+			SimCruisePlacePhotos::AddImage(R.Image, Image);
 			const FString Type = Val(TEXT("typeLabel")).ToLower();
 			if (Type.Contains(TEXT("historic district")) || Type == TEXT("district") || Type.Contains(TEXT("architectural district"))) R.bDistrict = true;
 			if (Type.Contains(TEXT("hotel"))) R.Building = TEXT("hotel");
@@ -248,7 +248,7 @@ namespace SimCruisePlaceFacts
 				if (R.Architect.IsEmpty()) R.Architect = W.Architect;
 				if (R.Heritage.IsEmpty()) R.Heritage = W.Heritage;
 				if (R.Material.IsEmpty()) R.Material = W.Material;
-				if (R.Image.IsEmpty()) R.Image = W.Image;
+				for (const FString& F : SimCruisePlacePhotos::Images(W.Image)) SimCruisePlacePhotos::AddImage(R.Image, F);
 				if (R.Name.IsEmpty()) R.Name = W.Name;
 				R.bDistrict |= W.bDistrict;
 				if (R.Building.IsEmpty() || R.Building == TEXT("yes")) { if (!W.Building.IsEmpty()) R.Building = W.Building; }

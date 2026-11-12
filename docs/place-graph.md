@@ -112,7 +112,7 @@ tiles 260 of 319 photographs are 1930s-1950s postcards). In a 480 px thumbnail, 
 band (the middle 56 % of the height, 76 % of the width) drops sky, leaves, shadow and
 glass; the largest colour cluster is the wall when it covers at least a fifth of what is
 left. The colour goes on the building's record with its credit (file, year, author,
-licence) and the plan uses it as mapped data, over any palette. 59 start-tile buildings
+licence) and the plan uses it as mapped data, over any palette. 67 start-tile buildings
 have a measured wall (`-run=SimCruisePlaceFacts -Photos -NoOSM`). The buildings thread
 owns facade textures from photographs; this only measures the paint.
 

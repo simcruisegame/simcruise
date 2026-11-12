@@ -173,42 +173,51 @@ int32 USimCruisePlaceFactsCommandlet::Main(const FString& Params)
 			}
 			for (FSimCruisePlaceRecord& R : Records)
 			{
-				if (R.Image.IsEmpty() && !R.Wikidata.IsEmpty())
+				if (!R.Wikidata.IsEmpty())
 				{
-					for (const FSimCruisePlaceRecord& W : Wd) if (W.Wikidata == R.Wikidata) { R.Image = W.Image; break; }
+					for (const FSimCruisePlaceRecord& W : Wd)
+					{
+						if (W.Wikidata == R.Wikidata) for (const FString& F : SimCruisePlacePhotos::Images(W.Image)) SimCruisePlacePhotos::AddImage(R.Image, F);
+					}
 				}
 			}
 			bool bChanged = false;
 			for (FSimCruisePlaceRecord& R : Records)
 			{
-				if (R.Image.IsEmpty() || (!R.Colour.IsEmpty() && R.ColourSource.IsEmpty())) continue; // a mapped colour wins
+				// A mapped colour wins; a measured one is kept.
+				if (R.Image.IsEmpty() || !R.Colour.IsEmpty()) continue;
 				bChanged = true;
 				++Tried;
-				FString InfoText, Thumb;
-				FSimCruisePhotoInfo Info;
-				if (!Fetch(SimCruisePlacePhotos::ImageInfoUrl(R.Image), TEXT("GET"), FString(), TEXT("application/json"), InfoText)
-					|| !SimCruisePlacePhotos::ParseImageInfo(InfoText, Info, Error))
+				// Each of its photographs in turn, until one is a recent colour photo with a clear wall.
+				for (const FString& File : SimCruisePlacePhotos::Images(R.Image))
 				{
-					continue;
+					FString InfoText;
+					FSimCruisePhotoInfo Info;
+					if (!Fetch(SimCruisePlacePhotos::ImageInfoUrl(File), TEXT("GET"), FString(), TEXT("application/json"), InfoText)
+						|| !SimCruisePlacePhotos::ParseImageInfo(InfoText, Info, Error))
+					{
+						continue;
+					}
+					if (!SimCruisePlacePhotos::IsUsable(Info))
+					{
+						UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("%s: %s left out (%d%s)"), *R.Name, *File, Info.Year, Info.bPostcard ? TEXT(", postcard") : TEXT(""));
+						continue;
+					}
+					TArray<uint8> Bytes;
+					if (!FetchBytes(Info.ThumbUrl, Bytes)) continue;
+					TArray<FColor> Pixels;
+					int32 W = 0, H = 0;
+					FColor Wall;
+					float Share = 0.0f;
+					FPlatformProcess::Sleep(0.3f);
+					if (SimCruisePlacePhotos::DecodeImage(Bytes, Pixels, W, H) && SimCruisePlacePhotos::WallColour(Pixels, W, H, Wall, Share))
+					{
+						SimCruisePlacePhotos::Apply(R, Wall, Share, Info);
+						++Measured;
+						UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("%s: wall %s %s"), *R.Name, *R.Colour, *R.ColourSource);
+						break;
+					}
 				}
-				if (!SimCruisePlacePhotos::IsUsable(Info))
-				{
-					UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("%s: %s left out (%d%s)"), *R.Name, *R.Image, Info.Year, Info.bPostcard ? TEXT(", postcard") : TEXT(""));
-					continue;
-				}
-				TArray<uint8> Bytes;
-				if (!FetchBytes(Info.ThumbUrl, Bytes)) continue;
-				TArray<FColor> Pixels;
-				int32 W = 0, H = 0;
-				FColor Wall;
-				float Share = 0.0f;
-				if (SimCruisePlacePhotos::DecodeImage(Bytes, Pixels, W, H) && SimCruisePlacePhotos::WallColour(Pixels, W, H, Wall, Share))
-				{
-					SimCruisePlacePhotos::Apply(R, Wall, Share, Info);
-					++Measured;
-					UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("%s: wall %s %s"), *R.Name, *R.Colour, *R.ColourSource);
-				}
-				FPlatformProcess::Sleep(0.5f);
 			}
 			if (bChanged)
 			{

@@ -173,6 +173,19 @@ namespace SimCruisePlacePhotos
 		return true;
 	}
 
+	TArray<FString> Images(const FString& List)
+	{
+		TArray<FString> Out;
+		List.ParseIntoArray(Out, TEXT("|"));
+		return Out;
+	}
+
+	void AddImage(FString& List, const FString& File)
+	{
+		if (File.IsEmpty() || Images(List).Contains(File)) return;
+		List = List.IsEmpty() ? File : List + TEXT("|") + File;
+	}
+
 	void Apply(FSimCruisePlaceRecord& Record, const FColor& Colour, float Share, const FSimCruisePhotoInfo& Info)
 	{
 		Record.Colour = FString::Printf(TEXT("#%02X%02X%02X"), Colour.R, Colour.G, Colour.B);

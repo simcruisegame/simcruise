@@ -1,7 +1,7 @@
 {
 	"tile": "18180_27905",
-	"fetched": "2026-11-12T07:02:07.558Z",
-	"sources": "overpass:107 wikidata:60 photos",
+	"fetched": "2026-11-12T07:31:45.122Z",
+	"sources": "overpass:107 wikidata:60 photos photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -179,7 +179,7 @@
 			],
 			"year": 1940,
 			"heritage": "National Register of Historic Places contributing property",
-			"image": "National Hotel, Miami Beach, Florida LCCN2017711401.tif",
+			"image": "National Hotel, Miami Beach, Florida LCCN2017711401.tif|Miami Beach - National Hotel 01.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -526,7 +526,9 @@
 			],
 			"year": 1947,
 			"architect": "B. Robert Swartburg",
-			"image": "Miami Beach - Marseilles Hotel 01.jpg",
+			"colour": "#DEE1E1",
+			"colour_source": "measured in File:Marseilles Hotel Miami Beach Swartburg.jpg (2021, Barmych, CC BY-SA 4.0; wall 49% of the facade band)",
+			"image": "Miami Beach - Marseilles Hotel 01.jpg|Marseilles Hotel Miami Beach Swartburg.jpg",
 			"building": "hotel"
 		},
 		{
