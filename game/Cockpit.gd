@@ -161,9 +161,7 @@ func set_view(active: bool, camera: Camera3D, car, signed_speed: float, dt: floa
  if not visible:
   mirror_elapsed = 1.0
   return
- # The NB steering column is inclined. Turn around its own axis, keeping the
- # top farther from the driver and preserving the wheel's inclined plane.
- wheel.basis = Basis(Vector3.RIGHT, deg_to_rad(-14.0)) * Basis(Vector3.BACK, car.steering * 14.5)
+ turn_wheel(car)
  tach.rotation.z = deg_to_rad(130.0 - 260.0 * clampf(car.rpm / 8000.0, 0.0, 1.0))
  speedometer.rotation.z = deg_to_rad(130.0 - 260.0 * clampf(absf(signed_speed) * 2.236936 / 150.0, 0.0, 1.0))
  var tenths := floori(maxf(0.0, trip_distance_m) / 160.9344)
@@ -177,6 +175,13 @@ func set_view(active: bool, camera: Camera3D, car, signed_speed: float, dt: floa
   var body: Transform3D = car.global_transform
   rear_camera.global_transform = body * Transform3D(Basis(Vector3.UP, PI), Vector3(.01, 1.11, .36))
   rear_view.render_target_update_mode = SubViewport.UPDATE_ONCE
+
+# The NB steering column is inclined. Turn around its own axis, keeping the
+# top farther from the driver and preserving the wheel's inclined plane, by the
+# front wheels' mean angle times the car's steering ratio (CarSpec).
+func turn_wheel(car) -> void:
+ var road_angle: float = (car.wheel_heading[0] + car.wheel_heading[1]) * .5
+ wheel.basis = Basis(Vector3.RIGHT, deg_to_rad(-14.0)) * Basis(Vector3.BACK, road_angle * car.spec.steering_ratio)
 
 # Forget the head's motion history after a teleport or a view change.
 func reset_head() -> void:
