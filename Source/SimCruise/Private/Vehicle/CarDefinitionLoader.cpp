@@ -417,7 +417,7 @@ namespace SimCruiseCarData
 			TEXT("relaxation_load_exponent"), TEXT("wheel_inertia"), TEXT("rolling_resistance"), TEXT("brake_front_nm"), TEXT("brake_rear_nm"),
 			TEXT("parking_brake_nm"), TEXT("drag_area_m2"), TEXT("engine_inertia"), TEXT("engine_friction_nm"), TEXT("engine_friction_per_rpm"),
 			TEXT("driveline_efficiency"), TEXT("shift_seconds"), TEXT("clutch_stiffness"), TEXT("clutch_capacity_nm"), TEXT("clutch_back_nm"),
-			TEXT("launch_rpm"), TEXT("launch_rpm_per_throttle"), TEXT("converter_stall_ratio"), TEXT("converter_coupling_ratio"), TEXT("manual_clutch_stiffness"), TEXT("front_diff_bias"), TEXT("rear_diff_bias"),
+			TEXT("launch_rpm"), TEXT("launch_rpm_per_throttle"), TEXT("converter_stall_ratio"), TEXT("converter_coupling_ratio"), TEXT("launch_control_rpm"), TEXT("manual_clutch_stiffness"), TEXT("front_diff_bias"), TEXT("rear_diff_bias"),
 			TEXT("center_bias"), TEXT("tc_target_slip"), TEXT("tc_gain"), TEXT("wheel_rate_n_m"), TEXT("bar_rate_n_m"), TEXT("bump_gap_m"),
 			TEXT("bump_stiffness"), TEXT("static_camber_deg"), TEXT("camber_per_m"), TEXT("caster_deg"), TEXT("toe_per_wheel_deg"),
 			TEXT("unsprung_corner_kg"), TEXT("damper_ratio_rebound"), TEXT("damper_ratio_compression"), TEXT("damper_knee_mps"),
@@ -653,6 +653,7 @@ bool FSimCruiseCarDefinitionLoader::ParseJson(const FString& JsonText, const FSt
 	SIMCRUISE_READ_NUMBER("launch_rpm_per_throttle", LaunchSpeedRpmPerThrottleFraction);
 	SIMCRUISE_READ_NUMBER("converter_stall_ratio", TorqueConverterStallRatio);
 	SIMCRUISE_READ_NUMBER("converter_coupling_ratio", TorqueConverterCouplingSpeedRatio);
+	SIMCRUISE_READ_NUMBER("launch_control_rpm", LaunchControlRpm);
 	SIMCRUISE_READ_NUMBER("manual_clutch_stiffness", ManualClutchCouplingNmPerRadPerSecond);
 	SIMCRUISE_READ_STRING("transmission", TransmissionKind);
 	SIMCRUISE_READ_STRING("layout", DrivetrainLayout);

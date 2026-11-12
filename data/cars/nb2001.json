@@ -253,5 +253,12 @@
   "mass": "Curb weight 2,387 lb (LS, cars.com and autotk.com specification listings); inertia scaled from the 1999 car by mass.",
   "body": "The NB2 body has added bracing and is stiffer than the NB1; the simulation has no chassis compliance yet, so it changes nothing here."
  },
- "calibration_open": "70-0 and skidpad: no published NB2 brake or skidpad test was found, so the 1999 Sport's 173 ft and 0.89 g stand in (same brakes and tyres here). The 0-60 target, 7.8 s, is the one published NB2 figure found and is held (7.75 s on the bench, untuned)."
+ "calibration_open": "70-0 and skidpad: no published NB2 brake or skidpad test was found, so the 1999 Sport's 173 ft and 0.89 g stand in (same brakes and tyres here). The 0-60 target, 7.8 s, is the one published NB2 figure found and is held (7.75 s on the bench, untuned).",
+ "card": {
+  "turning_circle_m": 9.2,
+  "curb_mass_kg": 1083,
+  "steering_ratio": 15.0,
+  "handling": "Light, quick steering (2.6 turns lock to lock with power assist) and mild tuck-in on lifting in a corner; reviewers call it balanced and forgiving.",
+  "sources": "Turning circle 9.2 m (30.2 ft): cars-data.com NB 1.8 specification. Curb 2,387 lb: the car file's NB2 LS listing. Steering 15:1, 2.6 turns: GoAuto 2001 MX-5 review. Handling: Cars.com 1999 review, Grassroots Motorsports owners."
+ }
 }

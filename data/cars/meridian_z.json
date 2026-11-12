@@ -170,21 +170,33 @@
   "gearing": "Eight-speed DCT ratios and 5.17 final drive: unverified.",
   "tyres": "Staggered 245/35ZR19 front, 305/30ZR20 rear: the rear axle grips 25 % harder (axle_grip, estimate); the model uses one rolling radius, the rear's.",
   "launch": "Automatic launch at 3000 rpm at full pedal (1800 + 1200 per unit of throttle; estimate, 580 Nm on this curve). The launch is tyre-limited with traction control on, so a higher speed only revs the engine longer before the clutch bites (4000 rpm: 3.61 s, 3000 rpm: 3.58 s on CarTrack).",
-  "estimates": "Centre of gravity, inertia (scaled, 15 % less yaw for the mid engine), spring and bar rates (2.0/2.2 Hz), dampers, launch, brakes, tyre grip (calibrated)."
+  "estimates": "Centre of gravity, inertia (scaled, 15 % less yaw for the mid engine), spring and bar rates (2.0/2.2 Hz), dampers, launch, brakes, tyre grip (calibrated).",
+  "launch_control": "Launch control holds about 3500 rpm on the 2020 Stingray (owners' reports on CorvetteForum and ACS Composite's guide; the service text names 3000 rpm as the minimum; unofficial). The bench times it as the magazines do: brake and full throttle held 2 s, the clock starting on the release."
  },
  "axle_grip": [
   1.0,
   1.5
  ],
  "traction_control": true,
- "calibration_open": "0-60 mph 3.55 s against 2.8 s (3.60 s before the slip-ratio tyre curve): Car and Driver omits a 1 ft rollout (about 0.3 s on this launch) while the bench times from rest, and from pedal-down at idle, where the car's launch control holds the engine at launch speed before the brake is released (not modelled). Traction control holds the rear tyres at their peak slip.",
+ "calibration_open": "0-60 mph 3.50 s against 2.8 s. Launch control is now modelled and the bench uses it (brake and full throttle 2 s, then release, at 3500 rpm), but the launch is traction-limited, so it changes nothing measurable (3.46 s from pedal-down before). Car and Driver's 2.8 s omits a 1 ft rollout (about 0.3 s here), which leaves about 0.4 s of rear-tyre grip at launch: a tyre-model item (the rear 305/30ZR20 Michelin Pilot Sport 4S on a car with 60 % of its weight at the rear).",
  "model_scene": "data/art/traffic/c8-790c40cc/scene.gltf",
- "model_rig": {"fit": true},
+ "model_rig": {
+  "fit": true
+ },
  "driver_eye": [
   -0.386,
   0.95,
   0.06
  ],
  "abs_enabled": true,
- "slip_ratio_falloff": 0.1
+ "slip_ratio_falloff": 0.1,
+ "launch_control_rpm": 3500.0,
+ "card": {
+  "turning_circle_m": 11.61,
+  "curb_mass_kg": 1603,
+  "front_share": 0.394,
+  "steering_ratio": 15.7,
+  "handling": "Mid-engine balance: 1.03 g on the skidpad (Car and Driver, Z51); a variable-ratio electric rack; stable on lift-off with stability control.",
+  "sources": "Turning circle 38.1 ft: Edmunds 2020 Corvette Stingray specifications. Curb 3,535 lb: Edmunds. Weight split 39.4/60.6: Corvette Story 2020 specifications. Steering 15.7:1: Chevrolet 2020 specifications. Skidpad: Car and Driver long-term Z51."
+ }
 }
