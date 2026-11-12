@@ -1323,6 +1323,114 @@ namespace SimCruiseTileDetail
 		}
 	}
 
+	void BuildPromenades(const FContext& X)
+	{
+		FSimCruiseTileBuild& B = X.B;
+		const FSimCruiseTileData& Data = X.Data;
+		FSimCruiseMeshData& Props = B.Layer(ESimCruiseTileLayer::Props);
+		// Sand on the tile (land cover "sand" or "beach"), in metres, with boxes for a quick reject.
+		TArray<TArray<FVector2d>> Sand;
+		TArray<FBox2d> SandBox;
+		for (const FSimCruiseLandPolygon& L : Data.Land)
+		{
+			if (L.Class != TEXT("sand") && L.Class != TEXT("beach")) continue;
+			for (const TArray<FVector2d>& R : L.Rings)
+			{
+				TArray<FVector2d> M;
+				for (const FVector2d& U : R) M.Add(U * X.Side);
+				if (M.Num() < 3) continue;
+				SandBox.Add(FBox2d(M));
+				Sand.Add(MoveTemp(M));
+			}
+		}
+		auto IsSand = [&](const FVector2d& P)
+		{
+			for (int32 k = 0; k < Sand.Num(); ++k)
+			{
+				if (SandBox[k].IsInside(P) && PointInRing(Sand[k], P)) return true;
+			}
+			return false;
+		};
+		const FLinearColor Coral = Srgb(TEXT("C8BEA6")), Cap = Srgb(TEXT("D9D3C4"));
+		const FLinearColor BenchC = Srgb(TEXT("9FB2BF")), PoleC = Srgb(TEXT("E6E6E2"));
+		const FLinearColor LensColour(1.0f, 0.88f, 0.72f);
+		for (int32 r = 0; r < Data.Pedestrian.Num(); ++r)
+		{
+			const FSimCruisePathRow& Row = Data.Pedestrian[r];
+			if (Row.Points.Num() < 2) continue;
+			const double HalfW = 0.5 * FMath::Clamp(Row.WidthM, 1.0, 6.0);
+			const bool bPromenade = Row.WidthM >= 3.0 || Row.Kind == TEXT("pedestrian");
+			FWriter W{ Props, static_cast<float>(Unit(Hash(GetTypeHash(Data.Id), static_cast<uint32>(r) + 977u))) };
+			double Along = 0.0;
+			for (int32 i = 0; i + 1 < Row.Points.Num(); ++i)
+			{
+				const FVector2d A = Row.Points[i] * X.Side, C = Row.Points[i + 1] * X.Side;
+				const double Len = FVector2d::Distance(A, C);
+				if (Len < 0.2) continue;
+				const FVector2d T = (C - A) / Len;
+				const FVector2d Rt(-T.Y, T.X);
+				// The seawall: in 2 m pieces wherever one side of the path is sand and the other not.
+				const int32 Pieces = FMath::Max(1, FMath::RoundToInt(Len / 2.0));
+				for (int32 k = 0; k < Pieces; ++k)
+				{
+					const FVector2d P0 = A + T * (Len * k / Pieces), P1 = A + T * (Len * (k + 1) / Pieces);
+					const FVector2d Mid = (P0 + P1) * 0.5;
+					for (const double Sx : { -1.0, 1.0 })
+					{
+						const FVector2d Out = Rt * Sx;
+						if (!IsSand(Mid + Out * (HalfW + 1.2)) || IsSand(Mid - Out * (HalfW + 1.2))) continue;
+						const double Z = B.TerrainHeightAt(Mid + Out * (HalfW + 0.25));
+						const FVector2d W0 = P0 + Out * HalfW, W1 = P1 + Out * HalfW;
+						W.Slab(W0 - T * 0.03, W1 + T * 0.03, Out, 0.0, 0.5, Z - 0.4, Z + 0.62, Coral, Kind::Terrazzo, 0.0, Z, false, false);
+						W.Slab(W0 - T * 0.03, W1 + T * 0.03, Out, -0.02, 0.52, Z + 0.62, Z + 0.7, Cap, Kind::Trim, 0.0, Z, false, true);
+					}
+				}
+				if (!bPromenade) { Along += Len; continue; }
+				// Benches every 24 m and lamp posts every 30 m, on the side away from the sand
+				// (or the right), anchored to the path's length so they run on along it.
+				const bool bSandLeft = IsSand((A + C) * 0.5 - Rt * (HalfW + 1.2));
+				const FVector2d Land = bSandLeft ? Rt : -Rt;
+				for (double Mark = FMath::CeilToDouble(Along / 24.0) * 24.0 + 6.0; Mark < Along + Len; Mark += 24.0)
+				{
+					const double S = Mark - Along;
+					if (S < 0.0 || S > Len) continue;
+					const FVector2d P = A + T * S + Land * (HalfW + 0.55);
+					if (IsInsideBuilding(Data, X.Side, P) || X.IsWater(P)) continue;
+					FSimCruiseRoadHit Hit;
+					if (B.Roads.FindCarriageway(P, Hit, INDEX_NONE, 1.0)) continue;
+					const double Z = B.TerrainHeightAt(P);
+					const FVector2d Face = -Land; // the bench looks over the path
+					const FVector2d S0 = P - T * 0.9, S1 = P + T * 0.9;
+					W.Slab(S0, S1, Face, -0.22, 0.22, Z + 0.42, Z + 0.47, BenchC, Kind::Metal, 0.0, Z, false, true);
+					W.Slab(S0, S1, Face, -0.26, -0.21, Z + 0.5, Z + 0.86, BenchC, Kind::Metal, 0.0, Z, true, false);
+					for (const double Lx : { -0.75, 0.75 })
+					{
+						const FVector2d L = P + T * Lx;
+						W.Slab(L - T * 0.03, L + T * 0.03, Face, -0.2, 0.2, Z - 0.05, Z + 0.42, BenchC * 0.7f, Kind::Metal, 0.0, Z, true, false);
+					}
+				}
+				for (double Mark = FMath::CeilToDouble(Along / 30.0) * 30.0 + 15.0; Mark < Along + Len; Mark += 30.0)
+				{
+					const double S = Mark - Along;
+					if (S < 0.0 || S > Len) continue;
+					const FVector2d P = A + T * S - Land * (HalfW + 0.4);
+					if (IsInsideBuilding(Data, X.Side, P) || X.IsWater(P) || IsSand(P)) continue;
+					FSimCruiseRoadHit Hit;
+					if (B.Roads.FindCarriageway(P, Hit, INDEX_NONE, 1.0)) continue;
+					const double Z = B.TerrainHeightAt(P);
+					constexpr double PoleH = 4.2;
+					W.Slab(P - T * 0.06, P + T * 0.06, Rt, -0.06, 0.06, Z - 0.05, Z + PoleH, PoleC, Kind::Metal, 0.0, Z, true, false);
+					// A white drum lantern with a disc cap (the beach walk's lamps).
+					W.Slab(P - T * 0.17, P + T * 0.17, Rt, -0.17, 0.17, Z + PoleH, Z + PoleH + 0.45, LensColour, Kind::LampGlass, 0.0, Z, true, true);
+					W.Slab(P - T * 0.3, P + T * 0.3, Rt, -0.3, 0.3, Z + PoleH + 0.45, Z + PoleH + 0.52, PoleC, Kind::Metal, 0.0, Z, true, true);
+					B.LampPointsCm.Add(Cm3(P, Z + PoleH + 0.2));
+					++B.StreetLights;
+				}
+				Along += Len;
+			}
+		}
+	}
+
 	void AddStopSign(FSimCruiseMeshData& Props, const FVector2d& BaseM, double GroundZM, const FVector2d& FacingIn)
 	{
 		const FVector2d F = FacingIn.GetSafeNormal();      // out of the face, toward the drivers

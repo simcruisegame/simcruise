@@ -61,6 +61,13 @@ namespace SimCruiseTileDetail
 	SIMCRUISE_API void BuildStreetLights(const FContext& Context);
 
 	/**
+	 * Promenades: a low stone seawall where a mapped footway runs along sand (the beach
+	 * side), and benches and lamp posts along footways 3 m and wider (Props; lamps join the
+	 * night light pool).
+	 */
+	SIMCRUISE_API void BuildPromenades(const FContext& Context);
+
+	/**
 	 * A US stop sign (MUTCD R1-1): a 30 in red octagon with a white border and STOP, its
 	 * bottom 7 ft above the ground (urban), on a galvanised square post at BaseM (tile
 	 * metres, ground at GroundZM), the face toward Facing (the approaching drivers).
