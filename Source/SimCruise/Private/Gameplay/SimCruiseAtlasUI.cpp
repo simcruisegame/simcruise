@@ -509,7 +509,24 @@ void SSimCruiseRoadAtlas::Construct(const FArguments& InArgs)
 	OnFindPlace = InArgs._OnFindPlace;
 	OnCycleCar = InArgs._OnCycleCar;
 	OnToggleTransmission = InArgs._OnToggleTransmission;
+	OnSetting = InArgs._OnSetting;
 	OnClose = InArgs._OnClose;
+	TSharedRef<SHorizontalBox> SettingsRow = SNew(SHorizontalBox);
+	for (int32 Index = 0; Index < 4; ++Index)
+	{
+		TSharedPtr<STextBlock> Text;
+		SettingsRow->AddSlot().AutoWidth().Padding(0, 0, 8, 0)
+		[
+			SNew(SButton)
+			.ButtonColorAndOpacity(FLinearColor(FColor(0x2a, 0x3d, 0x37)))
+			.ContentPadding(FMargin(12.f, 6.f))
+			.OnClicked_Lambda([this, Index]() { OnSetting.ExecuteIfBound(Index); return FReply::Handled(); })
+			[
+				SAssignNew(Text, STextBlock).Font(Font(14)).ColorAndOpacity(SimCruiseUiStyle::Paper())
+			]
+		];
+		SettingLabels.Add(Text);
+	}
 	ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -566,6 +583,10 @@ void SSimCruiseRoadAtlas::Construct(const FArguments& InArgs)
 						[
 							SAssignNew(GearLabel, STextBlock).Font(Font(14)).ColorAndOpacity(SimCruiseUiStyle::Paper())
 						]
+					]
+					+ SHorizontalBox::Slot().AutoWidth()
+					[
+						SettingsRow
 					]
 					+ SHorizontalBox::Slot().FillWidth(1.f).HAlign(HAlign_Right).VAlign(VAlign_Center)
 					[
@@ -771,6 +792,10 @@ void SSimCruiseRoadAtlas::Tick(const FGeometry& AllottedGeometry, const double I
 	Coords->SetText(FText::FromString(FString::Printf(TEXT("%.5f°, %.5f°   ·   %s"), Lat, Lon, *View.Title)));
 	CarLabel->SetText(FText::FromString(FString::Printf(TEXT("Car · %s"), *View.CarName)));
 	GearLabel->SetText(FText::FromString(FString::Printf(TEXT("Transmission · %s"), *View.Transmission)));
+	for (int32 i = 0; i < SettingLabels.Num(); ++i)
+	{
+		SettingLabels[i]->SetText(FText::FromString(View.Settings.IsValidIndex(i) ? View.Settings[i] : FString()));
+	}
 }
 
 int32 SSimCruiseRoadAtlas::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect,

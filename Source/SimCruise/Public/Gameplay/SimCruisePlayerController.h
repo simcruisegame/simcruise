@@ -91,6 +91,8 @@ private:
 	ASimCruiseHUD* GetSimHUD() const;
 	void ShowOverlay(const TSharedRef<SWidget>& Widget, const TSharedPtr<SWidget>& Focus);
 	void ChoosePlace(const FSimCruisePlace& Place);
+	/** The atlas's cockpit settings: 0 sound, 1 HUD level, 2 head motion, 3 rumble strength. */
+	void ChangeSetting(int32 Index);
 	bool SurpriseMe();
 	FSimCruiseAtlasView AtlasView() const;
 	ASimCruisePlayerCameraManager* GetSimCamera() const;

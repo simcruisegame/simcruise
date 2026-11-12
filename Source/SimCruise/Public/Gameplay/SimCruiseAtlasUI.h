@@ -34,12 +34,15 @@ struct FSimCruiseAtlasView
 	FString Title;
 	FString CarName;
 	FString Transmission;
+	/** The cockpit settings shown on the atlas (Hud.gd): sound, HUD level, head motion, rumble. */
+	TArray<FString> Settings;
 	TWeakObjectPtr<ASimCruiseWorldStreamer> Streamer;
 };
 
 DECLARE_DELEGATE_OneParam(FSimCruiseOnPlace, const FSimCruisePlace&);
 DECLARE_DELEGATE_RetVal(bool, FSimCruiseOnSurprise);
 DECLARE_DELEGATE_RetVal(FSimCruiseAtlasView, FSimCruiseGetAtlasView);
+DECLARE_DELEGATE_OneParam(FSimCruiseOnSetting, int32);
 
 /** Shared look (Hud.gd palette: INK #15221f, GLASS #15221f9e, WHITE #f4efdb, LIME #c6ef96). */
 namespace SimCruiseUiStyle
@@ -113,6 +116,7 @@ public:
 		SLATE_EVENT(FSimpleDelegate, OnFindPlace)
 		SLATE_EVENT(FSimpleDelegate, OnCycleCar)
 		SLATE_EVENT(FSimpleDelegate, OnToggleTransmission)
+		SLATE_EVENT(FSimCruiseOnSetting, OnSetting)
 		SLATE_EVENT(FSimpleDelegate, OnClose)
 	SLATE_END_ARGS()
 
@@ -163,7 +167,9 @@ private:
 	FSimpleDelegate OnFindPlace;
 	FSimpleDelegate OnCycleCar;
 	FSimpleDelegate OnToggleTransmission;
+	FSimCruiseOnSetting OnSetting;
 	FSimpleDelegate OnClose;
+	TArray<TSharedPtr<STextBlock>> SettingLabels;
 
 	FSimCruiseAtlasView View;
 	int32 Level = 4;

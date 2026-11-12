@@ -31,6 +31,15 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogSimCruiseShell, Log, All);
 
+namespace
+{
+	float SimCruiseSettingValue(const TCHAR* Name)
+	{
+		const IConsoleVariable* Var = IConsoleManager::Get().FindConsoleVariable(Name);
+		return Var ? Var->GetFloat() : 1.f;
+	}
+}
+
 static TAutoConsoleVariable<float> CVarRumbleStrength(
 	TEXT("simcruise.Rumble.Strength"), 1.f,
 	TEXT("Pad rumble strength 0..1 (0 turns it off). Rumble reads tyre slip, ABS and road texture; it adds no force."));
@@ -220,6 +229,12 @@ void ASimCruisePlayerController::PlayerTick(float DeltaTime)
 			bSoundOn = SimCruisePreferences::GetBool(TEXT("sound"), bSoundOn);
 			Hud->SetLevel(static_cast<ESimCruiseHudLevel>(SimCruisePreferences::GetInt(TEXT("hud_level"), static_cast<int32>(Hud->GetLevel()), 0, 2)));
 			const int32 Lens = SimCruisePreferences::GetInt(TEXT("lens"), static_cast<int32>(Camera->GetLens()), 0, 2);
+			for (const TPair<const TCHAR*, const TCHAR*>& Pref : { TPair<const TCHAR*, const TCHAR*>(TEXT("head_motion"), TEXT("simcruise.Camera.HeadMotion")), TPair<const TCHAR*, const TCHAR*>(TEXT("rumble"), TEXT("simcruise.Rumble.Strength")) })
+			{
+				const int32 Percent = SimCruisePreferences::GetInt(Pref.Key, -1, -1, 100);
+				IConsoleVariable* Var = IConsoleManager::Get().FindConsoleVariable(Pref.Value);
+				if (Percent >= 0 && Var) Var->Set(Percent / 100.f, ECVF_SetByCode);
+			}
 			for (int32 i = 0; i < 3 && static_cast<int32>(Camera->GetLens()) != Lens; ++i) Camera->CycleLens();
 		}
 	}
@@ -458,6 +473,14 @@ FSimCruiseAtlasView ASimCruisePlayerController::AtlasView() const
 	const FSimCruiseCarDefinition* CarDef = GameInstance ? GameInstance->FindCarDefinition(Mode->GetCarId()) : nullptr;
 	View.CarName = CarDef ? CarDef->Name : Mode->GetCarId();
 	View.Transmission = Telemetry.bManualTransmission ? TEXT("Manual") : TEXT("Automatic");
+	const ASimCruiseHUD* Hud = GetSimHUD();
+	static const TCHAR* HudNames[] = { TEXT("Off"), TEXT("Glance"), TEXT("Full") };
+	View.Settings = {
+		FString::Printf(TEXT("Sound · %s"), bSoundOn ? TEXT("On") : TEXT("Off")),
+		FString::Printf(TEXT("HUD · %s"), Hud ? HudNames[FMath::Clamp(static_cast<int32>(Hud->GetLevel()), 0, 2)] : TEXT("Glance")),
+		FString::Printf(TEXT("Head motion · %d%%"), FMath::RoundToInt(100.f * SimCruiseSettingValue(TEXT("simcruise.Camera.HeadMotion")))),
+		FString::Printf(TEXT("Rumble · %d%%"), FMath::RoundToInt(100.f * SimCruiseSettingValue(TEXT("simcruise.Rumble.Strength")))),
+	};
 	return View;
 }
 
@@ -510,8 +533,33 @@ void ASimCruisePlayerController::OpenRoadAtlas()
 			}
 		})
 		.OnToggleTransmission_Lambda([this]() { OnToggleTransmission(); })
+		.OnSetting_Lambda([this](int32 Index) { ChangeSetting(Index); })
 		.OnClose_Lambda([this]() { CloseOverlays(); });
 	ShowOverlay(AtlasPanel.ToSharedRef(), AtlasPanel);
+}
+
+void ASimCruisePlayerController::ChangeSetting(int32 Index)
+{
+	// The atlas's cockpit settings, remembered (Hud.gd, DrivingPreferences.gd).
+	auto Step = [](const TCHAR* Name, std::initializer_list<float> Ladder, const TCHAR* Key)
+	{
+		const float Now = SimCruiseSettingValue(Name);
+		float Next = *Ladder.begin();
+		for (auto It = Ladder.begin(); It != Ladder.end(); ++It)
+		{
+			if (FMath::IsNearlyEqual(*It, Now, 0.01f)) { Next = (It + 1 != Ladder.end()) ? *(It + 1) : *Ladder.begin(); break; }
+		}
+		if (IConsoleVariable* Var = IConsoleManager::Get().FindConsoleVariable(Name)) Var->Set(Next, ECVF_SetByCode);
+		SimCruisePreferences::SetInt(Key, FMath::RoundToInt(Next * 100.f));
+	};
+	switch (Index)
+	{
+	case 0: OnToggleSound(); break;
+	case 1: OnCycleHud(); break;
+	case 2: Step(TEXT("simcruise.Camera.HeadMotion"), { 1.f, 0.5f, 0.f }, TEXT("head_motion")); break;
+	case 3: Step(TEXT("simcruise.Rumble.Strength"), { 1.f, 0.6f, 0.3f, 0.f }, TEXT("rumble")); break;
+	default: break;
+	}
 }
 
 void ASimCruisePlayerController::CloseOverlays()
