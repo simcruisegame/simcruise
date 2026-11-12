@@ -77,6 +77,10 @@ struct SIMCRUISE_API FSimCruiseWheelTelemetry
 
 	UPROPERTY(BlueprintReadOnly, Category = "SimCruise|Vehicle")
 	FVector ContactPointCm = FVector::ZeroVector;
+
+	/** Ground normal under the tyre (world, unit). */
+	UPROPERTY(BlueprintReadOnly, Category = "SimCruise|Vehicle")
+	FVector ContactNormal = FVector::UpVector;
 };
 
 USTRUCT(BlueprintType)

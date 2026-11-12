@@ -7,6 +7,7 @@
 #include "Environment/SimCruiseEnvironmentSubsystem.h"
 #include "GameFramework/Pawn.h"
 #include "Gameplay/SimCruiseDriveCapture.h"
+#include "Gameplay/SimCruiseDriveTest.h"
 #include "Gameplay/SimCruiseHUD.h"
 #include "Gameplay/SimCruisePlaceholderVehicle.h"
 #include "Gameplay/SimCruisePlayerCameraManager.h"
@@ -163,6 +164,12 @@ void ASimCruiseGameMode::BeginWorldDrive()
 		FActorSpawnParameters Params;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		World->SpawnActor<ASimCruiseDriveCapture>(ASimCruiseDriveCapture::StaticClass(), FTransform::Identity, Params);
+	}
+	if (FParse::Param(Cmd, TEXT("SimCruiseDriveTest")) || FParse::Param(Cmd, TEXT("SimCruiseDriveLog")))
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		World->SpawnActor<ASimCruiseDriveTest>(ASimCruiseDriveTest::StaticClass(), FTransform::Identity, Params);
 	}
 	UE_LOG(LogSimCruiseDrive, Display, TEXT("Drive at %s in %s: waiting for the tiles around the start"), *Title, *CarId);
 }

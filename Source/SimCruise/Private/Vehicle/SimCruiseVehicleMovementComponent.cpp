@@ -142,6 +142,7 @@ namespace
 			Out.SurfaceGrip = W.SurfaceGrip;
 			Out.AbsRelease = W.AbsRelease;
 			Out.ContactPointCm = SimCruiseUnits::ToUnrealLength(W.ContactPointM);
+			Out.ContactNormal = W.ContactNormal;
 			T.bAbsActive |= W.AbsRelease < 0.999;
 		}
 	}

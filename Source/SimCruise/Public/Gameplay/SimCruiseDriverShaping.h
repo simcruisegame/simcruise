@@ -21,7 +21,11 @@
  *    |beta_f| + the limit slip surplus, never past the rack lock, and a hand
  *    may move the rack that way at up to 40 deg/s;
  *  - releasing the stick still returns to exactly zero (no self-centring aid);
- *  - key pedals ramp (a foot is not a switch); triggers stay linear.
+ *  - key pedals ramp (a foot is not a switch);
+ *  - the right trigger follows a power curve (simcruise.TriggerGamma, default
+ *    1.8): a trigger has about 1 cm of travel against a pedal's 6 cm, so the
+ *    first half of the trigger gives the fine part-throttle a foot has. Full
+ *    trigger is still full throttle. The brake trigger stays linear.
  */
 namespace SimCruiseShaping
 {
@@ -67,6 +71,10 @@ namespace SimCruiseShaping
 
 	/** A key held (Pressed) or released moves the pedal at a foot's pace. */
 	SIMCRUISE_API double KeyPedal(double Current, bool bPressed, double RisePerS, double DeltaTimeS);
+
+	/** Right trigger (0..1) to accelerator pedal (0..1): Trigger^Gamma, Gamma clamped to 1..3. */
+	SIMCRUISE_API double TriggerThrottle(double Trigger, double Gamma);
+	constexpr double DefaultTriggerGamma = 1.8;
 	constexpr double KeyThrottleRisePerS = 3.0;
 	constexpr double KeyBrakeRisePerS = 2.5;
 	constexpr double KeyPedalReleasePerS = 8.0;

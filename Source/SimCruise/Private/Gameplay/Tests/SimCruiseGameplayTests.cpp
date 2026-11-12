@@ -270,7 +270,10 @@ bool FSimCruisePedalTest::RunTest(const FString& Parameters)
 	Trigger.PadThrottle = 0.37;
 	Trigger.PadBrake = 0.81;
 	Hold(Pad, Moving(10.0), Trigger, 1.0 / 120.0, &Command);
-	TestNearlyEqual(TEXT("trigger throttle passes straight through"), Command.Throttle, 0.37f, 1e-6f);
+	TestNearlyEqual(TEXT("trigger throttle follows the pedal curve"), Command.Throttle,
+		static_cast<float>(FMath::Pow(0.37, SimCruiseShaping::DefaultTriggerGamma)), 1e-6f);
+	TestNearlyEqual(TEXT("half trigger is light part throttle"), static_cast<float>(SimCruiseShaping::TriggerThrottle(0.5, SimCruiseShaping::DefaultTriggerGamma)), 0.287f, 0.002f);
+	TestEqual(TEXT("full trigger is full throttle"), SimCruiseShaping::TriggerThrottle(1.0, SimCruiseShaping::DefaultTriggerGamma), 1.0);
 	TestNearlyEqual(TEXT("trigger brake passes straight through"), Command.Brake, 0.81f, 1e-6f);
 
 	Trigger.bClutch = true;

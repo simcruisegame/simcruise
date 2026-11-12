@@ -2,6 +2,14 @@
 
 #include "Gameplay/SimCruiseDriverShaping.h"
 
+#include "HAL/IConsoleManager.h"
+
+static TAutoConsoleVariable<float> CVarTriggerGamma(
+	TEXT("simcruise.TriggerGamma"),
+	static_cast<float>(SimCruiseShaping::DefaultTriggerGamma),
+	TEXT("Right-trigger throttle curve: pedal = trigger^gamma (1 = linear, 1.8 default, up to 3)."),
+	ECVF_Default);
+
 namespace SimCruiseShaping
 {
 	static double MoveToward(double From, double To, double Delta)
@@ -75,6 +83,11 @@ namespace SimCruiseShaping
 		return MoveToward(Current, Target, DeltaTimeS * ApplyRate);
 	}
 
+	double TriggerThrottle(double Trigger, double Gamma)
+	{
+		return FMath::Pow(FMath::Clamp(Trigger, 0.0, 1.0), FMath::Clamp(Gamma, 1.0, 3.0));
+	}
+
 	double KeyPedal(double Current, bool bPressed, double RisePerS, double DeltaTimeS)
 	{
 		return bPressed ? MoveToward(Current, 1.0, RisePerS * DeltaTimeS) : MoveToward(Current, 0.0, KeyPedalReleasePerS * DeltaTimeS);
@@ -144,7 +157,7 @@ FSimCruiseDriverCommand FSimCruiseDriverShaper::Update(const FSimCruiseVehicleSe
 	Clutch = Clutch + FMath::Clamp(ClutchTarget - Clutch, -ClutchReleasePerS * DeltaTimeS, ClutchPressPerS * DeltaTimeS);
 
 	FSimCruiseDriverCommand Command;
-	Command.Throttle = static_cast<float>(FMath::Clamp(FMath::Max(Raw.PadThrottle, KeyThrottle), 0.0, 1.0));
+	Command.Throttle = static_cast<float>(FMath::Clamp(FMath::Max(TriggerThrottle(Raw.PadThrottle, CVarTriggerGamma.GetValueOnGameThread()), KeyThrottle), 0.0, 1.0));
 	Command.Brake = static_cast<float>(FMath::Clamp(FMath::Max(Raw.PadBrake, KeyBrake), 0.0, 1.0));
 	Command.Clutch = static_cast<float>(Clutch);
 	Command.ParkingBrake = Raw.bParkingBrake ? 1.f : 0.f;
