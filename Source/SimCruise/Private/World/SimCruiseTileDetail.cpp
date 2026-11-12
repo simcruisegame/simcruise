@@ -171,6 +171,15 @@ namespace
 		}();
 		return Colours;
 	}
+	// Main Street's painted and brick fronts (Charleston, Savannah, the Midwest's brick rows):
+	// the generic paints' warmer half, four brick reds, and the Lowcountry's pastels.
+	const TArray<FLinearColor>& MainStreetWalls()
+	{
+		static const TArray<FLinearColor> Colours = { Srgb(TEXT("8B4838")), Srgb(TEXT("76503F")), Srgb(TEXT("9F5A42")), Srgb(TEXT("A98C6A")),
+			Srgb(TEXT("E9DEC4")), Srgb(TEXT("C9D8C5")), Srgb(TEXT("E6C9A8")), Srgb(TEXT("B8C7D4")), Srgb(TEXT("F0E2B6")), Srgb(TEXT("D8B4A0")),
+			Srgb(TEXT("ECE9E1")), Srgb(TEXT("8D8372")) };
+		return Colours;
+	}
 	// Miami Beach condominiums and MiMo hotels: white and pale concrete.
 	const TArray<FLinearColor>& TowerWalls()
 	{
@@ -673,7 +682,33 @@ namespace SimCruiseTileDetail
 				}
 				else
 				{
-					W.Panel(A, C, WallStart, Top + Parapet, N2, Wall, WallKind, Along0, Ground);
+					if (bMainStreet && Front[i] && Len >= 12.0 && !(BP && BP->bColourFromData))
+					{
+						// A long Main Street front is a row of narrow lots (6-9 m, as the town was
+						// platted): each its own paint or brick, its parapet a little higher or lower,
+						// a pilaster at each party wall, its windows centred on its own front.
+						double S0 = 0.0;
+						int32 Lot = 0;
+						while (S0 < Len - 0.5)
+						{
+							double Width = 6.0 + 3.0 * Unit(Hash(H, 200 + Lot));
+							if (Len - (S0 + Width) < 4.0) Width = Len - S0;
+							const FVector2d L0 = A + T * S0, L1 = A + T * (S0 + Width);
+							FLinearColor LotWall = Lot == 0 ? Wall : MainStreetWalls()[Hash(H, 220 + Lot) % static_cast<uint32>(MainStreetWalls().Num())];
+							if (BP && Lot > 0) LotWall = BP->Weathered(LotWall);
+							LotWall.A = Wall.A;
+							const double Rise = 0.35 * (Hash(H, 240 + Lot) % 3);
+							W.Panel(L0, L1, WallStart, Top + Parapet + Rise, N2, LotWall, WallKind, -0.5 * Width, Ground);
+							if (Rise > 0.0) W.Panel(L1, L0, Top + Parapet, Top + Parapet + Rise, -N2, LotWall, Kind::Trim, -0.5 * Width, Ground);
+							if (S0 > 0.0) W.Slab(L0 - T * 0.15, L0 + T * 0.15, N2, 0.0, 0.07, WallStart, Top + Parapet - 0.3, LotWall * 0.85f, Kind::Trim, 0.0, Ground, false, false);
+							S0 += Width;
+							++Lot;
+						}
+					}
+					else
+					{
+						W.Panel(A, C, WallStart, Top + Parapet, N2, Wall, WallKind, Along0, Ground);
+					}
 				}
 				// The parapet's inside, seen from above and from taller neighbours.
 				if (Parapet > 0.05) W.Panel(C, A, Top, Top + Parapet, -N2, Wall, Kind::Trim, Along0, Ground);
