@@ -50,6 +50,9 @@ $Defs = @{
     'test-pad'    = @{ Expect = 'FAIL'; Args = @('-SimCruiseBundledStart', '-SimCruiseDriveTest', '-SimCruiseDriveTestPad') }
 }
 
+# A game run needs no platform SDK check: skip the start-up call to Unreal Build Tool,
+# which waits while another checkout builds.
+$env:UE_SKIP_UBT_SDK_SETUP = '1'
 $Base = Join-Path $Root 'Saved\ViewCheck'
 $RunDir = Join-Path $Base (Get-Date -Format 'yyyyMMdd-HHmmss')
 $Latest = Join-Path $Base 'latest'

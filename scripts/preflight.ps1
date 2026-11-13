@@ -66,6 +66,9 @@ $Defs = @{
 }
 $CarNames = @{ 'nb2001_aaron' = 'Miata'; 'mustang65' = 'Mustang'; 'meridian_z' = 'Corvette' }
 
+# A game run needs no platform SDK check: skip the start-up call to Unreal Build Tool,
+# which waits while another checkout builds.
+$env:UE_SKIP_UBT_SDK_SETUP = '1'
 $Commit = (& git -C $Root rev-parse --short HEAD).Trim()
 if (& git -C $Root status --porcelain --untracked-files=no -- Source Config Content) { $Commit += '-dirty' }
 $Stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
