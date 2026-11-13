@@ -26,8 +26,12 @@ Several Claude Code sessions can work on SimCruise at once on one PC. These rule
 
 - **One checkout or worktree per session.** `D:\simcruise` is the main checkout: the editor, MCP sessions and play tests run there. Code work goes in the lane worktrees `D:\sc\lane1`, `D:\sc\lane2` and `D:\sc\lane3` (`git worktree add D:\sc\lane1 -b <branch> origin/main`). Each worktree has its own `Binaries/`, `Intermediate/` and `Saved/`, so a build in one does not touch another; the first build in a new worktree is a full build. Reuse a lane for the next task (`git switch -c <branch> origin/main`) instead of making a new worktree.
 - **Builds queue.** `Build.bat ... -WaitMutex` (as in `scripts\check.ps1`) waits for another Unreal Build Tool run instead of failing.
-- **One editor at a time.** `scripts\check.ps1` and `scripts\editor.ps1` take a PC-wide lock (`scripts\EditorLock.ps1`, a named mutex that Windows frees when its process ends) before they start the editor, so test runs, play tests and MCP sessions take turns on the GPU and on MCP port 8000. Open the editor with `powershell -ExecutionPolicy Bypass -File scripts\editor.ps1` (extra arguments go to the editor).
-- **Test runs always end.** `scripts\check.ps1` stops the editor and everything it started after `-TimeoutMinutes` (default 20) and fails.
+- **One GPU editor at a time.** `scripts\editor.ps1`, the captures, the view check and play-test builds take a PC-wide lock (`Global\SimCruiseEditor` in `scripts\EditorLock.ps1`, a named mutex that Windows frees when its process ends). They use the GPU, and the editor serves MCP on port 8000. Open the editor with `powershell -ExecutionPolicy Bypass -File scripts\editor.ps1` (extra arguments go to the editor).
+- **Test runs share slots.** `scripts\check.ps1` does not wait for that lock. Its test editor runs with `-nullrhi` and `-DisablePlugins=ModelContextProtocol`, so it uses neither the GPU nor port 8000. It also skips the editor's start-up call to Unreal Build Tool (`UE_SKIP_UBT_SDK_SETUP=1`), which waits while another checkout builds; that wait held one test start for 84 s. It takes one of up to 3 headless slots (`Global\SimCruiseHeadless0` to `2`, one mutex each). The number of slots is `-Slots`, else `SIMCRUISE_TEST_SLOTS`, else (free RAM in GB minus 8) divided by 6.5. One full test editor peaks at about 6 GB; this laptop has 32 GB and 8 cores. Two full checks from two worktrees ran side by side and both passed in about 8 minutes, where one after the other they would take 16, plus the queue.
+- **Everything a script starts ends.** `scripts\check.ps1` stops its test editor after `-TimeoutMinutes` (default 20) and fails. `scripts\editor.ps1 -TimeoutMinutes N` does the same for a game run (0, the default, means no limit, for an interactive editor); `scripts\drive-robot.ps1` passes 15. Both stop only the process tree they started.
+- **No crash windows.** `scripts\editor.ps1` adds `-unattended` to every `-game` run. A crash then ends the game and the crash reporter quits by itself, instead of a dialog that holds the lock until someone clicks it.
+- **Stale runs.** `scripts\watchdog.ps1` lists Unreal editors, SimCruise games and crash reporters older than `-MaxMinutes` (default 30) or whose starter is gone, with process id, age, folder and command line. It changes nothing unless you add `-Stop`, which stops only the listed processes. Look at the list first: an editor left open on purpose is old too.
+- **Where the time goes.** Every `scripts\check.ps1` run adds a line to `Saved\CheckTimes.csv`: lock wait, build, test seconds, the test editor's peak memory and the result.
 - **Live Coding is off** (`Config/DefaultEditorPerProjectUserSettings.ini`), because an open editor with Live Coding blocks `Build.bat` for every checkout. Rebuild and restart the editor instead.
 
 Build the `SimCruise` game target the same way when you need `-game` runs or a package. If any Unreal Editor with Live Coding is running on the machine (for any project), UnrealBuildTool refuses with "Unable to build while Live Coding is active"; add `-NoHotReloadFromIDE` to build a different checkout (a worktree) without closing it.
@@ -48,7 +52,16 @@ For a release: `-Configuration Shipping -Zip` writes `Saved\Package\SimCruise-<P
 
 ## Automation tests
 
-Tests are Unreal automation tests named `SimCruise.<Area>.<Test>`. Run them headless:
+Run them with `scripts\check.ps1`. There are two tiers:
+
+- `-Tier fast` skips the slow tests and takes under 2 minutes. Use it while you work.
+- `-Tier full`, the default, runs every test (about 8 minutes). Run it before a merge.
+
+The slow tests are the ones tagged `[Slow]` in `Config\Tests\Tags.ini`, one line per test. Unreal reads that file itself, and the fast tier uses Unreal's tag filter (`Automation SetTagFilter NOT Slow`). A test that is not in the list runs in both tiers, so a new test is in the fast tier until someone lists it.
+
+`scripts\check.ps1` skips the build when no file under `Source\` and no `.uproject` changed since the last good build of that checkout (`Saved\CheckBuild.stamp`). `-ForceBuild` builds anyway; `-NoBuild` never builds.
+
+By hand, headless:
 
 ```powershell
 & 'C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe' 'D:\simcruise\SimCruise.uproject' `

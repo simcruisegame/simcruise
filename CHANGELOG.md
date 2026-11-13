@@ -4,6 +4,8 @@ Notable changes to SimCruise, newest first. The format follows [Keep a Changelog
 
 ## Unreleased
 
+- **Faster checks for several agents on one PC** (tools, not the game): `scripts\check.ps1` test runs no longer queue behind play tests and MCP sessions. They share up to 3 headless slots, and two full checks ran side by side. `-Tier fast` skips the slow tests (`Config\Tests\Tags.ini`), the build is skipped when no source changed, and every run is timed into `Saved\CheckTimes.csv`. Scripted game runs get a time limit and `-unattended`; `scripts\watchdog.ps1` lists stale runs.
+
 ## SimCruise 2.0.1 (2026-11-13)
 
 A patch release after the first play of 2.0.0 ("field of views were off, too bright, traffic was bad, didn't look real"). Windows installer and zip as before.
