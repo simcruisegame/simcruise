@@ -51,13 +51,15 @@ $script:HeadlessSlotMax = 3
 
 function Get-HeadlessSlotCount {
     # How many headless test editors may run at once: -Slots, else $env:SIMCRUISE_TEST_SLOTS,
-    # else what the free memory allows (keeping ReserveGB free), from 1 to 3.
+    # else what the free memory allows (keeping ReserveGB free; at least 2 with 20 GB free), from 1 to 3.
     # EditorPeakGB: a full -nullrhi test run peaked at 6.1 GB (working set, 2026-11-12).
     param([int]$Requested = 0, [double]$EditorPeakGB = 6.5, [double]$ReserveGB = 8)
     if ($Requested -le 0 -and $env:SIMCRUISE_TEST_SLOTS) { $Requested = [int]$env:SIMCRUISE_TEST_SLOTS }
     if ($Requested -gt 0) { return [int][math]::Min([math]::Max($Requested, 1), $script:HeadlessSlotMax) }
     try { $FreeGB = (Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory / 1MB } catch { return 1 }
     $N = [math]::Floor(($FreeGB - $ReserveGB) / $EditorPeakGB)
+    # Two full test editors (about 6 GB each) fit side by side with 20 GB free.
+    if ($FreeGB -ge 20) { $N = [math]::Max($N, 2) }
     return [int][math]::Min([math]::Max($N, 1), $script:HeadlessSlotMax)
 }
 

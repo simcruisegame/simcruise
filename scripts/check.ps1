@@ -15,7 +15,8 @@
 
 .PARAMETER Slots
   How many headless test runs may run at once on this PC (1 to 3). Default: $env:SIMCRUISE_TEST_SLOTS,
-  else what the free memory allows (free GB minus 8, divided by one test editor's peak).
+  else what the free memory allows (free GB minus 8, divided by one test editor's peak;
+  at least 2 when 20 GB or more is free).
   Test runs start without the MCP plugin and with -nullrhi, so they use neither port 8000
   nor the GPU and do not wait for the one-editor lock that play tests and MCP sessions hold.
 
