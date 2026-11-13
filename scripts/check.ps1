@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
   Builds SimCruise and runs its automation tests; exits 1 if anything failed.
 
@@ -16,11 +16,21 @@
 .PARAMETER Slots
   How many headless test runs may run at once on this PC (1 to 3). Default: $env:SIMCRUISE_TEST_SLOTS,
   else what the free memory allows (free GB minus 8, divided by one test editor's peak).
-  Test runs start without the MCP plugins and with -nullrhi, so they use neither port 8000
+  Test runs start without the MCP plugin and with -nullrhi, so they use neither port 8000
   nor the GPU and do not wait for the one-editor lock that play tests and MCP sessions hold.
 
+.PARAMETER Tier
+  full (the default; run it before a merge) runs every test that matches -Filter. fast skips
+  the slow tests, the ones tagged [Slow] in Config\Tests\Tags.ini, and ends in about 1.5 min.
+  A test that is not in that list runs in both tiers.
+
 .PARAMETER NoBuild
-  Skip the build (the editor binaries must be current).
+  Skip the build (the editor binaries must be current). Without it the build is still
+  skipped when no file under Source\ and no .uproject changed since the last good build
+  of this checkout (Saved\CheckBuild.stamp).
+
+.PARAMETER ForceBuild
+  Run Build.bat even when the sources did not change.
 
 .PARAMETER EngineDir
   The Unreal Engine 5.8 directory (default: $env:UE_ROOT, else C:\Program Files\Epic Games\UE_5.8).
@@ -40,6 +50,8 @@
 param(
     [string]$Filter = 'SimCruise',
     [int]$Slots = 0,
+    [ValidateSet('fast', 'full')][string]$Tier = 'full',
+    [switch]$ForceBuild,
     [switch]$NoBuild,
     [string]$EngineDir = $(if ($env:UE_ROOT) { $env:UE_ROOT } else { 'C:\Program Files\Epic Games\UE_5.8' }),
     [int]$TimeoutMinutes = 20,
@@ -71,12 +83,40 @@ function Write-CheckTime([string]$Result) {
     catch { Write-Host "Could not write $TimesCsv`: $_" }
 }
 
+$Timing.Tier = $Tier
+
+# The build is skipped when nothing it compiles changed since the last good build here: the
+# stamp is a hash of every file's path, size and time under Source\ (and Plugins\), the
+# .uproject and the engine's build version, written after Build.bat succeeds.
+$BuildStamp = Join-Path $Root 'Saved\CheckBuild.stamp'
+function Get-BuildStamp {
+    $Files = @(Get-ChildItem (Join-Path $Root 'Source') -Recurse -File)
+    $Files += @(Get-ChildItem $Root -Filter '*.uproject' -File)
+    $PluginDir = Join-Path $Root 'Plugins'
+    if (Test-Path $PluginDir) { $Files += @(Get-ChildItem $PluginDir -Recurse -File | Where-Object { $_.FullName -notmatch '\\(Binaries|Intermediate)\\' }) }
+    $EngineVersion = Join-Path $EngineDir 'Engine\Build\Build.version'
+    if (Test-Path $EngineVersion) { $Files += Get-Item $EngineVersion }
+    $Text = ($Files | Sort-Object FullName | ForEach-Object { '{0}|{1}|{2}' -f $_.FullName, $_.Length, $_.LastWriteTimeUtc.Ticks }) -join "`n"
+    $Sha = [System.Security.Cryptography.SHA256]::Create()
+    return [BitConverter]::ToString($Sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($Text))) -replace '-', ''
+}
+
 $Started = Get-Date
 if (-not $NoBuild) {
-    Write-Host 'Building SimCruiseEditor (Win64 Development)...'
-    & $BuildBat SimCruiseEditor Win64 Development "-Project=$Project" -WaitMutex -NoHotReloadFromIDE | Out-Host
-    $Timing.Build = ((Get-Date) - $Started).TotalSeconds
-    if ($LASTEXITCODE -ne 0) { Write-Host 'BUILD FAILED'; Write-CheckTime 'build-failed'; exit 1 }
+    $Stamp = Get-BuildStamp
+    $EditorDll = Join-Path $Root 'Binaries\Win64\UnrealEditor-SimCruise.dll'
+    if (-not $ForceBuild -and (Test-Path $EditorDll) -and (Test-Path $BuildStamp) -and ((Get-Content $BuildStamp -Raw).Trim() -eq $Stamp)) {
+        Write-Host 'Build skipped: nothing under Source\ or in the .uproject changed since the last good build (-ForceBuild builds anyway).'
+    }
+    else {
+        Write-Host 'Building SimCruiseEditor (Win64 Development)...'
+        & $BuildBat SimCruiseEditor Win64 Development "-Project=$Project" -WaitMutex -NoHotReloadFromIDE | Out-Host
+        $Timing.Build = ((Get-Date) - $Started).TotalSeconds
+        if ($LASTEXITCODE -ne 0) { Write-Host 'BUILD FAILED'; Remove-Item $BuildStamp -ErrorAction SilentlyContinue; Write-CheckTime 'build-failed'; exit 1 }
+        # Hash again after the build, in case a file changed while it ran (then the next run builds).
+        New-Item -ItemType Directory -Force (Split-Path $BuildStamp) | Out-Null
+        if ((Get-BuildStamp) -eq $Stamp) { Set-Content -Encoding ascii $BuildStamp $Stamp }
+    }
 }
 
 $LogName = 'SimCruiseChecks.log'
@@ -88,10 +128,12 @@ if (-not (Enter-HeadlessSlot -Slots $Timing.Slots -TimeoutMinutes $LockTimeoutMi
 $Timing.LockWait = ((Get-Date) - $LockStart).TotalSeconds
 $TestStart = Get-Date
 try {
-    Write-Host "Running automation tests: $Filter"
+    Write-Host "Running automation tests: $Filter ($Tier tier)"
+    # The fast tier filters on the [Slow] tags in Config\Tests\Tags.ini (Unreal's own tag filter).
+    $RunCmds = if ($Tier -eq 'fast') { "Automation SetTagFilter NOT Slow;RunTests $Filter;Quit" } else { "Automation RunTests $Filter;Quit" }
     # Without the MCP plugins the test editor never listens on port 8000 (the main checkout's
     # user settings auto-start the server), so it can run beside an MCP session.
-    $ArgLine = "`"$Project`" `"-ExecCmds=Automation RunTests $Filter;Quit`" -unattended -nopause -nullrhi -nosplash -DisablePlugins=ModelContextProtocol `"-log=$LogName`" `"-testexit=Automation Test Queue Empty`""
+    $ArgLine = "`"$Project`" `"-ExecCmds=$RunCmds`" -unattended -nopause -nullrhi -nosplash -DisablePlugins=ModelContextProtocol `"-log=$LogName`" `"-testexit=Automation Test Queue Empty`""
     $P = Start-Process -FilePath $Editor -ArgumentList $ArgLine -PassThru -WindowStyle Hidden
     # Wait in short steps to sample the editor's peak memory (working set) on the way.
     $Deadline = $TestStart.AddMinutes($TimeoutMinutes)
