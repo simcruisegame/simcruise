@@ -24,6 +24,9 @@ public:
 
 	const FSimCruiseCarDefinition* FindCarDefinition(const FString& CarId) const;
 
+	/** Read data/cars/<id>.json and its calibration overlay again (hot reload). On an error the roster keeps the last good definition. */
+	bool ReloadCarDefinition(const FString& CarId, FString& OutError);
+
 private:
 	TMap<FString, FSimCruiseCarDefinition> CarDefinitions;
 };

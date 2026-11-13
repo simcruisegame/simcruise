@@ -81,6 +81,9 @@ public:
 
 	/** The next drivable car, at the same spot and heading (the atlas car button). */
 	void CycleCar(APlayerController* Player);
+	/** The player's car again, at rest where it stands, from the current car files (hot reload, input replay);
+	 *  a NewCarId drives that car instead. */
+	void RespawnCar(APlayerController* Player, const FString& NewCarId = FString());
 	const FString& GetCarId() const { return CarId; }
 
 	UPROPERTY(config, EditAnywhere, Category = "SimCruise")

@@ -48,3 +48,15 @@ const FSimCruiseCarDefinition* USimCruiseGameInstance::FindCarDefinition(const F
 {
 	return CarDefinitions.Find(CarId);
 }
+
+bool USimCruiseGameInstance::ReloadCarDefinition(const FString& CarId, FString& OutError)
+{
+	FSimCruiseCarDefinition Car;
+	if (!FSimCruiseCarDefinitionLoader::LoadById(CarId, Car, OutError))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SimCruise kept the last good %s: %s"), *CarId, *OutError);
+		return false;
+	}
+	CarDefinitions.Add(Car.Id, MoveTemp(Car));
+	return true;
+}

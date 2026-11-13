@@ -220,6 +220,19 @@ The drive robot runs the pad manoeuvres as a regression check: `powershell -Exec
 
 On the pad, the HUD shows an orange banner "DRIVE ROBOT · TEST PAD 60 m ABOVE <place> · NOT THE REAL ROAD" and does not show the place cards or the place name: the pad is not the real road. The tiles of the real place are 60 m below it.
 
+### Hot reload
+
+A game run from the editor binaries (any development build; not Shipping, not automation runs; `-SimCruiseNoHotReload` turns it off) watches the files it reads and puts a save on about 1.5 s later, with "Reloaded <file>" on screen (`Gameplay/SimCruiseHotReload`, `USimCruiseHotReloadSubsystem`). Nothing is rebuilt.
+
+| File | What happens |
+|---|---|
+| `data/cars/<id>.json`, `Content/Vehicle/Calibration/<id>.json` (or the `SIMCRUISE_CALIBRATION_DIR` folder) | The car is loaded again; the car you drive is respawned where it stands, at rest, with your saved tuning (car physics is only read at spawn). Another car's file is kept for its next spawn. |
+| `Content/Vehicles/CarPresentation.json` | The car is respawned in place with the new model. |
+| `Saved/SimCruise/preferences.json` | The seat (`seat_<car>`), the lens (`lens_v3`), the screen size and eye distance go on live. The game writes this file itself, so the message shows only when what you see changes. Checks and captures do not read it. |
+| `Saved/SimCruise/look.json` | Exposure and colour grade, live: an object of `SimCruise.Env.Look` names and numbers, for example `{ "ExposureCompensation": 0.5, "Saturation": 0.95, "OpenStops": 1.5 }`. It is read at the start too. It is a scratch file for look development and is not packaged: put the values you keep in `ASimCruiseEnvironment`'s defaults. |
+
+A file with an error is not put on: the screen says "Reload failed: <file>: <reason>" and the car drives on as it was. Test: `SimCruise.Drive.HotReload` (fast tier) saves a calibration overlay next to a bench car and checks the new mass on the car, its movement model and its Chaos body.
+
 ### View check
 
 The view check looks at what the player sees and tells if the world is there. `-SimCruiseViewCheck` (or `-SimCruiseViewCheck=<seconds>`, default 6) waits until the car is placed, the tiles round it are built and the shaders are compiled, then waits the given seconds. Then it:

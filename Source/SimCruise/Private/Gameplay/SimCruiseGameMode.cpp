@@ -22,7 +22,9 @@
 #include "Misc/Parse.h"
 #include "SimCruiseGameInstance.h"
 #include "Vehicle/CarDefinitionLoader.h"
+#include "Vehicle/SimCruiseUnits.h"
 #include "Vehicle/SimCruiseVehicle.h"
+#include "Vehicle/SimCruiseVehicleMovementComponent.h"
 #include "Misc/App.h"
 #include "World/SimCruiseBridges.h"
 #include "World/SimCruiseGuardRails.h"
@@ -437,22 +439,42 @@ void ASimCruiseGameMode::CycleCar(APlayerController* Player)
 	const int32 Index = Ids.IndexOfByKey(CarId);
 	CarId = Ids[(Index + 1) % Ids.Num()];
 	SimCruisePreferences::SetString(TEXT("car"), CarId);
+	RespawnCar(Player);
+	if (ASimCruisePlayerController* SimPlayer = Cast<ASimCruisePlayerController>(Player))
+	{
+		const FSimCruiseCarDefinition* Car = GameInstance->FindCarDefinition(CarId);
+		SimPlayer->ShowMessage(FString::Printf(TEXT("Car · %s"), Car ? *Car->Name : *CarId), 3.f);
+	}
+}
+
+void ASimCruiseGameMode::RespawnCar(APlayerController* Player, const FString& NewCarId)
+{
+	APawn* Pawn = Player ? Player->GetPawn() : nullptr;
+	if (!Pawn || !bCarPlaced)
+	{
+		return;
+	}
+	if (!NewCarId.IsEmpty())
+	{
+		CarId = NewCarId;
+	}
 	// The new car starts at rest where the old one stood, facing the same way.
 	FVector Ground = Pawn->GetActorLocation();
 	const FRotator Heading(0.0, Pawn->GetActorRotation().Yaw, 0.0);
 	double Z = 0.0;
-	if (ASimCruiseWorldStreamer* Stream = Streamer.Get(); Stream && Stream->SurfaceHeightAt(Ground, Z))
+	if (const ASimCruiseVehicle* Vehicle = Cast<ASimCruiseVehicle>(Pawn); Vehicle && Vehicle->GetVehicleMovement())
+	{
+		// The ground under the body box, whatever it stands on (a road, the drive robot's pad).
+		Ground -= Vehicle->GetActorQuat().RotateVector(FVector(0.0, 0.0,
+			SimCruiseUnits::ToUnrealLength(Vehicle->GetVehicleMovement()->GetCarDefinition().CollisionShapeCenterYM)));
+	}
+	else if (ASimCruiseWorldStreamer* Stream = Streamer.Get(); Stream && Stream->SurfaceHeightAt(Ground, Z))
 	{
 		Ground.Z = Z;
 	}
 	Player->UnPossess();
 	Pawn->Destroy();
 	SpawnVehicleAt(Player, Ground, Heading);
-	if (ASimCruisePlayerController* SimPlayer = Cast<ASimCruisePlayerController>(Player))
-	{
-		const FSimCruiseCarDefinition* Car = GameInstance->FindCarDefinition(CarId);
-		SimPlayer->ShowMessage(FString::Printf(TEXT("Car · %s"), Car ? *Car->Name : *CarId), 3.f);
-	}
 }
 
 void ASimCruiseGameMode::RestartPlayer(AController* NewPlayer)
