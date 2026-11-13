@@ -73,6 +73,13 @@ ASimCruiseEnvironment::ASimCruiseEnvironment()
 	Sun->bCastShadowsOnAtmosphere = true;
 	Sun->bPerPixelAtmosphereTransmittance = true;
 	Sun->SetIntensity(static_cast<float>(FSimCruiseDaylightModel::ExtraterrestrialSunLux()));
+	// Short screen-space contact shadows: the virtual shadow map misses the last centimetres
+	// where a tyre meets the road, a kerb meets the gutter or a bench foot meets the paving, so
+	// things looked pasted on. 2 % of the screen is a few centimetres near the car.
+	Sun->ContactShadowLength = 0.02f;
+	Sun->ContactShadowLengthInWS = false;
+	Sun->ContactShadowCastingIntensity = 1.0f;
+	Sun->ContactShadowNonCastingIntensity = 0.0f;
 
 	MoonLight = CreateDefaultSubobject<UDirectionalLightComponent>(TEXT("Moon"));
 	MoonLight->SetupAttachment(Root);
