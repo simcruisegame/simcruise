@@ -434,6 +434,15 @@ void ASimCruisePreflight::Tick(float DeltaSeconds)
 			const bool bYank = (ForceSpinClock > 0.f || bAtSpeed) && ForceSpinClock < 2.5f;
 			if (bYank)
 			{
+				// A handbrake turn alone does not always turn the car round: on the first frame the body
+				// also gets a 240 deg/s yaw kick, so the test always has a spin to find.
+				if (ForceSpinClock == 0.f)
+				{
+					if (UPrimitiveComponent* Body = Cast<UPrimitiveComponent>(Pawn->GetRootComponent()))
+					{
+						Body->SetPhysicsAngularVelocityInDegrees(FVector(0.0, 0.0, 240.0), true);
+					}
+				}
 				ForceSpinClock += DeltaSeconds;
 				Stats.bForcedSpin = true;
 				Player->InjectAxis(EKeys::Gamepad_LeftX, 1.f);
