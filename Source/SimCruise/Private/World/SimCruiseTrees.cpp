@@ -103,6 +103,83 @@ return b;
 		}
 	}
 
+	/**
+	 * The leaf cards' mip chain. The PNGs are black where they are transparent, so a plain box
+	 * filter (and the bilinear lookup at the cut edge) mixes black into every leaf edge: the
+	 * crowns darken into flat dark blobs with distance. Here the transparent texels take the
+	 * mean leaf colour, each mip averages colour weighted by alpha, and each mip's alpha is
+	 * scaled so the share of texels above the clip value stays that of the full-size image
+	 * (a box-filtered alpha grows the clusters: 46 % to 53 % covered by the 96 px mip).
+	 * All of it on the CPU at load: no cost on the GPU.
+	 */
+	void LeafMipChain(TArray<FColor> Pixels, int32 Width, int32 Height, float Clip, TArray<TArray<FColor>>& Out)
+	{
+		Out.Reset();
+		FLinearColor Mean(0, 0, 0, 0);
+		double MeanW = 0.0;
+		for (const FColor& C : Pixels)
+		{
+			const float A = C.A / 255.f;
+			Mean += FLinearColor(C) * A;
+			MeanW += A;
+		}
+		const FColor Fill = MeanW > 0.0 ? (Mean * static_cast<float>(1.0 / MeanW)).ToFColor(true) : FColor::Black;
+		for (FColor& C : Pixels)
+		{
+			if (C.A == 0) { C.R = Fill.R; C.G = Fill.G; C.B = Fill.B; }
+		}
+		const uint8 Cut = static_cast<uint8>(FMath::Clamp(FMath::RoundToInt(Clip * 255.f), 1, 254));
+		auto Covered = [Cut](const TArray<FColor>& L, float Scale)
+		{
+			int64 N = 0;
+			for (const FColor& C : L) N += FMath::Min(C.A * Scale, 255.f) > Cut ? 1 : 0;
+			return static_cast<double>(N) / FMath::Max(1, L.Num());
+		};
+		const double Target = Covered(Pixels, 1.f);
+		Out.Add(MoveTemp(Pixels));
+		int32 W = Width, H = Height;
+		while (W > 1 || H > 1)
+		{
+			const TArray<FColor>& Level = Out.Last();
+			const int32 NW = FMath::Max(1, W / 2), NH = FMath::Max(1, H / 2);
+			TArray<FColor> Next;
+			Next.SetNumUninitialized(NW * NH);
+			for (int32 y = 0; y < NH; ++y)
+			for (int32 x = 0; x < NW; ++x)
+			{
+				FLinearColor Sum(0, 0, 0, 0), Plain(0, 0, 0, 0);
+				float A = 0.f;
+				for (int32 dy = 0; dy < 2; ++dy)
+				for (int32 dx = 0; dx < 2; ++dx)
+				{
+					const FColor& C = Level[FMath::Min(2 * y + dy, H - 1) * W + FMath::Min(2 * x + dx, W - 1)];
+					const FLinearColor L(C);
+					Sum += L * (C.A / 255.f);
+					Plain += L;
+					A += C.A / 255.f;
+				}
+				FColor C = (A > 1e-4f ? Sum * (1.f / A) : Plain * 0.25f).ToFColor(true);
+				C.A = static_cast<uint8>(FMath::RoundToInt(A * 0.25f * 255.f));
+				Next[y * NW + x] = C;
+			}
+			// The alpha scale that keeps the coverage (bisection; coverage grows with the scale).
+			if (Target > 0.0 && Next.Num() >= 16)
+			{
+				float Lo = 0.25f, Hi = 4.f;
+				for (int32 i = 0; i < 16; ++i)
+				{
+					const float Mid = 0.5f * (Lo + Hi);
+					(Covered(Next, Mid) > Target ? Hi : Lo) = Mid;
+				}
+				const float Scale = 0.5f * (Lo + Hi);
+				for (FColor& C : Next) C.A = static_cast<uint8>(FMath::Min(FMath::RoundToInt(C.A * Scale), 255));
+			}
+			Out.Add(MoveTemp(Next));
+			W = NW;
+			H = NH;
+		}
+	}
+
 	uint32 Hash2(int32 A, int32 B)
 	{
 		uint32 H = static_cast<uint32>(A) * 73856093u ^ static_cast<uint32>(B) * 19349663u;
@@ -261,12 +338,25 @@ bool ASimCruiseTrees::BuildMeshes()
 		UE_LOG(LogSimCruiseTrees, Error, TEXT("No tree materials (run the SimCruiseBuildWorldMaterials commandlet)"));
 		return false;
 	}
-	auto Texture = [this](const TCHAR* File) -> UTexture2D*
+	// -SimCruiseOldTreeMips: the plain box-filtered leaf mips (for an A/B).
+	const bool bLeafMips = !FParse::Param(FCommandLine::Get(), TEXT("SimCruiseOldTreeMips"));
+	auto Texture = [this, bLeafMips](const TCHAR* File) -> UTexture2D*
 	{
 		TArray<FColor> Pixels;
 		int32 W = 0, H = 0;
 		if (!USimCruiseWorldResources::DecodeImageFile(TreeArt(File), Pixels, W, H)) return nullptr;
-		UTexture2D* T = USimCruiseWorldResources::CreateTexture(this, FName(*FString::Printf(TEXT("T_SimCruiseTree_%s"), *FPaths::GetBaseFilename(File))), Pixels, W, H, true, true);
+		const FName Name(*FString::Printf(TEXT("T_SimCruiseTree_%s"), *FPaths::GetBaseFilename(File)));
+		UTexture2D* T = nullptr;
+		if (bLeafMips && FPaths::GetExtension(File) == TEXT("png"))
+		{
+			TArray<TArray<FColor>> Mips;
+			LeafMipChain(MoveTemp(Pixels), W, H, 0.3f, Mips); // 0.3: the leaf material's clip value
+			T = USimCruiseWorldResources::CreateTextureFromMips(this, Name, MoveTemp(Mips), W, H, true, true);
+		}
+		else
+		{
+			T = USimCruiseWorldResources::CreateTexture(this, Name, Pixels, W, H, true, true);
+		}
 		Textures.Add(T);
 		return T;
 	};
