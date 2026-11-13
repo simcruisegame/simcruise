@@ -25,34 +25,38 @@ SimCruise puts you behind the wheel anywhere in the United States. Roads, terrai
 
 No account, no API keys, no subscription, no telemetry. The game talks directly to open data services and caches what it fetches on your disk.
 
-> **SimCruise moved to Unreal Engine 5.8 in November 2026.** The Godot client that made the 1.x releases is kept at the git tag [`godot-final`](https://github.com/simcruisegame/simcruise/tree/godot-final) (`git show godot-final:game/<file>`); everything below is about the Unreal client. The Unreal client goes anywhere in the US again: a normal start is a random road from the start pool, `/` searches for a place, and Tab (Menu on the pad) opens the road atlas to drive anywhere on the map. Trees, rangeland scrub, the land to the horizon, guard rails, bridges, gravel roads and traffic signals are built for wherever you are. What is still being ported is in [the migration ledger](docs/unreal-migration-ledger.md).
+> **SimCruise moved to Unreal Engine 5.8 in November 2026.** The Godot client that made the 1.x releases is kept at the git tag [`godot-final`](https://github.com/simcruisegame/simcruise/tree/godot-final) (`git show godot-final:game/<file>`); everything below is about the Unreal client. The Unreal client goes anywhere in the US again: a normal start is a random road from the start pool, `/` searches for a place, and Tab (Menu on the pad) opens the pause menu, whose Drive page has the road atlas to drive anywhere on the map. Trees, rangeland scrub, the land to the horizon, guard rails, bridges, gravel roads and traffic signals are built for wherever you are. What is still being ported is in [the migration ledger](docs/unreal-migration-ledger.md).
 
 ## Download
 
-**SimCruise 2.0.1 for Windows** (64-bit Windows 10 or 11, DirectX 12): get `SimCruise-2.0.1-windows-x64-setup.exe` from the [latest release](https://github.com/simcruisegame/simcruise/releases/latest), run it, and start SimCruise from the Start menu. A portable zip and SHA-256 checksums are on the same page. Install steps and system requirements: [docs/install.md](docs/install.md). Controls (keyboard, Xbox controller, USB wheel): [docs/controls.md](docs/controls.md).
+**SimCruise 2.0.2 for Windows** (64-bit Windows 10 or 11, DirectX 12): get `SimCruise-2.0.2-windows-x64-setup.exe` from the [latest release](https://github.com/simcruisegame/simcruise/releases/latest), run it, and start SimCruise from the Start menu. A portable zip and SHA-256 checksums are on the same page. Install steps and system requirements: [docs/install.md](docs/install.md). Controls (keyboard, Xbox controller, USB wheel): [docs/controls.md](docs/controls.md).
 
-Tested on a laptop with an RTX 2070 Super Max-Q: 78 fps on Ocean Drive and 112 fps on a rural road from the driver's seat at 1080p on the Medium preset (the default for that GPU), capped at 60 fps in play, and about 50 ms from the stick to the picture. The release gates are in [docs/release/v2.0.1-report.md](docs/release/v2.0.1-report.md) and [v2.0.0-report.md](docs/release/v2.0.0-report.md).
+**New in 2.0.2:** a GPS that drives you on the real roads (turn sign, chevrons on the road, a round map, a route planner and famous roads), a new pause menu and speed display, your seat and the car's setup one press away, hood and far chase views, looking around with the right stick, and traffic Normal, Light or Off. What to try first, in plain words: [docs/release/v2.0.2-what-you-should-notice.md](docs/release/v2.0.2-what-you-should-notice.md). Everything, with the known issues: [CHANGELOG.md](CHANGELOG.md).
+
+Tested on a laptop with an RTX 2070 Super Max-Q: 78 fps on Ocean Drive and 112 fps on a rural road from the driver's seat at 1080p on the Medium preset (the default for that GPU; measured for 2.0.1), capped at 60 fps in play, and about 50 ms from the stick to the picture. The release gates are in [docs/release/v2.0.2-report.md](docs/release/v2.0.2-report.md), [v2.0.1-report.md](docs/release/v2.0.1-report.md) and [v2.0.0-report.md](docs/release/v2.0.0-report.md).
 
 ## Screenshots
 
-From the 2.0.1 Shipping build, Ultra preset, 1920x1080 (the gravel road in daylight from 2.0.0).
+From the 2.0.2 Shipping build, Ultra preset, 1920x1080.
 
-![The same spot on Ocean Drive in 2.0.0 (top) and 2.0.1 (bottom): darker daylight, weathered walls, palms in Lummus Park, a fire hydrant](docs/images/release-2.0.1/before-after-ocean-drive.jpg)
+![Ocean Drive with a GPS route: the green turn sign "Continue on 5th Street, then Washington Avenue", the large speed and gear at the bottom left, and the round map at the bottom right](docs/images/release-2.0.2/01-gps-route-ocean-drive.jpg)
 
-*2.0.0 (top) and 2.0.1 (bottom) at the same spot and time: a third of a stop darker by day, walls like weathered paint, the park's palms from the land-cover map, street furniture.*
+*The GPS on Ocean Drive: the turn sign at the top, the speed and gear at the bottom left, the round map with the route and the arrival time at the bottom right.*
 
 | | |
 |---|---|
-| ![The 2001 Miata on Ocean Drive, Miami Beach: Lummus Park palms, Art Deco hotels, parked cars](docs/images/release-2.0.1/01-miata-ocean-drive-chase.jpg) | ![From the Miata's seat with the natural lens: the cabin, the gauges, the mirrors and Ocean Drive ahead](docs/images/release-2.0.1/02-miata-cockpit.jpg) |
-| *2001 Miata, Ocean Drive* | *The driver's seat (natural lens, the default)* |
-| ![The 1965 Mustang convertible on Ocean Drive](docs/images/release-2.0.1/03-mustang-1965-ocean-drive.jpg) | ![The Corvette Stingray C8 on Ocean Drive](docs/images/release-2.0.1/05-corvette-c8-ocean-drive.jpg) |
-| *1965 Mustang 289* | *Corvette Stingray (C8)* |
-| ![Ocean Drive at 21:00: low beams, street lights, neon on the Breakwater](docs/images/release-2.0.1/07-ocean-drive-night-chase.jpg) | ![The Corvette's cockpit: the digital cluster, the paddles and the centre screen](docs/images/release-2.0.1/06-corvette-c8-cockpit.jpg) |
-| *Ocean Drive at night* | *Corvette cockpit* |
-| ![Princeton Road, a gravel road in Lancaster County, Nebraska](docs/images/release-2.0.0/09-rural-gravel-road-nebraska.jpg) | ![The same road at night from the driver's seat, lit only by the low beams](docs/images/release-2.0.1/10-rural-night-low-beams.jpg) |
-| *A gravel road in Nebraska* | *The same road at night* |
+| ![The pause menu's Drive page: Continue driving, Where to?, Plan a route, Famous roads, Traffic, Road atlas, and the route card on the right](docs/images/release-2.0.2/02-pause-menu-drive.jpg) | ![The route planner: a map of Miami Beach with two stops, Lummus Park and Collins Park, and the Start the route button](docs/images/release-2.0.2/03-route-planner.jpg) |
+| *The pause menu (Menu or Tab)* | *Plan a route* |
+| ![Seat & view: the lens Natural, True FOV or Wide, head motion, screen size and eye distance over the live view](docs/images/release-2.0.2/04-seat-and-view.jpg) | ![Tune car for the 2001 roadster: springs, damping, ride height, anti-roll bars, engine torque, final drive and the steering ratio 15.0:1](docs/images/release-2.0.2/05-tune-car.jpg) |
+| *Seat & view* | *Tune car* |
+| ![The 2001 Miata on US 129, the Tail of the Dragon, in the forest of the Great Smoky Mountains](docs/images/release-2.0.2/06-miata-tail-of-the-dragon-chase.jpg) | ![The Corvette Stingray C8 on CA-1 near Big Sur, the hills and the Pacific](docs/images/release-2.0.2/07-corvette-big-sur-chase.jpg) |
+| *2001 Miata, Tail of the Dragon* | *Corvette Stingray (C8), Big Sur* |
+| ![From the Corvette's seat on CA-1 at 18 mph](docs/images/release-2.0.2/08-corvette-big-sur-cockpit.jpg) | ![The new hood view: the 1965 Mustang on Ocean Drive at 15 mph](docs/images/release-2.0.2/09-mustang-ocean-drive-hood.jpg) |
+| *Corvette cockpit, Big Sur* | *Hood view, 1965 Mustang* |
+| ![The new far chase view: the 1965 Mustang in the traffic on Ocean Drive](docs/images/release-2.0.2/10-mustang-ocean-drive-far-chase.jpg) | ![Ocean Drive at night in 2.0.1: low beams, street lights, neon on the Breakwater](docs/images/release-2.0.1/07-ocean-drive-night-chase.jpg) |
+| *Far chase view, Ocean Drive* | *Ocean Drive at night (2.0.1)* |
 
-*Captured with `-SimCruiseDriveCapture` (see [docs/unreal-building.md](docs/unreal-building.md#drive-captures)). Map data © OpenStreetMap contributors. Earlier screenshots are in [docs/images/unreal/](docs/images/unreal/).*
+*Captured with `-SimCruiseUiShots` and `-SimCruiseDriveCapture` (see [docs/unreal-building.md](docs/unreal-building.md#drive-captures)). Map data © OpenStreetMap contributors. The 2.0.1 screenshots are in [docs/images/release-2.0.1/](docs/images/release-2.0.1/), earlier ones in [docs/images/unreal/](docs/images/unreal/).*
 
 ## Features
 
