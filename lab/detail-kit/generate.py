@@ -1,4 +1,4 @@
-"""Generate the fine-detail kit's source photographs once, offline, on the PC.
+﻿"""Generate the fine-detail kit's source photographs once, offline, on the PC.
 
 Model: Stable Diffusion XL base 1.0 (stabilityai/stable-diffusion-xl-base-1.0),
 CreativeML Open RAIL++-M licence (commercial use allowed under its use restrictions).
@@ -44,7 +44,7 @@ def main():
     os.makedirs(a.out, exist_ok=True)
     pipe = StableDiffusionXLPipeline.from_pretrained(MODEL, torch_dtype=torch.float16, variant="fp16", use_safetensors=True)
     pipe.enable_model_cpu_offload()  # 8 GB laptop GPU
-    pipe.enable_vae_tiling()
+    pipe.vae.enable_tiling()
     record = {"model": MODEL, "licence": "CreativeML Open RAIL++-M", "steps": a.steps, "guidance": a.guidance,
               "size": 1024, "negative": NEGATIVE, "slices": []}
     for i, (name, subject) in enumerate(SLICES):
