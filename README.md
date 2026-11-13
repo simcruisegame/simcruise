@@ -67,6 +67,71 @@ From the 2.0.1 Shipping build, Ultra preset, 1920x1080 (the gravel road in dayli
 - **Keyboard, Xbox controller or USB wheel**, with steering and pedal shaping that never fakes the physics, rumble from tyre slip, a clutch on the right thumb and gears on the bumpers, a tuning menu (springs, dampers, ride height, anti-roll bars, gearing, steering ratio) and a seat & view menu, both in the road atlas and usable with the pad, seat, hood, near and far chase cameras with look-around on the right stick, traffic on, light or off, and a natural driver's lens or the true field of view of your screen (F6 or the atlas; screen size and eye distance on the road atlas).
 - **Open data, open code.** Every data source is free and keyless, and its licence is recorded in [`licenses/`](licenses/).
 
+## How the game works
+
+SimCruise is a C++ game module on top of Unreal Engine 5.8. Unreal gives the renderer, the Chaos physics solver, the audio mixer and the input system. The SimCruise code makes the world, the cars and the menus. The diagram shows the main parts and how data moves between them.
+
+```mermaid
+flowchart TB
+  subgraph Internet["Free public data on the internet"]
+    MapData["Map, height and aerial data<br/>OpenStreetMap, USGS, Overture, NOAA, NASA"]
+    Feeds["Live feeds<br/>weather, METAR, tides, air quality, aircraft"]
+  end
+
+  Helper["Map helper (Bun, helper/)<br/>gets the data, keeps a disk cache,<br/>sends one JSON tile"]
+
+  subgraph Game["SimCruise game module (C++, Source/SimCruise)"]
+    UI["Menus and GPS<br/>road atlas, route, tune car, seat and view"]
+    World["World<br/>tile streamer and tile builder:<br/>terrain, roads, buildings, trees, traffic"]
+    Graph{{"Place knowledge graph<br/>facts + rules = details"}}
+    Live["Live world<br/>weather, tide, aircraft"]
+    Env["Sun, sky and weather<br/>for the real place and time"]
+    Input["Driver input<br/>keyboard, Xbox pad, wheel"]
+    Physics["Vehicle physics<br/>real car data, 360 Hz"]
+    Out["Car look, camera, sound,<br/>HUD and rumble"]
+  end
+
+  subgraph Unreal["Unreal Engine 5.8"]
+    Chaos["Chaos physics"]
+    Render["Renderer<br/>Lumen, sky, exposure"]
+    Mixer["Audio mixer"]
+  end
+
+  Tests["Tests: scripts/check.ps1<br/>and pre-flight drives"]
+
+  MapData -->|HTTPS| Helper
+  Feeds -->|HTTPS| Live
+  UI -->|place and route| World
+  World -->|tile X Y| Helper
+  Helper -->|tile JSON| World
+  World -->|place facts| Graph
+  Live -->|live facts| Graph
+  Graph -->|building details| World
+  Live --> Env
+  UI -->|tuning| Physics
+  Input --> Physics
+  Physics <-->|forces and ground rays| Chaos
+  Physics -->|telemetry| Out
+  World --> Render
+  Env --> Render
+  Out --> Render
+  Out --> Mixer
+  Tests -.->|check| Game
+```
+
+How one frame of a drive works:
+
+1. The tile streamer finds the map tiles near the car. For each tile that is not loaded, it asks the map helper.
+2. The map helper gets the public data (or reads it from the disk cache) and sends back one JSON tile.
+3. The tile builder makes the terrain, roads, buildings, trees and road furniture on worker threads. It adds one tile to the world in each frame.
+4. The place knowledge graph uses facts about the place (for example "Art Deco", "hotel", "near water", "night", "rain") and its rules to choose the details of each building.
+5. The live world reads the live feeds. The weather, the tide and the real aircraft go into the sky, the sea and the knowledge graph.
+6. Your input goes to the vehicle physics. The physics runs 360 times each second on the Chaos physics thread. It calculates each tyre, spring, the engine, the gearbox and the differentials from the real car's data.
+7. The telemetry from the physics moves the car model, the wheels, the camera, the engine sound, the HUD and the rumble.
+8. Unreal renders the picture and mixes the sound.
+
+The automated tests (`scripts/check.ps1`) and the pre-flight drives check the physics against real road-test numbers and check the world before each release. More detail is in [docs/technical-overview.md](docs/technical-overview.md) and [docs/unreal-architecture.md](docs/unreal-architecture.md).
+
 ## Running it
 
 **Windows:** install with the setup from [Releases](https://github.com/simcruisegame/simcruise/releases) (see [Download](#download)). macOS follows when a Mac is available to build on. From source on Windows:
