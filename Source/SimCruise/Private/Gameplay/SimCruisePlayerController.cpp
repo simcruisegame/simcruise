@@ -235,13 +235,13 @@ FSimCruiseRawControls ASimCruisePlayerController::ReadRawControls() const
 	Raw.bKeyThrottle = Held(InputConfig->ThrottleKey);
 	Raw.bKeyBrake = Held(InputConfig->BrakeKey);
 	Raw.bFullServiceBrake = Held(InputConfig->FullBrake);
-	// Parked with the seat menu open: held on the brakes.
+	Raw.bParkingBrake = Held(InputConfig->ParkingBrake);
+	// Parked with the seat menu open: held on the brakes (after the key read, which would undo it).
 	if (SeatPanel.IsValid())
 	{
 		Raw.bFullServiceBrake = true;
 		Raw.bParkingBrake = true;
 	}
-	Raw.bParkingBrake = Held(InputConfig->ParkingBrake);
 	Raw.bClutch = Held(InputConfig->Clutch);
 	return Raw;
 }
