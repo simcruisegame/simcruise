@@ -165,6 +165,12 @@ private:
 	// Recording.
 	float FrameClock = 0.f;
 	bool bFramePending = false;
+	/** -SimCruisePreflightNoFrames: no screenshots, so the frame times are the game's own. */
+	bool bNoFrames = false;
+	/** -SimCruisePreflightKmh=: drive at this speed (slower only for curves and cars), not the road's limit. */
+	double SpeedOverrideMps = 0.0;
+	/** Every drive frame's real time (ms) and the path distance at the long ones. */
+	TArray<float> FrameMs;
 	FDelegateHandle FrameHandle;
 	int32 FrameIndex = 0;
 	TArray<FVector2D> PendingSky;

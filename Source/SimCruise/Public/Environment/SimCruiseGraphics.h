@@ -38,6 +38,8 @@ struct SIMCRUISE_API FSimCruiseGraphics
 	static bool Parse(const FString& Text, ESimCruiseGraphicsPreset& OutPreset);
 
 	static FSimCruisePresetSpec Spec(ESimCruiseGraphicsPreset Preset);
+	/** Tonemapper sharpening (r.Tonemapper.Sharpen) for a TSR screen percentage: stronger when the internal picture is smaller. */
+	static float SharpenFor(float ScreenPercentage);
 
 	/**
 	 * The preset this GPU should start on. Integrated and software adapters get Low;

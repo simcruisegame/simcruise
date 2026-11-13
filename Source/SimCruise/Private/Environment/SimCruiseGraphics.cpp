@@ -58,6 +58,11 @@ bool FSimCruiseGraphics::Parse(const FString& Text, ESimCruiseGraphicsPreset& Ou
 	return false;
 }
 
+float FSimCruiseGraphics::SharpenFor(float ScreenPercentage)
+{
+	return FMath::Clamp(0.4f + 1.2f * (1.0f - ScreenPercentage / 100.0f), 0.4f, 1.0f);
+}
+
 FSimCruisePresetSpec FSimCruiseGraphics::Spec(ESimCruiseGraphicsPreset Preset)
 {
 	// Screen percentages and the resulting frame times on the RTX 2070 Super Max-Q at
@@ -177,6 +182,9 @@ void FSimCruiseGraphics::Apply(ESimCruiseGraphicsPreset Preset)
 	// TSR on every preset: it is what makes the lower internal resolutions hold detail.
 	SetCVar(TEXT("r.AntiAliasingMethod"), TEXT("4"));
 	SetCVar(TEXT("r.ScreenPercentage"), FString::SanitizeFloat(S.ScreenPercentage));
+	// Sharpen after the upscale, more the lower the internal resolution: TSR's output from a
+	// 58 % picture is soft (Aaron: "the graphics look fuzzy"). 100 % gets a light 0.4.
+	SetCVar(TEXT("r.Tonemapper.Sharpen"), FString::SanitizeFloat(SharpenFor(S.ScreenPercentage)));
 	SetCVar(TEXT("r.Lumen.DiffuseIndirect.Allow"), S.bLumenGI ? TEXT("1") : TEXT("0"));
 	SetCVar(TEXT("r.Lumen.Reflections.Allow"), S.bLumenReflections ? TEXT("1") : TEXT("0"));
 

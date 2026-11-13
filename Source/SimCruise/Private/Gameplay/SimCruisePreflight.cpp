@@ -18,6 +18,7 @@
 #include "ImageUtils.h"
 #include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
+#include "Misc/App.h"
 #include "Misc/CommandLine.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Parse.h"
@@ -148,6 +149,12 @@ void ASimCruisePreflight::BeginPlay()
 	const TCHAR* Cmd = FCommandLine::Get();
 	FParse::Value(Cmd, TEXT("SimCruisePreflightSeconds="), DriveSeconds);
 	DriveSeconds = FMath::Clamp(DriveSeconds, 5.f, 600.f);
+	bNoFrames = FParse::Param(Cmd, TEXT("SimCruisePreflightNoFrames"));
+	double Kmh = 0.0;
+	if (FParse::Value(Cmd, TEXT("SimCruisePreflightKmh="), Kmh) && Kmh > 0.0)
+	{
+		SpeedOverrideMps = FMath::Clamp(Kmh, 10.0, 300.0) / 3.6;
+	}
 	FParse::Value(Cmd, TEXT("SimCruisePreflightRoad="), RoadName);
 	FParse::Value(Cmd, TEXT("SimCruiseCar="), CarId);
 	if (!FParse::Value(Cmd, TEXT("SimCruisePreflightOut="), OutputDir))
@@ -380,8 +387,17 @@ void ASimCruisePreflight::Tick(float DeltaSeconds)
 		Stats.DriveSeconds += DeltaSeconds;
 		DriveTick(Player, DeltaSeconds);
 		MeasureTick(Player, DeltaSeconds);
+		{
+			// The real frame time (DeltaSeconds can be clamped); a long one is a stall the player sees.
+			const float Ms = static_cast<float>(FApp::GetDeltaTime() * 1000.0);
+			FrameMs.Add(Ms);
+			if (Ms > 50.f)
+			{
+				UE_LOG(LogSimCruisePreflight, Display, TEXT("Pre-flight: stall %.0f ms at %.0f m (%.0f km/h)"), Ms, PathM, Player->GetTelemetry().BodyVelocityMps.X * 3.6);
+			}
+		}
 		FrameClock += DeltaSeconds;
-		if (FrameClock >= FrameIntervalS && !bFramePending)
+		if (!bNoFrames && FrameClock >= FrameIntervalS && !bFramePending)
 		{
 			FrameClock = 0.f;
 			RequestFrame(Player);
@@ -465,6 +481,7 @@ void ASimCruisePreflight::DriveTick(ASimCruisePlayerController* Player, float De
 	// Speed: the road's limit, slower for the curves ahead and for a car ahead.
 	double TargetMps = FMath::Min(SimCruiseTrafficModel::SpeedLimitMps(Line.Class), MaxSpeedMps);
 	if (TargetMps <= 1.0) TargetMps = 13.4;
+	if (SpeedOverrideMps > 0.0) TargetMps = SpeedOverrideMps;
 	FCursor Ahead = Here;
 	FVector2d PrevTangent = TangentAt(Ahead);
 	for (int32 Step = 1; Step <= 16; ++Step)
@@ -556,18 +573,27 @@ void ASimCruisePreflight::MeasureTick(ASimCruisePlayerController* Player, float 
 			OutZm = Hit.ImpactPoint.Z / 100.0;
 			return true;
 		}
-		const ASimCruiseWorldTile* Tile = Stream->GetTile(Stream->GetFrame().TileAtWorldCm(At));
-		if (!Tile || !Tile->Mesh)
+		// The tile under the point, and its neighbours: within a few centimetres of a tile edge the
+		// point's own tile can miss while the road there is the neighbour's mesh (it read as a
+		// 1.3 m "gap" at a border on CA-1 in the v2.0.2 pre-flight). Take the highest hit.
+		const FIntPoint Home = Stream->GetFrame().TileAtWorldCm(At);
+		bool bAny = false, bRoad = false;
+		double Best = TNumericLimits<double>::Lowest();
+		for (int32 DY = -1; DY <= 1; ++DY)
+		for (int32 DX = -1; DX <= 1; ++DX)
 		{
-			return false;
+			const ASimCruiseWorldTile* Tile = Stream->GetTile(Home + FIntPoint(DX, DY));
+			if (!Tile || !Tile->Mesh) continue;
+			FHitResult TileHit;
+			if (!Tile->Mesh->LineTraceComponent(TileHit, From, To, Params)) continue;
+			if (TileHit.ImpactPoint.Z / 100.0 <= Best) continue;
+			Best = TileHit.ImpactPoint.Z / 100.0;
+			bAny = true;
+			bRoad = IsRoadLayer(Tile->LayerAtFace(TileHit.FaceIndex));
 		}
-		FHitResult TileHit;
-		if (!Tile->Mesh->LineTraceComponent(TileHit, From, To, Params))
-		{
-			return false;
-		}
-		OutZm = TileHit.ImpactPoint.Z / 100.0;
-		return IsRoadLayer(Tile->LayerAtFace(TileHit.FaceIndex));
+		if (!bAny) return false;
+		OutZm = Best;
+		return bRoad;
 	};
 	// The surface under the car's centre: the path the wheels ride. A point straight ahead
 	// leaves the paved edge in a hairpin and reads as a gap that is not there.
@@ -807,6 +833,20 @@ void ASimCruisePreflight::Finish()
 			Stats.ReferenceEV100 = Environment->GetReferenceEV100();
 		}
 	}
+
+	// Frame times: the median, the 1 % worst, the worst, and how many frames a player sees as a hitch.
+	FString FrameLine = TEXT("none");
+	if (FrameMs.Num() > 0)
+	{
+		TArray<float> Sorted = FrameMs;
+		Sorted.Sort();
+		auto Pct = [&](double Q) { return Sorted[FMath::Clamp(FMath::FloorToInt32(Q * (Sorted.Num() - 1)), 0, Sorted.Num() - 1)]; };
+		int32 Over33 = 0, Over50 = 0, Over100 = 0;
+		for (float Ms : FrameMs) { Over33 += Ms > 33.4f; Over50 += Ms > 50.f; Over100 += Ms > 100.f; }
+		FrameLine = FString::Printf(TEXT("frames=%d p50=%.1fms p99=%.1fms worst=%.0fms over33=%d over50=%d over100=%d"),
+			FrameMs.Num(), Pct(0.5), Pct(0.99), Sorted.Last(), Over33, Over50, Over100);
+	}
+	UE_LOG(LogSimCruisePreflight, Display, TEXT("PREFLIGHT FRAMES road=%s car=%s mean=%.1fm/s %s"), *RoadName, *CarId, Stats.MeanSpeedMps, *FrameLine);
 
 	const FString Reasons = Judge(Stats);
 	const bool bPass = Reasons.IsEmpty();

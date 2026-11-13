@@ -454,6 +454,15 @@ void ASimCruiseEnvironment::ApplyExposure()
 	S.BloomIntensity = 0.25f;
 	S.bOverride_SceneFringeIntensity = true;
 	S.SceneFringeIntensity = 0.0f;
+	// Motion blur as a camera at the real frame rate sees it (a 180 degree shutter), short and
+	// light: the engine default treats every frame as a 30 fps frame, so at 60 fps the world
+	// smeared twice as long as a camera would show, and at speed it read as a fuzzy picture.
+	S.bOverride_MotionBlurTargetFPS = true;
+	S.MotionBlurTargetFPS = 0;
+	S.bOverride_MotionBlurAmount = true;
+	S.MotionBlurAmount = 0.3f;
+	S.bOverride_MotionBlurMax = true;
+	S.MotionBlurMax = 2.0f;
 
 	// Mesopic and scotopic vision: colour fades as the light goes (rods take over below
 	// about 3 cd/m2). Full colour down to reference EV 6 (deep civil twilight), a third of it

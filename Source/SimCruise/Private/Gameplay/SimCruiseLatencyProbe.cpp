@@ -53,6 +53,8 @@ namespace
 {
 	TAutoConsoleVariable<int32> CVarFrameCap(TEXT("simcruise.FrameCap"), 60,
 		TEXT("Frame-rate cap for the drive, frames per second (0 = no cap). Applied at the start of a drive (t.MaxFPS changes it at once)."));
+	TAutoConsoleVariable<int32> CVarVSync(TEXT("simcruise.VSync"), 1,
+		TEXT("1 (default): wait for the screen's refresh, so a frame never tears. 0: off (lower latency, tearing on a 60 Hz screen)."));
 	TAutoConsoleVariable<int32> CVarReflex(TEXT("simcruise.Reflex"), 0,
 		TEXT("NVIDIA Reflex: 0 off (default), 1 low latency, 3 low latency + boost. Needs an NVIDIA GPU and driver 455 or newer. -SimCruiseReflex=<n> sets it at the start."));
 
@@ -98,6 +100,13 @@ void SimCruiseFramePacing::Apply()
 		{
 			MaxFps->Set(static_cast<float>(Cap), ECVF_SetByGameSetting);
 		}
+	}
+	// VSync: with only a sleep-based 60 fps cap on a 60 Hz screen, each frame started at a
+	// drifting point of the scan, so a tear line rolled through the picture and frames came
+	// unevenly (Aaron, 2026-11-13: "it looks like it was glitching / laggy").
+	if (IConsoleVariable* VSync = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync")))
+	{
+		VSync->Set(bMeasuring ? 0 : FMath::Clamp(CVarVSync.GetValueOnGameThread(), 0, 1), ECVF_SetByGameSetting);
 	}
 	int32 Mode = CVarReflex.GetValueOnGameThread();
 	FParse::Value(FCommandLine::Get(), TEXT("SimCruiseReflex="), Mode);
