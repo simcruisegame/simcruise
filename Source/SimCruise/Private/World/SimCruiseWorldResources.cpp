@@ -364,16 +364,6 @@ col *= lerp(1.0, 0.72, VC.g);   // gutter pan grime
 col *= lerp(1.0, 1.06, VC.b);   // curb
 Roughness = saturate(0.84 + 0.08 * (1.0 - a));
 float3 g = float3(-(ax - a), -(ay - a), 0.0) * Bump * (1.0 - vertical);
-// The AI detail kit (DetailKitCode): concrete pores, pits and stains up close; on a curb face
-// the slope turns into the face's along and up axes.
-{
-	FDK dk; float2 dn;
-	float2 dp = uv * 1.9;
-	float3 kr = dk.Sample(DetailAlb, DetailAlbSampler, DetailNrm, DetailNrmSampler, 1.0, dp, 1.5, length(fwidth(dp)), Depth, DetailLayer, dn);
-	col *= kr;
-	float3 kT = normalize(float3(-VN.y, VN.x, 0.0) + float3(1e-4, 0.0, 0.0));
-	g += lerp(float3(dn, 0.0), kT * dn.x + float3(0.0, 0.0, dn.y), vertical) * 0.7;
-}
 Nrm = normalize(VN + g);
 return max(col, 0.0);
 )HLSL");
@@ -436,21 +426,6 @@ float stain = dot(Texture2DSample(Grain, GrainSampler, float2(along * 0.11, h * 
 // Stains only darken (never lift a wall above its weathered-paint albedo).
 float3 stucco = VC.rgb * lerp(1.0, grain, 0.09) * lerp(1.0, min(stain, 1.0), 0.25);
 stucco *= lerp(0.78, 1.0, smoothstep(0.0, 1.2, h));
-// The AI detail kit (DetailKitCode): the wall's material from its colour (red-brown and dark:
-// brick; grey and unsaturated: concrete; else stucco and plaster), bark on palm trunks.
-float3 kr; float3 dWall;
-{
-	FDK dk; float2 dn;
-	float wl = dot(VC.rgb, W);
-	float wsat = (max(VC.r, max(VC.g, VC.b)) - min(VC.r, min(VC.g, VC.b))) / max(wl, 1e-3);
-	float wsl = (VC.r > VC.g * 1.3 && wl < 0.25) ? 3.0 : ((wsat < 0.12 && wl < 0.4) ? 1.0 : 2.0);
-	if (kind > 6.5 && kind < 7.5) wsl = 7.0;
-	float2 dp = lerp(m, float2(along + seed * 37.0, h), vertical);
-	kr = dk.Sample(DetailAlb, DetailAlbSampler, DetailNrm, DetailNrmSampler, wsl, dp, wsl == 3.0 ? 2.0 : (wsl == 7.0 ? 0.6 : 1.2), length(fwidth(dp)), Depth, DetailLayer, dn);
-	float3 kT = normalize(float3(-VN.y, VN.x, 0.0) + float3(1e-4, 0.0, 0.0));
-	dWall = lerp(float3(dn, 0.0), kT * dn.x + float3(0.0, 0.0, dn.y), vertical);
-}
-stucco *= kr;
 float3 col = stucco;
 float rough = 0.88;
 float metal = 0.0;
@@ -634,11 +609,10 @@ if (rPane > 0.0)
 	// Clear glass passes about 85 %, the tinted panes a quarter.
 	emis += rPane * room * lerp(0.85, 0.25, rTint);
 }
-if (kind > 6.5 && kind < 7.5) col *= kr; // palm bark
 Roughness = rough;
 Metal = metal;
 Emis = emis;
-Nrm = normalize(VN + dWall * step(0.8, rough)); // the kit's slope on matte walls and bark, not on glass or metal
+Nrm = normalize(VN);
 return max(col, 0.0);
 )HLSL");
 
@@ -754,8 +728,8 @@ return col;
 		AddInput(Custom, TEXT("VA"), VertexColor, 4);       // alpha (output 4)
 		AddInput(Custom, TEXT("Anchor"), VectorParam(Material, TEXT("Anchor"), FLinearColor(0, 0, 0, 0)));
 		// The AI detail kit (DetailKitCode): two atlases and the on switch (-SimCruiseNoDetailLayer).
-		if (Layer == ESimCruiseTileLayer::Terrain || Layer == ESimCruiseTileLayer::Asphalt || Layer == ESimCruiseTileLayer::Concrete
-			|| Layer == ESimCruiseTileLayer::Building || Layer == ESimCruiseTileLayer::Props)
+		// Road and ground only (kept small: walls, kerbs and bark are left as they were).
+		if (Layer == ESimCruiseTileLayer::Terrain || Layer == ESimCruiseTileLayer::Asphalt)
 		{
 			AddInput(Custom, TEXT("DetailAlb"), TextureParam(Material, TEXT("DetailAlb"), DefaultTexture));
 			AddInput(Custom, TEXT("DetailNrm"), TextureParam(Material, TEXT("DetailNrm"), DefaultTexture));
@@ -804,7 +778,7 @@ return col;
 			AddInput(Custom, TEXT("Wet"), ScalarParam(Material, TEXT("Wet"), 0.f));
 			break;
 		case ESimCruiseTileLayer::Concrete:
-			Custom->Code = FString(DetailKitCode) + ConcreteCode;
+			Custom->Code = ConcreteCode;
 			AddInput(Custom, TEXT("Grain"), TextureParam(Material, TEXT("Grain"), DefaultTexture));
 			AddInput(Custom, TEXT("GrainMean"), VectorParam(Material, TEXT("GrainMean"), FLinearColor(0.2f, 0.2f, 0.2f)));
 			AddInput(Custom, TEXT("Tint"), VectorParam(Material, TEXT("Tint"), FLinearColor(0.34f, 0.33f, 0.31f)));
@@ -818,7 +792,7 @@ return col;
 		case ESimCruiseTileLayer::Building:
 		case ESimCruiseTileLayer::Props:
 		{
-			Custom->Code = FString(DetailKitCode) + BuildingCode;
+			Custom->Code = BuildingCode;
 			Custom->AdditionalOutputs.Add({ FName(TEXT("Metal")), CMOT_Float1 });
 			Custom->AdditionalOutputs.Add({ FName(TEXT("Emis")), CMOT_Float3 });
 			AddInput(Custom, TEXT("Grain"), TextureParam(Material, TEXT("Grain"), DefaultTexture));
