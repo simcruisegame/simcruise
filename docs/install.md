@@ -1,50 +1,53 @@
 # Installing SimCruise
 
-> The releases on the Releases page are the Godot 1.x client (source at the git tag `godot-final`). The Unreal client has no installer yet: build it from source as described in [unreal-building.md](unreal-building.md). Windows installers come first; macOS needs a Mac to build on.
+SimCruise 2.0 and later is the Unreal Engine 5.8 client, for Windows. Downloads are on the [Releases page](https://github.com/simcruisegame/simcruise/releases):
 
+| File | Type |
+|---|---|
+| `SimCruise-<version>-windows-x64-setup.exe` | Installer: Start menu entry and uninstaller |
+| `SimCruise-<version>-windows-x64.zip` | Portable folder: unzip and run `SimCruise.exe` |
+| `SimCruise-<version>-SHA256SUMS.txt` | SHA-256 checksums of the two files above |
 
-Downloads are on the [Releases page](https://github.com/simcruisegame/simcruise/releases). Every release has the same version number on both systems:
+There is no macOS build of the Unreal client yet (it needs a Mac to build on). The Godot 1.x releases for macOS and Windows stay on the Releases page; their source is at the git tag `godot-final`.
 
-| System | File | Type |
+## System requirements
+
+| | Minimum | Recommended |
 |---|---|---|
-| macOS (Apple Silicon) | `SimCruise-<version>.dmg` | Disk image: drag to Applications |
-| Windows 10/11 (64-bit) | `SimCruise-<version>-windows-x64-setup.exe` | Installer with Start menu entry and uninstaller |
-| Windows 10/11 (64-bit) | `SimCruise-<version>-windows-x64.zip` | Portable folder: unzip and run `SimCruise.exe` |
+| System | Windows 10 or 11, 64-bit | Windows 11, 64-bit |
+| Processor | 4 cores, 2017 or newer | 8 cores (tested: Intel Core i9-10885H) |
+| Memory | 8 GB | 16 GB |
+| Graphics | DirectX 12 GPU with 6 GB of video memory (NVIDIA GTX 1660, AMD RX 5600), Low or Medium preset | NVIDIA RTX 2070 class with 8 GB (tested: RTX 2070 Super with Max-Q Design, a laptop GPU, High preset) |
+| Disk | 3 GB for the game, plus up to about 1 GB of map cache | SSD |
+| Network | Not needed for the bundled Ocean Drive, Miami Beach | Broadband for the rest of the US (open data is fetched as you drive) |
+| Controls | Keyboard | Xbox controller, or a USB wheel with a Windows GameInput driver |
 
-Each release lists SHA-256 checksums for its files.
+The game picks a graphics preset for your GPU at the start (`Low`, `Medium`, `High` or `Ultra`) and caps the frame rate at 60 fps. The measured frame rates on the tested laptop are in [the release report](release/v2.0.0-report.md).
 
-## macOS
+## Install with the installer
 
-Requirements: a Mac with Apple Silicon (M1 or later) running macOS 13 Ventura or newer, a few hundred megabytes of disk for the app plus a cache that stays under roughly 100 MB, and an internet connection for the random start and any place outside the bundled offline neighbourhood (without one the game starts on Ocean Drive, Miami Beach). Intel Macs are not supported: the release executable is Apple Silicon only. An Xbox controller is optional (pair it in System Settings → Bluetooth).
+1. Download `SimCruise-<version>-windows-x64-setup.exe`.
+2. Optional: check the download. In PowerShell, `Get-FileHash .\SimCruise-<version>-windows-x64-setup.exe` must print the value in `SimCruise-<version>-SHA256SUMS.txt`.
+3. Run it. Windows SmartScreen may say "Windows protected your PC", because this free open-source build is not code-signed (signing needs a paid certificate). Click **More info**, then **Run anyway**.
+4. Choose **Install for me only** (no administrator rights; the game goes to `%LOCALAPPDATA%\Programs\SimCruise`) or **Install for all users** (Program Files; needs administrator rights).
+5. Follow the installer. It adds SimCruise to the Start menu, and to the desktop if you tick it.
 
-1. Download `SimCruise-<version>.dmg` from this repository's Releases page.
-2. Open the disk image and drag **SimCruise** onto the **Applications** shortcut beside it.
-3. Launch it from Applications. The first launch shows a Gatekeeper warning; see below.
+To uninstall, use **Settings > Apps > Installed apps > SimCruise > Uninstall**, or **Uninstall SimCruise** in the Start menu.
 
-### First launch and Gatekeeper
+## Run the portable zip
 
-The app is signed *ad hoc* by the build script and is not notarized by Apple, because notarization needs a paid developer account and this project deliberately has none. macOS therefore warns once that it "cannot verify" the developer. Nothing is wrong with the download; this is what every unsigned open-source Mac app shows. Allow it one of these ways:
+Unzip `SimCruise-<version>-windows-x64.zip` to any folder and run `SimCruise.exe`. Keep the folder together: `SimCruise\tools\atlas.exe` (the map helper) and `SimCruise\data\` must stay beside the game. To remove it, delete the folder.
 
-- **macOS 13 Ventura and 14 Sonoma:** Control-click (right-click) `SimCruise.app` in Applications, choose **Open**, then click **Open** in the dialog. The choice is remembered.
-- **macOS 15 Sequoia and later:** double-click the app once and dismiss the warning, open **System Settings → Privacy & Security**, scroll to *Security*, click **Open Anyway** next to SimCruise, authenticate, and open the app again.
-- **Terminal:** `xattr -dr com.apple.quarantine /Applications/SimCruise.app` removes the download quarantine flag; the app then opens like any other.
+## Where it keeps things
 
-A copy of these instructions ships inside the disk image as `README-first-launch.txt`. If you build from source yourself there is no quarantine flag and no prompt.
+SimCruise writes its settings, map cache and captures to `%LOCALAPPDATA%\SimCruise\Saved` (`SimCruise\preferences.json` holds your car, gearbox, sound, HUD, lens, head motion and rumble choices). The uninstaller does not remove this folder; delete it to remove everything.
 
-### Where it keeps things
+## Problems
 
-Everything SimCruise writes lives in `~/Library/Application Support/Godot/app_userdata/SimCruise/`: `map-cache/` (fetched source data, trimmed to about 96 MiB), `driving-preferences/` (transmission, street-photo and ground-cover choices) and `logs/`. To uninstall, delete the app and that folder.
+- **The game starts on Ocean Drive instead of a random road:** the random start needs the internet. Without it, the game always starts on the bundled Ocean Drive, Miami Beach.
+- **Low frame rate:** start the game with a lower preset, for example `SimCruise.exe -SimCruiseGraphics=medium` (a shortcut's target can carry it).
+- **Report a bug:** open an issue on GitHub with your Windows version, GPU and what you did.
 
-## Windows
+## The Godot 1.x client (old)
 
-Requirements: 64-bit Windows 10 or 11, a graphics card with Vulkan or Direct3D 12 drivers (any GPU from about 2016 on), a few hundred megabytes of disk plus the map cache, and an internet connection. An Xbox controller is optional.
-
-1. Download `SimCruise-<version>-windows-x64-setup.exe` from the Releases page.
-2. Run it. Windows SmartScreen may say "Windows protected your PC", because this free open-source build is not code-signed (signing needs a paid certificate). Click **More info**, then **Run anyway**.
-3. Follow the installer. It adds SimCruise to the Start menu, optionally to the desktop, and to **Settings → Apps** for uninstalling.
-
-Prefer no installer? Unzip `SimCruise-<version>-windows-x64.zip` anywhere and run `SimCruise.exe`; keep `atlas.exe` beside it.
-
-SimCruise keeps its map cache, preferences and logs in `%APPDATA%\Godot\app_userdata\SimCruise`. The uninstaller removes them only if you tick **Map cache and settings**.
-
-The Windows build is new in 1.1. If something goes wrong, please open an issue with your Windows version, graphics card and the newest file in `%APPDATA%\Godot\app_userdata\SimCruise\logs`.
+The 1.x releases (Godot engine, macOS and Windows) are kept for reference. Their install notes are in this file at the git tag `godot-final`.

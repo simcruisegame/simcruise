@@ -153,6 +153,9 @@ public:
 	int32 CountStuckCars(double Seconds = 20.0) const;
 	/** Cars that left a queue behind a car standing for good (you parked in the lane). */
 	int32 GetQueueGiveUps() const { return QueueGiveUps; }
+	/** Cars removed because the player's car was placed within ClearOnPlaceM of them. */
+	int32 GetPlacementClears() const { return PlacementClears; }
+	static constexpr double ClearOnPlaceM = 20.0;
 
 	/** Remove every car (a jump to another place: their roads are gone). */
 	void ClearCars();
@@ -181,7 +184,10 @@ private:
 	uint32 Random = 0x5eed1234;
 	double SinceStart = 0.0;
 	double ReportClock = 5.0;
-	int32 RibbonChanges = 0, Spawned = 0, StopsPassed = 0, LaneChanges = 0, LeftTurnYields = 0, QueueGiveUps = 0;
+	int32 RibbonChanges = 0, Spawned = 0, StopsPassed = 0, LaneChanges = 0, LeftTurnYields = 0, QueueGiveUps = 0, PlacementClears = 0;
+	FVector LastFocusCm = FVector::ZeroVector;
+	bool bHaveLastFocus = false;
+	FDelegateHandle RebaseHandle;
 	/** Car-frames held at a red or late yellow signal (for the report). */
 	int64 SignalHolds = 0;
 	TWeakObjectPtr<const class ASimCruiseSignals> CachedSignals;

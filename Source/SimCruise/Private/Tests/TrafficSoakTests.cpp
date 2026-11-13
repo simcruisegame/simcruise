@@ -6,6 +6,7 @@
 
 #include "Async/TaskGraphInterfaces.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "HAL/IConsoleManager.h"
 #include "Tests/VehicleBenchWorld.h"
 #include "Tests/VehicleBenches.h"
@@ -62,10 +63,31 @@ bool FSimCruiseTrafficSoakTest::RunTest(const FString& Parameters)
 	int32 WorstStuck = 0;
 	int32 MaxCars = 0;
 	double Clock = 0.0;
+	bool bPlaced = false;
+	int32 NearAfterPlace = -1;
 	Bench.RunUntil([&]()
 	{
 		Clock += 1.0 / 60.0;
 		MaxCars = FMath::Max(MaxCars, Traffic->NumCars());
+		// At 120 s the "player" is placed right where a traffic car stands (a new start or
+		// Drive here): a frame later no car may stand within 15 m of it.
+		if (!bPlaced && Clock > 120.0)
+		{
+			for (TActorIterator<ASimCruiseTrafficCar> It(Bench.GetWorld()); It; ++It)
+			{
+				Traffic->TestFocusCm = It->GetActorLocation() + FVector(150.0, 0.0, 0.0);
+				bPlaced = true;
+				break;
+			}
+		}
+		else if (bPlaced && NearAfterPlace < 0)
+		{
+			NearAfterPlace = 0;
+			for (TActorIterator<ASimCruiseTrafficCar> It(Bench.GetWorld()); It; ++It)
+			{
+				NearAfterPlace += FVector::Dist(It->GetActorLocation(), Traffic->TestFocusCm) < 1500.0 ? 1 : 0;
+			}
+		}
 		if (Clock > 60.0)
 		{
 			WorstStuck = FMath::Max(WorstStuck, Traffic->CountStuckCars(40.0));
@@ -78,6 +100,9 @@ bool FSimCruiseTrafficSoakTest::RunTest(const FString& Parameters)
 	AddInfo(FString::Printf(TEXT("TRAFFIC soak: up to %d cars over 240 s; most standing over 40 s at once: %d; %d left a standing queue"),
 		MaxCars, WorstStuck, Traffic->GetQueueGiveUps()));
 	TestTrue(TEXT("traffic runs (at least 20 cars)"), MaxCars >= 20);
+	AddInfo(FString::Printf(TEXT("TRAFFIC placement: %d cars cleared, %d within 15 m a frame later"), Traffic->GetPlacementClears(), NearAfterPlace));
+	TestTrue(TEXT("placing the player on a traffic car clears it"), bPlaced && Traffic->GetPlacementClears() >= 1);
+	TestEqual(TEXT("no traffic car within 15 m of a newly placed player"), NearAfterPlace, 0);
 	TestEqual(TEXT("no car stands for more than 40 s (no gridlock)"), WorstStuck, 0);
 	return true;
 }

@@ -273,7 +273,7 @@ double FSimCruiseVehicleSim::MotorTorqueNm(double Throttle, double Ratio, double
 	// Constant torque to the base speed, constant power above it, nothing past
 	// the motor's top speed; light regeneration when coasting.
 	const double MotorOmega = DrivenOmega() * SignDirection * Ratio;
-	double Available = FMath::Min(Car.ElectricMotorPeakTorqueNm, Car.ElectricMotorPeakPowerW / FMath::Max(FMath::Abs(MotorOmega), 1.0));
+	double Available = FMath::Min(Car.ElectricMotorPeakTorqueNm, Car.ElectricMotorPeakPowerW / FMath::Max(FMath::Abs(MotorOmega), 1.0)) * Car.EngineTorqueScale;
 	if (FMath::Abs(MotorOmega) * 60.0 / Tau > Car.ElectricMotorMaximumSpeedRpm)
 	{
 		Available = 0.0;
@@ -408,7 +408,12 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 	{
 		State.SteeringRad = State.SteeringInput * Cap;
 	}
-	const double Steering = State.SteeringRad;
+	// Steering compliance: the front tyres' aligning torque (last step's) winds the column,
+	// rack mounts and tie rods, so the road wheels turn a little less than the rack asks.
+	// It is a real share of a road car's understeer (often a quarter to a half of it).
+	const double Steering = Car.SteeringStiffnessNmPerDeg > 0.0
+		? State.SteeringRad + State.RackAligningTorqueNm / SimCruiseUnits::ToDegrees(1.0) / Car.SteeringStiffnessNmPerDeg
+		: State.SteeringRad;
 
 	State.bRoofDown = Up.Dot(FVector3d::UnitZ()) < 0.2;
 	State.FlippedSeconds = State.bRoofDown ? State.FlippedSeconds + Dt : 0.0;
@@ -712,6 +717,12 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 			const double Friction = Car.EngineFrictionTorqueNm + Car.EngineFrictionTorqueNmPerRpm * Rpm;
 			double Torque = Rpm < Car.FuelCutSpeedRpm ? (SimCruiseDynamics::SampleEngineTorqueNm(Car, Rpm) + Friction) * Throttle : 0.0;
 			double Drag = Friction * (Rpm > Car.IdleSpeedRpm ? 1.0 : 0.5);
+			// A closed throttle also pumps against manifold vacuum; at full throttle that loss is
+			// already in the published curve.
+			if (Rpm > Car.IdleSpeedRpm)
+			{
+				Drag += (Car.EnginePumpingTorqueNm + Car.EnginePumpingTorqueNmPerRpm * Rpm) * (1.0 - FMath::Clamp(Throttle, 0.0, 1.0));
+			}
 			double Governor = FMath::Clamp((Car.GovernorSpeedRpm - Rpm) * 0.8, 0.0, 100.0);
 			AxleSpeed = DrivenOmega() * SignDirection;
 			// The clutch (or converter, dual clutch) couples engine and driven
@@ -734,15 +745,26 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 			if (State.bManual)
 			{
 				const double Capacity = Car.ClutchCapacityNm * (1.0 - SmoothStep(0.16, 0.88, State.ClutchPedal));
-				ClutchLoad = State.SelectedGear == 0 ? 0.0 : FMath::Clamp(
-					(State.EngineOmegaRadPerSecond - AxleSpeed * ForwardRatio) * Car.ManualClutchCouplingNmPerRadPerSecond,
-					-Capacity, Capacity);
+				// A dry clutch with the pedal up locks: below its capacity it carries whatever torque
+				// keeps engine and gearbox together. That stiffness is the most a substep can take
+				// without overshooting (the 1/(dt I) cap the automatic's coupling uses); slipping
+				// with the pedal part-way down it stays the calibrated viscous coupling.
+				const double LockCoupling = 1.0 / (FMath::Max(Ds, ClutchCalibrationSubstepS) * (1.0 / Car.EngineRotationalInertiaKgM2 + Reflected));
+				const double Engaged = 1.0 - SmoothStep(0.02, 0.16, State.ClutchPedal);
+				const double ManualCoupling = FMath::Lerp(FMath::Min(Car.ManualClutchCouplingNmPerRadPerSecond, LockCoupling), LockCoupling, Engaged);
+				// Locked, the clutch also carries this substep's engine torque, so engine and
+				// gearbox end the substep at one speed instead of slipping by torque / stiffness.
+				// A stalled engine makes no torque and has no governor: settle that first, so the
+				// locked clutch does not carry torque the engine no longer makes.
 				if (State.bStalled)
 				{
 					Torque = 0.0;
 					Governor = 0.0;
 					Drag = FMath::Min(26.0, State.EngineOmegaRadPerSecond * 0.85);
 				}
+				const double Gap = State.EngineOmegaRadPerSecond - AxleSpeed * ForwardRatio;
+				const double EngineAhead = Engaged * (Torque + Governor - Drag) * Ds / Car.EngineRotationalInertiaKgM2;
+				ClutchLoad = State.SelectedGear == 0 ? 0.0 : FMath::Clamp((Gap + EngineAhead) * ManualCoupling, -Capacity, Capacity);
 			}
 			else if (AxleSpeed * ForwardRatio * 60.0 / Tau < LaunchTargetRpm && ClutchLoad > 0.0)
 			{
@@ -809,7 +831,11 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 		{
 			FSimCruiseWheelState& Wheel = State.Wheels[WheelIndex];
 			FContactRow& Row = Rows[WheelIndex];
-			double BrakeNm = BrakeAmount * (WheelIndex < 2 ? Car.FrontBrakeTorqueNm : Car.RearBrakeTorqueNm);
+			// A proportioning valve: past its knee the rear line pressure rises at a fraction of the
+			// pedal's, so in a hard stop the fronts lock before the rears.
+			const double RearPedal = BrakeAmount <= Car.RearBrakeKneeFraction ? BrakeAmount
+				: Car.RearBrakeKneeFraction + Car.RearBrakeSlopeAboveKnee * (BrakeAmount - Car.RearBrakeKneeFraction);
+			double BrakeNm = WheelIndex < 2 ? BrakeAmount * Car.FrontBrakeTorqueNm : RearPedal * Car.RearBrakeTorqueNm;
 			const double RowSpeed = Row.bValid ? Row.ForwardSpeed : 0.0;
 			// ABS: a per-wheel pressure modulator cycling each tyre about its peak slip.
 			if (Car.bAbsEnabled && BrakeNm > 0.0 && FMath::Abs(RowSpeed) > 1.5)

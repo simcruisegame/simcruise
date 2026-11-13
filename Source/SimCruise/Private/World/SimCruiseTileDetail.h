@@ -74,6 +74,13 @@ namespace SimCruiseTileDetail
 	 */
 	SIMCRUISE_API void AddStopSign(FSimCruiseMeshData& Props, const FVector2d& BaseM, double GroundZM, const FVector2d& Facing);
 
+	/** Albedo caps (luminance) for weathered exterior paint: walls, trim, concrete towers. */
+	inline constexpr float MaxWallAlbedo = 0.75f;
+	inline constexpr float MaxTrimAlbedo = 0.80f;
+	inline constexpr float MaxTowerAlbedo = 0.55f;
+	/** A colour scaled down (hue kept) so its luminance is at most Max. */
+	SIMCRUISE_API FLinearColor WeatheredPaint(const FLinearColor& Colour, float Max = MaxWallAlbedo);
+
 	/** How a named place signs its building: 0 none, 1 painted letters, 2 neon letters; a hotel ranks first on its building. */
 	struct FSignStyle
 	{

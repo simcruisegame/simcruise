@@ -74,6 +74,8 @@ namespace
 		double SpeedI = 0.0;
 		double RampTurn = 0.0;
 		double RampSpeed = 0.0;
+		/** The 70-0 stop's pedal (threshold braking without ABS). */
+		double ThresholdPedal = 1.0;
 		TArray<double> Window;
 		int32 WindowSize = 360;
 		std::atomic<bool> bDone{ false };
@@ -175,7 +177,25 @@ namespace
 				}
 				break;
 			case 2:
-				C.Controls.Brake = 1.0;
+			{
+				// A magazine tester threshold-brakes a car without ABS: the pedal backs off as a wheel
+				// passes its peak slip and comes back as it rolls again (about 4 and 1 pedal per second).
+				// With ABS the foot stays down.
+				if (!C.Sim.GetCar().bAbsEnabled)
+				{
+					double Worst = 0.0;
+					for (const FSimCruiseWheelState& W : C.Sim.State.Wheels)
+					{
+						Worst = FMath::Max(Worst, -W.SlipRatio / FMath::Max(W.PeakSlip, 0.03));
+					}
+					ThresholdPedal = FMath::Clamp(ThresholdPedal + Dt * (Worst > 1.0 ? -4.0 : 1.0), 0.3, 1.0);
+				}
+				else
+				{
+					ThresholdPedal = 1.0;
+				}
+				C.Controls.Brake = ThresholdPedal;
+			}
 				if (bTrace && Tick % FMath::Max<int64>(1, FMath::RoundToInt64(0.25 / Dt)) == 0)
 				{
 					FString Wheels;
@@ -292,6 +312,8 @@ namespace
 		struct FSample { double T, Yaw, Beta, Speed; };
 		TArray<FSample> Samples;
 		bool bWrongGear = false;
+		/** Log the wheels every 0.1 s after the lift (SIMCRUISE_TURNTRACE=1). */
+		bool bTrace = FPlatformMisc::GetEnvironmentVariable(TEXT("SIMCRUISE_TURNTRACE")) == TEXT("1");
 		std::atomic<bool> bDone{ false };
 
 		int32 RoadGear(const FSimCruiseVehicleSim& Sim, double Speed) const
@@ -323,7 +345,8 @@ namespace
 			History.Reset();
 			Samples.Reset();
 			bWrongGear = false;
-			Pedal = TrailBrakeG * MassKg * Gravity * C.Sim.GetTireRadiusM() / (2.0 * BrakeSumNm);
+			Pedal = Cases[CaseIndex].BrakePedal >= 0.0 ? Cases[CaseIndex].BrakePedal
+				: TrailBrakeG * MassKg * Gravity * C.Sim.GetTireRadiusM() / (2.0 * BrakeSumNm);
 		}
 
 		void Report()
@@ -472,9 +495,37 @@ namespace
 				{
 					Brake = Pedal * FMath::Clamp((T - 0.2) / 0.3, 0.0, 1.0);
 				}
-				Samples.Add({ T, YawRate, Beta, Speed });
+				if (bTrace && FMath::RoundToInt64(T / Dt) % FMath::Max<int64>(1, FMath::RoundToInt64(0.1 / Dt)) == 0)
+				{
+					FString Wheels;
+					for (const FSimCruiseWheelState& W : C.Sim.State.Wheels)
+					{
+						Wheels += FString::Printf(TEXT(" | fz %5.0f k %+.3f a %+5.1f fx %+5.0f fy %+5.0f"), W.LoadN, W.SlipRatio,
+							SimCruiseUnits::ToDegrees(W.SlipAngleRad), W.LongitudinalForceN, W.LateralForceN);
+					}
+					UE_LOG(LogTemp, Display, TEXT("TURNTRACE p %.2f t %.2f v %.1f beta %+.1f yaw %+.3f brake %.2f%s"),
+						Case.BrakePedal, T, Speed, Beta, YawRate, Brake, *Wheels);
+				}
+				// Below 3 m/s the sideslip angle means little (and a stopped car has none).
+				if (Speed > 3.0)
+				{
+					Samples.Add({ T, YawRate, Beta, Speed });
+				}
+				// A wheel turning at under a tenth of the road speed is locked.
+				if (Case.bBrake && Case.FirstLockAxle < 0 && Speed > 3.0)
+				{
+					for (int32 Index = 0; Index < 4; ++Index)
+					{
+						if (C.Sim.State.Wheels[Index].AngularSpeedRadPerSecond * C.Sim.GetTireRadiusM() < 0.1 * Speed)
+						{
+							Case.FirstLockAxle = Index < 2 ? 0 : 1;
+							Case.FirstLockS = T;
+							break;
+						}
+					}
+				}
 				bWrongGear = bWrongGear || (C.Sim.State.bInReverse && Speed > 1.0);
-				if (T >= WindowS || FMath::Abs(Beta) > 45.0)
+				if (T >= WindowS || FMath::Abs(Beta) > 45.0 || (Speed < 0.5 && T > 0.5))
 				{
 					Report();
 					++CaseIndex;
@@ -548,6 +599,43 @@ FSimCruiseLiftOffResult SimCruiseRunLiftOff(const FSimCruiseCarDefinition& Car, 
 			Case.bBrake = bBrake;
 			Driver->Cases.Add(Case);
 		}
+	}
+
+	FSimCruiseLiftOffResult Result;
+	FSimCruiseVehicleBenchWorld World(FixedStepS);
+	if (!World.IsValid())
+	{
+		return Result;
+	}
+	if (World.SpawnVehicle(Car, Ground, [Driver](FSimCruiseVehicleDriverContext& C) { Driver->Step(C); }) == nullptr)
+	{
+		return Result;
+	}
+	Result.bCompleted = World.RunUntil([&Driver]() { return Driver->bDone.load(); }, 60.0 * Driver->Cases.Num());
+	Result.Cases = Driver->Cases;
+	return Result;
+}
+
+FSimCruiseLiftOffResult SimCruiseRunBrakeInTurn(const FSimCruiseCarDefinition& Car, double FixedStepS,
+	const TArray<double>& Pedals, double LateralG, double RadiusM)
+{
+	// ISO 7975: steady on the circle at the lateral level, throttle released and the brake
+	// applied at once (here over 0.3 s), the steering held; the same LiftOff driver.
+	TSharedRef<FLiftOffDriver> Driver = MakeShared<FLiftOffDriver>();
+	Driver->Dt = FixedStepS;
+	Driver->Radius = RadiusM;
+	Driver->MassKg = Car.MassKg;
+	Driver->BrakeSumNm = Car.FrontBrakeTorqueNm + Car.RearBrakeTorqueNm;
+	Driver->HistorySize = FMath::Max(1, FMath::RoundToInt32(2.0 / FixedStepS));
+	const FVector3d Ground(0.0, 0.0, 0.15);
+	Driver->StartBodyPositionM = FSimCruiseVehicleBenchWorld::BodyLocationForGround(Car, Ground);
+	for (const double Pedal : Pedals)
+	{
+		FSimCruiseLiftOffCase Case;
+		Case.TargetG = LateralG;
+		Case.bBrake = true;
+		Case.BrakePedal = Pedal;
+		Driver->Cases.Add(Case);
 	}
 
 	FSimCruiseLiftOffResult Result;

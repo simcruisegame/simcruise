@@ -2,6 +2,8 @@
 
 #include "Knowledge/SimCruisePlacePhotos.h"
 
+#include "Live/SimCruiseSceneParser.h"
+
 #include "Dom/JsonObject.h"
 #include "GenericPlatform/GenericPlatformHttp.h"
 #include "IImageWrapper.h"
@@ -109,6 +111,31 @@ namespace SimCruisePlacePhotos
 		return Info.Year >= 1990 && !Info.bPostcard && !Info.ThumbUrl.IsEmpty() && (Lower.Contains(TEXT(".jpg")) || Lower.Contains(TEXT(".jpeg")));
 	}
 
+	/** The biggest coarse colour bin (24 levels a step) with its neighbours: its median and its share of Kept. */
+	static bool DominantColour(const TArray<FColor>& Kept, FColor& OutColour, float& OutShare)
+	{
+		// Coarse colour bins (24 levels a step), the biggest bin with its neighbours.
+		auto Bin = [](const FColor& C) { return FIntVector(C.R / 24, C.G / 24, C.B / 24); };
+		TMap<FIntVector, int32> Counts;
+		for (const FColor& C : Kept) ++Counts.FindOrAdd(Bin(C));
+		FIntVector Best = FIntVector::ZeroValue;
+		int32 BestN = -1;
+		for (const auto& KV : Counts) if (KV.Value > BestN) { BestN = KV.Value; Best = KV.Key; }
+		TArray<uint8> R, G, B;
+		for (const FColor& C : Kept)
+		{
+			const FIntVector Q = Bin(C);
+			if (FMath::Abs(Q.X - Best.X) <= 1 && FMath::Abs(Q.Y - Best.Y) <= 1 && FMath::Abs(Q.Z - Best.Z) <= 1)
+			{
+				R.Add(C.R); G.Add(C.G); B.Add(C.B);
+			}
+		}
+		OutShare = float(R.Num()) / Kept.Num();
+		auto Median = [](TArray<uint8>& V) { V.Sort(); return V[V.Num() / 2]; };
+		OutColour = FColor(Median(R), Median(G), Median(B), 255);
+		return true;
+	}
+
 	bool WallColour(const TArray<FColor>& Pixels, int32 W, int32 H, FColor& OutColour, float& OutShare)
 	{
 		if (W < 16 || H < 16 || Pixels.Num() < W * H) return false;
@@ -136,26 +163,105 @@ namespace SimCruisePlacePhotos
 		}
 		// A black-and-white picture tells nothing about the paint.
 		if (All == 0 || Kept.Num() < 200 || SatSum / All < 0.04) return false;
-		// Coarse colour bins (24 levels a step), the biggest bin with its neighbours.
-		auto Bin = [](const FColor& C) { return FIntVector(C.R / 24, C.G / 24, C.B / 24); };
-		TMap<FIntVector, int32> Counts;
-		for (const FColor& C : Kept) ++Counts.FindOrAdd(Bin(C));
-		FIntVector Best;
-		int32 BestN = -1;
-		for (const auto& KV : Counts) if (KV.Value > BestN) { BestN = KV.Value; Best = KV.Key; }
-		TArray<uint8> R, G, B;
-		for (const FColor& C : Kept)
+		return DominantColour(Kept, OutColour, OutShare) && OutShare >= 0.2f;
+	}
+
+	bool WallColourMasked(const TArray<FColor>& Pixels, int32 W, int32 H, const TArray<uint8>& Labels, int32 GW, int32 GH, FColor& OutColour, float& OutShare,
+		bool& OutNormalised, bool bAlbedoFromPavement)
+	{
+		OutNormalised = false;
+		if (W < 16 || H < 16 || Pixels.Num() < W * H || GW < 1 || GH < 1 || Labels.Num() < GW * GH) return false;
+		const int32 Step = FMath::Max(1, W / 160);
+		TArray<FColor> Kept;
+		double SatSum = 0.0;
+		int32 All = 0, Walls = 0;
+		for (int32 y = 0; y < H; y += Step)
 		{
-			const FIntVector Q = Bin(C);
-			if (FMath::Abs(Q.X - Best.X) <= 1 && FMath::Abs(Q.Y - Best.Y) <= 1 && FMath::Abs(Q.Z - Best.Z) <= 1)
+			for (int32 x = 0; x < W; x += Step)
 			{
-				R.Add(C.R); G.Add(C.G); B.Add(C.B);
+				++All;
+				// Inside the wall only: a cell counts when it and its four neighbours are building or
+				// wall, so the parser's ragged edge against the sky and the trees stays out.
+				auto IsWall = [&](int32 Px, int32 Py)
+				{
+					const ESimCruiseSceneClass C = FSimCruiseSceneParser::ClassAt(Labels, GW, GH, Px, Py, W, H);
+					return C == ESimCruiseSceneClass::Building || C == ESimCruiseSceneClass::Wall;
+				};
+				const int32 Cx = FMath::Max(1, W / GW), Cy = FMath::Max(1, H / GH);
+				if (!IsWall(x, y)) continue;
+				++Walls;
+				if (!IsWall(x - Cx, y) || !IsWall(x + Cx, y) || !IsWall(x, y - Cy) || !IsWall(x, y + Cy)) continue;
+				const FColor C = Pixels[y * W + x];
+				const int32 Mx = FMath::Max3(C.R, C.G, C.B), Mn = FMath::Min3(C.R, C.G, C.B);
+				SatSum += Mx > 0 ? double(Mx - Mn) / Mx : 0.0;
+				// Deep shadow, clipped highlights (a channel at 250 or more: the camera's white, not
+				// the paint's), and strongly blue pixels (sky the parser took for wall, or tinted
+				// glass) say nothing about the paint; pastel blue stucco (B - R under 40) stays.
+				const bool bBlue = C.B > C.R + 40 && C.B > C.G + 15;
+				if (Mx >= 95 && Mx < 250 && !bBlue) Kept.Add(C);
 			}
 		}
-		OutShare = float(R.Num()) / Kept.Num();
-		auto Median = [](TArray<uint8>& V) { V.Sort(); return V[V.Num() / 2]; };
-		OutColour = FColor(Median(R), Median(G), Median(B), 255);
-		return OutShare >= 0.2f;
+		if (All == 0 || Walls < All * 0.08 || Kept.Num() < 200 || SatSum / FMath::Max(Walls, 1) < 0.04) return false;
+		if (!DominantColour(Kept, OutColour, OutShare) || OutShare < 0.2f) return false;
+
+		// A photograph's sRGB is the camera's exposure and white balance, not an albedo. When the
+		// parser sees sidewalk (concrete, albedo about 0.30) or road (asphalt, about 0.12) in the
+		// same light, the wall is scaled by the reference's measured brightness and balanced on
+		// its colour (a pavement is near neutral), as a photographer's grey card would.
+		TArray<FLinearColor> Ref;
+		double RefAlbedo = 0.0;
+		if (!bAlbedoFromPavement)
+		{
+			return true;
+		}
+		for (const ESimCruiseSceneClass Want : {ESimCruiseSceneClass::Sidewalk, ESimCruiseSceneClass::Road})
+		{
+			Ref.Reset();
+			for (int32 y = 0; y < H; y += Step)
+			{
+				for (int32 x = 0; x < W; x += Step)
+				{
+					if (FSimCruiseSceneParser::ClassAt(Labels, GW, GH, x, y, W, H) != Want) continue;
+					const FColor C = Pixels[y * W + x];
+					const int32 Mx = FMath::Max3(C.R, C.G, C.B);
+					if (Mx >= 40 && Mx < 250) Ref.Add(FLinearColor(C));
+				}
+			}
+			if (Ref.Num() >= 100)
+			{
+				RefAlbedo = Want == ESimCruiseSceneClass::Sidewalk ? 0.30 : 0.12;
+				break;
+			}
+		}
+		OutNormalised = false;
+		if (RefAlbedo > 0.0)
+		{
+			// The lit part of the reference: its upper quartile per channel (pavement in a street
+			// photograph is often half in shade, and a shaded reference would blow the wall out).
+			auto Upper = [&Ref](int32 Channel)
+			{
+				TArray<float> V;
+				for (const FLinearColor& L : Ref) V.Add(Channel == 0 ? L.R : Channel == 1 ? L.G : L.B);
+				V.Sort();
+				return FMath::Max(V[V.Num() * 3 / 4], 1.0e-3f);
+			};
+			const FLinearColor RefC(Upper(0), Upper(1), Upper(2));
+			const float RefL = 0.2126f * RefC.R + 0.7152f * RefC.G + 0.0722f * RefC.B;
+			// White balance only on a near-neutral reference and within +-10 % (a red-brick or
+			// sun-yellow plaza must not tint the wall), and the exposure correction only darkens,
+			// by at most half: an over-exposed photograph's white wall comes down from the cap,
+			// a dim one is left as it is.
+			const bool bNeutral = FMath::Max3(RefC.R, RefC.G, RefC.B) < 1.25f * FMath::Min3(RefC.R, RefC.G, RefC.B);
+			const float Gr = bNeutral ? FMath::Clamp(RefL / RefC.R, 0.9f, 1.1f) : 1.0f;
+			const float Gg = bNeutral ? FMath::Clamp(RefL / RefC.G, 0.9f, 1.1f) : 1.0f;
+			const float Gb = bNeutral ? FMath::Clamp(RefL / RefC.B, 0.9f, 1.1f) : 1.0f;
+			const float Gain = FMath::Clamp(static_cast<float>(RefAlbedo) / FMath::Max(RefL, 1.0e-3f), 0.5f, 1.0f);
+			const FLinearColor Wall(OutColour);
+			const FLinearColor Albedo(FMath::Clamp(Wall.R * Gr * Gain, 0.0f, 1.0f), FMath::Clamp(Wall.G * Gg * Gain, 0.0f, 1.0f), FMath::Clamp(Wall.B * Gb * Gain, 0.0f, 1.0f));
+			OutColour = Albedo.ToFColor(true);
+			OutNormalised = true;
+		}
+		return true;
 	}
 
 	bool DecodeImage(const TArray<uint8>& Bytes, TArray<FColor>& OutPixels, int32& OutWidth, int32& OutHeight)

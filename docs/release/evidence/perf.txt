@@ -1,0 +1,16 @@
+# Frame rate, final 2.0.0 Shipping build (commit b7ac2de), NVIDIA GeForce RTX 2070 Super with Max-Q Design (laptop), 1920x1080 full screen
+# -SimCruiseDriveCapture -SimCruiseDrivePerf=Medium,High: 10 s windows parked in the driver's seat and in the chase view after the world settles; the 60 fps cap is off while measuring.
+# 1 % low fps = 1000 / p99 frame time. Pass: average >= 60 fps and 1 % low >= 45 fps. Default preset on this GPU: Medium (auto-pick, Max-Q).
+
+| Place | Preset | View | Avg fps | 1 % low fps | p95 ms | GPU avg ms | Pass |
+|---|---|---|---|---|---|---|---|
+| Ocean Drive, Miami Beach | Medium (default) | driver | 78.7 | 53 | 15.4 | 12.3 | PASS |
+| Ocean Drive, Miami Beach | Medium (default) | chase | 86.3 | 74 | 12.5 | 11.3 | PASS |
+| Ocean Drive, Miami Beach | High | driver | 55.9 | 42 | 20.8 | 17.5 | FAIL |
+| Ocean Drive, Miami Beach | High | chase | 65.9 | 57 | 16.3 | 14.8 | PASS |
+| Princeton Road, NE (rural) | Medium (default) | driver | 91.4 | 74 | 12.7 | 10.6 | PASS |
+| Princeton Road, NE (rural) | Medium (default) | chase | 99.9 | 86 | 11.1 | 9.7 | PASS |
+| Princeton Road, NE (rural) | High | driver | 73.1 | 61 | 15.8 | 13.3 | PASS |
+| Princeton Road, NE (rural) | High | chase | 87.8 | 78 | 12.4 | 11.1 | PASS |
+
+Earlier build (before the night-lighting and FOV changes, commit 2452770): Ocean Drive High driver 57.4 / 44, Medium driver 76.9 / 61; rural High driver 82.4 / 76, Medium driver 107.2 / 96. High missed the target in the city, so Max-Q GPUs now start on Medium (commit cebd03a). In play the game is capped at 60 fps (simcruise.FrameCap).

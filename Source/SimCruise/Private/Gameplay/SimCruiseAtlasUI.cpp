@@ -512,13 +512,17 @@ void SSimCruiseRoadAtlas::Construct(const FArguments& InArgs)
 	OnSetting = InArgs._OnSetting;
 	OnClose = InArgs._OnClose;
 	TSharedRef<SHorizontalBox> SettingsRow = SNew(SHorizontalBox);
-	for (int32 Index = 0; Index < 4; ++Index)
+	// The cockpit settings (0-6) sit with the car; the stick and trigger ones (7-10) get a row of their own.
+	TSharedRef<SHorizontalBox> ControlsRow = SNew(SHorizontalBox);
+	ControlsRow->AddSlot().AutoWidth().VAlign(VAlign_Center).Padding(0, 0, 10, 0)[Label(TEXT("Controls"), 14, SimCruiseUiStyle::Dim())];
+	for (int32 Index = 0; Index < 11; ++Index)
 	{
 		TSharedPtr<STextBlock> Text;
-		SettingsRow->AddSlot().AutoWidth().Padding(0, 0, 8, 0)
+		(Index < 7 ? SettingsRow : ControlsRow)->AddSlot().AutoWidth().Padding(0, 0, 8, 0)
 		[
 			SNew(SButton)
-			.ButtonColorAndOpacity(FLinearColor(FColor(0x2a, 0x3d, 0x37)))
+			// The pad's cursor lights its setting.
+			.ButtonColorAndOpacity_Lambda([this, Index]() { return SettingCursor == Index ? FLinearColor(FColor(0xd9, 0x8c, 0x2b)) : FLinearColor(FColor(0x2a, 0x3d, 0x37)); })
 			.ContentPadding(FMargin(12.f, 6.f))
 			.OnClicked_Lambda([this, Index]() { OnSetting.ExecuteIfBound(Index); return FReply::Handled(); })
 			[
@@ -590,8 +594,12 @@ void SSimCruiseRoadAtlas::Construct(const FArguments& InArgs)
 					]
 					+ SHorizontalBox::Slot().FillWidth(1.f).HAlign(HAlign_Right).VAlign(VAlign_Center)
 					[
-						Label(TEXT("Stick or drag: move  ·  D-pad, wheel or +/−: zoom  ·  A or Enter: drive here  ·  X: find  ·  Y: recenter  ·  RB: car  ·  B: back"), 12, SimCruiseUiStyle::Dim())
+						Label(TEXT("D-pad ◀ ▶: pick a setting, A: change it  ·  Stick or drag: move  ·  D-pad ▲ ▼, wheel or +/−: zoom  ·  A or Enter: drive here  ·  X: find  ·  Y: recenter  ·  RB: car  ·  B: back"), 12, SimCruiseUiStyle::Dim())
 					]
+				]
+				+ SVerticalBox::Slot().AutoHeight().Padding(0, 8, 0, 0)
+				[
+					ControlsRow
 				]
 			]
 		]
@@ -937,6 +945,27 @@ int32 SSimCruiseRoadAtlas::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 FReply SSimCruiseRoadAtlas::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	const FKey Key = InKeyEvent.GetKey();
+	// The pad reaches the settings: D-pad Left/Right picks one, A changes it, B lets go of it.
+	if (Key == EKeys::Gamepad_DPad_Left || Key == EKeys::Gamepad_DPad_Right)
+	{
+		const int32 Count = SettingLabels.Num();
+		if (Count > 0)
+		{
+			SettingCursor = SettingCursor < 0 ? (Key == EKeys::Gamepad_DPad_Right ? 0 : Count - 1)
+				: (SettingCursor + (Key == EKeys::Gamepad_DPad_Right ? 1 : Count - 1)) % Count;
+		}
+		return FReply::Handled();
+	}
+	if (SettingCursor >= 0 && (Key == EKeys::Gamepad_FaceButton_Bottom || Key == EKeys::Enter))
+	{
+		OnSetting.ExecuteIfBound(SettingCursor);
+		return FReply::Handled();
+	}
+	if (SettingCursor >= 0 && IsCloseKey(Key))
+	{
+		SettingCursor = -1;
+		return FReply::Handled();
+	}
 	if (IsCloseKey(Key) || Key == EKeys::Tab)
 	{
 		OnClose.ExecuteIfBound();

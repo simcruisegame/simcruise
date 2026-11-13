@@ -36,23 +36,30 @@ const TArray<FSimCruiseBindingSpec>& USimCruiseInputConfig::Bindings()
 		{TEXT("SteerKey"), EKeys::Right},
 		{TEXT("FullBrake"), EKeys::SpaceBar},
 		{TEXT("ParkingBrake"), EKeys::H},
-		{TEXT("ParkingBrake"), EKeys::Gamepad_FaceButton_Bottom},
+		// Release bug #10: the clutch was on LB, the same finger as the brake trigger, so a
+		// downshift under braking needed one finger in two places. The right thumb now holds
+		// the clutch (A) or the parking brake (B) while the bumpers change gear like paddles.
+		{TEXT("ParkingBrake"), EKeys::Gamepad_FaceButton_Right},
 		{TEXT("ToggleTransmission"), EKeys::T},
-		{TEXT("ToggleTransmission"), EKeys::Gamepad_FaceButton_Right},
+		// The right stick does nothing while driving, so its click is free and never pressed by accident.
+		{TEXT("ToggleTransmission"), EKeys::Gamepad_RightThumbstick},
 		{TEXT("Clutch"), EKeys::LeftShift},
 		{TEXT("Clutch"), EKeys::RightShift},
-		{TEXT("Clutch"), EKeys::Gamepad_LeftShoulder},
+		{TEXT("Clutch"), EKeys::Gamepad_FaceButton_Bottom},
 		{TEXT("ShiftUp"), EKeys::E},
 		{TEXT("ShiftUp"), EKeys::Gamepad_RightShoulder},
 		{TEXT("ShiftDown"), EKeys::Q},
-		{TEXT("ShiftDown"), EKeys::Gamepad_FaceButton_Left},
+		{TEXT("ShiftDown"), EKeys::Gamepad_LeftShoulder},
 		{TEXT("StartEngine"), EKeys::I},
-		{TEXT("StartEngine"), EKeys::Gamepad_RightThumbstick},
+		{TEXT("StartEngine"), EKeys::Gamepad_DPad_Left},
 		{TEXT("CycleCamera"), EKeys::C},
 		{TEXT("CycleCamera"), EKeys::Gamepad_FaceButton_Top},
 		{TEXT("CycleHud"), EKeys::F2},
-		{TEXT("CycleHud"), EKeys::Gamepad_LeftThumbstick},
+		// Not on L3: steering hard presses the stick by accident.
+		{TEXT("CycleHud"), EKeys::Gamepad_FaceButton_Left},
 		{TEXT("ToggleStats"), EKeys::F3},
+		// The lens is F6 and the road atlas's View setting only: the left-stick click is pressed by
+		// accident in hard steering, and a lens change mid-corner is not harmless (the 2.0.0 playtest).
 		{TEXT("CycleLens"), EKeys::F6},
 		{TEXT("ToggleSound"), EKeys::M},
 		{TEXT("ToggleLights"), EKeys::L},
@@ -66,6 +73,8 @@ const TArray<FSimCruiseBindingSpec>& USimCruiseInputConfig::Bindings()
 		{TEXT("MinimapIn"), EKeys::Equals},
 		{TEXT("MinimapOut"), EKeys::Gamepad_DPad_Down},
 		{TEXT("MinimapOut"), EKeys::Hyphen},
+		{TEXT("Tuning"), EKeys::Gamepad_DPad_Right},
+		{TEXT("Tuning"), EKeys::F4},
 	};
 	return Table;
 }
@@ -99,6 +108,7 @@ USimCruiseInputConfig* USimCruiseInputConfig::Create(UObject* Outer)
 		{TEXT("ToggleStats"), EInputActionValueType::Boolean, &USimCruiseInputConfig::ToggleStats},
 		{TEXT("MinimapIn"), EInputActionValueType::Boolean, &USimCruiseInputConfig::MinimapIn},
 		{TEXT("MinimapOut"), EInputActionValueType::Boolean, &USimCruiseInputConfig::MinimapOut},
+		{TEXT("Tuning"), EInputActionValueType::Boolean, &USimCruiseInputConfig::Tuning},
 	};
 
 	for (const FActionSpec& Spec : Actions)

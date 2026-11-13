@@ -18,8 +18,8 @@ enum class ESimCruiseView : uint8
  *  horizontal angle follows the window's aspect ratio. */
 enum class ESimCruiseLens : uint8
 {
-	Natural,   // 45 deg vertical: about a 30 mm lens on full frame
-	Screen,    // the angle the physical screen subtends at the eye
+	Natural,   // 45 deg vertical (74 across 16:9): the default
+	Screen,    // true FOV: the angle the physical screen subtends at the eye
 	Wide,      // 67 deg: the previous Godot view, for tight streets
 };
 
@@ -37,6 +37,14 @@ namespace SimCruiseLens
 	/** Unreal takes a horizontal FOV; convert for the viewport's aspect (width/height). */
 	SIMCRUISE_API double HorizontalFromVerticalDeg(double VerticalDeg, double AspectRatio);
 	SIMCRUISE_API const TCHAR* Label(ESimCruiseLens Lens);
+
+	/** A screen's picture height from its diagonal (inches) and aspect (width/height), cm. */
+	SIMCRUISE_API double ScreenHeightCm(double DiagonalInches, double AspectRatio);
+	/**
+	 * The true horizontal field of view: the angle the screen's width subtends at the eye,
+	 * 2 atan(width / (2 distance)); 15.6 in 16:9 at 60 cm is 32.1 degrees.
+	 */
+	SIMCRUISE_API double TrueHorizontalFovDeg(double DiagonalInches, double AspectRatio, double ViewDistanceCm);
 }
 
 /** Driver eye pose in world space. */
@@ -95,6 +103,8 @@ private:
 	FVector HeadVelocity = FVector::ZeroVector;
 	FVector Felt = FVector::ZeroVector;
 	FVector PreviousVelocity = FVector::ZeroVector;
+	FVector LastAcceleration = FVector::ZeroVector;
+	double PreviousSimTimeS = 0.0;
 	FVector Vibration = FVector::ZeroVector;
 	double Travel[4] = {0.0, 0.0, 0.0, 0.0};
 	double TravelSlow = 0.0;
@@ -152,11 +162,14 @@ class SIMCRUISE_API FSimCruiseGMeter
 public:
 	void Reset() { bStarted = false; Value = FVector2D::ZeroVector; }
 	/** Returns (longitudinal, lateral) g, positive = accelerating / turning right. */
-	FVector2D Update(const FTransform& Body, const FVector& WorldVelocityMps, double DeltaTimeS);
+	/** SimTimeS: the physics time of WorldVelocityMps (0 = unknown: use the frame time). */
+	FVector2D Update(const FTransform& Body, const FVector& WorldVelocityMps, double DeltaTimeS, double SimTimeS = 0.0);
 	const FVector2D& Get() const { return Value; }
 
 private:
 	FVector PreviousVelocity = FVector::ZeroVector;
+	FVector LastAcceleration = FVector::ZeroVector;
+	double PreviousSimTimeS = 0.0;
 	FVector2D Value = FVector2D::ZeroVector;
 	bool bStarted = false;
 };

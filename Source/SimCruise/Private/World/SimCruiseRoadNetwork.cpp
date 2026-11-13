@@ -49,7 +49,12 @@ namespace
 	{
 		if (Class == TEXT("motorway") || Class == TEXT("trunk")) return 90.0;
 		if (Class == TEXT("primary") || Class == TEXT("secondary")) return 60.0;
-		return 0.0; // low-speed streets keep a normal crown (AASHTO)
+		// County and rural roads bank their bends too (AASHTO Green Book 3.3: e max 4-8 % on
+		// rural roads at their 50-70 km/h design speeds); residential streets and service ways
+		// keep a normal crown (low-speed urban streets, AASHTO 3.3.6).
+		if (Class == TEXT("tertiary")) return 55.0;
+		if (Class == TEXT("unclassified")) return 45.0;
+		return 0.0;
 	}
 
 	struct FPiece
@@ -807,23 +812,55 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 			const FSimCruiseSeamEnd* Contract[2] = { nullptr, nullptr };
 			if (Span == 0 && ChainContract[0] != INDEX_NONE && Ribbon.bStartOnBoundary) Contract[0] = &NeighbourEnds[ChainContract[0]];
 			if (Span + 2 == Splits.Num() && ChainContract[1] != INDEX_NONE && Ribbon.bEndOnBoundary) Contract[1] = &NeighbourEnds[ChainContract[1]];
-			// Without a neighbour's contract, the seam section sits just clear of the shared
-			// ground across its whole width (seam vertices are never lowered under it).
-			auto SeamPin = [&](const FSimCruiseRibbonStation& St)
+			// Without a neighbour's contract, each half of the seam section clears the shared
+			// ground under it on its own: the side that is low lifts, the other stays (a tilt, not
+			// a lift of the whole section). It is solved on the section as built: the curve's bank
+			// EndE and the crown that bank leaves. Returns the lift each edge needs (left, right; >= 0).
+			auto SeamEdgeLift = [&](const FSimCruiseRibbonStation& St, double EndE)
 			{
-				double Need = TNumericLimits<double>::Lowest();
-				const double Reach = St.HalfW + SimCruiseRoadSection::TownEdgeM;
-				for (double L = -Reach; L <= Reach + 1e-6; L += 0.5)
+				const double CrownE = SimCruiseRoadSection::Crown * (1.0 - FMath::Min(1.0, FMath::Abs(EndE) / SimCruiseRoadSection::Crown));
+				const double EdgeL = St.Z + EndE * St.HalfW - CrownE * St.HalfW;
+				const double EdgeR = St.Z - EndE * St.HalfW - CrownE * St.HalfW;
+				const double Clear = SimCruiseRoadSection::RuralShoulderDropM + SeamClearM;
+				double Lift[2] = { 0.0, 0.0 };
+				for (double L = -St.HalfW; L <= St.HalfW + 1e-6; L += 0.5)
 				{
 					const double Ground = Tile.HeightAtUnit((St.C + St.R * L) / Side);
-					Need = FMath::Max(Need, Ground + SimCruiseRoadSection::Crown * FMath::Min(FMath::Abs(L), St.HalfW));
+					const double F = FMath::Abs(L) / FMath::Max(St.HalfW, 0.01);
+					const double Road = FMath::Lerp(St.Z, L < 0.0 ? EdgeL : EdgeR, F); // the section is linear centre to edge
+					// A point at F of the half rises with its edge's lift (the centre half as much, which
+					// the other half's lift covers where both sides need it).
+					const double Need = Ground + Clear - Road;
+					if (Need > 0.0) Lift[L < 0.0 ? 0 : 1] = FMath::Max(Lift[L < 0.0 ? 0 : 1], Need / FMath::Max(F, 0.5));
 				}
-				return Need + SimCruiseRoadSection::RuralShoulderDropM + SeamClearM;
+				return FVector2d(Lift[0], Lift[1]);
 			};
-			const double Pin0 = Contract[0] ? Contract[0]->HC : (Ribbon.bStartOnBoundary ? SeamPin(Ribbon.St[0]) : Zs[0]);
-			const double Pin1 = Contract[1] ? Contract[1]->HC : (Ribbon.bEndOnBoundary ? SeamPin(Ribbon.St[Count]) : Zs[Count]);
-			const double Delta0 = Ribbon.bStartOnBoundary ? Pin0 - Ribbon.St[0].Z : 0.0;
-			const double Delta1 = Ribbon.bEndOnBoundary ? Pin1 - Ribbon.St[Count].Z : 0.0;
+			// The pin fades over a span long enough that it changes the grade by 1 % at most (a
+			// smoothstep's steepest slope is 1.5 x rise / span), no longer than half the ribbon so
+			// the two ends do not overlap. The clearance always wins: on a short stub the fade is
+			// steeper rather than the ground coming through the road at the tile edge.
+			const double HalfRibbon = 0.5 * FMath::Max(S1 - S0, 1.0);
+			const double MaxSpan = FMath::Max(HalfRibbon, 1.0);
+			auto EndLift = [&](int32 End, const TArray<double>& Bank, double& OutDelta, double& OutTilt, double& OutSpan)
+			{
+				OutDelta = 0.0; OutTilt = 0.0; OutSpan = PinSpanM;
+				const bool bOn = End == 0 ? Ribbon.bStartOnBoundary : Ribbon.bEndOnBoundary;
+				if (!bOn) return;
+				const FSimCruiseRibbonStation& St = End == 0 ? Ribbon.St[0] : Ribbon.St[Count];
+				if (Contract[End])
+				{
+					// A contracted end meets the neighbour exactly, up or down.
+					OutDelta = Contract[End]->HC - St.Z;
+					OutSpan = FMath::Min(FMath::Max(PinSpanM, 150.0 * FMath::Abs(OutDelta)), FMath::Max(MaxSpan, PinSpanM * 0.5));
+					return;
+				}
+				const double EndE = Bank.IsValidIndex(End == 0 ? 0 : Count) && FMath::IsFinite(Bank[End == 0 ? 0 : Count]) ? Bank[End == 0 ? 0 : Count] : 0.0;
+				const FVector2d Lift = SeamEdgeLift(St, EndE);
+				const double Rise = FMath::Max(Lift.X, Lift.Y);
+				OutSpan = FMath::Min(FMath::Max(PinSpanM, 150.0 * Rise), MaxSpan);
+				OutDelta = 0.5 * (Lift.X + Lift.Y);
+				OutTilt = St.HalfW > 0.1 ? (Lift.X - Lift.Y) / (2.0 * St.HalfW) : 0.0; // + raises the left edge (E sign)
+			};
 
 			// A contracted end takes the neighbour's direction and width, blended in over 10 m.
 			for (int32 End = 0; End < 2; ++End)
@@ -846,7 +883,10 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 			}
 
 			// Superelevation from the curvature (road-grade.mjs chainProfile).
-			const double Design = DesignSpeedKmh(Ribbon.Class);
+			// County roads bank out of town only: in a town a tertiary or unclassified street keeps
+			// its crown like any low-speed street.
+			const bool bMinor = Ribbon.Class == TEXT("tertiary") || Ribbon.Class == TEXT("unclassified");
+			const double Design = (bMinor && IsTown(Ribbon.St[Count / 2].C)) ? 0.0 : DesignSpeedKmh(Ribbon.Class);
 			TArray<double> E; E.Init(0.0, Count + 1);
 			if (Design > 0.0)
 			{
@@ -868,18 +908,38 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 				E = Smoothed;
 			}
 
+			// The seam lifts and tilts, solved on the built section (the bank E is known now).
+			double Delta0, Tilt0, Span0, Delta1, Tilt1, Span1;
+			EndLift(0, E, Delta0, Tilt0, Span0);
+			EndLift(1, E, Delta1, Tilt1, Span1);
 			for (int32 k = 0; k <= Count; ++k)
 			{
 				FSimCruiseRibbonStation& St = Ribbon.St[k];
 				const double FromStart = St.S - S0;
 				const double FromEnd = S1 - St.S;
-				const double W0 = Ribbon.bStartOnBoundary ? Smooth01(1.0 - FromStart / PinSpanM) : 0.0;
-				const double W1 = Ribbon.bEndOnBoundary ? Smooth01(1.0 - FromEnd / PinSpanM) : 0.0;
+				const double W0 = Ribbon.bStartOnBoundary ? Smooth01(1.0 - FromStart / Span0) : 0.0;
+				const double W1 = Ribbon.bEndOnBoundary ? Smooth01(1.0 - FromEnd / Span1) : 0.0;
 				St.Z += Delta0 * W0 + Delta1 * W1;
-				double Runout = 1.0;
-				if (Ribbon.bStartOnBoundary) Runout = FMath::Min(Runout, Smooth01(FromStart / PinSpanM));
-				if (Ribbon.bEndOnBoundary) Runout = FMath::Min(Runout, Smooth01(FromEnd / PinSpanM));
-				St.E = (FMath::IsFinite(E[k]) ? E[k] : 0.0) * Runout;
+				// Banking runs on across tile seams: an end with the neighbour's contract eases to the
+				// neighbour's edge superelevation over the pin span; an end without one keeps its
+				// own (the neighbour, built later, takes it as its contract). It used to run out
+				// to flat over the last 30 m of every tile, so long bends lost their banking at
+				// each seam.
+				double Ek = FMath::IsFinite(E[k]) ? E[k] : 0.0;
+				for (int32 End = 0; End < 2; ++End)
+				{
+					if (!Contract[End]) continue;
+					const double Wb = Smooth01(1.0 - (End == 0 ? FromStart : FromEnd) / PinSpanM);
+					if (Wb <= 0.0) continue;
+					const FSimCruiseSeamEnd& Ce = *Contract[End];
+					const FSimCruiseRibbonStation& EndSt = End == 0 ? Ribbon.St[0] : Ribbon.St[Count];
+					const bool bSame = FVector2d::DotProduct(EndSt.T, Ce.T) >= 0.0;
+					const double Their = Ce.HalfW > 0.1 ? (Ce.HL - Ce.HR) / (2.0 * Ce.HalfW) : 0.0;
+					Ek = FMath::Lerp(Ek, bSame ? Their : -Their, Wb);
+				}
+				// The seam tilt of an uncontracted end, faded like its lift.
+				Ek += Tilt0 * W0 + Tilt1 * W1;
+				St.E = FMath::Clamp(Ek, -0.08, 0.08);
 				const double Crown = SimCruiseRoadSection::Crown * (1.0 - FMath::Min(1.0, FMath::Abs(St.E) / SimCruiseRoadSection::Crown));
 				St.HC = St.Z;
 				St.HL = St.Z + St.E * St.HalfW - Crown * St.HalfW;
@@ -900,7 +960,8 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 				St.HR = bSame ? Contract[End]->HR : Contract[End]->HL;
 				St.HQL = 0.5 * (St.HL + St.HC);
 				St.HQR = 0.5 * (St.HR + St.HC);
-				St.E = 0.0;
+				// Its banking too, so the next build that contracts to this tile reads it back.
+				St.E = St.HalfW > 0.1 ? (St.HL - St.HR) / (2.0 * St.HalfW) : 0.0;
 			}
 
 			// 6. Edge treatment from mapped evidence.

@@ -170,6 +170,8 @@ private:
 	FSimCruiseOnSetting OnSetting;
 	FSimpleDelegate OnClose;
 	TArray<TSharedPtr<STextBlock>> SettingLabels;
+	/** The setting the pad's D-pad Left/Right has picked (A changes it), -1 when none. */
+	int32 SettingCursor = -1;
 
 	FSimCruiseAtlasView View;
 	int32 Level = 4;

@@ -835,6 +835,11 @@ void ASimCruiseTraffic::Tick(float DeltaSeconds)
 		return;
 	}
 	SinceStart += DeltaSeconds;
+	// A floating-origin move shifts everything, the player too: not a placement.
+	if (!RebaseHandle.IsValid())
+	{
+		RebaseHandle = Streamer->OnRebased.AddWeakLambda(this, [this](const FVector& Offset) { LastFocusCm += Offset; });
+	}
 	if (!CachedSignals.IsValid() && SinceStart - LastSignalLookup > 2.0)
 	{
 		LastSignalLookup = SinceStart;
@@ -850,6 +855,23 @@ void ASimCruiseTraffic::Tick(float DeltaSeconds)
 	const FVector CameraFwd = bTestFocus ? FVector::UpVector
 		: (PC->PlayerCameraManager ? PC->PlayerCameraManager->GetCameraRotation().Vector() : Player->GetActorForwardVector());
 	const double Dt = FMath::Min(static_cast<double>(DeltaSeconds), 0.1);
+	// The player's car was placed (a new start, "Drive here", a recover): it jumped further in
+	// one frame than any car drives. Traffic that spawned before it arrived may stand inside
+	// it or right against it; those cars go, as if they had driven off a moment earlier.
+	if (bHaveLastFocus && FVector::Dist(Focus, LastFocusCm) > 3000.0 + 100.0 * 90.0 * Dt)
+	{
+		for (int32 I = Cars.Num() - 1; I >= 0; --I)
+		{
+			if (Cars[I] && FVector::Dist(Cars[I]->GetActorLocation(), Focus) < ClearOnPlaceM * 100.0)
+			{
+				Cars[I]->Destroy();
+				Cars.RemoveAtSwap(I);
+				++PlacementClears;
+			}
+		}
+	}
+	LastFocusCm = Focus;
+	bHaveLastFocus = true;
 	const bool bNight = Streamer->GetLightsOn() > 0.5f;
 	// Heard only with an audio device (not in headless runs).
 	const bool bSound = CVarTrafficSound.GetValueOnGameThread() != 0 && GetWorld()->GetAudioDevice().IsValid();

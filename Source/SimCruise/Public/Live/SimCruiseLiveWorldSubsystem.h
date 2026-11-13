@@ -118,6 +118,30 @@ private:
 	TMap<FString, double> HostNextAt;
 	TArray<double> RecentRequests;
 	int32 InFlight = 0;
+	/** One feed's answer, parsed off the game thread (JSON of up to a few MB: roads, tide stations). */
+	struct FParsedFeed
+	{
+		bool bOk = false;
+		FString Error;
+		FSimCruiseLiveWeather Weather;
+		TArray<FSimCruiseMetar> Metars;
+		FSimCruiseLiveAir Air;
+		FSimCruiseLiveSea Sea;
+		TArray<FSimCruiseTideStation> TideStations;
+		float TideLevelM = 0.0f;
+		FString StateCode;
+		TArray<FSimCruiseRoadSection> Roads;
+		TArray<FSimCruisePlacePhoto> Photos;
+		TArray<FSimCruiseLiveAircraft> Aircraft;
+	};
+
+	/** Pure: parses a feed's text (any thread). Photos also learn which copies are on disk. */
+	static TSharedRef<FParsedFeed> ParseFeed(EFeed Feed, const FString& Body);
+
+	/** Game thread: applies a parsed answer to the live state and the world. */
+	void ApplyFeed(EFeed Feed, FParsedFeed& Parsed, const FDateTime& ReceivedUtc, bool bFromCache);
+
+	/** Synchronous parse and apply (the cache at the start of a drive). */
 	void OnFeed(EFeed Feed, const FString& Body, const FDateTime& ReceivedUtc, bool bFromCache);
 	void ApplyWeather();
 	void Announce();
@@ -132,7 +156,10 @@ private:
 	float ShotEverySeconds = 0.0f;
 	double NextShotAt = 0.0;
 	int32 ShotCount = 0;
+	double WorstFrameS = 0.0;
+	double NextFrameReportAt = 30.0;
 	bool bViewShotTaken = true;
+	bool bParseTestStarted = false;
 	double Clock = 0.0;
 	double FeedLat = 0.0;
 	double FeedLon = 0.0;
@@ -155,7 +182,7 @@ private:
 	double NextPhotoAt = 0.0;
 	bool bPhotoInFlight = false;
 	void TickPhotoDownloads();
-	FString PhotoPath(const FSimCruisePlacePhoto& Photo) const;
+	static FString PhotoPath(const FSimCruisePlacePhoto& Photo);
 
 	TArray<FHttpRequestPtr> Requests;
 

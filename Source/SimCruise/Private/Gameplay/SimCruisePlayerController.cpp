@@ -12,6 +12,7 @@
 #include "Engine/Engine.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Gameplay/SimCruiseAtlasUI.h"
+#include "Gameplay/SimCruiseTuningUI.h"
 #include "Gameplay/SimCruiseGameMode.h"
 #include "Gameplay/SimCruisePreferences.h"
 #include "SimCruiseGameInstance.h"
@@ -117,6 +118,7 @@ void ASimCruisePlayerController::SetupInputComponent()
 	Input->BindAction(InputConfig->CycleCamera, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnCycleCamera);
 	Input->BindAction(InputConfig->CycleHud, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnCycleHud);
 	Input->BindAction(InputConfig->ToggleAtlas, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnToggleAtlas);
+	Input->BindAction(InputConfig->Tuning, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnTuning);
 	Input->BindAction(InputConfig->FindPlace, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnFindPlace);
 	Input->BindAction(InputConfig->Recover, ETriggerEvent::Started, this, &ASimCruisePlayerController::OnRecover);
 	Input->BindActionValueLambda(InputConfig->MinimapIn, ETriggerEvent::Started, [this](const FInputActionValue&) { if (ASimCruiseHUD* Hud = GetSimHUD()) Hud->ZoomMinimap(-1); });
@@ -136,6 +138,15 @@ void ASimCruisePlayerController::OnPossess(APawn* InPawn)
 	{
 		// The command written this frame must reach the vehicle before it steps.
 		InPawn->AddTickPrerequisiteActor(this);
+	}
+	// The driver's own setup for this car (checks and captures drive the real car).
+	if (ASimCruiseVehicle* Tunable = Cast<ASimCruiseVehicle>(InPawn))
+	{
+		if (!FParse::Param(FCommandLine::Get(), TEXT("SimCruiseRealCar")) && !FParse::Param(FCommandLine::Get(), TEXT("SimCruiseDriveTest"))
+			&& !FParse::Param(FCommandLine::Get(), TEXT("SimCruiseDriveCapture")) && !GIsAutomationTesting)
+		{
+			Tunable->LoadSavedTuning();
+		}
 	}
 	if (ISimCruiseVehicleControl* Vehicle = GetVehicle())
 	{
@@ -228,14 +239,23 @@ void ASimCruisePlayerController::PlayerTick(float DeltaTime)
 			bPreferencesApplied = true;
 			bSoundOn = SimCruisePreferences::GetBool(TEXT("sound"), bSoundOn);
 			Hud->SetLevel(static_cast<ESimCruiseHudLevel>(SimCruisePreferences::GetInt(TEXT("hud_level"), static_cast<int32>(Hud->GetLevel()), 0, 2)));
-			const int32 Lens = SimCruisePreferences::GetInt(TEXT("lens"), static_cast<int32>(Camera->GetLens()), 0, 2);
-			for (const TPair<const TCHAR*, const TCHAR*>& Pref : { TPair<const TCHAR*, const TCHAR*>(TEXT("head_motion"), TEXT("simcruise.Camera.HeadMotion")), TPair<const TCHAR*, const TCHAR*>(TEXT("rumble"), TEXT("simcruise.Rumble.Strength")) })
+			const int32 Lens = SimCruisePreferences::GetInt(TEXT("lens_v3"), static_cast<int32>(Camera->GetLens()), 0, 2);
+			using FPref = TPair<const TCHAR*, const TCHAR*>;
+			for (const FPref& Pref : { FPref(TEXT("head_motion"), TEXT("simcruise.Camera.HeadMotion")), FPref(TEXT("rumble"), TEXT("simcruise.Rumble.Strength")),
+				FPref(TEXT("pad_steer_speed"), TEXT("simcruise.Pad.SteerSpeed")), FPref(TEXT("pad_steer_linearity"), TEXT("simcruise.Pad.SteerLinearity")),
+				FPref(TEXT("pad_steer_dead_zone"), TEXT("simcruise.Pad.SteerDeadZone")), FPref(TEXT("trigger_gamma"), TEXT("simcruise.TriggerGamma")) })
 			{
-				const int32 Percent = SimCruisePreferences::GetInt(Pref.Key, -1, -1, 100);
+				// Stored as hundredths (the throttle curve's 1.8 as 180).
+				const int32 Percent = SimCruisePreferences::GetInt(Pref.Key, -1, -1, 300);
 				IConsoleVariable* Var = IConsoleManager::Get().FindConsoleVariable(Pref.Value);
 				if (Percent >= 0 && Var) Var->Set(Percent / 100.f, ECVF_SetByCode);
 			}
 			for (int32 i = 0; i < 3 && static_cast<int32>(Camera->GetLens()) != Lens; ++i) Camera->CycleLens();
+			// The screen the true-FOV lens is computed for: diagonal in tenths of an inch, eye distance in cm.
+			const int32 Tenths = SimCruisePreferences::GetInt(TEXT("screen_tenths_inch"), -1, -1, 1000);
+			const int32 Distance = SimCruisePreferences::GetInt(TEXT("view_distance_cm"), -1, -1, 400);
+			if (Tenths > 0) if (IConsoleVariable* Var = IConsoleManager::Get().FindConsoleVariable(TEXT("simcruise.Lens.ScreenInches"))) Var->Set(Tenths / 10.f, ECVF_SetByCode);
+			if (Distance > 0) if (IConsoleVariable* Var = IConsoleManager::Get().FindConsoleVariable(TEXT("simcruise.Lens.ViewDistanceCm"))) Var->Set(static_cast<float>(Distance), ECVF_SetByCode);
 		}
 	}
 	if (!PendingMessage.IsEmpty())
@@ -435,6 +455,57 @@ void ASimCruisePlayerController::OnToggleAtlas()
 	OpenRoadAtlas();
 }
 
+void ASimCruisePlayerController::OnTuning()
+{
+	if (IsOverlayOpen())
+	{
+		// The menu itself handles its keys; from another screen the key just closes it.
+		CloseOverlays();
+		return;
+	}
+	if (FMath::Abs(Telemetry.BodyVelocityMps.X) > 1.0)
+	{
+		ShowMessage(TEXT("Stop the car to tune it"), 2.f);
+		return;
+	}
+	OpenTuning();
+}
+
+void ASimCruisePlayerController::OpenTuning()
+{
+	ASimCruiseVehicle* Car = Cast<ASimCruiseVehicle>(GetPawn());
+	if (!Car)
+	{
+		return;
+	}
+	CloseOverlays();
+	TuningPanel = SNew(SSimCruiseTuningMenu)
+		.Vehicle(Car)
+		.OnClose_Lambda([this]()
+		{
+			const SSimCruiseTuningMenu::ETuningResult Result = TuningPanel.IsValid() ? TuningPanel->GetResult() : SSimCruiseTuningMenu::ETuningResult::Cancelled;
+			CloseOverlays();
+			// The rebuilt car reports its new ratio and limits.
+			if (ISimCruiseVehicleControl* Vehicle = GetVehicle())
+			{
+				Setup = Vehicle->GetVehicleSetup();
+			}
+			if (Result == SSimCruiseTuningMenu::ETuningResult::Saved)
+			{
+				ShowMessage(TEXT("Setup saved for this car"), 2.f);
+			}
+			else if (Result == SSimCruiseTuningMenu::ETuningResult::SaveFailed)
+			{
+				ShowMessage(TEXT("Setup applied, but it could not be saved"), 3.f);
+			}
+			else
+			{
+				ShowMessage(TEXT("Setup unchanged"), 1.5f);
+			}
+		});
+	ShowOverlay(TuningPanel.ToSharedRef(), TuningPanel);
+}
+
 void ASimCruisePlayerController::OnFindPlace()
 {
 	if (IsOverlayOpen())
@@ -480,6 +551,18 @@ FSimCruiseAtlasView ASimCruisePlayerController::AtlasView() const
 		FString::Printf(TEXT("HUD · %s"), Hud ? HudNames[FMath::Clamp(static_cast<int32>(Hud->GetLevel()), 0, 2)] : TEXT("Glance")),
 		FString::Printf(TEXT("Head motion · %d%%"), FMath::RoundToInt(100.f * SimCruiseSettingValue(TEXT("simcruise.Camera.HeadMotion")))),
 		FString::Printf(TEXT("Rumble · %d%%"), FMath::RoundToInt(100.f * SimCruiseSettingValue(TEXT("simcruise.Rumble.Strength")))),
+		FString::Printf(TEXT("View · %s"), GetSimCamera() && GetSimCamera()->GetLens() == ESimCruiseLens::Screen ? TEXT("True FOV")
+			: GetSimCamera() && GetSimCamera()->GetLens() == ESimCruiseLens::Wide ? TEXT("Wide") : TEXT("Natural")),
+		FString::Printf(TEXT("Screen · %.1f in"), SimCruiseSettingValue(TEXT("simcruise.Lens.ScreenInches"))),
+		FString::Printf(TEXT("Eye to screen · %.0f cm"), SimCruiseSettingValue(TEXT("simcruise.Lens.ViewDistanceCm"))),
+		FString::Printf(TEXT("Stick steering speed · %d%%"), FMath::RoundToInt(100.f * SimCruiseSettingValue(TEXT("simcruise.Pad.SteerSpeed")))),
+		FString::Printf(TEXT("Stick response · %s"), SimCruiseSettingValue(TEXT("simcruise.Pad.SteerLinearity")) > 0.75f ? TEXT("Linear")
+			: SimCruiseSettingValue(TEXT("simcruise.Pad.SteerLinearity")) > 0.25f ? TEXT("Between") : TEXT("Fine centre")),
+		// The total: the input's fixed 12 % plus the player's extra over the rest of the travel.
+		FString::Printf(TEXT("Stick dead zone · %d%%"), FMath::RoundToInt(100.f * (0.12f + 0.88f * SimCruiseSettingValue(TEXT("simcruise.Pad.SteerDeadZone"))))),
+		FString::Printf(TEXT("Throttle trigger · %s"), SimCruiseSettingValue(TEXT("simcruise.TriggerGamma")) < 1.2f ? TEXT("Linear")
+			: SimCruiseSettingValue(TEXT("simcruise.TriggerGamma")) < 1.6f ? TEXT("Gentle") : SimCruiseSettingValue(TEXT("simcruise.TriggerGamma")) < 2.1f ? TEXT("Progressive")
+			: TEXT("Very progressive")),
 	};
 	return View;
 }
@@ -558,6 +641,32 @@ void ASimCruisePlayerController::ChangeSetting(int32 Index)
 	case 1: OnCycleHud(); break;
 	case 2: Step(TEXT("simcruise.Camera.HeadMotion"), { 1.f, 0.5f, 0.f }, TEXT("head_motion")); break;
 	case 3: Step(TEXT("simcruise.Rumble.Strength"), { 1.f, 0.6f, 0.3f, 0.f }, TEXT("rumble")); break;
+	case 4: OnCycleLens(); break;
+	case 5:
+	{
+		// Common laptop and monitor diagonals.
+		static const float Sizes[] = { 13.3f, 14.f, 15.6f, 17.3f, 24.f, 27.f, 32.f, 43.f, 55.f, 65.f };
+		const float Now = SimCruiseSettingValue(TEXT("simcruise.Lens.ScreenInches"));
+		float Next = Sizes[0];
+		for (int32 i = 0; i < UE_ARRAY_COUNT(Sizes); ++i) if (Sizes[i] > Now + 0.05f) { Next = Sizes[i]; break; }
+		if (IConsoleVariable* Var = IConsoleManager::Get().FindConsoleVariable(TEXT("simcruise.Lens.ScreenInches"))) Var->Set(Next, ECVF_SetByCode);
+		SimCruisePreferences::SetInt(TEXT("screen_tenths_inch"), FMath::RoundToInt(Next * 10.f));
+		break;
+	}
+	case 6:
+	{
+		static const float Distances[] = { 40.f, 50.f, 60.f, 70.f, 80.f, 100.f, 150.f, 200.f, 250.f };
+		const float Now = SimCruiseSettingValue(TEXT("simcruise.Lens.ViewDistanceCm"));
+		float Next = Distances[0];
+		for (int32 i = 0; i < UE_ARRAY_COUNT(Distances); ++i) if (Distances[i] > Now + 0.5f) { Next = Distances[i]; break; }
+		if (IConsoleVariable* Var = IConsoleManager::Get().FindConsoleVariable(TEXT("simcruise.Lens.ViewDistanceCm"))) Var->Set(Next, ECVF_SetByCode);
+		SimCruisePreferences::SetInt(TEXT("view_distance_cm"), FMath::RoundToInt(Next));
+		break;
+	}
+	case 7: Step(TEXT("simcruise.Pad.SteerSpeed"), { 1.f, 1.25f, 1.5f, 0.6f, 0.8f }, TEXT("pad_steer_speed")); break;
+	case 8: Step(TEXT("simcruise.Pad.SteerLinearity"), { 0.f, 0.5f, 1.f }, TEXT("pad_steer_linearity")); break;
+	case 9: Step(TEXT("simcruise.Pad.SteerDeadZone"), { 0.f, 0.05f, 0.1f, 0.15f }, TEXT("pad_steer_dead_zone")); break;
+	case 10: Step(TEXT("simcruise.TriggerGamma"), { 1.8f, 2.4f, 1.f, 1.4f }, TEXT("trigger_gamma")); break;
 	default: break;
 	}
 }
@@ -572,6 +681,7 @@ void ASimCruisePlayerController::CloseOverlays()
 	OverlayWidget.Reset();
 	SearchPanel.Reset();
 	AtlasPanel.Reset();
+	TuningPanel.Reset();
 	if (bWasOpen)
 	{
 		SetPause(false);
@@ -638,7 +748,7 @@ void ASimCruisePlayerController::OnCycleLens()
 	if (ASimCruisePlayerCameraManager* Camera = GetSimCamera())
 	{
 		Camera->CycleLens();
-		SimCruisePreferences::SetInt(TEXT("lens"), static_cast<int32>(Camera->GetLens()));
+		SimCruisePreferences::SetInt(TEXT("lens_v3"), static_cast<int32>(Camera->GetLens()));
 		ShowMessage(FString::Printf(TEXT("Lens · %s"), SimCruiseLens::Label(Camera->GetLens())), 2.f);
 	}
 }
@@ -737,22 +847,22 @@ void ASimCruisePlayerController::TickSelfTest(float DeltaTime)
 			SelfTestViewBefore = Camera ? static_cast<int32>(Camera->GetView()) : -1;
 			SelfTestHudBefore = Hud ? static_cast<int32>(Hud->GetLevel()) : -1;
 			InjectKey(EKeys::Gamepad_FaceButton_Top, true);
-			InjectKey(EKeys::Gamepad_LeftThumbstick, true);
+			InjectKey(EKeys::Gamepad_FaceButton_Left, true);
 			Next();
 		}
 		break;
-	case 6: // Y cycles the camera, L3 the HUD
+	case 6: // Y cycles the camera, X the HUD
 		if (SelfTestClock > 0.05f && SelfTestClock - DeltaTime <= 0.05f)
 		{
 			InjectKey(EKeys::Gamepad_FaceButton_Top, false);
-			InjectKey(EKeys::Gamepad_LeftThumbstick, false);
+			InjectKey(EKeys::Gamepad_FaceButton_Left, false);
 		}
 		if (SelfTestClock > 0.2f)
 		{
 			const int32 ViewNow = Camera ? static_cast<int32>(Camera->GetView()) : -1;
 			const int32 HudNow = Hud ? static_cast<int32>(Hud->GetLevel()) : -1;
 			if (ViewNow != (SelfTestViewBefore + 1) % 3) { Fail(TEXT("Y did not cycle the camera")); break; }
-			if (HudNow != (SelfTestHudBefore + 1) % 3) { Fail(TEXT("L3 did not cycle the HUD")); break; }
+			if (HudNow != (SelfTestHudBefore + 1) % 3) { Fail(TEXT("X did not cycle the HUD")); break; }
 			InjectKey(EKeys::C, true);
 			InjectKey(EKeys::F2, true);
 			Next();
@@ -824,7 +934,7 @@ void ASimCruisePlayerController::TickSelfTest(float DeltaTime)
 	{
 		const bool bPassed = SelfTestFailure.IsEmpty();
 		UE_LOG(LogSimCruiseShell, Display, TEXT("SIMCRUISE SHELL SELF-TEST %s %s"), bPassed ? TEXT("PASSED") : TEXT("FAILED"),
-			bPassed ? TEXT("stick both ways, exact centre, key full lock, Y/L3/C/F2, RT linear, W ramp, LT dead zone") : *SelfTestFailure);
+			bPassed ? TEXT("stick both ways, exact centre, key full lock, Y/X/C/F2, RT linear, W ramp, LT dead zone") : *SelfTestFailure);
 		SelfTestStage = -1;
 		if (bSelfTestQuit)
 		{
@@ -903,7 +1013,7 @@ void ASimCruisePlayerController::TickCapture(float DeltaTime)
 	const bool bParkingBrake = S > 11.f && S <= 11.3f;
 	if (bParkingBrake != bCaptureParkingBrake)
 	{
-		InjectKey(EKeys::Gamepad_FaceButton_Bottom, bParkingBrake);
+		InjectKey(EKeys::Gamepad_FaceButton_Right, bParkingBrake);
 		bCaptureParkingBrake = bParkingBrake;
 	}
 

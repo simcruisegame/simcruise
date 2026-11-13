@@ -64,6 +64,12 @@ void ASimCruiseDriveTest::BeginPlay()
 	FParse::Value(FCommandLine::Get(), TEXT("SimCruiseDriveTestOut="), OutputFile);
 	StageStarted = FPlatformTime::Seconds();
 	bPad = FParse::Param(FCommandLine::Get(), TEXT("SimCruiseDriveTestPad"));
+	// -SimCruiseDriveTestMaxFps=15: a slow PC's frame rate (scripts pass it without quoting).
+	int32 MaxFps = 0;
+	if (FParse::Value(FCommandLine::Get(), TEXT("SimCruiseDriveTestMaxFps="), MaxFps) && MaxFps > 0 && GEngine)
+	{
+		GEngine->Exec(GetWorld(), *FString::Printf(TEXT("t.MaxFPS %d"), MaxFps));
+	}
 	bLogOnly = FParse::Param(FCommandLine::Get(), TEXT("SimCruiseDriveLog"));
 	if (bLogOnly && !FParse::Value(FCommandLine::Get(), TEXT("SimCruiseDriveTestOut="), OutputFile))
 	{

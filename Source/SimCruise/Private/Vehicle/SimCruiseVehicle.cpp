@@ -67,6 +67,46 @@ void ASimCruiseVehicle::SetCarDefinition(const FSimCruiseCarDefinition& Car)
 	VehicleMovement->SetCarDefinition(Car);
 	CarId = Car.Id;
 	bHasDefinition = true;
+	RealCar = Car;
+	bTuned = false;
+	Tuning = GetStockTuning();
+}
+
+FSimCruiseTuning ASimCruiseVehicle::GetStockTuning() const
+{
+	return FSimCruiseTuning::FromCar(RealCar, CarModel ? CarModel->GetSteeringRatio() : 0.0);
+}
+
+bool ASimCruiseVehicle::ApplyTuning(const FSimCruiseTuning& InTuning, bool bSave)
+{
+	if (!bHasDefinition)
+	{
+		return false;
+	}
+	const FSimCruiseTuning Stock = GetStockTuning();
+	Tuning = InTuning;
+	Tuning.Clamp(Stock);
+	const FSimCruiseCarDefinition Tuned = Tuning.Apply(RealCar, Stock);
+	// The new definition resets the drivetrain, not where the car stands.
+	ApplyBodyShape(Tuned);
+	VehicleMovement->SetCarDefinition(Tuned);
+	bTuned = true;
+	const bool bSaved = !bSave || Tuning.Save(RealCar.Id);
+	UE_LOG(LogTemp, Display, TEXT("SimCruise tuning %s: springs %.0f/%.0f lb/in, damping %.0f %%, ride %+.0f mm, bars %.0f/%.0f %%, torque %.0f %%, final drive %.2f, steering %.1f:1, roll %.2f deg/g"),
+		*RealCar.Id, Tuning.FrontSpringLbIn, Tuning.RearSpringLbIn, Tuning.DampingPct, Tuning.RideHeightMm, Tuning.FrontBarPct, Tuning.RearBarPct,
+		Tuning.TorquePct, Tuning.FinalDrive, Tuning.SteeringRatio, FSimCruiseTuning::RollGradientDegPerG(Tuned));
+	return bSaved;
+}
+
+bool ASimCruiseVehicle::LoadSavedTuning()
+{
+	FSimCruiseTuning Saved = GetStockTuning();
+	if (!bHasDefinition || !Saved.Load(RealCar.Id))
+	{
+		return false;
+	}
+	ApplyTuning(Saved, false);
+	return true;
 }
 
 void ASimCruiseVehicle::ApplyBodyShape()
@@ -154,8 +194,9 @@ bool ASimCruiseVehicle::AttachCarModel()
 		Light->SetIntensity(static_cast<float>(LowBeamPeakCandela));
 		Light->SetInnerConeAngle(static_cast<float>(LowBeamCoreHalfAngleDeg));
 		Light->SetOuterConeAngle(static_cast<float>(LowBeamEdgeHalfAngleDeg));
-		// Where the beam falls to about a lux: sqrt(15000 cd / 1 lx) = 120 m.
-		Light->SetAttenuationRadius(static_cast<float>(SimCruiseUnits::ToUnrealLength(FMath::Sqrt(LowBeamPeakCandela))));
+		// Unreal fades a light to zero at its radius: at 122 m (where the peak gives 1 lux) the
+		// fade dimmed the whole beam; at 250 m the road ahead keeps its inverse-square light.
+		Light->SetAttenuationRadius(static_cast<float>(SimCruiseUnits::ToUnrealLength(LowBeamRangeM)));
 		Light->SetSourceRadius(6.f);
 		Light->SetUseTemperature(true);
 		Light->SetTemperature(3200.f);
@@ -215,8 +256,7 @@ void ASimCruiseVehicle::UpdateHeadLamps()
 		{
 			if (ASimCruiseEnvironment* Environment = Subsystem->GetEnvironment())
 			{
-				const double Lux = bLit && !HeadLampLights.IsEmpty()
-					? HeadLampLights.Num() * LowBeamPeakCandela / FMath::Square(NightAdaptationDistanceM) : 0.0;
+				const double Lux = bLit && !HeadLampLights.IsEmpty() ? NightAdaptationLux : 0.0;
 				Environment->SetArtificialIlluminanceLux(Lux);
 			}
 		}
@@ -263,6 +303,13 @@ FSimCruiseVehicleSetup ASimCruiseVehicle::GetVehicleSetup() const
 	Setup.SteeringAssistLateralG = Car.SteeringAssistLateralG;
 	Setup.SteeringSlipLimitSurplusRad = FMath::DegreesToRadians(Car.SteeringSlipLimitSurplusDeg);
 	Setup.SteeringRatio = CarModel ? CarModel->GetSteeringRatio() : 0.0;
+	// A tuned steering ratio: the wheel and the on-screen wheel use it, and a stick moves the
+	// rack quicker or slower by the same factor.
+	if (bTuned && Tuning.SteeringRatio > 0.0 && Setup.SteeringRatio > 0.0)
+	{
+		Setup.SteeringQuickness = Setup.SteeringRatio / Tuning.SteeringRatio;
+		Setup.SteeringRatio = Tuning.SteeringRatio;
+	}
 	// The car file's eye is relative to the Godot origin; this pawn's origin is the body centre above it.
 	Setup.DriverEyeLocalCm = SimCruiseGodotToLocalCm(Car.DriverEyeM) - FVector(0.0, 0.0, SimCruiseUnits::ToUnrealLength(Car.CollisionShapeCenterYM));
 	Setup.IdleRpm = Car.IdleSpeedRpm;
@@ -281,6 +328,7 @@ void ASimCruiseVehicle::ToDriveTelemetry(const FSimCruiseCarDefinition& Car, con
 	Out.BodyVelocityMps = In.BodyVelocityLocalMps;
 	Out.BodyAngularVelocityRadPerS = In.BodyAngularVelocityLocalRadPerSecond;
 	Out.EngineSpeedRpm = In.EngineRpm;
+	Out.SimTimeS = In.SimTimeS;
 	Out.Gear = In.Gear;
 	Out.bManualTransmission = In.bManual;
 	Out.bEngineStalled = In.bStalled;

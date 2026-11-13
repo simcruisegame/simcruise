@@ -9,6 +9,7 @@
 #include "Vehicle/SimCruiseUnits.h"
 #include "Vehicle/SimCruiseVehicleDynamics.h"
 #include "Vehicle/SimCruiseVehicleSim.h"
+#include "Vehicle/SimCruiseTuning.h"
 
 namespace
 {
@@ -211,6 +212,112 @@ bool FSimCruiseVehicleModelTmeasyTest::RunTest(const FString& Parameters)
 		PeakMzAlpha >= 0.3 * PeakAlpha && PeakMzAlpha <= 0.6 * PeakAlpha);
 	TestTrue(TEXT("past the side-force peak the aligning torque is less than half its peak"),
 		SimCruiseDynamics::TmeasyPneumaticTrailM(Car, Fz, FMath::Tan(FMath::DegreesToRadians(PeakAlpha))) * Lateral(PeakAlpha, 0.0) < 0.5 * PeakMz);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseVehicleModelTuningTest, "SimCruise.Vehicle.Model.Tuning", VehicleTestFlags)
+bool FSimCruiseVehicleModelTuningTest::RunTest(const FString& Parameters)
+{
+	FSimCruiseCarDefinition Car;
+	if (!SimCruiseLoadBenchCar(*this, TEXT("nb2001"), Car))
+	{
+		return false;
+	}
+	const FSimCruiseTuning Stock = FSimCruiseTuning::FromCar(Car, 15.0);
+	TestEqual(TEXT("stock front spring is the car file's coil"), Stock.FrontSpringLbIn, Car.CoilSpringRateLbfPerInByAxle[0]);
+	TestEqual(TEXT("stock final drive"), Stock.FinalDrive, Car.FinalDriveRatio);
+	// The stock setup rebuilds the real car exactly.
+	const FSimCruiseCarDefinition Same = Stock.Apply(Car, Stock);
+	TestEqual(TEXT("stock: same spring rate"), SimCruiseDynamics::GetWheelSpringRateNPerM(Same, 0), SimCruiseDynamics::GetWheelSpringRateNPerM(Car, 0));
+	TestEqual(TEXT("stock: same bar rate"), SimCruiseDynamics::GetAntiRollBarRateNPerM(Same, 1), SimCruiseDynamics::GetAntiRollBarRateNPerM(Car, 1));
+	TestEqual(TEXT("stock: same ride height"), Same.SuspensionMountHeightM, Car.SuspensionMountHeightM);
+	const double RealRoll = FSimCruiseTuning::RollGradientDegPerG(Car);
+	AddInfo(FString::Printf(TEXT("NB body roll %.2f deg/g"), RealRoll));
+	TestTrue(TEXT("a roadster rolls 2-8 deg per g"), RealRoll > 2.0 && RealRoll < 8.0);
+
+	// Stiffer springs and bars roll less; lower sits lower; more torque pulls harder.
+	FSimCruiseTuning Stiff = Stock;
+	Stiff.FrontSpringLbIn *= 2.0;
+	Stiff.RearSpringLbIn *= 2.0;
+	Stiff.FrontBarPct = 200.0;
+	Stiff.RideHeightMm = -30.0;
+	Stiff.TorquePct = 120.0;
+	Stiff.Clamp(Stock);
+	const FSimCruiseCarDefinition Tuned = Stiff.Apply(Car, Stock);
+	TestTrue(TEXT("stiffer springs and bar roll less"), FSimCruiseTuning::RollGradientDegPerG(Tuned) < RealRoll);
+	FSimCruiseTuning Lower = Stock;
+	Lower.RideHeightMm = -30.0;
+	TestTrue(TEXT("a lower body (lower centre of mass) rolls less"), FSimCruiseTuning::RollGradientDegPerG(Lower.Apply(Car, Stock)) < RealRoll);
+	// The body stands where the suspension holds its static length: mount over the road at
+	// R + static length, the body centre (mount height - box centre) under it.
+	auto BodyOverRoad = [](const FSimCruiseCarDefinition& C)
+	{
+		return C.TireFreeRadiusM() + C.StaticSuspensionLengthM - (C.SuspensionMountHeightM - C.CollisionShapeCenterYM);
+	};
+	TestEqual(TEXT("-30 mm: the body sits 30 mm lower over the road"), BodyOverRoad(Tuned), BodyOverRoad(Car) - 0.03, 1.0e-9);
+	TestEqual(TEXT("the centre of mass keeps its place in the body"), Tuned.CenterOfGravityHeightM - Tuned.CollisionShapeCenterYM,
+		Car.CenterOfGravityHeightM - Car.CollisionShapeCenterYM, 1.0e-9);
+	TestEqual(TEXT("torque scaled"), SimCruiseDynamics::SampleEngineTorqueNm(Tuned, 5500.0), 1.2 * SimCruiseDynamics::SampleEngineTorqueNm(Car, 5500.0), 1.0e-6);
+	// Safe limits.
+	FSimCruiseTuning Wild = Stock;
+	Wild.RideHeightMm = -500.0;
+	Wild.FinalDrive = 99.0;
+	Wild.Clamp(Stock);
+	TestEqual(TEXT("ride height clamped to -60 mm"), Wild.RideHeightMm, -60.0);
+	TestEqual(TEXT("final drive clamped to +25 %"), Wild.FinalDrive, Stock.FinalDrive * 1.25, 1.0e-9);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseVehicleModelManualClutchTest, "SimCruise.Vehicle.Model.ManualClutchLocks", VehicleTestFlags)
+bool FSimCruiseVehicleModelManualClutchTest::RunTest(const FString& Parameters)
+{
+	FSimCruiseCarDefinition Car;
+	if (!SimCruiseLoadBenchCar(*this, TEXT("nb2001"), Car))
+	{
+		return false;
+	}
+	// The car rolls at 20 m/s on a flat road in 3rd, clutch up, half throttle (the body held at
+	// that speed): a dry clutch with the pedal up is locked, so the engine turns exactly with
+	// the gearbox. The old viscous coupling let it slip by torque over 10 N m s.
+	FSimCruiseVehicleSim Sim;
+	Sim.Initialize(Car);
+	Sim.SetManual(true, 20.0);
+	Sim.SelectRatio(3);
+	const double Ratio = Car.ForwardGearRatios[2] * Car.FinalDriveRatio;
+	const double WheelOmega = 20.0 / Sim.GetTireRadiusM();
+	for (FSimCruiseWheelState& W : Sim.State.Wheels) { W.AngularSpeedRadPerSecond = WheelOmega; }
+	Sim.State.EngineOmegaRadPerSecond = WheelOmega * Ratio;
+	FSimCruiseBodyState Body;
+	Body.PositionM = FVector3d(0.0, 0.0, Car.CollisionShapeCenterYM);
+	Body.CenterOfMassM = Body.PositionM + Sim.GetCenterOfMassLocalM();
+	Body.LinearVelocityMps = FVector3d(20.0, 0.0, 0.0);
+	auto Ground = [](const FVector3d& Start, const FVector3d& End, FSimCruiseGroundHit& Hit)
+	{
+		if (Start.Z <= 0.0 || End.Z > 0.0) return false;
+		const double T = Start.Z / (Start.Z - End.Z);
+		Hit.PointM = Start + (End - Start) * T;
+		Hit.NormalM = FVector3d::UnitZ();
+		return true;
+	};
+	FSimCruiseVehicleControls Controls;
+	Controls.Throttle = 0.5;
+	Controls.Clutch = 0.0;
+	Controls.bDirectRack = true;
+	FSimCruiseBodyForces Forces;
+	for (int32 Step = 0; Step < 720; ++Step)
+	{
+		Sim.Step(1.0 / 360.0, 1, Controls, Body, Ground, Forces);
+	}
+	double Mean = 0.0;
+	for (const FSimCruiseWheelState& W : Sim.State.Wheels) { Mean += 0.25 * W.AngularSpeedRadPerSecond; }
+	const double Rear = 0.5 * (Sim.State.Wheels[2].AngularSpeedRadPerSecond + Sim.State.Wheels[3].AngularSpeedRadPerSecond);
+	const double Slip = (Sim.State.EngineOmegaRadPerSecond - Rear * Ratio) / FMath::Max(Sim.State.EngineOmegaRadPerSecond, 1.0);
+	AddInfo(FString::Printf(TEXT("Manual 3rd, clutch up, half throttle at 20 m/s: engine %.0f rpm, gearbox %.0f rpm, clutch slip %.3f %%"),
+		Sim.State.EngineOmegaRadPerSecond * 60.0 / (2.0 * UE_DOUBLE_PI), Rear * Ratio * 60.0 / (2.0 * UE_DOUBLE_PI), 100.0 * Slip));
+	// Locked within one substep's engine torque (the load side is not predicted): about 0.6 %,
+	// against about 2 % with the viscous coupling alone.
+	TestTrue(TEXT("the engaged clutch slips less than 1 %"), FMath::Abs(Slip) < 0.01);
+	(void)Mean;
 	return true;
 }
 

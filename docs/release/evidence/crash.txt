@@ -1,0 +1,48 @@
+# Crash bench SimCruise.Vehicle.Crash.<car> and fixed-bug tests, commit da53362, 2026-11-12T10:49Z
+# Pass rules: rise < 0.6 m, up speed < 3 m/s, tilt < 60 deg, car centre stays before the wall/tree face, never on the far side of the rail, striking car never ahead of the stopped car, finite state, reset gives 4 wheels down and > 3 m/s after 3 s at half throttle.
+
+24 passed, 0 failed, 0 logged errors in 195 s (log: D:\sc\lane-release\Saved\Logs\SimCruiseChecks.log)
+CHECKS PASSED
+
+CRASH meridian_z  car       impact 54 km/h, peak rise 0.17 m, closest centres 4.33 m (car length 4.33 m), finite 1
+CRASH meridian_z  guardrail impact 64 km/h, peak rise 0.01 m, peak up speed 0.12 m/s, peak tilt 2 deg, max x 168.16 m (limit -1.00), finite 1
+CRASH meridian_z  tree      impact 51 km/h, peak rise 0.05 m, peak up speed 0.45 m/s, peak tilt 4 deg, max x 77.59 m (limit 77.63), finite 1
+CRASH meridian_z  wall      impact 60 km/h, peak rise 0.02 m, peak up speed 0.43 m/s, peak tilt 2 deg, max x 77.31 m (limit 77.33), finite 1
+CRASH mustang65   car       impact 50 km/h, peak rise 0.14 m, closest centres 4.57 m (car length 4.55 m), finite 1
+CRASH mustang65   guardrail impact 70 km/h, peak rise 0.00 m, peak up speed 0.08 m/s, peak tilt 4 deg, max x 144.88 m (limit -1.00), finite 1
+CRASH mustang65   tree      impact 50 km/h, peak rise 0.02 m, peak up speed 0.45 m/s, peak tilt 6 deg, max x 77.51 m (limit 77.52), finite 1
+CRASH mustang65   wall      impact 60 km/h, peak rise 0.06 m, peak up speed 0.79 m/s, peak tilt 4 deg, max x 77.20 m (limit 77.22), finite 1
+CRASH nb2001      car       impact 52 km/h, peak rise 0.01 m, closest centres 3.65 m (car length 3.65 m), finite 1
+CRASH nb2001      guardrail impact 66 km/h, peak rise 0.00 m, peak up speed 0.06 m/s, peak tilt 2 deg, max x 148.82 m (limit -1.00), finite 1
+CRASH nb2001      tree      impact 49 km/h, peak rise 0.04 m, peak up speed 0.27 m/s, peak tilt 8 deg, max x 77.94 m (limit 77.97), finite 1
+CRASH nb2001      wall      impact 59 km/h, peak rise 0.00 m, peak up speed 0.05 m/s, peak tilt 2 deg, max x 77.66 m (limit 77.67), finite 1
+CRASH nb2001_aaron car       impact 52 km/h, peak rise 0.00 m, closest centres 2.67 m (car length 3.65 m), finite 1
+CRASH nb2001_aaron guardrail impact 64 km/h, peak rise 0.00 m, peak up speed 0.03 m/s, peak tilt 2 deg, max x 150.76 m (limit -1.00), finite 1
+CRASH nb2001_aaron tree      impact 49 km/h, peak rise 0.03 m, peak up speed 0.33 m/s, peak tilt 5 deg, max x 77.96 m (limit 77.97), finite 1
+CRASH nb2001_aaron wall      impact 59 km/h, peak rise 0.00 m, peak up speed 0.05 m/s, peak tilt 1 deg, max x 77.63 m (limit 77.67), finite 1
+g-meter with uneven physics steps per frame: -0.8000 .. -0.8000 g
+
+Success SimCruise.Drive.LowBeams
+Success SimCruise.Drive.Mapping
+Success SimCruise.Drive.OceanDrive
+Success SimCruise.Drive.ShellControl
+Success SimCruise.Gameplay.Camera.ChaseShowsSlip
+Success SimCruise.Gameplay.Camera.HeadModel
+Success SimCruise.Gameplay.Camera.HeadModelFrameRate
+Success SimCruise.Gameplay.Camera.PhysicsTimeNoJitter
+Success SimCruise.Gameplay.Haptics.SlipRumble
+Success SimCruise.Gameplay.Hud.Levels
+Success SimCruise.Gameplay.Input.BindingsMatchControlsDoc
+Success SimCruise.Gameplay.Input.DeadZonesAndDirections
+Success SimCruise.Gameplay.Loop.PlaceholderConventionsAndSlideCatch
+Success SimCruise.Gameplay.Places.Query
+Success SimCruise.Gameplay.Places.StartPool
+Success SimCruise.Gameplay.Steering.CountersteerAllowance
+Success SimCruise.Gameplay.Steering.KeyTapAtHighwaySpeed
+Success SimCruise.Gameplay.Steering.PedalRamps
+Success SimCruise.Gameplay.Steering.RangeMatchesGodot
+Success SimCruise.Gameplay.Steering.StickAndKeysCentreExactly
+Success SimCruise.Vehicle.Crash.meridian_z
+Success SimCruise.Vehicle.Crash.mustang65
+Success SimCruise.Vehicle.Crash.nb2001
+Success SimCruise.Vehicle.Crash.nb2001_aaron

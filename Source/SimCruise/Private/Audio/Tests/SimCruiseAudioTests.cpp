@@ -201,3 +201,44 @@ bool FSimCruiseCrossPlaneV8Test::RunTest(const FString& Parameters)
 }
 
 #endif
+
+#if WITH_DEV_AUTOMATION_TESTS
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseEngineLimiterTest, "SimCruise.Audio.Limiter", SimCruiseAudioTests::Flags)
+bool FSimCruiseEngineLimiterTest::RunTest(const FString& Parameters)
+{
+	// Each car's limiter: at 5300 rpm, full pedal, a 5000 rpm limiter (the 1965 Mustang)
+	// stutters between fuel cut and firing; a 7250 rpm one (the Miata) runs clean.
+	auto Dips = [](double LimiterRpm)
+	{
+		FSimCruiseInlineFourSynth Synth;
+		FSimCruiseInlineFourSynth::FInputs In;
+		In.Rpm = 5300.0;
+		In.Combustion = 1.0;
+		In.ShaftLoad = 0.8;
+		In.Pedal = 1.0;
+		In.LimiterRpm = LimiterRpm;
+		TArray<float> Buffer;
+		Buffer.SetNumZeroed(FSimCruiseInlineFourSynth::SampleRate);
+		Synth.Render(Buffer.GetData(), Buffer.Num(), In); // settle
+		Synth.Render(Buffer.GetData(), Buffer.Num(), In);
+		// 10 ms windows: the quietest against the mean.
+		const int32 Window = FSimCruiseInlineFourSynth::SampleRate / 100;
+		double Min = TNumericLimits<double>::Max(), Sum = 0.0;
+		int32 Count = 0;
+		for (int32 Start = 0; Start + Window <= Buffer.Num(); Start += Window)
+		{
+			double Energy = 0.0;
+			for (int32 I = Start; I < Start + Window; ++I) Energy += FMath::Square(Buffer[I]);
+			const double Rms = FMath::Sqrt(Energy / Window);
+			Min = FMath::Min(Min, Rms);
+			Sum += Rms;
+			++Count;
+		}
+		return Min / FMath::Max(Sum / Count, 1e-9);
+	};
+	const double Limited = Dips(5000.0), Clean = Dips(7250.0);
+	AddInfo(FString::Printf(TEXT("LIMITER quietest 10 ms window / mean: %.2f over a 5000 rpm limiter, %.2f under a 7250 rpm one"), Limited, Clean));
+	TestTrue(TEXT("over its own limiter the engine stutters (deeper dips than under it)"), Limited < Clean * 0.8);
+	return true;
+}
+#endif

@@ -117,7 +117,7 @@ void ASimCruiseHUD::SampleVehicle(float DeltaTimeS)
 	if (const APawn* Pawn = Controller->GetPawn())
 	{
 		const FTransform Body = Pawn->GetActorTransform();
-		GMeter.Update(Body, Body.GetRotation().RotateVector(Telemetry.BodyVelocityMps), DeltaTimeS);
+		GMeter.Update(Body, Body.GetRotation().RotateVector(Telemetry.BodyVelocityMps), DeltaTimeS, Telemetry.SimTimeS);
 	}
 	TrailClock += DeltaTimeS;
 	if (TrailClock >= 1.f / 30.f)
@@ -400,11 +400,11 @@ void ASimCruiseHUD::DrawFull(float Scale)
 	DrawTextAt(FString::Printf(TEXT("%s  ·  %s%s"), *Mode, *View, bAbs ? TEXT("  ·  ABS") : TEXT("")), false, 11.f * Scale, 600.f * Scale, Y + 48.f * Scale, Dim);
 
 	const bool bPad = Controller && Controller->IsUsingGamepad();
-	FString Hint = bPad ? TEXT("RT / LT  drive     Y  camera     B  manual     View  recover     L3  HUD")
+	FString Hint = bPad ? TEXT("RT / LT  drive     Y  camera     R3  manual     View  recover     X  HUD")
 	                    : TEXT("W / S  drive     A / D  steer     C  camera     T  manual     R  recover     F2  HUD");
 	if (bManual)
 	{
-		Hint = bPad ? TEXT("LB  clutch     RB / X  shift     A  parking brake     Y  camera     View  recover")
+		Hint = bPad ? TEXT("A  clutch     RB / LB  shift     B  parking brake     Y  camera     View  recover")
 		            : TEXT("Shift  clutch     E / Q  shift     H  parking brake     C  camera     R  recover");
 	}
 	DrawTextAt(Hint, false, 10.f * Scale, Canvas->ClipX - 130.f * Scale, Y + 36.f * Scale, Dim, true);

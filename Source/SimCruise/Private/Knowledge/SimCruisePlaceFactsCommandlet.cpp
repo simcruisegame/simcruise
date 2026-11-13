@@ -5,12 +5,14 @@
 #include "GenericPlatform/GenericPlatformHttp.h"
 #include "HAL/FileManager.h"
 #include "HAL/PlatformProcess.h"
+#include "Live/SimCruiseSceneParser.h"
 #include "HttpManager.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Knowledge/SimCruisePlaceAI.h"
 #include "Knowledge/SimCruisePlaceFacts.h"
+#include "Knowledge/SimCruiseFurnitureData.h"
 #include "Knowledge/SimCruisePlacePhotos.h"
 #include "Dom/JsonObject.h"
 #include "Serialization/JsonReader.h"
@@ -154,9 +156,45 @@ int32 USimCruisePlaceFactsCommandlet::Main(const FString& Params)
 		UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("%s: %d useful of %d OSM + %d Wikidata -> %s"), *SimCruiseTileName(Tile), Useful.Num(), Osm.Num(), Wd.Num(), *Path);
 		FPlatformProcess::Sleep(2.0f);
 	}
+	// -Furniture: the street furniture of these tiles (data/knowledge/furniture).
+	if (FParse::Param(*Params, TEXT("Furniture")))
+	{
+		int32 Total = 0;
+		for (const FIntPoint& Tile : Tiles)
+		{
+			if (!bAll && FPaths::FileExists(SimCruiseFurniture::BundledPath(Tile))) continue;
+			double S, W, N, E;
+			SimCruiseGeo::TileToLonLat(FVector2d(Tile.X, Tile.Y), W, N);
+			SimCruiseGeo::TileToLonLat(FVector2d(Tile.X + 1, Tile.Y + 1), E, S);
+			const FString Box = FString::Printf(TEXT("(%.6f,%.6f,%.6f,%.6f)"), S, W, N, E);
+			const FString Query = FString::Printf(TEXT("[out:json][timeout:25];(%s);out 3000;"), *SimCruiseFurniture::OverpassLines(Box));
+			FString Text, Error;
+			TArray<FSimCruiseFurniture> Items;
+			bool bOk = false;
+			for (int32 Attempt = 0; Attempt < 6 && !bOk; ++Attempt)
+			{
+				if (Attempt > 0) FPlatformProcess::Sleep(5.0f * Attempt);
+				Items.Reset();
+				bOk = Fetch(SimCruisePlaceFacts::OverpassUrl(Attempt), TEXT("POST"), TEXT("data=") + FGenericPlatformHttp::UrlEncode(Query), TEXT("application/json"), Text)
+					&& SimCruiseFurniture::ParseOverpass(Text, Items, Error);
+			}
+			if (!bOk) { ++Failures; UE_LOG(LogSimCruisePlaceFactsCommandlet, Warning, TEXT("%s: furniture failed"), *SimCruiseTileName(Tile)); continue; }
+			FFileHelper::SaveStringToFile(SimCruiseFurniture::ToJson(Tile, Items), *SimCruiseFurniture::BundledPath(Tile), FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+			Total += Items.Num();
+			UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("%s: %d furniture items"), *SimCruiseTileName(Tile), Items.Num());
+			FPlatformProcess::Sleep(2.0f);
+		}
+		UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("Furniture: %d items."), Total);
+	}
 	// -Photos: each building with its own Wikidata photograph gets its wall colour measured.
 	if (FParse::Param(*Params, TEXT("Photos")))
 	{
+		// The local scene parser (CPU) finds the wall pixels; -Remeasure measures again the
+		// colours measured before (a mapped colour is never touched).
+		FSimCruiseSceneParser::Get().Initialize();
+		const bool bRemeasure = FParse::Param(*Params, TEXT("Remeasure"));
+		// -AlbedoFromPavement: darken over-exposed walls on the photograph's pavement (experimental).
+		const bool bAlbedo = FParse::Param(*Params, TEXT("AlbedoFromPavement"));
 		int32 Measured = 0, Tried = 0;
 		for (const FIntPoint& Tile : Tiles)
 		{
@@ -185,7 +223,8 @@ int32 USimCruisePlaceFactsCommandlet::Main(const FString& Params)
 			for (FSimCruisePlaceRecord& R : Records)
 			{
 				// A mapped colour wins; a measured one is kept.
-				if (R.Image.IsEmpty() || !R.Colour.IsEmpty()) continue;
+				const bool bMeasuredBefore = R.ColourSource.StartsWith(TEXT("measured in File:"));
+				if (R.Image.IsEmpty() || (!R.Colour.IsEmpty() && !(bRemeasure && bMeasuredBefore))) continue;
 				bChanged = true;
 				++Tried;
 				// Each of its photographs in turn, until one is a recent colour photo with a clear wall.
@@ -210,9 +249,21 @@ int32 USimCruisePlaceFactsCommandlet::Main(const FString& Params)
 					FColor Wall;
 					float Share = 0.0f;
 					FPlatformProcess::Sleep(0.3f);
-					if (SimCruisePlacePhotos::DecodeImage(Bytes, Pixels, W, H) && SimCruisePlacePhotos::WallColour(Pixels, W, H, Wall, Share))
+					if (!SimCruisePlacePhotos::DecodeImage(Bytes, Pixels, W, H)) continue;
+					// The local scene parser finds the wall pixels when it can; the colour rule otherwise.
+					TArray<uint8> Labels;
+					int32 GW = 0, GH = 0;
+					const bool bParsed = FSimCruiseSceneParser::Get().IsReady() && FSimCruiseSceneParser::Get().ParseWithTimeout(Pixels, W, H, Labels, GW, GH);
+					bool bNormalised = false;
+					const bool bMasked = bParsed && SimCruisePlacePhotos::WallColourMasked(Pixels, W, H, Labels, GW, GH, Wall, Share, bNormalised, bAlbedo);
+					if (bMasked || (!bParsed && SimCruisePlacePhotos::WallColour(Pixels, W, H, Wall, Share)))
 					{
 						SimCruisePlacePhotos::Apply(R, Wall, Share, Info);
+						if (bMasked)
+						{
+							R.ColourSource += bNormalised ? TEXT("; wall pixels found by the local scene parser; albedo from the pavement in the photo")
+								: TEXT("; wall pixels found by the local scene parser");
+						}
 						++Measured;
 						UE_LOG(LogSimCruisePlaceFactsCommandlet, Display, TEXT("%s: wall %s %s"), *R.Name, *R.Colour, *R.ColourSource);
 						break;

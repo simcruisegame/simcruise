@@ -93,6 +93,10 @@ struct FSimCruiseDriveTelemetry
 	double RoadRoughness = 0.0;
 	/** Both front tyres' aligning torque about the steering axes (N m, + steering right). */
 	double RackAligningTorqueNm = 0.0;
+	/** Physics time of the state above, s (0 when the vehicle does not report it). The
+	 *  cameras and the g-meter differentiate the velocity over this, not over the frame,
+	 *  because the asynchronous physics step does not line up with the rendered frames. */
+	double SimTimeS = 0.0;
 	FSimCruiseDriveWheelTelemetry Wheels[4];
 };
 
@@ -110,6 +114,8 @@ struct FSimCruiseVehicleSetup
 	double SteeringSlipLimitSurplusRad = FMath::DegreesToRadians(5.0);
 	/** Steering-wheel turns per road-wheel turn; 0 when unsourced. */
 	double SteeringRatio = 0.0;
+	/** Real ratio over the tuned one: above 1 a quicker rack (a stick moves the wheels further and faster). */
+	double SteeringQuickness = 1.0;
 	/** Driver's eye in the pawn's local space, cm, and the direction of a
 	 *  relaxed gaze down the road (local, unit length). */
 	FVector DriverEyeLocalCm = FVector(-50.3, -34.7, 100.9);

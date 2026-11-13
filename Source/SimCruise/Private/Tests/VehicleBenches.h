@@ -42,6 +42,11 @@ struct FSimCruiseLiftOffCase
 {
 	double TargetG = 0.3;
 	bool bBrake = false;
+	/** A fixed brake pedal (0-1) instead of the 0.15 g trail brake, when 0 or more. */
+	double BrakePedal = -1.0;
+	/** The axle whose wheel locked first under braking (0 front, 1 rear, -1 none) and when (s). */
+	int32 FirstLockAxle = -1;
+	double FirstLockS = 0.0;
 	bool bSteady = false;
 	double SteadyLateralG = 0.0;
 	int32 SteadyGear = 0;
@@ -67,6 +72,10 @@ struct FSimCruiseLiftOffResult
 /** Run LiftOff on a RadiusM circle at each lateral level, lift and trail brake. */
 FSimCruiseLiftOffResult SimCruiseRunLiftOff(const FSimCruiseCarDefinition& Car, double FixedStepS,
 	const TArray<double>& LevelsG, double RadiusM = 40.0);
+
+/** ISO 7975 braking in a turn: a steady LateralG circle, then each fixed brake pedal in turn. */
+FSimCruiseLiftOffResult SimCruiseRunBrakeInTurn(const FSimCruiseCarDefinition& Car, double FixedStepS,
+	const TArray<double>& Pedals, double LateralG = 0.5, double RadiusM = 100.0);
 
 /** Static load balance after settling on the pad. */
 struct FSimCruiseStaticLoadResult

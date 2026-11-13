@@ -123,6 +123,8 @@ private:
 		FString Error;
 		FString AerialKey;
 		TArray<FColor> AerialPixels;
+		/** Its mip chain, built on the worker so the game thread only copies it in. */
+		TArray<TArray<FColor>> AerialMips;
 		int32 AerialWidth = 0;
 		int32 AerialHeight = 0;
 	};
@@ -148,6 +150,8 @@ private:
 	FSimCruiseTileManager Manager;
 	TSharedPtr<FSimCruiseAtlasClient, ESPMode::ThreadSafe> Atlas;
 	TSharedPtr<FInbox, ESPMode::ThreadSafe> Inbox;
+	/** A finished tile held back a frame while its aerial photograph was made. */
+	TSharedPtr<FResult, ESPMode::ThreadSafe> Deferred;
 
 	UPROPERTY(Transient)
 	TMap<FIntPoint, TObjectPtr<ASimCruiseWorldTile>> Tiles;

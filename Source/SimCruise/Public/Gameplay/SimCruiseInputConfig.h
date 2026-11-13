@@ -72,6 +72,7 @@ public:
 	UPROPERTY() TObjectPtr<UInputAction> ToggleStats;
 	UPROPERTY() TObjectPtr<UInputAction> MinimapIn;
 	UPROPERTY() TObjectPtr<UInputAction> MinimapOut;
+	UPROPERTY() TObjectPtr<UInputAction> Tuning;
 
 private:
 	UPROPERTY() TMap<FName, TObjectPtr<UInputAction>> ActionsByName;

@@ -55,6 +55,8 @@ struct FSimCruiseCarDefinition
 	double FrontTrackM = 1.414;
 	double RearTrackM = 1.44;
 	double SuspensionMountHeightM = 0.51;
+	/** How far tuning raised the body over the road, m (negative lowers it); the CG height above stays the stock one in the body. */
+	double RideHeightOffsetM = 0.0;
 	double VisualHubDropM = 0.205;
 	double TireSectionWidthM = 0.195;
 	double TireAspectRatio = 0.50;
@@ -125,6 +127,13 @@ struct FSimCruiseCarDefinition
 	int32 ContactRays = 3;
 	/** Tyre vertical stiffness (N/m); a 195/50R15 at 30 psi is about 200 kN/m (estimate). */
 	double TireVerticalStiffnessNPerM = 200000.0;
+	/**
+	 * Steering system torsional stiffness at the road wheels (N m per degree, both fronts):
+	 * the aligning torque turns the wheels back by torque / stiffness. 0 is a rigid rack.
+	 * 400 is an estimate: with the NB's trails it adds about 0.7 deg/g of understeer, the share
+	 * the handling texts' worked examples give steering compliance.
+	 */
+	double SteeringStiffnessNmPerDeg = 400.0;
 	bool bAbsEnabled = false;
 	double WheelRotationalInertiaKgM2 = 1.05;
 	double RollingResistanceCoefficient = 0.012;
@@ -139,6 +148,10 @@ struct FSimCruiseCarDefinition
 	// Brake torque at each wheel.
 	double FrontBrakeTorqueNm = 1150.0;
 	double RearBrakeTorqueNm = 650.0;
+	/** Rear proportioning valve: above this pedal fraction the rear pressure rises at
+	 *  RearBrakeSlopeAboveKnee of the pedal's. 1 / 1 is no valve. */
+	double RearBrakeKneeFraction = 1.0;
+	double RearBrakeSlopeAboveKnee = 1.0;
 	double ParkingBrakeTorqueNm = 900.0;
 
 	// Aerodynamic body drag, Cd multiplied by frontal area.
@@ -159,6 +172,9 @@ struct FSimCruiseCarDefinition
 	double EngineRotationalInertiaKgM2 = 0.18;
 	double EngineFrictionTorqueNm = 10.0;
 	double EngineFrictionTorqueNmPerRpm = 0.002;
+	/** Closed-throttle pumping loss above idle (scaled by 1 - throttle), N m and N m per rpm. */
+	double EnginePumpingTorqueNm = 0.0;
+	double EnginePumpingTorqueNmPerRpm = 0.0;
 	double MinimumAutomaticEngineSpeedRadPerSecond = 78.0;
 	double MaximumEngineSpeedRadPerSecond = 750.0;
 	double StallEngineSpeedRadPerSecond = 35.0;
@@ -219,6 +235,11 @@ struct FSimCruiseCarDefinition
 	TArray<double> AntiRollBarArmLengthMByAxle = {0.216, 0.122};
 	TArray<double> AntiRollBarLeverRatioByAxle = {0.548, 0.586};
 	TArray<double> AntiRollBarRateNmPerMByAxle = {0.0, 0.0};
+	/** Driver tuning on top of the real car (FSimCruiseTuning; never read from the car file):
+	 *  anti-roll bar rate and damper force multipliers, and an engine torque multiplier. */
+	TArray<double> AntiRollBarScaleByAxle = {1.0, 1.0};
+	double DamperScale = 1.0;
+	double EngineTorqueScale = 1.0;
 	double StaticSuspensionLengthM = 0.217;
 	double MinimumSuspensionTravelM = 0.074;
 	double MaximumSuspensionTravelM = 0.315;

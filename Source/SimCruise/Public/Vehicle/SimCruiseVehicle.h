@@ -7,6 +7,7 @@
 #include "Gameplay/SimCruiseVehicleControl.h"
 #include "Presentation/SimCruiseCarPresentationComponent.h"
 #include "Vehicle/CarDefinition.h"
+#include "Vehicle/SimCruiseTuning.h"
 #include "Vehicle/SimCruiseVehicleTelemetry.h"
 #include "SimCruiseVehicle.generated.h"
 
@@ -45,6 +46,18 @@ public:
 
 	/** Install a car before spawning finishes (or later: resizes the body and resets). */
 	void SetCarDefinition(const FSimCruiseCarDefinition& Car);
+
+	/** The car as its file describes it, before any tuning. */
+	const FSimCruiseCarDefinition& GetRealCar() const { return RealCar; }
+	/** The real car's setup in tuning units (the "reset" values). */
+	FSimCruiseTuning GetStockTuning() const;
+	const FSimCruiseTuning& GetTuning() const { return Tuning; }
+	/** Rebuild the car from the real one with this tuning (clamped to safe ranges); bSave writes
+	 *  it to Saved/SimCruise/tuning-<id>.json (false when that write fails). Resets the
+	 *  drivetrain: apply standing still. */
+	bool ApplyTuning(const FSimCruiseTuning& InTuning, bool bSave);
+	/** Apply the driver's saved tuning for this car, if there is one (the player's car only). */
+	bool LoadSavedTuning();
 
 	/**
 	 * Build the car's downloaded model on this pawn (blocking the first time a
@@ -126,11 +139,20 @@ public:
 	 */
 	static constexpr double LowBeamPeakCandela = 15000.0;
 	static constexpr double LowBeamAimDownDeg = 1.5;
-	static constexpr double LowBeamCoreHalfAngleDeg = 8.0;
+	/** The cone's full-intensity core: the beam's own shape comes from the light function (SimCruiseLowBeamPattern), so the cone must not dim it a second time. */
+	static constexpr double LowBeamCoreHalfAngleDeg = 30.0;
 	/** A real low beam spreads about 40 deg to each side at low intensity; a round cone this wide also spills upward (no cut-off yet). */
 	static constexpr double LowBeamEdgeHalfAngleDeg = 32.0;
-	/** Where the driver adapts at night: a grey card this far ahead, facing the car. */
-	static constexpr double NightAdaptationDistanceM = 30.0;
+	/**
+	 * What the driver's eye adapts to at night in its own low beams: the luminance of the lit
+	 * road ahead (dry asphalt under low beams reads about 0.4-2 cd/m2), not a card facing the
+	 * lamps, which metered about 2 cd/m2 and left the 0.1 cd/m2 road black.
+	 */
+	static constexpr double NightAdaptationLuminanceCdM2 = 0.5;
+	/** That luminance as the illuminance on a middle-grey (18 %) Lambertian surface, lux. */
+	static constexpr double NightAdaptationLux = NightAdaptationLuminanceCdM2 * UE_DOUBLE_PI / 0.18;
+	/** How far the beam reaches before Unreal cuts the light off, metres (the 15000 cd peak gives 0.24 lx there). */
+	static constexpr double LowBeamRangeM = 250.0;
 
 	/** The beam lights (empty until AttachCarModel, or when the model has no head lamps). */
 	const TArray<TObjectPtr<USpotLightComponent>>& GetHeadLampLights() const { return HeadLampLights; }
@@ -175,6 +197,9 @@ private:
 	bool bHeadLampsShown = false;
 
 	bool bHasDefinition = false;
+	FSimCruiseCarDefinition RealCar;
+	FSimCruiseTuning Tuning;
+	bool bTuned = false;
 	bool bManualRequested = false;
 	FString LastShownGearMessage;
 	bool bMirrorsLive = false;

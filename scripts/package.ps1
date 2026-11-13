@@ -65,7 +65,11 @@ $Profiles = Get-Content -Raw (Join-Path $Root 'Content\Vehicles\CarPresentation.
 $Used = @($Profiles.cars.PSObject.Properties | ForEach-Object { ($_.Value.model -split '/')[3] } | Where-Object { $_ })
 $Skip = @(Join-Path $Root 'data\observed') + @(Get-ChildItem -Directory (Join-Path $Root 'data\art\traffic') |
     Where-Object { $Used -notcontains $_.Name } | ForEach-Object { $_.FullName })
-robocopy (Join-Path $Root 'data') (Join-Path $Game 'data') /MIR /XD @Skip /NFL /NDL /NJH /NJS /NP | Out-Null
+# The AI models' weights were trained on data released for research or non-commercial use
+# only (Cityscapes; DIV2K, Flickr2K, OST), so they are development tools and never shipped
+# (docs/data-sources.md); the game runs without them. Every data/ai/*.onnx is left out, so a
+# new model is not shipped by accident; scripts\release.ps1 refuses a zip with any .onnx.
+robocopy (Join-Path $Root 'data') (Join-Path $Game 'data') /MIR /XD @Skip /XF *.onnx /NFL /NDL /NJH /NJS /NP | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "Copying data failed ($LASTEXITCODE)" }
 foreach ($Dir in $Skip) {
     # robocopy /MIR leaves excluded folders in place; an earlier copy's go now.
@@ -77,6 +81,19 @@ Copy-Item (Join-Path $Root 'Content\Vehicles\CarPresentation.json') (Join-Path $
 robocopy (Join-Path $Root 'Content\Vehicle\Calibration') (Join-Path $Game 'Content\Vehicle\Calibration') /MIR /NFL /NDL /NJH /NJS /NP | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "Copying calibration failed ($LASTEXITCODE)" }
 $Atlas = Join-Path $Root 'tools\atlas.exe'
+# The helper is not in git: build it from helper\atlas.mjs when Bun is installed, so a
+# package never ships an older helper than its source.
+$Bun = Get-Command bun -ErrorAction SilentlyContinue
+$BunExe = if ($Bun) { $Bun.Source } else { Join-Path $env:USERPROFILE '.bun\bin\bun.exe' }
+if (Test-Path $BunExe) {
+    Write-Host 'Building tools\atlas.exe from helper\atlas.mjs'
+    Push-Location $Root
+    try {
+        & $BunExe install --frozen-lockfile | Out-Null
+        & $BunExe build --compile --minify --target=bun-windows-x64 helper/atlas.mjs --outfile tools/atlas.exe | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Building the atlas helper failed ($LASTEXITCODE)" }
+    } finally { Pop-Location }
+}
 if (Test-Path $Atlas) {
     New-Item -ItemType Directory -Force (Join-Path $Game 'tools') | Out-Null
     Copy-Item $Atlas (Join-Path $Game 'tools') -Force

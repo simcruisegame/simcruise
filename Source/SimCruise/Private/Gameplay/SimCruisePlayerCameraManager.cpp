@@ -9,9 +9,12 @@
 #include "HAL/IConsoleManager.h"
 #include "Presentation/SimCruiseCarPresentationComponent.h"
 
+static TAutoConsoleVariable<float> CVarScreenInches(
+	TEXT("simcruise.Lens.ScreenInches"), 15.6f,
+	TEXT("The screen's diagonal in inches, for the true-FOV lens (its height follows the window's aspect)."));
 static TAutoConsoleVariable<float> CVarScreenHeightCm(
-	TEXT("simcruise.Lens.ScreenHeightCm"), 19.4f,
-	TEXT("Physical height of the picture in cm for the 'true to screen' lens (19.4 = 15.6\" 16:9)."));
+	TEXT("simcruise.Lens.ScreenHeightCm"), 0.f,
+	TEXT("The picture's physical height in cm for the true-FOV lens; 0 derives it from simcruise.Lens.ScreenInches."));
 static TAutoConsoleVariable<float> CVarViewDistanceCm(
 	TEXT("simcruise.Lens.ViewDistanceCm"), 60.f,
 	TEXT("Eye-to-screen distance in cm for the 'true to screen' lens."));
@@ -68,6 +71,26 @@ void ASimCruisePlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float 
 	const FTransform Body = Pawn->GetActorTransform();
 	const FVector WorldVelocityMps = Body.GetRotation().RotateVector(Telemetry.BodyVelocityMps);
 
+	// A recover, a car change or a travel moves the car on the physics thread a frame
+	// or more after the request, so a snap on the request frame came too early and the
+	// chase camera swooped from the old place. Snap on the frame the car is seen to jump:
+	// farther than it could drive in the frame, with 5 m to spare.
+	const FVector BodyLocation = Body.GetLocation();
+	if (bHaveLastBody)
+	{
+		const double JumpCm = FVector::Dist(BodyLocation, LastBodyLocation);
+		const double DriveCm = (WorldVelocityMps.Size() * 2.0 + 10.0) * 100.0 * FMath::Max(static_cast<double>(DeltaTime), 1.0 / 30.0);
+		// A recover in place turns the car upright: more than 45 degrees in one frame.
+		const double TurnDeg = FMath::RadiansToDegrees(Body.GetRotation().AngularDistance(LastBodyRotation));
+		if (JumpCm > DriveCm + 500.0 || TurnDeg > 45.0)
+		{
+			bSnap = true;
+		}
+	}
+	LastBodyLocation = BodyLocation;
+	LastBodyRotation = Body.GetRotation();
+	bHaveLastBody = true;
+
 	double Aspect = 16.0 / 9.0;
 	if (PCOwner)
 	{
@@ -97,7 +120,9 @@ void ASimCruisePlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float 
 		const FSimCruiseEyePose Eye = Head.Update(Body, WorldVelocityMps, Setup, Telemetry, DeltaTime);
 		OutVT.POV.Location = Eye.Location;
 		OutVT.POV.Rotation = Eye.ToRotator();
-		const double Vertical = SimCruiseLens::VerticalFovDeg(Lens, CVarScreenHeightCm.GetValueOnGameThread(), CVarViewDistanceCm.GetValueOnGameThread());
+		const double HeightCm = CVarScreenHeightCm.GetValueOnGameThread() > 0.f ? CVarScreenHeightCm.GetValueOnGameThread()
+			: SimCruiseLens::ScreenHeightCm(CVarScreenInches.GetValueOnGameThread(), Aspect);
+		const double Vertical = SimCruiseLens::VerticalFovDeg(Lens, HeightCm, CVarViewDistanceCm.GetValueOnGameThread());
 		OutVT.POV.FOV = static_cast<float>(SimCruiseLens::HorizontalFromVerticalDeg(Vertical, Aspect));
 		bSnap = false;
 		return;

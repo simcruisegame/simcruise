@@ -57,7 +57,7 @@
  "tmeasy_slide_mu_y": 0.713,
  "tmeasy_peak_mu_y": 0.856,
  "tmeasy_slide_mu_x": 0.76,
- "tmeasy_peak_mu_x": 0.912,
+ "tmeasy_peak_mu_x": 0.95,
  "tyre_model": "tmeasy",
  "mu_max": 1.05,
  "axle_grip": [
@@ -160,6 +160,7 @@
  "target_70_0_ft": 264,
  "target_skidpad_g": 0.7,
  "sources": {
+  "tyre_tmeasy": "TMeasy with a bias-ply side curve (estimate: 9.5 per rad, peak slip 0.21). Grip fitted by scripts/fit-tyres.ps1 to Car Life's 264 ft 70-0 and 0.70 g skidpad; the drive peak (tmeasy_peak_mu_x 0.95, above the braking fit's 0.912) is fitted to the same test's 8.9 s 0-60, which is launch-limited on these tyres.",
   "calibration": "0-60 mph 8.9 s: Car Life, 289/210 hp four-speed (table at musclecarfacts.com/ford-mustang/337-1965-mustang); Road & Track's 210 hp four-speed: about 9 s, 16.5 s quarter mile (auto.howstuffworks.com/1965-1966-ford-mustang.htm). 70-0 mph 264 ft derived from Car Life's measured 20 ft/s2 (0.62 g) from 80 mph, drums with rear lock-up (tunnelram.net reprint of the 1965 Car Life Mustang special).",
   "engine": "289 four-barrel: 210 bhp at 4400 rpm, 300 lb-ft at 2800 rpm (early 1965; 225 bhp / 305 lb-ft after the mid-year revision), per Car Life 1965; curve shape estimated.",
   "gearing": "Ford four-speed wide ratios 2.78/1.93/1.36/1.00 (third gear 1.36 per Car Life), 3.00 axle per the Car Life test car.",
@@ -167,7 +168,7 @@
   "tyres": "6.50-14 bias-ply (Car Life test car).",
   "estimates": "Mass (convertible V8 about 2,890 lb), centre of gravity, inertia, spring rates (about 1.15/1.3 Hz), dampers, brake torques, tyre grip and the 0.70 g skidpad target (no period skidpad test found)."
  },
- "calibration_open": "Skidpad target 0.70 g is an estimate for 1965 bias-ply tyres, not a measurement.",
+ "calibration_open": "Skidpad target 0.70 g is an estimate for 1965 bias-ply tyres, not a measurement. Brake-in-turn: with 4-wheel drums and no proportioning valve the car spins at 0.8-1.0 pedal in a 0.5 g bend once the rears lock after the fronts; period-true for a drum-braked 1965 car, not checked against a measured test.",
  "traction_control": false,
  "model_scene": "data/art/traffic/mustang65-05f2a294/scene.gltf",
  "model_rig": {

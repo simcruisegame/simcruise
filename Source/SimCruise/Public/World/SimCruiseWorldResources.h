@@ -46,6 +46,17 @@ public:
 	void TrimAerials(const TSet<FString>& Keep);
 	/** Swaps an aerial for a new image (the AI detail engine's result); returns the old texture, or null. */
 	UTexture2D* ReplaceAerial(const FString& Key, const TArray<FColor>& Pixels, int32 Width, int32 Height, UTexture2D*& OutNew);
+	/** As AddAerial and ReplaceAerial, from a mip chain built off the game thread (BuildMipChain). */
+	UTexture2D* AddAerialMips(const FString& Key, TArray<TArray<FColor>>&& Mips, int32 Width, int32 Height);
+	UTexture2D* ReplaceAerialMips(const FString& Key, TArray<TArray<FColor>>&& Mips, int32 Width, int32 Height, UTexture2D*& OutNew);
+
+	/**
+	 * The box-filtered mip chain of an image (in sRGB-decoded space for colour images), level 0
+	 * first. Pure: any thread. A 2048 px photograph's chain costs about 80 ms, too much for a frame.
+	 */
+	static void BuildMipChain(const TArray<FColor>& Pixels, int32 Width, int32 Height, bool bSRGB, TArray<TArray<FColor>>& OutMips);
+	/** A texture from a mip chain (game thread; only copies). */
+	static UTexture2D* CreateTextureFromMips(UObject* Outer, FName Name, TArray<TArray<FColor>>&& Mips, int32 Width, int32 Height, bool bSRGB, bool bWrap);
 
 	UPROPERTY()
 	TArray<TObjectPtr<UMaterialInterface>> LayerMaterials;

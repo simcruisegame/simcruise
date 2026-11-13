@@ -260,7 +260,7 @@ bool FSimCruiseGraphicsAutoPickTest::RunTest(const FString&)
 	TestEqual(TEXT("desktop RTX 4080"), FSimCruiseGraphics::AutoPick(TEXT("NVIDIA GeForce RTX 4080"), false, 16376), P::Ultra);
 	TestEqual(TEXT("laptop RTX 4080 one tier down"), FSimCruiseGraphics::AutoPick(TEXT("NVIDIA GeForce RTX 4080 Laptop GPU"), false, 12282), P::High);
 	TestEqual(TEXT("desktop RTX 2070 Super"), FSimCruiseGraphics::AutoPick(TEXT("NVIDIA GeForce RTX 2070 SUPER"), false, 8192), P::Ultra);
-	TestEqual(TEXT("the owner's RTX 2070 Super Max-Q"), FSimCruiseGraphics::AutoPick(TEXT("NVIDIA GeForce RTX 2070 Super with Max-Q Design"), false, 8031), P::High);
+	TestEqual(TEXT("the owner's RTX 2070 Super Max-Q (High misses 60 fps on Ocean Drive)"), FSimCruiseGraphics::AutoPick(TEXT("NVIDIA GeForce RTX 2070 Super with Max-Q Design"), false, 8031), P::Medium);
 	TestEqual(TEXT("laptop RTX 2060"), FSimCruiseGraphics::AutoPick(TEXT("NVIDIA GeForce RTX 2060 Laptop GPU"), false, 6144), P::Medium);
 	TestEqual(TEXT("6 GB desktop cards step down from Ultra"), FSimCruiseGraphics::AutoPick(TEXT("NVIDIA GeForce RTX 3060"), false, 6144), P::High);
 	TestEqual(TEXT("unknown adapter without benchmark"), FSimCruiseGraphics::AutoPick(TEXT("Some Future GPU"), false, 16000, false), P::Medium);

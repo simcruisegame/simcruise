@@ -77,13 +77,17 @@ def fix_tensor(tensor, data):
                     v = bytes(p2)
             loc[k.decode()] = v.decode()
         elif num == 14:
-            external = True
+            # data_location: 0 DEFAULT (raw data here), 1 EXTERNAL.
+            external = varint(raw, 1)[0] == 1
+            if not external:
+                keep.append(raw)
         else:
             keep.append(raw)
     if not external and not loc:
         return tensor, 0
     offset = int(loc.get('offset', '0'))
-    length = int(loc['length'])
+    # 'length' is optional: without it the tensor runs to the end of the file.
+    length = int(loc['length']) if 'length' in loc else len(data) - offset
     blob = data[offset:offset + length]
     if len(blob) != length:
         raise ValueError('external data out of range')

@@ -55,14 +55,15 @@ namespace SimCruisePreferences
 		const TCHAR* Cmd = FCommandLine::Get();
 		static const TCHAR* QaFlags[] = {
 			TEXT("SimCruiseDriveCapture"), TEXT("SimCruiseDriveTest"), TEXT("SimCruiseShellSelfTest"), TEXT("SimCruiseShellCapture"),
-			TEXT("SimCruiseLab"), TEXT("unattended"),
+			TEXT("SimCruiseLab"), TEXT("SimCruiseLatencyProbe"), TEXT("unattended"),
 		};
 		for (const TCHAR* Flag : QaFlags)
 		{
 			if (FParse::Param(Cmd, Flag)) return false;
 		}
 		FString Ignored;
-		return !FParse::Value(Cmd, TEXT("SimCruiseDrivePerf="), Ignored) && !FParse::Value(Cmd, TEXT("SimCruisePreview="), Ignored);
+		return !FParse::Value(Cmd, TEXT("SimCruiseDrivePerf="), Ignored) && !FParse::Value(Cmd, TEXT("SimCruisePreview="), Ignored) &&
+			!FParse::Value(Cmd, TEXT("SimCruiseSoak="), Ignored);
 	}
 
 	FString Path()

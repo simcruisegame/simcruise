@@ -1,0 +1,47 @@
+# Drive robot, commit 6f3d3c0
+
+Drive robot: nb2001
+  launch_turn             17 km/h  rear slip   0.0 deg  yaw  165.3 deg/s  ok
+  launch_turn_trig70      16 km/h  rear slip   0.0 deg  yaw   69.2 deg/s  ok
+  junction20_trig70       24 km/h  rear slip   2.9 deg  yaw   63.8 deg/s  ok
+  junction30_trig70       27 km/h  rear slip   3.7 deg  yaw   81.6 deg/s  ok
+  junction20_gas          26 km/h  rear slip  54.9 deg  yaw  165.5 deg/s  spun (expected)
+  junction30              27 km/h  rear slip  49.0 deg  yaw  158.4 deg/s  spun (expected)
+  circle50_lift           47 km/h  rear slip   1.6 deg  yaw   19.6 deg/s  ok
+  turnin50_full           47 km/h  rear slip   6.0 deg  yaw   45.7 deg/s  ok
+  brake_turn70            66 km/h  rear slip   1.0 deg  yaw    8.0 deg/s  ok
+  lanechange80            76 km/h  rear slip   2.4 deg  yaw   16.3 deg/s  ok
+Drive robot: nb2001_aaron
+  launch_turn             22 km/h  rear slip  46.8 deg  yaw  163.3 deg/s  spun (expected)
+  launch_turn_trig70      16 km/h  rear slip   0.0 deg  yaw   68.5 deg/s  ok
+  junction20_trig70       25 km/h  rear slip   2.5 deg  yaw   64.9 deg/s  ok
+  junction30_trig70       27 km/h  rear slip   3.7 deg  yaw   85.0 deg/s  ok
+  junction20_gas          31 km/h  rear slip  59.4 deg  yaw  160.2 deg/s  spun (expected)
+  junction30              27 km/h  rear slip  50.4 deg  yaw  165.0 deg/s  spun (expected)
+  circle50_lift           47 km/h  rear slip   1.4 deg  yaw   19.6 deg/s  ok
+  turnin50_full           47 km/h  rear slip   6.0 deg  yaw   49.5 deg/s  ok
+  brake_turn70            66 km/h  rear slip   0.8 deg  yaw    8.1 deg/s  ok
+  lanechange80            76 km/h  rear slip   2.1 deg  yaw   16.4 deg/s  ok
+Drive robot: mustang65
+  launch_turn             21 km/h  rear slip  41.6 deg  yaw  103.4 deg/s  spun (expected)
+  launch_turn_trig70      22 km/h  rear slip  43.2 deg  yaw   95.0 deg/s  spun (expected)
+  junction20_trig70       32 km/h  rear slip   4.7 deg  yaw   50.8 deg/s  ok
+  junction30_trig70       31 km/h  rear slip   4.9 deg  yaw   55.5 deg/s  ok
+  junction20_gas          28 km/h  rear slip  57.7 deg  yaw  136.4 deg/s  spun (expected)
+  junction30              29 km/h  rear slip  52.7 deg  yaw  129.0 deg/s  spun (expected)
+  circle50_lift           49 km/h  rear slip   2.6 deg  yaw   16.7 deg/s  ok
+  turnin50_full           49 km/h  rear slip   7.9 deg  yaw   37.1 deg/s  ok
+  brake_turn70            68 km/h  rear slip  38.3 deg  yaw   50.5 deg/s  spun (expected)
+  lanechange80            78 km/h  rear slip   2.9 deg  yaw   14.5 deg/s  ok
+Drive robot: meridian_z
+  launch_turn             47 km/h  rear slip   2.4 deg  yaw   62.5 deg/s  ok
+  launch_turn_trig70      44 km/h  rear slip   2.4 deg  yaw   62.4 deg/s  ok
+  junction20_trig70       50 km/h  rear slip   2.0 deg  yaw   54.0 deg/s  ok
+  junction30_trig70       52 km/h  rear slip   3.1 deg  yaw   65.2 deg/s  ok
+  junction20_gas          73 km/h  rear slip   2.0 deg  yaw   53.2 deg/s  ok
+  junction30              61 km/h  rear slip   3.5 deg  yaw   65.5 deg/s  ok
+  circle50_lift           51 km/h  rear slip   1.1 deg  yaw   14.3 deg/s  ok
+  turnin50_full           49 km/h  rear slip   3.5 deg  yaw   41.2 deg/s  ok
+  brake_turn70            69 km/h  rear slip   0.6 deg  yaw   18.8 deg/s  ok
+  lanechange80            79 km/h  rear slip   1.3 deg  yaw   12.2 deg/s  ok
+DRIVE ROBOT PASSED

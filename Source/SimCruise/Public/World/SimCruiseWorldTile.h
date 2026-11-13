@@ -62,6 +62,14 @@ public:
 	 */
 	int32 PlaceParkedCars(int32 Budget);
 
+	/**
+	 * The rest of the install, spread over frames: the ground mask, one collision section at
+	 * a time, the palms, the signs. Runs steps until BudgetMs is spent (at least one); returns
+	 * the milliseconds used. The tile is not collision-ready until its steps are done.
+	 */
+	double ContinueInstall(double BudgetMs);
+	bool HasPendingInstall() const { return PendingSteps.Num() > 0; }
+
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	/**
@@ -111,6 +119,10 @@ private:
 	TArray<FSimCruiseParkedCar> ParkedWaiting;
 	/** Static mesh slot -> tile layer. */
 	TArray<int32> RenderSlots;
+	/** Install steps not run yet, in order (ContinueInstall). */
+	TArray<TFunction<void()>> PendingSteps;
+	/** Mesh sections that get collision once they are all in. */
+	TArray<int32> CollisionSections;
 
 	/** Collision faces in section order: where each layer's faces start, and which asphalt faces are gravel. */
 	struct FSurfaceMap

@@ -615,6 +615,7 @@ bool FSimCruiseCarDefinitionLoader::ParseJson(const FString& JsonText, const FSt
 	SIMCRUISE_READ_NUMBER("tmeasy_peak_slip_x", TmeasyPeakSlipX);
 	SIMCRUISE_READ_NUMBER("tmeasy_peak_slip_y", TmeasyPeakSlipY);
 	SIMCRUISE_READ_NUMBER("tmeasy_slide_slip_x", TmeasySlideSlipX);
+	SIMCRUISE_READ_NUMBER("steering_stiffness_nm_per_deg", SteeringStiffnessNmPerDeg);
 	SIMCRUISE_READ_NUMBER("tmeasy_slide_slip_y", TmeasySlideSlipY);
 	SIMCRUISE_READ_BOOL("abs_enabled", bAbsEnabled);
 	SIMCRUISE_READ_NUMBER("wheel_inertia", WheelRotationalInertiaKgM2);
@@ -626,6 +627,8 @@ bool FSimCruiseCarDefinitionLoader::ParseJson(const FString& JsonText, const FSt
 	SIMCRUISE_READ_NUMBER("limit_slip_surplus_deg", SteeringSlipLimitSurplusDeg);
 	SIMCRUISE_READ_NUMBER("brake_front_nm", FrontBrakeTorqueNm);
 	SIMCRUISE_READ_NUMBER("brake_rear_nm", RearBrakeTorqueNm);
+	SIMCRUISE_READ_NUMBER("brake_rear_knee", RearBrakeKneeFraction);
+	SIMCRUISE_READ_NUMBER("brake_rear_slope", RearBrakeSlopeAboveKnee);
 	SIMCRUISE_READ_NUMBER("parking_brake_nm", ParkingBrakeTorqueNm);
 	SIMCRUISE_READ_NUMBER("drag_area_m2", DragAreaM2);
 
@@ -640,6 +643,8 @@ bool FSimCruiseCarDefinitionLoader::ParseJson(const FString& JsonText, const FSt
 	SIMCRUISE_READ_NUMBER("engine_inertia", EngineRotationalInertiaKgM2);
 	SIMCRUISE_READ_NUMBER("engine_friction_nm", EngineFrictionTorqueNm);
 	SIMCRUISE_READ_NUMBER("engine_friction_per_rpm", EngineFrictionTorqueNmPerRpm);
+	SIMCRUISE_READ_NUMBER("engine_pumping_nm", EnginePumpingTorqueNm);
+	SIMCRUISE_READ_NUMBER("engine_pumping_per_rpm", EnginePumpingTorqueNmPerRpm);
 	SIMCRUISE_READ_NUMBER("min_omega_auto", MinimumAutomaticEngineSpeedRadPerSecond);
 	SIMCRUISE_READ_NUMBER("max_omega", MaximumEngineSpeedRadPerSecond);
 	SIMCRUISE_READ_NUMBER("stall_omega", StallEngineSpeedRadPerSecond);

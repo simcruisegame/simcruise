@@ -432,7 +432,8 @@ void ASimCruiseEnvironment::ApplyExposure()
 	S.bOverride_AutoExposureMaxBrightness = true;
 	S.AutoExposureMaxBrightness = Target + ExposureCloseStops;
 	S.bOverride_AutoExposureBias = true;
-	S.AutoExposureBias = ExposureCompensation;
+	const float Day = FMath::SmoothStep(8.f, 11.f, static_cast<float>(ReferenceEV100));
+	S.AutoExposureBias = ExposureCompensation + DaylightCompensation * Day;
 	S.bOverride_AutoExposureSpeedUp = true;
 	S.AutoExposureSpeedUp = 2.0f;
 	S.bOverride_AutoExposureSpeedDown = true;

@@ -116,6 +116,33 @@ licence) and the plan uses it as mapped data, over any palette. 67 start-tile bu
 have a measured wall (`-run=SimCruisePlaceFacts -Photos -NoOSM`). The buildings thread
 owns facade textures from photographs; this only measures the paint.
 
+## Street furniture
+
+`SimCruiseFurniture` (data) and `World/SimCruiseStreetFurniture` (geometry, Props layer):
+what OpenStreetMap maps where it maps it (benches, litter bins, bicycle racks, USPS
+collection boxes, pillar fire hydrants, bollards, bus stop flags and shelters, picnic
+tables), at real size (a US dry-barrel hydrant about 0.75 m, a USPS box 1.24 m, a bench
+1.8 m with the seat at 0.45 m). A point mapped in the carriageway or the gutter is moved
+behind the kerb. Where the map has no hydrants, one stands every 300 ft (91 m) along curbed
+streets, sides alternating, anchored to the world so the rhythm runs across tile seams
+(US practice; NFPA 1 / IFC Appendix C spacing). Colours: an object's own OSM `colour`,
+else the graph's `hydrant:*`, `bench:*`, `bin:*`, `bollard:*`, `street_metal:*` facts of
+the region (South Florida hydrants chrome yellow), else defaults. The items are solid, like
+the light poles. The furniture comes in the same Overpass answer as the building facts; the
+start tiles ship theirs in `data/knowledge/furniture/` (`-run=SimCruisePlaceFacts -Furniture
+-NoOSM`). `simcruise.World.Furniture` 0 / 1 / 2 (none / all / mapped only).
+
+## Robustness
+
+- Nothing of the graph runs on the game thread but a 5 s live-fact update and a 0.5 s card
+  check on a shared plan (no copy). Overpass and Wikidata answers are parsed on a worker
+  thread. The run's worst game-thread times are in the log at the end
+  (`SimCruise.Knowledge.Report`): 0.4-1.2 ms in play tests.
+- No network: every request fails cleanly, the local AI turns itself off, and the tiles
+  bake from what is cached or bundled. A partial answer (Overpass busy) is kept for the run
+  only and asked again next time. `-SimCruisePlaceOffline` sends every graph request to a
+  closed port, to test this.
+
 ## Next
 
 - Photographs as evidence: wall colours sampled from street-level and Commons photos of
