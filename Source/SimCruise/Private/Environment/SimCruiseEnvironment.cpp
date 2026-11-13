@@ -463,13 +463,15 @@ void ASimCruiseEnvironment::ApplyExposure()
 	S.SceneFringeIntensity = 0.0f;
 	// Motion blur as a camera at the real frame rate sees it (a 180 degree shutter), short and
 	// light: the engine default treats every frame as a 30 fps frame, so at 60 fps the world
-	// smeared twice as long as a camera would show, and at speed it read as a fuzzy picture.
+	// smeared twice as long as a camera would show, and at speed it read as a fuzzy picture. Halved
+	// again after a fast Tail of the Dragon recording: in the cabin view each bend smeared the
+	// whole world, which the eye (it holds its gaze while the head turns) does not see.
 	S.bOverride_MotionBlurTargetFPS = true;
 	S.MotionBlurTargetFPS = 0;
 	S.bOverride_MotionBlurAmount = true;
-	S.MotionBlurAmount = 0.3f;
+	S.MotionBlurAmount = 0.15f;
 	S.bOverride_MotionBlurMax = true;
-	S.MotionBlurMax = 2.0f;
+	S.MotionBlurMax = 1.0f;
 
 	// Mesopic and scotopic vision: colour fades as the light goes (rods take over below
 	// about 3 cd/m2). Full colour down to reference EV 6 (deep civil twilight), a third of it
