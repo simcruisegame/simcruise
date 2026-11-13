@@ -323,6 +323,65 @@ bool FSimCruiseVehicleModelManualClutchTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseVehicleModelClutchChatterTest, "SimCruise.Vehicle.Model.ClutchNoChatter", VehicleTestFlags)
+bool FSimCruiseVehicleModelClutchChatterTest::RunTest(const FString& Parameters)
+{
+	// Wheels in the air, 1st gear and reverse, clutch up, a little throttle: the locked clutch
+	// must carry a steady torque, not one that flips sign every substep (launch chatter: the
+	// coupling stiffer than a substep can carry).
+	for (const TCHAR* Id : { TEXT("nb2001"), TEXT("mustang65") })
+	{
+		FSimCruiseCarDefinition Car;
+		if (!SimCruiseLoadBenchCar(*this, Id, Car))
+		{
+			return false;
+		}
+		for (const int32 Gear : { 1, -1 })
+		{
+			FSimCruiseVehicleSim Sim;
+			Sim.Initialize(Car);
+			Sim.SetManual(true, 0.0);
+			Sim.SelectRatio(Gear);
+			FSimCruiseBodyState Body;
+			Body.PositionM = FVector3d(0.0, 0.0, 5.0);
+			Body.CenterOfMassM = Body.PositionM + Sim.GetCenterOfMassLocalM();
+			Body.PositionM = FVector3d(0.0, 0.0, Car.CollisionShapeCenterYM);
+			Body.CenterOfMassM = Body.PositionM + Sim.GetCenterOfMassLocalM();
+			// On a flat road, the pedal let out over 0.6 s from 0.2 s: the launch itself.
+			auto Air = [](const FVector3d& Start, const FVector3d& End, FSimCruiseGroundHit& Hit)
+			{
+				if (Start.Z <= 0.0 || End.Z > 0.0) return false;
+				const double T = Start.Z / (Start.Z - End.Z);
+				Hit.PointM = Start + (End - Start) * T;
+				Hit.NormalM = FVector3d::UnitZ();
+				return true;
+			};
+			FSimCruiseVehicleControls Controls;
+			Controls.Throttle = 0.25;
+			Controls.Clutch = 0.0;
+			Controls.bDirectRack = true;
+			FSimCruiseBodyForces Forces;
+			int32 Flips = 0, Samples = 0;
+			double Last = 0.0;
+			for (int32 Step = 0; Step < 720; ++Step)
+			{
+				Controls.Clutch = static_cast<float>(FMath::Clamp(1.0 - (Step / 360.0 - 0.2) / 0.6, 0.0, 1.0));
+				Sim.Step(1.0 / 360.0, 1, Controls, Body, Air, Forces);
+				const double Load = Sim.State.ClutchTorqueNm;
+				if (Step > 60)
+				{
+					++Samples;
+					if (Load * Last < 0.0 && FMath::Abs(Load - Last) > 5.0) ++Flips;
+				}
+				Last = Load;
+			}
+			AddInfo(FString::Printf(TEXT("CHATTER %s gear %d: clutch torque flips sign %d times in %d substeps (last %.1f N m, engine %.0f rpm)"),
+				Id, Gear, Flips, Samples, Last, Sim.State.EngineRpm));
+			TestTrue(FString::Printf(TEXT("%s gear %d: the locked clutch does not chatter"), Id, Gear), Flips <= 2);
+		}
+	}
+	return true;
+}
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseVehicleModelDrivetrainTest, "SimCruise.Vehicle.Model.Drivetrain", VehicleTestFlags)
 bool FSimCruiseVehicleModelDrivetrainTest::RunTest(const FString& Parameters)
 {
