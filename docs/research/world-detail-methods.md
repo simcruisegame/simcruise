@@ -118,7 +118,7 @@ This is the "new tech" Aaron asked for. It needs no stored textures beyond the 6
 
 1. **Micro (under 0.5 m): no-repeat photograph.** Hex tiling (Mikkelsen, JCGT 2022): three lookups of the same photograph, each rotated and offset by a hash of its hex cell, blended with the contrast restored. No two metres of lawn are the same.
 2. **Meso (0.3-10 m): the size that was missing.** Hashed value noise makes clumps (0.3-1 m, brighter and darker), patches of yellower and bluer grass (2-8 m), clover spots and dry patches. The dry share comes from the season and the graph (`state:dormant_tan`, `state:cured_straw`); for now `-SimCruiseGrassDry=0..1`. It only multiplies around 1, so the mean colour that the photograph and the colour grade set does not move.
-3. **Near (under 22 m): blades with depth.** The pixel marches 8 thin shells from 8 cm down to the ground along the view ray. The first shell where the blade density is above a height-dependent threshold decides: a high hit is a bright blade tip, a low hit is a dark base, no hit is shaded thatch. So blades stand up, hide each other and shade their bases, with parallax as the car moves. This is shell texturing (the fur technique) done inside one pixel, with no extra geometry.
+3. **Near (under 22 m): blades with depth.** The pixel marches 8 thin shells from 8 cm down to the ground along the view ray. On each shell it tests one flat, tapering, leaning blade per 2 cm cell on two offset grids (St. Augustine blades are 6-10 mm wide); the first blade the ray meets decides: high is a bright tip, low is a dark base, none is shaded thatch. So blades stand up, hide each other and shade their bases, with parallax as the car moves. This is shell texturing (the fur technique) done inside one pixel, with no extra geometry. The shells start at a per-pixel random height, so they never show as steps; blades fade out where the land-cover mask is under about 0.6 (path edges) and where a pixel covers more than 1-2 cm of lawn, so they cannot shimmer. The first version thresholded value noise per shell instead; on the PC it drew stacked cones like a sawtooth carpet and spilled onto the beachwalk (picture below).
 
 All three are arithmetic in the existing ground shader: about 3 texture fetches and roughly 150 ALU operations per grass pixel near the car, fewer far away. On a 28 W GPU that is expected at 0.1-0.3 ms when lawns fill half the screen; the PC measures it.
 
@@ -166,6 +166,45 @@ Nothing moved more than 0.7 on any part, within the run-to-run noise: from the l
 ![Game, baked aerial | photograph](images/world-detail/ab-lummus-baked.jpg)
 
 Right half of each image: Panoramax [4b6d216b](https://panoramax.xyz/#focus=pic&pic=4b6d216b-ae1c-48a8-b2ae-5d9558334f18) by MatthiasMatthias, CC BY-SA 4.0, resized.
+
+## Grass field in the game
+
+Measured on the PC on 13 November 2026 (`scripts\realism.ps1`, ultra, traffic off; field on is the default, `-SimCruiseNoGrassField` turns it off). The dragon and bixby poses come from the picture thread's realism poses (Tail of the Dragon, Bixby Creek Bridge) and were run with the first blade version; lummus was run again after the blades were rebuilt (below).
+
+| Pose | Field on | Field off |
+|---|---|---|
+| lummus (final blades) | `REALISM lummus: 45.4 / 100  layout 31.4  tone 34.9  colour 52.3  structure 55.1  detail 66.7  sky 33.1` | `REALISM lummus: 45.5 / 100  layout 31.4  tone 34.9  colour 52.2  structure 55.6  detail 66.9  sky 32.9` |
+| lummus (first blades) | `REALISM lummus: 46.2 / 100  layout 31.9  tone 38.8  colour 50.2  structure 56.6  detail 67.2  sky 31.7` | `REALISM lummus: 45.8 / 100  layout 31.8  tone 38.4  colour 50.3  structure 55.4  detail 67.3  sky 30.7` |
+| dragon | `REALISM dragon: 45.9 / 100  layout 29.6  tone 18.0  colour 72.9  structure 66.5  detail 71.7  sky 10.9` | `REALISM dragon: 45.8 / 100  layout 29.6  tone 18.1  colour 72.6  structure 66.5  detail 71.7  sky 10.9` |
+| bixby | `REALISM bixby: 34.9 / 100  layout 17.2  tone 20.8  colour 46.5  structure 59.0  detail 46.5  sky 11.3` | `REALISM bixby: 34.4 / 100  layout 17.2  tone 20.6  colour 45.5  structure 57.7  detail 46.2  sky 11.2` |
+| bixby, July (`-SimCruiseGrassDry=0.9`) | `REALISM bixby: 34.1 / 100  layout 17.0  tone 20.3  colour 45.1  structure 55.6  detail 49.0  sky 10.8` | |
+
+No pose moved by 1.0 or more, so the field stays on by default. The score is taken at the photographs' distances, where the field only changes the lawn's mid-size texture; the blades show only within 22 m. At Bixby the hills are the regional terrain, not the tile ground the field is written for, so the dry setting barely changes them (the next step is the same field in the landscape material).
+
+GPU cost: RTX 2070 Super Max-Q, plugged in, 1920x1080 full screen, parked at the Ocean Drive start at 11:00 with Lummus Park on the left, traffic off, `-SimCruiseDrivePerf=high,ultra`, two runs each way, GPU ms average of the 10 s window:
+
+| View | Field on | Field off | Difference |
+|---|---|---|---|
+| High, driver's seat | 48.9, 49.1 | 48.3, 47.6 | +1.0 ms (2 %) |
+| High, chase | 40.4, 40.5 | 40.1, 39.2 | +0.8 ms |
+| Ultra, driver's seat | 87.7, 88.0 | 86.1, 84.7 | +2.4 ms (3 %) |
+| Ultra, chase | 67.0, 67.0 | 66.0, 64.5 | +1.7 ms |
+
+`ProfileGPU` (High, driver's seat): BasePass 5.59 and 5.64 ms with the field, 4.86 and 5.43 ms without, so about +0.5 ms of the difference is the ground's base pass. This laptop's GPU ran about 3.5 times slower than in the 11 November table (High seat 13.7 ms then): it was at its power cap. At full power expect about a third of these differences.
+
+**The blades, close up.** The first blade version (noise thresholded per shell) drew stacked cones and spilled onto the beachwalk; the version in the game now (thin leaning blades per 2 cm cell, jittered shells, gated by the land-cover mask and the pixel size) reads as fine turf with no stripes or swimming. It is subtle; the clump and patch sizes do more for the lawn than the blades.
+
+![Close up, first blade version: stacked cones](images/world-detail/grass-near-v1-cones.jpg)
+
+![Close up, grass field now](images/world-detail/grass-near-field.jpg)
+
+![Close up, grass field off](images/world-detail/grass-near-nofield.jpg)
+
+![Game with the grass field | photograph](images/world-detail/grass-ab-lummus-field.jpg)
+
+![Game without the grass field | photograph](images/world-detail/grass-ab-lummus-nofield.jpg)
+
+Right half of the last two images: Panoramax [4b6d216b](https://panoramax.xyz/#focus=pic&pic=4b6d216b-ae1c-48a8-b2ae-5d9558334f18) by MatthiasMatthias, CC BY-SA 4.0, resized.
 
 ## Sources
 
