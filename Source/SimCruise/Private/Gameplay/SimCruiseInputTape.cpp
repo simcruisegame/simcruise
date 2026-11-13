@@ -297,6 +297,173 @@ FString FSimCruiseReplayStats::Summary() const
 		DurationS, DistanceM, LapTimeS, MaxSpeedKph, DurationS > 0.0 ? SpeedTimeSum / DurationS * 3.6 : 0.0, MaxYawDps, MaxBetaDeg, MaxRearSlipDeg);
 }
 
+// --- FSimCruiseInputSteps ----------------------------------------------------
+
+namespace
+{
+	const TCHAR* StepsMagic = TEXT("# simcruise input steps 1");
+	const TCHAR* StepsColumns = TEXT("throttle,brake,steer,clutch,rack_rad,flags,gear,manual");
+	enum EStepFlags : int32 { StepThumb = 1, StepHandbrake = 2, StepFullBrake = 4, StepDirectRack = 8 };
+
+	/** A double in its shortest exact form: written and read back, it is the same bits. */
+	FString Exact(double Value)
+	{
+		return Value == 0.0 ? FString(TEXT("0")) : FString::Printf(TEXT("%.17g"), Value);
+	}
+}
+
+FString FSimCruiseInputSteps::ToCsv() const
+{
+	TStringBuilder<1 << 16> Out;
+	Out << StepsMagic << TEXT("\n# step_s=") << *Exact(StepS) << TEXT("\n") << StepsColumns << TEXT("\n");
+	for (const FRow& Row : Rows)
+	{
+		const FSimCruiseVehicleControls& C = Row.Controls;
+		const int32 Flags = (C.bThumbstickSteer ? StepThumb : 0) | (C.bHandbrake ? StepHandbrake : 0) |
+			(C.bFullBrake ? StepFullBrake : 0) | (C.bDirectRack ? StepDirectRack : 0);
+		Out << *Exact(C.Throttle) << TEXT(",") << *Exact(C.Brake) << TEXT(",") << *Exact(C.Steer) << TEXT(",") << *Exact(C.Clutch) << TEXT(",")
+			<< *Exact(C.RackAngleRad) << TEXT(",") << Flags << TEXT(",") << Row.Gear << TEXT(",") << (Row.bManual ? 1 : 0) << TEXT("\n");
+	}
+	return FString(Out.ToView());
+}
+
+bool FSimCruiseInputSteps::FromCsv(const FString& Text, FSimCruiseInputSteps& Out, FString& OutError)
+{
+	Out = FSimCruiseInputSteps();
+	TArray<FString> Lines;
+	Text.ParseIntoArrayLines(Lines);
+	if (Lines.Num() < 3 || !Lines[0].StartsWith(StepsMagic))
+	{
+		OutError = TEXT("not a SimCruise input steps file");
+		return false;
+	}
+	TArray<FString> Cells;
+	for (int32 Index = 1; Index < Lines.Num(); ++Index)
+	{
+		const FString& Line = Lines[Index];
+		if (Line.StartsWith(TEXT("#")))
+		{
+			FString Value;
+			if (FParse::Value(*Line, TEXT("step_s="), Value))
+			{
+				Out.StepS = FCString::Atod(*Value);
+			}
+			continue;
+		}
+		if (Line.StartsWith(TEXT("throttle")))
+		{
+			continue;
+		}
+		Line.ParseIntoArray(Cells, TEXT(","), false);
+		if (Cells.Num() != 8)
+		{
+			OutError = FString::Printf(TEXT("line %d has %d columns, not 8"), Index + 1, Cells.Num());
+			return false;
+		}
+		FRow& Row = Out.Rows.AddDefaulted_GetRef();
+		Row.Controls.Throttle = FCString::Atod(*Cells[0]);
+		Row.Controls.Brake = FCString::Atod(*Cells[1]);
+		Row.Controls.Steer = FCString::Atod(*Cells[2]);
+		Row.Controls.Clutch = FCString::Atod(*Cells[3]);
+		Row.Controls.RackAngleRad = FCString::Atod(*Cells[4]);
+		const int32 Flags = FCString::Atoi(*Cells[5]);
+		Row.Controls.bThumbstickSteer = (Flags & StepThumb) != 0;
+		Row.Controls.bHandbrake = (Flags & StepHandbrake) != 0;
+		Row.Controls.bFullBrake = (Flags & StepFullBrake) != 0;
+		Row.Controls.bDirectRack = (Flags & StepDirectRack) != 0;
+		Row.Gear = FCString::Atoi(*Cells[6]);
+		Row.bManual = FCString::Atoi(*Cells[7]) != 0;
+	}
+	return true;
+}
+
+FString FSimCruiseInputSteps::PathFor(const FString& TapePath)
+{
+	return FPaths::Combine(FPaths::GetPath(TapePath), FPaths::GetBaseFilename(TapePath) + TEXT("-steps.csv"));
+}
+
+/** What the physics thread and the game thread share while steps are recorded or replayed. */
+struct FSimCruiseInputTapeDriver::FStepShared
+{
+	FCriticalSection Lock;
+	FSimCruiseInputSteps Steps;
+	/** Replay: the next row; the last step the tape had. */
+	int32 Next = 0;
+	std::atomic<bool> bEnded{ false };
+};
+
+void FSimCruiseInputTapeDriver::InstallStepRecorder(ASimCruiseVehicle& Vehicle)
+{
+	USimCruiseVehicleMovementComponent* Movement = Vehicle.GetVehicleMovement();
+	if (!Movement)
+	{
+		return;
+	}
+	StepShared = MakeShared<FStepShared, ESPMode::ThreadSafe>();
+	TSharedPtr<FStepShared, ESPMode::ThreadSafe> Shared = StepShared;
+	Movement->SetPhysicsThreadDriver([Shared](FSimCruiseVehicleDriverContext& C)
+	{
+		FScopeLock Guard(&Shared->Lock);
+		Shared->Steps.StepS = C.DeltaTimeS;
+		FSimCruiseInputSteps::FRow& Row = Shared->Steps.Rows.AddDefaulted_GetRef();
+		Row.Controls = C.Controls;
+		Row.Gear = C.Sim.State.SelectedGear;
+		Row.bManual = C.Sim.State.bManual;
+	});
+}
+
+void FSimCruiseInputTapeDriver::InstallStepReplay(ASimCruiseVehicle& Vehicle, FSimCruiseInputSteps&& Steps)
+{
+	USimCruiseVehicleMovementComponent* Movement = Vehicle.GetVehicleMovement();
+	if (!Movement)
+	{
+		return;
+	}
+	StepShared = MakeShared<FStepShared, ESPMode::ThreadSafe>();
+	StepShared->Steps = MoveTemp(Steps);
+	TSharedPtr<FStepShared, ESPMode::ThreadSafe> Shared = StepShared;
+	Movement->SetPhysicsThreadDriver([Shared](FSimCruiseVehicleDriverContext& C)
+	{
+		FScopeLock Guard(&Shared->Lock);
+		if (!Shared->Steps.Rows.IsValidIndex(Shared->Next))
+		{
+			// Past the tape: hands and feet off, the handbrake on.
+			C.Controls = FSimCruiseVehicleControls();
+			C.Controls.bHandbrake = true;
+			Shared->bEnded = true;
+			return;
+		}
+		const FSimCruiseInputSteps::FRow& Row = Shared->Steps.Rows[Shared->Next++];
+		const double Forward = C.Body.LinearVelocityMps.Dot(C.Body.Rotation.RotateVector(FVector3d::UnitX()));
+		if (Row.bManual != C.Sim.State.bManual)
+		{
+			C.Sim.SetManual(Row.bManual, C.Body.LinearVelocityMps.Size());
+		}
+		// The driver's own gear changes (the automatic chooses its gears itself, as it did then).
+		for (int32 Try = 0; Try < 4 && Row.bManual && C.Sim.State.SelectedGear != Row.Gear; ++Try)
+		{
+			C.Sim.ChangeGear(Row.Gear > C.Sim.State.SelectedGear ? 1 : -1, Forward);
+		}
+		C.Controls = Row.Controls;
+	});
+	bStepReplay = true;
+}
+
+void FSimCruiseInputTapeDriver::RemoveStepDriver(ASimCruisePlayerController& Player)
+{
+	if (!StepShared.IsValid())
+	{
+		return;
+	}
+	if (ASimCruiseVehicle* Vehicle = Cast<ASimCruiseVehicle>(Player.GetPawn()))
+	{
+		if (USimCruiseVehicleMovementComponent* Movement = Vehicle->GetVehicleMovement())
+		{
+			Movement->SetPhysicsThreadDriver({});
+		}
+	}
+}
+
 // --- FSimCruiseInputTapeDriver -----------------------------------------------
 
 void FSimCruiseInputTapeDriver::Begin(ASimCruisePlayerController& Player)
@@ -351,7 +518,7 @@ void FSimCruiseInputTapeDriver::Begin(ASimCruisePlayerController& Player)
 
 void FSimCruiseInputTapeDriver::StartRecording(ASimCruisePlayerController& Player)
 {
-	const ASimCruiseVehicle* Vehicle = Cast<ASimCruiseVehicle>(Player.GetPawn());
+	ASimCruiseVehicle* Vehicle = Cast<ASimCruiseVehicle>(Player.GetPawn());
 	if (!Vehicle || !Vehicle->GetVehicleMovement())
 	{
 		return;
@@ -390,6 +557,9 @@ void FSimCruiseInputTapeDriver::StartRecording(ASimCruisePlayerController& Playe
 	RecordClock = 0.0;
 	PendingShift = 0;
 	bRecording = true;
+	// The physics steps too: what the car's model took on each, for a replay that does not drift.
+	bStepReplay = false;
+	InstallStepRecorder(*Vehicle);
 	Player.ShowMessage(IsTrafficOn() ? TEXT("Recording input (F9 stops) · traffic on: a replay can differ")
 		: (FMath::Abs(Recording.StartSpeedMps) > 0.5 ? TEXT("Recording input (F9 stops) · a replay starts at rest") : TEXT("Recording input (F9 stops)")), 3.f);
 }
@@ -401,6 +571,7 @@ void FSimCruiseInputTapeDriver::StopRecording(ASimCruisePlayerController& Player
 		return;
 	}
 	bRecording = false;
+	RemoveStepDriver(Player);
 	const FString Path = !RecordPath.IsEmpty() ? RecordPath
 		: FPaths::Combine(DriveTestDir(), FString::Printf(TEXT("input-%s.csv"), *FDateTime::Now().ToString(TEXT("%Y%m%d-%H%M%S"))));
 	RecordPath.Reset();
@@ -475,6 +646,13 @@ void FSimCruiseInputTapeDriver::Process(ASimCruisePlayerController& Player, FSim
 void FSimCruiseInputTapeDriver::SaveRecording(const FString& Path)
 {
 	const bool bSaved = Recording.Save(Path);
+	if (StepShared.IsValid() && !bStepReplay)
+	{
+		FScopeLock Guard(&StepShared->Lock);
+		const FString StepsPath = FSimCruiseInputSteps::PathFor(Path);
+		const bool bStepsSaved = FFileHelper::SaveStringToFile(StepShared->Steps.ToCsv(), *StepsPath);
+		UE_LOG(LogSimCruiseInputTape, Display, TEXT("Input steps: %d physics steps -> %s%s"), StepShared->Steps.Rows.Num(), *StepsPath, bStepsSaved ? TEXT("") : TEXT(" (NOT SAVED)"));
+	}
 	const FString PathCsv = FPaths::Combine(FPaths::GetPath(Path), FPaths::GetBaseFilename(Path) + TEXT("-path.csv"));
 	RecordPathStats.SaveCsv(PathCsv);
 	UE_LOG(LogSimCruiseInputTape, Display, TEXT("Input recording: %d frames, %.1f s, traffic %s -> %s%s; path %s (RECORDED %s)"), Recording.Frames.Num(), Recording.GetDuration(),
@@ -616,13 +794,30 @@ void FSimCruiseInputTapeDriver::TickReplay(ASimCruisePlayerController& Player, F
 			ReplayIndex = 0;
 			// Frame for frame: each replay frame steps the game by the time its recorded frame took,
 			// so the physics sees the same steps (-SimCruiseReplayRealTime replays at this PC's own pace).
-			bExactSteps = !FParse::Param(FCommandLine::Get(), TEXT("SimCruiseReplayRealTime")) && Tape.Frames.Num() > 0;
+			// Step for step when the tape has its physics steps (-SimCruiseReplayFrames: frame by frame).
+			bStepReplay = false;
+			FSimCruiseInputSteps Steps;
+			FString StepsText, StepsError;
+			const FString StepsPath = FSimCruiseInputSteps::PathFor(TapePath);
+			if (Vehicle && !FParse::Param(FCommandLine::Get(), TEXT("SimCruiseReplayFrames")) && FFileHelper::LoadFileToString(StepsText, *StepsPath))
+			{
+				if (FSimCruiseInputSteps::FromCsv(StepsText, Steps, StepsError) && Steps.Rows.Num() > 0)
+				{
+					UE_LOG(LogSimCruiseInputTape, Display, TEXT("Replay: %d physics steps of %.5f s from %s"), Steps.Rows.Num(), Steps.StepS, *StepsPath);
+					InstallStepReplay(*Vehicle, MoveTemp(Steps));
+				}
+				else
+				{
+					UE_LOG(LogSimCruiseInputTape, Warning, TEXT("Replay: %s unreadable (%s); replaying frame by frame"), *StepsPath, *StepsError);
+				}
+			}
+			bExactSteps = !bStepReplay && !FParse::Param(FCommandLine::Get(), TEXT("SimCruiseReplayRealTime")) && Tape.Frames.Num() > 0;
 			if (bExactSteps)
 			{
 				FApp::SetUseFixedTimeStep(true);
 				FApp::SetFixedDeltaTime(Tape.Frames[0].DeltaS);
 			}
-			UE_LOG(LogSimCruiseInputTape, Display, TEXT("Replay started: %s%s"), *Tape.CarId, bExactSteps ? TEXT(", with the recorded frame times") : TEXT(", in real time"));
+			UE_LOG(LogSimCruiseInputTape, Display, TEXT("Replay started: %s%s"), *Tape.CarId, bStepReplay ? TEXT(", step for step") : bExactSteps ? TEXT(", with the recorded frame times") : TEXT(", in real time"));
 		}
 		break;
 	case EStage::Replay:
@@ -653,6 +848,19 @@ void FSimCruiseInputTapeDriver::TickReplay(ASimCruisePlayerController& Player, F
 		{
 			Clock += DeltaSeconds;
 			Frame = Tape.At(Clock, Cursor);
+			if (bStepReplay)
+			{
+				// The physics steps drive; the frames only pace the samples.
+				if (StepShared->bEnded)
+				{
+					FinishReplay(Player);
+					break;
+				}
+				if (!Frame && Tape.Frames.Num())
+				{
+					Frame = &Tape.Frames.Last();
+				}
+			}
 		}
 		if (!Frame)
 		{
@@ -660,12 +868,12 @@ void FSimCruiseInputTapeDriver::TickReplay(ASimCruisePlayerController& Player, F
 			break;
 		}
 		Raw = Frame->Raw;
-		if (Frame->bManual != Player.GetTelemetry().bManualTransmission)
+		if (!bStepReplay && Frame->bManual != Player.GetTelemetry().bManualTransmission)
 		{
 			Vehicle->SetManualTransmission(Frame->bManual);
 		}
 		// Every gear change recorded up to this frame, in order (a slower replay skips none).
-		for (int32 Index = LastShiftFrame + 1; Index <= Cursor; ++Index)
+		for (int32 Index = LastShiftFrame + 1; !bStepReplay && Index <= Cursor; ++Index)
 		{
 			const int32 Shift = Tape.Frames[Index].Shift;
 			for (int32 Step = 0; Step < FMath::Abs(Shift); ++Step)
@@ -688,6 +896,7 @@ void FSimCruiseInputTapeDriver::TickReplay(ASimCruisePlayerController& Player, F
 void FSimCruiseInputTapeDriver::FinishReplay(ASimCruisePlayerController& Player)
 {
 	Stage = EStage::Done;
+	RemoveStepDriver(Player);
 	if (bExactSteps)
 	{
 		FApp::SetUseFixedTimeStep(false);

@@ -4,8 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Gameplay/SimCruiseDriverShaping.h"
+#include "Vehicle/SimCruiseVehicleSim.h"
 
 class ASimCruisePlayerController;
+class ASimCruiseVehicle;
 
 /** One rendered frame of the driver's controls, before the shaper (what the pad, keys and wheel gave). */
 struct FSimCruiseInputFrame
@@ -65,6 +67,30 @@ struct SIMCRUISE_API FSimCruiseInputTape
 	static bool FromCsv(const FString& Text, FSimCruiseInputTape& Out, FString& OutError);
 	bool Save(const FString& Path) const;
 	static bool Load(const FString& Path, FSimCruiseInputTape& Out, FString& OutError);
+};
+
+/**
+ * The same drive, one row per physics step: the controls the car's model took on that step,
+ * after the shaper, and the gearbox it was in. Frames and physics steps do not line up at a
+ * free frame rate (a frame carries part of a step over to the next), so a replay frame by frame
+ * drifts; a replay step by step gives the model exactly what it had. Saved beside the tape as
+ * <tape>-steps.csv, with doubles written in full so that they read back bit for bit.
+ */
+struct SIMCRUISE_API FSimCruiseInputSteps
+{
+	struct FRow
+	{
+		FSimCruiseVehicleControls Controls;
+		int32 Gear = 0;
+		bool bManual = false;
+	};
+	double StepS = 0.0;
+	TArray<FRow> Rows;
+
+	FString ToCsv() const;
+	static bool FromCsv(const FString& Text, FSimCruiseInputSteps& Out, FString& OutError);
+	/** <tape>-steps.csv for a tape's path. */
+	static FString PathFor(const FString& TapePath);
 };
 
 /**
@@ -172,4 +198,13 @@ private:
 	bool bExactSteps = false;
 	int32 ReplayIndex = 0;
 	FSimCruiseReplayStats Stats;
+
+	// Physics steps (recorded and replayed on the physics thread).
+	struct FStepShared;
+	TSharedPtr<FStepShared, ESPMode::ThreadSafe> StepShared;
+	/** The replay feeds the tape's physics steps to the car (the tape had a -steps.csv). */
+	bool bStepReplay = false;
+	void InstallStepRecorder(ASimCruiseVehicle& Vehicle);
+	void InstallStepReplay(ASimCruiseVehicle& Vehicle, FSimCruiseInputSteps&& Steps);
+	void RemoveStepDriver(ASimCruisePlayerController& Player);
 };

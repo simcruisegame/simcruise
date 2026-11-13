@@ -43,7 +43,9 @@ param(
     [switch]$Keen,
     # The negative test: at speed the robot yanks the stick with the handbrake on. Every run must
     # FAIL with a spin; the script exits 0 when they do, and writes no row to the index.
-    [switch]$ForceSpin
+    [switch]$ForceSpin,
+    # More game arguments for every run (e.g. -SimCruiseRecordInput=FILE to record the drive's input).
+    [string[]]$ExtraArgs = @()
 )
 
 $ErrorActionPreference = 'Stop'
@@ -91,7 +93,7 @@ foreach ($Road in $Roads) {
         $Log = Join-Path $Out 'game.log'
         $Args = @("`"$Project`"", '-game', '-SimCruiseWorld', '-SimCruiseNoLive', '-SimCruiseNoNeural', '-SimCruiseGraphics=ultra', "-SimCruiseUtc=$Utc",
             "-SimCruiseCar=$Car", '-SimCruiseViewCheck', '-SimCruisePreflight', "-SimCruisePreflightRoad=$Road", "-SimCruisePreflightSeconds=$Seconds",
-            "`"-SimCruisePreflightOut=$Out`"", '-NoLiveCoding', '-windowed', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + $Defs[$Road] + @(if ($Keen) { '-SimCruisePreflightKeen' }) + @(if ($ForceSpin) { '-SimCruisePreflightForceSpin' })
+            "`"-SimCruisePreflightOut=$Out`"", '-NoLiveCoding', '-windowed', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + $Defs[$Road] + @(if ($Keen) { '-SimCruisePreflightKeen' }) + @(if ($ForceSpin) { '-SimCruisePreflightForceSpin' }) + $ExtraArgs
         if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "pre-flight $Name on $Root")) { exit 1 }
         $TimedOut = $false
         try {

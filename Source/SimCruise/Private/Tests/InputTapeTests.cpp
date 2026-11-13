@@ -159,4 +159,55 @@ bool FSimCruiseInputReplayTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+/** The physics-step file reads back bit for bit: a replay step by step gives the model the same numbers. */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseInputStepsTest, "SimCruise.Drive.InputSteps", InputTapeFlags)
+bool FSimCruiseInputStepsTest::RunTest(const FString& Parameters)
+{
+	FSimCruiseInputSteps Steps;
+	Steps.StepS = 1.0 / 360.0;
+	for (int32 Index = 0; Index < 500; ++Index)
+	{
+		FSimCruiseInputSteps::FRow& Row = Steps.Rows.AddDefaulted_GetRef();
+		Row.Controls.Throttle = FMath::Pow(FMath::Abs(FMath::Sin(Index * 0.0137)), 1.8);
+		Row.Controls.Brake = Index % 7 == 0 ? 1.0 / 3.0 : 0.0;
+		Row.Controls.Steer = FMath::Sin(Index * 0.031) * 0.7;
+		Row.Controls.Clutch = Index % 50 < 10 ? 1.0 : 0.0;
+		Row.Controls.RackAngleRad = -0.123456789012345678 * FMath::Cos(Index * 0.01);
+		Row.Controls.bThumbstickSteer = Index % 2 == 0;
+		Row.Controls.bHandbrake = Index % 3 == 0;
+		Row.Controls.bFullBrake = Index % 5 == 0;
+		Row.Controls.bDirectRack = Index % 11 != 0;
+		Row.Gear = Index % 7 - 1;
+		Row.bManual = Index > 250;
+	}
+	FSimCruiseInputSteps Back;
+	FString Error;
+	if (!TestTrue(TEXT("the steps read back"), FSimCruiseInputSteps::FromCsv(Steps.ToCsv(), Back, Error)))
+	{
+		AddError(Error);
+		return false;
+	}
+	TestEqual(TEXT("step length"), Back.StepS, Steps.StepS);
+	if (!TestEqual(TEXT("rows"), Back.Rows.Num(), Steps.Rows.Num()))
+	{
+		return false;
+	}
+	int32 Mismatches = 0;
+	for (int32 Index = 0; Index < Steps.Rows.Num(); ++Index)
+	{
+		const FSimCruiseInputSteps::FRow& A = Steps.Rows[Index];
+		const FSimCruiseInputSteps::FRow& B = Back.Rows[Index];
+		const bool bSame = A.Controls.Throttle == B.Controls.Throttle && A.Controls.Brake == B.Controls.Brake &&
+			A.Controls.Steer == B.Controls.Steer && A.Controls.Clutch == B.Controls.Clutch && A.Controls.RackAngleRad == B.Controls.RackAngleRad &&
+			A.Controls.bThumbstickSteer == B.Controls.bThumbstickSteer && A.Controls.bHandbrake == B.Controls.bHandbrake &&
+			A.Controls.bFullBrake == B.Controls.bFullBrake && A.Controls.bDirectRack == B.Controls.bDirectRack && A.Gear == B.Gear && A.bManual == B.bManual;
+		Mismatches += bSame ? 0 : 1;
+	}
+	TestEqual(TEXT("every step bit for bit"), Mismatches, 0);
+	TestEqual(TEXT("the steps file sits beside the tape"), FSimCruiseInputSteps::PathFor(TEXT("D:/x/input-1.csv")), FString(TEXT("D:/x/input-1-steps.csv")));
+	FSimCruiseInputSteps Broken;
+	TestFalse(TEXT("a file that is not a steps file is refused"), FSimCruiseInputSteps::FromCsv(TEXT("a,b\n1,2\n"), Broken, Error));
+	return true;
+}
+
 #endif
