@@ -17,11 +17,11 @@ enum class ESimCruiseSceneClass : uint8
  * CPU and system RAM through Unreal's Neural Network Engine (NNERuntimeORTCpu), so the
  * power-capped GPU stays free.
  *
- * Model: DDRNet23-Slim (Hong et al. 2021; code MIT) trained on Cityscapes, ONNX export by
- * Qualcomm AI Hub, weights embedded in data/ai/ddrnet23-slim-cityscapes.onnx
- * (scripts/ai/embed_onnx_external.py). Input 1x3x1024x2048 in 0..1, output 19 class scores
- * at an eighth of that. A photograph is letterboxed into the input; the labels come back on a
- * grid over the photograph (OutWidth x OutHeight, an eighth of the letterboxed size).
+ * Model: the semantic head of Detectron2's Panoptic FPN R50 (Apache 2.0; COCO panoptic, labels
+ * CC BY 4.0), ONNX export by Qualcomm AI Hub, fetched by scripts/ai/fetch_open_models.py into
+ * Saved/AI (120 MB; a development tool, not committed or shipped). Input 1x3x800x800 in 0..1,
+ * 54 class scores at a quarter of that, mapped to the 19 classes above. A photograph is
+ * letterboxed into the input; the labels come back on a grid over the photograph.
  *
  * Use: the place graph measures a building's wall colour only on the pixels labelled building
  * or wall (SimCruisePlacePhotos::WallColourMasked), not on sky, trees, cars or shadow.
@@ -64,9 +64,6 @@ public:
 	/** Parses an image file and saves photo | labels as Saved/SceneParse/<name>-parse.png (any thread, after Initialize). */
 	bool ParseFileToPicture(const FString& File);
 
-	static constexpr int32 InputWidth = 2048;
-	static constexpr int32 InputHeight = 1024;
-	static constexpr int32 OutputScale = 8;
 
 private:
 	FSimCruiseSceneParser() = default;

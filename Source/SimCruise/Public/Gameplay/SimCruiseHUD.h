@@ -70,6 +70,10 @@ private:
 	void DrawTextAt(const FString& Text, bool bBold, float PointSize, float X, float Y, const FLinearColor& Color, bool bRightAlign = false);
 	FVector2D MeasureText(const FString& Text, bool bBold, float PointSize);
 	void SampleVehicle(float DeltaTimeS);
+	/** The drive robot's test pad is in the world (looked up once a second). */
+	bool UpdateTestPad(double Now);
+	/** A wide banner: the car is on the drive robot's test pad, not on the real road. */
+	void DrawTestPadBanner(float Scale);
 
 	UFont* HudFont(bool bBold);
 
@@ -89,6 +93,9 @@ private:
 	float WakeTime = SimCruiseHudRules::WakeS;
 	int32 ShownMph = 0;
 	double LastDrawTime = -1.0;
+	TWeakObjectPtr<AActor> TestPad;
+	double NextTestPadSearch = 0.0;
+	bool bOnTestPad = false;
 
 	// Snapshot of the vehicle for this frame.
 	bool bHasVehicle = false;

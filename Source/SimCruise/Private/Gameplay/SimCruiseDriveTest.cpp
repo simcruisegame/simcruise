@@ -6,6 +6,7 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/StaticMeshActor.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "GameFramework/Pawn.h"
 #include "Gameplay/SimCruiseGameMode.h"
 #include "Gameplay/SimCruisePlayerController.h"
@@ -22,6 +23,31 @@
 #include "World/SimCruiseWorldStreamer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSimCruiseDriveTest, Log, All);
+
+namespace SimCruiseTestPad
+{
+	FName Tag()
+	{
+		static const FName Name(TEXT("SimCruiseTestPad"));
+		return Name;
+	}
+
+	AActor* Find(const UWorld* World)
+	{
+		if (!World)
+		{
+			return nullptr;
+		}
+		for (TActorIterator<AStaticMeshActor> It(World); It; ++It)
+		{
+			if (It->ActorHasTag(Tag()))
+			{
+				return *It;
+			}
+		}
+		return nullptr;
+	}
+}
 
 ASimCruiseDriveTest::ASimCruiseDriveTest()
 {
@@ -298,6 +324,8 @@ void ASimCruiseDriveTest::SpawnPad(APawn* Pawn)
 		Pad->SetMobility(EComponentMobility::Movable);
 		Pad->GetStaticMeshComponent()->SetStaticMesh(Cube);
 		Pad->GetStaticMeshComponent()->SetCollisionProfileName(TEXT("BlockAll"));
+		// The HUD finds the pad by this tag and shows that it is not the real road.
+		Pad->Tags.Add(SimCruiseTestPad::Tag());
 		UE_LOG(LogSimCruiseDriveTest, Display, TEXT("Drive test pad mesh %s"), *GetNameSafe(Pad->GetStaticMeshComponent()->GetStaticMesh()));
 	}
 	Car->ResetAt(Top, Car->GetActorRotation().Yaw);

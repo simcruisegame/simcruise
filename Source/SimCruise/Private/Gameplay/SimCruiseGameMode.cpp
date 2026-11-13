@@ -16,6 +16,7 @@
 #include "Gameplay/SimCruisePlayerController.h"
 #include "Gameplay/SimCruisePreferences.h"
 #include "Gameplay/SimCruiseVehicleControl.h"
+#include "Gameplay/SimCruiseViewCheck.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 #include "SimCruiseGameInstance.h"
@@ -274,6 +275,12 @@ void ASimCruiseGameMode::BeginWorldDrive()
 		FActorSpawnParameters Params;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		World->SpawnActor<ASimCruiseDriveTest>(ASimCruiseDriveTest::StaticClass(), FTransform::Identity, Params);
+	}
+	if (ASimCruiseViewCheck::IsRequested(Cmd))
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		World->SpawnActor<ASimCruiseViewCheck>(ASimCruiseViewCheck::StaticClass(), FTransform::Identity, Params);
 	}
 	if (FParse::Param(Cmd, TEXT("SimCruiseLatencyProbe")))
 	{

@@ -79,6 +79,9 @@ public:
 	 */
 	void SurfaceGripAtFace(int32 FaceIndex, float& OutDryGrip, float& OutWetLoss) const;
 
+	/** The layer of a collision face (FHitResult::FaceIndex of a complex trace on Mesh); Count when it is not known. */
+	ESimCruiseTileLayer LayerAtFace(int32 FaceIndex) const;
+
 	/** Night lighting of the tile's materials, 0..1: lit windows and street-light lenses (neon brightens). */
 	void SetLightsOn(float Amount);
 	float GetLightsOn() const { return LightsOn; }
