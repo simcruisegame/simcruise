@@ -260,6 +260,13 @@ GPU, the same setup as the grass field (Ocean Drive start, 11:00, High, 1920x108
 
 Both are inside the run-to-run spread. The scores cannot see the layer: the poses' photographs are taken from 10 m or more, where the layer has faded out. It is for the driver's near view of the road and the verge. No pose dropped by 1.0 or more and the cost is under 1.5 ms, so it ships on.
 
+## Leaf mips for the Dragon's trees (13 November 2026)
+
+The leaf PNGs are black where they are transparent, so the box-filtered mips and the bilinear lookup at the cut mixed black into every leaf edge, and the averaged alpha fattened the clusters (46 % covered at full size, 53 % by the 96 px mip). The result was dark, solid blobs with distance. `LeafMipChain` (`SimCruiseTrees.cpp`) fills the transparent texels with the mean leaf colour, averages colour by alpha and scales each mip's alpha to keep the full-size coverage at the 0.3 clip. It runs on the CPU at load; `-SimCruiseOldTreeMips` gives the old chain for an A/B.
+GPU, Dragon start, Miata, High 1920x1080 full screen, two runs each: driver 30.26, 30.25 ms old vs 30.22, 30.25 ms new; chase 22.76, 23.11 ms old vs 23.21, 23.56 ms new (+0.45 ms, close to the run-to-run spread).
+Realism dragon: 44.8 old, 44.9 new. In motion (preflight robot, 318 frames at 10 fps), the windscreen band's frame-to-frame change is 9.41 old vs 9.52 new and fine detail is 1.77 vs 1.83: no new shimmer or pop.
+Not fixed: the crown cards keep sphere-like normals (whole crowns shade as one ball), and close crowns stay soft because the 768 px cluster texture is magnified.
+
 ## Handoff (13 November 2026)
 
 - **Grass field on the hillsides** is on `main` (`9cc7d6f`): the ground and the regional landscape share one meso-layer HLSL helper. Measurements are in the section above.
