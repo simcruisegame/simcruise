@@ -545,6 +545,150 @@ namespace
 			C.Controls.Steer = Turn;
 		}
 	};
+
+	/** ISO 7401 step steer as a physics-step driver. */
+	struct FStepSteerDriver
+	{
+		double Dt = 1.0 / 360.0;
+		double TargetSpeed = 22.2;
+		double StepRackRad = 0.02;
+		double StepS = 0.15;
+		int32 State = 0;
+		double T = 0.0;
+		double SpeedI = 0.0;
+		double Gas = 0.0;
+		struct FSample { double T, Yaw, Beta, Speed; };
+		TArray<FSample> Samples;
+		std::atomic<bool> bDone{ false };
+		FSimCruiseStepSteerResult Result;
+
+		void Step(FSimCruiseVehicleDriverContext& C)
+		{
+			C.Controls = FSimCruiseVehicleControls();
+			if (bDone)
+			{
+				return;
+			}
+			T += Dt;
+			const FVector3d Forward = C.Body.Rotation.RotateVector(FVector3d::UnitX());
+			const FVector3d Right = C.Body.Rotation.RotateVector(FVector3d::UnitY());
+			const double Speed = C.Body.LinearVelocityMps.Dot(Forward);
+			C.Controls.bDirectRack = true;
+			C.Controls.RackAngleRad = 0.0;
+			switch (State)
+			{
+			case 0:
+				// Settle, then roll at the test speed in the gear that holds it under 3500 rpm.
+				if (T >= 0.5)
+				{
+					C.Body.LinearVelocityMps = Forward * TargetSpeed;
+					C.bBodyStateChanged = true;
+					for (FSimCruiseWheelState& Wheel : C.Sim.State.Wheels)
+					{
+						Wheel.AngularSpeedRadPerSecond = TargetSpeed / C.Sim.GetTireRadiusM();
+					}
+					const FSimCruiseCarDefinition& Car = C.Sim.GetCar();
+					int32 Gear = Car.ForwardGearRatios.Num() - 1;
+					for (int32 G = 0; G < Car.ForwardGearRatios.Num(); ++G)
+					{
+						if (TargetSpeed / C.Sim.GetTireRadiusM() * Car.ForwardGearRatios[G] * Car.FinalDriveRatio * 60.0 / Tau < 3500.0)
+						{
+							Gear = G;
+							break;
+						}
+					}
+					C.Sim.State.Gear = Gear;
+					C.Sim.State.EngineOmegaRadPerSecond = TargetSpeed / C.Sim.GetTireRadiusM() * Car.ForwardGearRatios[Gear] * Car.FinalDriveRatio;
+					C.Sim.State.EngineRpm = C.Sim.State.EngineOmegaRadPerSecond * 60.0 / Tau;
+					State = 1;
+					T = 0.0;
+				}
+				break;
+			case 1:
+				// Straight 3 s holding the speed; then the throttle stays where it was (ISO 7401).
+				SpeedI = FMath::Clamp(SpeedI + (TargetSpeed - Speed) * Dt * 0.3, 0.0, 0.9);
+				Gas = FMath::Clamp((TargetSpeed - Speed) * 0.65 + SpeedI, 0.0, 1.0);
+				C.Controls.Throttle = Gas;
+				if (T >= 3.0)
+				{
+					Result.SpeedMps = Speed;
+					State = 2;
+					T = 0.0;
+				}
+				break;
+			case 2:
+			{
+				C.Controls.Throttle = Gas;
+				// A left turn (Unreal's yaw rate is negative there), as the circle benches turn.
+				C.Controls.RackAngleRad = -StepRackRad * FMath::Clamp(T / StepS, 0.0, 1.0);
+				const double Yaw = -C.Body.AngularVelocityRadPerSecond.Z;
+				const double Beta = SimCruiseUnits::ToDegrees(FMath::Atan2(C.Body.LinearVelocityMps.Dot(Right), FMath::Max(FMath::Abs(Speed), 0.5)));
+				Samples.Add({ T, Yaw, Beta, Speed });
+				if (T >= 4.0 || FMath::Abs(Beta) > 30.0)
+				{
+					Finish();
+					return;
+				}
+				break;
+			}
+			default:
+				break;
+			}
+		}
+
+		void Finish()
+		{
+			double Steady = 0.0, SteadyV = 0.0;
+			int32 N = 0;
+			for (const FSample& S : Samples)
+			{
+				if (S.T >= 3.0)
+				{
+					Steady += S.Yaw;
+					SteadyV += S.Speed;
+					++N;
+				}
+			}
+			Steady /= FMath::Max(N, 1);
+			SteadyV /= FMath::Max(N, 1);
+			double Peak = 0.0, Reach = -1.0;
+			for (const FSample& S : Samples)
+			{
+				Peak = FMath::Max(Peak, S.Yaw);
+				Result.PeakBetaDeg = FMath::Max(Result.PeakBetaDeg, FMath::Abs(S.Beta));
+				if (Reach < 0.0 && Steady > 1.0e-4 && S.Yaw >= 0.9 * Steady)
+				{
+					Reach = S.T;
+				}
+			}
+			Result.SteadyYawDegS = SimCruiseUnits::ToDegrees(Steady);
+			Result.SteadyLateralG = SteadyV * Steady / Gravity;
+			Result.YawResponseS = Reach < 0.0 ? TNumericLimits<double>::Max() : Reach - 0.5 * StepS;
+			Result.YawOvershoot = Peak / FMath::Max(Steady, 1.0e-4) - 1.0;
+			Result.RackDeg = SimCruiseUnits::ToDegrees(StepRackRad);
+			Result.bCompleted = N > 0;
+			bDone = true;
+		}
+	};
+}
+
+FSimCruiseStepSteerResult SimCruiseRunStepSteer(const FSimCruiseCarDefinition& Car, double FixedStepS, double SpeedMps, double LateralG)
+{
+	TSharedRef<FStepSteerDriver> Driver = MakeShared<FStepSteerDriver>();
+	Driver->Dt = FixedStepS;
+	Driver->TargetSpeed = SpeedMps;
+	// The road-wheel angle for the target on the bicycle model with a typical road car's
+	// understeer (3 deg/g); the lateral g the car then reaches is measured, not assumed.
+	const double RadiusM = SpeedMps * SpeedMps / (LateralG * Gravity);
+	Driver->StepRackRad = Car.WheelbaseM / RadiusM + SimCruiseUnits::ToRadians(3.0 * LateralG);
+	const FVector3d Ground(0.0, 0.0, 0.15);
+	FSimCruiseVehicleBenchWorld World(FixedStepS);
+	if (!World.IsValid() || World.SpawnVehicle(Car, Ground, [Driver](FSimCruiseVehicleDriverContext& C) { Driver->Step(C); }) == nullptr)
+	{
+		return Driver->Result;
+	}
+	World.RunUntil([&Driver]() { return Driver->bDone.load(); }, 30.0);
+	return Driver->Result;
 }
 
 FSimCruiseCarTrackResult SimCruiseRunCarTrack(const FSimCruiseCarDefinition& Car, double FixedStepS,

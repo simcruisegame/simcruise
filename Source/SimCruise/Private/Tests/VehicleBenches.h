@@ -77,6 +77,24 @@ FSimCruiseLiftOffResult SimCruiseRunLiftOff(const FSimCruiseCarDefinition& Car, 
 FSimCruiseLiftOffResult SimCruiseRunBrakeInTurn(const FSimCruiseCarDefinition& Car, double FixedStepS,
 	const TArray<double>& Pedals, double LateralG = 0.5, double RadiusM = 100.0);
 
+/** ISO 7401 step steer: straight at SpeedMps, then the road wheels stepped (0.15 s) to a lateral-g target. */
+struct FSimCruiseStepSteerResult
+{
+	bool bCompleted = false;
+	double SpeedMps = 0.0;
+	double RackDeg = 0.0;
+	double SteadyYawDegS = 0.0;
+	double SteadyLateralG = 0.0;
+	/** From 50 % of the steering step to 90 % of the steady yaw rate (s). */
+	double YawResponseS = 0.0;
+	/** Peak yaw rate over the steady one, less 1. */
+	double YawOvershoot = 0.0;
+	double PeakBetaDeg = 0.0;
+};
+
+FSimCruiseStepSteerResult SimCruiseRunStepSteer(const FSimCruiseCarDefinition& Car, double FixedStepS,
+	double SpeedMps = 80.0 / 3.6, double LateralG = 0.4);
+
 /** Static load balance after settling on the pad. */
 struct FSimCruiseStaticLoadResult
 {

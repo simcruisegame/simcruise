@@ -277,6 +277,34 @@ namespace
 		Test.TestTrue(TEXT("at rest"), R.ResidualSpeedMps < 0.01);
 		return true;
 	}
+
+	/**
+	 * ISO 7401 step steer at 80 km/h to about 0.4 g. Road cars reach 90 % of their steady yaw
+	 * rate 0.1-0.4 s after the steering's half point, overshoot it by no more than about 30 %
+	 * and settle without a slide; a slower answer feels vague, a larger overshoot nervous.
+	 */
+	bool RunStepSteerTest(FAutomationTestBase& Test, const TCHAR* CarId)
+	{
+		FSimCruiseCarDefinition Car;
+		if (!SimCruiseLoadBenchCar(Test, CarId, Car))
+		{
+			return false;
+		}
+		const FSimCruiseStepSteerResult R = SimCruiseRunStepSteer(Car, SimCruiseShippingFixedStepS);
+		if (!Test.TestTrue(TEXT("bench completed"), R.bCompleted))
+		{
+			return false;
+		}
+		const FString Line = FString::Printf(TEXT("STEPSTEER %-11s %.1f km/h  road wheels %.2f deg  steady %.1f deg/s %.2f g  t90 %.3f s  overshoot %+.2f  peak beta %.1f deg"),
+			CarId, R.SpeedMps * 3.6, R.RackDeg, R.SteadyYawDegS, R.SteadyLateralG, R.YawResponseS, R.YawOvershoot, R.PeakBetaDeg);
+		UE_LOG(LogTemp, Display, TEXT("%s"), *Line);
+		Test.AddInfo(Line);
+		Test.TestTrue(TEXT("turns (steady lateral 0.2-0.7 g)"), R.SteadyLateralG > 0.2 && R.SteadyLateralG < 0.7);
+		Test.TestTrue(TEXT("yaw response time 0.08-0.40 s"), R.YawResponseS > 0.08 && R.YawResponseS < 0.40);
+		Test.TestTrue(TEXT("yaw overshoot under 30 %"), R.YawOvershoot < 0.30);
+		Test.TestTrue(TEXT("no slide (sideslip under 4 deg)"), R.PeakBetaDeg < 4.0);
+		return true;
+	}
 }
 
 #define SIMCRUISE_VEHICLE_BENCH(Kind, CarIdent) \
@@ -297,6 +325,16 @@ SIMCRUISE_VEHICLE_BENCH(BrakeInTurn, nb1999)
 SIMCRUISE_VEHICLE_BENCH(BrakeInTurn, nb2001)
 SIMCRUISE_VEHICLE_BENCH(BrakeInTurn, nb2001_aaron)
 SIMCRUISE_VEHICLE_BENCH(BrakeInTurn, mustang65)
+SIMCRUISE_VEHICLE_BENCH(StepSteer, nb1999)
+SIMCRUISE_VEHICLE_BENCH(StepSteer, nb2001)
+SIMCRUISE_VEHICLE_BENCH(StepSteer, nb2001_aaron)
+SIMCRUISE_VEHICLE_BENCH(StepSteer, mustang65)
+SIMCRUISE_VEHICLE_BENCH(StepSteer, meridian_z)
+SIMCRUISE_VEHICLE_BENCH(StepSteer, model3)
+SIMCRUISE_VEHICLE_BENCH(StepSteer, f150raptor18)
+SIMCRUISE_VEHICLE_BENCH(StepSteer, grandcherokee13)
+SIMCRUISE_VEHICLE_BENCH(StepSteer, odyssey18)
+SIMCRUISE_VEHICLE_BENCH(StepSteer, crv25)
 SIMCRUISE_VEHICLE_BENCH(LiftOff, nb1999)
 SIMCRUISE_VEHICLE_BENCH(LiftOff, nb2001)
 SIMCRUISE_VEHICLE_BENCH(LiftOff, nb2001_aaron)
