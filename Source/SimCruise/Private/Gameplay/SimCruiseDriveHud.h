@@ -72,3 +72,10 @@ private:
 	float SmoothLateral = 0.f;
 	float RouteAlpha = 0.f;
 };
+
+/** Overpass as runtime UFonts for the canvas (FCanvasTextItem does not draw Slate composite fonts here). */
+class UFont;
+namespace SimCruiseHudFonts
+{
+	UFont* Get(SimCruiseTheme::EWeight Weight);
+}

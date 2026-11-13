@@ -252,8 +252,8 @@ int32 SSimCruiseRoutePlanner::OnPaint(const FPaintArgs& Args, const FGeometry& A
 	for (int32 i = 0; i < StopsPx.Num(); ++i)
 	{
 		const FVector2D At = StopsPx[i];
-		FSlateDrawElement::MakeBox(OutDrawElements, Top + 1, AllottedGeometry.ToPaintGeometry(FVector2f(40.f, 40.f), FSlateLayoutTransform(FVector2f(At - FVector2D(20.0, 20.0)))), RoundedBrush(FLinearColor(0.05f, 0.06f, 0.07f, 0.9f), 20.f));
-		FSlateDrawElement::MakeBox(OutDrawElements, Top + 2, AllottedGeometry.ToPaintGeometry(FVector2f(34.f, 34.f), FSlateLayoutTransform(FVector2f(At - FVector2D(17.0, 17.0)))), RoundedBrush(Amber(), 17.f));
+		FSlateDrawElement::MakeBox(OutDrawElements, Top + 1, AllottedGeometry.ToPaintGeometry(FVector2f(40.f, 40.f), FSlateLayoutTransform(FVector2f(At - FVector2D(20.0, 20.0)))), RoundedBrush(SimCruiseTheme::White(), 20.f), ESlateDrawEffect::None, FLinearColor(0.05f, 0.06f, 0.07f, 0.9f));
+		FSlateDrawElement::MakeBox(OutDrawElements, Top + 2, AllottedGeometry.ToPaintGeometry(FVector2f(34.f, 34.f), FSlateLayoutTransform(FVector2f(At - FVector2D(17.0, 17.0)))), RoundedBrush(SimCruiseTheme::White(), 17.f), ESlateDrawEffect::None, Amber());
 		FSlateDrawElement::MakeText(OutDrawElements, Top + 3, AllottedGeometry.ToPaintGeometry(FVector2f(30.f, 30.f), FSlateLayoutTransform(FVector2f(At - FVector2D(i >= 9 ? 12.0 : 6.0, 14.0)))),
 			FString::FromInt(i + 1), Font(EWeight::Black, 21.f), ESlateDrawEffect::None, GuideDeep());
 	}

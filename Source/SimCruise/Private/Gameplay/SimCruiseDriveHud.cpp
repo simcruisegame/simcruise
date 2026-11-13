@@ -5,6 +5,9 @@
 #include "CanvasItem.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/Canvas.h"
+#include "Engine/Font.h"
+#include "Fonts/CompositeFont.h"
+#include "UObject/Package.h"
 #include "Engine/World.h"
 #include "Environment/SimCruiseEnvironment.h"
 #include "Environment/SimCruiseEnvironmentSubsystem.h"
@@ -170,19 +173,56 @@ void FSimCruiseDriveHud::Strokes(const TArray<TArray<FVector2D>>& In, const FVec
 	}
 }
 
+namespace SimCruiseHudFonts
+{
+	UFont* Get(EWeight Weight)
+	{
+		static UFont* Fonts[5] = { nullptr, nullptr, nullptr, nullptr, nullptr };
+		UFont*& Slot = Fonts[static_cast<int32>(Weight)];
+		if (!Slot)
+		{
+			Slot = NewObject<UFont>(GetTransientPackage());
+			// Kept for the whole run: the HUD draws with it every frame.
+			Slot->AddToRoot();
+			Slot->FontCacheType = EFontCacheType::Runtime;
+			Slot->LegacyFontSize = 24;
+			if (HasOverpass())
+			{
+				Slot->CompositeFont = FCompositeFont(FName(TEXT("OverpassHud")), FontPath(Weight), EFontHinting::Default, EFontLoadingPolicy::LazyLoad);
+			}
+			else if (const UFont* Roboto = LoadObject<UFont>(nullptr, TEXT("/Engine/EngineFonts/Roboto.Roboto")))
+			{
+				Slot->CompositeFont = Roboto->CompositeFont;
+			}
+		}
+		return Slot;
+	}
+}
+
+namespace
+{
+	/** The canvas scale for a text of Px pixels at 1080p already multiplied by the HUD scale (24 pt base, 0.75 pt a pixel). */
+	float FontScale(float ScaledPx) { return ScaledPx * 0.75f / 24.f; }
+}
+
 FVector2D FSimCruiseDriveHud::Measure(const FString& Text, EWeight Weight, float Px) const
 {
-	if (Text.IsEmpty() || !FSlateApplication::IsInitialized()) return FVector2D::ZeroVector;
-	return FSlateApplication::Get().GetRenderer()->GetFontMeasureService()->Measure(Text, Font(Weight, P(Px)));
+	if (Text.IsEmpty() || !Canvas) return FVector2D::ZeroVector;
+	float W = 0.f, H = 0.f;
+	const float K = FontScale(P(Px));
+	Canvas->TextSize(SimCruiseHudFonts::Get(Weight), Text, W, H, K, K);
+	return FVector2D(W, H);
 }
 
 float FSimCruiseDriveHud::TextAt(const FString& Text, EWeight Weight, float Px, float X, float Y, const FLinearColor& Color, int32 Align, bool bTabular, bool bShadow)
 {
-	if (Text.IsEmpty() || !FSlateApplication::IsInitialized()) return 0.f;
-	const FSlateFontInfo Info = Font(Weight, P(Px));
+	if (Text.IsEmpty() || !Canvas) return 0.f;
+	UFont* HudFont = SimCruiseHudFonts::Get(Weight);
+	const float K = FontScale(P(Px));
 	auto Item = [&](const FString& Part, float AtX)
 	{
-		FCanvasTextItem T(FVector2D(AtX, Y), FText::FromString(Part), Info, Color);
+		FCanvasTextItem T(FVector2D(AtX, Y), FText::FromString(Part), HudFont, Color);
+		T.Scale = FVector2D(K, K);
 		if (bShadow) T.EnableShadow(FLinearColor(0.f, 0.f, 0.f, 0.5f * Color.A), FVector2D(0.f, P(2.f)));
 		Canvas->DrawItem(T);
 	};
@@ -239,6 +279,9 @@ void FSimCruiseDriveHud::Draw(ASimCruiseHUD& Hud, float DeltaTimeS)
 		DrawRoundMap(Hud, Gps, bRoute ? 1.f : Alpha);
 	}
 
+	// A menu covers the top of the screen: the turn sign waits.
+	const ASimCruisePlayerController* Driver = Cast<ASimCruisePlayerController>(Hud.PlayerOwner);
+	if (Driver && Driver->IsOverlayOpen()) return;
 	float TopY = P(28.f);
 	if (Gps && !Gps->GetRoute().GetArrivalMessage().IsEmpty())
 	{

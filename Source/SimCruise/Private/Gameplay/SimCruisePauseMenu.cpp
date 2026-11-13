@@ -328,11 +328,11 @@ TSharedRef<SWidget> SSimCruisePauseMenu::BuildRouteCard()
 							if (Pts.Num() >= 2) FSlateDrawElement::MakeLines(Out, Layer, G.ToPaintGeometry(), MoveTemp(Pts), ESlateDrawEffect::None, Course(), true, 6.f);
 						}
 						const FVector2D Car = Fit.Map(State.CarM, Size, 30.0);
-						FSlateDrawElement::MakeBox(Out, Layer + 1, G.ToPaintGeometry(FVector2f(18.f, 18.f), FSlateLayoutTransform(FVector2f(Car - FVector2D(9.0, 9.0)))), RoundedBrush(White(), 9.f));
+						FSlateDrawElement::MakeBox(Out, Layer + 1, G.ToPaintGeometry(FVector2f(18.f, 18.f), FSlateLayoutTransform(FVector2f(Car - FVector2D(9.0, 9.0)))), RoundedBrush(SimCruiseTheme::White(), 9.f), ESlateDrawEffect::None, White());
 						for (int32 i = 0; i < State.RouteStops.Num(); ++i)
 						{
 							const FVector2D At = Fit.Map(State.RouteStops[i], Size, 30.0);
-							FSlateDrawElement::MakeBox(Out, Layer + 1, G.ToPaintGeometry(FVector2f(28.f, 28.f), FSlateLayoutTransform(FVector2f(At - FVector2D(14.0, 14.0)))), RoundedBrush(Amber(), 14.f));
+							FSlateDrawElement::MakeBox(Out, Layer + 1, G.ToPaintGeometry(FVector2f(28.f, 28.f), FSlateLayoutTransform(FVector2f(At - FVector2D(14.0, 14.0)))), RoundedBrush(SimCruiseTheme::White(), 14.f), ESlateDrawEffect::None, Amber());
 							const FSlateFontInfo Number = Font(EWeight::Black, 17.f);
 							FSlateDrawElement::MakeText(Out, Layer + 2, G.ToPaintGeometry(FVector2f(20.f, 22.f), FSlateLayoutTransform(FVector2f(At - FVector2D(i >= 9 ? 9.0 : 5.0, 11.0)))),
 								FString::FromInt(i + 1), Number, ESlateDrawEffect::None, GuideDeep());

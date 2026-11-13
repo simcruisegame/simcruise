@@ -81,6 +81,8 @@ bool FSimCruisePauseMenuPadTest::RunTest(const FString& Parameters)
 	// The keyboard does the same.
 	Press(*Menu, EKeys::Q);
 	TestEqual(TEXT("Q: previous page"), Menu->GetPage(), 0);
+	TestEqual(TEXT("the Drive page kept its row"), Menu->GetSelectedRow(), ESimCruiseMenuRow::Atlas);
+	Press(*Menu, EKeys::Down);
 	Press(*Menu, EKeys::Down);
 	Press(*Menu, EKeys::Enter);
 	TestEqual(TEXT("Enter chooses Where to?"), Actions.Last().Key, ESimCruiseMenuRow::WhereTo);
