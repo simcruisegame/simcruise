@@ -103,6 +103,8 @@ struct FSimCruiseDialSpec
 	FString StartLabel;
 	FString EndLabel;
 	FString Caption;
+	/** Draw a face over the model's dial (its own needle is welded in); false keeps the model's face and adds only the needle. */
+	bool bFace = true;
 };
 struct FSimCruiseCarPresentationProfile
 {

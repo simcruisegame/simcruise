@@ -3,6 +3,14 @@
  "cars": {
   "nb2001_aaron": {
    "model": "data/art/traffic/miata_nb-5d103c56/scene.gltf",
+   "dials_note": "The NB cluster's five dials (Godot vehicle frame, metres: x right, y up, z rearward): hubs and scales fitted to the model's own dial faces in a 1600x900 cockpit capture (each needle's pivot, and the angle of 0, 20, 80 and 140 mph and of 0, 4 and 8 thousand r/min), each turned to the driver's eye. The model keeps its faces (\"face\": false): a needle mesh turns over each. The model's own white needles are part of the dash mesh and stay at rest under them. Left to right: fuel, tachometer (red from 7000), coolant (top), speedometer (0-150 mph, US), oil pressure.",
+   "dials": [
+    { "quantity": "speed_mph", "centre_m": [-0.3106, 0.8194, -0.2901], "normal": [-0.0446, 0.2323, 0.9716], "radius_m": 0.036, "offset_m": 0.004, "face": false, "min": 0, "max": 150, "start_deg": -118, "sweep_deg": 225, "major_step": 20, "minor_per_major": 1, "caption": "MPH" },
+    { "quantity": "rpm", "centre_m": [-0.4002, 0.8208, -0.2904], "normal": [0.0651, 0.2303, 0.9709], "radius_m": 0.036, "offset_m": 0.004, "face": false, "min": 0, "max": 8000, "start_deg": -129, "sweep_deg": 258, "major_step": 1000, "minor_per_major": 1, "label_divisor": 1000, "red_from": 7000, "caption": "x1000 r/min" },
+    { "quantity": "coolant", "centre_m": [-0.3533, 0.8483, -0.2916], "normal": [0.0078, 0.1982, 0.9801], "radius_m": 0.015, "offset_m": 0.004, "face": false, "min": 0, "max": 1, "start_deg": -50, "sweep_deg": 100, "major_step": 0.5, "start_label": "C", "end_label": "H" },
+    { "quantity": "fuel", "centre_m": [-0.4548, 0.8058, -0.2877], "normal": [0.1309, 0.2468, 0.9602], "radius_m": 0.015, "offset_m": 0.004, "face": false, "min": 0, "max": 1, "start_deg": -50, "sweep_deg": 100, "major_step": 0.5, "start_label": "E", "end_label": "F" },
+    { "quantity": "oil_pressure", "centre_m": [-0.2559, 0.8037, -0.2873], "normal": [-0.1109, 0.2499, 0.9619], "radius_m": 0.015, "offset_m": 0.004, "face": false, "min": 0, "max": 1, "start_deg": -50, "sweep_deg": 100, "major_step": 0.5, "start_label": "L", "end_label": "H" }
+   ],
    "credit": "\"Mazda MX-5 (NB) convertible HQ interior\" by Nieve5677 (https://sketchfab.com/niev), CC BY 4.0",
    "steering_ratio": 15.0,
    "steering_ratio_source": "15:1 overall, power rack, 2.6 turns lock to lock (GoAuto, 2001 MX-5 review; the NB power rack is the same 1999-2005).",
@@ -585,6 +593,14 @@
   },
   "nb2001": {
    "model": "data/art/traffic/miata_nb-5d103c56/scene.gltf",
+   "dials_note": "The NB cluster's five dials (Godot vehicle frame, metres: x right, y up, z rearward): hubs and scales fitted to the model's own dial faces in a 1600x900 cockpit capture (each needle's pivot, and the angle of 0, 20, 80 and 140 mph and of 0, 4 and 8 thousand r/min), each turned to the driver's eye. The model keeps its faces (\"face\": false): a needle mesh turns over each. The model's own white needles are part of the dash mesh and stay at rest under them. Left to right: fuel, tachometer (red from 7000), coolant (top), speedometer (0-150 mph, US), oil pressure.",
+   "dials": [
+    { "quantity": "speed_mph", "centre_m": [-0.3106, 0.8194, -0.2901], "normal": [-0.0446, 0.2323, 0.9716], "radius_m": 0.036, "offset_m": 0.004, "face": false, "min": 0, "max": 150, "start_deg": -118, "sweep_deg": 225, "major_step": 20, "minor_per_major": 1, "caption": "MPH" },
+    { "quantity": "rpm", "centre_m": [-0.4002, 0.8208, -0.2904], "normal": [0.0651, 0.2303, 0.9709], "radius_m": 0.036, "offset_m": 0.004, "face": false, "min": 0, "max": 8000, "start_deg": -129, "sweep_deg": 258, "major_step": 1000, "minor_per_major": 1, "label_divisor": 1000, "red_from": 7000, "caption": "x1000 r/min" },
+    { "quantity": "coolant", "centre_m": [-0.3533, 0.8483, -0.2916], "normal": [0.0078, 0.1982, 0.9801], "radius_m": 0.015, "offset_m": 0.004, "face": false, "min": 0, "max": 1, "start_deg": -50, "sweep_deg": 100, "major_step": 0.5, "start_label": "C", "end_label": "H" },
+    { "quantity": "fuel", "centre_m": [-0.4548, 0.8058, -0.2877], "normal": [0.1309, 0.2468, 0.9602], "radius_m": 0.015, "offset_m": 0.004, "face": false, "min": 0, "max": 1, "start_deg": -50, "sweep_deg": 100, "major_step": 0.5, "start_label": "E", "end_label": "F" },
+    { "quantity": "oil_pressure", "centre_m": [-0.2559, 0.8037, -0.2873], "normal": [-0.1109, 0.2499, 0.9619], "radius_m": 0.015, "offset_m": 0.004, "face": false, "min": 0, "max": 1, "start_deg": -50, "sweep_deg": 100, "major_step": 0.5, "start_label": "L", "end_label": "H" }
+   ],
    "credit": "\"Mazda MX-5 (NB) convertible HQ interior\" by Nieve5677 (https://sketchfab.com/niev), CC BY 4.0",
    "steering_ratio": 15.0,
    "steering_ratio_source": "15:1 overall, power rack, 2.6 turns lock to lock (GoAuto, 2001 MX-5 review; the NB power rack is the same 1999-2005).",
@@ -685,6 +701,14 @@
   },
   "nb1999": {
    "model": "data/art/traffic/miata_nb-5d103c56/scene.gltf",
+   "dials_note": "The NB cluster's five dials (Godot vehicle frame, metres: x right, y up, z rearward): hubs and scales fitted to the model's own dial faces in a 1600x900 cockpit capture (each needle's pivot, and the angle of 0, 20, 80 and 140 mph and of 0, 4 and 8 thousand r/min), each turned to the driver's eye. The model keeps its faces (\"face\": false): a needle mesh turns over each. The model's own white needles are part of the dash mesh and stay at rest under them. Left to right: fuel, tachometer (red from 7000), coolant (top), speedometer (0-150 mph, US), oil pressure.",
+   "dials": [
+    { "quantity": "speed_mph", "centre_m": [-0.3106, 0.8194, -0.2901], "normal": [-0.0446, 0.2323, 0.9716], "radius_m": 0.036, "offset_m": 0.004, "face": false, "min": 0, "max": 150, "start_deg": -118, "sweep_deg": 225, "major_step": 20, "minor_per_major": 1, "caption": "MPH" },
+    { "quantity": "rpm", "centre_m": [-0.4002, 0.8208, -0.2904], "normal": [0.0651, 0.2303, 0.9709], "radius_m": 0.036, "offset_m": 0.004, "face": false, "min": 0, "max": 8000, "start_deg": -129, "sweep_deg": 258, "major_step": 1000, "minor_per_major": 1, "label_divisor": 1000, "red_from": 7000, "caption": "x1000 r/min" },
+    { "quantity": "coolant", "centre_m": [-0.3533, 0.8483, -0.2916], "normal": [0.0078, 0.1982, 0.9801], "radius_m": 0.015, "offset_m": 0.004, "face": false, "min": 0, "max": 1, "start_deg": -50, "sweep_deg": 100, "major_step": 0.5, "start_label": "C", "end_label": "H" },
+    { "quantity": "fuel", "centre_m": [-0.4548, 0.8058, -0.2877], "normal": [0.1309, 0.2468, 0.9602], "radius_m": 0.015, "offset_m": 0.004, "face": false, "min": 0, "max": 1, "start_deg": -50, "sweep_deg": 100, "major_step": 0.5, "start_label": "E", "end_label": "F" },
+    { "quantity": "oil_pressure", "centre_m": [-0.2559, 0.8037, -0.2873], "normal": [-0.1109, 0.2499, 0.9619], "radius_m": 0.015, "offset_m": 0.004, "face": false, "min": 0, "max": 1, "start_deg": -50, "sweep_deg": 100, "major_step": 0.5, "start_label": "L", "end_label": "H" }
+   ],
    "credit": "\"Mazda MX-5 (NB) convertible HQ interior\" by Nieve5677 (https://sketchfab.com/niev), CC BY 4.0",
    "steering_ratio": 15.0,
    "steering_ratio_source": "15:1 overall, power rack, 2.6 turns lock to lock (GoAuto, 2001 MX-5 review; the NB power rack is the same 1999-2005).",

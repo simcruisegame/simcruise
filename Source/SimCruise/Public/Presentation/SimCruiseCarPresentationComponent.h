@@ -13,6 +13,7 @@ class UMaterialInstanceDynamic;
 class USceneCaptureComponent2D;
 class UTextureRenderTarget2D;
 struct FSimCruiseBuiltCar;
+struct FSimCruiseDialSpec;
 
 /** One road wheel as the physics sees it this frame (vehicle frame, Unreal axes). */
 USTRUCT(BlueprintType)
@@ -248,11 +249,18 @@ private:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UTextureRenderTarget2D>> DialTargets;
 	TArray<double> DialShown;
-	TArray<double> DialDrawn;
+	/** Each dial's needle mesh (turned about its dial's axis every frame) and its rest transform. */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UStaticMeshComponent>> Needles;
+	TArray<FTransform> NeedleRest;
 	FSimCruiseCarVisualState LastState;
-	float DialClock = 0.f;
 	void UpdateDials(float DeltaTime);
-	void DrawDial(int32 Index, double Value);
+	/** The face (ticks, numerals, red zone, captions), drawn once: the needle is its own mesh. */
+	void DrawDialFace(int32 Index);
+
+public:
+	/** A dial's needle angle for a value: clockwise from 12 o'clock, radians. */
+	static double NeedleAngleRad(const FSimCruiseDialSpec& Dial, double Value);
 
 public:
 	/** The value a dial's needle shows now (tests and the pre-flight check), NaN when the car has no such dial. */

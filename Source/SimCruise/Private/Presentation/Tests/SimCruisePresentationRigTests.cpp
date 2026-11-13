@@ -199,7 +199,8 @@ bool FSimCruisePresentationRigNbTest::RunTest(const FString& Parameters)
 		TestFalse(TEXT("nb1999 wheels are found by geometry"), L.Rigged.bNamedWheels);
 		// The instruments: five live dials in the cluster, behind the steering wheel and in front
 		// of the driver's eye, facing the driver, the speedometer and tachometer the big two.
-		// Live dials are placed when the profile gives them (none ship yet: the faces are not finished).
+		// The NB's five dials keep the model's own faces; a needle mesh turns over each.
+		TestEqual(TEXT("nb1999 has its five dials"), L.Rigged.Dials.Num(), 5);
 		if (L.Rigged.Dials.Num() > 0 && L.Rigged.bHasSteeringWheel)
 		{
 			const FVector Wheel = L.Rigged.SteeringWheel.PartToVehicle.GetLocation();
@@ -211,7 +212,17 @@ bool FSimCruisePresentationRigNbTest::RunTest(const FString& Parameters)
 				TestTrue(What + TEXT(": ahead of the steering wheel, within 30 cm"), Dial.CentreCm.X > Wheel.X && Dial.CentreCm.X < Wheel.X + 30.0);
 				TestTrue(What + TEXT(": in line with the wheel across the car (within 15 cm)"), FMath::Abs(Dial.CentreCm.Y - Wheel.Y) < 15.0);
 				TestTrue(What + TEXT(": faces back toward the driver"), Dial.Normal.X < -0.6);
-				TestTrue(What + TEXT(": a gauge-sized face (2-7 cm)"), Dial.RadiusCm > 2.0 && Dial.RadiusCm < 7.0);
+				TestTrue(What + TEXT(": a gauge-sized needle (1-7 cm)"), Dial.RadiusCm > 1.0 && Dial.RadiusCm < 7.0);
+			}
+		}
+		// The NB speedometer's own marks: 0 mph at 118 degrees left of 12 o'clock, 80 near the top, 150 at the end.
+		for (const FSimCruiseDialSpec& Spec : L.Profile.Dials)
+		{
+			if (Spec.Quantity == TEXT("speed_mph"))
+			{
+				TestEqual(TEXT("0 mph needle angle"), FMath::RadiansToDegrees(USimCruiseCarPresentationComponent::NeedleAngleRad(Spec, 0.0)), -118.0, 0.01);
+				TestEqual(TEXT("80 mph near the top"), FMath::RadiansToDegrees(USimCruiseCarPresentationComponent::NeedleAngleRad(Spec, 80.0)), 2.0, 0.01);
+				TestEqual(TEXT("a needle stops just past the last mark"), FMath::RadiansToDegrees(USimCruiseCarPresentationComponent::NeedleAngleRad(Spec, 400.0)), -118.0 + 225.0 * 1.02, 0.01);
 			}
 		}
 		// The needles read the car: the speedometer in mph, the tachometer in rpm, rest with the engine off.

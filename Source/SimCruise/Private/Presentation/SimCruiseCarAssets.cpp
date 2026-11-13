@@ -319,6 +319,43 @@ TSharedPtr<FSimCruiseBuiltCar> SimCruiseCarAssets::Get(const FString& CarId, FSt
 			Section.Indices.Append({0u, A, B, 0u, B, A});
 		}
 		BuildPart(*Car, Part, Car->DialParts.AddDefaulted_GetRef());
+
+		// The needle: a tapered pointer from a short tail to just inside the ticks, standing 3 mm off
+		// the face, and a round hub cap over its root. It turns as a mesh; the face is drawn once.
+		FSimCruiseRigPart Needle;
+		Needle.Name = FName(*FString::Printf(TEXT("dial_%d_needle"), D));
+		Needle.PartToVehicle = Part.PartToVehicle;
+		FSimCruiseRigSection& Pointer = Needle.Sections.AddDefaulted_GetRef();
+		Pointer.MaterialIndex = SimCruiseCarAssets::NeedleMaterialIndex(D);
+		Pointer.Role = ESimCruiseCarMaterialRole::Gauge;
+		const float Lift = 0.3f, Tail = -0.18f * R, Tip = 0.88f * R, RootHalf = FMath::Max(0.045f * R, 0.12f), TipHalf = FMath::Max(0.012f * R, 0.05f);
+		auto Vertex = [&Pointer](float X, float Y, float Z, float U, float V)
+		{
+			Pointer.Positions.Add(FVector3f(X, Y, Z));
+			Pointer.Normals.Add(FVector3f(0.f, 0.f, 1.f));
+			Pointer.UV0.Add(FVector2f(U, V));
+		};
+		Vertex(Tail, -RootHalf, Lift, 0.f, 0.f);
+		Vertex(Tail, RootHalf, Lift, 1.f, 0.f);
+		Vertex(Tip, TipHalf, Lift, 1.f, 1.f);
+		Vertex(Tip, -TipHalf, Lift, 0.f, 1.f);
+		Pointer.Indices.Append({0u, 1u, 2u, 0u, 2u, 3u, 0u, 2u, 1u, 0u, 3u, 2u});
+		// The hub cap, a little nearer the driver than the pointer.
+		const uint32 Hub = Pointer.Positions.Num();
+		const float HubR = FMath::Max(0.09f * R, 0.25f);
+		Vertex(0.f, 0.f, Lift + 0.1f, 0.5f, 0.5f);
+		constexpr int32 HubSegments = 16;
+		for (int32 K = 0; K < HubSegments; ++K)
+		{
+			const float A = UE_TWO_PI * K / HubSegments;
+			Vertex(HubR * FMath::Cos(A), HubR * FMath::Sin(A), Lift + 0.1f, 0.5f, 0.5f);
+		}
+		for (int32 K = 0; K < HubSegments; ++K)
+		{
+			const uint32 A = Hub + 1 + K, B = Hub + 1 + (K + 1) % HubSegments;
+			Pointer.Indices.Append({Hub, A, B, Hub, B, A});
+		}
+		BuildPart(*Car, Needle, Car->NeedleParts.AddDefaulted_GetRef());
 		Car->Log.Add(FString::Printf(TEXT("dial %d (%s) at %s cm, radius %.1f cm"), D,
 			Car->Profile.Dials.IsValidIndex(Dial.Spec) ? *Car->Profile.Dials[Dial.Spec].Quantity : TEXT("?"), *Dial.CentreCm.ToString(), Dial.RadiusCm));
 	}

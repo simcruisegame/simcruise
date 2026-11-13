@@ -140,7 +140,8 @@ void USimCruiseCarPresentationComponent::ClearParts()
 	Materials.Reset();
 	DialTargets.Reset();
 	DialShown.Reset();
-	DialDrawn.Reset();
+	Needles.Reset();
+	NeedleRest.Reset();
 	RearLamps.Reset();
 	FrontLamps.Reset();
 	LampLevel = -1;
@@ -289,9 +290,13 @@ bool USimCruiseCarPresentationComponent::InitializeForCar(const FString& InCarId
 		Target->UpdateResourceImmediate(true);
 		DialTargets.Add(Target);
 		DialShown.Add(0.0);
-		DialDrawn.Add(TNumericLimits<double>::Max());
-		AddPart(this, Part, Part.PartToVehicle);
-		if (UMaterialInstanceDynamic* Face = MaterialFor(SimCruiseCarAssets::DialMaterialIndex(D)))
+		const int32 SpecIndex = Built->Dials.IsValidIndex(D) ? Built->Dials[D].Spec : -1;
+		const bool bFace = !Built->Profile.Dials.IsValidIndex(SpecIndex) || Built->Profile.Dials[SpecIndex].bFace;
+		if (bFace)
+		{
+			AddPart(this, Part, Part.PartToVehicle);
+		}
+		if (UMaterialInstanceDynamic* Face = bFace ? MaterialFor(SimCruiseCarAssets::DialMaterialIndex(D)) : nullptr)
 		{
 			Face->SetTextureParameterValue(TEXT("BaseTexture"), Target);
 			Face->SetTextureParameterValue(TEXT("EmissiveTexture"), Target);
@@ -301,10 +306,29 @@ bool USimCruiseCarPresentationComponent::InitializeForCar(const FString& InCarId
 			Face->GetVectorParameterValue(FHashedMaterialParameterInfo(TEXT("Extra")), Extra);
 			Extra.B = 1.f;
 			Face->SetVectorParameterValue(TEXT("Extra"), Extra);
-			// The marks and needle lit from behind (about 40 nits by day), the face black.
+			// The marks lit from behind (about 40 nits by day), the face black.
 			Face->SetVectorParameterValue(TEXT("Emissive"), FLinearColor(1.f, 1.f, 1.f, 40.f));
 		}
-		DrawDial(D, 0.0);
+		if (bFace)
+		{
+			DrawDialFace(D);
+		}
+		// The needle over it, an orange-red pointer lit from behind as the marks are.
+		UStaticMeshComponent* Needle = nullptr;
+		if (Built->NeedleParts.IsValidIndex(D))
+		{
+			const FSimCruiseBuiltPart& NeedlePart = Built->NeedleParts[D];
+			Needle = AddPart(this, NeedlePart, NeedlePart.PartToVehicle);
+			if (Needle) Needle->SetCastShadow(false);
+			if (UMaterialInstanceDynamic* Paint = MaterialFor(SimCruiseCarAssets::NeedleMaterialIndex(D)))
+			{
+				Paint->SetVectorParameterValue(TEXT("BaseColor"), FLinearColor(0.9f, 0.22f, 0.04f, 1.f));
+				Paint->SetVectorParameterValue(TEXT("TextureFlags"), FLinearColor(0.f, 0.f, 0.f, 0.f));
+				Paint->SetVectorParameterValue(TEXT("Emissive"), FLinearColor(1.f, 0.3f, 0.06f, 40.f));
+			}
+		}
+		Needles.Add(Needle);
+		NeedleRest.Add(Part.PartToVehicle);
 	}
 	ApplyVisualState(FSimCruiseCarVisualState());
 	return true;
@@ -336,40 +360,44 @@ double USimCruiseCarPresentationComponent::GetDialValue(const FString& Quantity)
 	return std::numeric_limits<double>::quiet_NaN();
 }
 
+double USimCruiseCarPresentationComponent::NeedleAngleRad(const FSimCruiseDialSpec& Dial, double Value)
+{
+	const double Range = Dial.MaxValue - Dial.MinValue;
+	// A needle rests a hair below its stop pin and can swing a little past the last mark.
+	const double T = FMath::Abs(Range) > 1e-9 ? FMath::Clamp((Value - Dial.MinValue) / Range, -0.02, 1.02) : 0.0;
+	return FMath::DegreesToRadians(Dial.StartDeg + Dial.SweepDeg * T);
+}
+
 void USimCruiseCarPresentationComponent::UpdateDials(float DeltaTime)
 {
-	if (!Built.IsValid() || DialTargets.IsEmpty())
+	if (!Built.IsValid() || Needles.IsEmpty())
 	{
 		return;
 	}
-	// Needles follow with a needle's own lag (about 0.12 s); faces redraw at most 30 times a second.
+	// Needles follow with a needle's own lag (about 0.12 s) and turn as meshes: no redraw.
 	const double Follow = 1.0 - FMath::Exp(-FMath::Max(DeltaTime, 0.f) / 0.12);
-	DialClock += DeltaTime;
-	const bool bRedraw = DialClock >= 1.f / 30.f;
-	if (bRedraw) DialClock = 0.f;
-	for (int32 D = 0; D < DialTargets.Num() && D < Built->Dials.Num(); ++D)
+	for (int32 D = 0; D < Needles.Num() && D < Built->Dials.Num(); ++D)
 	{
 		const int32 Spec = Built->Dials[D].Spec;
 		if (!Built->Profile.Dials.IsValidIndex(Spec)) continue;
 		const FSimCruiseDialSpec& Dial = Built->Profile.Dials[Spec];
 		DialShown[D] += (DialTarget(Dial.Quantity, LastState) - DialShown[D]) * Follow;
-		const double Range = FMath::Max(FMath::Abs(Dial.MaxValue - Dial.MinValue), 1e-6);
-		// Redraw when the needle has moved a visible fraction (0.2 % of the scale).
-		if (bRedraw && FMath::Abs(DialShown[D] - DialDrawn[D]) > Range * 0.002)
+		if (UStaticMeshComponent* Needle = Needles[D])
 		{
-			DrawDial(D, DialShown[D]);
+			// The part's +X is 12 o'clock and +Y 3 o'clock, so clockwise is a turn about +Z.
+			const FQuat Turn(FVector::UpVector, NeedleAngleRad(Dial, DialShown[D]));
+			Needle->SetRelativeTransform(FTransform(Turn) * NeedleRest[D]);
 		}
 	}
 }
 
-void USimCruiseCarPresentationComponent::DrawDial(int32 Index, double Value)
+void USimCruiseCarPresentationComponent::DrawDialFace(int32 Index)
 {
 	if (!Built.IsValid() || !DialTargets.IsValidIndex(Index) || !DialTargets[Index] || !GEngine) return;
 	const int32 Spec = Built->Dials[Index].Spec;
 	if (!Built->Profile.Dials.IsValidIndex(Spec)) return;
 	const FSimCruiseDialSpec& Dial = Built->Profile.Dials[Spec];
 	UTextureRenderTarget2D* Target = DialTargets[Index];
-	DialDrawn[Index] = Value;
 	UKismetRenderingLibrary::ClearRenderTarget2D(this, Target, FLinearColor::Black);
 	UCanvas* Canvas = nullptr;
 	FVector2D Size;
@@ -382,16 +410,13 @@ void USimCruiseCarPresentationComponent::DrawDial(int32 Index, double Value)
 	const FVector2D C = Size * 0.5;
 	const double R = Size.X * 0.5;
 	const double Range = Dial.MaxValue - Dial.MinValue;
-	auto Angle = [&](double V)
-	{
-		const double T = FMath::Abs(Range) > 1e-9 ? FMath::Clamp((V - Dial.MinValue) / Range, -0.02, 1.02) : 0.0;
-		return FMath::DegreesToRadians(Dial.StartDeg + Dial.SweepDeg * T);
-	};
+	auto Angle = [&Dial](double V) { return NeedleAngleRad(Dial, V); };
 	// Clockwise from 12 o'clock with the canvas's y down.
 	auto At = [&](double A, double Fraction) { return C + FVector2D(FMath::Sin(A), -FMath::Cos(A)) * R * Fraction; };
 	const FLinearColor Mark(0.92f, 0.92f, 0.9f, 1.f), Red(0.85f, 0.08f, 0.05f, 1.f);
 	UFont* Font = GEngine->GetMediumFont();
-	const bool bSmall = Dial.Radius < 4.0;
+	// Radius in metres: the small gauges are under 4 cm.
+	const bool bSmall = Dial.Radius < 0.04;
 	const int32 Majors = Dial.MajorStep > 0.0 ? FMath::RoundToInt(Range / Dial.MajorStep) : 0;
 	for (int32 M = 0; M <= Majors && M <= 40; ++M)
 	{
@@ -433,16 +458,6 @@ void USimCruiseCarPresentationComponent::DrawDial(int32 Index, double Value)
 		if (!Dial.Caption.IsEmpty())
 			Canvas->K2_DrawText(Font, Dial.Caption, C + FVector2D(0.0, R * (bSmall ? 0.42 : 0.38)), bSmall ? FVector2D(1.3, 1.3) : FVector2D(0.95, 0.95), Mark, 0.f,
 				FLinearColor::Transparent, FVector2D::ZeroVector, true, true, false, FLinearColor::Black);
-	}
-	// The needle: an orange-red pointer with a short tail, and a dark hub over its root.
-	const double A = Angle(Value);
-	const FLinearColor Needle(1.f, 0.32f, 0.08f, 1.f);
-	Canvas->K2_DrawLine(At(A + PI, 0.16), At(A, 0.90), bSmall ? 7.f : 6.f, Needle);
-	Canvas->K2_DrawLine(At(A + PI, 0.10), At(A, 0.55), bSmall ? 10.f : 9.f, Needle);
-	for (int32 K = 0; K < 8; ++K)
-	{
-		const double H = PI * K / 8.0;
-		Canvas->K2_DrawLine(At(H, 0.09), At(H + PI, 0.09), 7.f, FLinearColor(0.05f, 0.05f, 0.05f, 1.f));
 	}
 	UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(this, Context);
 }

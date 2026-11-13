@@ -55,6 +55,8 @@ struct FSimCruiseBuiltCar
 	/** Dials to draw live (vehicle frame, cm), each with its index in Profile.Dials, and their face discs. */
 	TArray<FSimCruiseRiggedCar::FDial> Dials;
 	TArray<FSimCruiseBuiltPart> DialParts;
+	/** Each dial's needle: a pointer along the part's +X (12 o'clock), turned about its +Z (toward the driver). */
+	TArray<FSimCruiseBuiltPart> NeedleParts;
 	double SteeringRatio = 15.0;
 	TArray<FString> Log;
 	double BuildSeconds = 0.0;
@@ -70,6 +72,8 @@ namespace SimCruiseCarAssets
 {
 	/** The material slot index a dial's face disc uses (below any model material: one live face each). */
 	inline int32 DialMaterialIndex(int32 Dial) { return -1000 - Dial; }
+	/** The slot a dial's needle uses. */
+	inline int32 NeedleMaterialIndex(int32 Dial) { return -2000 - Dial; }
 
 	/**
 	 * The built car for an id (data/cars/<id>.json + its presentation

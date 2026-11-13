@@ -258,6 +258,7 @@ bool SimCruisePresentationProfiles::Load(const FString& CarId, FSimCruiseCarPres
 			D->TryGetStringField(TEXT("start_label"), Dial.StartLabel);
 			D->TryGetStringField(TEXT("end_label"), Dial.EndLabel);
 			D->TryGetStringField(TEXT("caption"), Dial.Caption);
+		D->TryGetBoolField(TEXT("face"), Dial.bFace);
 			OutProfile.Dials.Add(Dial);
 		}
 	}
