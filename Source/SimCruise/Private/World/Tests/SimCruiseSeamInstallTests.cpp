@@ -201,6 +201,21 @@ bool FSimCruiseSlopedSeamTest::RunTest(const FString& Parameters)
 	TestTrue(FString::Printf(TEXT("centre heights meet (%.4f / %.4f)"), EA.HC, EB.HC), FMath::Abs(EA.HC - EB.HC) < 1e-3);
 	TestTrue(TEXT("edge heights meet"), FMath::Abs((bSame ? EA.HL : EA.HR) - EB.HL) < 1e-3 && FMath::Abs((bSame ? EA.HR : EA.HL) - EB.HR) < 1e-3);
 	TestTrue(TEXT("the seam keeps its banking"), FMath::Abs((bSame ? EA.E : -EA.E) - EB.E) < 1e-3);
+	// Built at the same time (no contract on either side, as when two tiles stream in together),
+	// the two seam sections still meet: no step at the tile edge.
+	{
+		const TSharedRef<FSimCruiseTileBuild> Alone = SimCruiseTileBuilder::Build(B, Side);
+		const FSimCruiseRibbon* R2 = Alone->Roads.Ribbons.FindByPredicate([](const FSimCruiseRibbon& R) { return R.bEndOnBoundary || R.bStartOnBoundary; });
+		if (TestNotNull(TEXT("road on the independent tile B"), R2))
+		{
+			const FSimCruiseRibbonStation& E2 = R2->bStartOnBoundary ? R2->St[0] : R2->St.Last();
+			const bool bSame2 = FVector2d::DotProduct(EA.T, E2.T) >= 0.0;
+			const double Step = FMath::Max3(FMath::Abs(EA.HC - E2.HC), FMath::Abs((bSame2 ? EA.HL : EA.HR) - E2.HL), FMath::Abs((bSame2 ? EA.HR : EA.HL) - E2.HR));
+			AddInfo(FString::Printf(TEXT("seam step between independently built tiles: %.4f m"), Step));
+			// Each side samples the shared ground along its own section line: about a centimetre on this 8 %% sidehill.
+			TestTrue(FString::Printf(TEXT("independently built tiles meet at the seam (%.4f m)"), Step), Step < 0.02);
+		}
+	}
 	// Grade change from the seam pins: at most 1 % plus the hill's own change of grade.
 	double Worst = 0.0;
 	for (const FSimCruiseRibbon* R : { RA, RB })
