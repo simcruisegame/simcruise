@@ -231,11 +231,40 @@ GPU at the Bixby viewpoint, High, 1920x1080, plugged in (power-capped as before)
 
 Right half of the Bixby images: Wikimedia Commons [Bixby_Creek_Bridge_juli_2016.jpg](https://commons.wikimedia.org/wiki/File:Bixby_Creek_Bridge_juli_2016.jpg), CC0, resized.
 
+## The AI detail kit (13 November 2026)
+
+Fine detail for the road and the ground up close, made once and offline by an open image model. Stable Diffusion XL base 1.0 (CreativeML Open RAIL++-M) made eight 1024 px top-down photographs (`lab/detail-kit/generate.py`, 30 steps, guidance 6, seeds 20261113 to 20261120): asphalt, concrete, stucco, brick, soil, sand, leaf litter and bark. `make_kit.py` turns each into an albedo ratio with mean 1. It divides the photograph by a wide blur of itself, so the slice holds only fine detail and never sets the colour. A soft clamp in log space keeps each slice inside its material's range (asphalt 0.60 to 1.50, concrete 0.75 to 1.30). The packer also makes each slice tileable, derives normals from the height, and packs a 4 x 2 atlas (`data/art/detail-kit/`, 2048 x 1024, albedo and normal). Per-slice 5th and 95th percentiles: asphalt 0.75/1.23, concrete 0.90/1.07, soil 0.76/1.26, sand 0.86/1.17, litter 0.73/1.32.
+
+![The kit: asphalt, concrete, stucco, brick / soil, sand, leaf litter, bark (ratio maps)](images/world-detail/detail-kit-atlas.jpg)
+
+**In the game: road and ground only.** `DetailKitCode` (struct `FDK`) does hex tiling: three rotated, offset lookups so a slice never visibly repeats. Brick tiles plainly and bark is never rotated (both have a direction). The layer fades in from 0.5 m and out by 40 m, and fades out before a slice is under about 30 pixels. Its mip footprint is clamped, so it never mixes slices or shimmers. The asphalt material uses the asphalt slice (soil on the gravel edge). The ground's dominant class picks soil, pavement concrete, sand or leaf litter; lawns keep the grass field. Walls, kerbs and palm bark were tried and left out to keep the layer small: on walls the change was barely measurable (mean pixel difference 0.8 of 255 in a close facade frame). The layer is on by default; `-SimCruiseNoDetailLayer` turns it off.
+
+Near frame on the Ocean Drive carriageway, 1.65 m eye, 30° down (left on, right off). The fine high-pass energy of the frame rises from 7.7 to 9.1 (+18 %) at the same mean brightness (111.9 vs 111.8). The aggregate reads as stones rather than blotches.
+
+![Ocean Drive asphalt up close, detail layer on | off](images/world-detail/detail-kit-road-on-off.jpg)
+
+Realism (`scripts\realism.ps1`, ultra, traffic off, build `70b9236`):
+
+| Pose | Layer on | Layer off |
+|---|---|---|
+| lummus | `REALISM lummus: 45.8 / 100  layout 31.5  tone 35.3  colour 52.3  structure 55.6  detail 67.9  sky 33.0` | `REALISM lummus: 45.8 / 100  layout 31.5  tone 35.3  colour 52.3  structure 55.7  detail 67.8  sky 33.0` |
+| dragon | `REALISM dragon: 45.3 / 100  layout 29.6  tone 18.0  colour 68.2  structure 67.4  detail 69.7  sky 10.6` | `REALISM dragon: 45.2 / 100  layout 29.6  tone 18.0  colour 68.1  structure 67.2  detail 69.7  sky 10.6` |
+| bixby | `REALISM bixby: 35.0 / 100  layout 17.2  tone 20.7  colour 46.4  structure 59.0  detail 47.0  sky 11.3` | `REALISM bixby: 35.0 / 100  layout 17.2  tone 20.7  colour 46.4  structure 59.0  detail 47.0  sky 11.3` |
+
+GPU, the same setup as the grass field (Ocean Drive start, 11:00, High, 1920x1080 full screen, plugged in and power-capped, `-SimCruiseDrivePerf=high`, two runs each way, GPU ms average of the 10 s window):
+
+| View | Layer on | Layer off | Difference |
+|---|---|---|---|
+| High, driver's seat | 48.31, 47.75 | 47.64, 48.14 | +0.14 ms |
+| High, chase | 39.35, 39.29 | 39.17, 39.37 | +0.05 ms |
+
+Both are inside the run-to-run spread. The scores cannot see the layer: the poses' photographs are taken from 10 m or more, where the layer has faded out. It is for the driver's near view of the road and the verge. No pose dropped by 1.0 or more and the cost is under 1.5 ms, so it ships on.
+
 ## Handoff (13 November 2026)
 
 - **Grass field on the hillsides** is on `main` (`9cc7d6f`): the ground and the regional landscape share one meso-layer HLSL helper. Measurements are in the section above.
-- **AI fine-detail layer: unfinished**, on branch `detail-layer-wip`. The kit is made with Stable Diffusion XL base 1.0 (CreativeML Open RAIL++-M). FLUX.1-schnell (Apache-2.0) would need a Hugging Face log-in and accepting its terms on the PC. Six of eight slices are generated (litter and bark are missing). The packer `lab/detail-kit/make_kit.py` has not been run. The shader helper (`DetailKitCode`, used by the ground, asphalt, concrete and building materials, flag `-SimCruiseNoDetailLayer`) compiles in C++ but has not been built into the materials, run in the game or tested.
-- **Next steps:** generate litter and bark, run `make_kit.py` into `data/art/detail-kit/`, rebuild the materials with the commandlet, fix any HLSL errors, run the realism A/B (lummus, dragon, bixby) and the GPU A/B at Ocean Drive with the layer on and off (default off if any pose drops 1.0 or more), then run `scripts\check.ps1`.
+- **AI detail kit** is on `main`, road and ground only, on by default (section above). To remake it: `lab/detail-kit/generate.py` (needs torch + diffusers and the SDXL weights; on this PC the venv is `C:\sc-cache\detailkit-venv`), then `make_kit.py --raw raw --out ../../data/art/detail-kit`. The game reads the PNGs at start, so a remake needs no material rebuild. The stucco, brick and bark slices are in the atlas but unused.
+- **World work stops here.** Not done: a check of the layer in motion beyond the still frames (no shimmer was seen, but there was no video A/B), and a palm bark slice that looks like a palm (the SDXL bark is a furrowed broadleaf bark).
 ## Sources
 
 - USGS 3DEP lidar point clouds in Entwine format on AWS (`usgs-lidar-public`), US public domain.
