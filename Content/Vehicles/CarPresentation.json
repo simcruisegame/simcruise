@@ -809,6 +809,12 @@
   },
   "mustang65": {
    "model": "data/art/traffic/mustang65-05f2a294/scene.gltf",
+   "dials_note": "The 1965 Mustang's standard cluster: a straight (ribbon) speedometer 0-120 mph across the middle, the fuel gauge in the left pod and the coolant temperature in the right. The model's cluster face is a blank flat oblong, so each gets a drawn face. Centres ray-cast onto the model's face from the driver's eye at the pods and band seen in a 1600x900 cockpit capture (Godot vehicle frame, before the 0.9187 lateral fit).",
+   "dials": [
+    { "quantity": "fuel", "centre_m": [-0.5009, 0.8112, -0.4974], "normal": [0, 0, 1], "radius_m": 0.026, "offset_m": 0.003, "min": 0, "max": 1, "start_deg": -60, "sweep_deg": 120, "major_step": 0.5, "start_label": "E", "end_label": "F", "caption": "FUEL" },
+    { "quantity": "speed_mph", "centre_m": [-0.3947, 0.8115, -0.4974], "normal": [0, 0, 1], "radius_m": 0.013, "length_m": 0.13, "offset_m": 0.003, "min": 0, "max": 120, "major_step": 20, "minor_per_major": 1, "caption": "MPH" },
+    { "quantity": "coolant", "centre_m": [-0.2902, 0.8112, -0.4974], "normal": [0, 0, 1], "radius_m": 0.026, "offset_m": 0.003, "min": 0, "max": 1, "start_deg": -60, "sweep_deg": 120, "major_step": 0.5, "start_label": "C", "end_label": "H", "caption": "TEMP" }
+   ],
    "engine_sound": {
     "layout": "v8_crossplane",
     "bank_of_event": [

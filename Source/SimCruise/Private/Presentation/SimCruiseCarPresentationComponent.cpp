@@ -286,11 +286,14 @@ bool USimCruiseCarPresentationComponent::InitializeForCar(const FString& InCarId
 		UTextureRenderTarget2D* Target = NewObject<UTextureRenderTarget2D>(this);
 		Target->RenderTargetFormat = RTF_RGBA8_SRGB;
 		Target->ClearColor = FLinearColor::Black;
-		Target->InitAutoFormat(256, 256);
+		const int32 SpecIndex = Built->Dials.IsValidIndex(D) ? Built->Dials[D].Spec : -1;
+		// A straight scale's face is a strip: its target keeps the strip's shape (512 across).
+		const FSimCruiseDialSpec* LinearSpec = Built->Profile.Dials.IsValidIndex(SpecIndex) && Built->Profile.Dials[SpecIndex].IsLinear() ? &Built->Profile.Dials[SpecIndex] : nullptr;
+		const int32 TargetHigh = LinearSpec ? FMath::Clamp(4 * FMath::RoundToInt(128.0 * LinearSpec->Radius / (LinearSpec->LengthM * 0.5 + 0.6 * LinearSpec->Radius)), 32, 512) : 256;
+		Target->InitAutoFormat(LinearSpec ? 512 : 256, TargetHigh);
 		Target->UpdateResourceImmediate(true);
 		DialTargets.Add(Target);
 		DialShown.Add(0.0);
-		const int32 SpecIndex = Built->Dials.IsValidIndex(D) ? Built->Dials[D].Spec : -1;
 		const bool bFace = !Built->Profile.Dials.IsValidIndex(SpecIndex) || Built->Profile.Dials[SpecIndex].bFace;
 		if (bFace)
 		{
@@ -306,8 +309,8 @@ bool USimCruiseCarPresentationComponent::InitializeForCar(const FString& InCarId
 			Face->GetVectorParameterValue(FHashedMaterialParameterInfo(TEXT("Extra")), Extra);
 			Extra.B = 1.f;
 			Face->SetVectorParameterValue(TEXT("Extra"), Extra);
-			// The marks lit from behind (about 40 nits by day), the face black.
-			Face->SetVectorParameterValue(TEXT("Emissive"), FLinearColor(1.f, 1.f, 1.f, 40.f));
+			// The marks white paint lit from behind (about 250 nits, so they read in the shade under the cowl), the face black.
+			Face->SetVectorParameterValue(TEXT("Emissive"), FLinearColor(1.f, 1.f, 1.f, 250.f));
 		}
 		if (bFace)
 		{
@@ -384,9 +387,20 @@ void USimCruiseCarPresentationComponent::UpdateDials(float DeltaTime)
 		DialShown[D] += (DialTarget(Dial.Quantity, LastState) - DialShown[D]) * Follow;
 		if (UStaticMeshComponent* Needle = Needles[D])
 		{
-			// The part's +X is 12 o'clock and +Y 3 o'clock, so clockwise is a turn about +Z.
-			const FQuat Turn(FVector::UpVector, NeedleAngleRad(Dial, DialShown[D]));
-			Needle->SetRelativeTransform(FTransform(Turn) * NeedleRest[D]);
+			if (Dial.IsLinear())
+			{
+				// A straight scale: the bar slides along the part's +Y (to the right), centred on the scale.
+				const double Range = Dial.MaxValue - Dial.MinValue;
+				const double T = FMath::Abs(Range) > 1e-9 ? FMath::Clamp((DialShown[D] - Dial.MinValue) / Range, -0.01, 1.01) : 0.0;
+				const double AlongCm = (T - 0.5) * Dial.LengthM * 100.0;
+				Needle->SetRelativeTransform(FTransform(FVector(0.0, AlongCm, 0.0)) * NeedleRest[D]);
+			}
+			else
+			{
+				// The part's +X is 12 o'clock and +Y 3 o'clock, so clockwise is a turn about +Z.
+				const FQuat Turn(FVector::UpVector, NeedleAngleRad(Dial, DialShown[D]));
+				Needle->SetRelativeTransform(FTransform(Turn) * NeedleRest[D]);
+			}
 		}
 	}
 }
@@ -407,9 +421,42 @@ void USimCruiseCarPresentationComponent::DrawDialFace(int32 Index)
 	{
 		return;
 	}
+	const double Range = Dial.MaxValue - Dial.MinValue;
+	const FLinearColor Ink(0.92f, 0.92f, 0.9f, 1.f);
+	if (Dial.IsLinear())
+	{
+		// A straight (ribbon) scale: ticks along a line across the middle, numerals above, a caption below.
+		const double Margin = 0.6 * Dial.Radius / (Dial.LengthM + 1.2 * Dial.Radius) * Size.X;
+		auto Xof = [&](double V) { return Margin + (Size.X - 2.0 * Margin) * (Range != 0.0 ? (V - Dial.MinValue) / Range : 0.0); };
+		const double Mid = Size.Y * 0.55;
+		Canvas->K2_DrawLine(FVector2D(Xof(Dial.MinValue), Mid + Size.Y * 0.2), FVector2D(Xof(Dial.MaxValue), Mid + Size.Y * 0.2), 2.f, Ink);
+		UFont* LineFont = GEngine->GetLargeFont();
+		const int32 Steps = Dial.MajorStep > 0.0 ? FMath::RoundToInt(Range / Dial.MajorStep) : 0;
+		for (int32 M = 0; M <= Steps && M <= 60; ++M)
+		{
+			const double V = Dial.MinValue + M * Dial.MajorStep;
+			Canvas->K2_DrawLine(FVector2D(Xof(V), Mid), FVector2D(Xof(V), Mid + Size.Y * 0.2), 5.f, Ink);
+			for (int32 K = 1; K <= Dial.MinorPerMajor && M < Steps; ++K)
+			{
+				const double Vm = V + Dial.MajorStep * K / (Dial.MinorPerMajor + 1);
+				Canvas->K2_DrawLine(FVector2D(Xof(Vm), Mid + Size.Y * 0.1), FVector2D(Xof(Vm), Mid + Size.Y * 0.2), 3.f, Ink);
+			}
+			if (LineFont)
+			{
+				Canvas->K2_DrawText(LineFont, FString::Printf(TEXT("%d"), FMath::RoundToInt(V / FMath::Max(Dial.LabelDivisor, 1e-6))), FVector2D(Xof(V), Size.Y * 0.28),
+					FVector2D(1.4, 1.4), Ink, 0.f, FLinearColor::Transparent, FVector2D::ZeroVector, true, true, false, FLinearColor::Black);
+			}
+		}
+		if (LineFont && !Dial.Caption.IsEmpty())
+		{
+			Canvas->K2_DrawText(LineFont, Dial.Caption, FVector2D(Size.X * 0.5, Size.Y * 0.9), FVector2D(0.9, 0.9), Ink, 0.f, FLinearColor::Transparent,
+				FVector2D::ZeroVector, true, true, false, FLinearColor::Black);
+		}
+		UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(this, Context);
+		return;
+	}
 	const FVector2D C = Size * 0.5;
 	const double R = Size.X * 0.5;
-	const double Range = Dial.MaxValue - Dial.MinValue;
 	auto Angle = [&Dial](double V) { return NeedleAngleRad(Dial, V); };
 	// Clockwise from 12 o'clock with the canvas's y down.
 	auto At = [&](double A, double Fraction) { return C + FVector2D(FMath::Sin(A), -FMath::Cos(A)) * R * Fraction; };
@@ -450,13 +497,13 @@ void USimCruiseCarPresentationComponent::DrawDialFace(int32 Index)
 	}
 	if (Font)
 	{
-		const FVector2D LabelScale = bSmall ? FVector2D(1.9, 1.9) : FVector2D(1.1, 1.1);
+		const FVector2D LabelScale = bSmall ? FVector2D(2.6, 2.6) : FVector2D(1.1, 1.1);
 		if (!Dial.StartLabel.IsEmpty())
 			Canvas->K2_DrawText(Font, Dial.StartLabel, At(Angle(Dial.MinValue), 0.58), LabelScale, Mark, 0.f, FLinearColor::Transparent, FVector2D::ZeroVector, true, true, false, FLinearColor::Black);
 		if (!Dial.EndLabel.IsEmpty())
 			Canvas->K2_DrawText(Font, Dial.EndLabel, At(Angle(Dial.MaxValue), 0.58), LabelScale, Dial.RedFrom > 0.0 ? Red : Mark, 0.f, FLinearColor::Transparent, FVector2D::ZeroVector, true, true, false, FLinearColor::Black);
 		if (!Dial.Caption.IsEmpty())
-			Canvas->K2_DrawText(Font, Dial.Caption, C + FVector2D(0.0, R * (bSmall ? 0.42 : 0.38)), bSmall ? FVector2D(1.3, 1.3) : FVector2D(0.95, 0.95), Mark, 0.f,
+			Canvas->K2_DrawText(Font, Dial.Caption, C + FVector2D(0.0, R * (bSmall ? 0.42 : 0.38)), bSmall ? FVector2D(1.8, 1.8) : FVector2D(0.95, 0.95), Mark, 0.f,
 				FLinearColor::Transparent, FVector2D::ZeroVector, true, true, false, FLinearColor::Black);
 	}
 	UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(this, Context);

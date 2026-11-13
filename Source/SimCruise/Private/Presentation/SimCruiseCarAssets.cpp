@@ -301,22 +301,41 @@ TSharedPtr<FSimCruiseBuiltCar> SimCruiseCarAssets::Get(const FString& CarId, FSt
 		Section.Role = ESimCruiseCarMaterialRole::Gauge;
 		constexpr int32 Segments = 48;
 		const float R = static_cast<float>(Dial.RadiusCm);
-		Section.Positions.Add(FVector3f::ZeroVector);
-		Section.Normals.Add(FVector3f(0.f, 0.f, 1.f));
-		Section.UV0.Add(FVector2f(0.5f, 0.5f));
-		for (int32 K = 0; K < Segments; ++K)
+		const FSimCruiseDialSpec* Spec = Car->Profile.Dials.IsValidIndex(Dial.Spec) ? &Car->Profile.Dials[Dial.Spec] : nullptr;
+		const bool bLinear = Spec && Spec->IsLinear();
+		// A straight scale's face: a strip its length plus a margin, R high either side of the scale.
+		const float HalfWide = bLinear ? static_cast<float>(Spec->LengthM * 50.0) + 0.6f * R : R;
+		if (bLinear)
 		{
-			const float A = UE_TWO_PI * K / Segments;
-			const float C = FMath::Cos(A), S = FMath::Sin(A);
-			Section.Positions.Add(FVector3f(R * C, R * S, 0.f));
-			Section.Normals.Add(FVector3f(0.f, 0.f, 1.f));
-			// u to the right (+Y), v down (-X): the canvas reads upright on the dial.
-			Section.UV0.Add(FVector2f(0.5f + 0.5f * S, 0.5f - 0.5f * C));
+			const FVector2f Corners[4] = { {R, -HalfWide}, {R, HalfWide}, {-R, HalfWide}, {-R, -HalfWide} };
+			for (const FVector2f& Corner : Corners)
+			{
+				Section.Positions.Add(FVector3f(Corner.X, Corner.Y, 0.f));
+				Section.Normals.Add(FVector3f(0.f, 0.f, 1.f));
+				Section.UV0.Add(FVector2f(0.5f + 0.5f * Corner.Y / HalfWide, 0.5f - 0.5f * Corner.X / R));
+			}
+			// One side only: a second, reversed copy at the same depth drew its edges through the face.
+			Section.Indices.Append({0u, 1u, 2u, 0u, 2u, 3u});
 		}
-		for (int32 K = 0; K < Segments; ++K)
+		else
 		{
-			const uint32 A = 1 + K, B = 1 + (K + 1) % Segments;
-			Section.Indices.Append({0u, A, B, 0u, B, A});
+			Section.Positions.Add(FVector3f::ZeroVector);
+			Section.Normals.Add(FVector3f(0.f, 0.f, 1.f));
+			Section.UV0.Add(FVector2f(0.5f, 0.5f));
+			for (int32 K = 0; K < Segments; ++K)
+			{
+				const float A = UE_TWO_PI * K / Segments;
+				const float C = FMath::Cos(A), S = FMath::Sin(A);
+				Section.Positions.Add(FVector3f(R * C, R * S, 0.f));
+				Section.Normals.Add(FVector3f(0.f, 0.f, 1.f));
+				// u to the right (+Y), v down (-X): the canvas reads upright on the dial.
+				Section.UV0.Add(FVector2f(0.5f + 0.5f * S, 0.5f - 0.5f * C));
+			}
+			for (int32 K = 0; K < Segments; ++K)
+			{
+				const uint32 A = 1 + K, B = 1 + (K + 1) % Segments;
+				Section.Indices.Append({0u, A, B});
+			}
 		}
 		BuildPart(*Car, Part, Car->DialParts.AddDefaulted_GetRef());
 
@@ -335,6 +354,20 @@ TSharedPtr<FSimCruiseBuiltCar> SimCruiseCarAssets::Get(const FString& CarId, FSt
 			Pointer.Normals.Add(FVector3f(0.f, 0.f, 1.f));
 			Pointer.UV0.Add(FVector2f(U, V));
 		};
+		if (bLinear)
+		{
+			// A straight scale's pointer: a thin upright bar across the scale, slid along it.
+			const float Half = 0.75f * R, Thin = 0.08f;
+			Vertex(-Half, -Thin, Lift, 0.f, 0.f);
+			Vertex(-Half, Thin, Lift, 1.f, 0.f);
+			Vertex(Half, Thin, Lift, 1.f, 1.f);
+			Vertex(Half, -Thin, Lift, 0.f, 1.f);
+			Pointer.Indices.Append({0u, 1u, 2u, 0u, 2u, 3u, 0u, 2u, 1u, 0u, 3u, 2u});
+			BuildPart(*Car, Needle, Car->NeedleParts.AddDefaulted_GetRef());
+			Car->Log.Add(FString::Printf(TEXT("dial %d (%s) at %s cm, a straight scale %.1f cm long"), D,
+				*Spec->Quantity, *Dial.CentreCm.ToString(), Spec->LengthM * 100.0));
+			continue;
+		}
 		Vertex(Tail, -RootHalf, Lift, 0.f, 0.f);
 		Vertex(Tail, RootHalf, Lift, 1.f, 0.f);
 		Vertex(Tip, TipHalf, Lift, 1.f, 1.f);

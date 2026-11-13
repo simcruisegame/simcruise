@@ -107,6 +107,9 @@ struct FSimCruiseDialSpec
 	bool bFace = true;
 	/** The model material its own (fixed) needle is made of: the rig removes that needle (parts of it touching the hub). */
 	FString HideModelNeedle;
+	/** Above 0: a straight (ribbon) scale this long (m) across the dial's face, the needle a bar that slides along it; Radius is then half the face's height. */
+	double LengthM = 0.0;
+	bool IsLinear() const { return LengthM > 0.0; }
 };
 struct FSimCruiseCarPresentationProfile
 {
