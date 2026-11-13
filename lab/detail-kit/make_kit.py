@@ -68,10 +68,18 @@ def slice_maps(path, clamp, chroma, strength):
     lum = ratio @ W_LUM
     tint = ratio / np.maximum(lum[..., None], 1e-4)
     tint = 1.0 + (tint - 1.0) * chroma
+    # Soft clamp in log space (tanh toward the slice's range, no flat clipped patches), then
+    # back to mean 1; a few rounds, since renormalising moves values toward the limits again.
+    lo, hi = np.log(clamp[0]), np.log(clamp[1])
     lum = lum / lum.mean()
-    ratio = np.clip(lum[..., None] * tint, clamp[0], clamp[1])
-    ratio /= (ratio @ W_LUM).mean()
-    ratio = np.clip(ratio, 0.5, 1.5)
+    for _ in range(4):
+        ln = np.log(np.maximum(lum, 1e-4))
+        ln = np.where(ln > 0, hi * np.tanh(ln / hi), lo * np.tanh(ln / lo))
+        lum = np.exp(ln)
+        lum /= lum.mean()
+    ratio = np.clip(lum[..., None] * tint, 0.5, 1.5)
+    for _ in range(4):
+        ratio = np.clip(ratio / (ratio @ W_LUM).mean(), 0.5, 1.5)
     height = np.log(np.maximum(lum, 1e-3))
     height = ndimage.gaussian_filter(height, 0.8, mode="wrap")
     gx = ndimage.sobel(height, 1, mode="wrap") / 8.0

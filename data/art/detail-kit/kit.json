@@ -1,0 +1,66 @@
+{
+  "cell": 512,
+  "pad": 16,
+  "grid": [
+    4,
+    2
+  ],
+  "slices": [
+    {
+      "slice": 0,
+      "name": "asphalt",
+      "ratio_mean": 1.0,
+      "ratio_p5": 0.754,
+      "ratio_p95": 1.225
+    },
+    {
+      "slice": 1,
+      "name": "concrete",
+      "ratio_mean": 1.0,
+      "ratio_p5": 0.896,
+      "ratio_p95": 1.068
+    },
+    {
+      "slice": 2,
+      "name": "stucco",
+      "ratio_mean": 1.0,
+      "ratio_p5": 0.949,
+      "ratio_p95": 1.044
+    },
+    {
+      "slice": 3,
+      "name": "brick",
+      "ratio_mean": 1.0,
+      "ratio_p5": 0.775,
+      "ratio_p95": 1.229
+    },
+    {
+      "slice": 4,
+      "name": "soil",
+      "ratio_mean": 1.0,
+      "ratio_p5": 0.755,
+      "ratio_p95": 1.263
+    },
+    {
+      "slice": 5,
+      "name": "sand",
+      "ratio_mean": 1.0,
+      "ratio_p5": 0.857,
+      "ratio_p95": 1.169
+    },
+    {
+      "slice": 6,
+      "name": "litter",
+      "ratio_mean": 1.0,
+      "ratio_p5": 0.726,
+      "ratio_p95": 1.323
+    },
+    {
+      "slice": 7,
+      "name": "bark",
+      "ratio_mean": 1.0,
+      "ratio_p5": 0.691,
+      "ratio_p95": 1.278
+    }
+  ]
+}
