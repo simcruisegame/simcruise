@@ -14,6 +14,7 @@
 #include "Gameplay/SimCruiseVehicleControl.h"
 #include "HAL/IConsoleManager.h"
 #include "Vehicle/SimCruiseVehicle.h"
+#include "Vehicle/SimCruiseVehicleMovementComponent.h"
 #include "Gameplay/SimCruiseViewCheck.h"
 #include "HAL/FileManager.h"
 #include "ImageCore.h"
@@ -88,6 +89,13 @@ namespace SimCruisePreflightRules
 		if (S.BorderJolts > 0) R.Add(FString::Printf(TEXT("jolts-at-tile-borders-%d"), S.BorderJolts));
 		if (S.StuckTraffic > 0) R.Add(FString::Printf(TEXT("stuck-traffic-%d"), S.StuckTraffic));
 		if (S.DriveSeconds > 0.f && S.Frames < S.DriveSeconds / 0.1f * 0.5f) R.Add(FString::Printf(TEXT("few-frames-%d"), S.Frames));
+		if (S.PeakRearSlipDeg > MaxRearSlipDeg || S.ReversedSeconds > MaxReversedSeconds)
+		{
+			R.Add(FString::Printf(TEXT("spin-rear-slip-%.0fdeg-backwards-%.1fs%s"), S.PeakRearSlipDeg, S.ReversedSeconds, S.bForcedSpin ? TEXT("-forced") : TEXT("")));
+		}
+		if (S.OffRibbonSeconds > MaxOffRibbonSeconds) R.Add(FString::Printf(TEXT("ran-off-%.1fm-past-the-edge-for-%.1fs"), S.MaxOffRibbonM, S.OffRibbonSeconds));
+		if (S.TimedFrames >= MinTimedFrames && S.FrameP95Ms > MaxFrameP95Ms) R.Add(FString::Printf(TEXT("slow-frames-p95-%.0fms"), S.FrameP95Ms));
+		if (S.TimedFrames >= MinTimedFrames && S.Hitches > MaxHitches) R.Add(FString::Printf(TEXT("hitches-%d-over-100ms"), S.Hitches));
 		return FString::Join(R, TEXT(","));
 	}
 
@@ -114,6 +122,26 @@ namespace SimCruisePreflightRules
 			}
 		}
 		return Count;
+	}
+
+	void MeasureFrames(const TArray<float>& TimedMs, FSimCruisePreflightStats& Stats)
+	{
+		Stats.TimedFrames = TimedMs.Num();
+		Stats.FrameP95Ms = 0.f;
+		Stats.SlowFrames = 0;
+		Stats.Hitches = 0;
+		if (TimedMs.IsEmpty())
+		{
+			return;
+		}
+		TArray<float> Sorted = TimedMs;
+		Sorted.Sort();
+		Stats.FrameP95Ms = Sorted[FMath::Clamp(FMath::CeilToInt32(0.95 * Sorted.Num()) - 1, 0, Sorted.Num() - 1)];
+		for (const float Ms : TimedMs)
+		{
+			Stats.SlowFrames += Ms > 50.f ? 1 : 0;
+			Stats.Hitches += Ms > 100.f ? 1 : 0;
+		}
 	}
 
 	int32 CountFlashes(const TArray<float>& Diffs, const TArray<bool>& Turning, float& OutMedian, float Factor, float Floor)
@@ -152,6 +180,7 @@ void ASimCruisePreflight::BeginPlay()
 	FParse::Value(Cmd, TEXT("SimCruisePreflightSeconds="), DriveSeconds);
 	DriveSeconds = FMath::Clamp(DriveSeconds, 5.f, 600.f);
 	bNoFrames = FParse::Param(Cmd, TEXT("SimCruisePreflightNoFrames"));
+	bForceSpin = FParse::Param(Cmd, TEXT("SimCruisePreflightForceSpin"));
 	double Kmh = 0.0;
 	if (FParse::Value(Cmd, TEXT("SimCruisePreflightKmh="), Kmh) && Kmh > 0.0)
 	{
@@ -396,11 +425,41 @@ void ASimCruisePreflight::Tick(float DeltaSeconds)
 		}
 		Stats.DriveSeconds += DeltaSeconds;
 		DriveTick(Player, DeltaSeconds);
+		if (bForceSpin)
+		{
+			// The negative test: at speed, a full yank of the stick with the handbrake on for 2 s.
+			// The run must FAIL with a spin; it overrides what the robot asked for this frame.
+			const bool bAtSpeed = Player->GetTelemetry().BodyVelocityMps.X > 10.0 || Stats.DriveSeconds > 20.f;
+			const bool bYank = bAtSpeed && ForceSpinClock < 2.f;
+			if (bYank)
+			{
+				ForceSpinClock += DeltaSeconds;
+				Stats.bForcedSpin = true;
+				Player->InjectAxis(EKeys::Gamepad_LeftX, 1.f);
+				Player->InjectAxis(EKeys::Gamepad_RightTriggerAxis, 0.f);
+				Player->InjectAxis(EKeys::Gamepad_LeftTriggerAxis, 0.f);
+			}
+			if (bYank != bForceSpinBrake)
+			{
+				Player->InjectKey(EKeys::Gamepad_FaceButton_Right, bYank);
+				bForceSpinBrake = bYank;
+				UE_LOG(LogSimCruisePreflight, Display, TEXT("Pre-flight: forced spin %s at %.0f m"), bYank ? TEXT("starts") : TEXT("ends"), PathM);
+			}
+		}
 		MeasureTick(Player, DeltaSeconds);
 		{
 			// The real frame time (DeltaSeconds can be clamped); a long one is a stall the player sees.
 			const float Ms = static_cast<float>(FApp::GetDeltaTime() * 1000.0);
 			FrameMs.Add(Ms);
+			// The rules judge the frames after the warm-up that no screenshot of the robot's own touched.
+			if (CaptureSkip > 0)
+			{
+				--CaptureSkip;
+			}
+			else if (Stats.DriveSeconds > SimCruisePreflightRules::FrameWarmupS)
+			{
+				TimedFrameMs.Add(Ms);
+			}
 			if (Ms > 50.f)
 			{
 				UE_LOG(LogSimCruisePreflight, Display, TEXT("Pre-flight: stall %.0f ms at %.0f m (%.0f km/h)"), Ms, PathM, Player->GetTelemetry().BodyVelocityMps.X * 3.6);
@@ -594,6 +653,46 @@ void ASimCruisePreflight::MeasureTick(ASimCruisePlayerController* Player, float 
 	SpeedSum += Speed;
 	++SpeedSamples;
 
+	// A spin, as the drive robot measures it: the rear axle's slip angle above 5 m/s, and a slide backwards.
+	if (const ASimCruiseVehicle* Car = Cast<ASimCruiseVehicle>(Pawn); Car && Car->GetVehicleMovement())
+	{
+		FSimCruiseVehicleTelemetry T;
+		Car->GetVehicleMovement()->CopyTelemetry(T);
+		const FVector V = T.BodyVelocityLocalMps;
+		const FVector W = T.BodyAngularVelocityLocalRadPerSecond;
+		const FSimCruiseVehicleSetup Setup = Car->GetVehicleSetup();
+		const double ToRearAxleM = Setup.WheelbaseM - Setup.CenterOfMassToFrontAxleM;
+		if (V.X > 5.0)
+		{
+			const double RearSlipDeg = FMath::Abs(FMath::RadiansToDegrees(FMath::Atan2(V.Y - W.Z * ToRearAxleM, V.X)));
+			if (RearSlipDeg > Stats.PeakRearSlipDeg && RearSlipDeg > SimCruisePreflightRules::MaxRearSlipDeg)
+			{
+				UE_LOG(LogSimCruisePreflight, Display, TEXT("Pre-flight: rear slip %.0f deg at %.0f m (frame %d)"), RearSlipDeg, PathM, FrameIndex);
+			}
+			Stats.PeakRearSlipDeg = FMath::Max(Stats.PeakRearSlipDeg, static_cast<float>(RearSlipDeg));
+		}
+		Stats.PeakYawDps = FMath::Max(Stats.PeakYawDps, static_cast<float>(FMath::Abs(FMath::RadiansToDegrees(W.Z))));
+		ReverseNow = V.X < -2.0 ? ReverseNow + DeltaSeconds : 0.f;
+		Stats.ReversedSeconds = FMath::Max(Stats.ReversedSeconds, ReverseNow);
+	}
+
+	// A run-off: how far the car's centre is past the paved edge of the ribbon it drives along
+	// (the lines DriveTick gathered this frame); no aligned road within 30 m counts as 30 m.
+	if (!Lines.IsEmpty())
+	{
+		const FVector2d Car2(CarCm.X, CarCm.Y);
+		const FCursor Near = FindCursor(Car2, FVector2d(Forward.X, Forward.Y));
+		const double PastEdgeM = Near.IsValid() ? FVector2d::Distance(Car2, PointAt(Near)) / 100.0 - Lines[Near.Line].HalfW[Near.Seg] : 30.0;
+		Stats.MaxOffRibbonM = FMath::Max(Stats.MaxOffRibbonM, static_cast<float>(PastEdgeM));
+		const bool bOff = PastEdgeM > SimCruisePreflightRules::MaxOffRibbonM;
+		if (bOff && OffRibbonNow == 0.f)
+		{
+			UE_LOG(LogSimCruisePreflight, Display, TEXT("Pre-flight: %.1f m past the road edge at %.0f m (frame %d)"), PastEdgeM, PathM, FrameIndex);
+		}
+		OffRibbonNow = bOff ? OffRibbonNow + DeltaSeconds : 0.f;
+		Stats.OffRibbonSeconds = FMath::Max(Stats.OffRibbonSeconds, OffRibbonNow);
+	}
+
 	// The road surface: the tile's own collision under a point, or a bridge deck above it.
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(SimCruisePreflightGround), true);
 	Params.bReturnFaceIndex = true;
@@ -741,6 +840,8 @@ void ASimCruisePreflight::RequestFrame(APlayerController* Player)
 	}
 	PendingRotation = Player->PlayerCameraManager ? Player->PlayerCameraManager->GetCameraRotation() : FRotator::ZeroRotator;
 	bFramePending = true;
+	// The read-back and the JPEG slow the next frames: the frame-time rules do not judge them.
+	CaptureSkip = FMath::Max(CaptureSkip, 2);
 	FScreenshotRequest::RequestScreenshot(FPaths::Combine(OutputDir, TEXT("frames"), TEXT("request.png")), true, false);
 }
 
@@ -752,6 +853,7 @@ void ASimCruisePreflight::OnFrame(int32 Width, int32 Height, const TArray<FColor
 		return;
 	}
 	bFramePending = false;
+	CaptureSkip = FMath::Max(CaptureSkip, 1);
 	TArray64<uint8> Jpeg;
 	if (FImageUtils::CompressImage(Jpeg, TEXT("jpg"), FImageView(Pixels.GetData(), Width, Height), 85))
 	{
@@ -883,11 +985,13 @@ void ASimCruisePreflight::Finish()
 	}
 	UE_LOG(LogSimCruisePreflight, Display, TEXT("PREFLIGHT FRAMES road=%s car=%s mean=%.1fm/s %s"), *RoadName, *CarId, Stats.MeanSpeedMps, *FrameLine);
 
+	MeasureFrames(TimedFrameMs, Stats);
 	const FString Reasons = Judge(Stats);
 	const bool bPass = Reasons.IsEmpty();
 	UE_LOG(LogSimCruisePreflight, Display,
-		TEXT("PREFLIGHT %s road=%s car=%s place=\"%s\" distance=%.0fm mean=%.1fm/s offroad=%.1fs sky_white=%.0f%% tile_popin=%d car_popin=%d flashes=%d steps=%d max_step=%.1fcm gaps=%d jolts=%d border_jolts=%d stuck=%d frames=%d reasons=%s"),
-		bPass ? TEXT("PASS") : TEXT("FAIL"), *RoadName, *CarId, *Place, Stats.DistanceM, Stats.MeanSpeedMps, Stats.OffRoadSeconds, Stats.SkyWhitePercent,
+		TEXT("PREFLIGHT %s road=%s car=%s place=\"%s\" distance=%.0fm mean=%.1fm/s offroad=%.1fs rear_slip=%.1fdeg backwards=%.1fs past_edge=%.1fm/%.1fs frame_p95=%.1fms hitches=%d sky_white=%.0f%% tile_popin=%d car_popin=%d flashes=%d steps=%d max_step=%.1fcm gaps=%d jolts=%d border_jolts=%d stuck=%d frames=%d reasons=%s"),
+		bPass ? TEXT("PASS") : TEXT("FAIL"), *RoadName, *CarId, *Place, Stats.DistanceM, Stats.MeanSpeedMps, Stats.OffRoadSeconds,
+		Stats.PeakRearSlipDeg, Stats.ReversedSeconds, Stats.MaxOffRibbonM, Stats.OffRibbonSeconds, Stats.FrameP95Ms, Stats.Hitches, Stats.SkyWhitePercent,
 		Stats.TilePopIns, Stats.CarPopIns, Stats.FlashFrames, Stats.RoadSteps, Stats.MaxStepCm, Stats.RoadGaps, Stats.Jolts, Stats.BorderJolts,
 		Stats.StuckTraffic, Stats.Frames, bPass ? TEXT("ok") : *Reasons);
 
@@ -899,14 +1003,22 @@ void ASimCruisePreflight::Finish()
 		TEXT("  \"sky_samples\": %d, \"sky_white_percent\": %.1f, \"reference_ev100\": %.2f,\n")
 		TEXT("  \"tile_popins\": %d, \"car_popins\": %d, \"flash_frames\": %d, \"median_frame_diff\": %.2f,\n")
 		TEXT("  \"road_steps\": %d, \"max_step_cm\": %.1f, \"road_gaps\": %d, \"jolts\": %d, \"border_jolts\": %d,\n")
-		TEXT("  \"stuck_traffic\": %d, \"frames\": %d,\n  \"reasons\": \"%s\"\n}\n"),
+		TEXT("  \"stuck_traffic\": %d, \"frames\": %d,\n")
+		TEXT("  \"peak_rear_slip_deg\": %.1f, \"peak_yaw_dps\": %.1f, \"backwards_seconds\": %.2f, \"forced_spin\": %s,\n")
+		TEXT("  \"max_past_edge_m\": %.2f, \"past_edge_seconds\": %.2f,\n")
+		TEXT("  \"timed_frames\": %d, \"frame_p95_ms\": %.1f, \"frames_over_50ms\": %d, \"hitches_over_100ms\": %d,\n")
+		TEXT("  \"reasons\": \"%s\"\n}\n"),
 		bPass ? TEXT("PASS") : TEXT("FAIL"), *RoadName, *CarId, *Place.ReplaceCharWithEscapedChar(),
 		Stats.DriveSeconds, Stats.DistanceM, Stats.MeanSpeedMps, Stats.OffRoadSeconds, B(Stats.bFellBack),
 		B(Stats.bViewCheckRan), B(Stats.bViewCheckPassed), *Stats.ViewCheckReasons,
 		Stats.SkySamples, Stats.SkyWhitePercent, Stats.ReferenceEV100,
 		Stats.TilePopIns, Stats.CarPopIns, Stats.FlashFrames, Stats.MedianFrameDiff,
 		Stats.RoadSteps, Stats.MaxStepCm, Stats.RoadGaps, Stats.Jolts, Stats.BorderJolts,
-		Stats.StuckTraffic, Stats.Frames, bPass ? TEXT("ok") : *Reasons);
+		Stats.StuckTraffic, Stats.Frames,
+		Stats.PeakRearSlipDeg, Stats.PeakYawDps, Stats.ReversedSeconds, B(Stats.bForcedSpin),
+		Stats.MaxOffRibbonM, Stats.OffRibbonSeconds,
+		Stats.TimedFrames, Stats.FrameP95Ms, Stats.SlowFrames, Stats.Hitches,
+		bPass ? TEXT("ok") : *Reasons);
 	FFileHelper::SaveStringToFile(Json, *FPaths::Combine(OutputDir, TEXT("preflight.json")), FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 
 	if (FParse::Param(FCommandLine::Get(), TEXT("SimCruiseKeepOpen")))

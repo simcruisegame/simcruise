@@ -51,6 +51,29 @@ bool FSimCruisePreflightJudgeTest::RunTest(const FString& Parameters)
 
 	S = Good(); S.CarPopIns = 2; S.Jolts = 4; S.SkySamples = 10; S.SkyWhitePercent = 90.f;
 	TestEqual(TEXT("two car pop-ins, jolts away from borders and too few sky samples pass"), SimCruisePreflightRules::Judge(S), FString());
+
+	// Car control and frame times.
+	S = Good(); S.PeakRearSlipDeg = 40.f; Fails(TEXT("a spin (rear slip)"), S, TEXT("spin-rear-slip-40deg"));
+	S = Good(); S.ReversedSeconds = 1.f; Fails(TEXT("a slide backwards"), S, TEXT("spin-"));
+	S = Good(); S.PeakRearSlipDeg = 40.f; S.bForcedSpin = true; Fails(TEXT("the forced spin is named"), S, TEXT("-forced"));
+	S = Good(); S.OffRoadSeconds = 1.5f; Fails(TEXT("1.5 s off the surface"), S, TEXT("left-the-road"));
+	S = Good(); S.MaxOffRibbonM = 6.f; S.OffRibbonSeconds = 2.f; Fails(TEXT("a run-off past the edge"), S, TEXT("ran-off-6.0m"));
+	S = Good(); S.TimedFrames = 2000; S.FrameP95Ms = 80.f; Fails(TEXT("slow frames"), S, TEXT("slow-frames-p95-80ms"));
+	S = Good(); S.TimedFrames = 2000; S.Hitches = 9; Fails(TEXT("hitches"), S, TEXT("hitches-9"));
+	S = Good(); S.PeakRearSlipDeg = 9.f; S.ReversedSeconds = 0.2f; S.OffRoadSeconds = 0.2f; S.MaxOffRibbonM = 2.5f; S.OffRibbonSeconds = 0.3f;
+	S.TimedFrames = 2000; S.FrameP95Ms = 20.f; S.Hitches = 2;
+	TestEqual(TEXT("a lively but controlled drive passes"), SimCruisePreflightRules::Judge(S), FString());
+	S = Good(); S.TimedFrames = 50; S.FrameP95Ms = 200.f; S.Hitches = 40;
+	TestEqual(TEXT("too few timed frames are not judged"), SimCruisePreflightRules::Judge(S), FString());
+
+	TArray<float> Ms;
+	for (int32 I = 0; I < 100; ++I) Ms.Add(I < 94 ? 16.7f : (I < 97 ? 60.f : 150.f));
+	FSimCruisePreflightStats F;
+	SimCruisePreflightRules::MeasureFrames(Ms, F);
+	TestEqual(TEXT("timed frames"), F.TimedFrames, 100);
+	TestEqual(TEXT("p95 of 94 fast, 3 slow, 3 hitches"), F.FrameP95Ms, 60.f);
+	TestEqual(TEXT("over 50 ms"), F.SlowFrames, 6);
+	TestEqual(TEXT("over 100 ms"), F.Hitches, 3);
 	return true;
 }
 

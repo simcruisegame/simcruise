@@ -40,7 +40,10 @@ param(
     [int]$LockTimeoutMinutes = 120,
     [switch]$KeepFrames,
     # A keen driver on an empty road: no speed limit, 75 % of the car's skidpad grip, traffic off.
-    [switch]$Keen
+    [switch]$Keen,
+    # The negative test: at speed the robot yanks the stick with the handbrake on. Every run must
+    # FAIL with a spin; the script exits 0 when they do, and writes no row to the index.
+    [switch]$ForceSpin
 )
 
 $ErrorActionPreference = 'Stop'
@@ -88,7 +91,7 @@ foreach ($Road in $Roads) {
         $Log = Join-Path $Out 'game.log'
         $Args = @("`"$Project`"", '-game', '-SimCruiseWorld', '-SimCruiseNoLive', '-SimCruiseNoNeural', '-SimCruiseGraphics=ultra', "-SimCruiseUtc=$Utc",
             "-SimCruiseCar=$Car", '-SimCruiseViewCheck', '-SimCruisePreflight', "-SimCruisePreflightRoad=$Road", "-SimCruisePreflightSeconds=$Seconds",
-            "`"-SimCruisePreflightOut=$Out`"", '-NoLiveCoding', '-windowed', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + $Defs[$Road] + @(if ($Keen) { '-SimCruisePreflightKeen' })
+            "`"-SimCruisePreflightOut=$Out`"", '-NoLiveCoding', '-windowed', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + $Defs[$Road] + @(if ($Keen) { '-SimCruisePreflightKeen' }) + @(if ($ForceSpin) { '-SimCruisePreflightForceSpin' })
         if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "pre-flight $Name on $Root")) { exit 1 }
         $TimedOut = $false
         try {
@@ -141,25 +144,42 @@ foreach ($Road in $Roads) {
 $Failed = @($Rows | Where-Object { $_.Result -ne 'PASS' })
 $Verdict = if ($Failed.Count) { 'FAIL' } else { 'PASS' }
 $Md = @("# Pre-flight $Stamp", '', "Commit ``$Commit``, $($Rows.Count) runs of $Seconds s, time $Utc. Result: **$Verdict** ($($Rows.Count - $Failed.Count) passed, $($Failed.Count) failed).", '',
-    '| Road | Car | Result | View | Distance (m) | Mean speed (m/s) | Off road (s) | White sky (%) | Tile pop-in | Car pop-in | Flashes | Road steps (max cm) | Gaps | Jolts (at borders) | Stuck traffic | Video | Sheet | Reasons |',
-    '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|')
+    '| Road | Car | Result | View | Distance (m) | Mean speed (m/s) | Off road (s) | Rear slip (deg) / backwards (s) | Past the edge (m / s) | Frame p95 (ms) / hitches | White sky (%) | Tile pop-in | Car pop-in | Flashes | Road steps (max cm) | Gaps | Jolts (at borders) | Stuck traffic | Video | Sheet | Reasons |',
+    '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|')
 foreach ($R in $Rows) {
     $S = $R.Stats
     $Car = if ($CarNames.ContainsKey($R.Car)) { $CarNames[$R.Car] } else { $R.Car }
     if ($S) {
-        $Md += "| $($R.Road) | $Car | $($R.Result) | $($R.View) | $([int]$S.distance_m) | $($S.mean_speed_mps) | $($S.offroad_seconds) | $($S.sky_white_percent) | $($S.tile_popins) | $($S.car_popins) | $($S.flash_frames) | $($S.road_steps) ($($S.max_step_cm)) | $($S.road_gaps) | $($S.jolts) ($($S.border_jolts)) | $($S.stuck_traffic) | [video]($($R.Video)) | [sheet]($($R.Sheet)) | $($R.Reasons) |"
+        $Md += "| $($R.Road) | $Car | $($R.Result) | $($R.View) | $([int]$S.distance_m) | $($S.mean_speed_mps) | $($S.offroad_seconds) | $($S.peak_rear_slip_deg) / $($S.backwards_seconds) | $($S.max_past_edge_m) / $($S.past_edge_seconds) | $($S.frame_p95_ms) / $($S.hitches_over_100ms) | $($S.sky_white_percent) | $($S.tile_popins) | $($S.car_popins) | $($S.flash_frames) | $($S.road_steps) ($($S.max_step_cm)) | $($S.road_gaps) | $($S.jolts) ($($S.border_jolts)) | $($S.stuck_traffic) | [video]($($R.Video)) | [sheet]($($R.Sheet)) | $($R.Reasons) |"
     } else {
-        $Md += "| $($R.Road) | $Car | $($R.Result) | $($R.View) | - | - | - | - | - | - | - | - | - | - | - | - | - | $($R.Reasons) |"
+        $Md += "| $($R.Road) | $Car | $($R.Result) | $($R.View) | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | $($R.Reasons) |"
     }
 }
 $Md += @('', 'Look at every contact sheet and watch the videos of failed runs before a play-test build goes out. Real game bugs go in docs/release/bugs.md with the run, the frame and a screenshot.')
 $Md | Set-Content -Encoding utf8 (Join-Path $RunDir 'report.md')
 
+if ($ForceSpin) {
+    # The negative test passes when every run failed on a spin. It is not a pre-flight of the commit.
+    $Missed = @($Rows | Where-Object { $_.Result -ne 'FAIL' -or $_.Reasons -notmatch 'spin-' })
+    Write-Host "Report: $(Join-Path $RunDir 'report.md')"
+    if ($Missed.Count) { Write-Host "FORCED-SPIN TEST FAILED: no spin FAIL in $(($Missed | ForEach-Object { "$($_.Road)-$($_.Car)" }) -join ', ')"; exit 1 }
+    Write-Host 'FORCED-SPIN TEST PASSED: every run failed on the spin'
+    exit 0
+}
+
 $IndexDir = Join-Path $env:LOCALAPPDATA 'SimCruise'
 New-Item -ItemType Directory -Force $IndexDir | Out-Null
 $Index = Join-Path $IndexDir 'preflight-index.csv'
-if (-not (Test-Path $Index)) { 'date,commit,result,runs,roads,cars,report' | Set-Content -Encoding utf8 $Index }
-"$Stamp,$Commit,$Verdict,$($Rows.Count),$($Roads -join ' '),$($Cars -join ' '),$(Join-Path $RunDir 'report.md')" | Add-Content -Encoding utf8 $Index
+$Header = 'date,commit,result,runs,roads,cars,report,reasons'
+if (-not (Test-Path $Index)) { $Header | Set-Content -Encoding utf8 $Index }
+else {
+    # An index from before the reasons column gets it (old rows leave it empty).
+    $Old = @(Get-Content $Index)
+    if ($Old.Count -and $Old[0] -ne $Header) { $Old[0] = $Header; $Old | Set-Content -Encoding utf8 $Index }
+}
+# Why each failed run failed, in one quoted CSV field.
+$Why = ($Failed | ForEach-Object { "$($_.Road)-$($_.Car): $($_.Reasons)" }) -join ' | '
+"$Stamp,$Commit,$Verdict,$($Rows.Count),$($Roads -join ' '),$($Cars -join ' '),$(Join-Path $RunDir 'report.md'),`"$($Why -replace '"', '""')`"" | Add-Content -Encoding utf8 $Index
 
 Write-Host "Report: $(Join-Path $RunDir 'report.md')"
 if ($Failed.Count) { Write-Host "PRE-FLIGHT FAILED: $(($Failed | ForEach-Object { "$($_.Road)-$($_.Car)" }) -join ', ')"; exit 1 }

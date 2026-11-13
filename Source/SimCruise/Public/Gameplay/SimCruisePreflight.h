@@ -51,13 +51,45 @@ struct SIMCRUISE_API FSimCruisePreflightStats
 	int32 StuckTraffic = 0;
 
 	int32 Frames = 0;
+
+	// Car control: a spin, a slide backwards, a run-off.
+	/** Peak slip angle of the rear axle (deg, above 5 m/s): the drive robot's spin measure. */
+	float PeakRearSlipDeg = 0.f;
+	float PeakYawDps = 0.f;
+	/** Longest time (s) the car slid backwards faster than 2 m/s. */
+	float ReversedSeconds = 0.f;
+	/** Farthest the car's centre went past the paved edge of the road ribbon (m), and the longest time (s) more than MaxOffRibbonM past it. */
+	float MaxOffRibbonM = 0.f;
+	float OffRibbonSeconds = 0.f;
+	/** -SimCruisePreflightForceSpin: the negative test yanked the stick with the handbrake on. */
+	bool bForcedSpin = false;
+
+	// Frame times after the warm-up, without the frames the robot's own screenshots slow down.
+	int32 TimedFrames = 0;
+	float FrameP95Ms = 0.f;
+	/** Frames over 50 ms, and over 100 ms (hitches a player sees). */
+	int32 SlowFrames = 0;
+	int32 Hitches = 0;
 };
 
 /** The pass rules and the measurements that need no world, kept apart for the tests. */
 namespace SimCruisePreflightRules
 {
 	constexpr float MinDistanceM = 200.f;
-	constexpr float MaxOffRoadSeconds = 3.f;
+	/** Off the road surface longer than this is a run-off (a crack under the wheels takes about 0.1 s). */
+	constexpr float MaxOffRoadSeconds = 1.f;
+	/** A spin: the rear axle slips past 15 deg (the drive robot's SPUN line), or the car slides backwards. */
+	constexpr float MaxRearSlipDeg = 15.f;
+	constexpr float MaxReversedSeconds = 0.3f;
+	/** A run-off: the car's centre more than 2 m past the paved edge for more than 0.5 s. */
+	constexpr float MaxOffRibbonM = 2.f;
+	constexpr float MaxOffRibbonSeconds = 0.5f;
+	/** Slow frames, after FrameWarmupS of driving: the 95th percentile frame time, and frames over 100 ms. */
+	constexpr float FrameWarmupS = 5.f;
+	constexpr float MaxFrameP95Ms = 50.f;
+	constexpr int32 MaxHitches = 5;
+	/** Frame-time rules apply only with at least this many timed frames. */
+	constexpr int32 MinTimedFrames = 100;
 	constexpr float MaxSkyWhitePercent = 25.f;
 	/** Luminance (0-255) from which a sky pixel counts as near white. */
 	constexpr float WhiteLuma = 245.f;
@@ -69,6 +101,9 @@ namespace SimCruisePreflightRules
 
 	/** Empty when the run passes, else the reasons (comma-separated). */
 	SIMCRUISE_API FString Judge(const FSimCruisePreflightStats& Stats);
+
+	/** Fills the frame-time fields of Stats (p95, frames over 50 and 100 ms) from the timed frames (ms). */
+	SIMCRUISE_API void MeasureFrames(const TArray<float>& TimedMs, FSimCruisePreflightStats& Stats);
 
 	/**
 	 * Height steps along a path: samples (distance m, height m) in path order. A step is a
@@ -173,6 +208,16 @@ private:
 	float TelemetryClock = 0.f;
 	/** Every drive frame's real time (ms) and the path distance at the long ones. */
 	TArray<float> FrameMs;
+	/** The frame times the rules judge: after the warm-up, none a screenshot touched. */
+	TArray<float> TimedFrameMs;
+	/** Frames still to skip after a screenshot request or capture. */
+	int32 CaptureSkip = 0;
+	/** -SimCruisePreflightForceSpin: the negative test. */
+	bool bForceSpin = false;
+	float ForceSpinClock = 0.f;
+	bool bForceSpinBrake = false;
+	float ReverseNow = 0.f;
+	float OffRibbonNow = 0.f;
 	FDelegateHandle FrameHandle;
 	int32 FrameIndex = 0;
 	TArray<FVector2D> PendingSky;
