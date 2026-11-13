@@ -160,6 +160,7 @@
  "target_70_0_ft": 264,
  "target_skidpad_g": 0.7,
  "sources": {
+  "driver_eye": "Eye 1.03 m up: the 1965 Mustang's upright seat and 51 in roof put a seated driver's eye near 1.03-1.05 m (owner's playtest: 0.97 sat too low).",
   "tyre_tmeasy": "TMeasy with a bias-ply side curve (estimate: 9.5 per rad, peak slip 0.21). Grip fitted by scripts/fit-tyres.ps1 to Car Life's 264 ft 70-0 and 0.70 g skidpad; the drive peak (tmeasy_peak_mu_x 0.95, above the braking fit's 0.912) is fitted to the same test's 8.9 s 0-60, which is launch-limited on these tyres.",
   "calibration": "0-60 mph 8.9 s: Car Life, 289/210 hp four-speed (table at musclecarfacts.com/ford-mustang/337-1965-mustang); Road & Track's 210 hp four-speed: about 9 s, 16.5 s quarter mile (auto.howstuffworks.com/1965-1966-ford-mustang.htm). 70-0 mph 264 ft derived from Car Life's measured 20 ft/s2 (0.62 g) from 80 mph, drums with rear lock-up (tunnelram.net reprint of the 1965 Car Life Mustang special).",
   "engine": "289 four-barrel: 210 bhp at 4400 rpm, 300 lb-ft at 2800 rpm (early 1965; 225 bhp / 305 lb-ft after the mid-year revision), per Car Life 1965; curve shape estimated.",
@@ -176,7 +177,7 @@
  },
  "driver_eye": [
   -0.37,
-  0.97,
+  1.03,
   0.28
  ],
  "coil_lb_in": [

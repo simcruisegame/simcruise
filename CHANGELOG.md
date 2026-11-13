@@ -4,6 +4,7 @@ Notable changes to SimCruise, newest first. The format follows [Keep a Changelog
 
 ## Unreleased
 
+- **The 1965 Mustang's driver sits 6 cm higher** (`driver_eye`) — the eye was 0.97 m off the ground; the upright seat and 51 in roof put a real driver's eye near 1.03-1.05 m (owner's playtest: it sat too low).
 - **Fix: a bad car-to-car contact can no longer fling the car** (`USimCruiseVehicleMovementComponent`) — a contact the solver resolved badly took a Miata from 21 to 249 mph over the forest on Tail of the Dragon. In one physics step the car's speed may now rise by no more than 0.5 m/s and 6 g and its spin by 1 rad/s and 30 rad/s² (at most 12 rad/s); falling speed (a crash) is untouched.
 - **Fix: the tuning menu's steering ratio no longer reads 0.0** — the car's setup was made before its model (which carries the real ratio) attached, so the row started at 0; an untuned ratio is now the real car's (15:1 on the Miata).
 - **Fix: a car off the road no longer explodes** (`FSimCruiseVehicleSim::Step`) — wheel rays meeting near-vertical ground (a bank, a car on its side) drove the suspension into runaway loads: jolts of thousands of m/s², the speedometer at 160-800 mph, the 1965 Mustang tumbling off Tail of the Dragon and CA-1. A tyre now has no contact on ground more than 75° from the body's level, and a corner's load stops at ten times its static share. The Mustang's Tail of the Dragon pre-flight: off-road 37 s to 0, jolts 57 to 0.
