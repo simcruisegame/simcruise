@@ -47,29 +47,60 @@ $Editor = Join-Path $EngineDir 'Engine\Binaries\Win64\UnrealEditor-Cmd.exe'
 $BuildBat = Join-Path $EngineDir 'Engine\Build\BatchFiles\Build.bat'
 if (-not (Test-Path $Editor)) { Write-Host "No Unreal Editor at $Editor (set -EngineDir or UE_ROOT)."; exit 2 }
 
+# Every run appends one line to Saved\CheckTimes.csv, so we can see where the time goes
+# (waiting for the lock, building, testing) and how much memory one test editor needs.
+$TimesCsv = Join-Path $Root 'Saved\CheckTimes.csv'
+$Timing = @{ Tier = 'full'; Slots = ''; LockWait = 0; Build = 0; Test = 0; PeakGB = 0; Passed = 0; Failed = 0 }
+function Write-CheckTime([string]$Result) {
+    try {
+        $Commit = (& git -C $Root rev-parse --short HEAD 2>$null)
+        New-Item -ItemType Directory -Force (Split-Path $TimesCsv) | Out-Null
+        if (-not (Test-Path $TimesCsv)) { 'date,commit,tier,filter,slots,lock_wait_s,build_s,test_s,peak_ram_gb,passed,failed,result' | Set-Content -Encoding utf8 $TimesCsv }
+        $Line = '{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11}' -f (Get-Date -Format s), $Commit, $Timing.Tier, $Filter, $Timing.Slots,
+            [int]$Timing.LockWait, [int]$Timing.Build, [int]$Timing.Test, $Timing.PeakGB, $Timing.Passed, $Timing.Failed, $Result
+        Add-Content -Encoding utf8 $TimesCsv $Line
+        Write-Host ("Times: lock wait {0} s, build {1} s, tests {2} s, editor peak {3} GB ({4})" -f [int]$Timing.LockWait, [int]$Timing.Build, [int]$Timing.Test, $Timing.PeakGB, $TimesCsv)
+    }
+    catch { Write-Host "Could not write $TimesCsv`: $_" }
+}
+
 $Started = Get-Date
 if (-not $NoBuild) {
     Write-Host 'Building SimCruiseEditor (Win64 Development)...'
     & $BuildBat SimCruiseEditor Win64 Development "-Project=$Project" -WaitMutex -NoHotReloadFromIDE | Out-Host
-    if ($LASTEXITCODE -ne 0) { Write-Host 'BUILD FAILED'; exit 1 }
+    $Timing.Build = ((Get-Date) - $Started).TotalSeconds
+    if ($LASTEXITCODE -ne 0) { Write-Host 'BUILD FAILED'; Write-CheckTime 'build-failed'; exit 1 }
 }
 
 $LogName = 'SimCruiseChecks.log'
 $Log = Join-Path $Root "Saved\Logs\$LogName"
 if (Test-Path $Log) { Remove-Item $Log -Force }
-if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "tests on $Root")) { exit 1 }
+$LockStart = Get-Date
+if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "tests on $Root")) { $Timing.LockWait = ((Get-Date) - $LockStart).TotalSeconds; Write-CheckTime 'lock-timeout'; exit 1 }
+$Timing.LockWait = ((Get-Date) - $LockStart).TotalSeconds
+$TestStart = Get-Date
 try {
     Write-Host "Running automation tests: $Filter"
     $ArgLine = "`"$Project`" `"-ExecCmds=Automation RunTests $Filter;Quit`" -unattended -nopause -nullrhi -nosplash `"-log=$LogName`" `"-testexit=Automation Test Queue Empty`""
     $P = Start-Process -FilePath $Editor -ArgumentList $ArgLine -PassThru -WindowStyle Hidden
-    if (-not $P.WaitForExit($TimeoutMinutes * 60 * 1000)) {
-        Stop-ProcessTree -ProcessId $P.Id
-        Write-Host "TIMED OUT: the test run did not quit in $TimeoutMinutes min and was stopped (log: $Log)."
-        exit 1
+    # Wait in short steps to sample the editor's peak memory (working set) on the way.
+    $Deadline = $TestStart.AddMinutes($TimeoutMinutes)
+    $Peak = 0
+    while (-not $P.WaitForExit(2000)) {
+        try { $P.Refresh(); if ($P.PeakWorkingSet64 -gt $Peak) { $Peak = $P.PeakWorkingSet64 } } catch { }
+        if ((Get-Date) -gt $Deadline) {
+            Stop-ProcessTree -ProcessId $P.Id
+            $Timing.Test = ((Get-Date) - $TestStart).TotalSeconds; $Timing.PeakGB = [math]::Round($Peak / 1GB, 1)
+            Write-Host "TIMED OUT: the test run did not quit in $TimeoutMinutes min and was stopped (log: $Log)."
+            Write-CheckTime 'timeout'
+            exit 1
+        }
     }
+    $Timing.Test = ((Get-Date) - $TestStart).TotalSeconds
+    $Timing.PeakGB = [math]::Round($Peak / 1GB, 1)
 }
 finally { Exit-EditorLock }
-if (-not (Test-Path $Log)) { Write-Host "No log at ${Log}: the editor did not run."; exit 1 }
+if (-not (Test-Path $Log)) { Write-Host "No log at ${Log}: the editor did not run."; Write-CheckTime 'no-log'; exit 1 }
 
 $Lines = Get-Content $Log
 $Results = @()
@@ -95,7 +126,9 @@ foreach ($F in $Failures) {
     foreach ($E in ($F.Errors | Select-Object -First 3)) { Write-Host "    $E" }
 }
 foreach ($L in ($Logged | Select-Object -First 10)) { Write-Host "LOGGED ERROR $L" }
-if ($Results.Count -eq 0) { Write-Host "No test results in $Log (no test matched '$Filter'?)."; exit 1 }
+$Timing.Passed = $Passed; $Timing.Failed = $Failures.Count
+if ($Results.Count -eq 0) { Write-Host "No test results in $Log (no test matched '$Filter'?)."; Write-CheckTime 'no-results'; exit 1 }
+Write-CheckTime $(if ($Failures.Count -gt 0 -or @($Logged).Count -gt 0) { 'failed' } else { 'passed' })
 Write-Host ("{0} passed, {1} failed, {2} logged errors in {3} s (log: {4})" -f $Passed, $Failures.Count, @($Logged).Count, $Seconds, $Log)
 if ($Failures.Count -gt 0 -or @($Logged).Count -gt 0) { Write-Host 'CHECKS FAILED'; exit 1 }
 Write-Host 'CHECKS PASSED'
