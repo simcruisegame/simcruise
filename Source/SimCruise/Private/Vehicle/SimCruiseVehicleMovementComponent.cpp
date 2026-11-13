@@ -54,6 +54,8 @@ struct FSimCruiseVehiclePhysicsState
 	FVector3d LastVelocityMps = FVector3d::ZeroVector;
 	FVector3d LastAngularRadPerSecond = FVector3d::ZeroVector;
 	int32 VelocityClamps = 0;
+	int32 ClampRunSteps = 0;
+	double ClampHeldMps = 0.0;
 	/** Water on the road, 0 dry .. 1 soaked (the environment's live rain), set from the game thread. */
 	float RoadWetness = 0.f;
 	/** The air: density (kg/m3) and wind at the car's height (m/s, world axes). */
@@ -224,20 +226,23 @@ static void StepVehicleOnPhysicsThread(FSimCruiseVehiclePhysicsState& S, double 
 	}
 
 	FSimCruiseBodyState Body = ReadBody(*Handle);
-	// A contact the solver resolves badly (the body box pressed into another car's) can hand the
-	// car a speed no collision gives: 21 mph to 249 mph in a frame. Speed may fall as fast as it
-	// likes (a crash), but in one step it may rise by no more than 0.5 m/s and 6 g, and the spin
-	// by 1 rad/s plus 30 rad/s^2, to at most 12 rad/s; otherwise the last step's is kept.
+	// A contact the solver resolves badly (the body box pressed into another car's, or a traffic
+	// car driving into a parked one) can hand the car speed no collision gives: 21 mph to 249 mph.
+	// Speed may fall as fast as it likes (a crash), but it may rise no faster than a car can make
+	// it: 3 g in all (the tyres' grip, a steep slope, a margin), with no free allowance per step
+	// (a fixed 0.5 m/s a step let a sustained push add 180 m/s^2). Spin may rise at 40 rad/s^2, to
+	// at most 12 rad/s. Each clamped run of steps is logged with what it held back.
 	if (S.bHaveLastVelocity)
 	{
 		const double Dt = FMath::Max(DeltaTimeS, 1e-4);
-		const double MaxSpeed = S.LastVelocityMps.Size() + 0.5 + 6.0 * 9.80665 * Dt;
+		const double MaxSpeed = S.LastVelocityMps.Size() + 3.0 * 9.80665 * Dt;
 		const double Speed = Body.LinearVelocityMps.Size();
-		const double MaxSpin = FMath::Min(S.LastAngularRadPerSecond.Size() + 1.0 + 30.0 * Dt, 12.0);
+		const double MaxSpin = FMath::Min(S.LastAngularRadPerSecond.Size() + 40.0 * Dt, 12.0);
 		const double Spin = Body.AngularVelocityRadPerSecond.Size();
 		bool bClamped = false;
 		if (Speed > MaxSpeed)
 		{
+			S.ClampHeldMps += Speed - MaxSpeed;
 			Body.LinearVelocityMps *= MaxSpeed / Speed;
 			bClamped = true;
 		}
@@ -249,11 +254,19 @@ static void StepVehicleOnPhysicsThread(FSimCruiseVehiclePhysicsState& S, double 
 		if (bClamped)
 		{
 			WriteBody(*Handle, Body);
-			if (S.VelocityClamps++ == 0)
+			++S.VelocityClamps;
+			if (S.ClampRunSteps++ == 0)
 			{
-				UE_LOG(LogSimCruiseVehicle, Warning, TEXT("%s: a contact gave the car %.1f m/s and %.1f rad/s in one step; held to %.1f m/s, %.1f rad/s"),
-					*S.Sim.GetCar().Id, Speed, Spin, Body.LinearVelocityMps.Size(), Body.AngularVelocityRadPerSecond.Size());
+				UE_LOG(LogSimCruiseVehicle, Warning, TEXT("%s: contact guard on at %.1f s: the solver gave %.1f m/s, %.1f rad/s; held to %.1f m/s, %.1f rad/s"),
+					*S.Sim.GetCar().Id, SimTimeS, Speed, Spin, Body.LinearVelocityMps.Size(), Body.AngularVelocityRadPerSecond.Size());
 			}
+		}
+		else if (S.ClampRunSteps > 0)
+		{
+			UE_LOG(LogSimCruiseVehicle, Warning, TEXT("%s: contact guard off at %.1f s after %d steps; %.1f m/s of speed held back in all"),
+				*S.Sim.GetCar().Id, SimTimeS, S.ClampRunSteps, S.ClampHeldMps);
+			S.ClampRunSteps = 0;
+			S.ClampHeldMps = 0.0;
 		}
 	}
 	S.bHaveLastVelocity = true;
