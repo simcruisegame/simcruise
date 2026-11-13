@@ -29,23 +29,27 @@ No account, no API keys, no subscription, no telemetry. The game talks directly 
 
 ## Download
 
-**SimCruise 2.0.0 for Windows** (64-bit Windows 10 or 11, DirectX 12): get `SimCruise-2.0.0-windows-x64-setup.exe` from the [latest release](https://github.com/simcruisegame/simcruise/releases/latest), run it, and start SimCruise from the Start menu. A portable zip and SHA-256 checksums are on the same page. Install steps and system requirements: [docs/install.md](docs/install.md). Controls (keyboard, Xbox controller, USB wheel): [docs/controls.md](docs/controls.md).
+**SimCruise 2.0.1 for Windows** (64-bit Windows 10 or 11, DirectX 12): get `SimCruise-2.0.1-windows-x64-setup.exe` from the [latest release](https://github.com/simcruisegame/simcruise/releases/latest), run it, and start SimCruise from the Start menu. A portable zip and SHA-256 checksums are on the same page. Install steps and system requirements: [docs/install.md](docs/install.md). Controls (keyboard, Xbox controller, USB wheel): [docs/controls.md](docs/controls.md).
 
-Tested on a laptop with an RTX 2070 Super Max-Q: 78 fps on Ocean Drive and 91 fps on a rural road from the driver's seat at 1080p on the Medium preset (the default for that GPU), capped at 60 fps in play, and about 50 ms from the stick to the picture. The full release gate is in [docs/release/v2.0.0-report.md](docs/release/v2.0.0-report.md).
+Tested on a laptop with an RTX 2070 Super Max-Q: 78 fps on Ocean Drive and 112 fps on a rural road from the driver's seat at 1080p on the Medium preset (the default for that GPU), capped at 60 fps in play, and about 50 ms from the stick to the picture. The release gates are in [docs/release/v2.0.1-report.md](docs/release/v2.0.1-report.md) and [v2.0.0-report.md](docs/release/v2.0.0-report.md).
 
 ## Screenshots
 
-From the 2.0.0 Shipping build, Ultra preset, 1920x1080.
+From the 2.0.1 Shipping build, Ultra preset, 1920x1080 (the gravel road in daylight from 2.0.0).
+
+![The same spot on Ocean Drive in 2.0.0 (top) and 2.0.1 (bottom): darker daylight, weathered walls, palms in Lummus Park, a fire hydrant](docs/images/release-2.0.1/before-after-ocean-drive.jpg)
+
+*2.0.0 (top) and 2.0.1 (bottom) at the same spot and time: a third of a stop darker by day, walls like weathered paint, the park's palms from the land-cover map, street furniture.*
 
 | | |
 |---|---|
-| ![The 2001 Miata on Ocean Drive, Miami Beach: Lummus Park palms, Art Deco hotels, parked cars](docs/images/release-2.0.0/01-miata-ocean-drive-chase.jpg) | ![From the Miata's seat with the natural lens: the cabin, the gauges, the mirrors and Ocean Drive ahead](docs/images/release-2.0.0/02-miata-cockpit.jpg) |
+| ![The 2001 Miata on Ocean Drive, Miami Beach: Lummus Park palms, Art Deco hotels, parked cars](docs/images/release-2.0.1/01-miata-ocean-drive-chase.jpg) | ![From the Miata's seat with the natural lens: the cabin, the gauges, the mirrors and Ocean Drive ahead](docs/images/release-2.0.1/02-miata-cockpit.jpg) |
 | *2001 Miata, Ocean Drive* | *The driver's seat (natural lens, the default)* |
-| ![The 1965 Mustang convertible on Ocean Drive](docs/images/release-2.0.0/03-mustang-1965-ocean-drive.jpg) | ![The Corvette Stingray C8 on Ocean Drive](docs/images/release-2.0.0/05-corvette-c8-ocean-drive.jpg) |
+| ![The 1965 Mustang convertible on Ocean Drive](docs/images/release-2.0.1/03-mustang-1965-ocean-drive.jpg) | ![The Corvette Stingray C8 on Ocean Drive](docs/images/release-2.0.1/05-corvette-c8-ocean-drive.jpg) |
 | *1965 Mustang 289* | *Corvette Stingray (C8)* |
-| ![Ocean Drive at 21:00: low beams, street lights, neon on the Breakwater](docs/images/release-2.0.0/07-ocean-drive-night-chase.jpg) | ![The Corvette's cockpit: the digital cluster, the paddles and the centre screen](docs/images/release-2.0.0/06-corvette-c8-cockpit.jpg) |
+| ![Ocean Drive at 21:00: low beams, street lights, neon on the Breakwater](docs/images/release-2.0.1/07-ocean-drive-night-chase.jpg) | ![The Corvette's cockpit: the digital cluster, the paddles and the centre screen](docs/images/release-2.0.1/06-corvette-c8-cockpit.jpg) |
 | *Ocean Drive at night* | *Corvette cockpit* |
-| ![Princeton Road, a gravel road in Lancaster County, Nebraska](docs/images/release-2.0.0/09-rural-gravel-road-nebraska.jpg) | ![The same road at night from the driver's seat, lit only by the low beams](docs/images/release-2.0.0/10-rural-night-low-beams.jpg) |
+| ![Princeton Road, a gravel road in Lancaster County, Nebraska](docs/images/release-2.0.0/09-rural-gravel-road-nebraska.jpg) | ![The same road at night from the driver's seat, lit only by the low beams](docs/images/release-2.0.1/10-rural-night-low-beams.jpg) |
 | *A gravel road in Nebraska* | *The same road at night* |
 
 *Captured with `-SimCruiseDriveCapture` (see [docs/unreal-building.md](docs/unreal-building.md#drive-captures)). Map data © OpenStreetMap contributors. Earlier screenshots are in [docs/images/unreal/](docs/images/unreal/).*

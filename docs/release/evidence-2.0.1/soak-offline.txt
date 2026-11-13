@@ -1,0 +1,60 @@
+# 20-minute soak, Shipping 2.0.1
+2026-11-12 18:53:51 SOAK start: 20.0 minutes, travel 1
+2026-11-12 18:54:21 SOAK   30 s: driving, 19 km/h, 51 fps avg, worst frame 400 ms, 2495 MB used, 0 recoveries, 0 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_aaron
+2026-11-12 18:54:51 SOAK   60 s: driving, 41 km/h, 60 fps avg, worst frame 48 ms, 2509 MB used, 2 recoveries, 1 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_aaron
+2026-11-12 18:55:21 SOAK   90 s: driving, -0 km/h, 60 fps avg, worst frame 21 ms, 2489 MB used, 3 recoveries, 1 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_aaron
+2026-11-12 18:55:51 SOAK  120 s: driving, 0 km/h, 60 fps avg, worst frame 20 ms, 2494 MB used, 5 recoveries, 2 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_aaron
+2026-11-12 18:56:21 SOAK  150 s: driving, 42 km/h, 60 fps avg, worst frame 19 ms, 2493 MB used, 7 recoveries, 3 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_aaron
+2026-11-12 18:56:51 SOAK  180 s: driving, 41 km/h, 60 fps avg, worst frame 20 ms, 2706 MB used, 7 recoveries, 3 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_aaron
+2026-11-12 18:57:21 SOAK  210 s: driving, 2 km/h, 60 fps avg, worst frame 19 ms, 2699 MB used, 8 recoveries, 4 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_aaron
+2026-11-12 18:57:51 SOAK  240 s: driving, 2 km/h, 60 fps avg, worst frame 19 ms, 2703 MB used, 10 recoveries, 5 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_aaron
+2026-11-12 18:57:58 SOAK car -> odyssey18 at 248 s
+2026-11-12 18:58:21 SOAK  270 s: driving, 43 km/h, 60 fps avg, worst frame 20 ms, 2633 MB used, 10 recoveries, 5 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car odyssey18
+2026-11-12 18:58:51 SOAK  300 s: driving, 0 km/h, 60 fps avg, worst frame 22 ms, 2638 MB used, 12 recoveries, 6 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car odyssey18
+2026-11-12 18:59:21 SOAK  330 s: driving, 22 km/h, 60 fps avg, worst frame 21 ms, 2633 MB used, 14 recoveries, 7 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car odyssey18
+2026-11-12 18:59:51 SOAK  360 s: driving, 40 km/h, 60 fps avg, worst frame 18 ms, 2635 MB used, 16 recoveries, 7 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car odyssey18
+2026-11-12 18:59:58 SOAK travel -> Monument Valley · US 163, UT at 368 s
+2026-11-12 19:00:21 SOAK  390 s: driving, 71 km/h, 60 fps avg, worst frame 53 ms, 2944 MB used, 16 recoveries, 8 camera changes, place Monument Valley · US 163, UT, car odyssey18
+2026-11-12 19:00:51 SOAK  420 s: driving, 53 km/h, 60 fps avg, worst frame 35 ms, 3055 MB used, 16 recoveries, 9 camera changes, place Monument Valley · US 163, UT, car odyssey18
+2026-11-12 19:01:21 SOAK  450 s: driving, 42 km/h, 60 fps avg, worst frame 29 ms, 2413 MB used, 16 recoveries, 9 camera changes, place Monument Valley · US 163, UT, car odyssey18
+2026-11-12 19:01:51 SOAK  480 s: driving, 43 km/h, 60 fps avg, worst frame 31 ms, 2451 MB used, 16 recoveries, 10 camera changes, place Monument Valley · US 163, UT, car odyssey18
+2026-11-12 19:01:58 SOAK car -> crv25 at 488 s
+2026-11-12 19:02:21 SOAK  510 s: driving, 42 km/h, 60 fps avg, worst frame 18 ms, 2323 MB used, 16 recoveries, 11 camera changes, place Monument Valley · US 163, UT, car crv25
+2026-11-12 19:02:51 SOAK  540 s: driving, 42 km/h, 60 fps avg, worst frame 42 ms, 2550 MB used, 16 recoveries, 11 camera changes, place Monument Valley · US 163, UT, car crv25
+2026-11-12 19:03:21 SOAK  570 s: driving, 40 km/h, 60 fps avg, worst frame 19 ms, 2293 MB used, 16 recoveries, 12 camera changes, place Monument Valley · US 163, UT, car crv25
+2026-11-12 19:03:51 SOAK  600 s: driving, 42 km/h, 60 fps avg, worst frame 35 ms, 2508 MB used, 16 recoveries, 13 camera changes, place Monument Valley · US 163, UT, car crv25
+2026-11-12 19:04:21 SOAK  630 s: driving, 45 km/h, 60 fps avg, worst frame 21 ms, 2292 MB used, 16 recoveries, 13 camera changes, place Monument Valley · US 163, UT, car crv25
+2026-11-12 19:04:51 SOAK  660 s: driving, 44 km/h, 60 fps avg, worst frame 29 ms, 2399 MB used, 16 recoveries, 14 camera changes, place Monument Valley · US 163, UT, car crv25
+2026-11-12 19:05:21 SOAK  690 s: driving, 44 km/h, 60 fps avg, worst frame 32 ms, 2479 MB used, 16 recoveries, 15 camera changes, place Monument Valley · US 163, UT, car crv25
+2026-11-12 19:05:51 SOAK  720 s: driving, 55 km/h, 60 fps avg, worst frame 34 ms, 2472 MB used, 16 recoveries, 15 camera changes, place Monument Valley · US 163, UT, car crv25
+2026-11-12 19:05:58 SOAK travel -> Capitol Avenue · Cheyenne, WY at 728 s
+2026-11-12 19:06:17 SOAK car -> f150raptor18 at 746 s
+2026-11-12 19:06:21 SOAK  750 s: driving, 43 km/h, 60 fps avg, worst frame 34 ms, 2434 MB used, 16 recoveries, 16 camera changes, place Capitol Avenue · Cheyenne, WY, car f150raptor18
+2026-11-12 19:06:51 SOAK  780 s: driving, 0 km/h, 60 fps avg, worst frame 35 ms, 2427 MB used, 17 recoveries, 16 camera changes, place Capitol Avenue · Cheyenne, WY, car f150raptor18
+2026-11-12 19:07:21 SOAK  810 s: driving, 44 km/h, 60 fps avg, worst frame 17 ms, 2423 MB used, 19 recoveries, 17 camera changes, place Capitol Avenue · Cheyenne, WY, car f150raptor18
+2026-11-12 19:07:51 SOAK  840 s: driving, 42 km/h, 60 fps avg, worst frame 20 ms, 2579 MB used, 21 recoveries, 18 camera changes, place Capitol Avenue · Cheyenne, WY, car f150raptor18
+2026-11-12 19:08:21 SOAK  870 s: driving, 43 km/h, 60 fps avg, worst frame 21 ms, 2575 MB used, 23 recoveries, 18 camera changes, place Capitol Avenue · Cheyenne, WY, car f150raptor18
+2026-11-12 19:08:51 SOAK  900 s: driving, 14 km/h, 60 fps avg, worst frame 20 ms, 2579 MB used, 25 recoveries, 19 camera changes, place Capitol Avenue · Cheyenne, WY, car f150raptor18
+2026-11-12 19:09:21 SOAK  930 s: driving, -0 km/h, 60 fps avg, worst frame 19 ms, 2578 MB used, 27 recoveries, 20 camera changes, place Capitol Avenue · Cheyenne, WY, car f150raptor18
+2026-11-12 19:09:51 SOAK  960 s: driving, 24 km/h, 60 fps avg, worst frame 20 ms, 2579 MB used, 29 recoveries, 20 camera changes, place Capitol Avenue · Cheyenne, WY, car f150raptor18
+2026-11-12 19:10:17 SOAK car -> grandcherokee13 at 986 s
+2026-11-12 19:10:21 SOAK  990 s: driving, 5 km/h, 60 fps avg, worst frame 19 ms, 2578 MB used, 30 recoveries, 21 camera changes, place Capitol Avenue · Cheyenne, WY, car grandcherokee13
+2026-11-12 19:10:51 SOAK 1020 s: driving, 0 km/h, 60 fps avg, worst frame 20 ms, 2577 MB used, 32 recoveries, 22 camera changes, place Capitol Avenue · Cheyenne, WY, car grandcherokee13
+2026-11-12 19:11:21 SOAK 1050 s: driving, 45 km/h, 60 fps avg, worst frame 20 ms, 2826 MB used, 34 recoveries, 22 camera changes, place Capitol Avenue · Cheyenne, WY, car grandcherokee13
+2026-11-12 19:11:51 SOAK 1080 s: driving, 43 km/h, 60 fps avg, worst frame 21 ms, 2803 MB used, 36 recoveries, 23 camera changes, place Capitol Avenue · Cheyenne, WY, car grandcherokee13
+2026-11-12 19:11:58 SOAK travel -> Clay Center · Charleston, WV at 1088 s
+2026-11-12 19:12:21 SOAK 1110 s: waiting, 0 km/h, 60 fps avg, worst frame 54 ms, 2248 MB used, 36 recoveries, 23 camera changes, place Clay Center · Charleston, WV, car grandcherokee13
+2026-11-12 19:12:51 SOAK 1140 s: driving, 43 km/h, 60 fps avg, worst frame 42 ms, 2402 MB used, 37 recoveries, 24 camera changes, place Clay Center · Charleston, WV, car grandcherokee13
+2026-11-12 19:13:21 SOAK 1170 s: driving, 44 km/h, 60 fps avg, worst frame 19 ms, 2566 MB used, 39 recoveries, 25 camera changes, place Clay Center · Charleston, WV, car grandcherokee13
+2026-11-12 19:13:51 SOAK DONE: 20.0 minutes, drove 1, 40 recoveries, 25 camera changes, 4 car changes, 3 travels, 0 non-finite states, peak 3111 MB used
+
+# Network fully off: HTTP_PROXY/HTTPS_PROXY/ALL_PROXY to a closed local port (the helper refuses to connect: checked directly, ECONNREFUSED), -SimCruiseLiveOffline, -SimCruiseNoPlaceFetch. The game started on a cached road and drove; exit 0.
+2026-11-12 19:13:58 SOAK start: 4.0 minutes, travel 0
+2026-11-12 19:14:28 SOAK   30 s: driving, 41 km/h, 53 fps avg, worst frame 400 ms, 2114 MB used, 1 recoveries, 0 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_aaron
+2026-11-12 19:14:58 SOAK   60 s: driving, 0 km/h, 59 fps avg, worst frame 400 ms, 2179 MB used, 3 recoveries, 1 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_aaron
+2026-11-12 19:15:28 SOAK   90 s: driving, 0 km/h, 60 fps avg, worst frame 21 ms, 2180 MB used, 5 recoveries, 1 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_aaron
+2026-11-12 19:15:58 SOAK  120 s: driving, 0 km/h, 60 fps avg, worst frame 19 ms, 2184 MB used, 8 recoveries, 2 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_aaron
+2026-11-12 19:16:28 SOAK  150 s: driving, -0 km/h, 60 fps avg, worst frame 20 ms, 2181 MB used, 10 recoveries, 3 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_aaron
+2026-11-12 19:16:58 SOAK  180 s: driving, 38 km/h, 60 fps avg, worst frame 18 ms, 2189 MB used, 12 recoveries, 3 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_aaron
+2026-11-12 19:17:28 SOAK  210 s: driving, -0 km/h, 60 fps avg, worst frame 21 ms, 2181 MB used, 14 recoveries, 4 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_aaron
+2026-11-12 19:17:58 SOAK DONE: 4.0 minutes, drove 1, 16 recoveries, 5 camera changes, 0 car changes, 0 travels, 0 non-finite states, peak 2477 MB used

@@ -67,8 +67,9 @@ $Skip = @(Join-Path $Root 'data\observed') + @(Get-ChildItem -Directory (Join-Pa
     Where-Object { $Used -notcontains $_.Name } | ForEach-Object { $_.FullName })
 # The AI models' weights were trained on data released for research or non-commercial use
 # only (Cityscapes; DIV2K, Flickr2K, OST), so they are development tools and never shipped
-# (docs/data-sources.md); the game runs without them.
-robocopy (Join-Path $Root 'data') (Join-Path $Game 'data') /MIR /XD @Skip /XF ddrnet23-slim-cityscapes.onnx real-esrgan-general-x4v3.onnx /NFL /NDL /NJH /NJS /NP | Out-Null
+# (docs/data-sources.md); the game runs without them. Every data/ai/*.onnx is left out, so a
+# new model is not shipped by accident; scripts\release.ps1 refuses a zip with any .onnx.
+robocopy (Join-Path $Root 'data') (Join-Path $Game 'data') /MIR /XD @Skip /XF *.onnx /NFL /NDL /NJH /NJS /NP | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "Copying data failed ($LASTEXITCODE)" }
 foreach ($Dir in $Skip) {
     # robocopy /MIR leaves excluded folders in place; an earlier copy's go now.

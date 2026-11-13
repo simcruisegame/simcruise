@@ -18,7 +18,7 @@ The Unreal client starts in the 2001 roadster in Ocean Drive's lane, Miami Beach
 | Camera: driver's seat, chase | C | Y |
 | Hide or show the driving HUD | F2 | X |
 | Frame time and stats | F3 | — |
-| Driver lens: natural (the default), true FOV, wide | F6 | Left-stick click |
+| Driver lens: natural (the default), true FOV, wide | F6 | Menu, then D-pad to View, then A |
 | Head lamps on / off | L | — |
 | Recover to the nearest road | R | View |
 | Sound on / off (engine, tyres, road, wind) | M | — |
@@ -37,7 +37,7 @@ The engine sound is on at the start.
 
 **New pad layout in 2.0.0.** The clutch moved from LB to A, the parking brake from A to B, shift down from X to LB, the gearbox switch from B to the right-stick click, the engine restart from the right-stick click to D-pad left and the HUD from the left-stick click to X; the left-stick click does nothing (since 2.0.1: it changed the lens when pressed by accident while steering; the lens is F6 or the atlas's View setting). The reason: the clutch on LB used the same finger as the brake trigger, and hard steering pressed the left stick by accident.
 
-**True field of view.** The driver's seat starts on the natural lens (45° tall, 74° across a 16:9 screen). F6 or the left-stick click changes it to the true field of view and to wide. With the true field of view the game shows the world at the angle your screen really covers at your eye, as if the screen were a window: a 15.6" 16:9 laptop at 60 cm spans 32° across (2·atan(width / 2·distance)). Set your screen's diagonal and your eye's distance on the road atlas (Tab: Screen, Eye to screen), or with `simcruise.Lens.ScreenInches` and `simcruise.Lens.ViewDistanceCm`. View · Wide (67° tall) shows more of the cabin for tight streets. The eye sits at each car's real driver's head position; the chase view keeps its wider angle.
+**True field of view.** The driver's seat starts on the natural lens (45° tall, 74° across a 16:9 screen). F6 changes it to the true field of view and to wide; on the pad open the road atlas (Menu), move with the D-pad to "View" and press A. With the true field of view the game shows the world at the angle your screen really covers at your eye, as if the screen were a window: a 15.6" 16:9 laptop at 60 cm spans 32° across (2·atan(width / 2·distance)). Set your screen's diagonal and your eye's distance on the road atlas (Tab: Screen, Eye to screen), or with `simcruise.Lens.ScreenInches` and `simcruise.Lens.ViewDistanceCm`. View · Wide (67° tall) shows more of the cabin for tight streets. The eye sits at each car's real driver's head position; the chase view keeps its wider angle.
 
 **Night.** Your eye adapts to the road your low beams light (about 0.5 cd/m², what real lamp-lit asphalt measures), and the beams reach 250 m.
 
