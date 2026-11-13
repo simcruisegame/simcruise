@@ -18,6 +18,17 @@ Owners: **release** (this gate; fixed on `release/v2.0.0`), **physics** (lane1),
 | R8 | At night on an unlit rural road the low beams light the road to about 45-50 m | `docs/release/evidence/night.txt`: rural night cockpit capture, road brightness down the lane falls to 3/255 at about 50 m | cars | open (minor, routed); the rule asks for about 60 m |
 | R9 | Aaron's NB stops 3.3 % shorter than its estimated target after the ride-height fix | `CarTrack.nb2001_aaron`: 70-0 154.8 ft against the 160 ft estimate (81a88f0 lowered the body 20 mm) | physics | FYI: the target is an estimate, not a test of the car |
 
+## Found by the pre-flight (29b12ea, 2026-11-13)
+
+Run `scripts\preflight.ps1` on 29b12ea: `Saved\Preflight\20261112-211916\report.md` (D:\sc\lane-view). Frames are at 10 a second from the start of the 60 s drive.
+
+| # | Bug | Run, frame and evidence | Owner | Status |
+|---|---|---|---|---|
+| P1 | A touch with a traffic car flings the player car at hundreds of mph | `dragon-mustang65`, frames 128-176: in a left curve at 30 mph the Mustang meets an oncoming dark SUV; the next frames read 292 mph in R, then 99, 115, 204 and 195 mph off the road into the woods (body jolt 774 m/s^2 at frame 172). `big-sur-mustang65`: the car tumbles in a curve, then reads 801 and 424 mph (jolt -1471 m/s^2 at frame 464, 2398 m in 60 s). Evidence: `evidence/preflight-29b12ea-dragon-mustang65-f128-176.jpg`, `evidence/preflight-29b12ea-big-sur-mustang65-sheet.jpg`. The robot may have cut the curve (it steers by pure pursuit), but a contact must not give such speeds | physics (with traffic) | open |
+| P2 | Road step of about 10 cm at a tile border on CA-1 | `big-sur-meridian_z`, frame 266, 450 m from the start: road surface step 9.9 cm and a body jolt of -15.7 m/s^2 at the tile border; the view shakes in frames 258-270 (`evidence/preflight-29b12ea-big-sur-meridian_z-f258-270.jpg`). The Mustang run at Big Sur also logs a 25 cm step, after its crash | world (seams) | open |
+| P3 | Strong motion blur on near objects at 25-30 mph | every Ocean Drive sheet: parked cars and buildings at the side are smeared in most frames at 28 mph (`Saved\Preflight\20261112-211916\ocean-drive-*-sheet.png`) | release (look) | open (minor): check against a real dashcam at the same speed |
+| P4 | About 1.3 m with no road surface under the car on US 129 | `dragon-nb2001_aaron` and `dragon-mustang65` on 7fa5b8a (`Saved\Preflight\20261112-232928\report.md`): both cars, at the same place about 515 m from the start in the hairpins, the trace down under the car centre finds no asphalt for 1.27 m between road samples (on 062f1c6 the probe 2.5 m ahead found it too, at 515-516 m). Shorter than a frame at 16 mph, so the video does not show it; no jolt. Likely a crack or a missing strip of the road mesh (a seam or a junction), to look at in the editor | world | open |
+
 ## Code review (12 items, verified 2026-11-12 against main 391cffc)
 
 | # | Bug | Verdict and evidence | Owner | Status |

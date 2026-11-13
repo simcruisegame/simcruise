@@ -34,7 +34,9 @@ struct SIMCRUISE_API FSimCruiseViewStats
 	int32 BuildingCells = 0;
 	/** The tiles around the car hold mapped roads / buildings. */
 	bool bPlaceHasRoads = false;
+	/** A built-up place: at least MinPlaceBuildings mapped buildings on the 9 tiles round the car. */
 	bool bPlaceHasBuildings = false;
+	int32 PlaceBuildings = 0;
 	/** Lower 60 % of the screenshot: luminance standard deviation (0-255), mean absolute gradient, colour hue bins. */
 	bool bHasImage = false;
 	float LumaStdDev = 0.f;
@@ -55,6 +57,8 @@ namespace SimCruiseViewCheckRules
 	constexpr float MaxRoadDistanceM = 300.f;
 	/** Mean absolute luminance gradient of the lower 60 % (0-255 a pixel) must be above this. */
 	constexpr float MinEdges = 2.f;
+	/** A building must be in view only in a built-up place: a few farms or houses along a coast road need not be. */
+	constexpr int32 MinPlaceBuildings = 30;
 
 	/** Empty when the view passes, else the reasons (comma-separated). */
 	SIMCRUISE_API FString Judge(const FSimCruiseViewStats& Stats);

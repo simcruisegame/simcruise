@@ -76,8 +76,11 @@ namespace SimCruisePreflightRules
 	 */
 	SIMCRUISE_API int32 CountSteps(const TArray<FVector2f>& DistanceHeight, float& OutMaxStepCm, float MaxGapM = 1.f);
 
-	/** Frames whose difference is above max(Floor, Factor x the median), skipping those marked turning. */
-	SIMCRUISE_API int32 CountFlashes(const TArray<float>& Diffs, const TArray<bool>& Turning, float& OutMedian, float Factor = 5.f, float Floor = 18.f);
+	/**
+	 * Frames whose change (the percent of the picture that changed by more than 40 of 255) is above
+	 * max(Floor, Factor x the median), skipping those marked turning.
+	 */
+	SIMCRUISE_API int32 CountFlashes(const TArray<float>& Diffs, const TArray<bool>& Turning, float& OutMedian, float Factor = 3.f, float Floor = 50.f);
 }
 
 /**

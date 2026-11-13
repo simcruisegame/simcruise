@@ -410,9 +410,10 @@ void ASimCruiseViewCheck::TraceView(APlayerController* Player)
 				const FSimCruiseTileBuild* Build = Tile ? Tile->GetBuild() : nullptr;
 				if (!Build) continue;
 				Stats.bPlaceHasRoads |= Build->Roads.Ribbons.Num() > 0;
-				Stats.bPlaceHasBuildings |= Build->Buildings > 0;
+				Stats.PlaceBuildings += Build->Buildings;
 			}
 		}
+		Stats.bPlaceHasBuildings = Stats.PlaceBuildings >= SimCruiseViewCheckRules::MinPlaceBuildings;
 	}
 }
 
@@ -456,12 +457,12 @@ void ASimCruiseViewCheck::Report()
 	const FString JsonFile = FPaths::ChangeExtension(ShotFile, TEXT("json"));
 	const FString Json = FString::Printf(
 		TEXT("{\n  \"result\": \"%s\",\n  \"place\": \"%s\",\n  \"test_pad\": %s,\n  \"rays_below_horizon\": %d,\n  \"percent\": {%s},\n")
-		TEXT("  \"world_percent\": %.1f,\n  \"nearest_road_m\": %.1f,\n  \"building_cells\": %d,\n  \"place_has_roads\": %s,\n  \"place_has_buildings\": %s,\n")
+		TEXT("  \"world_percent\": %.1f,\n  \"nearest_road_m\": %.1f,\n  \"building_cells\": %d,\n  \"place_has_roads\": %s,\n  \"place_has_buildings\": %s,\n  \"place_buildings\": %d,\n")
 		TEXT("  \"edges\": %.3f,\n  \"luma_sd\": %.2f,\n  \"hue_bins\": %d,\n  \"screenshot\": \"%s\",\n  \"reason\": \"%s\",\n")
 		TEXT("  \"thresholds\": {\"min_world_percent\": %.0f, \"max_road_distance_m\": %.0f, \"min_edges\": %.2f}\n}\n"),
 		bPass ? TEXT("PASS") : TEXT("FAIL"), *PlaceTitle.ReplaceCharWithEscapedChar(), bWantPad ? TEXT("true") : TEXT("false"), Stats.RaysBelowHorizon, *JsonClasses,
 		Stats.WorldPercent(), Stats.NearestRoadM, Stats.BuildingCells, Stats.bPlaceHasRoads ? TEXT("true") : TEXT("false"),
-		Stats.bPlaceHasBuildings ? TEXT("true") : TEXT("false"), Stats.Edges, Stats.LumaStdDev, Stats.HueBins,
+		Stats.bPlaceHasBuildings ? TEXT("true") : TEXT("false"), Stats.PlaceBuildings, Stats.Edges, Stats.LumaStdDev, Stats.HueBins,
 		*Shot.Replace(TEXT("\\"), TEXT("/")), bPass ? TEXT("ok") : *Reasons, MinWorldPercent, MaxRoadDistanceM, MinEdges);
 	if (!ShotFile.IsEmpty())
 	{

@@ -854,12 +854,22 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 					OutSpan = FMath::Min(FMath::Max(PinSpanM, 150.0 * FMath::Abs(OutDelta)), FMath::Max(MaxSpan, PinSpanM * 0.5));
 					return;
 				}
-				const double EndE = Bank.IsValidIndex(End == 0 ? 0 : Count) && FMath::IsFinite(Bank[End == 0 ? 0 : Count]) ? Bank[End == 0 ? 0 : Count] : 0.0;
-				const FVector2d Lift = SeamEdgeLift(St, EndE);
-				const double Rise = FMath::Max(Lift.X, Lift.Y);
-				OutSpan = FMath::Min(FMath::Max(PinSpanM, 150.0 * Rise), MaxSpan);
-				OutDelta = 0.5 * (Lift.X + Lift.Y);
-				OutTilt = St.HalfW > 0.1 ? (Lift.X - Lift.Y) / (2.0 * St.HalfW) : 0.0; // + raises the left edge (E sign)
+				// No contract: the neighbour may be building at the same time without one either, so
+				// the seam section must come out the same from both sides. It is pinned to a height
+				// that depends only on the shared ground under the seam (the centre that clears it
+				// across the carriageway with a plain crown), with no bank there (the bank eases to 0
+				// at this end). A lift relative to this tile's own profile, or a tilt solved on its own
+				// bank, made each side different: a 9.9 cm step on CA-1 (v2.0.2 pre-flight).
+				double Pin = TNumericLimits<double>::Lowest();
+				for (double L = -St.HalfW; L <= St.HalfW + 1e-6; L += 0.5)
+				{
+					Pin = FMath::Max(Pin, Tile.HeightAtUnit((St.C + St.R * L) / Side) + SimCruiseRoadSection::Crown * FMath::Abs(L));
+				}
+				Pin += SimCruiseRoadSection::RuralShoulderDropM + SeamClearM;
+				OutDelta = Pin - St.Z;
+				OutTilt = 0.0;
+				OutSpan = FMath::Min(FMath::Max(PinSpanM, 150.0 * FMath::Abs(OutDelta)), MaxSpan);
+				(void)Bank;
 			};
 
 			// A contracted end takes the neighbour's direction and width, blended in over 10 m.
@@ -946,7 +956,9 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 					const double Their = Ce.HalfW > 0.1 ? (Ce.HL - Ce.HR) / (2.0 * Ce.HalfW) : 0.0;
 					Ek = FMath::Lerp(Ek, bSame ? Their : -Their, Wb);
 				}
-				// The seam tilt of an uncontracted end, faded like its lift.
+				// An uncontracted end has no bank at the seam (both sides agree), eased like its pin.
+				if (Ribbon.bStartOnBoundary && !Contract[0]) Ek *= 1.0 - W0;
+				if (Ribbon.bEndOnBoundary && !Contract[1]) Ek *= 1.0 - W1;
 				Ek += Tilt0 * W0 + Tilt1 * W1;
 				St.E = FMath::Clamp(Ek, -0.08, 0.08);
 				const double Crown = SimCruiseRoadSection::Crown * (1.0 - FMath::Min(1.0, FMath::Abs(St.E) / SimCruiseRoadSection::Crown));

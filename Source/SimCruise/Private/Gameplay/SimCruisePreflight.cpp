@@ -11,6 +11,7 @@
 #include "GameFramework/Pawn.h"
 #include "Gameplay/SimCruiseGameMode.h"
 #include "Gameplay/SimCruisePlayerController.h"
+#include "Gameplay/SimCruiseVehicleControl.h"
 #include "Gameplay/SimCruiseViewCheck.h"
 #include "HAL/FileManager.h"
 #include "ImageCore.h"
@@ -446,8 +447,19 @@ void ASimCruisePreflight::DriveTick(ASimCruisePlayerController* Player, float De
 	{
 		SteerIntegral = FMath::Clamp(SteerIntegral + static_cast<float>(1.5 * YawError * DeltaSeconds), -1.f, 1.f);
 	}
-	// Feed-forward: the road wheel angle of the curve over a full-lock angle of about 35 deg.
-	const double FeedForward = FMath::Atan(Curvature * 2.4) / 0.61;
+	// Feed-forward, per car: the road-wheel angle of the curve at this car's wheelbase, over the
+	// angle full stick gives now (the shaper's range at this speed, else the car's full lock).
+	double WheelbaseM = 2.4;
+	double FullLockRad = 0.61;
+	if (const ISimCruiseVehicleControl* Control = Cast<ISimCruiseVehicleControl>(Pawn))
+	{
+		const FSimCruiseVehicleSetup Setup = Control->GetVehicleSetup();
+		WheelbaseM = Setup.WheelbaseM;
+		FullLockRad = Setup.ParkingRackAngleRad;
+	}
+	const double WheelRad = FMath::Atan(Curvature * WheelbaseM);
+	const double RangeRad = WheelRad >= 0.0 ? Player->GetShaper().GetRangeRightRad() : Player->GetShaper().GetRangeLeftRad();
+	const double FeedForward = WheelRad / FMath::Max(FMath::Abs(RangeRad) > 0.01 ? FMath::Abs(RangeRad) : FullLockRad, 0.05);
 	Stick = FMath::Clamp(static_cast<float>(FeedForward + SteerIntegral + 0.4 * YawError), -1.f, 1.f);
 
 	// Speed: the road's limit, slower for the curves ahead and for a car ahead.
@@ -557,12 +569,12 @@ void ASimCruisePreflight::MeasureTick(ASimCruisePlayerController* Player, float 
 		OutZm = TileHit.ImpactPoint.Z / 100.0;
 		return IsRoadLayer(Tile->LayerAtFace(TileHit.FaceIndex));
 	};
-	double Zm = 0.0;
-	const bool bAheadRoad = SurfaceAt(CarCm + Forward * 250.0, Zm);
-	Surface.Add(FVector2f(static_cast<float>(PathM + 2.5), static_cast<float>(Zm)));
-	SurfaceIsRoad.Add(bAheadRoad ? 1 : 0);
+	// The surface under the car's centre: the path the wheels ride. A point straight ahead
+	// leaves the paved edge in a hairpin and reads as a gap that is not there.
 	double UnderZm = 0.0;
 	const bool bUnderRoad = SurfaceAt(CarCm, UnderZm);
+	Surface.Add(FVector2f(static_cast<float>(PathM), static_cast<float>(UnderZm)));
+	SurfaceIsRoad.Add(bUnderRoad ? 1 : 0);
 	OffRoadNow = bUnderRoad ? 0.f : OffRoadNow + DeltaSeconds;
 	Stats.OffRoadSeconds = FMath::Max(Stats.OffRoadSeconds, OffRoadNow);
 
@@ -701,9 +713,11 @@ void ASimCruisePreflight::OnFrame(int32 Width, int32 Height, const TArray<FColor
 	}
 	if (LastThumb.Num() == Thumb.Num())
 	{
-		double Sum = 0.0;
-		for (int32 K = 0; K < Thumb.Num(); ++K) Sum += FMath::Abs(Thumb[K] - LastThumb[K]);
-		FrameDiffs.Add(static_cast<float>(Sum / Thumb.Num()));
+		// The share (%) of the picture that changed by more than 40 of 255: a flash or an exposure
+		// jump changes most of it at once; a car passing close beside a still camera does not.
+		int32 Changed = 0;
+		for (int32 K = 0; K < Thumb.Num(); ++K) Changed += FMath::Abs(Thumb[K] - LastThumb[K]) > 40.f ? 1 : 0;
+		FrameDiffs.Add(100.f * Changed / Thumb.Num());
 		const FRotator Delta = (PendingRotation - LastFrameRotation).GetNormalized();
 		FrameTurning.Add(FMath::Abs(Delta.Yaw) > 6.0 || FMath::Abs(Delta.Pitch) > 4.0);
 	}
