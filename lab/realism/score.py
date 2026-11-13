@@ -159,7 +159,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     if args.poses:
-        poses = json.loads(args.poses.read_text())["poses"]
+        poses = json.loads(args.poses.read_text(encoding="utf-8-sig"))["poses"]  # PowerShell writes a BOM
         rows, failures = [], 0
         for pose in poses:
             game = args.captures / f"realism-{pose['name']}.png"

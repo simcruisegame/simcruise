@@ -61,6 +61,13 @@ New-Item -ItemType Directory -Force $Photos, $Captures | Out-Null
 foreach ($P in $Poses) {
     $Photo = Join-Path $Photos "$($P.name).jpg"
     if (Test-Path $Photo) { continue }
+    if ($P.photo.source -eq 'commons') {
+        # Wikimedia Commons: the file at 1600 px across (a generic client name; links only in git).
+        Write-Host "Fetching Commons $($P.photo.file) for $($P.name)"
+        Invoke-WebRequest -UseBasicParsing -UserAgent 'SimCruise-realism/1.0 (game development)' -OutFile $Photo `
+            -Uri "https://commons.wikimedia.org/wiki/Special:FilePath/$($P.photo.file)?width=1600"
+        continue
+    }
     if ($P.photo.source -ne 'panoramax') { Write-Host "Put the photograph for $($P.name) at $Photo"; continue }
     if (-not (Get-Command bun -ErrorAction SilentlyContinue)) { Write-Host 'Bun is needed to fetch the photographs (https://bun.com).'; exit 2 }
     Write-Host "Fetching Panoramax $($P.photo.id) for $($P.name)"
@@ -80,6 +87,7 @@ if (-not $NoBuild) {
 # 3. One game run per pose, so each pose gets its own window size, time and start.
 foreach ($P in $Poses) {
     $PoseArg = "$($P.name),$($P.lat),$($P.lon),$($P.heading),$($P.hfov)"
+    if ($P.snap -or $P.pitch) { $PoseArg += ",$(if ($P.snap) { $P.snap } else { '-' }),$(if ($P.pitch) { $P.pitch } else { 0 })" }
     $Start = if ($P.world -eq 'bundled') { '-SimCruiseWorld' } else { "-SimCruiseStart=$($P.lat),$($P.lon)" }
     $ArgLine = "`"$Project`" -game -windowed -ResX=$($P.width) -ResY=$($P.height) -nosplash -unattended $Start " +
         "-SimCruiseDriveCapture `"-SimCruiseDriveCaptureOut=$Captures`" -SimCruiseRealismPose=$PoseArg " +
@@ -111,6 +119,20 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
     & uv run --quiet --no-project --with numpy --with pillow python @ScoreArgs
 } else {
     & python @ScoreArgs
+}
+
+# 5. Side by side: the game frame (left) and the photograph (right), same height, for the eye.
+$Ffmpeg = (Get-Command ffmpeg -ErrorAction SilentlyContinue).Source
+if (-not $Ffmpeg) { $Ffmpeg = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter ffmpeg.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName }
+if ($Ffmpeg) {
+    foreach ($P in $Poses) {
+        $Game = Join-Path $Captures "realism-$($P.name).png"
+        $Photo = Join-Path $Photos "$($P.name).jpg"
+        if (-not ((Test-Path $Game) -and (Test-Path $Photo))) { continue }
+        $Side = Join-Path $Captures "side-$($P.name).jpg"
+        & $Ffmpeg -loglevel error -y -i $Game -i $Photo -filter_complex '[0]scale=-2:540[a];[1]scale=-2:540[b];[a][b]hstack' -q:v 3 $Side
+        if (Test-Path $Side) { Write-Host "SIDE $($P.name): $Side" }
+    }
 }
 $Code = $LASTEXITCODE
 Write-Host "Captures: $Captures"

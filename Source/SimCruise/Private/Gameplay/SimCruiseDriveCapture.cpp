@@ -60,9 +60,9 @@ void ASimCruiseDriveCapture::BeginPlay()
 		{
 			TArray<FString> Fields;
 			Entry.ParseIntoArray(Fields, TEXT(","));
-			if (Fields.Num() != 5)
+			if (Fields.Num() < 5 || Fields.Num() > 7)
 			{
-				UE_LOG(LogSimCruiseDriveCapture, Error, TEXT("Realism pose '%s' is not name,lat,lon,heading,hfov"), *Entry);
+				UE_LOG(LogSimCruiseDriveCapture, Error, TEXT("Realism pose '%s' is not name,lat,lon,heading,hfov[,road|-][,pitch]"), *Entry);
 				continue;
 			}
 			FRealismPose Pose;
@@ -71,6 +71,8 @@ void ASimCruiseDriveCapture::BeginPlay()
 			Pose.LonDeg = FCString::Atod(*Fields[2]);
 			Pose.HeadingDeg = FCString::Atod(*Fields[3]);
 			Pose.HorizontalFovDeg = FMath::Clamp(FCString::Atof(*Fields[4]), 5.f, 170.f);
+			Pose.bSnapToRoad = Fields.Num() > 5 && Fields[5].Equals(TEXT("road"), ESearchCase::IgnoreCase);
+			Pose.PitchDeg = Fields.Num() > 6 ? FMath::Clamp(FCString::Atof(*Fields[6]), -60.f, 60.f) : 0.f;
 			RealismPoses.Add(Pose);
 		}
 	}
@@ -331,6 +333,17 @@ void ASimCruiseDriveCapture::TickRealism(float DeltaSeconds, ASimCruisePlayerCon
 
 	// Placed again every frame from the world frame, so a floating-origin rebase cannot move it.
 	FVector Eye = Stream->GetFrame().LonLatToWorldCm(Pose.LonDeg, Pose.LatDeg);
+	double Yaw = Pose.HeadingDeg - 90.0;
+	if (Pose.bSnapToRoad)
+	{
+		FVector OnRoad;
+		FRotator Along;
+		if (Stream->FindRoadPoseFacing(FString(), Eye, 60.0, Yaw, OnRoad, Along))
+		{
+			Eye = OnRoad;
+			Yaw = Along.Yaw;
+		}
+	}
 	double GroundCm = 0.0;
 	const bool bGround = Stream->SurfaceHeightAt(Eye, GroundCm);
 	Eye.Z = GroundCm + 165.0;
@@ -346,7 +359,7 @@ void ASimCruiseDriveCapture::TickRealism(float DeltaSeconds, ASimCruisePlayerCon
 		Player->SetViewTarget(PoseCamera);
 	}
 	// Compass heading (0 north, clockwise) to yaw: the world's X runs east and Y south.
-	PoseCamera->SetActorLocationAndRotation(Eye, FRotator(0.0, Pose.HeadingDeg - 90.0, 0.0));
+	PoseCamera->SetActorLocationAndRotation(Eye, FRotator(Pose.PitchDeg, Yaw, 0.0));
 	PoseCamera->GetCameraComponent()->SetFieldOfView(Pose.HorizontalFovDeg);
 
 	// Wait for the ground and tiles at the pose, compiled shaders, then 4 s and 120 frames for
