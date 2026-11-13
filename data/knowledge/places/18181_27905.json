@@ -1,7 +1,7 @@
 {
 	"tile": "18181_27905",
-	"fetched": "2026-11-12T22:33:48.385Z",
-	"sources": "overpass:35 wikidata:18 photos photos photos photos",
+	"fetched": "2026-11-13T00:46:05.717Z",
+	"sources": "overpass:35 wikidata:18 photos photos photos photos photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -118,7 +118,7 @@
 			"year": 1940,
 			"architect": "Lawrence Murray Dixon",
 			"colour": "#F3F6F4",
-			"colour_source": "measured in File:Ritz Plaza Hotel Miami Beach 1.jpg (2016, Gzzz, CC BY-SA 4.0; wall 34% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:Ritz Plaza Hotel Miami Beach 1.jpg (2016, Gzzz, CC BY-SA 4.0; wall 36% of the facade band); wall pixels found by the local scene parser",
 			"image": "Ritz Plaza Hotel Miami Beach 1.jpg",
 			"building": "hotel"
 		},
@@ -191,8 +191,8 @@
 			],
 			"year": 1947,
 			"architect": "B. Robert Swartburg",
-			"colour": "#DCE0DF",
-			"colour_source": "measured in File:Marseilles Hotel Miami Beach Swartburg.jpg (2021, Barmych, CC BY-SA 4.0; wall 45% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#DCDFDF",
+			"colour_source": "measured in File:Marseilles Hotel Miami Beach Swartburg.jpg (2021, Barmych, CC BY-SA 4.0; wall 43% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - Marseilles Hotel 01.jpg|Marseilles Hotel Miami Beach Swartburg.jpg",
 			"building": "hotel"
 		},

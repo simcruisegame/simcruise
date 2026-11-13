@@ -1,7 +1,7 @@
 {
 	"tile": "18180_27908",
-	"fetched": "2026-11-12T22:33:37.215Z",
-	"sources": "overpass:139 wikidata:68 photos photos photos photos",
+	"fetched": "2026-11-13T00:45:40.514Z",
+	"sources": "overpass:139 wikidata:68 photos photos photos photos photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -16,7 +16,7 @@
 			"year": 1931,
 			"architect": "Henry J. Moloney",
 			"colour": "#B8B0A3",
-			"colour_source": "measured in File:Miami Beach - Hotel Shelly.jpg (2021, P. Hughes, CC BY-SA 4.0; wall 42% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:Miami Beach - Hotel Shelly.jpg (2021, P. Hughes, CC BY-SA 4.0; wall 43% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - Hotel Shelly.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
@@ -55,8 +55,8 @@
 			],
 			"year": 1941,
 			"architect": "Albert Anis",
-			"colour": "#D5D1CB",
-			"colour_source": "measured in File:Miami Beach - Majestic Hotel (2020).jpg (2020, P. Hughes, CC BY-SA 4.0; wall 45% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#D5D0CB",
+			"colour_source": "measured in File:Miami Beach - Majestic Hotel (2020).jpg (2020, P. Hughes, CC BY-SA 4.0; wall 51% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - Majestic Hotel.jpg|Miami Beach - Majestic Hotel (2020).jpg",
 			"building": "hotel",
 			"amenity": "hotel"
@@ -121,8 +121,8 @@
 			"year": 1938,
 			"architect": "Henry Hohauser",
 			"heritage": "National Register of Historic Places contributing property",
-			"colour": "#F0E5DA",
-			"colour_source": "measured in File:Park Central Hotel (Miami Beach).jpg (2014, Visitor7, CC BY-SA 3.0; wall 26% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#EFE5DA",
+			"colour_source": "measured in File:Park Central Hotel (Miami Beach).jpg (2014, Visitor7, CC BY-SA 3.0; wall 25% of the facade band); wall pixels found by the local scene parser",
 			"image": "Park Central Hotel (Miami Beach).jpg|Miami Beach 0- Park Central Hotel.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
@@ -194,7 +194,7 @@
 			"year": 1941,
 			"architect": "Albert Anis",
 			"colour": "#F2EFE8",
-			"colour_source": "measured in File:Miami Beach - Avalon Hotel (2011).jpg (2011, P. Hughes, CC BY-SA 4.0; wall 34% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:Miami Beach - Avalon Hotel (2011).jpg (2011, P. Hughes, CC BY-SA 4.0; wall 37% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - The Avalon Hotel 01.jpg|Miami Beach - Avalon Hotel (2011).jpg",
 			"building": "hotel",
 			"amenity": "hotel"
@@ -210,8 +210,8 @@
 			],
 			"year": 1937,
 			"architect": "Harry O. Nelson",
-			"colour": "#DFDDD9",
-			"colour_source": "measured in File:Miami Beach - Beacon Hotel.jpg (2020, P. Hughes, CC BY-SA 4.0; wall 62% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#DEDBD8",
+			"colour_source": "measured in File:Miami Beach - Beacon Hotel.jpg (2020, P. Hughes, CC BY-SA 4.0; wall 63% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - Beacon Hotel.jpg|Miami Beach - Beacon Hotel (1949) 01.jpg",
 			"levels": 5,
 			"building": "hotel",
@@ -229,7 +229,7 @@
 			"year": 1950,
 			"architect": "August Swarz",
 			"colour": "#E0E0DD",
-			"colour_source": "measured in File:Boulevard Hotel South Beach 1950.jpg (2018, Phillip Pessar, CC BY 2.0; wall 47% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:Boulevard Hotel South Beach 1950.jpg (2018, Phillip Pessar, CC BY 2.0; wall 51% of the facade band); wall pixels found by the local scene parser",
 			"image": "Boulevard Hotel South Beach 1950.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
@@ -286,8 +286,8 @@
 			"year": 1937,
 			"architect": "Albert Anis",
 			"heritage": "National Register of Historic Places contributing property",
-			"colour": "#9D9598",
-			"colour_source": "measured in File:Waldorf Towers (Miami Beach)-1.jpg (2014, Visitor7, CC BY-SA 3.0; wall 29% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#818995",
+			"colour_source": "measured in File:Waldorf Towers (Miami Beach)-1.jpg (2014, Visitor7, CC BY-SA 3.0; wall 22% of the facade band); wall pixels found by the local scene parser",
 			"image": "Waldorf Towers (Miami Beach)-1.jpg|Miami Beach - Waldorf Towers Hotel (1950) 01.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
@@ -344,8 +344,8 @@
 			"year": 1939,
 			"architect": "Anton Skislewicz",
 			"heritage": "National Register of Historic Places contributing property",
-			"colour": "#E9ECE8",
-			"colour_source": "measured in File:Breakwater Ocean Drive.jpg (2016, Gzzz, CC BY-SA 4.0; wall 25% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#E8ECE7",
+			"colour_source": "measured in File:Breakwater Ocean Drive.jpg (2016, Gzzz, CC BY-SA 4.0; wall 35% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - Breakwater Hotel.jpg|Breakwater Ocean Drive.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
@@ -449,7 +449,7 @@
 			"wikidata": "Q2178180",
 			"year": 1986,
 			"colour": "#E6E6DB",
-			"colour_source": "measured in File:Wolfsonian FL1.jpg (2012, Acroterion, CC BY-SA 4.0; wall 85% of the facade band); wall pixels found by the local scene parser",
+			"colour_source": "measured in File:Wolfsonian FL1.jpg (2012, Acroterion, CC BY-SA 4.0; wall 80% of the facade band); wall pixels found by the local scene parser",
 			"image": "Wolfsonian FL1.jpg"
 		},
 		{
@@ -526,8 +526,8 @@
 			],
 			"year": 1938,
 			"architect": "Albert Anis",
-			"colour": "#D8D9D1",
-			"colour_source": "measured in File:Miami Beach - Clevelander Hotel.jpg (2021, P. Hughes, CC BY-SA 4.0; wall 59% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#D8D9D2",
+			"colour_source": "measured in File:Miami Beach - Clevelander Hotel.jpg (2021, P. Hughes, CC BY-SA 4.0; wall 60% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - The Clevelander Hotel 01.jpg|Miami Beach - Clevelander Hotel.jpg",
 			"building": "hotel"
 		},
@@ -811,8 +811,8 @@
 			],
 			"year": 1941,
 			"architect": "Albert Anis",
-			"colour": "#90867E",
-			"colour_source": "measured in File:Miami Beach - Viscay Hotel.jpg (2024, P. Hughes, CC BY 4.0; wall 42% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#988E83",
+			"colour_source": "measured in File:Miami Beach - Viscay Hotel.jpg (2024, P. Hughes, CC BY 4.0; wall 45% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - Viscay Hotel.jpg",
 			"building": "hotel"
 		},
@@ -862,8 +862,8 @@
 				"Gothic Revival"
 			],
 			"year": 1926,
-			"colour": "#E8E4DB",
-			"colour_source": "measured in File:Miami Beach - South Beach buildings - Fat Tuesday.jpg (2017, Daniel Di Palma, CC BY-SA 4.0; wall 38% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#E9E4DB",
+			"colour_source": "measured in File:Miami Beach - South Beach buildings - Fat Tuesday.jpg (2017, Daniel Di Palma, CC BY-SA 4.0; wall 43% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Beach - South Beach buildings - Fat Tuesday.jpg"
 		},
 		{
@@ -898,8 +898,8 @@
 			"style": [
 				"Art Deco"
 			],
-			"colour": "#E2EAF2",
-			"colour_source": "measured in File:Miami Design Preservation League 1001 Ocean Drive Miami Beach FL 33139 USA.jpg (2024, Spudgun67, CC0; wall 46% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#8F9294",
+			"colour_source": "measured in File:Miami Design Preservation League 1001 Ocean Drive Miami Beach FL 33139 USA.jpg (2024, Spudgun67, CC0; wall 52% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami Design Preservation League 1001 Ocean Drive Miami Beach FL 33139 USA.jpg"
 		},
 		{
@@ -924,8 +924,8 @@
 			"year": 1934,
 			"architect": "Robert A. Taylor",
 			"heritage": "National Register of Historic Places contributing property",
-			"colour": "#B5BBC5",
-			"colour_source": "measured in File:Miami South Beach - Beach Patrol Headquarters.JPG (2011, Paolo Bernabei, CC BY-SA 3.0; wall 65% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#C8C8C5",
+			"colour_source": "measured in File:Miami South Beach - Beach Patrol Headquarters.JPG (2011, Paolo Bernabei, CC BY-SA 3.0; wall 54% of the facade band); wall pixels found by the local scene parser",
 			"image": "Miami South Beach - Beach Patrol Headquarters.JPG"
 		},
 		{

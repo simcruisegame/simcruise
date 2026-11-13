@@ -4,6 +4,7 @@ Notable changes to SimCruise, newest first. The format follows [Keep a Changelog
 
 ## Unreleased
 
+- **The scene parser has open terms** (`Live/SimCruiseSceneParser`, `scripts/ai/fetch_open_models.py`) — the parser that finds the wall pixels in a building's photograph now runs the semantic head of Detectron2's Panoptic FPN (Apache 2.0, trained on COCO with CC BY 4.0 labels) instead of a Cityscapes model (non-commercial), which is removed. It tells building, house, roof, wall, window, sky, tree, grass, road, pavement and objects apart (windows and doors never count as wall) in 1.5-2.7 s on the CPU, and sees the sky better: on the Stardust Hotel photo the old model took a patch of blue sky for wall. Re-measured on the Miami Beach start tiles: 69 walls measured (62 before); the Regal Cinema is grey again and the Villa Casa Casuarina its cream stucco. The 120 MB model is a development tool fetched into `Saved/AI`, not committed and not shipped.
 ## SimCruise 2.0.1 (2026-11-13)
 
 A patch release after the first play of 2.0.0 ("field of views were off, too bright, traffic was bad, didn't look real"). Windows installer and zip as before.

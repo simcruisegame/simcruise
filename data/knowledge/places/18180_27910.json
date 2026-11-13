@@ -1,7 +1,7 @@
 {
 	"tile": "18180_27910",
-	"fetched": "2026-11-12T22:33:43.918Z",
-	"sources": "overpass:49 wikidata:21 photos photos photos photos",
+	"fetched": "2026-11-13T00:45:48.846Z",
+	"sources": "overpass:49 wikidata:21 photos photos photos photos photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -38,8 +38,8 @@
 			"name": "Continuum on South Beach I",
 			"osm": "way/301906634",
 			"wikidata": "Q2995687",
-			"colour": "#9DB2B3",
-			"colour_source": "measured in File:Continuum Tower South Beach.jpg (2008, , CC BY-SA 1.0; wall 25% of the facade band); wall pixels found by the local scene parser",
+			"colour": "#868459",
+			"colour_source": "measured in File:Continuum Tower South Beach.jpg (2008, , CC BY-SA 1.0; wall 24% of the facade band); wall pixels found by the local scene parser",
 			"image": "Continuum Tower South Beach.jpg",
 			"levels": 40,
 			"building": "apartments"
