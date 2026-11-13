@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Builds SimCruise and runs its automation tests; exits 1 if anything failed.
 
@@ -13,6 +13,12 @@
 .PARAMETER Filter
   Test path prefix (default SimCruise; for example SimCruise.Vehicle or SimCruise.Audio).
 
+.PARAMETER Slots
+  How many headless test runs may run at once on this PC (1 to 3). Default: $env:SIMCRUISE_TEST_SLOTS,
+  else what the free memory allows (free GB minus 8, divided by one test editor's peak).
+  Test runs start without the MCP plugins and with -nullrhi, so they use neither port 8000
+  nor the GPU and do not wait for the one-editor lock that play tests and MCP sessions hold.
+
 .PARAMETER NoBuild
   Skip the build (the editor binaries must be current).
 
@@ -23,9 +29,9 @@
   Stop the test run (the editor and its children) after this many minutes and fail (default 20).
 
 .PARAMETER LockTimeoutMinutes
-  How long to wait for another SimCruise editor run on this PC to finish (default 60).
-  Builds queue on Unreal Build Tool's own mutex (-WaitMutex); the test run takes the
-  one-editor lock in scripts\EditorLock.ps1, so checks from several worktrees take turns.
+  How long to wait for a free headless test slot on this PC (default 60).
+  Builds queue on Unreal Build Tool's own mutex (-WaitMutex); the test run takes one of
+  the headless slots in scripts\EditorLock.ps1, so checks from several worktrees share them.
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts\check.ps1
@@ -33,6 +39,7 @@
 #>
 param(
     [string]$Filter = 'SimCruise',
+    [int]$Slots = 0,
     [switch]$NoBuild,
     [string]$EngineDir = $(if ($env:UE_ROOT) { $env:UE_ROOT } else { 'C:\Program Files\Epic Games\UE_5.8' }),
     [int]$TimeoutMinutes = 20,
@@ -76,12 +83,15 @@ $LogName = 'SimCruiseChecks.log'
 $Log = Join-Path $Root "Saved\Logs\$LogName"
 if (Test-Path $Log) { Remove-Item $Log -Force }
 $LockStart = Get-Date
-if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "tests on $Root")) { $Timing.LockWait = ((Get-Date) - $LockStart).TotalSeconds; Write-CheckTime 'lock-timeout'; exit 1 }
+$Timing.Slots = Get-HeadlessSlotCount -Requested $Slots
+if (-not (Enter-HeadlessSlot -Slots $Timing.Slots -TimeoutMinutes $LockTimeoutMinutes -Why "tests on $Root")) { $Timing.LockWait = ((Get-Date) - $LockStart).TotalSeconds; Write-CheckTime 'lock-timeout'; exit 1 }
 $Timing.LockWait = ((Get-Date) - $LockStart).TotalSeconds
 $TestStart = Get-Date
 try {
     Write-Host "Running automation tests: $Filter"
-    $ArgLine = "`"$Project`" `"-ExecCmds=Automation RunTests $Filter;Quit`" -unattended -nopause -nullrhi -nosplash `"-log=$LogName`" `"-testexit=Automation Test Queue Empty`""
+    # Without the MCP plugins the test editor never listens on port 8000 (the main checkout's
+    # user settings auto-start the server), so it can run beside an MCP session.
+    $ArgLine = "`"$Project`" `"-ExecCmds=Automation RunTests $Filter;Quit`" -unattended -nopause -nullrhi -nosplash -DisablePlugins=ModelContextProtocol `"-log=$LogName`" `"-testexit=Automation Test Queue Empty`""
     $P = Start-Process -FilePath $Editor -ArgumentList $ArgLine -PassThru -WindowStyle Hidden
     # Wait in short steps to sample the editor's peak memory (working set) on the way.
     $Deadline = $TestStart.AddMinutes($TimeoutMinutes)
@@ -99,7 +109,7 @@ try {
     $Timing.Test = ((Get-Date) - $TestStart).TotalSeconds
     $Timing.PeakGB = [math]::Round($Peak / 1GB, 1)
 }
-finally { Exit-EditorLock }
+finally { Exit-HeadlessSlot }
 if (-not (Test-Path $Log)) { Write-Host "No log at ${Log}: the editor did not run."; Write-CheckTime 'no-log'; exit 1 }
 
 $Lines = Get-Content $Log
