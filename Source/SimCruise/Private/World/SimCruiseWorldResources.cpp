@@ -31,6 +31,7 @@
 #include "Materials/MaterialExpressionFontSampleParameter.h"
 #include "Engine/Font.h"
 #include "Materials/MaterialExpressionLocalPosition.h"
+#include "Materials/MaterialExpressionPixelDepth.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionTextureObjectParameter.h"
@@ -117,6 +118,70 @@ float3 led = classColor * lerp(1.0, clamp(sl / classL, 0.6, 1.6), 0.35);
 float lead = saturate(0.8 * veg + 0.7 * sand);
 float3 baseColor = Cell.z > 0.5 ? lerp(shot, led, lead) : classColor;
 float3 grass = g1 * lerp(1.0, g2, 0.5);
+// Grass field (docs/research/world-detail-methods.md): a lawn is not one photograph. Three
+// sizes the eye reads: no-repeat micro texture (hex tiling: three rotated, offset lookups),
+// meso variation (clumps 0.3-1 m, patches of yellower or bluer grass 2-8 m, clover, dry
+// patches), and near the car real depth: eight shells of procedural blades marched in the
+// pixel, so blades stand up, hide each other and shade their own bases. All ALU; the
+// meso field keeps the mean, so the colour the photograph and the grade set does not move.
+if (GrassField > 0.5 && veg > 0.01)
+{
+	struct FGF
+	{
+		float H(float2 p, float s) { return frac(sin(dot(p, float2(127.1, 311.7)) + s * 74.7) * 43758.5453); }
+		float N(float2 p, float s)
+		{
+			float2 i = floor(p), f = frac(p), u = f * f * (3.0 - 2.0 * f);
+			float a = H(i, s), b = H(i + float2(1, 0), s), c = H(i + float2(0, 1), s), d = H(i + float2(1, 1), s);
+			return a + (b - a) * u.x + (c - a) * u.y + (a - b - c + d) * u.x * u.y;
+		}
+		float F(float2 p, float s) { return (N(p, s) * 0.571 + N(p * 2.03 + 1.7, s + 1) * 0.286 + N(p * 4.1 + 9.2, s + 2) * 0.143); }
+	} gf;
+	float2 gm = m - floor(m / 512.0) * 512.0; // small numbers keep the sine hash exact (one seam per 512 m)
+	// micro: hex tiling of the CC0 grass photograph at 1.7 m
+	float2 q = gm / 1.7;
+	float2 sk = float2(q.x * 1.1547, q.y + 0.57735 * q.x);
+	float2 hexBase = floor(sk), fr = frac(sk);
+	float3 acc = 0.0; float wsum = 0.0, w2 = 0.0;
+	[unroll] for (int k = 0; k < 3; ++k)
+	{
+		float2 cc = hexBase + (k == 0 ? float2(0, 0) : (k == 1 ? float2(1, 0) : float2(0, 1)));
+		if (fr.x + fr.y > 1.0) cc = hexBase + (k == 0 ? float2(1, 1) : (k == 1 ? float2(1, 0) : float2(0, 1)));
+		float2 cq = float2(cc.x / 1.1547, cc.y - 0.5 * cc.x);
+		float w = pow(saturate(1.0 - 0.95 * length(q - cq)), 3.0);
+		float an = gf.H(cc, 3.0) * 6.2832;
+		float2 r = float2(q.x * cos(an) - q.y * sin(an), q.x * sin(an) + q.y * cos(an)) + float2(gf.H(cc, 5.0), gf.H(cc, 7.0));
+		acc += w * Texture2DSampleGrad(Grass, GrassSampler, r, ddx(q), ddy(q)).rgb / max(GrassMean.rgb, 0.001);
+		wsum += w; w2 += w * w;
+	}
+	float3 micro = acc / max(wsum, 1e-4);
+	micro = 1.0 + (micro - 1.0) * wsum / max(sqrt(w2), 1e-4) * 0.8; // keep the contrast blending would lose
+	// meso: clumps, patches, clover, dry patches (GrassDry from the season; 0 = growing)
+	float clump = gf.F(gm * 2.2, 11.0), gpatch = gf.F(gm / 5.0, 23.0);
+	float clover = saturate((gf.F(gm * 3.0, 41.0) - 0.70) * 12.0);
+	float dry = saturate((gf.F(gm / 7.0, 31.0) - (0.62 - 0.25 * GrassDry)) * 3.0) * max(GrassDry, 0.15);
+	float3 meso = (0.78 + 0.44 * clump) * lerp(float3(1, 1, 1), float3(1.25, 1.08, 1.15), gpatch * 0.6);
+	meso = lerp(meso, float3(0.7, 0.8, 0.6), clover);
+	meso = lerp(meso, float3(2.6, 1.6, 2.4), dry);
+	grass = micro * meso;
+	// nearW: parallax blade shells within 22 m
+	float nearW = saturate((2200.0 - Depth) / 400.0);
+	if (nearW > 0.0)
+	{
+		float3 dir = -CV;                     // camera to surface (world = tile axes)
+		float2 slope = dir.xy / min(dir.z, -0.02) * 0.01; // metres sideways per cm of height
+		float Hb = 8.0 * (1.0 + 0.4 * GrassDry);  // blade height, cm
+		float shade = 0.35; bool hit = false;
+		[unroll] for (int s = 0; s < 8; ++s)
+		{
+			float z = Hb * (1.0 - (s + 0.5) / 8.0);
+			float2 pz = gm + slope * z;
+			float dens = gf.N(pz * 40.0, 61.0) * 0.75 + gf.N(float2(pz.x * 90.0, pz.y * 13.0), 62.0) * 0.25 + clump * 0.3 - 0.1;
+			if (!hit && dens > 0.35 + 0.6 * z / Hb) { shade = 0.35 + 0.75 * z / Hb; hit = true; }
+		}
+		grass *= lerp(1.0, shade * 1.25, nearW);
+	}
+}
 float3 detail = (p1 * lerp(1.0, p2, 0.4)) * (bare + paved) + grass * veg + s1 * lerp(1.0, s2, 0.6) * sand;
 float dl = dot(detail, W);
 float3 hue = lerp(float3(1.0, 1.0, 1.0), detail / max(dl, 0.001), 0.3 * veg + 0.15 * sand);
@@ -562,6 +627,10 @@ return col;
 			AddInput(Custom, TEXT("GrassMean"), VectorParam(Material, TEXT("GrassMean"), FLinearColor(0.2f, 0.2f, 0.2f)));
 			AddInput(Custom, TEXT("SandMean"), VectorParam(Material, TEXT("SandMean"), FLinearColor(0.2f, 0.2f, 0.2f)));
 			AddInput(Custom, TEXT("GrainMean"), VectorParam(Material, TEXT("GrainMean"), FLinearColor(0.2f, 0.2f, 0.2f)));
+			AddInput(Custom, TEXT("GrassField"), ScalarParam(Material, TEXT("GrassField"), 0.f));
+			AddInput(Custom, TEXT("GrassDry"), ScalarParam(Material, TEXT("GrassDry"), 0.f));
+			AddInput(Custom, TEXT("CV"), AddExpression<UMaterialExpressionCameraVectorWS>(Material));
+			AddInput(Custom, TEXT("Depth"), AddExpression<UMaterialExpressionPixelDepth>(Material));
 			break;
 		case ESimCruiseTileLayer::Asphalt:
 			Custom->Code = AsphaltCode;
