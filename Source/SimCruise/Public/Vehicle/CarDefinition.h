@@ -176,7 +176,8 @@ struct FSimCruiseCarDefinition
 	double EnginePumpingTorqueNm = 0.0;
 	double EnginePumpingTorqueNmPerRpm = 0.0;
 	/** How fast the throttle plate's flow saturates (SimCruiseDynamics::EngineLoad): 0 = pedal is load; 3 = a light pedal gives 70 % load at 1500 rpm, 35 % at 6000. */
-	double ThrottleProgression = 3.0;
+	// 0 until the trigger curve is retuned with it: at 3 a 70 % trigger gave 96 % load at launch revs.
+	double ThrottleProgression = 0.0;
 	double MinimumAutomaticEngineSpeedRadPerSecond = 78.0;
 	double MaximumEngineSpeedRadPerSecond = 750.0;
 	double StallEngineSpeedRadPerSecond = 35.0;

@@ -655,7 +655,6 @@ bool FSimCruiseHudRulesTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-#endif // WITH_DEV_AUTOMATION_TESTS
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseSeatRangeTest, "SimCruise.Gameplay.Camera.SeatRange", Flags)
 bool FSimCruiseSeatRangeTest::RunTest(const FString& Parameters)
@@ -677,3 +676,5 @@ bool FSimCruiseSeatRangeTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("no view angle is the lens's"), Seat.FovDeg, 0.0);
 	return true;
 }
+
+#endif // WITH_DEV_AUTOMATION_TESTS

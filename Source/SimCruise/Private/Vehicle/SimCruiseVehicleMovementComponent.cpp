@@ -49,6 +49,11 @@ struct FSimCruiseVehiclePhysicsState
 	FVector3d InertiaKgCm2 = FVector3d::OneVector;
 	/** Times the physics thread put back mass properties the game thread had recomputed. */
 	int32 MassPropertyRestores = 0;
+	/** The last step's body velocity, for the contact guard; the number of steps it held. */
+	bool bHaveLastVelocity = false;
+	FVector3d LastVelocityMps = FVector3d::ZeroVector;
+	FVector3d LastAngularRadPerSecond = FVector3d::ZeroVector;
+	int32 VelocityClamps = 0;
 	/** Water on the road, 0 dry .. 1 soaked (the environment's live rain), set from the game thread. */
 	float RoadWetness = 0.f;
 	/** The air: density (kg/m3) and wind at the car's height (m/s, world axes). */
@@ -215,9 +220,45 @@ static void StepVehicleOnPhysicsThread(FSimCruiseVehiclePhysicsState& S, double 
 		Handle->SetW(FVector3d::ZeroVector);
 		S.Sim.ResetState();
 		S.bPendingReset = false;
+		S.bHaveLastVelocity = false;
 	}
 
 	FSimCruiseBodyState Body = ReadBody(*Handle);
+	// A contact the solver resolves badly (the body box pressed into another car's) can hand the
+	// car a speed no collision gives: 21 mph to 249 mph in a frame. Speed may fall as fast as it
+	// likes (a crash), but in one step it may rise by no more than 0.5 m/s and 6 g, and the spin
+	// by 1 rad/s plus 30 rad/s^2, to at most 12 rad/s; otherwise the last step's is kept.
+	if (S.bHaveLastVelocity)
+	{
+		const double Dt = FMath::Max(DeltaTimeS, 1e-4);
+		const double MaxSpeed = S.LastVelocityMps.Size() + 0.5 + 6.0 * 9.80665 * Dt;
+		const double Speed = Body.LinearVelocityMps.Size();
+		const double MaxSpin = FMath::Min(S.LastAngularRadPerSecond.Size() + 1.0 + 30.0 * Dt, 12.0);
+		const double Spin = Body.AngularVelocityRadPerSecond.Size();
+		bool bClamped = false;
+		if (Speed > MaxSpeed)
+		{
+			Body.LinearVelocityMps *= MaxSpeed / Speed;
+			bClamped = true;
+		}
+		if (Spin > MaxSpin)
+		{
+			Body.AngularVelocityRadPerSecond *= MaxSpin / Spin;
+			bClamped = true;
+		}
+		if (bClamped)
+		{
+			WriteBody(*Handle, Body);
+			if (S.VelocityClamps++ == 0)
+			{
+				UE_LOG(LogSimCruiseVehicle, Warning, TEXT("%s: a contact gave the car %.1f m/s and %.1f rad/s in one step; held to %.1f m/s, %.1f rad/s"),
+					*S.Sim.GetCar().Id, Speed, Spin, Body.LinearVelocityMps.Size(), Body.AngularVelocityRadPerSecond.Size());
+			}
+		}
+	}
+	S.bHaveLastVelocity = true;
+	S.LastVelocityMps = Body.LinearVelocityMps;
+	S.LastAngularRadPerSecond = Body.AngularVelocityRadPerSecond;
 	const double ForwardSpeed = Body.LinearVelocityMps.Dot(Body.Rotation.RotateVector(FVector3d::UnitX()));
 	if (S.PendingManual >= 0)
 	{
@@ -249,6 +290,9 @@ static void StepVehicleOnPhysicsThread(FSimCruiseVehiclePhysicsState& S, double 
 		if (Context.bBodyStateChanged)
 		{
 			WriteBody(*Handle, Body);
+			// A bench or test that sets the speed is not a contact.
+			S.LastVelocityMps = Body.LinearVelocityMps;
+			S.LastAngularRadPerSecond = Body.AngularVelocityRadPerSecond;
 			Body.CenterOfMassM = Body.PositionM + Body.Rotation.RotateVector(SimCruiseUnits::ToSILength(FVector3d(Handle->CenterOfMass())));
 		}
 	}

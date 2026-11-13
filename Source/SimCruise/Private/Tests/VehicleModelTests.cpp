@@ -334,10 +334,12 @@ bool FSimCruiseVehicleModelDrivetrainTest::RunTest(const FString& Parameters)
 
 	// The throttle plate: full pedal is full load at any speed, none is none; a light pedal fills
 	// the cylinders far more at low speed than at high.
-	TestEqual(TEXT("full pedal is full load"), SimCruiseDynamics::EngineLoad(Car, 1.0, 2000.0), 1.0, 1.0e-9);
-	TestEqual(TEXT("no pedal is no load"), SimCruiseDynamics::EngineLoad(Car, 0.0, 2000.0), 0.0, 1.0e-9);
-	const double LightLow = SimCruiseDynamics::EngineLoad(Car, 0.2, 1500.0);
-	const double LightHigh = SimCruiseDynamics::EngineLoad(Car, 0.2, 6000.0);
+	FSimCruiseCarDefinition Plate;
+	Plate.ThrottleProgression = 3.0;
+	TestEqual(TEXT("full pedal is full load"), SimCruiseDynamics::EngineLoad(Plate, 1.0, 2000.0), 1.0, 1.0e-9);
+	TestEqual(TEXT("no pedal is no load"), SimCruiseDynamics::EngineLoad(Plate, 0.0, 2000.0), 0.0, 1.0e-9);
+	const double LightLow = SimCruiseDynamics::EngineLoad(Plate, 0.2, 1500.0);
+	const double LightHigh = SimCruiseDynamics::EngineLoad(Plate, 0.2, 6000.0);
 	AddInfo(FString::Printf(TEXT("THROTTLE pedal 0.2: load %.2f at 1500 rpm, %.2f at 6000"), LightLow, LightHigh));
 	TestTrue(TEXT("a light pedal at low revs is most of the torque"), LightLow > 0.6 && LightLow < 0.8);
 	TestTrue(TEXT("and much less at high revs"), LightHigh > 0.25 && LightHigh < 0.45);
