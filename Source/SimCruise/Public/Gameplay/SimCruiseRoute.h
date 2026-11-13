@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Dom/JsonValue.h"
+#include "Gameplay/SimCruiseSpeedUnits.h"
 
 /**
  * The GPS route: stops, the legs between them and the turns along each leg,
@@ -39,10 +40,13 @@ namespace SimCruiseRouteText
 	SIMCRUISE_API FString TurnVerb(ESimCruiseTurn Turn);
 	/** "Right onto 5th Street", "Continue on Collins Avenue", "Turn right" when the street has no name. */
 	SIMCRUISE_API FString Instruction(ESimCruiseTurn Turn, const FString& Street);
-	/** US road distance: feet under 0.1 mi (rounded to 10 ft, 50 ft from 500 ft), else miles. */
+	/** Road distance in the driver's units: feet under 0.1 mi (rounded to 10 ft, 50 ft from 500 ft), else miles;
+	 *  or metres under 1 km (10 m, 50 m from 500 m), else kilometres. */
 	SIMCRUISE_API FString Distance(double Metres);
 	/** Split as number and unit ("0.3", "mi") for the large HUD readout. */
 	SIMCRUISE_API void DistanceParts(double Metres, FString& OutNumber, FString& OutUnit);
+	/** The same in the given units: ft and mi, or m and km. DistanceParts uses the driver's units. */
+	SIMCRUISE_API void DistancePartsIn(double Metres, ESimCruiseSpeedUnits Units, FString& OutNumber, FString& OutUnit);
 	/** "4 min", "1 h 12 min". */
 	SIMCRUISE_API FString Duration(double Seconds);
 	/** A 12-hour clock: "6:51 PM". */

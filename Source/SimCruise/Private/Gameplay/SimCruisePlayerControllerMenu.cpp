@@ -114,6 +114,7 @@ FSimCruiseMenuState ASimCruisePlayerController::MenuState() const
 	Set(ESimCruiseMenuRow::Seat, FString())->bUnavailable = !bSeatMenuReady();
 	Set(ESimCruiseMenuRow::Sound, bSoundOn ? TEXT("On") : TEXT("Off"));
 	Set(ESimCruiseMenuRow::HudLevel, AfterDot(1));
+	Set(ESimCruiseMenuRow::SpeedUnits, SimCruiseSpeedUnits::Label(SimCruiseSpeedUnits::Get()))->Chosen = SimCruiseSpeedUnits::Get() == ESimCruiseSpeedUnits::Kmh ? 1 : 0;
 	const float Rumble = MenuVar(TEXT("simcruise.Rumble.Strength"));
 	Set(ESimCruiseMenuRow::Rumble, FString::FromInt(FMath::RoundToInt(Rumble * 100.f)), TEXT("%"), Along(RumbleLadder(), Rumble), 1.f);
 	const float Steer = MenuVar(TEXT("simcruise.Pad.SteerSpeed"));
@@ -194,6 +195,12 @@ void ASimCruisePlayerController::MenuAction(ESimCruiseMenuRow Row, int32 Dir)
 	case ESimCruiseMenuRow::EyeDistance: StepLadder(TEXT("simcruise.Lens.ViewDistanceCm"), EyeLadder(), Dir, -1.f, TEXT("view_distance_cm"), 1.f); break;
 	case ESimCruiseMenuRow::Sound: OnToggleSound(); break;
 	case ESimCruiseMenuRow::HudLevel: OnCycleHud(); break;
+	case ESimCruiseMenuRow::SpeedUnits:
+		// Left picks mph, right km/h, A switches.
+		if ((Dir < 0 && SimCruiseSpeedUnits::Get() == ESimCruiseSpeedUnits::Mph) || (Dir > 0 && SimCruiseSpeedUnits::Get() == ESimCruiseSpeedUnits::Kmh)) break;
+		SimCruiseSpeedUnits::Toggle();
+		ShowMessage(FString::Printf(TEXT("Speed in %s"), SimCruiseSpeedUnits::Label(SimCruiseSpeedUnits::Get())), 2.f);
+		break;
 	case ESimCruiseMenuRow::Rumble: StepLadder(TEXT("simcruise.Rumble.Strength"), RumbleLadder(), Dir, 1.f, TEXT("rumble"), 100.f); break;
 	case ESimCruiseMenuRow::StickSpeed: StepLadder(TEXT("simcruise.Pad.SteerSpeed"), SteerLadder(), Dir, 1.f, TEXT("pad_steer_speed"), 100.f); break;
 	case ESimCruiseMenuRow::StickDeadZone: StepLadder(TEXT("simcruise.Pad.SteerDeadZone"), DeadLadder(), Dir, 0.f, TEXT("pad_steer_dead_zone"), 100.f); break;
@@ -255,7 +262,7 @@ void ASimCruisePlayerController::OpenFamousRoads()
 		Item.Icon = SimCruiseTheme::EIcon::Star;
 		Item.Title = Road.Title;
 		Item.Note = Road.Note;
-		Item.Value = FString::Printf(TEXT("%.1f mi"), Road.LengthMi);
+		Item.Value = SimCruiseRouteText::Distance(Road.LengthMi * 1609.344);
 		Items.Add(Item);
 	}
 	TSharedRef<SSimCruiseListMenu> List = SNew(SSimCruiseListMenu)

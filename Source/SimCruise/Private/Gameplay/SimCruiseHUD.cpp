@@ -15,6 +15,7 @@
 #include "Gameplay/SimCruisePlayerCameraManager.h"
 #include "Gameplay/SimCruiseGameMode.h"
 #include "Gameplay/SimCruisePlayerController.h"
+#include "Gameplay/SimCruiseVehicleControl.h"
 #include "World/SimCruiseTileBuilder.h"
 #include "World/SimCruiseWorldStreamer.h"
 #include "World/SimCruiseWorldTile.h"
@@ -48,6 +49,18 @@ namespace SimCruiseHudRules
 		const float Target = bAwake ? 1.f : GlanceFaded;
 		return Current + (Target - Current) * (1.f - FMath::Exp(-DeltaTimeS / GlanceFadeS));
 	}
+}
+
+FSimCruiseHudReadout FSimCruiseHudReadout::From(const FSimCruiseDriveTelemetry& Telemetry, ESimCruiseSpeedUnits Units)
+{
+	// BodyVelocityMps is in the body frame, so X is the ground speed along the car (sign: reverse).
+	const double AlongCarMps = Telemetry.BodyVelocityMps.X;
+	FSimCruiseHudReadout Out;
+	Out.Units = Units;
+	Out.Speed = SimCruiseSpeedUnits::Shown(AlongCarMps, Units);
+	Out.Mph = SimCruiseSpeedUnits::Shown(AlongCarMps, ESimCruiseSpeedUnits::Mph);
+	Out.Rpm = SimCruiseSpeedUnits::ShownRpm(Telemetry.EngineSpeedRpm);
+	return Out;
 }
 
 namespace
@@ -104,7 +117,8 @@ void ASimCruiseHUD::SampleVehicle(float DeltaTimeS)
 	}
 	const FSimCruiseDriveTelemetry& Telemetry = Controller->GetTelemetry();
 	const FSimCruiseVehicleSetup& Setup = Controller->GetCachedVehicleSetup();
-	Mph = FMath::RoundToInt(FMath::Abs(Telemetry.BodyVelocityMps.X) * 2.236936);
+	Readout = FSimCruiseHudReadout::From(Telemetry, SimCruiseSpeedUnits::Get());
+	Mph = Readout.Mph;
 	Gear = Telemetry.Gear;
 	bManual = Telemetry.bManualTransmission;
 	Rpm = Telemetry.EngineSpeedRpm;
@@ -373,10 +387,10 @@ void ASimCruiseHUD::DrawGlance(float Scale, float DeltaTimeS)
 	Canvas->DrawItem(Panel);
 
 	const float NumberRight = X + 116.f * Scale;
-	DrawTextAt(FString::FromInt(Mph), true, 32.f * Scale, NumberRight, Y + 8.f * Scale, WithAlpha(Paper, Alpha), true);
-	DrawTextAt(TEXT("MPH"), false, 10.f * Scale, NumberRight + 8.f * Scale, Y + 17.f * Scale, WithAlpha(Lime, Alpha));
+	DrawTextAt(FString::FromInt(Readout.Speed), true, 32.f * Scale, NumberRight, Y + 8.f * Scale, WithAlpha(Paper, Alpha), true);
+	DrawTextAt(FString(SimCruiseSpeedUnits::Label(Readout.Units)).ToUpper(), false, 10.f * Scale, NumberRight + 8.f * Scale, Y + 17.f * Scale, WithAlpha(Lime, Alpha));
 	DrawTextAt(SimCruiseHudRules::GearText(Gear, bManual), true, 13.f * Scale, NumberRight + 8.f * Scale, Y + 34.f * Scale, WithAlpha(Paper, Alpha));
-	DrawTextAt(FString::Printf(TEXT("%d rpm"), FMath::RoundToInt(Rpm / 10.0) * 10), false, 10.f * Scale, X + 16.f * Scale, Y + H - 34.f * Scale, WithAlpha(Dim, Alpha));
+	DrawTextAt(FString::Printf(TEXT("%d rpm"), Readout.Rpm), false, 10.f * Scale, X + 16.f * Scale, Y + H - 34.f * Scale, WithAlpha(Dim, Alpha));
 	if (bAbs)
 	{
 		DrawTextAt(TEXT("ABS"), true, 10.f * Scale, NumberRight + 52.f * Scale, Y + 36.f * Scale, WithAlpha(Amber, Alpha));
@@ -394,12 +408,12 @@ void ASimCruiseHUD::DrawFull(float Scale)
 	Canvas->DrawItem(Strip);
 
 	const float NumberRight = 150.f * Scale;
-	DrawTextAt(FString::FromInt(Mph), true, 36.f * Scale, NumberRight, Y + 12.f * Scale, Paper, true);
-	DrawTextAt(TEXT("MPH"), false, 11.f * Scale, NumberRight + 10.f * Scale, Y + 22.f * Scale, Lime);
+	DrawTextAt(FString::FromInt(Readout.Speed), true, 36.f * Scale, NumberRight, Y + 12.f * Scale, Paper, true);
+	DrawTextAt(FString(SimCruiseSpeedUnits::Label(Readout.Units)).ToUpper(), false, 11.f * Scale, NumberRight + 10.f * Scale, Y + 22.f * Scale, Lime);
 	DrawTextAt(SimCruiseHudRules::GearText(Gear, bManual), true, 15.f * Scale, NumberRight + 10.f * Scale, Y + 42.f * Scale, Paper);
 
 	const float BarX = 250.f * Scale;
-	DrawTextAt(FString::Printf(TEXT("%d rpm"), FMath::RoundToInt(Rpm / 10.0) * 10), false, 11.f * Scale, BarX, Y + 22.f * Scale, Paper);
+	DrawTextAt(FString::Printf(TEXT("%d rpm"), Readout.Rpm), false, 11.f * Scale, BarX, Y + 22.f * Scale, Paper);
 	DrawRpmBar(BarX, Y + 52.f * Scale, 300.f * Scale, 6.f * Scale, 1.f);
 
 	const ASimCruisePlayerController* Controller = Cast<ASimCruisePlayerController>(PlayerOwner);

@@ -219,7 +219,10 @@ void ASimCruiseDriveCapture::Tick(float DeltaSeconds)
 		const float Speed = static_cast<float>(Player->GetTelemetry().BodyVelocityMps.X);
 		float Throttle = 0.f;
 		float Brake = 0.f;
-		if (Clock > 7.6f && Clock <= 17.2f) { Throttle = 0.45f; }
+		// -SimCruiseDriveCaptureThrottle=0..1 drives harder for shots at speed (the HUD at 40-60 mph).
+		float CruiseThrottle = 0.45f;
+		FParse::Value(FCommandLine::Get(), TEXT("SimCruiseDriveCaptureThrottle="), CruiseThrottle);
+		if (Clock > 7.6f && Clock <= 17.2f) { Throttle = FMath::Clamp(CruiseThrottle, 0.f, 1.f); }
 		if (Clock > 17.2f && Speed > 0.3f) { Brake = 0.55f; }
 		Player->InjectAxis(EKeys::Gamepad_RightTriggerAxis, Throttle);
 		Player->InjectAxis(EKeys::Gamepad_LeftTriggerAxis, Brake);
@@ -255,6 +258,15 @@ void ASimCruiseDriveCapture::Tick(float DeltaSeconds)
 			if (TopCamera) { TopCamera->Destroy(); TopCamera = nullptr; }
 		}
 		if (Crossed(14.3f) && Hud) { Hud->SetLevel(ESimCruiseHudLevel::Glance); }
+		if (Hud && (Crossed(14.95f) || Crossed(16.55f)))
+		{
+			// What the HUD shows against the car: the speed along the body and the engine rpm.
+			const FSimCruiseHudReadout& Shown = Hud->GetReadout();
+			const FSimCruiseDriveTelemetry& T = Player->GetTelemetry();
+			UE_LOG(LogSimCruiseDriveCapture, Display, TEXT("DRIVECAPTURE HUD shows %d %s and %d rpm; the car: %.2f %s, engine %.0f rpm"),
+				Shown.Speed, SimCruiseSpeedUnits::Label(Shown.Units), Shown.Rpm,
+				FMath::Abs(SimCruiseSpeedUnits::FromMps(T.BodyVelocityMps.X, Shown.Units)), SimCruiseSpeedUnits::Label(Shown.Units), T.EngineSpeedRpm);
+		}
 		if (Crossed(15.0f)) { Shoot(TEXT("drive-cockpit-moving"), true); }
 		if (Crossed(15.1f) && Camera) { Camera->SetView(ESimCruiseView::Hood); }
 		if (Crossed(15.6f)) { Shoot(TEXT("drive-hood-moving"), true); }
@@ -266,9 +278,11 @@ void ASimCruiseDriveCapture::Tick(float DeltaSeconds)
 		if (MenusAt > 0.f)
 		{
 			if (Crossed(MenusAt + 1.5f)) { Shoot(TEXT("drive-seat-menu"), true); }
-			if (Crossed(MenusAt + 1.8f)) { Player->CloseOverlays(); Player->OpenRoadAtlas(); }
-			if (Crossed(MenusAt + 4.0f)) { Shoot(TEXT("drive-atlas"), true); }
-			if (Clock > MenusAt + 4.5f) { Player->CloseOverlays(); Finish(); }
+			if (Crossed(MenusAt + 1.6f)) { Player->OpenPauseMenu(3); }
+			if (Crossed(MenusAt + 2.6f)) { Shoot(TEXT("drive-settings-menu"), true); }
+			if (Crossed(MenusAt + 2.8f)) { Player->CloseOverlays(); Player->OpenRoadAtlas(); }
+			if (Crossed(MenusAt + 5.0f)) { Shoot(TEXT("drive-atlas"), true); }
+			if (Clock > MenusAt + 5.5f) { Player->CloseOverlays(); Finish(); }
 			break;
 		}
 		if (Clock > 18.0f && FMath::Abs(Speed) < 0.3f && FParse::Param(FCommandLine::Get(), TEXT("SimCruiseShowMenus")))

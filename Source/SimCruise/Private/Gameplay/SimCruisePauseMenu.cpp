@@ -105,6 +105,7 @@ const TArray<FRowInfo>& SSimCruisePauseMenu::Rows(int32 InPage)
 	static const TArray<FRowInfo> Settings = {
 		Row(ESimCruiseMenuRow::Sound, EKind::Value, EIcon::Sound, TEXT("Sound"), TEXT("The engine and the road"), TEXT("Turn the sound on or off.")),
 		Row(ESimCruiseMenuRow::HudLevel, EKind::Value, EIcon::Hud, TEXT("HUD"), TEXT("Off, Glance or Full"), TEXT("Glance shows the speed and fades while you cruise. Full shows all the readouts.")),
+		Row(ESimCruiseMenuRow::SpeedUnits, EKind::Segmented, EIcon::Hud, TEXT("Speed units"), TEXT(""), TEXT("The units of the speed on the HUD and of the GPS distances: mph and miles, or km/h and kilometres.")),
 		Row(ESimCruiseMenuRow::Rumble, EKind::Slider, EIcon::Rumble, TEXT("Rumble"), TEXT(""), TEXT("How strong the pad shakes for the tyres and the road.")),
 		Row(ESimCruiseMenuRow::StickSpeed, EKind::Slider, EIcon::Stick, TEXT("Stick steering speed"), TEXT(""), TEXT("How fast the wheels turn when you move the stick.")),
 		Row(ESimCruiseMenuRow::StickResponse, EKind::Value, EIcon::Stick, TEXT("Stick response"), TEXT("Linear, between or fine centre"), TEXT("Fine centre gives small steering near the middle of the stick.")),
@@ -233,7 +234,7 @@ TSharedRef<SWidget> SSimCruisePauseMenu::BuildPage(int32 P)
 		{
 			Widget = SNew(SSimCruiseSegmentedRow).Width(RowWidth).Focused(Focused).OnHover(Hover).OnClick(Click)
 				.Name(FText::FromString(Info.Title))
-				.Options({ TEXT("Natural"), TEXT("True FOV"), TEXT("Wide") })
+				.Options(R == ESimCruiseMenuRow::SpeedUnits ? TArray<FString>{ TEXT("mph"), TEXT("km/h") } : TArray<FString>{ TEXT("Natural"), TEXT("True FOV"), TEXT("Wide") })
 				.Chosen_Lambda([this, R]() { return ValueOf(R).Chosen; });
 		}
 		else
@@ -248,11 +249,12 @@ TSharedRef<SWidget> SSimCruisePauseMenu::BuildPage(int32 P)
 					return FText::FromString(V.Unit.IsEmpty() ? V.Text : V.Text + TEXT(" ") + V.Unit);
 				});
 		}
-		Column->AddSlot().AutoHeight().Padding(0, 0, 0, 14)[Widget.ToSharedRef()];
+		// Eight rows (Settings) sit closer so the list stays above the hints.
+		Column->AddSlot().AutoHeight().Padding(0, 0, 0, List.Num() > 7 ? 4 : 14)[Widget.ToSharedRef()];
 	}
 
 	TSharedRef<SOverlay> Layout = SNew(SOverlay)
-		+ SOverlay::Slot().HAlign(HAlign_Left).VAlign(VAlign_Top).Padding(70.f, 190.f, 0.f, 0.f)
+		+ SOverlay::Slot().HAlign(HAlign_Left).VAlign(VAlign_Top).Padding(70.f, List.Num() > 7 ? 150.f : 190.f, 0.f, 0.f)
 		[
 			Column
 		]

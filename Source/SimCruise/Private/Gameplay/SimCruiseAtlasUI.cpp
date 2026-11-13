@@ -1,6 +1,7 @@
 // Copyright SimCruise contributors. All Rights Reserved.
 
 #include "Gameplay/SimCruiseAtlasUI.h"
+#include "Gameplay/SimCruiseSpeedUnits.h"
 
 #include "Async/Async.h"
 #include "Atlas/SimCruiseAtlasClient.h"
@@ -942,7 +943,10 @@ int32 SSimCruiseRoadAtlas::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 	while (ScaleM * Scale < 55.0) ScaleM *= 2.0;
 	const FVector2D Bar(24.0, SizePx.Y - 28.0);
 	FSlateDrawElement::MakeLines(OutDrawElements, MarkLayer, AllottedGeometry.ToPaintGeometry(), TArray<FVector2f>{ FVector2f(Bar), FVector2f(Bar + FVector2D(ScaleM * Scale, 0)) }, ESlateDrawEffect::None, FLinearColor::White, true, 2.f);
-	const FString BarText = ScaleM >= 400.0 ? FString::Printf(TEXT("%.1f mi"), ScaleM / 1609.344) : FString::Printf(TEXT("%d ft"), FMath::RoundToInt(ScaleM * 3.28084));
+	const bool bMetric = SimCruiseSpeedUnits::Get() == ESimCruiseSpeedUnits::Kmh;
+	const FString BarText = bMetric
+		? (ScaleM >= 1000.0 ? FString::Printf(TEXT("%.1f km"), ScaleM / 1000.0) : FString::Printf(TEXT("%d m"), FMath::RoundToInt(ScaleM)))
+		: (ScaleM >= 400.0 ? FString::Printf(TEXT("%.1f mi"), ScaleM / 1609.344) : FString::Printf(TEXT("%d ft"), FMath::RoundToInt(ScaleM * 3.28084)));
 	FSlateDrawElement::MakeText(OutDrawElements, MarkLayer, AllottedGeometry.ToPaintGeometry(FVector2f(120.f, 18.f), FSlateLayoutTransform(FVector2f(Bar - FVector2D(0, 22)))), BarText, Font(12), ESlateDrawEffect::None, FLinearColor::White);
 	FSlateDrawElement::MakeText(OutDrawElements, MarkLayer, AllottedGeometry.ToPaintGeometry(FVector2f(300.f, 18.f), FSlateLayoutTransform(FVector2f(SizePx.X - 290.0, SizePx.Y - 26.0))),
 		FString(TEXT("N ↑    © OpenStreetMap contributors")), Font(12), ESlateDrawEffect::None, SimCruiseUiStyle::Dim());
