@@ -10,6 +10,13 @@ static TAutoConsoleVariable<float> CVarTriggerGamma(
 	TEXT("Right-trigger throttle curve: pedal = trigger^gamma (1 = linear, 1.8 default, up to 3)."),
 	ECVF_Default);
 
+// The left trigger: a gentle start, as a brake pedal's first travel is (about 1 cm of trigger
+// against 4-6 cm of pedal). Half a squeeze is about 38 % of the brake; a full squeeze is all of it.
+static TAutoConsoleVariable<float> CVarBrakeTriggerGamma(
+	TEXT("simcruise.BrakeTriggerGamma"), 1.4f,
+	TEXT("Left-trigger brake curve: pedal = trigger^gamma (1 = linear, 1.4 default, up to 3)."),
+	ECVF_Default);
+
 // The player's stick preferences (road atlas, Controls row). The defaults are the shaping as researched.
 static TAutoConsoleVariable<float> CVarPadSteerSpeed(
 	TEXT("simcruise.Pad.SteerSpeed"), 1.f,
@@ -195,7 +202,7 @@ FSimCruiseDriverCommand FSimCruiseDriverShaper::Update(const FSimCruiseVehicleSe
 	FSimCruiseDriverCommand Command;
 	Command.Throttle = static_cast<float>(FMath::Clamp(FMath::Max3(TriggerThrottle(Raw.PadThrottle, CVarTriggerGamma.GetValueOnGameThread()), KeyThrottle,
 		Raw.bWheel ? Raw.WheelThrottle : 0.0), 0.0, 1.0));
-	Command.Brake = static_cast<float>(FMath::Clamp(FMath::Max3(Raw.PadBrake, KeyBrake, Raw.bWheel ? Raw.WheelBrake : 0.0), 0.0, 1.0));
+	Command.Brake = static_cast<float>(FMath::Clamp(FMath::Max3(TriggerThrottle(Raw.PadBrake, CVarBrakeTriggerGamma.GetValueOnGameThread()), KeyBrake, Raw.bWheel ? Raw.WheelBrake : 0.0), 0.0, 1.0));
 	Command.Clutch = static_cast<float>(Clutch);
 	Command.ParkingBrake = Raw.bParkingBrake ? 1.f : 0.f;
 	Command.bFullServiceBrake = Raw.bFullServiceBrake;
