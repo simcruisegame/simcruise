@@ -912,13 +912,22 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 			double Delta0, Tilt0, Span0, Delta1, Tilt1, Span1;
 			EndLift(0, E, Delta0, Tilt0, Span0);
 			EndLift(1, E, Delta1, Tilt1, Span1);
+			const bool bBlendEnds = Ribbon.bStartOnBoundary && Ribbon.bEndOnBoundary && (S1 - S0) < Span0 + Span1;
 			for (int32 k = 0; k <= Count; ++k)
 			{
 				FSimCruiseRibbonStation& St = Ribbon.St[k];
 				const double FromStart = St.S - S0;
 				const double FromEnd = S1 - St.S;
-				const double W0 = Ribbon.bStartOnBoundary ? Smooth01(1.0 - FromStart / Span0) : 0.0;
-				const double W1 = Ribbon.bEndOnBoundary ? Smooth01(1.0 - FromEnd / Span1) : 0.0;
+				double W0 = Ribbon.bStartOnBoundary ? Smooth01(1.0 - FromStart / Span0) : 0.0;
+				double W1 = Ribbon.bEndOnBoundary ? Smooth01(1.0 - FromEnd / Span1) : 0.0;
+				// A short ribbon pinned at both ends (a stub between two seams) blends one pin into
+				// the other over its whole length, instead of two steep ramps that meet in the middle.
+				if (bBlendEnds)
+				{
+					const double T = Smooth01(FromStart / FMath::Max(S1 - S0, 0.01));
+					W0 = 1.0 - T;
+					W1 = T;
+				}
 				St.Z += Delta0 * W0 + Delta1 * W1;
 				// Banking runs on across tile seams: an end with the neighbour's contract eases to the
 				// neighbour's edge superelevation over the pin span; an end without one keeps its
@@ -946,6 +955,32 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 				St.HR = St.Z - St.E * St.HalfW - Crown * St.HalfW;
 				St.HQL = 0.5 * (St.HL + St.HC);
 				St.HQR = 0.5 * (St.HR + St.HC);
+			}
+			// The crown and the bank clamp change the edges after the solve: check the finished seam
+			// section of an uncontracted end against the ground and lift what is still short, with
+			// the same fade.
+			for (int32 End = 0; End < 2; ++End)
+			{
+				if (Contract[End] || !(End == 0 ? Ribbon.bStartOnBoundary : Ribbon.bEndOnBoundary)) continue;
+				const FSimCruiseRibbonStation& EndSt = End == 0 ? Ribbon.St[0] : Ribbon.St[Count];
+				double Short = 0.0;
+				const double Clear = SimCruiseRoadSection::RuralShoulderDropM + SeamClearM;
+				for (double L = -EndSt.HalfW; L <= EndSt.HalfW + 1e-6; L += 0.5)
+				{
+					Short = FMath::Max(Short, Tile.HeightAtUnit((EndSt.C + EndSt.R * L) / Side) + Clear - EndSt.Height(L));
+				}
+				if (Short <= 1e-4) continue;
+				const double EndSpan = End == 0 ? Span0 : Span1;
+				for (int32 k = 0; k <= Count; ++k)
+				{
+					FSimCruiseRibbonStation& St = Ribbon.St[k];
+					const double From = End == 0 ? St.S - S0 : S1 - St.S;
+					const double Wf = bBlendEnds ? (End == 0 ? 1.0 - Smooth01((St.S - S0) / FMath::Max(S1 - S0, 0.01)) : Smooth01((St.S - S0) / FMath::Max(S1 - S0, 0.01)))
+						: Smooth01(1.0 - From / EndSpan);
+					if (Wf <= 0.0) continue;
+					const double Up = Short * Wf;
+					St.Z += Up; St.HC += Up; St.HL += Up; St.HR += Up; St.HQL += Up; St.HQR += Up;
+				}
 			}
 			// The seam section is the neighbour's, exactly.
 			for (int32 End = 0; End < 2; ++End)
