@@ -100,6 +100,11 @@ public:
 
 	/** Mean linear colour of sRGB pixels. */
 	static FLinearColor MeanLinear(const TArray<FColor>& Pixels);
+
+#if WITH_EDITOR
+	/** HLSL shared by the ground and the regional landscape: struct FGF (hash, value noise, the grass field's meso layer). Prepend it to a Custom node's code. */
+	static const TCHAR* GrassFieldHlsl();
+#endif
 };
 
 namespace SimCruiseWorldMaterials

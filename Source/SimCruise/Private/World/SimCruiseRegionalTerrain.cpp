@@ -21,7 +21,9 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Misc/App.h"
 #include "Misc/Base64.h"
+#include "Misc/CommandLine.h"
 #include "Misc/FileHelper.h"
+#include "Misc/Parse.h"
 #include "Misc/Paths.h"
 #include "ProceduralMeshComponent.h"
 #include "World/SimCruiseWorldResources.h"
@@ -44,7 +46,33 @@ if (HasMiddle > 0.5 && edge > 0.0)
 {
 	c = lerp(c, Texture2DSample(Middle, MiddleSampler, st).rgb, smoothstep(0.0, 0.065, edge));
 }
-// Today's snow (MODIS Terra NDSI snow cover, 500 m): the photograph may be from summer.
+// The grass field on hillsides (docs/research/world-detail-methods.md): the ground's meso layer
+// (FGF, USimCruiseWorldResources::GrassFieldHlsl) at 25 times a lawn's sizes: clumps about 11 m,
+// patches of yellower or bluer grass about 125 m, dry patches about 175 m, which turn straw-gold
+// with GrassDry. Only where the photograph shows plants: not rock or sand (bright and grey),
+// water (bluer than green) or today's snow. No micro texture or blades: past 550 m a pixel
+// covers metres of hill. Each part fades out before a pixel is wide enough to alias it.
+float fpx = length(fwidth(LP.xy)) * 0.01; // metres per pixel, outside the branch
+if (GrassField > 0.5)
+{
+	const float3 W = float3(0.2126, 0.7152, 0.0722);
+	float L = max(dot(c, W), 1e-4);
+	float sat = (max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b))) / L;
+	float herb = saturate((sat - 0.12) * 5.0) * saturate((0.45 - L) * 5.0) * saturate((c.g - c.b) / L * 4.0 + 0.2);
+	if (herb > 0.01)
+	{
+		FGF gf;
+		const float K = 25.0;
+		float2 p = LP.xy * 0.01 / K;
+		p -= floor(p / 4096.0) * 4096.0; // one seam per 100 km, beyond the landscape's edge
+		float clump, dr;
+		float3 meso = gf.Meso(p, GrassDry, saturate(2.0 - fpx / (0.1 * K)), saturate(2.0 - fpx / (1.5 * K)), clump, dr);
+		float ml = clamp(dot(meso, W), 0.6, 1.6);
+		c *= lerp(1.0, ml, 0.5 * herb) * lerp(float3(1, 1, 1), meso / ml, 0.25 * herb);
+		// cured grass: the same brightness, straw hue, a little lighter (dry blades reflect more)
+		c = lerp(c, dot(c, W) * float3(1.45, 1.05, 0.55) * 1.3, dr * herb * 0.7);
+	}
+}// Today's snow (MODIS Terra NDSI snow cover, 500 m): the photograph may be from summer.
 if (HasSnow > 0.5)
 {
 	float snow = smoothstep(0.38, 0.76, Texture2DSample(Snow, SnowSampler, uv).r);
@@ -188,7 +216,7 @@ UMaterial* ASimCruiseRegionalTerrain::BuildMaterial(UObject* Outer, FName Name, 
 		return P;
 	};
 
-	UMaterialExpressionCustom* Colour = Custom(Material, LandscapeColour, CMOT_Float3);
+	UMaterialExpressionCustom* Colour = Custom(Material, *(FString(USimCruiseWorldResources::GrassFieldHlsl()) + LandscapeColour), CMOT_Float3);
 	AddInput(Colour, TEXT("LP"), LP);
 	AddInput(Colour, TEXT("RadiusCm"), ScalarParam(TEXT("RadiusCm"), static_cast<float>(RadiusM * 100.0)));
 	AddInput(Colour, TEXT("HasPhoto"), ScalarParam(TEXT("HasPhoto"), 0.f));
@@ -197,6 +225,8 @@ UMaterial* ASimCruiseRegionalTerrain::BuildMaterial(UObject* Outer, FName Name, 
 	AddInput(Colour, TEXT("Snow"), TextureParam(TEXT("Snow")));
 	AddInput(Colour, TEXT("Photo"), TextureParam(TEXT("Photo")));
 	AddInput(Colour, TEXT("Middle"), TextureParam(TEXT("Middle")));
+	AddInput(Colour, TEXT("GrassField"), ScalarParam(TEXT("GrassField"), 0.f));
+	AddInput(Colour, TEXT("GrassDry"), ScalarParam(TEXT("GrassDry"), 0.f));
 
 	UMaterialExpressionCustom* Offset = Custom(Material, LandscapeOffset, CMOT_Float3);
 	AddInput(Offset, TEXT("WP"), WP);
@@ -364,6 +394,12 @@ void ASimCruiseRegionalTerrain::Install(FJob& Done)
 	{
 		Material = UMaterialInstanceDynamic::Create(BaseMaterial, this);
 		Material->SetScalarParameterValue(TEXT("RadiusCm"), static_cast<float>(RadiusM * 100.0));
+		// The grass field (world-detail-methods.md), as on the ground tiles: on unless
+		// -SimCruiseNoGrassField; the dry share from -SimCruiseGrassDry=0..1.
+		static const bool bGrassField = !FParse::Param(FCommandLine::Get(), TEXT("SimCruiseNoGrassField"));
+		static const float GrassDry = [] { float V = 0.f; FParse::Value(FCommandLine::Get(), TEXT("SimCruiseGrassDry="), V); return FMath::Clamp(V, 0.f, 1.f); }();
+		Material->SetScalarParameterValue(TEXT("GrassField"), bGrassField ? 1.f : 0.f);
+		Material->SetScalarParameterValue(TEXT("GrassDry"), GrassDry);
 		if (Done.Photo.Num() > 0)
 		{
 			UTexture2D* Photo = USimCruiseWorldResources::CreateTexture(this, TEXT("T_SimCruiseLandscapePhoto"), Done.Photo, Done.PhotoW, Done.PhotoH, true, false);

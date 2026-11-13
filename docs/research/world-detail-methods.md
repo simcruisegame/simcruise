@@ -206,6 +206,31 @@ GPU cost: RTX 2070 Super Max-Q, plugged in, 1920x1080 full screen, parked at the
 
 Right half of the last two images: Panoramax [4b6d216b](https://panoramax.xyz/#focus=pic&pic=4b6d216b-ae1c-48a8-b2ae-5d9558334f18) by MatthiasMatthias, CC BY-SA 4.0, resized.
 
+## Grass field on the hillsides (13 November 2026)
+
+The regional landscape (`M_SimCruiseLandscape`, the 45 km mesh drawn past 550 m) now has the grass field too. The ground and the landscape share one HLSL text (`USimCruiseWorldResources::GrassFieldHlsl()`, struct `FGF`: hash, value noise and the meso layer), prepended to each Custom node. On the hills the meso layer runs at 25 times a lawn's sizes: clumps about 11 m, patches of yellower or bluer grass about 125 m, and dry patches about 175 m that turn straw-gold with `GrassDry`. It is drawn only where the photograph shows plants (coloured, not bright, greener than blue), so rock, sand, sea and today's snow keep their colour. Each part fades out before a pixel is wide enough to alias it. There is no micro texture and there are no blades: past 550 m a pixel covers metres of hill. Same flags as the ground: `-SimCruiseNoGrassField`, `-SimCruiseGrassDry=0..1`.
+
+Measured on the PC (build from `11d3c79`, ultra, traffic off):
+
+| Pose | Field on | Field off |
+|---|---|---|
+| bixby | `REALISM bixby: 34.8 / 100  layout 17.2  tone 20.7  colour 46.4  structure 58.4  detail 46.6  sky 11.3` | `REALISM bixby: 34.6 / 100  layout 17.2  tone 20.8  colour 46.5  structure 57.6  detail 46.4  sky 11.3` |
+| bixby, July (`-SimCruiseGrassDry=0.9`) | `REALISM bixby: 34.1 / 100  layout 16.9  tone 20.1  colour 45.4  structure 55.5  detail 48.8  sky 10.8` | |
+| lummus | `REALISM lummus: 45.4 / 100  layout 31.3  tone 34.9  colour 52.3  structure 55.2  detail 66.7  sky 33.1` | 45.5 (the table above) |
+| dragon | `REALISM dragon: 45.3 / 100  layout 29.6  tone 18.1  colour 68.3  structure 66.4  detail 71.2  sky 10.7` | `REALISM dragon: 45.3 / 100  layout 29.6  tone 18.1  colour 68.2  structure 66.4  detail 71.0  sky 10.7` |
+
+No pose drops by 1.0, so the field stays on. Dragon is 0.6 lower than in the table above both with and without the field: the change came with the other commits on `main` since then, not the field. The dry setting makes the far ridges straw-coloured in patches and costs 0.7 at Bixby: the reference photograph was taken in a green July, so the score cannot judge a gold one.
+
+GPU at the Bixby viewpoint, High, 1920x1080, plugged in (power-capped as before), two runs each way: chase view 31.2 and 30.2 ms with the field, 29.7 and 32.7 ms without; driver's seat 37.4 and 37.1 ms with, 36.9 and 37.5 ms without. The difference is inside the run-to-run spread (about 3 ms in the chase view): too small to measure.
+
+![Bixby, landscape grass field on | photograph](images/world-detail/terrain-grass-bixby-field.jpg)
+
+![Bixby, landscape grass field off | photograph](images/world-detail/terrain-grass-bixby-nofield.jpg)
+
+![Bixby, dry July (GrassDry 0.9) | photograph](images/world-detail/terrain-grass-bixby-dry.jpg)
+
+Right half of the Bixby images: Wikimedia Commons [Bixby_Creek_Bridge_juli_2016.jpg](https://commons.wikimedia.org/wiki/File:Bixby_Creek_Bridge_juli_2016.jpg), CC0, resized.
+
 ## Sources
 
 - USGS 3DEP lidar point clouds in Entwine format on AWS (`usgs-lidar-public`), US public domain.

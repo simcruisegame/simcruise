@@ -72,6 +72,36 @@ namespace SimCruiseWorldMaterials
 #if WITH_EDITOR
 	namespace
 	{
+		// The grass field's shared helpers (docs/research/world-detail-methods.md): hashed value
+		// noise and the meso layer, used by the ground (lawns, 1x) and the regional landscape
+		// (hillsides, at a larger size). Prepended to a Custom node's code, so one text serves both.
+		const TCHAR* GrassFieldCode = TEXT(R"HLSL(
+struct FGF
+{
+	float H(float2 p, float s) { return frac(sin(dot(p, float2(127.1, 311.7)) + s * 74.7) * 43758.5453); }
+	float N(float2 p, float s)
+	{
+		float2 i = floor(p), f = frac(p), u = f * f * (3.0 - 2.0 * f);
+		float a = H(i, s), b = H(i + float2(1, 0), s), c = H(i + float2(0, 1), s), d = H(i + float2(1, 1), s);
+		return a + (b - a) * u.x + (c - a) * u.y + (a - b - c + d) * u.x * u.y;
+	}
+	float F(float2 p, float s) { return (N(p, s) * 0.571 + N(p * 2.03 + 1.7, s + 1) * 0.286 + N(p * 4.1 + 9.2, s + 2) * 0.143); }
+	// Meso: clumps (0.3-1 units), patches of yellower or bluer grass (2-8), clover and dry
+	// patches (GrassDry from the season; 0 = growing; out dr). A multiplier around 1 on the grass
+	// albedo. wSmall and wLarge fade the small (clumps, clover) and large (patches, dry) parts,
+	// so a far surface does not alias them.
+	float3 Meso(float2 p, float dry, float wSmall, float wLarge, out float clump, out float dr)
+	{
+		clump = F(p * 2.2, 11.0);
+		float gpatch = F(p / 5.0, 23.0);
+		float clover = saturate((F(p * 3.0, 41.0) - 0.70) * 12.0) * wSmall;
+		dr = saturate((F(p / 7.0, 31.0) - (0.62 - 0.25 * dry)) * 3.0) * max(dry, 0.15) * wLarge;
+		float3 meso = (1.0 + (0.24 * clump - 0.12) * wSmall) * lerp(float3(1, 1, 1), float3(1.25, 1.08, 1.15), gpatch * 0.6 * wLarge);
+		meso = lerp(meso, float3(0.7, 0.8, 0.6), clover);
+		return meso; // the dry share dr is applied by the caller: lawn and hillside albedos differ
+	}
+};
+)HLSL");
 		const TCHAR* GroundCode = TEXT(R"HLSL(
 const float3 W = float3(0.2126, 0.7152, 0.0722);
 float2 uv = LP.xy / TileSizeCm;
@@ -127,17 +157,7 @@ float fpx = length(fwidth(m)); // ground metres per pixel (outside the branch, s
 // meso field keeps the mean, so the colour the photograph and the grade set does not move.
 if (GrassField > 0.5 && veg > 0.01)
 {
-	struct FGF
-	{
-		float H(float2 p, float s) { return frac(sin(dot(p, float2(127.1, 311.7)) + s * 74.7) * 43758.5453); }
-		float N(float2 p, float s)
-		{
-			float2 i = floor(p), f = frac(p), u = f * f * (3.0 - 2.0 * f);
-			float a = H(i, s), b = H(i + float2(1, 0), s), c = H(i + float2(0, 1), s), d = H(i + float2(1, 1), s);
-			return a + (b - a) * u.x + (c - a) * u.y + (a - b - c + d) * u.x * u.y;
-		}
-		float F(float2 p, float s) { return (N(p, s) * 0.571 + N(p * 2.03 + 1.7, s + 1) * 0.286 + N(p * 4.1 + 9.2, s + 2) * 0.143); }
-	} gf;
+	FGF gf; // the grass field helpers (GrassFieldCode)
 	float2 gm = m - floor(m / 512.0) * 512.0; // small numbers keep the sine hash exact (one seam per 512 m)
 	// micro: hex tiling of the CC0 grass photograph at 1.7 m
 	float2 q = gm / 1.7;
@@ -158,12 +178,9 @@ if (GrassField > 0.5 && veg > 0.01)
 	float3 micro = acc / max(wsum, 1e-4);
 	micro = 1.0 + (micro - 1.0) * wsum / max(sqrt(w2), 1e-4); // keep the contrast blending would lose
 	// meso: clumps, patches, clover, dry patches (GrassDry from the season; 0 = growing)
-	float clump = gf.F(gm * 2.2, 11.0), gpatch = gf.F(gm / 5.0, 23.0);
-	float clover = saturate((gf.F(gm * 3.0, 41.0) - 0.70) * 12.0);
-	float dry = saturate((gf.F(gm / 7.0, 31.0) - (0.62 - 0.25 * GrassDry)) * 3.0) * max(GrassDry, 0.15);
-	float3 meso = (0.88 + 0.24 * clump) * lerp(float3(1, 1, 1), float3(1.25, 1.08, 1.15), gpatch * 0.6);
-	meso = lerp(meso, float3(0.7, 0.8, 0.6), clover);
-	meso = lerp(meso, float3(2.6, 1.6, 2.4), dry);
+	float clump, dryShare;
+	float3 meso = gf.Meso(gm, GrassDry, 1.0, 1.0, clump, dryShare);
+	meso = lerp(meso, float3(2.6, 1.6, 2.4), dryShare);
 	grass = micro * meso;
 	// nearW: parallax blade shells within 22 m
 	float nearW = saturate((2200.0 - Depth) / 400.0);
@@ -636,7 +653,7 @@ return col;
 		{
 		case ESimCruiseTileLayer::Terrain:
 		{
-			Custom->Code = GroundCode;
+			Custom->Code = FString(GrassFieldCode) + GroundCode;
 			UMaterialExpressionConstant* GroundSpecular = AddExpression<UMaterialExpressionConstant>(Material);
 			GroundSpecular->R = 0.35f; // vegetation and soil reflect less than the 0.5 default
 			Material->GetEditorOnlyData()->Specular.Connect(0, GroundSpecular);
@@ -800,6 +817,13 @@ return float3(dir * bend, -0.25 * bend + flutter);
 	}
 #endif
 }
+
+#if WITH_EDITOR
+const TCHAR* USimCruiseWorldResources::GrassFieldHlsl()
+{
+	return SimCruiseWorldMaterials::GrassFieldCode;
+}
+#endif
 
 void USimCruiseWorldResources::Initialise()
 {
