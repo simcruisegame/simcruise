@@ -1036,7 +1036,9 @@ void ASimCruisePlayerController::TickSelfTest(float DeltaTime)
 	case 11: // left trigger half way: brake past the dead zone
 		if (SelfTestClock > 0.25f)
 		{
-			const float Expected = (0.5f - 0.04f) / 0.96f;
+			// Past the dead zone, through the brake trigger's curve (simcruise.BrakeTriggerGamma).
+			static IConsoleVariable* BrakeGamma = IConsoleManager::Get().FindConsoleVariable(TEXT("simcruise.BrakeTriggerGamma"));
+			const float Expected = FMath::Pow((0.5f - 0.04f) / 0.96f, BrakeGamma ? BrakeGamma->GetFloat() : 1.f);
 			if (FMath::Abs(LastCommand.Brake - Expected) > 0.03f) { Fail(FString::Printf(TEXT("left trigger brake %.3f, expected %.3f"), LastCommand.Brake, Expected)); break; }
 			Next();
 		}

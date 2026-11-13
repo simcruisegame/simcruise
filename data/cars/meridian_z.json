@@ -56,6 +56,11 @@
  "rim_in": 20.0,
  "static_mu": 0.92,
  "lateral_grip_scale": 1.27,
+ "tmeasy_slide_mu_y": 0.9457,
+ "tmeasy_peak_mu_y": 1.1353,
+ "tmeasy_slide_mu_x": 0.8384,
+ "tmeasy_peak_mu_x": 1.0481,
+ "tyre_model": "tmeasy",
  "mu_max": 1.6,
  "drag_area_m2": 0.65,
  "parking_rack_deg": 34.0,
@@ -175,7 +180,7 @@
  },
  "axle_grip": [
   1.0,
-  1.5
+  1.1
  ],
  "traction_control": true,
  "calibration_open": "0-60 mph 3.22 s with Car and Driver's 1 ft rollout (3.53 s from rest) against their 2.8 s. Launch control (3500 rpm) and the real TR-9080 ratios are modelled; the launch is limited by rear-tyre grip on the legacy tyre curve. The physics lane's TMeasy fit gives 3.31 s from rest (about 3.0 s with rollout).",

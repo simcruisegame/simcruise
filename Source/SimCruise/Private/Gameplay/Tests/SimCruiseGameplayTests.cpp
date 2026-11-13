@@ -282,7 +282,8 @@ bool FSimCruisePedalTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("inside a 10 % dead zone is centre"), SimCruiseShaping::StickDeadZone(-0.08, 0.1), 0.0);
 	TestNearlyEqual(TEXT("past it the travel is rescaled"), SimCruiseShaping::StickDeadZone(0.55, 0.1), 0.5, 1e-9);
 	TestEqual(TEXT("full stick is still full lock"), SimCruiseShaping::StickDeadZone(-1.0, 0.1), -1.0);
-	TestNearlyEqual(TEXT("trigger brake passes straight through"), Command.Brake, 0.81f, 1e-6f);
+	// The brake trigger has a gentle start (trigger^1.4): a full squeeze is still full brake.
+	TestNearlyEqual(TEXT("trigger brake follows its pedal curve"), Command.Brake, static_cast<float>(FMath::Pow(0.81, 1.4)), 1e-5f);
 
 	Trigger.bClutch = true;
 	Hold(Pad, Moving(10.0), Trigger, 0.1, &Command);

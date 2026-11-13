@@ -32,6 +32,10 @@ namespace
 	constexpr double AbsGainPerSecond = 20.0;
 	constexpr double AbsProportional = 0.3;
 	constexpr double AbsTargetOverPeak = 1.0;
+	// The front wheels a little short of their peak braking slip, as ABS keeps them so the car still
+	// steers: at the peak a TMeasy tyre has almost no side force left (a C8 at full lock under full
+	// braking turned at 1-4 deg/s on Tail of the Dragon).
+	constexpr double AbsFrontTargetOverPeak = 0.85;
 
 	// Godot ran the driveline at 60 Hz with 6 substeps; the cars' launches were calibrated there.
 	constexpr double ClutchCalibrationSubstepS = 1.0 / 360.0;
@@ -870,7 +874,7 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 			// ABS: a per-wheel pressure modulator cycling each tyre about its peak slip.
 			if (Car.bAbsEnabled && BrakeNm > 0.0 && FMath::Abs(RowSpeed) > 1.5)
 			{
-				const double Target = Wheel.PeakSlip * AbsTargetOverPeak;
+				const double Target = Wheel.PeakSlip * (WheelIndex < 2 ? AbsFrontTargetOverPeak : AbsTargetOverPeak);
 				// Braking slip is positive as the wheel turns slower than the road
 				// in the direction of travel, forwards or in reverse.
 				const double BrakingSlip = -Wheel.SlipRatio * FMath::Sign(RowSpeed);
