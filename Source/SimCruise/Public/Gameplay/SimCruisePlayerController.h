@@ -17,6 +17,7 @@ class SWidget;
 struct FSimCruisePlace;
 struct FSimCruiseAtlasView;
 class ASimCruiseHUD;
+class FSimCruiseInputTapeDriver;
 class ASimCruisePlayerCameraManager;
 class SSimCruisePauseMenu;
 class SSimCruiseRoutePlanner;
@@ -52,6 +53,8 @@ public:
 	const FSimCruiseDriverCommand& GetLastCommand() const { return LastCommand; }
 	const FSimCruiseDriverShaper& GetShaper() const { return Shaper; }
 	const FSimCruiseRumble& GetLastRumble() const { return LastRumble; }
+	/** Pad record and replay (-SimCruiseRecordInput, F9, -SimCruiseReplayInput=FILE). */
+	const FSimCruiseInputTapeDriver* GetInputTape() const { return InputTape.Get(); }
 	bool IsAbsActive() const { return Haptics.IsAbsActive(); }
 	bool IsUsingGamepad() const { return bUsingGamepad; }
 	USimCruiseInputConfig* GetInputConfig() const { return InputConfig; }
@@ -147,6 +150,7 @@ protected:
 	TObjectPtr<USimCruiseInputConfig> InputConfig;
 
 	FSimCruiseDriverShaper Shaper;
+	TSharedPtr<FSimCruiseInputTapeDriver> InputTape;
 	FSimCruiseHapticsModel Haptics;
 	/** A USB racing wheel, read each frame (nothing happens without one). */
 	FSimCruiseWheelDevice WheelDevice;

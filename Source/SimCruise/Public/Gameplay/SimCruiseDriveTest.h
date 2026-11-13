@@ -7,6 +7,7 @@
 #include "SimCruiseDriveTest.generated.h"
 
 class ASimCruisePlayerController;
+class ASimCruiseVehicle;
 
 /** The drive robot's flat test pad (-SimCruiseDriveTestPad): it is not the real road. */
 namespace SimCruiseTestPad
@@ -15,6 +16,14 @@ namespace SimCruiseTestPad
 	SIMCRUISE_API FName Tag();
 	/** The pad in this world, or null. */
 	SIMCRUISE_API AActor* Find(const UWorld* World);
+	/** A flat 4 km pad 60 m above the car, and the car moved onto it at rest (the drive robot and input replays). */
+	SIMCRUISE_API void Spawn(UWorld* World, ASimCruiseVehicle* Car);
+}
+
+namespace SimCruiseDriveRobot
+{
+	/** The car is placed, the tiles round it are built and no shaders are compiling: a scripted drive may start. */
+	SIMCRUISE_API bool IsReadyToDrive(const UWorld* World, const APawn* Pawn);
 }
 
 /**

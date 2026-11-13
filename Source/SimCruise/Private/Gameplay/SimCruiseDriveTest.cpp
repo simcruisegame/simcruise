@@ -47,6 +47,51 @@ namespace SimCruiseTestPad
 		}
 		return nullptr;
 	}
+
+	void Spawn(UWorld* World, ASimCruiseVehicle* Car)
+	{
+		UStaticMesh* Cube = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+		if (!World || !Car || !Cube)
+		{
+			UE_LOG(LogSimCruiseDriveTest, Error, TEXT("Drive test pad: no car or no cube mesh"));
+			return;
+		}
+		// The engine cube is 100 cm; 4 km square, 1 m thick, its top 60 m above the car.
+		const FVector Top = Car->GetActorLocation() + FVector(0.0, 0.0, 6000.0);
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		AStaticMeshActor* Pad = World->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(),
+			FTransform(FRotator::ZeroRotator, Top - FVector(0.0, 0.0, 50.0), FVector(4000.0, 4000.0, 1.0)), Params);
+		if (Pad)
+		{
+			// A registered static component refuses a new mesh; the pad never moves anyway.
+			Pad->SetMobility(EComponentMobility::Movable);
+			Pad->GetStaticMeshComponent()->SetStaticMesh(Cube);
+			Pad->GetStaticMeshComponent()->SetCollisionProfileName(TEXT("BlockAll"));
+			// The HUD finds the pad by this tag and shows that it is not the real road.
+			Pad->Tags.Add(Tag());
+			UE_LOG(LogSimCruiseDriveTest, Display, TEXT("Drive test pad mesh %s"), *GetNameSafe(Pad->GetStaticMeshComponent()->GetStaticMesh()));
+		}
+		Car->ResetAt(Top, Car->GetActorRotation().Yaw);
+		UE_LOG(LogSimCruiseDriveTest, Display, TEXT("Drive test pad at %s"), *Top.ToString());
+	}
+}
+
+namespace SimCruiseDriveRobot
+{
+	bool IsReadyToDrive(const UWorld* World, const APawn* Pawn)
+	{
+		if (!World || !Pawn)
+		{
+			return false;
+		}
+		const ASimCruiseGameMode* Mode = World->GetAuthGameMode<ASimCruiseGameMode>();
+		const bool bPlaced = Mode ? Mode->IsDriveReady() : true;
+		const ASimCruiseWorldStreamer* Stream = Mode ? Mode->GetStreamer() : nullptr;
+		const bool bTiles = !Stream || Stream->AreTilesReadyAround(Pawn->GetActorLocation(), 1);
+		const bool bShaders = !GShaderCompilingManager || GShaderCompilingManager->GetNumRemainingJobs() == 0;
+		return bPlaced && bTiles && bShaders;
+	}
 }
 
 ASimCruiseDriveTest::ASimCruiseDriveTest()
@@ -305,31 +350,7 @@ void ASimCruiseDriveTest::Tick(float DeltaSeconds)
 
 void ASimCruiseDriveTest::SpawnPad(APawn* Pawn)
 {
-	ASimCruiseVehicle* Car = Cast<ASimCruiseVehicle>(Pawn);
-	UStaticMesh* Cube = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
-	if (!Car || !Cube)
-	{
-		UE_LOG(LogSimCruiseDriveTest, Error, TEXT("Drive test pad: no car or no cube mesh"));
-		return;
-	}
-	// The engine cube is 100 cm; 4 km square, 1 m thick, its top 60 m above the car.
-	const FVector Top = Car->GetActorLocation() + FVector(0.0, 0.0, 6000.0);
-	FActorSpawnParameters Params;
-	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	AStaticMeshActor* Pad = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(),
-		FTransform(FRotator::ZeroRotator, Top - FVector(0.0, 0.0, 50.0), FVector(4000.0, 4000.0, 1.0)), Params);
-	if (Pad)
-	{
-		// A registered static component refuses a new mesh; the pad never moves anyway.
-		Pad->SetMobility(EComponentMobility::Movable);
-		Pad->GetStaticMeshComponent()->SetStaticMesh(Cube);
-		Pad->GetStaticMeshComponent()->SetCollisionProfileName(TEXT("BlockAll"));
-		// The HUD finds the pad by this tag and shows that it is not the real road.
-		Pad->Tags.Add(SimCruiseTestPad::Tag());
-		UE_LOG(LogSimCruiseDriveTest, Display, TEXT("Drive test pad mesh %s"), *GetNameSafe(Pad->GetStaticMeshComponent()->GetStaticMesh()));
-	}
-	Car->ResetAt(Top, Car->GetActorRotation().Yaw);
-	UE_LOG(LogSimCruiseDriveTest, Display, TEXT("Drive test pad at %s"), *Top.ToString());
+	SimCruiseTestPad::Spawn(GetWorld(), Cast<ASimCruiseVehicle>(Pawn));
 }
 
 void ASimCruiseDriveTest::TickPad(ASimCruisePlayerController* Player, float DeltaSeconds)
