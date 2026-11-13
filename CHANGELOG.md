@@ -4,6 +4,7 @@ Notable changes to SimCruise, newest first. The format follows [Keep a Changelog
 
 ## Unreleased
 
+- **Fix: trees no longer vanish for a frame** (`ASimCruiseTrees::Refresh`) — each time a block of canopy data arrived the tree rings were cleared and rebuilt on a worker, and until it finished no trees were drawn: one frame of bare hills and a sunlit cabin, a few times a second (the Miata's "flash frames" on Tail of the Dragon, release bug P6). The rings now rebuild at once; Dragon pre-flight Miata and Corvette: 0 flashes, frame p95 16.7 ms.
 - Fix: input replays no longer drift at a free frame rate. A recording now also saves `<tape>-steps.csv`, the controls the car's model took on each physics step and the gear it was in, and a replay feeds them back step for step on the physics thread. A 43 s keen drive on the Tail of the Dragon recorded at a free frame rate drove 356.8 m; its replays drove 358.5 m and 358.3 m within 1.7 m of the recorded path (frame by frame they parted after about 9 s). `-SimCruiseReplayFrames` keeps the old frame-by-frame replay.
 
 - Test: an ISO 7401 step steer for every car (`SimCruise.Vehicle.StepSteer.*`). At 80 km/h the road wheels step to about 0.4 g in 0.15 s; the yaw rate must reach 90 % of its steady value within 0.08-0.40 s of the steering's half point, overshoot it by under 30 %, and the car must not slide. All ten cars pass at 0.20-0.26 s and 5-12 % overshoot (the '65 Mustang is the slowest and liveliest), inside the 0.15-0.35 s that published road-car tests show.

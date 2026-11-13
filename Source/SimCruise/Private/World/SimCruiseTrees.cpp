@@ -568,13 +568,19 @@ void ASimCruiseTrees::Refresh()
 			++Placed;
 		}
 	}
+	// Rebuild each ring's cluster tree now, not on a worker: with the async build the cleared
+	// rings drew no trees until it finished, so every refresh (each canopy tile that arrives)
+	// showed one frame of bare hills and a sunlit cabin (Tail of the Dragon pre-flight, the
+	// Miata's "flash frames", 2026-11-13).
 	for (int32 i = 0; i < 6; ++i)
 	{
 		Rings[i]->AddInstances(Lists[i], false, true, false);
+		Rings[i]->BuildTreeIfOutdated(false, true);
 	}
 	for (int32 i = 0; i < PalmRings.Num(); ++i)
 	{
 		PalmRings[i]->AddInstances(PalmLists[i], false, true, false);
+		PalmRings[i]->BuildTreeIfOutdated(false, true);
 	}
 
 	// Shrubs: each 34 m cell of the zoom-12 shrub map holds its cover fraction of crowns of its
@@ -626,6 +632,7 @@ void ASimCruiseTrees::Refresh()
 			}
 		}
 		ShrubRing->AddInstances(ShrubList, false, true, false);
+		ShrubRing->BuildTreeIfOutdated(false, true);
 	}
 	Shrubs = ShrubList.Num();
 	UE_LOG(LogSimCruiseTrees, Display, TEXT("%d trees and %d shrubs on %d tiles"), Placed, Shrubs, Shown.Num());
