@@ -141,9 +141,11 @@ struct FDK
 			float2 ck = cc - floor(cc / 251.0) * 251.0;
 			float2 cq = float2(cc.x / 1.1547, cc.y - 0.5 * cc.x);
 			float wi = pow(saturate(1.0 - 0.95 * length(q - cq)), 3.0);
-			float an = H(ck, 3.0) * 6.2832, ca = cos(an), sa = sin(an);
+			// Brick (3) and bark (7) have a direction (courses, furrows): never rotated; brick
+			// is not offset either (a bond is a regular pattern, plain tiling is what a wall is).
+			float an = (slice == 3.0 || slice == 7.0) ? 0.0 : H(ck, 3.0) * 6.2832, ca = cos(an), sa = sin(an);
 			float2x2 R = float2x2(ca, -sa, sa, ca);
-			float2 r = mul(R, q) + float2(H(ck, 5.0), H(ck, 7.0));
+			float2 r = mul(R, q) + (slice == 3.0 ? float2(0.0, 0.0) : float2(H(ck, 5.0), H(ck, 7.0)));
 			float2 uv = (cell + (16.0 / 512.0) + frac(r) * INNER) * CS;
 			float2 dx = mul(R, gx) * INNER * CS, dy = mul(R, gy) * INNER * CS;
 			acc += wi * (Alb.SampleGrad(AlbS, uv, dx, dy).rgb + 0.5);
