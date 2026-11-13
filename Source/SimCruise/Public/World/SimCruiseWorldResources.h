@@ -86,6 +86,12 @@ public:
 	TArray<TObjectPtr<UStaticMesh>> PalmMeshes;
 
 	/** The building material with the shared detail textures, for the palm trunks. */
+	/** The AI detail kit's two atlases (albedo ratio, normal), data/art/detail-kit. */
+	UPROPERTY()
+	TObjectPtr<UTexture2D> DetailAlbTexture;
+	UPROPERTY()
+	TObjectPtr<UTexture2D> DetailNrmTexture;
+
 	UPROPERTY()
 	TObjectPtr<UMaterialInstanceDynamic> PalmBarkMaterial;
 
