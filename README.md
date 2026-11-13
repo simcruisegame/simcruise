@@ -51,7 +51,7 @@ From the 2.0.2 Shipping build, Ultra preset, 1920x1080.
 | *Seat & view* | *Tune car* |
 | ![The 2001 Miata on US 129, the Tail of the Dragon, in the forest of the Great Smoky Mountains](docs/images/release-2.0.2/06-miata-tail-of-the-dragon-chase.jpg) | ![The Corvette Stingray C8 on CA-1 near Big Sur, the hills and the Pacific](docs/images/release-2.0.2/07-corvette-big-sur-chase.jpg) |
 | *2001 Miata, Tail of the Dragon* | *Corvette Stingray (C8), Big Sur* |
-| ![From the Corvette's seat on CA-1 at 39 mph](docs/images/release-2.0.2/08-corvette-big-sur-cockpit.jpg) | ![The new hood view: the 1965 Mustang on Ocean Drive at 29 mph](docs/images/release-2.0.2/09-mustang-ocean-drive-hood.jpg) |
+| ![From the Corvette's seat on CA-1 at 18 mph](docs/images/release-2.0.2/08-corvette-big-sur-cockpit.jpg) | ![The new hood view: the 1965 Mustang on Ocean Drive at 15 mph](docs/images/release-2.0.2/09-mustang-ocean-drive-hood.jpg) |
 | *Corvette cockpit, Big Sur* | *Hood view, 1965 Mustang* |
 | ![The new far chase view: the 1965 Mustang in the traffic on Ocean Drive](docs/images/release-2.0.2/10-mustang-ocean-drive-far-chase.jpg) | ![Ocean Drive at night in 2.0.1: low beams, street lights, neon on the Breakwater](docs/images/release-2.0.1/07-ocean-drive-night-chase.jpg) |
 | *Far chase view, Ocean Drive* | *Ocean Drive at night (2.0.1)* |
