@@ -55,8 +55,8 @@ namespace
 		TEXT("Frame-rate cap for the drive, frames per second (0 = no cap). Applied at the start of a drive (t.MaxFPS changes it at once)."));
 	TAutoConsoleVariable<int32> CVarVSync(TEXT("simcruise.VSync"), 1,
 		TEXT("1 (default): wait for the screen's refresh, so a frame never tears. 0: off (lower latency, tearing on a 60 Hz screen)."));
-	TAutoConsoleVariable<int32> CVarReflex(TEXT("simcruise.Reflex"), 1,
-		TEXT("NVIDIA Reflex: 0 off, 1 low latency (default), 3 low latency + boost. Needs an NVIDIA GPU and driver 455 or newer. -SimCruiseReflex=<n> sets it at the start."));
+	TAutoConsoleVariable<int32> CVarReflex(TEXT("simcruise.Reflex"), 0,
+		TEXT("NVIDIA Reflex: 0 off (default), 1 low latency, 3 low latency + boost. Needs an NVIDIA GPU and driver 455 or newer. -SimCruiseReflex=<n> sets it at the start."));
 
 	/**
 	 * Release bug R6: with Reflex's sleep mode and latency markers on, the Shipping game hung in
@@ -104,15 +104,10 @@ void SimCruiseFramePacing::Apply()
 	// VSync: with only a sleep-based 60 fps cap on a 60 Hz screen, each frame started at a
 	// drifting point of the scan, so a tear line rolled through the picture and frames came
 	// unevenly (Aaron, 2026-11-13: "it looks like it was glitching / laggy").
-	// Fewer frames in flight: the game thread waits for the render side instead of running up to
-	// 3 frames ahead of a busy GPU. Stick to picture on a 28 W laptop GPU (2026-11-13, packaged,
-	// Ocean Drive, median of 20 trials): 214 ms default, 159 ms with this, 124 ms with Reflex,
-	// 102 ms with both.
-	if (!bMeasuring)
-	{
-		if (IConsoleVariable* Sync = IConsoleManager::Get().FindConsoleVariable(TEXT("r.GTSyncType"))) Sync->Set(1, ECVF_SetByGameSetting);
-		if (IConsoleVariable* Lag = IConsoleManager::Get().FindConsoleVariable(TEXT("r.OneFrameThreadLag"))) Lag->Set(0, ECVF_SetByGameSetting);
-	}
+	// Not here: r.GTSyncType 1 / r.OneFrameThreadLag 0 and Reflex on by default cut stick-to-picture
+	// delay (214 -> 102 ms on a 28 W GPU) but broke frame pacing: the Tail of the Dragon pre-flight
+	// frame p95 went 16.7 -> 52 ms with both, 51 ms with the sync alone, 32 ms with Reflex alone
+	// (2026-11-13). Smooth frames come first; both stay available (simcruise.Reflex, the r. cvars).
 	if (IConsoleVariable* VSync = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync")))
 	{
 		VSync->Set(bMeasuring ? 0 : FMath::Clamp(CVarVSync.GetValueOnGameThread(), 0, 1), ECVF_SetByGameSetting);
