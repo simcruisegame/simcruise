@@ -507,6 +507,14 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 				Hit.SurfaceGrip = GripSum / GripCount;
 			}
 		}
+		// A tyre does not stand on a wall: a surface more than 75 deg from level (a bank the car slid
+		// into, the ground of a car on its side or roof) gives the wheel no contact; the body's own
+		// collision meets it. Such hits once drove the suspension into huge loads, and the car off
+		// in a spin at hundreds of m/s.
+		if (bHit && Hit.NormalM.Dot(Up) < 0.25)
+		{
+			bHit = false;
+		}
 		if (bHit)
 		{
 			FContactRow& Row = Rows[WheelIndex];
@@ -516,8 +524,10 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 			Lengths[WheelIndex] = Length;
 			const FVector3d Arm = Hit.PointM - Body.CenterOfMassM;
 			const FVector3d PointVelocity = Velocity + Omega.Cross(Arm);
-			const double Load = SimCruiseDynamics::ComputeSuspensionLoadN(Car, Axle, Length,
-				PointVelocity.Dot(Hit.NormalM) - Hit.RoadProfileRateMps);
+			// At most ten times the corner's static share: a hard bump-stop hit is three to five, and
+			// a step past ten is a landing the integration cannot carry in one substep.
+			const double Load = FMath::Min(SimCruiseDynamics::ComputeSuspensionLoadN(Car, Axle, Length,
+				PointVelocity.Dot(Hit.NormalM) - Hit.RoadProfileRateMps), 10.0 * 0.25 * Car.MassKg * SimCruiseDynamics::GravityMps2);
 
 			// Road-wheel angle, positive right; the inner wheel is the right one
 			// in a right turn. Toe-in turns each wheel toward the centreline.
