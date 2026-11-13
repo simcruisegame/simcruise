@@ -1,0 +1,11 @@
+# Frame rate, Shipping 2.0.1, 1920x1080 full screen, RTX 2070 Super Max-Q, uncapped while measuring; 1 % low = 1000/p99
+| Place | Preset | View | Avg fps | 1 % low | v2.0.0 avg / 1 % low |
+|---|---|---|---|---|---|
+| Ocean Drive | Medium | driver | 77.9 | 53 | 78.7 / 53 |
+| Ocean Drive | Medium | chase | 85.7 | 71 | 86.3 / 74 |
+| Ocean Drive | High | driver | 56.0 | 42 | 55.9 / 42 |
+| Ocean Drive | High | chase | 65.2 | 54 | 65.9 / 57 |
+| Princeton Road, NE | Medium | driver | 112.3 | 92 | 91.4 / 74 |
+| Princeton Road, NE | Medium | chase | 137.1 | 124 | 99.9 / 86 |
+| Princeton Road, NE | High | driver | 75.1 | 66 | 73.1 / 61 |
+| Princeton Road, NE | High | chase | 105.7 | 96 | 87.8 / 78 |

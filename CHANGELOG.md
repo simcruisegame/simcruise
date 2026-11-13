@@ -4,6 +4,27 @@ Notable changes to SimCruise, newest first. The format follows [Keep a Changelog
 
 ## Unreleased
 
+## SimCruise 2.0.1 (2026-11-13)
+
+A patch release after the first play of 2.0.0 ("field of views were off, too bright, traffic was bad, didn't look real"). Windows installer and zip as before.
+
+What changed for the four points:
+
+- **Too bright** — daylight is a third of a stop darker (night unchanged), and building walls now reflect like weathered paint (albedo caps, darkening-only stains, clipped photo pixels dropped from measured wall colours). Same spot on Ocean Drive, same time: the hotel fronts went from a mean of 156 to 137 (8-bit), the whole frame from 144 to 141; nothing clips.
+- **Didn't look real** — the realism score at the Lummus Park photograph went from 34.3 to 35.5 out of 100 (tone 14.4 to 22.0); street furniture (benches, bins, bicycle racks, hydrants) from the map; the tile seams no longer lift whole road sections (they tilt, with the road's bank kept). Still far from a photograph: next phase.
+- **Field of view** — 2.0.0 already starts on the natural lens; the lens is now on F6, or on the pad in the road atlas (Menu, D-pad to View, A). The left-stick click no longer changes it by accident.
+- **Traffic** — not changed in 2.0.1; it is the first item of the next phase.
+
+Also:
+
+- **The AI models are no longer in the download** — the aerial-photo upscaler (Real-ESRGAN, trained on DIV2K) and the scene parser (DDRNet, trained on Cityscapes) were trained on data with research-only or non-commercial terms, so their weights stay development tools. The game runs without them: the aerial photographs are drawn without upscaling and the scene parser is off. `scripts\release.ps1` refuses a package with any `.onnx`.
+- **Brakes and driving** — the Miatas' rear brakes no longer lock first (a real proportioning valve), a new brake-in-turn bench (ISO 7975) checks it, and engine braking includes pumping loss. Stock NB: 0-60 7.73 s, 70-0 177.9 ft, skidpad 0.891 g (published 7.8 s, 173 ft, 0.89 g).
+- **Offline** — with no network at all the game starts on a road from the helper's cache and drives; the place graph never waits for the network.
+
+Known issues in 2.0.1: the Corvette C8's 0-60 (3.22 s against 2.8 s), the Mustang's drum-brake and launch spins, traffic, the Miata's dash clock showing the start time instead of the time of day, and the tuning menu and stick settings were checked by tests, not by hand with a pad.
+
+Everything else in 2.0.1:
+
 - **The settings work with a pad** — in the road atlas, D-pad Left/Right picks a setting (it lights up), A changes it, B lets go; before, a pad could not reach them. The left-stick click no longer changes the lens (pressed by accident while steering). The stick dead-zone label shows the total, the fixed 12 % included.
 - **The local AI reads photographs of the place** (`Live/SimCruiseSceneParser`, `data/ai/ddrnet23-slim-cityscapes.onnx`) — a second network runs on the CPU through Unreal's NNE: DDRNet23-Slim (MIT; Cityscapes weights, ONNX by Qualcomm AI Hub) labels every pixel of a street photograph as building, wall, sky, vegetation, road, car, pole, sign and so on, in 0.5-1 s. The place graph now measures a building's wall colour only on the pixels it labels building or wall, inside the wall's edge, without strongly blue pixels (sky the parser took for wall, or tinted glass), clipped highlights or deep shadow. An experimental `-AlbedoFromPavement` darkens over-exposed walls using the photograph's sidewalk or road as a grey card; it is off, because pavement brightness varied too much on the start tiles (known white walls came out grey); where the parser is not there the colour rule still works. On the Miami Beach start tiles the AI-masked colours agree with the colour rule within a few levels for most buildings and add three walls the rule could not measure (Fillmore Miami Beach, the Miami Beach Federal Savings and Loan building, SLS South Beach). The parser never runs on the game thread (the first try, on a commandlet's game thread, hung in ONNX Runtime); `ParseWithTimeout` gives up after 90 s and turns it off. `SimCruise.AI.Parse <image>` and `-SimCruiseParseDir=<folder>` write a labelled picture. `-run=SimCruisePlaceFacts -Photos -Remeasure` measures again. The parser's weights were trained on Cityscapes (non-commercial terms), so they stay a development tool: the packaged game and installer leave the model out. The same goes for the Real-ESRGAN weights of the AI detail engine (code and weights BSD-3, but trained on DIV2K, released for academic research only, with Flickr2K and OST): packaged builds leave them out and draw the original aerial photographs.
 - **Your own stick and trigger settings** (road atlas, Controls row, saved) — stick steering speed (60-150 %), stick response (fine centre, between, linear), stick dead zone (0-15 %, full stick still reaches full lock) and the throttle trigger's curve (linear to very progressive). Defaults are unchanged. `SimCruise.Gameplay` checks the dead zone's rescaling.

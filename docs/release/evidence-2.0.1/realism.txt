@@ -1,0 +1,4 @@
+# Realism score (lab/realism/score.py), Lummus Park pose, Shipping builds, Ultra
+date,label,pose,total,layout,structure,tone,colour,detail,sky
+2026-11-12T22:00:28Z,v2.0.0,lummus,34.3,21.7,56.7,14.4,25.3,53.8,19.0
+2026-11-13T00:18:34Z,v2.0.1,lummus,35.5,24.7,57.4,22.0,27.3,45.8,20.8

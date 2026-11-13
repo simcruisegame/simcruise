@@ -1,0 +1,13 @@
+# Release package, commit 6f3d3c0
+Execution of commandlet took:  21.02 seconds, PeakPhysMemoryMB=2606 MB, PeakVirtMemoryMB=2447 MB
+Building tools\atlas.exe from helper\atlas.mjs
+PreprocessingSimCruise-2.0.1-windows-x64-setup.exe  360 MB
+SimCruise-2.0.1-windows-x64.zip  425 MB
+Smoke test: the packaged game self-test
+SimCruise-2.0.1-SHA256SUMS.txt  0.0 MB
+SimCruise-2.0.1-windows-x64-setup.exe  360.1 MB
+SimCruise-2.0.1-windows-x64.zip  425.1 MB
+RELEASE PACKAGE OK
+zip listing: no .onnx (data/ai/ is empty; only Engine/.../onnxruntime.dll); release.ps1 refuses any .onnx
+87bdecbbcc7cd7a4a29198d881d2a29652faac7eb4ceaf7d9afb44ceaded459f  SimCruise-2.0.1-windows-x64-setup.exe
+ac2725a0cf925480037d46cb44ccd9d59d394f4aa516629e96cd189ed5d9fb04  SimCruise-2.0.1-windows-x64.zip
