@@ -2,7 +2,9 @@
 
 Notable changes to SimCruise, newest first. The format follows [Keep a Changelog](https://keepachangelog.com/) and versions follow [Semantic Versioning](https://semver.org/). Dates are release dates, not the survey dates of the data a release uses. The release notes written for Sunday Driver 1.0.0 to 1.0.8 are preserved word for word in [docs/history.md](docs/history.md).
 
-## Unreleased
+## SimCruise 2.0.2 (draft: the date, the summary and the known issues are set at the release freeze)
+
+A patch release after 2.0.1. Windows installer and zip as before.
 
 - **Fix: a bad car-to-car contact can no longer fling the car** (`USimCruiseVehicleMovementComponent`) — a contact the solver resolved badly took a Miata from 21 to 249 mph over the forest on Tail of the Dragon. In one physics step the car's speed may now rise by no more than 0.5 m/s and 6 g and its spin by 1 rad/s and 30 rad/s² (at most 12 rad/s); falling speed (a crash) is untouched.
 - **Fix: the tuning menu's steering ratio no longer reads 0.0** — the car's setup was made before its model (which carries the real ratio) attached, so the row started at 0; an untuned ratio is now the real car's (15:1 on the Miata).
