@@ -286,6 +286,42 @@ TSharedPtr<FSimCruiseBuiltCar> SimCruiseCarAssets::Get(const FString& CarId, FSt
 	Car->TyreRadiusCm = Inputs.TireRadiusM * 100.0;
 	Car->HeadLampsCm = SimCruiseCarModelRig::HeadLampCentresCm(Rigged);
 	Car->MirrorsCm = SimCruiseCarModelRig::MirrorCentresCm(Rigged);
+	Car->Dials = Rigged.Dials;
+	// Each dial's face: a disc in its own frame (X to the dial's 12 o'clock, Z toward the driver),
+	// UVs across it for the live face drawn into a render target. Both windings: seen from either side.
+	for (int32 D = 0; D < Car->Dials.Num(); ++D)
+	{
+		const FSimCruiseRiggedCar::FDial& Dial = Car->Dials[D];
+		FSimCruiseRigPart Part;
+		Part.Name = FName(*FString::Printf(TEXT("dial_%d"), D));
+		const FVector X = Dial.Up, Z = Dial.Normal, Y = Z ^ X;
+		Part.PartToVehicle = FTransform(X, Y, Z, Dial.CentreCm);
+		FSimCruiseRigSection& Section = Part.Sections.AddDefaulted_GetRef();
+		Section.MaterialIndex = SimCruiseCarAssets::DialMaterialIndex(D);
+		Section.Role = ESimCruiseCarMaterialRole::Gauge;
+		constexpr int32 Segments = 48;
+		const float R = static_cast<float>(Dial.RadiusCm);
+		Section.Positions.Add(FVector3f::ZeroVector);
+		Section.Normals.Add(FVector3f(0.f, 0.f, 1.f));
+		Section.UV0.Add(FVector2f(0.5f, 0.5f));
+		for (int32 K = 0; K < Segments; ++K)
+		{
+			const float A = UE_TWO_PI * K / Segments;
+			const float C = FMath::Cos(A), S = FMath::Sin(A);
+			Section.Positions.Add(FVector3f(R * C, R * S, 0.f));
+			Section.Normals.Add(FVector3f(0.f, 0.f, 1.f));
+			// u to the right (+Y), v down (-X): the canvas reads upright on the dial.
+			Section.UV0.Add(FVector2f(0.5f + 0.5f * S, 0.5f - 0.5f * C));
+		}
+		for (int32 K = 0; K < Segments; ++K)
+		{
+			const uint32 A = 1 + K, B = 1 + (K + 1) % Segments;
+			Section.Indices.Append({0u, A, B, 0u, B, A});
+		}
+		BuildPart(*Car, Part, Car->DialParts.AddDefaulted_GetRef());
+		Car->Log.Add(FString::Printf(TEXT("dial %d (%s) at %s cm, radius %.1f cm"), D,
+			Car->Profile.Dials.IsValidIndex(Dial.Spec) ? *Car->Profile.Dials[Dial.Spec].Quantity : TEXT("?"), *Dial.CentreCm.ToString(), Dial.RadiusCm));
+	}
 	for (const FVector4& Mirror : Car->MirrorsCm)
 	{
 		if (Mirror.W > 0.0) Car->Log.Add(FString::Printf(TEXT("mirror glass at %s cm"), *FVector(Mirror).ToString()));

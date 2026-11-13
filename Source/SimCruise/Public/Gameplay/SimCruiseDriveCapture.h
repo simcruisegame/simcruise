@@ -47,6 +47,11 @@ private:
 		double LonDeg = 0.0;
 		double HeadingDeg = 0.0;
 		float HorizontalFovDeg = 70.f;
+		/** Optional sixth field "road": stand on the nearest carriageway within 60 m, looking along it
+		 * in the direction nearest the heading (for photographs whose geotag is a few tens of metres off). */
+		bool bSnapToRoad = false;
+		/** Optional seventh field: camera pitch in degrees (negative looks down). */
+		float PitchDeg = 0.f;
 	};
 
 	ASimCruisePlayerController* GetPlayer() const;
@@ -61,6 +66,8 @@ private:
 	FString OutputDir;
 	double StageStarted = 0.0;
 	float Clock = 0.f;
+	/** When the menus' shots began (-SimCruiseShowMenus), 0 before. */
+	float MenusAt = 0.f;
 	int32 SettleFrames = 0;
 	int32 NextShot = 0;
 

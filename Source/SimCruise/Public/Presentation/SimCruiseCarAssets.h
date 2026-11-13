@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Presentation/SimCruiseCarMaterialRoles.h"
+#include "Presentation/SimCruiseCarModelRig.h"
 #include "Presentation/SimCruiseGltfModel.h"
 #include "Presentation/SimCruisePresentationProfile.h"
 #include "UObject/StrongObjectPtr.h"
@@ -51,6 +52,9 @@ struct FSimCruiseBuiltCar
 	TArray<FVector> HeadLampsCm;
 	/** Mirror glass centres: left door, rear-view, right door (W = 0 where the model has none). */
 	TArray<FVector4> MirrorsCm;
+	/** Dials to draw live (vehicle frame, cm), each with its index in Profile.Dials, and their face discs. */
+	TArray<FSimCruiseRiggedCar::FDial> Dials;
+	TArray<FSimCruiseBuiltPart> DialParts;
 	double SteeringRatio = 15.0;
 	TArray<FString> Log;
 	double BuildSeconds = 0.0;
@@ -64,6 +68,9 @@ struct FSimCruiseBuiltCar
 
 namespace SimCruiseCarAssets
 {
+	/** The material slot index a dial's face disc uses (below any model material: one live face each). */
+	inline int32 DialMaterialIndex(int32 Dial) { return -1000 - Dial; }
+
 	/**
 	 * The built car for an id (data/cars/<id>.json + its presentation
 	 * profile), from the cache or built now. Editor builds use the full mesh

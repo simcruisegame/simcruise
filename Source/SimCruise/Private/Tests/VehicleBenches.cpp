@@ -188,7 +188,9 @@ namespace
 					{
 						Worst = FMath::Max(Worst, -W.SlipRatio / FMath::Max(W.PeakSlip, 0.03));
 					}
-					ThresholdPedal = FMath::Clamp(ThresholdPedal + Dt * (Worst > 1.0 ? -4.0 : 1.0), 0.3, 1.0);
+					// A dead band about the peak: back off past it, come back below 90 % of it, hold between.
+					const double Rate = Worst > 1.0 ? -4.0 * FMath::Min(Worst - 1.0 + 0.25, 1.0) : Worst < 0.9 ? 1.0 : 0.0;
+					ThresholdPedal = FMath::Clamp(ThresholdPedal + Dt * Rate, 0.3, 1.0);
 				}
 				else
 				{

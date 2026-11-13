@@ -221,6 +221,47 @@ bool SimCruisePresentationProfiles::Load(const FString& CarId, FSimCruiseCarPres
 		OutProfile.Clock = Clock;
 	}
 
+	const TArray<TSharedPtr<FJsonValue>>* Dials = nullptr;
+	if (Car->TryGetArrayField(TEXT("dials"), Dials) && Dials)
+	{
+		for (const TSharedPtr<FJsonValue>& Value : *Dials)
+		{
+			const TSharedPtr<FJsonObject>* Object = nullptr;
+			if (!Value.IsValid() || !Value->TryGetObject(Object) || !Object)
+			{
+				continue;
+			}
+			const TSharedPtr<FJsonObject>& D = *Object;
+			FSimCruiseDialSpec Dial;
+			const TArray<TSharedPtr<FJsonValue>>* Centre = nullptr;
+			const TArray<TSharedPtr<FJsonValue>>* Normal = nullptr;
+			if (!D->TryGetStringField(TEXT("quantity"), Dial.Quantity) || !D->TryGetArrayField(TEXT("centre_m"), Centre) || Centre->Num() != 3
+				|| !D->TryGetNumberField(TEXT("radius_m"), Dial.Radius))
+			{
+				OutError = Where + TEXT(": a dial needs 'quantity', a three-number 'centre_m' and 'radius_m'");
+				return false;
+			}
+			Dial.Centre = FVector((*Centre)[0]->AsNumber(), (*Centre)[1]->AsNumber(), (*Centre)[2]->AsNumber());
+			if (D->TryGetArrayField(TEXT("normal"), Normal) && Normal->Num() == 3)
+			{
+				Dial.Normal = FVector((*Normal)[0]->AsNumber(), (*Normal)[1]->AsNumber(), (*Normal)[2]->AsNumber()).GetSafeNormal();
+			}
+			D->TryGetNumberField(TEXT("offset_m"), Dial.Offset);
+			D->TryGetNumberField(TEXT("min"), Dial.MinValue);
+			D->TryGetNumberField(TEXT("max"), Dial.MaxValue);
+			D->TryGetNumberField(TEXT("start_deg"), Dial.StartDeg);
+			D->TryGetNumberField(TEXT("sweep_deg"), Dial.SweepDeg);
+			D->TryGetNumberField(TEXT("major_step"), Dial.MajorStep);
+			D->TryGetNumberField(TEXT("minor_per_major"), Dial.MinorPerMajor);
+			D->TryGetNumberField(TEXT("label_divisor"), Dial.LabelDivisor);
+			D->TryGetNumberField(TEXT("red_from"), Dial.RedFrom);
+			D->TryGetStringField(TEXT("start_label"), Dial.StartLabel);
+			D->TryGetStringField(TEXT("end_label"), Dial.EndLabel);
+			D->TryGetStringField(TEXT("caption"), Dial.Caption);
+			OutProfile.Dials.Add(Dial);
+		}
+	}
+
 	const TSharedPtr<FJsonObject>* Paint = nullptr;
 	if (Car->TryGetObjectField(TEXT("paint"), Paint) && Paint)
 	{

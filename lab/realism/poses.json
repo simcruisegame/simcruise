@@ -19,6 +19,47 @@
         "licence": "CC BY-SA 4.0"
       },
       "notes": "Lummus Park beachwalk and the Ocean Drive frontage. Pose, heading and time from the frame; field of view of the Pixel 8 main camera (6.9 mm). The Godot taste test of 10 November 2026 used the same pose."
+    },
+    {
+      "name": "dragon",
+      "lat": 35.4959838,
+      "lon": -83.9354952,
+      "heading": 194,
+      "hfov": 16.8,
+      "utc": "2006-04-18T18:09:59Z",
+      "width": 1600,
+      "height": 1064,
+      "world": "helper",
+      "photo": {
+        "source": "commons",
+        "file": "Tail_of_the_Dragon_2.jpg",
+        "url": "https://commons.wikimedia.org/wiki/File:Tail_of_the_Dragon_2.jpg",
+        "author": "Flickr user (see the file page)",
+        "licence": "CC BY 2.0"
+      },
+      "notes": "US 129 Tail of the Dragon, a curve near Deals Gap, 18 April 2006 14:09 EDT. Canon EOS Digital Rebel XT at 75 mm (APS-C): 16.8 deg across. Heading estimated from the road; refine by capture. Placed on US 129 at its nearest point to the geotag (67 m away), looking along the road.",
+      "snap": "road",
+      "pitch": -1
+    },
+    {
+      "name": "bixby",
+      "lat": 36.35758833,
+      "lon": -121.902705,
+      "heading": 350,
+      "hfov": 28.8,
+      "utc": "2016-07-17T20:31:44Z",
+      "width": 1600,
+      "height": 900,
+      "world": "helper",
+      "photo": {
+        "source": "commons",
+        "file": "Bixby_Creek_Bridge_juli_2016.jpg",
+        "url": "https://commons.wikimedia.org/wiki/File:Bixby_Creek_Bridge_juli_2016.jpg",
+        "author": "see the file page",
+        "licence": "CC0"
+      },
+      "notes": "CA-1 Big Sur, Bixby Creek Bridge from the viewpoint to the south, 17 July 2016 13:31 PDT. Canon EOS 6D at 70 mm: 28.8 deg across.",
+      "pitch": -6
     }
   ]
 }

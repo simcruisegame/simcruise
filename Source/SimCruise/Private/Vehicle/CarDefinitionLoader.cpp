@@ -645,6 +645,7 @@ bool FSimCruiseCarDefinitionLoader::ParseJson(const FString& JsonText, const FSt
 	SIMCRUISE_READ_NUMBER("engine_friction_per_rpm", EngineFrictionTorqueNmPerRpm);
 	SIMCRUISE_READ_NUMBER("engine_pumping_nm", EnginePumpingTorqueNm);
 	SIMCRUISE_READ_NUMBER("engine_pumping_per_rpm", EnginePumpingTorqueNmPerRpm);
+	SIMCRUISE_READ_NUMBER("throttle_progression", ThrottleProgression);
 	SIMCRUISE_READ_NUMBER("min_omega_auto", MinimumAutomaticEngineSpeedRadPerSecond);
 	SIMCRUISE_READ_NUMBER("max_omega", MaximumEngineSpeedRadPerSecond);
 	SIMCRUISE_READ_NUMBER("stall_omega", StallEngineSpeedRadPerSecond);
@@ -677,6 +678,7 @@ bool FSimCruiseCarDefinitionLoader::ParseJson(const FString& JsonText, const FSt
 	SIMCRUISE_READ_NUMBER("awd_front_share", AwdFrontTorqueShareFraction);
 	SIMCRUISE_READ_NUMBER("front_diff_bias", FrontDifferentialBiasRatio);
 	SIMCRUISE_READ_NUMBER("rear_diff_bias", RearDifferentialBiasRatio);
+	SIMCRUISE_READ_NUMBER("rear_diff_coast_bias", RearDifferentialCoastBiasRatio);
 	SIMCRUISE_READ_NUMBER("center_bias", CenterDifferentialBiasRatio);
 	SIMCRUISE_READ_BOOL("traction_control", bTractionControlEnabled);
 	SIMCRUISE_READ_NUMBER("tc_target_slip", TractionControlTargetSlipRatio);
@@ -698,6 +700,7 @@ bool FSimCruiseCarDefinitionLoader::ParseJson(const FString& JsonText, const FSt
 	SIMCRUISE_READ_NUMBER("max_contact_load_n", MaximumTireContactLoadN);
 	SIMCRUISE_READ_ARRAY("static_camber_deg", StaticCamberDegByAxle);
 	SIMCRUISE_READ_ARRAY("camber_per_m", CamberGainDegPerMByAxle);
+	SIMCRUISE_READ_ARRAY("roll_centre_m", RollCentreHeightMByAxle);
 	SIMCRUISE_READ_NUMBER("caster_deg", CasterAngleDeg);
 	SIMCRUISE_READ_NUMBER("toe_per_wheel_deg", ToeAngleDegPerWheel);
 	SIMCRUISE_READ_NUMBER("unsprung_corner_kg", UnsprungMassKgPerCorner);

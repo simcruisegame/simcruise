@@ -276,9 +276,11 @@ bool FSimCruiseVehicleModelManualClutchTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
-	// The car rolls at 20 m/s on a flat road in 3rd, clutch up, half throttle (the body held at
+	// The car rolls at 20 m/s on a flat road in 3rd, clutch up, half load (the body held at
 	// that speed): a dry clutch with the pedal up is locked, so the engine turns exactly with
-	// the gearbox. The old viscous coupling let it slip by torque over 10 N m s.
+	// the gearbox. The old viscous coupling let it slip by torque over 10 N m s. Half load, not
+	// half pedal: the throttle plate's progression is not what this checks.
+	Car.ThrottleProgression = 0.0;
 	FSimCruiseVehicleSim Sim;
 	Sim.Initialize(Car);
 	Sim.SetManual(true, 20.0);
@@ -330,6 +332,19 @@ bool FSimCruiseVehicleModelDrivetrainTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("below the curve holds the first point"), SimCruiseDynamics::SampleEngineTorqueNm(Car, 300.0), 94.0, 1.0e-9);
 	TestEqual(TEXT("past the curve"), SimCruiseDynamics::SampleEngineTorqueNm(Car, 7500.0), Car.TorquePastCurveNm, 1.0e-9);
 
+	// The throttle plate: full pedal is full load at any speed, none is none; a light pedal fills
+	// the cylinders far more at low speed than at high.
+	TestEqual(TEXT("full pedal is full load"), SimCruiseDynamics::EngineLoad(Car, 1.0, 2000.0), 1.0, 1.0e-9);
+	TestEqual(TEXT("no pedal is no load"), SimCruiseDynamics::EngineLoad(Car, 0.0, 2000.0), 0.0, 1.0e-9);
+	const double LightLow = SimCruiseDynamics::EngineLoad(Car, 0.2, 1500.0);
+	const double LightHigh = SimCruiseDynamics::EngineLoad(Car, 0.2, 6000.0);
+	AddInfo(FString::Printf(TEXT("THROTTLE pedal 0.2: load %.2f at 1500 rpm, %.2f at 6000"), LightLow, LightHigh));
+	TestTrue(TEXT("a light pedal at low revs is most of the torque"), LightLow > 0.6 && LightLow < 0.8);
+	TestTrue(TEXT("and much less at high revs"), LightHigh > 0.25 && LightHigh < 0.45);
+	FSimCruiseCarDefinition Linear;
+	Linear.ThrottleProgression = 0.0;
+	TestEqual(TEXT("progression 0 is linear"), SimCruiseDynamics::EngineLoad(Linear, 0.3, 1500.0), 0.3, 1.0e-9);
+
 	// Torsen-style bias 2: the slower wheel can take up to twice the faster's torque.
 	const double Equal[4] = { 0.0, 0.0, 30.0, 30.0 };
 	double Out[4];
@@ -342,6 +357,17 @@ bool FSimCruiseVehicleModelDrivetrainTest::RunTest(const FString& Parameters)
 	Car.RearDifferentialBiasRatio = 1.0;
 	SimCruiseDynamics::SplitDriveTorqueToWheels(Car, 1000.0, Spinning, 1.0 / 360.0, true, Out);
 	TestEqual(TEXT("an open differential splits equally"), Out[2], Out[3], 1.0e-9);
+
+	// Engine braking: open on the coast side by default; a torque-sensing differential with a
+	// coast bias moves the braking torque toward the faster (unloaded, spinning-up) wheel's partner.
+	FSimCruiseCarDefinition Coast;
+	SimCruiseDynamics::SplitDriveTorqueToWheels(Coast, -200.0, Spinning, 1.0 / 360.0, false, Out);
+	TestEqual(TEXT("coast: open by default"), Out[2], Out[3], 1.0e-9);
+	Coast.RearDifferentialCoastBiasRatio = 1.5;
+	SimCruiseDynamics::SplitDriveTorqueToWheels(Coast, -200.0, Spinning, 1.0 / 360.0, false, Out);
+	TestTrue(TEXT("coast: biased"), FMath::Abs(Out[2] - Out[3]) > 1.0);
+	TestEqual(TEXT("coast: at most the bias"), FMath::Max(FMath::Abs(Out[2]), FMath::Abs(Out[3])) / FMath::Min(FMath::Abs(Out[2]), FMath::Abs(Out[3])), 1.5, 1.0e-9);
+	TestEqual(TEXT("coast: the split conserves torque"), Out[2] + Out[3], -200.0, 1.0e-9);
 	return true;
 }
 

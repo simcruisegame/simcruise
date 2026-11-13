@@ -6,13 +6,16 @@
 #include "Math/RandomStream.h"
 #include "Gameplay/SimCruiseVehicleControl.h"
 
-/** Camera views in C / Y order. The game opens in the driver's seat. */
+/** Camera views in C / Y order: the seat, the hood, near and far chase, scenic. The game opens in the driver's seat. */
 enum class ESimCruiseView : uint8
 {
-	Chase = 0,
-	Driver = 1,
-	Scenic = 2,
+	Driver = 0,
+	Hood = 1,
+	Chase = 2,
+	FarChase = 3,
+	Scenic = 4,
 };
+constexpr uint8 SimCruiseViewCount = 5;
 
 /** The driver's lens (godot-final:game/ViewLens.gd): vertical field of view; the
  *  horizontal angle follows the window's aspect ratio. */

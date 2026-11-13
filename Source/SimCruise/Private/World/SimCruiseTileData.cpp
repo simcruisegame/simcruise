@@ -5,7 +5,9 @@
 #include "Dom/JsonObject.h"
 #include "Dom/JsonValue.h"
 #include "HAL/FileManager.h"
+#include "Misc/CommandLine.h"
 #include "Misc/FileHelper.h"
+#include "Misc/Parse.h"
 #include "Misc/Paths.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
@@ -415,6 +417,18 @@ namespace SimCruiseTileData
 		if (AerialKey.IsEmpty())
 		{
 			return FString();
+		}
+		// The sun shadows baked into the photograph are lifted where lidar shows what cast them
+		// (lab/unbake-sun, docs/research/world-detail-methods.md): the game's own sun then draws
+		// the only shadows. -SimCruiseBakedAerial keeps the photograph as it was taken.
+		static const bool bBaked = FParse::Param(FCommandLine::Get(), TEXT("SimCruiseBakedAerial"));
+		if (!bBaked)
+		{
+			const FString Unbaked = FPaths::Combine(RepositoryRoot(), TEXT("data"), TEXT("tiles"), TEXT("aerial"), TEXT("unbaked"), AerialKey);
+			if (IFileManager::Get().FileExists(*Unbaked))
+			{
+				return Unbaked;
+			}
 		}
 		const FString Path = FPaths::Combine(RepositoryRoot(), TEXT("data"), TEXT("tiles"), TEXT("aerial"), AerialKey);
 		return IFileManager::Get().FileExists(*Path) ? Path : FString();

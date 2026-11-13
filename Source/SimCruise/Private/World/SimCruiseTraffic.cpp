@@ -936,6 +936,12 @@ void ASimCruiseTraffic::Tick(float DeltaSeconds)
 			Cars.Num(), Heard, Moving, AtStops, Standing, WhyCount[1], WhyCount[2], WhyCount[3], WhyCount[4], WhyCount[5], WhyCount[0], Cars.Num() ? Sum / Cars.Num() : 0.0, RibbonChanges, LaneChanges, LeftTurnYields, Spawned, StopsPassed, Stuck, StuckWhy[1], StuckWhy[2], StuckWhy[3], StuckWhy[4], StuckWhy[5], StuckWhy[0]);
 	}
 	const int32 Want = FMath::Max(0, CVarTrafficCars.GetValueOnGameThread());
+	// Fewer wanted (the player turned traffic down or off): the extra cars leave at once.
+	while (Cars.Num() > Want)
+	{
+		if (Cars.Last()) Cars.Last()->Destroy();
+		Cars.Pop(EAllowShrinking::No);
+	}
 	for (int32 Tries = 0; Tries < 2 && Cars.Num() < Want; ++Tries)
 	{
 		Spawn(Focus, Player ? Player->GetActorForwardVector() : FVector::ForwardVector, CameraCm, CameraFwd, SinceStart < 3.0 || bTestFocus);

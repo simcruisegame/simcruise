@@ -30,6 +30,8 @@ ASimCruiseDriveCapture::ASimCruiseDriveCapture()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickGroup = TG_PostPhysics;
+	// The menus pause the game; their shots still need this clock.
+	PrimaryActorTick.bTickEvenWhenPaused = true;
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 }
 
@@ -60,9 +62,9 @@ void ASimCruiseDriveCapture::BeginPlay()
 		{
 			TArray<FString> Fields;
 			Entry.ParseIntoArray(Fields, TEXT(","));
-			if (Fields.Num() != 5)
+			if (Fields.Num() < 5 || Fields.Num() > 7)
 			{
-				UE_LOG(LogSimCruiseDriveCapture, Error, TEXT("Realism pose '%s' is not name,lat,lon,heading,hfov"), *Entry);
+				UE_LOG(LogSimCruiseDriveCapture, Error, TEXT("Realism pose '%s' is not name,lat,lon,heading,hfov[,road|-][,pitch]"), *Entry);
 				continue;
 			}
 			FRealismPose Pose;
@@ -71,6 +73,8 @@ void ASimCruiseDriveCapture::BeginPlay()
 			Pose.LonDeg = FCString::Atod(*Fields[2]);
 			Pose.HeadingDeg = FCString::Atod(*Fields[3]);
 			Pose.HorizontalFovDeg = FMath::Clamp(FCString::Atof(*Fields[4]), 5.f, 170.f);
+			Pose.bSnapToRoad = Fields.Num() > 5 && Fields[5].Equals(TEXT("road"), ESearchCase::IgnoreCase);
+			Pose.PitchDeg = Fields.Num() > 6 ? FMath::Clamp(FCString::Atof(*Fields[6]), -60.f, 60.f) : 0.f;
 			RealismPoses.Add(Pose);
 		}
 	}
@@ -135,6 +139,21 @@ void ASimCruiseDriveCapture::Tick(float DeltaSeconds)
 	APawn* Pawn = Player ? Player->GetPawn() : nullptr;
 	const double Now = FPlatformTime::Seconds();
 	const bool bShadersBusy = GShaderCompilingManager && GShaderCompilingManager->GetNumRemainingJobs() > 0;
+	// -SimCruiseSeat=up,forward,pitch,fov (cm, cm, deg, deg tall; 0 = the lens): a seat to check.
+	FString SeatText;
+	if (Player && FParse::Value(FCommandLine::Get(), TEXT("SimCruiseSeat="), SeatText, false))
+	{
+		TArray<FString> Parts;
+		SeatText.ParseIntoArray(Parts, TEXT(","));
+		if (ASimCruisePlayerCameraManager* SeatCamera = Cast<ASimCruisePlayerCameraManager>(Player->PlayerCameraManager); SeatCamera && Parts.Num() == 4)
+		{
+			SeatCamera->Seat.UpCm = FCString::Atod(*Parts[0]);
+			SeatCamera->Seat.ForwardCm = FCString::Atod(*Parts[1]);
+			SeatCamera->Seat.PitchDeg = FCString::Atod(*Parts[2]);
+			SeatCamera->Seat.FovDeg = FCString::Atod(*Parts[3]);
+			SeatCamera->Seat.Clamp();
+		}
+	}
 
 	switch (Stage)
 	{
@@ -237,8 +256,29 @@ void ASimCruiseDriveCapture::Tick(float DeltaSeconds)
 		}
 		if (Crossed(14.3f) && Hud) { Hud->SetLevel(ESimCruiseHudLevel::Glance); }
 		if (Crossed(15.0f)) { Shoot(TEXT("drive-cockpit-moving"), true); }
-		if (Crossed(15.2f) && Camera) { Camera->SetView(ESimCruiseView::Chase); }
-		if (Crossed(17.0f)) { Shoot(TEXT("drive-chase-moving"), true); }
+		if (Crossed(15.1f) && Camera) { Camera->SetView(ESimCruiseView::Hood); }
+		if (Crossed(15.6f)) { Shoot(TEXT("drive-hood-moving"), true); }
+		if (Crossed(15.7f) && Camera) { Camera->SetView(ESimCruiseView::Chase); }
+		if (Crossed(16.6f)) { Shoot(TEXT("drive-chase-moving"), true); }
+		if (Crossed(16.7f) && Camera) { Camera->SetView(ESimCruiseView::FarChase); }
+		if (Crossed(17.15f)) { Shoot(TEXT("drive-farchase-moving"), true); }
+		// -SimCruiseShowMenus: once stopped, the seat & view menu over the live view, then the atlas.
+		if (MenusAt > 0.f)
+		{
+			if (Crossed(MenusAt + 1.5f)) { Shoot(TEXT("drive-seat-menu"), true); }
+			if (Crossed(MenusAt + 1.8f)) { Player->CloseOverlays(); Player->OpenRoadAtlas(); }
+			if (Crossed(MenusAt + 4.0f)) { Shoot(TEXT("drive-atlas"), true); }
+			if (Clock > MenusAt + 4.5f) { Player->CloseOverlays(); Finish(); }
+			break;
+		}
+		if (Clock > 18.0f && FMath::Abs(Speed) < 0.3f && FParse::Param(FCommandLine::Get(), TEXT("SimCruiseShowMenus")))
+		{
+			Player->InjectAxis(EKeys::Gamepad_LeftTriggerAxis, 0.f);
+			if (Camera) { Camera->SetView(ESimCruiseView::Driver); }
+			Player->OpenSeatMenu();
+			MenusAt = Clock;
+			break;
+		}
 		if (Clock > 18.0f && FMath::Abs(Speed) < 0.3f)
 		{
 			Player->InjectAxis(EKeys::Gamepad_LeftTriggerAxis, 0.f);
@@ -331,6 +371,17 @@ void ASimCruiseDriveCapture::TickRealism(float DeltaSeconds, ASimCruisePlayerCon
 
 	// Placed again every frame from the world frame, so a floating-origin rebase cannot move it.
 	FVector Eye = Stream->GetFrame().LonLatToWorldCm(Pose.LonDeg, Pose.LatDeg);
+	double Yaw = Pose.HeadingDeg - 90.0;
+	if (Pose.bSnapToRoad)
+	{
+		FVector OnRoad;
+		FRotator Along;
+		if (Stream->FindRoadPoseFacing(FString(), Eye, 60.0, Yaw, OnRoad, Along))
+		{
+			Eye = OnRoad;
+			Yaw = Along.Yaw;
+		}
+	}
 	double GroundCm = 0.0;
 	const bool bGround = Stream->SurfaceHeightAt(Eye, GroundCm);
 	Eye.Z = GroundCm + 165.0;
@@ -346,7 +397,7 @@ void ASimCruiseDriveCapture::TickRealism(float DeltaSeconds, ASimCruisePlayerCon
 		Player->SetViewTarget(PoseCamera);
 	}
 	// Compass heading (0 north, clockwise) to yaw: the world's X runs east and Y south.
-	PoseCamera->SetActorLocationAndRotation(Eye, FRotator(0.0, Pose.HeadingDeg - 90.0, 0.0));
+	PoseCamera->SetActorLocationAndRotation(Eye, FRotator(Pose.PitchDeg, Yaw, 0.0));
 	PoseCamera->GetCameraComponent()->SetFieldOfView(Pose.HorizontalFovDeg);
 
 	// Wait for the ground and tiles at the pose, compiled shaders, then 4 s and 120 frames for

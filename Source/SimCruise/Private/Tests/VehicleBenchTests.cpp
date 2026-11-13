@@ -193,7 +193,11 @@ namespace
 			}
 			// Past the friction circle any car may rotate: judge only while the combined demand
 			// stays within 90 % of the car's skidpad grip.
-			const double CombinedG = FMath::Sqrt(FMath::Square(Case.DecelG) + FMath::Square(Case.SteadyLateralG));
+			// The deceleration the pedal asks for (the brakes' torque over the wheel radius and the car's
+			// weight), not the one measured: a spin can raise the measured one past the gate.
+			const double DemandedG = 2.0 * (Case.BrakePedal * Car.FrontBrakeTorqueNm + SimCruiseDynamics::RearBrakePedal(Car, Case.BrakePedal) * Car.RearBrakeTorqueNm)
+				/ (Car.TireFreeRadiusM() * Car.MassKg * SimCruiseDynamics::GravityMps2);
+			const double CombinedG = FMath::Sqrt(FMath::Square(DemandedG) + FMath::Square(Case.SteadyLateralG));
 			const bool bWithinGrip = CombinedG <= 0.9 * Car.TargetSkidpadG;
 			if (Case.bSpun && bWithinGrip)
 			{
@@ -210,10 +214,7 @@ namespace
 		// equal grip the fronts lock first. A rear share far under the load costs stopping distance.
 		if (!Car.bAbsEnabled)
 		{
-			auto RearPedal = [&Car](double P)
-			{
-				return P <= Car.RearBrakeKneeFraction ? P : Car.RearBrakeKneeFraction + Car.RearBrakeSlopeAboveKnee * (P - Car.RearBrakeKneeFraction);
-			};
+			auto RearPedal = [&Car](double P) { return SimCruiseDynamics::RearBrakePedal(Car, P); };
 			const double Radius = Car.TireFreeRadiusM();
 			double WorstMargin = 1.0;
 			for (double A = 0.15; A <= 0.8001; A += 0.05)
