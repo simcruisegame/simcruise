@@ -429,8 +429,9 @@ void ASimCruisePreflight::Tick(float DeltaSeconds)
 		{
 			// The negative test: at speed, a full yank of the stick with the handbrake on for 2 s.
 			// The run must FAIL with a spin; it overrides what the robot asked for this frame.
-			const bool bAtSpeed = Player->GetTelemetry().BodyVelocityMps.X > 10.0 || Stats.DriveSeconds > 20.f;
-			const bool bYank = bAtSpeed && ForceSpinClock < 2.f;
+			// It starts once the car is above 12 m/s (or after 25 s) and then holds for 2.5 s whatever the speed.
+			const bool bAtSpeed = Player->GetTelemetry().BodyVelocityMps.X > 12.0 || Stats.DriveSeconds > 25.f;
+			const bool bYank = (ForceSpinClock > 0.f || bAtSpeed) && ForceSpinClock < 2.5f;
 			if (bYank)
 			{
 				ForceSpinClock += DeltaSeconds;
@@ -672,7 +673,9 @@ void ASimCruisePreflight::MeasureTick(ASimCruisePlayerController* Player, float 
 			Stats.PeakRearSlipDeg = FMath::Max(Stats.PeakRearSlipDeg, static_cast<float>(RearSlipDeg));
 		}
 		Stats.PeakYawDps = FMath::Max(Stats.PeakYawDps, static_cast<float>(FMath::Abs(FMath::RadiansToDegrees(W.Z))));
-		ReverseNow = V.X < -2.0 ? ReverseNow + DeltaSeconds : 0.f;
+		// Backwards counts once the car has driven (a roll-back on a slope at the start is not a spin).
+		bHasDriven = bHasDriven || V.X > 5.0;
+		ReverseNow = bHasDriven && V.X < -2.0 ? ReverseNow + DeltaSeconds : 0.f;
 		Stats.ReversedSeconds = FMath::Max(Stats.ReversedSeconds, ReverseNow);
 	}
 

@@ -217,6 +217,8 @@ private:
 	float ForceSpinClock = 0.f;
 	bool bForceSpinBrake = false;
 	float ReverseNow = 0.f;
+	/** The car has been above 5 m/s once in this drive. */
+	bool bHasDriven = false;
 	float OffRibbonNow = 0.f;
 	FDelegateHandle FrameHandle;
 	int32 FrameIndex = 0;
