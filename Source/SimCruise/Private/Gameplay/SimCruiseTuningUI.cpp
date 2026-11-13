@@ -22,6 +22,12 @@ void SSimCruiseTuningMenu::Construct(const FArguments& InArgs)
 	{
 		Stock = Car->GetStockTuning();
 		Working = Car->GetTuning();
+		// The car's setup is made before its model (and with it the steering ratio) is attached:
+		// an untuned ratio is the real car's.
+		if (Working.SteeringRatio <= 0.0)
+		{
+			Working.SteeringRatio = Stock.SteeringRatio;
+		}
 	}
 	Rows = {
 		{ LOCTEXT("FrontSpring", "Front springs"), &FSimCruiseTuning::FrontSpringLbIn, 10.0, TEXT("lb/in"), 0 },
