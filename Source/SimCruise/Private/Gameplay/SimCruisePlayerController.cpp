@@ -20,6 +20,7 @@
 #include "World/SimCruiseWorldStreamer.h"
 #include "Gameplay/SimCruiseHUD.h"
 #include "Gameplay/SimCruiseInputConfig.h"
+#include "Gameplay/SimCruiseInputTape.h"
 #include "Gameplay/SimCruisePlayerCameraManager.h"
 #include "HAL/IConsoleManager.h"
 #include "InputAction.h"
@@ -82,6 +83,8 @@ void ASimCruisePlayerController::BeginPlay()
 		{
 			SimCruiseShellCapture(1);
 		}
+		InputTape = MakeShared<FSimCruiseInputTapeDriver>();
+		InputTape->Begin(*this);
 	}
 }
 
@@ -89,6 +92,10 @@ void ASimCruisePlayerController::EndPlay(const EEndPlayReason::Type EndPlayReaso
 {
 	CloseOverlays();
 	StopRumble();
+	if (InputTape)
+	{
+		InputTape->End();
+	}
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -326,6 +333,11 @@ void ASimCruisePlayerController::PlayerTick(float DeltaTime)
 	}
 	FSimCruiseRawControls Raw = ReadRawControls();
 	UpdateWheel(Raw, DeltaTime);
+	if (InputTape)
+	{
+		// Records these controls, or replaces them with a recording's.
+		InputTape->Process(*this, Raw, DeltaTime);
+	}
 	if (FMath::Abs(Raw.PadSteer) > 0.0 || Raw.PadThrottle > 0.0 || Raw.PadBrake > 0.0)
 	{
 		bUsingGamepad = true;
@@ -454,6 +466,8 @@ void ASimCruisePlayerController::OnShiftUp()
 {
 	if (ISimCruiseVehicleControl* Vehicle = GetVehicle())
 	{
+		if (InputTape && InputTape->IsReplaying()) { return; }
+		if (InputTape) { InputTape->NoteShift(1); }
 		const FString Reply = Vehicle->RequestGearChange(1);
 		if (!Reply.IsEmpty()) { ShowMessage(Reply, 2.f); }
 	}
@@ -463,6 +477,8 @@ void ASimCruisePlayerController::OnShiftDown()
 {
 	if (ISimCruiseVehicleControl* Vehicle = GetVehicle())
 	{
+		if (InputTape && InputTape->IsReplaying()) { return; }
+		if (InputTape) { InputTape->NoteShift(-1); }
 		const FString Reply = Vehicle->RequestGearChange(-1);
 		if (!Reply.IsEmpty()) { ShowMessage(Reply, 2.f); }
 	}

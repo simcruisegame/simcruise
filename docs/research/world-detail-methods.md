@@ -231,6 +231,11 @@ GPU at the Bixby viewpoint, High, 1920x1080, plugged in (power-capped as before)
 
 Right half of the Bixby images: Wikimedia Commons [Bixby_Creek_Bridge_juli_2016.jpg](https://commons.wikimedia.org/wiki/File:Bixby_Creek_Bridge_juli_2016.jpg), CC0, resized.
 
+## Handoff (13 November 2026)
+
+- **Grass field on the hillsides** is on `main` (`9cc7d6f`): the ground and the regional landscape share one meso-layer HLSL helper. Measurements are in the section above.
+- **AI fine-detail layer: unfinished**, on branch `detail-layer-wip`. The kit is made with Stable Diffusion XL base 1.0 (CreativeML Open RAIL++-M). FLUX.1-schnell (Apache-2.0) would need a Hugging Face log-in and accepting its terms on the PC. Six of eight slices are generated (litter and bark are missing). The packer `lab/detail-kit/make_kit.py` has not been run. The shader helper (`DetailKitCode`, used by the ground, asphalt, concrete and building materials, flag `-SimCruiseNoDetailLayer`) compiles in C++ but has not been built into the materials, run in the game or tested.
+- **Next steps:** generate litter and bark, run `make_kit.py` into `data/art/detail-kit/`, rebuild the materials with the commandlet, fix any HLSL errors, run the realism A/B (lummus, dragon, bixby) and the GPU A/B at Ocean Drive with the layer on and off (default off if any pose drops 1.0 or more), then run `scripts\check.ps1`.
 ## Sources
 
 - USGS 3DEP lidar point clouds in Entwine format on AWS (`usgs-lidar-public`), US public domain.
