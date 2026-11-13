@@ -2,6 +2,10 @@
 
 #include "World/SimCruiseWorldTile.h"
 
+#include "Misc/Parse.h"
+
+#include "Misc/CommandLine.h"
+
 #include "CollisionQueryParams.h"
 #include "Engine/HitResult.h"
 #include "Engine/Texture2D.h"
@@ -371,6 +375,12 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 			MID->SetVectorParameterValue(TEXT("GrainMean"), Resources->AsphaltMean);
 			MID->SetVectorParameterValue(TEXT("AsphaltMean"), Resources->AsphaltMean);
 			MID->SetScalarParameterValue(TEXT("Lights"), LightsOn);
+			// The grass field (world-detail-methods.md): on unless -SimCruiseNoGrassField; the
+			// dry share follows -SimCruiseGrassDry=0..1 until the place graph sets it per patch.
+			static const bool bGrassField = !FParse::Param(FCommandLine::Get(), TEXT("SimCruiseNoGrassField"));
+			static const float GrassDry = [] { float V = 0.f; FParse::Value(FCommandLine::Get(), TEXT("SimCruiseGrassDry="), V); return FMath::Clamp(V, 0.f, 1.f); }();
+			MID->SetScalarParameterValue(TEXT("GrassField"), bGrassField ? 1.f : 0.f);
+			MID->SetScalarParameterValue(TEXT("GrassDry"), GrassDry);
 			Materials.Add(MID);
 			const int32 Slot = RenderSlots.IndexOfByKey(i);
 			if (RenderMesh && Slot != INDEX_NONE)

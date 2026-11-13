@@ -79,6 +79,77 @@ The 10x difference in steep ground is the cut and fill along the road: exactly t
 
 **Proposed in the game.** For each tile, a 0.5 m texture over the 40 m corridor of each road: R = lidar ground minus the 10 m terrain (metres), GB = normal, A = intensity. The terrain mesh near the car is refined to 1 m in that corridor (CPU, at tile build), and the ground shader takes its normal and its paint from the texture. One fetch per pixel. The road ribbon and its grading stay as they are (the road-engineering code owns the carriageway); the texture changes only the ground outside the ribbon. This needs the road owner's agreement before it goes in.
 
+## What makes a picture look real to the eye
+
+Studies that asked people "photograph or render?" agree on a short list:
+
+- **Rough surfaces and soft shadows count most.** Rademacher et al. (EGWR 2001) changed one thing at a time in rendered scenes: soft shadows and surface roughness raised perceived realism; more objects or more lights did not. Fan et al. ("Image visual realism", IEEE TPAMI 2018) found the same cues plus colour saturation and shading smoothness, and trained a predictor on them.
+- **Natural pictures have power at every size.** A photograph's amplitude spectrum falls as about 1/f (Field 1987; van der Schaaf and van Hateren 1996). A render with a flat colour at 0.5-10 m and a photo texture below 0.5 m has a hole in the middle: the eye reads it as "painted". This hole is the main fault of our grass, walls and verges.
+- **Nothing real repeats.** Vision finds a repeated pattern in parallel and fast (texture segregation, Julesz). One repeat in view is enough to say "game".
+- **Wear follows physics.** Dirt collects where water runs and stops (under sills, at the foot of walls), edges wear where hands, feet and tyres touch, and paint fades on the sunny side. Random grime looks wrong because the eye knows where dirt goes.
+- **Depth at grazing angles.** At the driver's eye height (1.1 m) the ground is seen at 2-10 degrees. A flat texture of grass shows no blades standing up and no shade between them; real grass does.
+- **Contact and occlusion.** Objects without a dark line where they meet the ground float (contact shadows, ambient occlusion).
+- **Clutter.** Real streets carry wires, signs, cracks, stains, litter, drains, meters; their absence reads as "too clean".
+
+### The realism cue checklist
+
+Score: 0 missing, 1 crude, 2 good, 3 like a photograph. Ocean Drive is scored from the v2.0.1 screenshot (`ocean.png`); the other hero roads wait for the PC captures.
+
+| Cue | Ocean Drive now | Cost to fix | Fix | Owner |
+|---|---|---|---|---|
+| Middle sizes (0.5-10 m) on grass and verges | 0 | 0.1-0.3 ms | **grass field (built below)** | this thread |
+| No visible repeats on the ground | 1 | 0.05 ms | hex tiling (in the grass field; same for sand and grain next) | this thread |
+| Blades and depth on near grass | 0 | 0.1-0.3 ms | parallax blade shells (grass field) | this thread |
+| Wall surface: grain, patches, cracks, repairs | 1 | 0 ms | graph surface + texture by example | this thread |
+| Water-driven grime on walls (sills, wall base, roof edge) | 1 | 0 ms | already in the building shader; more by graph wear facts | this thread |
+| Edge wear and bevels (kerbs, corners) | 0 | 0 ms | rounded kerb edge and corner normal in the shader | this thread |
+| Ground shadows from the photo vs the game's sun | 1 | 0 ms | unbaked aerial (prototype 1) | this thread |
+| Contact shadows and occlusion | 1 | (lighting) | Lumen and contact shadows | picture thread |
+| Road: patches, crack seal, oil drip line, worn paint | 1 | 0 ms | lidar intensity + graph surface | this thread with picture thread |
+| Clutter: wires, signs, meters, drains, litter | 1 | low | roadside corridor 5.4 | knowledge-graph thread |
+| Plants varied in species, size, health | 1 | low | graph species + season | this thread |
+| Exposure and colour like a phone photo | 1 | 0 ms | 5.2 | picture thread |
+
+The cheapest large gains are the middle sizes, the depth on near grass and the no-repeat ground. They are all in one shader change, the grass field.
+
+## The grass field: real texture at every size, from almost nothing
+
+This is the "new tech" Aaron asked for. It needs no stored textures beyond the 640 px CC0 grass photograph we already have, no new draw calls and no AI on the frame.
+
+1. **Micro (under 0.5 m): no-repeat photograph.** Hex tiling (Mikkelsen, JCGT 2022): three lookups of the same photograph, each rotated and offset by a hash of its hex cell, blended with the contrast restored. No two metres of lawn are the same.
+2. **Meso (0.3-10 m): the size that was missing.** Hashed value noise makes clumps (0.3-1 m, brighter and darker), patches of yellower and bluer grass (2-8 m), clover spots and dry patches. The dry share comes from the season and the graph (`state:dormant_tan`, `state:cured_straw`); for now `-SimCruiseGrassDry=0..1`. It only multiplies around 1, so the mean colour that the photograph and the colour grade set does not move.
+3. **Near (under 22 m): blades with depth.** The pixel marches 8 thin shells from 8 cm down to the ground along the view ray. On each shell it tests one flat, tapering, leaning blade per 2 cm cell on two offset grids (St. Augustine blades are 6-10 mm wide); the first blade the ray meets decides: high is a bright tip, low is a dark base, none is shaded thatch. So blades stand up, hide each other and shade their bases, with parallax as the car moves. This is shell texturing (the fur technique) done inside one pixel, with no extra geometry. The shells start at a per-pixel random height, so they never show as steps; blades fade out where the land-cover mask is under about 0.6 (path edges) and where a pixel covers more than 1-2 cm of lawn, so they cannot shimmer. The first version thresholded value noise per shell instead; on the PC it drew stacked cones like a sawtooth carpet and spilled onto the beachwalk (picture below).
+
+All three are arithmetic in the existing ground shader: about 3 texture fetches and roughly 150 ALU operations per grass pixel near the car, fewer far away. On a 28 W GPU that is expected at 0.1-0.3 ms when lawns fill half the screen; the PC measures it.
+
+![Driver's-eye prototype: now; grass field; grass field dormant](images/world-detail/grass-field.png)
+
+![Near the car: now; grass field; dormant](images/world-detail/grass-field-near.png)
+
+**Where AI helps.** (a) An optimiser on the CPU fits the field's few numbers (clump size, patch colours, blade height and density) per species and season to licensed photographs of real lawns, by the realism score's detail and colour parts. (b) Texture by example makes the micro photograph for a species with no CC0 scan. No network runs while driving.
+
+**In the game.** Ground material parameters `GrassField` (on; `-SimCruiseNoGrassField` turns it off) and `GrassDry`. The materials are rebuilt with `-run=SimCruiseBuildWorldMaterials`.
+
+## The knowledge graph chooses the surfaces (Aaron, 13 November)
+
+Aaron asked: can the AI use a knowledge graph to make building textures, roads, grass and so on? Yes. The place knowledge graph ([../place-graph.md](../place-graph.md)) already chooses each building's recipe, details, colours and wear from facts. The plan extends the same graph from buildings to every surface.
+
+**How it works.**
+
+1. **Facts about each surface.** A road gets `road:<class>` and its OSM `surface`. A land patch gets `land:<cover>`. Every surface also gets the facts of its place: `region:*`, `climate:*`, `district:*`, `near:sea`, and `season:*` from today's date and the climate.
+2. **Rules make surface facts.** The same rule engine (weakest `if` fact, noisy OR, negative weights suppress) turns them into `surface:*` and `state:*` facts. Examples: tropical lawn = St. Augustine turf; Southeast lawn in November = dormant tan Bermuda; Great Plains grass in autumn = cured straw; Deco wall = smooth stucco; Main Street block before 1945 = common brick; OSM `surface=concrete` = concrete slabs with 4.5 m joints.
+3. **Measured facts outweigh rules.** Lidar intensity that varies in blocks gives `measured:intensity_patchy` (patched asphalt). Bright pavement in the unbaked aerial photograph gives `measured:bright_pavement` (aged asphalt). A licensed street photograph gives the wall colour (already done for walls). So the rules give a good first guess everywhere, and measurement corrects it where data exists.
+4. **Each surface names a material.** `surface-rules.json` maps each `surface:*` to the shader layer it uses (Ground, Asphalt, Concrete, Building), its albedo, its detail texture, scale and amount, and a CC0 library set for later (ambientCG, Poly Haven). The shaders do not change: the graph only chooses their inputs per feature.
+5. **Local AI helps off the frame, never on it.** (a) Texture by example (method 5) makes a swatch on the CPU when the graph chooses a surface with no library texture. (b) The live-data thread's open-licence photo parser adds `seen:*` facts (for example "this wall is brick"). (c) A local model on the CPU can draft new rules from open sources (Wikidata, USDA and FHWA tables); a draft rule enters the rule file only when a test against real photographs passes. A rule is a fact with a reason, so every choice can be traced.
+
+**Prototype** (`lab/surface-graph/`, Ocean Drive tile 18180_27907, November): 75 features resolved in under a second on the CPU. 20 lawns become St. Augustine turf (confidence 0.85), 3 beach patches quartz and shell sand (0.9), 24 streets aged asphalt (0.8), 27 service lanes patched asphalt (0.7), Collins Avenue mid-life asphalt. Run it with `--month 1` for a humid-subtropical tile and the Bermuda lawns turn dormant tan. The picture shows the unbaked photograph, the graph's choice, and the choice corrected toward the measured colour.
+
+![Unbaked aerial, the graph's surface choice, choice corrected by measurement](images/world-detail/surface-graph-ocean-drive.jpg)
+
+**Limits found.** The 2.4 m photograph mixes a lawn with its paths and palms, so its colour is too grey to be the grass albedo; the measured colour must come from NAIP at 0.6 m or from street photographs, and it must be converted from camera sRGB to albedo (the sand of known albedo on the same tile can set that gain). Building surfaces need the C++ hub's facts (style, era, recipe), so the prototype covers roads and land; the hub already has the engine and needs only the extra rule file.
+
+**In the game (next step).** `SimCruisePlaceHub` loads `surface-rules.json` beside `place-graph.json`; `BakeForBuild` resolves roads and land patches on the worker thread; the tile builder writes the chosen material id and colour into vertex colour (no new draw calls), as it does for walls. This touches the knowledge-graph and world-look code, so it goes in with those owners after Wave A.
+
 ## Results in the game
 
 Realism A/B on the PC (`scripts\realism.ps1`, ultra, traffic off, the build at commit `66e9129`):
@@ -95,6 +166,45 @@ Nothing moved more than 0.7 on any part, within the run-to-run noise: from the l
 ![Game, baked aerial | photograph](images/world-detail/ab-lummus-baked.jpg)
 
 Right half of each image: Panoramax [4b6d216b](https://panoramax.xyz/#focus=pic&pic=4b6d216b-ae1c-48a8-b2ae-5d9558334f18) by MatthiasMatthias, CC BY-SA 4.0, resized.
+
+## Grass field in the game
+
+Measured on the PC on 13 November 2026 (`scripts\realism.ps1`, ultra, traffic off; field on is the default, `-SimCruiseNoGrassField` turns it off). The dragon and bixby poses come from the picture thread's realism poses (Tail of the Dragon, Bixby Creek Bridge) and were run with the first blade version; lummus was run again after the blades were rebuilt (below).
+
+| Pose | Field on | Field off |
+|---|---|---|
+| lummus (final blades) | `REALISM lummus: 45.4 / 100  layout 31.4  tone 34.9  colour 52.3  structure 55.1  detail 66.7  sky 33.1` | `REALISM lummus: 45.5 / 100  layout 31.4  tone 34.9  colour 52.2  structure 55.6  detail 66.9  sky 32.9` |
+| lummus (first blades) | `REALISM lummus: 46.2 / 100  layout 31.9  tone 38.8  colour 50.2  structure 56.6  detail 67.2  sky 31.7` | `REALISM lummus: 45.8 / 100  layout 31.8  tone 38.4  colour 50.3  structure 55.4  detail 67.3  sky 30.7` |
+| dragon | `REALISM dragon: 45.9 / 100  layout 29.6  tone 18.0  colour 72.9  structure 66.5  detail 71.7  sky 10.9` | `REALISM dragon: 45.8 / 100  layout 29.6  tone 18.1  colour 72.6  structure 66.5  detail 71.7  sky 10.9` |
+| bixby | `REALISM bixby: 34.9 / 100  layout 17.2  tone 20.8  colour 46.5  structure 59.0  detail 46.5  sky 11.3` | `REALISM bixby: 34.4 / 100  layout 17.2  tone 20.6  colour 45.5  structure 57.7  detail 46.2  sky 11.2` |
+| bixby, July (`-SimCruiseGrassDry=0.9`) | `REALISM bixby: 34.1 / 100  layout 17.0  tone 20.3  colour 45.1  structure 55.6  detail 49.0  sky 10.8` | |
+
+No pose moved by 1.0 or more, so the field stays on by default. The score is taken at the photographs' distances, where the field only changes the lawn's mid-size texture; the blades show only within 22 m. At Bixby the hills are the regional terrain, not the tile ground the field is written for, so the dry setting barely changes them (the next step is the same field in the landscape material).
+
+GPU cost: RTX 2070 Super Max-Q, plugged in, 1920x1080 full screen, parked at the Ocean Drive start at 11:00 with Lummus Park on the left, traffic off, `-SimCruiseDrivePerf=high,ultra`, two runs each way, GPU ms average of the 10 s window:
+
+| View | Field on | Field off | Difference |
+|---|---|---|---|
+| High, driver's seat | 48.9, 49.1 | 48.3, 47.6 | +1.0 ms (2 %) |
+| High, chase | 40.4, 40.5 | 40.1, 39.2 | +0.8 ms |
+| Ultra, driver's seat | 87.7, 88.0 | 86.1, 84.7 | +2.4 ms (3 %) |
+| Ultra, chase | 67.0, 67.0 | 66.0, 64.5 | +1.7 ms |
+
+`ProfileGPU` (High, driver's seat): BasePass 5.59 and 5.64 ms with the field, 4.86 and 5.43 ms without, so about +0.5 ms of the difference is the ground's base pass. This laptop's GPU ran about 3.5 times slower than in the 11 November table (High seat 13.7 ms then): it was at its power cap. At full power expect about a third of these differences.
+
+**The blades, close up.** The first blade version (noise thresholded per shell) drew stacked cones and spilled onto the beachwalk; the version in the game now (thin leaning blades per 2 cm cell, jittered shells, gated by the land-cover mask and the pixel size) reads as fine turf with no stripes or swimming. It is subtle; the clump and patch sizes do more for the lawn than the blades.
+
+![Close up, first blade version: stacked cones](images/world-detail/grass-near-v1-cones.jpg)
+
+![Close up, grass field now](images/world-detail/grass-near-field.jpg)
+
+![Close up, grass field off](images/world-detail/grass-near-nofield.jpg)
+
+![Game with the grass field | photograph](images/world-detail/grass-ab-lummus-field.jpg)
+
+![Game without the grass field | photograph](images/world-detail/grass-ab-lummus-nofield.jpg)
+
+Right half of the last two images: Panoramax [4b6d216b](https://panoramax.xyz/#focus=pic&pic=4b6d216b-ae1c-48a8-b2ae-5d9558334f18) by MatthiasMatthias, CC BY-SA 4.0, resized.
 
 ## Sources
 
