@@ -548,6 +548,26 @@ void ASimCruisePreflight::DriveTick(ASimCruisePlayerController* Player, float De
 	{
 		Brake = static_cast<float>(FMath::Clamp(0.2 * -Error, 0.05, 1.0));
 	}
+	// What a driver does at the limit: no harder braking than the grip the corner leaves (the
+	// friction circle), and a lift as soon as the car starts to slide.
+	const FVector Body = Player->GetTelemetry().BodyVelocityMps;
+	const double LateralG = FMath::Abs(Speed * YawRate) / 9.80665;
+	const double SlipDeg = Speed > 3.0 ? FMath::RadiansToDegrees(FMath::Atan2(FMath::Abs(Body.Y), FMath::Abs(Body.X))) : 0.0;
+	if (bKeen)
+	{
+		const double Used = FMath::Clamp(LateralG / FMath::Max(Grip, 0.5), 0.0, 1.0);
+		Brake = FMath::Min(Brake, static_cast<float>(FMath::Sqrt(FMath::Max(0.0, 1.0 - Used * Used))));
+		if (SlipDeg > 4.0) Throttle = 0.f;
+		else if (Used > 0.6) Throttle = FMath::Min(Throttle, 0.55f);
+	}
+	TelemetryClock += DeltaSeconds;
+	if (TelemetryClock >= 0.25f)
+	{
+		TelemetryClock = 0.f;
+		const FSimCruiseDriveTelemetry& T = Player->GetTelemetry();
+		UE_LOG(LogSimCruisePreflight, Display, TEXT("ROBOT t %.2f v %.1f target %.1f stick %+.2f thr %.2f brk %.2f yaw %+.1f deg/s lat %.2f g slip %.1f deg gear %d rpm %.0f"),
+			GetWorld()->GetTimeSeconds(), Speed, TargetMps, Stick, Throttle, Brake, FMath::RadiansToDegrees(YawRate), LateralG, SlipDeg, T.Gear, T.EngineSpeedRpm);
+	}
 	Player->InjectAxis(EKeys::Gamepad_RightTriggerAxis, Throttle);
 	Player->InjectAxis(EKeys::Gamepad_LeftTriggerAxis, Brake);
 	Player->InjectAxis(EKeys::Gamepad_LeftX, Stick);
