@@ -168,5 +168,8 @@ private:
 	double Clock = 0.0;
 	int32 Cursor = 0;
 	int32 LastShiftFrame = -1;
+	/** Each replay frame steps the game by its recorded frame's time (FApp's fixed time step). */
+	bool bExactSteps = false;
+	int32 ReplayIndex = 0;
 	FSimCruiseReplayStats Stats;
 };

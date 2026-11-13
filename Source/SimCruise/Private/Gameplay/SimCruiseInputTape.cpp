@@ -9,6 +9,7 @@
 #include "HAL/FileManager.h"
 #include "InputCoreTypes.h"
 #include "HAL/IConsoleManager.h"
+#include "Misc/App.h"
 #include "Misc/CommandLine.h"
 #include "Misc/DateTime.h"
 #include "Misc/FileHelper.h"
@@ -410,6 +411,11 @@ void FSimCruiseInputTapeDriver::StopRecording(ASimCruisePlayerController& Player
 
 void FSimCruiseInputTapeDriver::End()
 {
+	if (bExactSteps)
+	{
+		FApp::SetUseFixedTimeStep(false);
+		bExactSteps = false;
+	}
 	if (bRecording)
 	{
 		bRecording = false;
@@ -596,7 +602,10 @@ void FSimCruiseInputTapeDriver::TickReplay(ASimCruisePlayerController& Player, F
 		break;
 	}
 	case EStage::Settle:
-		// Hands off until the car has settled on its springs.
+		// Hands off the wheel until the car has settled on its springs, with the handbrake on: a car
+		// that rolls down a slope while it settles starts the tape moving, and the replay drifts
+		// from the recording (which starts at rest). Not the brake trigger: held at rest it selects reverse.
+		Raw.bParkingBrake = true;
 		if (StageFrames > 60 && Now - StageStarted > 2.0)
 		{
 			Next(EStage::Replay);
@@ -604,7 +613,16 @@ void FSimCruiseInputTapeDriver::TickReplay(ASimCruisePlayerController& Player, F
 			Cursor = 0;
 			LastShiftFrame = -1;
 			Stats = FSimCruiseReplayStats();
-			UE_LOG(LogSimCruiseInputTape, Display, TEXT("Replay started: %s"), *Tape.CarId);
+			ReplayIndex = 0;
+			// Frame for frame: each replay frame steps the game by the time its recorded frame took,
+			// so the physics sees the same steps (-SimCruiseReplayRealTime replays at this PC's own pace).
+			bExactSteps = !FParse::Param(FCommandLine::Get(), TEXT("SimCruiseReplayRealTime")) && Tape.Frames.Num() > 0;
+			if (bExactSteps)
+			{
+				FApp::SetUseFixedTimeStep(true);
+				FApp::SetFixedDeltaTime(Tape.Frames[0].DeltaS);
+			}
+			UE_LOG(LogSimCruiseInputTape, Display, TEXT("Replay started: %s%s"), *Tape.CarId, bExactSteps ? TEXT(", with the recorded frame times") : TEXT(", in real time"));
 		}
 		break;
 	case EStage::Replay:
@@ -614,8 +632,28 @@ void FSimCruiseInputTapeDriver::TickReplay(ASimCruisePlayerController& Player, F
 			FinishReplay(Player);
 			break;
 		}
-		Clock += DeltaSeconds;
-		const FSimCruiseInputFrame* Frame = Tape.At(Clock, Cursor);
+		const FSimCruiseInputFrame* Frame = nullptr;
+		if (bExactSteps)
+		{
+			// This frame took the recorded frame's time: take that frame, and give the next its time.
+			if (ReplayIndex >= Tape.Frames.Num())
+			{
+				FinishReplay(Player);
+				break;
+			}
+			Cursor = ReplayIndex;
+			Frame = &Tape.Frames[ReplayIndex++];
+			Clock = Frame->TimeS;
+			if (Tape.Frames.IsValidIndex(ReplayIndex))
+			{
+				FApp::SetFixedDeltaTime(Tape.Frames[ReplayIndex].DeltaS);
+			}
+		}
+		else
+		{
+			Clock += DeltaSeconds;
+			Frame = Tape.At(Clock, Cursor);
+		}
 		if (!Frame)
 		{
 			FinishReplay(Player);
@@ -650,6 +688,11 @@ void FSimCruiseInputTapeDriver::TickReplay(ASimCruisePlayerController& Player, F
 void FSimCruiseInputTapeDriver::FinishReplay(ASimCruisePlayerController& Player)
 {
 	Stage = EStage::Done;
+	if (bExactSteps)
+	{
+		FApp::SetUseFixedTimeStep(false);
+		bExactSteps = false;
+	}
 	const bool bSaved = Stats.SaveCsv(OutPath);
 	UE_LOG(LogSimCruiseInputTape, Display, TEXT("REPLAY car=%s tape=%s %s csv=%s%s"), *Tape.CarId, *FPaths::GetCleanFilename(TapePath), *Stats.Summary(),
 		*OutPath, bSaved ? TEXT("") : TEXT(" (NOT SAVED)"));
