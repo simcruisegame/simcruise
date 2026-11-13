@@ -1,7 +1,7 @@
 # Installer test, SimCruise-2.0.2-windows-x64-setup.exe
-setup: D:\sc\lane-release\Saved\Package\SimCruise-2.0.2-windows-x64-setup.exe (362 MB), SHA-256 9b4cdfaf6dceed726ced163576687d14c338a74c057cc47445636caa2369e7d8
+setup: D:\sc\lane-release\Saved\Package\SimCruise-2.0.2-windows-x64-setup.exe (362 MB), SHA-256 09805574a5fe57826797fcaa61f54daee7c824f32e10c526b2ab88550eeb5ede
 installed before: SimCruise 2.0.0
-test date: 2026-11-13 07:33 UTC; per-user install (no administrator rights), silent; mode clean
+test date: 2026-11-13 14:15 UTC; per-user install (no administrator rights), silent; mode clean
 clean: removed SimCruise 2.0.0 first (exit 0); program folder left: False
 install exit 0
 installed exe: True; atlas: True; pdb: 0; onnx: 0
