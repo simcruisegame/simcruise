@@ -42,6 +42,9 @@ try {
     # A scripted game run must never wait for a person: with -unattended a crash is written to
     # the log and the crash reporter quits, instead of a dialog that holds the lock.
     if (($Extra -contains '-game') -and -not ($Extra -contains '-unattended')) { $Extra += '-unattended' }
+    # A game run needs no platform SDK check; skipping it saves a start-up call to Unreal Build Tool
+    # that waits while another checkout builds.
+    if ($Extra -contains '-game') { $env:UE_SKIP_UBT_SDK_SETUP = '1' }
     $ArgLine = (@("`"$Project`"") + $Extra) -join ' '
     $P = Start-Process -FilePath $Editor -ArgumentList $ArgLine -PassThru
     if ($TimeoutMinutes -gt 0) {

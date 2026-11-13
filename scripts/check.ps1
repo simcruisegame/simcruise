@@ -134,6 +134,10 @@ try {
     # Without the MCP plugins the test editor never listens on port 8000 (the main checkout's
     # user settings auto-start the server), so it can run beside an MCP session.
     $ArgLine = "`"$Project`" `"-ExecCmds=$RunCmds`" -unattended -nopause -nullrhi -nosplash -DisablePlugins=ModelContextProtocol `"-log=$LogName`" `"-testexit=Automation Test Queue Empty`""
+    # Skip the editor's start-up call to Unreal Build Tool (-Mode=ValidatePlatforms): it queues on
+    # UBT's PC-wide mutex, so a build in another checkout held a test start up to 84 s. Tests only
+    # need Win64, so the platform SDK check has nothing to tell them.
+    $env:UE_SKIP_UBT_SDK_SETUP = '1'
     $P = Start-Process -FilePath $Editor -ArgumentList $ArgLine -PassThru -WindowStyle Hidden
     # Wait in short steps to sample the editor's peak memory (working set) on the way.
     $Deadline = $TestStart.AddMinutes($TimeoutMinutes)
