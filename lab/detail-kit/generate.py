@@ -1,4 +1,4 @@
-﻿"""Generate the fine-detail kit's source photographs once, offline, on the PC.
+"""Generate the fine-detail kit's source photographs once, offline, on the PC.
 
 Model: Stable Diffusion XL base 1.0 (stabilityai/stable-diffusion-xl-base-1.0),
 CreativeML Open RAIL++-M licence (commercial use allowed under its use restrictions).
@@ -47,6 +47,10 @@ def main():
     pipe.vae.enable_tiling()
     record = {"model": MODEL, "licence": "CreativeML Open RAIL++-M", "steps": a.steps, "guidance": a.guidance,
               "size": 1024, "negative": NEGATIVE, "slices": []}
+    rec_path = os.path.join(a.out, "prompts.json")
+    # prompts and seeds are fixed, so the record lists every slice even on a partial (--only) run
+    record["slices"] = [{"index": i, "name": n, "prompt": f"{s}, {COMMON}", "seed": SEED0 + i}
+                        for i, (n, s) in enumerate(SLICES)]
     for i, (name, subject) in enumerate(SLICES):
         if a.only and name not in a.only.split(","):
             continue
@@ -56,9 +60,8 @@ def main():
         img = pipe(prompt, negative_prompt=NEGATIVE, num_inference_steps=a.steps, guidance_scale=a.guidance,
                    width=1024, height=1024, generator=g).images[0]
         img.save(os.path.join(a.out, f"{name}.png"))
-        record["slices"].append({"index": i, "name": name, "prompt": prompt, "seed": seed})
         print("made", name, flush=True)
-    with open(os.path.join(a.out, "prompts.json"), "w") as f:
+    with open(rec_path, "w") as f:
         json.dump(record, f, indent=2)
 
 
