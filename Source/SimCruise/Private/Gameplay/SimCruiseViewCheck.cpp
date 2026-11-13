@@ -436,8 +436,9 @@ void ASimCruiseViewCheck::OnScreenshot(int32 Width, int32 Height, const TArray<F
 void ASimCruiseViewCheck::Report()
 {
 	using namespace SimCruiseViewCheckRules;
-	const FString Reasons = Judge(Stats);
+	Reasons = Judge(Stats);
 	const bool bPass = Reasons.IsEmpty();
+	bPassed = bPass;
 	FString Classes;
 	FString JsonClasses;
 	for (int32 K = 0; K < static_cast<int32>(ESimCruiseViewHit::Count); ++K)

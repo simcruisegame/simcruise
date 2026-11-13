@@ -21,10 +21,16 @@
 .PARAMETER OutDir
   Where the zips go (default D:\SimCruise-playtests).
 
+.PARAMETER SkipPreflight
+  Build even when no passed pre-flight (scripts\preflight.ps1) of this commit is in
+  %LOCALAPPDATA%\SimCruise\preflight-index.csv. Prints a warning; do not give such a
+  build to the owner.
+
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts\playtest.ps1
 #>
 param(
+    [switch]$SkipPreflight,
     [string]$Ref = 'origin/main',
     [string]$Worktree = 'D:\sc\playtest',
     [string]$OutDir = 'D:\SimCruise-playtests',
@@ -42,6 +48,19 @@ Write-Host 'Fetching origin'
 & git -C $Root fetch --quiet origin
 if ($LASTEXITCODE -ne 0) { throw 'git fetch failed' }
 $Commit = (& git -C $Root rev-parse --short $Ref).Trim()
+
+# Only a commit that passed the pre-flight goes to the owner.
+$Index = Join-Path $env:LOCALAPPDATA 'SimCruise\preflight-index.csv'
+$Preflight = if (Test-Path $Index) { Import-Csv $Index | Where-Object { $_.commit -eq $Commit } | Select-Object -Last 1 } else { $null }
+if ($Preflight -and $Preflight.result -eq 'PASS') {
+    Write-Host "Pre-flight of $Commit passed: $($Preflight.report)"
+} elseif ($SkipPreflight) {
+    Write-Host "WARNING: no passed pre-flight of $Commit (-SkipPreflight). Do not give this build to the owner." -ForegroundColor Yellow
+} else {
+    $Why = if ($Preflight) { "the last pre-flight of $Commit failed: $($Preflight.report)" } else { "no pre-flight of $Commit in $Index" }
+    Write-Host "REFUSED: $Why. Run scripts\preflight.ps1 on $Commit first (or -SkipPreflight for a build that does not go to the owner)."
+    exit 1
+}
 if (-not (Test-Path (Join-Path $Worktree '.git'))) {
     Write-Host "Making the play-test worktree $Worktree"
     & git -C $Root worktree add --detach $Worktree $Ref

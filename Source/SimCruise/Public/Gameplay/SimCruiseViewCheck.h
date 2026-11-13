@@ -98,6 +98,12 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
+	/** The VIEWCHECK line is written. */
+	bool IsFinished() const { return Stage == EStage::Done; }
+	/** The view passed (valid once IsFinished). */
+	bool HasPassed() const { return bPassed; }
+	const FString& GetReasons() const { return Reasons; }
+
 private:
 	enum class EStage : uint8 { WaitReady, Delay, WaitShot, Done };
 
@@ -115,5 +121,7 @@ private:
 	FString ShotFile;
 	FSimCruiseViewStats Stats;
 	bool bShotDone = false;
+	bool bPassed = false;
+	FString Reasons;
 	FDelegateHandle ShotHandle;
 };
