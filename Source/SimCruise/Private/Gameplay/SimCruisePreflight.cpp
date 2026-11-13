@@ -11,6 +11,7 @@
 #include "GameFramework/Pawn.h"
 #include "Gameplay/SimCruiseGameMode.h"
 #include "Gameplay/SimCruisePlayerController.h"
+#include "Gameplay/SimCruiseVehicleControl.h"
 #include "Gameplay/SimCruiseViewCheck.h"
 #include "HAL/FileManager.h"
 #include "ImageCore.h"
@@ -446,8 +447,19 @@ void ASimCruisePreflight::DriveTick(ASimCruisePlayerController* Player, float De
 	{
 		SteerIntegral = FMath::Clamp(SteerIntegral + static_cast<float>(1.5 * YawError * DeltaSeconds), -1.f, 1.f);
 	}
-	// Feed-forward: the road wheel angle of the curve over a full-lock angle of about 35 deg.
-	const double FeedForward = FMath::Atan(Curvature * 2.4) / 0.61;
+	// Feed-forward, per car: the road-wheel angle of the curve at this car's wheelbase, over the
+	// angle full stick gives now (the shaper's range at this speed, else the car's full lock).
+	double WheelbaseM = 2.4;
+	double FullLockRad = 0.61;
+	if (const ISimCruiseVehicleControl* Control = Cast<ISimCruiseVehicleControl>(Pawn))
+	{
+		const FSimCruiseVehicleSetup Setup = Control->GetVehicleSetup();
+		WheelbaseM = Setup.WheelbaseM;
+		FullLockRad = Setup.ParkingRackAngleRad;
+	}
+	const double WheelRad = FMath::Atan(Curvature * WheelbaseM);
+	const double RangeRad = WheelRad >= 0.0 ? Player->GetShaper().GetRangeRightRad() : Player->GetShaper().GetRangeLeftRad();
+	const double FeedForward = WheelRad / FMath::Max(FMath::Abs(RangeRad) > 0.01 ? FMath::Abs(RangeRad) : FullLockRad, 0.05);
 	Stick = FMath::Clamp(static_cast<float>(FeedForward + SteerIntegral + 0.4 * YawError), -1.f, 1.f);
 
 	// Speed: the road's limit, slower for the curves ahead and for a car ahead.
