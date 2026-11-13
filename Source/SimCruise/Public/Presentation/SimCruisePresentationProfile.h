@@ -105,6 +105,8 @@ struct FSimCruiseDialSpec
 	FString Caption;
 	/** Draw a face over the model's dial (its own needle is welded in); false keeps the model's face and adds only the needle. */
 	bool bFace = true;
+	/** The model material its own (fixed) needle is made of: the rig removes that needle (parts of it touching the hub). */
+	FString HideModelNeedle;
 };
 struct FSimCruiseCarPresentationProfile
 {

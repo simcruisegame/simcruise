@@ -1298,6 +1298,36 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 		Context.Note(FString::Printf(TEXT("badge '%s': %d triangles removed"), *Area.Note, Removed));
 	}
 
+	// 8a. A dial's own needle, when the model welds it into the dash: the parts of the named material
+	// lying wholly inside the dial that reach its hub. Numerals, ticks and captions stand off the hub
+	// and stay; the turning needle mesh takes the needle's place.
+	for (const FSimCruiseRiggedCar::FDial& Dial : DialsG)
+	{
+		if (!Profile.Dials.IsValidIndex(Dial.Spec) || Profile.Dials[Dial.Spec].HideModelNeedle.IsEmpty()) continue;
+		const FSimCruiseDialSpec& Spec = Profile.Dials[Dial.Spec];
+		TArray<int32> Which;
+		for (int32 J = 0; J < Context.Jobs.Num(); ++J)
+		{
+			if (Context.Jobs[J].MaterialName == Spec.HideModelNeedle && Context.Jobs[J].Dest[DestBody].Num() > 0) Which.Add(J);
+		}
+		// The dial's centre sits Offset off the face, toward the driver.
+		const FVector DialHub = Dial.CentreCm;
+		const double Reach = 1.15 * Dial.RadiusCm + Spec.Offset;
+		const double Root = 0.15 * Dial.RadiusCm + Spec.Offset + 0.002;
+		const TArray<FComponent> Parts = ConnectedParts(Context, Which, DestBody, [&DialHub, Reach](const FVector& P) { return FVector::Dist(P, DialHub) <= Reach; });
+		TArray<FTriRef> Gone;
+		for (const FComponent& Part : Parts)
+		{
+			if (Part.bClipped) continue;
+			double Nearest = TNumericLimits<double>::Max();
+			for (const FVector& P : Part.Points) Nearest = FMath::Min(Nearest, FVector::Dist(P, DialHub));
+			if (Nearest <= Root) Gone.Append(Part.Tris);
+		}
+		MoveTris(Context, Gone, DestBody, DestSteering);
+		for (int32 J : Which) Context.Jobs[J].Dest[DestSteering].Reset();
+		Context.Note(FString::Printf(TEXT("dial %s: the model's own needle, %d triangles removed"), *Spec.Quantity, Gone.Num()));
+	}
+
 	// 8b. Surfaces that change role: their triangles move to a copy of the
 	// author material with the new role, so they get their own instance.
 	auto GiveRole = [&Context, &Model, &OutCar](const TArray<FTriRef>& Taken, ESimCruiseCarMaterialRole Role)
