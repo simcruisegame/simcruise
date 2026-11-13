@@ -701,9 +701,11 @@ void ASimCruisePreflight::OnFrame(int32 Width, int32 Height, const TArray<FColor
 	}
 	if (LastThumb.Num() == Thumb.Num())
 	{
-		double Sum = 0.0;
-		for (int32 K = 0; K < Thumb.Num(); ++K) Sum += FMath::Abs(Thumb[K] - LastThumb[K]);
-		FrameDiffs.Add(static_cast<float>(Sum / Thumb.Num()));
+		// The share (%) of the picture that changed by more than 40 of 255: a flash or an exposure
+		// jump changes most of it at once; a car passing close beside a still camera does not.
+		int32 Changed = 0;
+		for (int32 K = 0; K < Thumb.Num(); ++K) Changed += FMath::Abs(Thumb[K] - LastThumb[K]) > 40.f ? 1 : 0;
+		FrameDiffs.Add(100.f * Changed / Thumb.Num());
 		const FRotator Delta = (PendingRotation - LastFrameRotation).GetNormalized();
 		FrameTurning.Add(FMath::Abs(Delta.Yaw) > 6.0 || FMath::Abs(Delta.Pitch) > 4.0);
 	}
