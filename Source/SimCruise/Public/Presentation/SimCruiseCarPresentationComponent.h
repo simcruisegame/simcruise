@@ -232,6 +232,10 @@ private:
 	/** The dashboard clock's material, when the profile has one; its minutes follow the place's local time. */
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> ClockMaterial;
+	/** The digital cluster's screen (the C8's): live speed and tachometer drawn by its material. */
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> ScreenMaterial;
+	double ScreenRpm = 0.0;
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> MirrorMaterials;

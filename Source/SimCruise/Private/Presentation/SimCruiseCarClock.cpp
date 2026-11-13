@@ -83,6 +83,62 @@ if (all(q >= 0.0) && all(q <= 1.0))
 Emis = col * Backlight;
 return col;
 )HLSL");
+
+	// A digital cluster: pixel coordinates as the screen reads (y down), angles clockwise from
+	// 12 o'clock. The painted lit arc (light grey, unsaturated) is erased to the background, the
+	// live arc drawn from 0 r/min to Rpm, and the speed written in seven-segment digits centred
+	// in its box. Arc: start angle, degrees per 1000 r/min, the painted arc's end angle.
+	const TCHAR* ScreenCode = TEXT(R"HLSL(
+float3 col = Texture2DSample(Tex, TexSampler, UV).rgb;
+float3 bg = Texture2DSample(Tex, TexSampler, Clear.xy).rgb;
+float2 px = float2(frac(UV.x) * TexSize.x, (FlipV > 0.5 ? 1.0 - frac(UV.y) : frac(UV.y)) * TexSize.y);
+float2 d = px - Centre.xy;
+float r = length(d);
+float ang = degrees(atan2(d.x, -d.y));
+float luma = dot(col, float3(0.3, 0.59, 0.11));
+float sat = max(col.r, max(col.g, col.b)) - min(col.r, min(col.g, col.b));
+if (r > Band.x - 4.0 && r < Band.y + 3.0 && ang > Arc.x - 8.0 && ang < Arc.z + 6.0 && luma > 0.25 && sat < 0.25)
+{
+	col = bg;
+}
+float endAng = Arc.x + Arc.y * Rpm / 1000.0;
+float inBand = smoothstep(Band.x - 1.0, Band.x + 1.0, r) * (1.0 - smoothstep(Band.y - 1.0, Band.y + 1.0, r));
+float inAng = smoothstep(Arc.x - 0.4, Arc.x + 0.4, ang) * (1.0 - smoothstep(endAng - 0.4, endAng + 0.4, ang));
+col = lerp(col, float3(0.93, 0.93, 0.93), inBand * inAng * step(0.5, Rpm));
+float2 q = (px - SpeedMin.xy) / (SpeedMax.xy - SpeedMin.xy);
+if (all(q >= 0.0) && all(q <= 1.0))
+{
+	col = bg;
+	int v = (int)round(clamp(Mph, 0.0, 999.0));
+	int n = v >= 100 ? 3 : (v >= 10 ? 2 : 1);
+	int digits[3] = { (v / 100) % 10, (v / 10) % 10, v % 10 };
+	const int masks[10] = { 0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F };
+	float cell = 0.31;
+	float left = 0.5 - 0.5 * cell * n;
+	float ink = 0.0;
+	for (int c = 0; c < 3; c++)
+	{
+		if (c < 3 - n) continue;
+		float x0 = left + cell * (c - (3 - n));
+		float2 p = float2((q.x - x0) / (cell * 0.86), q.y);
+		if (p.x < 0.0 || p.x > 1.0) continue;
+		int mask = masks[digits[c]];
+		const float t = 0.07, tv = 0.12;
+		float s = 0.0;
+		s += ((mask >> 0) & 1) * step(abs(p.y - 0.05), t) * step(abs(p.x - 0.5), 0.34);
+		s += ((mask >> 1) & 1) * step(abs(p.x - 0.88), tv) * step(abs(p.y - 0.27), 0.2);
+		s += ((mask >> 2) & 1) * step(abs(p.x - 0.88), tv) * step(abs(p.y - 0.73), 0.2);
+		s += ((mask >> 3) & 1) * step(abs(p.y - 0.95), t) * step(abs(p.x - 0.5), 0.34);
+		s += ((mask >> 4) & 1) * step(abs(p.x - 0.12), tv) * step(abs(p.y - 0.73), 0.2);
+		s += ((mask >> 5) & 1) * step(abs(p.x - 0.12), tv) * step(abs(p.y - 0.27), 0.2);
+		s += ((mask >> 6) & 1) * step(abs(p.y - 0.5), t) * step(abs(p.x - 0.5), 0.34);
+		ink = max(ink, saturate(s));
+	}
+	col = lerp(col, float3(0.95, 0.95, 0.95), ink);
+}
+Emis = col * Backlight;
+return col;
+)HLSL");
 }
 
 namespace SimCruiseCarClock
@@ -188,6 +244,86 @@ namespace SimCruiseCarClock
 			Built->GetEditorOnlyData()->BaseColor.Connect(0, Custom);
 			Built->GetEditorOnlyData()->EmissiveColor.Connect(1, Custom);
 			Built->GetEditorOnlyData()->Roughness.Connect(0, Scalar(TEXT("Roughness"), 0.35f));
+			Built->PreEditChange(nullptr);
+			Built->PostEditChange();
+			Material = Built;
+		}
+#endif
+		if (Material)
+		{
+			Cached.Reset(Material);
+		}
+		return Material;
+	}
+}
+
+namespace SimCruiseCarScreen
+{
+	UMaterialInterface* Get()
+	{
+		static TStrongObjectPtr<UMaterialInterface> Cached;
+		if (Cached.IsValid())
+		{
+			return Cached.Get();
+		}
+		UMaterialInterface* Material = nullptr;
+#if !WITH_EDITOR
+		Material = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Vehicle/Materials/M_SimCruiseCarScreen.M_SimCruiseCarScreen"), nullptr, LOAD_NoWarn | LOAD_Quiet);
+#endif
+#if WITH_EDITOR
+		if (!Material && (FApp::CanEverRender() || IsRunningCommandlet()))
+		{
+			UMaterial* Built = NewObject<UMaterial>(GetTransientPackage(), TEXT("M_SimCruiseCarScreen"), RF_Transient);
+			Built->SetUsageByFlag(MATUSAGE_Nanite, true);
+			UMaterialExpressionCustom* Custom = NewObject<UMaterialExpressionCustom>(Built);
+			Built->GetExpressionCollection().AddExpression(Custom);
+			Custom->OutputType = CMOT_Float3;
+			Custom->Description = TEXT("SimCruise digital cluster");
+			Custom->Code = ScreenCode;
+			Custom->Inputs.Reset();
+			Custom->AdditionalOutputs.Add({ FName(TEXT("Emis")), CMOT_Float3 });
+			auto Input = [&](const TCHAR* Name, UMaterialExpression* Expression)
+			{
+				FCustomInput In;
+				In.InputName = Name;
+				In.Input.Connect(0, Expression);
+				Custom->Inputs.Add(In);
+			};
+			auto Add = [&](auto* Expression) { Built->GetExpressionCollection().AddExpression(Expression); return Expression; };
+			auto Scalar = [&](const TCHAR* Name, float Value)
+			{
+				UMaterialExpressionScalarParameter* P = Add(NewObject<UMaterialExpressionScalarParameter>(Built));
+				P->ParameterName = Name;
+				P->DefaultValue = Value;
+				return P;
+			};
+			auto Vector = [&](const TCHAR* Name, const FLinearColor& Value)
+			{
+				UMaterialExpressionVectorParameter* P = Add(NewObject<UMaterialExpressionVectorParameter>(Built));
+				P->ParameterName = Name;
+				P->DefaultValue = Value;
+				return P;
+			};
+			UMaterialExpressionTextureObjectParameter* Tex = Add(NewObject<UMaterialExpressionTextureObjectParameter>(Built));
+			Tex->ParameterName = TEXT("BaseTexture");
+			Tex->Texture = LoadObject<UTexture>(nullptr, TEXT("/Engine/EngineResources/DefaultTexture.DefaultTexture"));
+			Input(TEXT("Tex"), Tex);
+			Input(TEXT("UV"), Add(NewObject<UMaterialExpressionTextureCoordinate>(Built)));
+			Input(TEXT("TexSize"), Vector(TEXT("TexSize"), FLinearColor(1024.f, 512.f, 0.f, 0.f)));
+			Input(TEXT("FlipV"), Scalar(TEXT("FlipV"), 0.f));
+			Input(TEXT("Clear"), Vector(TEXT("Clear"), FLinearColor(0.5f, 0.5f, 0.f, 0.f)));
+			Input(TEXT("Centre"), Vector(TEXT("Centre"), FLinearColor(512.f, 256.f, 0.f, 0.f)));
+			Input(TEXT("Band"), Vector(TEXT("Band"), FLinearColor(120.f, 135.f, 0.f, 0.f)));
+			Input(TEXT("Arc"), Vector(TEXT("Arc"), FLinearColor(-135.f, 37.5f, -100.f, 0.f)));
+			Input(TEXT("SpeedMin"), Vector(TEXT("SpeedMin"), FLinearColor(470.f, 240.f, 0.f, 0.f)));
+			Input(TEXT("SpeedMax"), Vector(TEXT("SpeedMax"), FLinearColor(556.f, 290.f, 0.f, 0.f)));
+			Input(TEXT("Mph"), Scalar(TEXT("Mph"), 0.f));
+			Input(TEXT("Rpm"), Scalar(TEXT("Rpm"), 0.f));
+			Input(TEXT("Backlight"), Scalar(TEXT("Backlight"), 120.f));
+			Custom->RebuildOutputs();
+			Built->GetEditorOnlyData()->BaseColor.Connect(0, Custom);
+			Built->GetEditorOnlyData()->EmissiveColor.Connect(1, Custom);
+			Built->GetEditorOnlyData()->Roughness.Connect(0, Scalar(TEXT("Roughness"), 0.2f));
 			Built->PreEditChange(nullptr);
 			Built->PostEditChange();
 			Material = Built;

@@ -29,3 +29,14 @@ namespace SimCruiseCarClock
 	/** Hours and minutes as the 12-hour clock shows them (12:00-11:59, no leading zero). */
 	SIMCRUISE_API FString Format12(int32 LocalMinutes);
 }
+
+/**
+ * A digital instrument cluster (the C8's): the model's painted screen with the live speed in
+ * digits and the tachometer's lit arc, drawn by a material from two scalars (Mph, Rpm) the car
+ * sets each frame. The painted (static) arc is erased first.
+ */
+namespace SimCruiseCarScreen
+{
+	/** The screen material (editor builds make it in memory; packaged builds load the saved copy). */
+	SIMCRUISE_API UMaterialInterface* Get();
+}

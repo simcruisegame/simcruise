@@ -221,6 +221,34 @@ bool SimCruisePresentationProfiles::Load(const FString& CarId, FSimCruiseCarPres
 		OutProfile.Clock = Clock;
 	}
 
+	const TSharedPtr<FJsonObject>* ScreenObject = nullptr;
+	if (Car->TryGetObjectField(TEXT("screen"), ScreenObject) && ScreenObject)
+	{
+		FSimCruiseScreenSpec Screen;
+		auto Pair = [&](const TCHAR* Name, FVector2D& Out) -> bool
+		{
+			const TArray<TSharedPtr<FJsonValue>>* A = nullptr;
+			if (!(*ScreenObject)->TryGetArrayField(Name, A) || A->Num() != 2) return false;
+			Out = FVector2D((*A)[0]->AsNumber(), (*A)[1]->AsNumber());
+			return true;
+		};
+		const TArray<TSharedPtr<FJsonValue>>* Box = nullptr;
+		if (!(*ScreenObject)->TryGetStringField(TEXT("material"), Screen.Material) || !Pair(TEXT("tach_centre_px"), Screen.TachCentre) || !Pair(TEXT("tach_band_px"), Screen.TachBand)
+			|| !(*ScreenObject)->TryGetArrayField(TEXT("speed_box_px"), Box) || Box->Num() != 4)
+		{
+			OutError = Where + TEXT(": screen needs 'material', 'tach_centre_px', 'tach_band_px' and a four-number 'speed_box_px'");
+			return false;
+		}
+		Screen.SpeedBox = FVector4((*Box)[0]->AsNumber(), (*Box)[1]->AsNumber(), (*Box)[2]->AsNumber(), (*Box)[3]->AsNumber());
+		Pair(TEXT("texture_px"), Screen.TextureSize);
+		(*ScreenObject)->TryGetBoolField(TEXT("flip_v"), Screen.bFlipV);
+		(*ScreenObject)->TryGetNumberField(TEXT("tach_start_deg"), Screen.TachStartDeg);
+		(*ScreenObject)->TryGetNumberField(TEXT("tach_deg_per_1000"), Screen.TachDegPerThousand);
+		(*ScreenObject)->TryGetNumberField(TEXT("tach_painted_end_deg"), Screen.TachPaintedEndDeg);
+		(*ScreenObject)->TryGetNumberField(TEXT("backlight_nits"), Screen.Backlight);
+		OutProfile.Screen = Screen;
+	}
+
 	const TArray<TSharedPtr<FJsonValue>>* Dials = nullptr;
 	if (Car->TryGetArrayField(TEXT("dials"), Dials) && Dials)
 	{

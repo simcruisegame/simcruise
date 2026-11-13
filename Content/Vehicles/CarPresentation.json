@@ -922,6 +922,7 @@
   },
   "meridian_z": {
    "model": "data/art/traffic/c8-790c40cc/scene.gltf",
+   "screen": { "material": "Gauges", "note": "The C8's 12.3 in digital cluster in its Tour layout: the model's picture (stored upside down: flip_v) shows 0 MPH and a lit tachometer arc to about 1000 r/min. A material erases the painted arc and draws the live one (0 r/min at 142 degrees left of 12 o'clock, 37.5 degrees a thousand: the 4 at the top, the 7 at 121 degrees right) and the speed in the empty centre above MPH. Pixel positions measured on the texture.", "texture_px": [1024, 512], "flip_v": true, "tach_centre_px": [513, 265], "tach_band_px": [124, 139], "tach_start_deg": -142, "tach_deg_per_1000": 37.5, "tach_painted_end_deg": -100, "speed_box_px": [478, 238, 548, 290], "backlight_nits": 150 },
    "engine_sound": {
     "layout": "v8_crossplane",
     "bank_of_event": [
@@ -970,6 +971,7 @@
     "Seats_Adjust_the_leather_texture_using_Color_Ramp_or_using_HSV": "leather",
     "Gauges": "gauge",
     "Interior_Display": "gauge",
+    "Mat_supergt.209": "hidden",
     "Headlights": "lamp_front",
     "Day_Lights": "lamp_front",
     "Taillights": "lamp_rear",

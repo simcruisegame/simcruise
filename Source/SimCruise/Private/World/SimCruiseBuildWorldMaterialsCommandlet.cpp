@@ -99,6 +99,7 @@ int32 USimCruiseBuildWorldMaterialsCommandlet::Main(const FString& Params)
 		}
 	};
 	SaveCopy(SimCruiseCarClock::Get(), TEXT("/Game/Vehicle/Materials/M_SimCruiseCarClock"));
+	SaveCopy(SimCruiseCarScreen::Get(), TEXT("/Game/Vehicle/Materials/M_SimCruiseCarScreen"));
 	SaveCopy(SimCruiseCarMirror::Get(), TEXT("/Game/Vehicle/Materials/M_SimCruiseCarMirror"));
 	SaveCopy(SimCruiseLowBeamPattern::Get(), TEXT("/Game/Vehicle/Materials/LF_SimCruiseLowBeam"));
 	// The land to the horizon (World/SimCruiseRegionalTerrain).

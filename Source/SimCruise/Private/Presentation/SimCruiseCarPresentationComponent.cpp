@@ -138,6 +138,8 @@ void USimCruiseCarPresentationComponent::ClearParts()
 	Spinners.Reset();
 	SteeringWheelMesh = nullptr;
 	Materials.Reset();
+	ScreenMaterial = nullptr;
+	ScreenRpm = 0.0;
 	DialTargets.Reset();
 	DialShown.Reset();
 	Needles.Reset();
@@ -174,6 +176,33 @@ UMaterialInstanceDynamic* USimCruiseCarPresentationComponent::MaterialFor(int32 
 			MID = ClockMID;
 			ClockMaterial = ClockMID;
 			ClockMinutes = -1;
+		}
+	}
+	// The digital cluster: its own picture, with the live speed and tachometer drawn over the painted ones.
+	const TOptional<FSimCruiseScreenSpec>& Screen = Built->Profile.Screen;
+	if (MID && Screen.IsSet() && Built->Model.Materials.IsValidIndex(MaterialIndex) && Built->Model.Materials[MaterialIndex].Name == Screen->Material)
+	{
+		if (UMaterialInterface* ScreenBase = SimCruiseCarScreen::Get())
+		{
+			const FSimCruiseGltfMaterial& Author = Built->Model.Materials[MaterialIndex];
+			UTexture* Texture = Built->Model.ImageFiles.IsValidIndex(Author.BaseColorImage)
+				? SimCruiseCarMaterials::LoadTexture(Built->Model.ImageFiles[Author.BaseColorImage], true, false) : nullptr;
+			UMaterialInstanceDynamic* ScreenMID = UMaterialInstanceDynamic::Create(ScreenBase, this);
+			if (Texture) ScreenMID->SetTextureParameterValue(TEXT("BaseTexture"), Texture);
+			const FSimCruiseScreenSpec& S = *Screen;
+			ScreenMID->SetVectorParameterValue(TEXT("TexSize"), FLinearColor(S.TextureSize.X, S.TextureSize.Y, 0.f, 0.f));
+			ScreenMID->SetScalarParameterValue(TEXT("FlipV"), S.bFlipV ? 1.f : 0.f);
+			// A plain background point: inside the speed box's own corner.
+			const double ClearX = (S.SpeedBox.X + 2.0) / S.TextureSize.X, ClearY = (S.SpeedBox.Y + 2.0) / S.TextureSize.Y;
+			ScreenMID->SetVectorParameterValue(TEXT("Clear"), FLinearColor(ClearX, S.bFlipV ? 1.0 - ClearY : ClearY, 0.f, 0.f));
+			ScreenMID->SetVectorParameterValue(TEXT("Centre"), FLinearColor(S.TachCentre.X, S.TachCentre.Y, 0.f, 0.f));
+			ScreenMID->SetVectorParameterValue(TEXT("Band"), FLinearColor(S.TachBand.X, S.TachBand.Y, 0.f, 0.f));
+			ScreenMID->SetVectorParameterValue(TEXT("Arc"), FLinearColor(S.TachStartDeg, S.TachDegPerThousand, S.TachPaintedEndDeg, 0.f));
+			ScreenMID->SetVectorParameterValue(TEXT("SpeedMin"), FLinearColor(S.SpeedBox.X, S.SpeedBox.Y, 0.f, 0.f));
+			ScreenMID->SetVectorParameterValue(TEXT("SpeedMax"), FLinearColor(S.SpeedBox.Z, S.SpeedBox.W, 0.f, 0.f));
+			ScreenMID->SetScalarParameterValue(TEXT("Backlight"), static_cast<float>(S.Backlight));
+			MID = ScreenMID;
+			ScreenMaterial = ScreenMID;
 		}
 	}
 	// Mirror glass reflects the rearward capture.
@@ -373,6 +402,14 @@ double USimCruiseCarPresentationComponent::NeedleAngleRad(const FSimCruiseDialSp
 
 void USimCruiseCarPresentationComponent::UpdateDials(float DeltaTime)
 {
+	if (ScreenMaterial)
+	{
+		// A digital tachometer's arc follows the engine closely (about 0.05 s); the speed as the car's.
+		const double Target = DialTarget(TEXT("rpm"), LastState);
+		ScreenRpm += (Target - ScreenRpm) * (1.0 - FMath::Exp(-FMath::Max(DeltaTime, 0.f) / 0.05));
+		ScreenMaterial->SetScalarParameterValue(TEXT("Rpm"), static_cast<float>(ScreenRpm));
+		ScreenMaterial->SetScalarParameterValue(TEXT("Mph"), static_cast<float>(DialTarget(TEXT("speed_mph"), LastState)));
+	}
 	if (!Built.IsValid() || Needles.IsEmpty())
 	{
 		return;

@@ -72,6 +72,29 @@ struct FSimCruiseClockSpec
 };
 
 /**
+ * A digital instrument screen (the C8's cluster): the model's painted picture with the live speed in
+ * digits and the tachometer's lit arc drawn over it by a material (no per-frame drawing). Positions
+ * are texture pixels as the screen reads (v up when bFlipV), angles clockwise from 12 o'clock.
+ */
+struct FSimCruiseScreenSpec
+{
+	FString Material;
+	FVector2D TextureSize = FVector2D(1024.0, 512.0);
+	bool bFlipV = false;
+	/** The tachometer: centre, the lit band's inner and outer radius, the angle of 0 r/min and degrees per 1000 r/min. */
+	FVector2D TachCentre = FVector2D::ZeroVector;
+	FVector2D TachBand = FVector2D(0.0, 0.0);
+	double TachStartDeg = -135.0;
+	double TachDegPerThousand = 37.5;
+	/** The painted (static) lit arc to erase first, from TachStartDeg to this angle. */
+	double TachPaintedEndDeg = -90.0;
+	/** The speed digits' box: x0, y0, x1, y1. */
+	FVector4 SpeedBox = FVector4(0.0, 0.0, 0.0, 0.0);
+	/** Nits of the screen's own light. */
+	double Backlight = 120.0;
+};
+
+/**
  * A dashboard dial drawn live over the model's own (whose needle is part of the dash mesh): a face
  * with ticks, numerals and a needle at the car's value, just in front of the model's dial hub.
  * Centre, normal, radius and offset in the vehicle frame (Godot axes: x right, y up, z rearward; metres), as a steering-wheel rim is given.
@@ -164,6 +187,8 @@ struct FSimCruiseCarPresentationProfile
 
 	/** Set when the model's dashboard has a clock to drive. */
 	TOptional<FSimCruiseClockSpec> Clock;
+	/** A digital instrument screen with live speed and tachometer. */
+	TOptional<FSimCruiseScreenSpec> Screen;
 
 	/** Dials drawn live over the model's (speedometer, tachometer, gauges). */
 	TArray<FSimCruiseDialSpec> Dials;
