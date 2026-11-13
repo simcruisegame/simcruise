@@ -569,12 +569,12 @@ void ASimCruisePreflight::MeasureTick(ASimCruisePlayerController* Player, float 
 		OutZm = TileHit.ImpactPoint.Z / 100.0;
 		return IsRoadLayer(Tile->LayerAtFace(TileHit.FaceIndex));
 	};
-	double Zm = 0.0;
-	const bool bAheadRoad = SurfaceAt(CarCm + Forward * 250.0, Zm);
-	Surface.Add(FVector2f(static_cast<float>(PathM + 2.5), static_cast<float>(Zm)));
-	SurfaceIsRoad.Add(bAheadRoad ? 1 : 0);
+	// The surface under the car's centre: the path the wheels ride. A point straight ahead
+	// leaves the paved edge in a hairpin and reads as a gap that is not there.
 	double UnderZm = 0.0;
 	const bool bUnderRoad = SurfaceAt(CarCm, UnderZm);
+	Surface.Add(FVector2f(static_cast<float>(PathM), static_cast<float>(UnderZm)));
+	SurfaceIsRoad.Add(bUnderRoad ? 1 : 0);
 	OffRoadNow = bUnderRoad ? 0.f : OffRoadNow + DeltaSeconds;
 	Stats.OffRoadSeconds = FMath::Max(Stats.OffRoadSeconds, OffRoadNow);
 

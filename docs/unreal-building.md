@@ -242,7 +242,7 @@ In each game, `-SimCruisePreflight` (`ASimCruisePreflight`) waits for the start'
 
 - **White sky:** of the frame pixels where a view ray hits nothing, the percent with a luminance of 245 or more. It fails above 25 %. The JSON also gives the environment's reference EV100.
 - **Pop-in:** a tile built less than 150 m from the camera (fails at 1), or a car that appears or jumps more than 30 m inside 150 m, in front of the camera and in sight (fails above 2). Also frames where more than half of the picture (and more than 3 times the drive's median share) changes by more than 40 of 255 from the frame before, while the camera does not turn: a flash or an exposure jump (fails above 2).
-- **Road seams:** the road surface 2.5 m ahead of the car, from the tile's own collision. A height step of more than 5 cm that the slope does not explain fails. So does a gap of less than 1.5 m with no road surface between road samples. A vertical jolt of the body above 8 m/s² within 8 m of a tile border also fails.
+- **Road seams:** the road surface under the car (the path the wheels ride), from the tile's own collision. A height step of more than 5 cm that the slope does not explain fails. So does a gap of less than 1.5 m with no road surface between road samples. A vertical jolt of the body above 8 m/s² within 8 m of a tile border also fails.
 - **Stuck traffic:** a traffic car that stands for more than 20 s, and does not wait at a stop line or a stop.
 - **Start and road:** the start fell back to another place (more than 3 km from the asked point), the car was off the road surface for more than 3 s, the car moved less than 200 m, or fewer than half of the frames were recorded.
 
