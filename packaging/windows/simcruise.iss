@@ -64,6 +64,11 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
+[InstallDelete]
+; An install over 2.0.0 must not keep its neural-network weights (research-only training data);
+; since 2.0.1 the game ships none, so any .onnx left in the folder is old.
+Type: files; Name: "{app}\SimCruise\data\ai\*.onnx"
+
 [Files]
 ; The whole Shipping package except debug symbols, the build manifests and any local test run's Saved folder.
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Excludes: "*.pdb,Manifest_*.txt,\SimCruise\Saved\*"; Flags: ignoreversion recursesubdirs createallsubdirs
