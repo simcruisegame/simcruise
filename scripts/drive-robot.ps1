@@ -53,7 +53,10 @@ foreach ($Car in $Cars) {
             '-SimCruiseDriveTest', '-SimCruiseDriveTestPad', "-SimCruiseDriveTestOut=$Csv", '-windowed', '-ResX=1280', '-ResY=720', '-log', "-abslog=$Log")
         if ($Run.Cap -gt 0) { $Args += "-SimCruiseDriveTestMaxFps=$($Run.Cap)" }
         Write-Host "Drive robot: $Tag"
-        & powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'editor.ps1') @Args | Out-Null
+        if (Test-Path $Log) { Remove-Item $Log -Force }
+        # A hung or crashed run is stopped after 15 min (editor.ps1 adds -unattended to -game runs).
+        & powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'editor.ps1') -TimeoutMinutes 15 @Args | Out-Null
+        if ($LASTEXITCODE -eq 4) { Write-Host "  $Tag timed out after 15 min and was stopped"; $Failed += "$Tag (timed out)"; continue }
         $Lines = Select-String -Path $Log -Pattern 'DRIVETEST ([a-z0-9_]+): peak (\d+) km/h, peak rear-axle slip ([\d.]+) deg, peak yaw rate ([\d.]+) deg/s' -AllMatches
         if (-not $Lines) { Write-Host "  no DRIVETEST lines in $Log"; $Failed += "$Tag (no result)"; continue }
         foreach ($L in $Lines) {

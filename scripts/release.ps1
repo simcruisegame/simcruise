@@ -55,8 +55,8 @@ if ($LASTEXITCODE -ne 0) { Write-Host 'RELEASE FAILED: installer'; exit 1 }
 Write-Host 'Smoke test: the packaged game self-test'
 if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "release smoke test of $Root")) { exit 1 }
 try {
-    $Game = Start-Process -FilePath $Exe -ArgumentList @('-SimCruiseShellSelfTest', '-windowed', '-ResX=1280', '-ResY=720') -PassThru
-    if (-not $Game.WaitForExit(15 * 60000)) { Stop-Process -Id $Game.Id -Force; Write-Host 'RELEASE FAILED: smoke test timed out'; exit 1 }
+    $Game = Start-Process -FilePath $Exe -ArgumentList @('-SimCruiseShellSelfTest', '-windowed', '-ResX=1280', '-ResY=720', '-unattended') -PassThru
+    if (-not $Game.WaitForExit(15 * 60000)) { Stop-ProcessTree -ProcessId $Game.Id; Write-Host 'RELEASE FAILED: smoke test timed out'; exit 1 }
     if ($Game.ExitCode -ne 0) { Write-Host "RELEASE FAILED: smoke test exit code $($Game.ExitCode)"; exit 1 }
 }
 finally { Exit-EditorLock }
