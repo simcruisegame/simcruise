@@ -31,7 +31,7 @@ Run `scripts\preflight.ps1` on 29b12ea: `Saved\Preflight\20261112-211916\report.
 
 ## Found by the 2.0.2 release pre-flight (841633c = freeze 30ca1e2, 2026-11-13)
 
-Run `scripts\preflight.ps1` on 841633c: `Saved\Preflight\20261113-001655\report.md` (D:\sc\lane-release), 9 of 12 runs passed. Dragon Mustang failed on P4 (no road surface for 1.43 m at 515 m). P1 (fling after a traffic contact) was not seen in any of the 12 runs after 611f955; no run had a traffic contact, so it stays open until a contact is tested.
+Run `scripts\preflight.ps1` on 841633c: `Saved\Preflight\20261113-001655\report.md` (D:\sc\lane-release), 9 of 12 runs passed. Dragon Mustang failed on P4 (no road surface for 1.43 m at 515 m). P1 (fling after a traffic contact) was not seen in the 12 runs, but it is NOT fixed by 611f955: the Shipping drive capture (`-SimCruiseDriveCapture`, Miata, Tail of the Dragon, stick held straight) met a traffic Corvette at 21 mph and then read 97, 249 and 202 mph over the forest (`evidence-2.0.2/shipping-dragon-miata-p1-fling.jpg`). The release waits for its fix.
 
 | # | Bug | Run, frame and evidence | Owner | Status |
 |---|---|---|---|---|

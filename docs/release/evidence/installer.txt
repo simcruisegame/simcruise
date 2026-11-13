@@ -1,34 +1,15 @@
-# Installer test, test PC, normal user account, 2026-11-12
-# setup /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER (the 'for me only' choice, no administrator rights); the game launched through the Start menu shortcut's target with a 3-minute drive (-SimCruiseSoak=3); then unins000.exe /VERYSILENT.
-
-## Final package, commit 5f21af1 (setup sha256 f573a1444695ed667239985943f0399f8a0826d14a17533ab5c72a674d89a6fa)
-setup: D:\sc\lane-release\Saved\Package\SimCruise-2.0.0-windows-x64-setup.exe (364 MB)
+# Installer test, SimCruise-2.0.2-windows-x64-setup.exe
+setup: D:\sc\lane-release\Saved\Package\SimCruise-2.0.2-windows-x64-setup.exe (362 MB), SHA-256 096fb775d385b286db5027d23952f558e45fdb78a506761129c4560a4e5fb308
+installed before: SimCruise 2.0.0
+test date: 2026-11-13 05:53 UTC; per-user install (no administrator rights), silent
 install exit 0
-installed exe: True; atlas: True; pdb: 0
+installed exe: True; atlas: True; pdb: 0; onnx: 1
 start menu: SimCruise controls.lnk, SimCruise.lnk, Uninstall SimCruise.lnk
-uninstall entry: SimCruise 2.0.0
+uninstall entry: SimCruise 2.0.2
 shortcut target: C:\Users\xuser\AppData\Local\Programs\SimCruise\SimCruise.exe
 installed game run: exit 0
-2026-11-12 15:27:08 SOAK  120 s: driving, 2 km/h, 60 fps avg, worst frame 20 ms, 2145 MB used, 1 recoveries, 2 camera changes, place Red Rock Scenic Byway (SR-179) · Bell Rock, Sedona, AZ, car nb2001_aaron
-2026-11-12 15:27:38 SOAK  150 s: driving, -4 km/h, 60 fps avg, worst frame 20 ms, 2126 MB used, 1 recoveries, 3 camera changes, place Red Rock Scenic Byway (SR-179) · Bell Rock, Sedona, AZ, car nb2001_aaron
-2026-11-12 15:28:08 SOAK DONE: 3.0 minutes, drove 1, 1 recoveries, 3 camera changes, 0 car changes, 0 travels, 0 non-finite states, peak 2957 MB used
+settings folder kept between runs: True
 uninstall exit 0; program folder left: False; start menu left: False
 uninstall entry after: removed
+put back the version installed before (SimCruise 2.0.0): exit 0, now SimCruise 2.0.0
 INSTALLER TEST DONE
-
-## First release-candidate package, commit b7ac2de (setup sha256 262aee04ebb52ce8c65974a2ccb836162fcb5ccc4921ede419d7ce4cb6f8367a)
-setup: D:\sc\lane-release\Saved\Package\SimCruise-2.0.0-windows-x64-setup.exe (365 MB)
-install exit 0
-installed exe: True; atlas: True; pdb: 0
-start menu: SimCruise controls.lnk, SimCruise.lnk, Uninstall SimCruise.lnk
-uninstall entry: SimCruise 2.0.0
-shortcut target: C:\Users\xuser\AppData\Local\Programs\SimCruise\SimCruise.exe
-installed game run: exit 0
-2026-11-12 12:32:52 SOAK  123 s: driving, 42 km/h, 60 fps avg, worst frame 20 ms, 2212 MB used, 0 recoveries, 2 camera changes, place Valley of Fire Highway (NV-169) · Valley of Fire State Park, NV, car nb2001_aaron
-2026-11-12 12:33:22 SOAK  153 s: driving, 48 km/h, 49 fps avg, worst frame 91 ms, 2316 MB used, 0 recoveries, 3 camera changes, place Valley of Fire Highway (NV-169) · Valley of Fire State Park, NV, car nb2001_aaron
-2026-11-12 12:33:49 SOAK DONE: 3.0 minutes, drove 1, 0 recoveries, 3 camera changes, 0 car changes, 0 travels, 0 non-finite states, peak 2867 MB used
-uninstall exit 0; program folder left: False; start menu left: False
-uninstall entry after: removed
-INSTALLER TEST DONE
-
-Result: PASS (both). Installed to %LOCALAPPDATA%\Programs\SimCruise without administrator rights; 3 Start menu entries (SimCruise, SimCruise controls, Uninstall SimCruise); the installed game drove 3 minutes and exited with code 0; the uninstaller removed the program folder, the Start menu entries and the Apps entry. The game's settings and cache in %LOCALAPPDATA%\SimCruise\Saved stay, as docs/install.md says.
