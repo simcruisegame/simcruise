@@ -79,6 +79,26 @@ The 10x difference in steep ground is the cut and fill along the road: exactly t
 
 **Proposed in the game.** For each tile, a 0.5 m texture over the 40 m corridor of each road: R = lidar ground minus the 10 m terrain (metres), GB = normal, A = intensity. The terrain mesh near the car is refined to 1 m in that corridor (CPU, at tile build), and the ground shader takes its normal and its paint from the texture. One fetch per pixel. The road ribbon and its grading stay as they are (the road-engineering code owns the carriageway); the texture changes only the ground outside the ribbon. This needs the road owner's agreement before it goes in.
 
+## The knowledge graph chooses the surfaces (Aaron, 13 November)
+
+Aaron asked: can the AI use a knowledge graph to make building textures, roads, grass and so on? Yes. The place knowledge graph ([../place-graph.md](../place-graph.md)) already chooses each building's recipe, details, colours and wear from facts. The plan extends the same graph from buildings to every surface.
+
+**How it works.**
+
+1. **Facts about each surface.** A road gets `road:<class>` and its OSM `surface`. A land patch gets `land:<cover>`. Every surface also gets the facts of its place: `region:*`, `climate:*`, `district:*`, `near:sea`, and `season:*` from today's date and the climate.
+2. **Rules make surface facts.** The same rule engine (weakest `if` fact, noisy OR, negative weights suppress) turns them into `surface:*` and `state:*` facts. Examples: tropical lawn = St. Augustine turf; Southeast lawn in November = dormant tan Bermuda; Great Plains grass in autumn = cured straw; Deco wall = smooth stucco; Main Street block before 1945 = common brick; OSM `surface=concrete` = concrete slabs with 4.5 m joints.
+3. **Measured facts outweigh rules.** Lidar intensity that varies in blocks gives `measured:intensity_patchy` (patched asphalt). Bright pavement in the unbaked aerial photograph gives `measured:bright_pavement` (aged asphalt). A licensed street photograph gives the wall colour (already done for walls). So the rules give a good first guess everywhere, and measurement corrects it where data exists.
+4. **Each surface names a material.** `surface-rules.json` maps each `surface:*` to the shader layer it uses (Ground, Asphalt, Concrete, Building), its albedo, its detail texture, scale and amount, and a CC0 library set for later (ambientCG, Poly Haven). The shaders do not change: the graph only chooses their inputs per feature.
+5. **Local AI helps off the frame, never on it.** (a) Texture by example (method 5) makes a swatch on the CPU when the graph chooses a surface with no library texture. (b) The live-data thread's open-licence photo parser adds `seen:*` facts (for example "this wall is brick"). (c) A local model on the CPU can draft new rules from open sources (Wikidata, USDA and FHWA tables); a draft rule enters the rule file only when a test against real photographs passes. A rule is a fact with a reason, so every choice can be traced.
+
+**Prototype** (`lab/surface-graph/`, Ocean Drive tile 18180_27907, November): 75 features resolved in under a second on the CPU. 20 lawns become St. Augustine turf (confidence 0.85), 3 beach patches quartz and shell sand (0.9), 24 streets aged asphalt (0.8), 27 service lanes patched asphalt (0.7), Collins Avenue mid-life asphalt. Run it with `--month 1` for a humid-subtropical tile and the Bermuda lawns turn dormant tan. The picture shows the unbaked photograph, the graph's choice, and the choice corrected toward the measured colour.
+
+![Unbaked aerial, the graph's surface choice, choice corrected by measurement](images/world-detail/surface-graph-ocean-drive.jpg)
+
+**Limits found.** The 2.4 m photograph mixes a lawn with its paths and palms, so its colour is too grey to be the grass albedo; the measured colour must come from NAIP at 0.6 m or from street photographs, and it must be converted from camera sRGB to albedo (the sand of known albedo on the same tile can set that gain). Building surfaces need the C++ hub's facts (style, era, recipe), so the prototype covers roads and land; the hub already has the engine and needs only the extra rule file.
+
+**In the game (next step).** `SimCruisePlaceHub` loads `surface-rules.json` beside `place-graph.json`; `BakeForBuild` resolves roads and land patches on the worker thread; the tile builder writes the chosen material id and colour into vertex colour (no new draw calls), as it does for walls. This touches the knowledge-graph and world-look code, so it goes in with those owners after Wave A.
+
 ## Results in the game
 
 Realism A/B on the PC (`scripts\realism.ps1`, ultra, traffic off, the build at commit `66e9129`):
