@@ -38,7 +38,9 @@ param(
     [string]$EngineDir = $(if ($env:UE_ROOT) { $env:UE_ROOT } else { 'C:\Program Files\Epic Games\UE_5.8' }),
     [int]$TimeoutMinutes = 20,
     [int]$LockTimeoutMinutes = 120,
-    [switch]$KeepFrames
+    [switch]$KeepFrames,
+    # A keen driver on an empty road: no speed limit, 75 % of the car's skidpad grip, traffic off.
+    [switch]$Keen
 )
 
 $ErrorActionPreference = 'Stop'
@@ -86,7 +88,7 @@ foreach ($Road in $Roads) {
         $Log = Join-Path $Out 'game.log'
         $Args = @("`"$Project`"", '-game', '-SimCruiseWorld', '-SimCruiseNoLive', '-SimCruiseNoNeural', '-SimCruiseGraphics=ultra', "-SimCruiseUtc=$Utc",
             "-SimCruiseCar=$Car", '-SimCruiseViewCheck', '-SimCruisePreflight', "-SimCruisePreflightRoad=$Road", "-SimCruisePreflightSeconds=$Seconds",
-            "`"-SimCruisePreflightOut=$Out`"", '-NoLiveCoding', '-windowed', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + $Defs[$Road]
+            "`"-SimCruisePreflightOut=$Out`"", '-NoLiveCoding', '-windowed', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + $Defs[$Road] + @(if ($Keen) { '-SimCruisePreflightKeen' })
         if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "pre-flight $Name on $Root")) { exit 1 }
         $TimedOut = $false
         try {

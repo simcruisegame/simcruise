@@ -12,6 +12,8 @@
 #include "Gameplay/SimCruiseGameMode.h"
 #include "Gameplay/SimCruisePlayerController.h"
 #include "Gameplay/SimCruiseVehicleControl.h"
+#include "HAL/IConsoleManager.h"
+#include "Vehicle/SimCruiseVehicle.h"
 #include "Gameplay/SimCruiseViewCheck.h"
 #include "HAL/FileManager.h"
 #include "ImageCore.h"
@@ -154,6 +156,14 @@ void ASimCruisePreflight::BeginPlay()
 	if (FParse::Value(Cmd, TEXT("SimCruisePreflightKmh="), Kmh) && Kmh > 0.0)
 	{
 		SpeedOverrideMps = FMath::Clamp(Kmh, 10.0, 300.0) / 3.6;
+	}
+	// -SimCruisePreflightKeen: a keen driver on an empty road (the owner's acceptance drive): no
+	// speed limit, corners at 75 % of the car's own skidpad grip, brakes at 70 % of it, up to 45 m/s,
+	// looking 200 m ahead, traffic off.
+	bKeen = FParse::Param(Cmd, TEXT("SimCruisePreflightKeen"));
+	if (bKeen)
+	{
+		if (IConsoleVariable* Cars = IConsoleManager::Get().FindConsoleVariable(TEXT("simcruise.Traffic.Cars"))) Cars->Set(0, ECVF_SetByCode);
 	}
 	FParse::Value(Cmd, TEXT("SimCruisePreflightRoad="), RoadName);
 	FParse::Value(Cmd, TEXT("SimCruiseCar="), CarId);
@@ -479,26 +489,31 @@ void ASimCruisePreflight::DriveTick(ASimCruisePlayerController* Player, float De
 	Stick = FMath::Clamp(static_cast<float>(FeedForward + SteerIntegral + 0.4 * YawError), -1.f, 1.f);
 
 	// Speed: the road's limit, slower for the curves ahead and for a car ahead.
-	double TargetMps = FMath::Min(SimCruiseTrafficModel::SpeedLimitMps(Line.Class), MaxSpeedMps);
+	// The keen pace from the car's own grip (its published skidpad).
+	double Grip = 1.0;
+	if (const ASimCruiseVehicle* Driven = Cast<ASimCruiseVehicle>(Player->GetPawn())) Grip = FMath::Clamp(Driven->GetRealCar().TargetSkidpadG, 0.5, 1.3);
+	const double Lat = bKeen ? 0.75 * Grip * 9.80665 : LateralAccel;
+	const double Brake = bKeen ? 0.7 * Grip * 9.80665 : BrakeAccel;
+	double TargetMps = bKeen ? 45.0 : FMath::Min(SimCruiseTrafficModel::SpeedLimitMps(Line.Class), MaxSpeedMps);
 	if (TargetMps <= 1.0) TargetMps = 13.4;
 	if (SpeedOverrideMps > 0.0) TargetMps = SpeedOverrideMps;
 	FCursor Ahead = Here;
 	FVector2d PrevTangent = TangentAt(Ahead);
-	for (int32 Step = 1; Step <= 16; ++Step)
+	for (int32 Step = 1; Step <= (bKeen ? 40 : 16); ++Step)
 	{
 		const double S = Step * 5.0;
 		if (!Walk(Ahead, 500.0))
 		{
 			// A dead end: be able to stop before it.
-			TargetMps = FMath::Min(TargetMps, FMath::Sqrt(2.0 * BrakeAccel * FMath::Max(0.0, S - 10.0)));
+			TargetMps = FMath::Min(TargetMps, FMath::Sqrt(2.0 * Brake * FMath::Max(0.0, S - 10.0)));
 			break;
 		}
 		const FVector2d T = TangentAt(Ahead);
 		const double Turn = FMath::Acos(FMath::Clamp(FVector2d::DotProduct(PrevTangent, T), -1.0, 1.0));
 		PrevTangent = T;
 		const double Kappa = FMath::Max(Turn / 5.0, 1e-4);
-		const double CurveMps = FMath::Sqrt(LateralAccel / Kappa);
-		TargetMps = FMath::Min(TargetMps, FMath::Sqrt(CurveMps * CurveMps + 2.0 * BrakeAccel * FMath::Max(0.0, S - 5.0)));
+		const double CurveMps = FMath::Sqrt(Lat / Kappa);
+		TargetMps = FMath::Min(TargetMps, FMath::Sqrt(CurveMps * CurveMps + 2.0 * Brake * FMath::Max(0.0, S - 5.0)));
 	}
 	// Traffic ahead in this lane (traffic cars do not all block traces): keep a 2 s gap plus 6 m.
 	for (TActorIterator<ASimCruiseTrafficCar> It(GetWorld()); It; ++It)

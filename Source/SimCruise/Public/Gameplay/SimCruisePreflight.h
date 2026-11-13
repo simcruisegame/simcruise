@@ -169,6 +169,7 @@ private:
 	bool bNoFrames = false;
 	/** -SimCruisePreflightKmh=: drive at this speed (slower only for curves and cars), not the road's limit. */
 	double SpeedOverrideMps = 0.0;
+	bool bKeen = false;
 	/** Every drive frame's real time (ms) and the path distance at the long ones. */
 	TArray<float> FrameMs;
 	FDelegateHandle FrameHandle;
