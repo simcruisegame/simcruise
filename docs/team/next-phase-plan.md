@@ -30,6 +30,24 @@ texture. Each claim has a measured test.
 | 7b | Light like a film master ("Dolby style") | Display contract (SDR BT.709 reference), optional HDR10/PQ output with 203-nit paper white and calibration screen, Lumen that sees the street (hardware Lumen or distance-field proxies), night light in real units, photo-match regression | M-L | HDR display: grey card 20-30 nits, white stucco 180-220 nits, paint glints ≥ 600 nits; shade within 0.5 EV of licensed photo; ≤ +1.5 ms at 28 W | Laptop panel may be SDR only; Lumen cost | lighting-director + cinematographer |
 | 9 | Pad controls for everyone | Automatic clutch option, controls page with remapping, sensitivity and dead zones with live readout (XAG 107), readable HUD | S-M | 10/10 stall-free downshifts under braking; XAG 101/102 sizes and contrast | Menu work in Slate/UMG | ux-accessibility |
 
+## How this plan fits the player-first roadmap
+
+On 12 November a second plan arrived: `docs/plan/player-first-roadmap.md`
+(from Aaron's v2.0.0 playtest: view, too bright, traffic, not real). It
+leads. This team plan gives it tests and expert checks:
+
+| Roadmap section | Team themes that feed it | Team role |
+|---|---|---|
+| 5.0 Drive like the real car, adjust it | 1 (same car at every frame rate), 2 (brakes, drivetrain), 9 (pad controls) | physicist, automotive, ux: guard tests, pad feel checks |
+| 5.1 View from the seat | 6 (camera, honest speed) | cinematographer, ux |
+| 5.2 Picture like a photo | 7b (light like a film), building albedo work | lighting-director, cinematographer: photo match test |
+| 5.3 Living roads | (new for the team) | magician (no spawn in view), performance |
+| 5.4 Roadside | 7 (magician's streamer), 4 (feel the road) | magician, gis |
+| 5.5 A reason to drive | — | ux, qa |
+
+Themes the roadmap pauses (3 Garage Day, 5 ISO suites beyond guards, 8 sound
+match, HDR10 output) wait for Aaron. Existing benches stay as guards.
+
 ## Out of scope for this phase (proposal)
 
 New feeds, satellite imagery, street photos and new knowledge-graph
@@ -44,6 +62,8 @@ features stay on hold, as in phase 1, unless the owner moves them in.
 4. Default lens: true field of view (about 32° on the laptop, most honest speed) or a wider "natural" view (about 2.4x, more awareness)? Theme 6 tests both.
 
 ## Change log
+
+- 2026-11-12 23:10: mapped onto the player-first roadmap (it leads); item 4 closed, item 9 still open (meeting 23).
 
 - 2026-11-12 22:10: theme 2 adds a fronts-first lock-order sweep and a threshold-braking 70-0 (no grip refit to one bench); theme 9 adds pad reach for every setting; local AI work adds photo-to-albedo normalising and a weights licence check (meeting 22).
 
