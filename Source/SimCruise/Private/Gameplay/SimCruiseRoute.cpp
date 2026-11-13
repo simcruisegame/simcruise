@@ -3,6 +3,7 @@
 #include "Gameplay/SimCruiseRoute.h"
 
 #include "Algo/BinarySearch.h"
+#include "Gameplay/SimCruiseSpeedUnits.h"
 #include "Dom/JsonObject.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
@@ -54,6 +55,27 @@ namespace SimCruiseRouteText
 
 	void DistanceParts(double Metres, FString& OutNumber, FString& OutUnit)
 	{
+		DistancePartsIn(Metres, SimCruiseSpeedUnits::Get(), OutNumber, OutUnit);
+	}
+
+	void DistancePartsIn(double Metres, ESimCruiseSpeedUnits Units, FString& OutNumber, FString& OutUnit)
+	{
+		if (Units == ESimCruiseSpeedUnits::Kmh)
+		{
+			// Metric: metres below 1 km (to 10 m, to 50 m from 500 m), then km.
+			const double M = FMath::Max(Metres, 0.0);
+			if (M < 950.0)
+			{
+				const int32 Step = M >= 500.0 ? 50 : 10;
+				OutNumber = FString::FromInt(FMath::Max(Step, FMath::RoundToInt(M / Step) * Step));
+				OutUnit = TEXT("m");
+				return;
+			}
+			const double Km = M / 1000.0;
+			OutNumber = Km < 10.0 ? FString::Printf(TEXT("%.1f"), Km) : FString::FromInt(FMath::RoundToInt(Km));
+			OutUnit = TEXT("km");
+			return;
+		}
 		const double Miles = FMath::Max(Metres, 0.0) / 1609.344;
 		if (Miles < 0.1)
 		{

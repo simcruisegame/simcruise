@@ -25,7 +25,7 @@ enum class ESimCruiseMenuRow : uint8
 	// Seat & view
 	Lens, HeadMotion, ScreenSize, EyeDistance, Seat,
 	// Settings
-	Sound, HudLevel, Rumble, StickSpeed, StickResponse, StickDeadZone, Trigger,
+	Sound, HudLevel, SpeedUnits, Rumble, StickSpeed, StickResponse, StickDeadZone, Trigger,
 	// Not a row: X on the Drive page while a route is on.
 	EndRoute,
 	Count,

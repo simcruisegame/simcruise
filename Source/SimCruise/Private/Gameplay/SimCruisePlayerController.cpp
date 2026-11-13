@@ -258,6 +258,7 @@ void ASimCruisePlayerController::PlayerTick(float DeltaTime)
 			// The remembered HUD level, lens and sound (DrivingPreferences.gd).
 			bPreferencesApplied = true;
 			bSoundOn = SimCruisePreferences::GetBool(TEXT("sound"), bSoundOn);
+			SimCruiseSpeedUnits::LoadPreference();
 			Hud->SetLevel(static_cast<ESimCruiseHudLevel>(SimCruisePreferences::GetInt(TEXT("hud_level"), static_cast<int32>(Hud->GetLevel()), 0, 2)));
 			const int32 Lens = SimCruisePreferences::GetInt(TEXT("lens_v3"), static_cast<int32>(Camera->GetLens()), 0, 2);
 			using FPref = TPair<const TCHAR*, const TCHAR*>;

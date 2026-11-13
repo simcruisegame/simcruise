@@ -5,10 +5,12 @@
 #include "CoreMinimal.h"
 #include "GameFramework/HUD.h"
 #include "Gameplay/SimCruiseCameraModels.h"
+#include "Gameplay/SimCruiseSpeedUnits.h"
 #include "SimCruiseHUD.generated.h"
 
 class UFont;
 class FSimCruiseDriveHud;
+struct FSimCruiseDriveTelemetry;
 
 /** HUD levels, cycled with F2 or the left-stick click (godot-final:game/Hud.gd).
  *  Off: only prompts. Glance: a translucent speed tag and g-meter that fade
@@ -35,6 +37,21 @@ namespace SimCruiseHudRules
 	SIMCRUISE_API float GlanceAlpha(float Current, bool bAwake, float DeltaTimeS);
 }
 
+/** The speed and engine numbers every HUD level shows, from one frame's telemetry. */
+struct FSimCruiseHudReadout
+{
+	/** Ground speed along the car in the chosen units, rounded, never negative (0 at a stop). */
+	int32 Speed = 0;
+	ESimCruiseSpeedUnits Units = ESimCruiseSpeedUnits::Mph;
+	/** The same speed in mph (the Glance panel wakes on a change of SpeedWakeMph). */
+	int32 Mph = 0;
+	/** The engine's own rpm (not a wheel's), to the nearest 50: idle at a stop, 0 only when stalled. */
+	int32 Rpm = 0;
+
+	/** The car body's velocity projected on its forward axis; the engine speed from the drivetrain. */
+	SIMCRUISE_API static FSimCruiseHudReadout From(const FSimCruiseDriveTelemetry& Telemetry, ESimCruiseSpeedUnits Units);
+};
+
 /** Canvas HUD drawn in code (no UMG asset): speed, gear, rpm, a g-g meter
  *  with the car's published skidpad and braking limits as an ellipse. */
 UCLASS()
@@ -56,6 +73,8 @@ public:
 	void ZoomMinimap(int32 Step) { MinimapZoom = FMath::Clamp(MinimapZoom + Step, 0, 4); }
 	void ShowMessage(const FString& Text, float Seconds = 3.f);
 	const FString& GetMessage() const { return Message; }
+	/** What the speed and rpm readouts show this frame (tests and captures compare it with the car). */
+	const FSimCruiseHudReadout& GetReadout() const { return Readout; }
 
 private:
 	void DrawGlance(float Scale, float DeltaTimeS);
@@ -105,6 +124,7 @@ private:
 
 	// Snapshot of the vehicle for this frame.
 	bool bHasVehicle = false;
+	FSimCruiseHudReadout Readout;
 	int32 Mph = 0;
 	int32 Gear = 0;
 	bool bManual = false;

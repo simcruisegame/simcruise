@@ -318,10 +318,10 @@ void FSimCruiseDriveHud::DrawSpeed(ASimCruiseHUD& Hud, float Alpha)
 	// The number: 132 px Overpass Black, three digit cells, right-aligned.
 	const float NumberRight = X + Measure(TEXT("000"), EWeight::Black, 132.f).X;
 	const float NumberY = CardY - P(6.f);
-	TextAt(FString::FromInt(Hud.Mph), EWeight::Black, 132.f, NumberRight, NumberY, A(White(), Alpha), 2, true);
+	TextAt(FString::FromInt(Hud.Readout.Speed), EWeight::Black, 132.f, NumberRight, NumberY, A(White(), Alpha), 2, true);
 	const float SideX = NumberRight + P(18.f);
 	TextAt(SimCruiseHudRules::GearText(Hud.Gear, Hud.bManual), EWeight::ExtraBold, 56.f, SideX, CardY + P(26.f), A(Amber(), Alpha));
-	TextAt(TEXT("mph"), EWeight::Bold, 26.f, SideX + P(2.f), CardY + P(94.f), A(Mist(), Alpha));
+	TextAt(SimCruiseSpeedUnits::Label(Hud.Readout.Units), EWeight::Bold, 26.f, SideX + P(2.f), CardY + P(94.f), A(Mist(), Alpha));
 	if (Hud.bAbs)
 	{
 		const float W = Measure(TEXT("ABS"), EWeight::Black, 20.f).X + P(16.f);
@@ -341,7 +341,7 @@ void FSimCruiseDriveHud::DrawSpeed(ASimCruiseHUD& Hud, float Alpha)
 		const FLinearColor FillColor = Fill >= Zone ? RedZone() : White();
 		RoundRect(BarX, BarY, BarW * Fill, BarH, BarH * 0.5f, A(FillColor, Alpha));
 	}
-	TextAt(FString::Printf(TEXT("%d rpm"), FMath::RoundToInt(Hud.Rpm / 50.0) * 50), EWeight::SemiBold, 20.f, BarX + BarW + P(14.f), BarY - P(8.f), A(Mist(), Alpha));
+	TextAt(FString::Printf(TEXT("%d rpm"), Hud.Readout.Rpm), EWeight::SemiBold, 20.f, BarX + BarW + P(14.f), BarY - P(8.f), A(Mist(), Alpha));
 
 	if (bFull)
 	{
