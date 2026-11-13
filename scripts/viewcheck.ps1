@@ -4,8 +4,8 @@
   the player's view, and fails when a view that must pass fails (or the other way round).
 
 .DESCRIPTION
-  Each case runs the editor binaries as a game (-game, Ultra graphics, 1280x720, the
-  one-editor lock of scripts\EditorLock.ps1) with -SimCruiseViewCheck -SimCruiseViewCheckQuit,
+  Each case runs the editor binaries as a game (-game, Ultra graphics, 1280x720, under the
+  one-editor lock of scripts\EditorLock.ps1, taken once for all the cases) with -SimCruiseViewCheck -SimCruiseViewCheckQuit,
   offline (-SimCruiseNoLive -SimCruiseNoNeural) on the bundled Miami Beach tiles. The game
   writes one line:
 
@@ -62,6 +62,10 @@ New-Item -ItemType Directory -Force $Latest | Out-Null
 $Failed = @()
 # "powershell -File" hands "a,b" over as one string.
 $Cases = @($Cases | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
+# One lock for all the cases. Taken per case, each case queued again behind every other GPU run
+# (a three-case check waited about 30 min on a busy PC).
+if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "view check ($($Cases -join ', ')) on $Root")) { exit 1 }
+try {
 foreach ($Case in $Cases) {
     $Def = $Defs[$Case]
     if (-not $Def) { Write-Host "Unknown case $Case"; $Failed += "$Case (unknown)"; continue }
@@ -69,16 +73,12 @@ foreach ($Case in $Cases) {
     Get-ChildItem $Latest -File | Where-Object { $_.Name -like "$Case-*" -or $_.Name -eq "$Case.log" } | Remove-Item -Force
     $Log = Join-Path $RunDir "$Case.log"
     $ArgLine = (@("`"$Project`"") + $Common + $Def.Args + @("`"-abslog=$Log`"")) -join ' '
-    if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "view check $Case on $Root")) { exit 1 }
-    try {
-        Write-Host "View check: $Case (must $($Def.Expect))"
-        $P = Start-Process -FilePath $Editor -ArgumentList $ArgLine -PassThru
-        if (-not $P.WaitForExit($TimeoutMinutes * 60 * 1000)) {
-            Stop-ProcessTree -ProcessId $P.Id
-            Write-Host "  TIMED OUT after $TimeoutMinutes min (log: $Log)"
-        }
+    Write-Host "View check: $Case (must $($Def.Expect))"
+    $P = Start-Process -FilePath $Editor -ArgumentList $ArgLine -PassThru
+    if (-not $P.WaitForExit($TimeoutMinutes * 60 * 1000)) {
+        Stop-ProcessTree -ProcessId $P.Id
+        Write-Host "  TIMED OUT after $TimeoutMinutes min (log: $Log)"
     }
-    finally { Exit-EditorLock }
     $Line = if (Test-Path $Log) { Select-String -Path $Log -Pattern 'VIEWCHECK (PASS|FAIL) .*' | Select-Object -Last 1 } else { $null }
     if (-not $Line) { Write-Host "  no VIEWCHECK line in $Log"; $Failed += "$Case (no VIEWCHECK line)"; continue }
     $Text = $Line.Matches[0].Value
@@ -100,6 +100,8 @@ foreach ($Case in $Cases) {
     Copy-Item $Log (Join-Path $Latest "$Case.log")
     if ($Result -ne $Def.Expect) { $Failed += "$Case ($Result, must be $($Def.Expect))" }
 }
+}
+finally { Exit-EditorLock }
 
 # Keep the last $Keep dated runs.
 Get-ChildItem $Base -Directory | Where-Object { $_.Name -match '^\d{8}-\d{6}$' } | Sort-Object Name -Descending |
