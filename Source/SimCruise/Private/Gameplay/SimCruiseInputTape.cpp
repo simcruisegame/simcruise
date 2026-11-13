@@ -72,6 +72,14 @@ FString FSimCruiseInputTape::ToCsv() const
 		Lines.Add(FString::Printf(TEXT("# lonlat=%.8f,%.8f"), StartLonDeg, StartLatDeg));
 	}
 	Lines.Add(FString::Printf(TEXT("# start_speed_mps=%.3f"), StartSpeedMps));
+	if (bHasPlace)
+	{
+		// The place line holds numbers only; the title and street have lines of their own (they hold commas).
+		Lines.Add(FString::Printf(TEXT("# place=%.8f,%.8f"), PlaceLonDeg, PlaceLatDeg));
+		Lines.Add(FString::Printf(TEXT("# place_title=%s"), *PlaceTitle.Replace(TEXT("\n"), TEXT(" "))));
+		Lines.Add(FString::Printf(TEXT("# place_street=%s"), *PlaceStreet.Replace(TEXT("\n"), TEXT(" "))));
+		Lines.Add(FString::Printf(TEXT("# frame=%d,%d,%.6f"), FrameOriginTile.X, FrameOriginTile.Y, FrameTileSizeM));
+	}
 	if (!Note.IsEmpty())
 	{
 		Lines.Add(FString::Printf(TEXT("# note=%s"), *Note.Replace(TEXT("\n"), TEXT(" "))));
@@ -114,6 +122,10 @@ bool FSimCruiseInputTape::FromCsv(const FString& Text, FSimCruiseInputTape& Out,
 				else if (Key == TEXT("yaw_deg")) { Out.StartYawDeg = FCString::Atod(*Value); }
 				else if (Key == TEXT("lonlat") && Parts.Num() == 2) { Out.bHasLonLat = true; Out.StartLonDeg = FCString::Atod(*Parts[0]); Out.StartLatDeg = FCString::Atod(*Parts[1]); }
 				else if (Key == TEXT("start_speed_mps")) { Out.StartSpeedMps = FCString::Atod(*Value); }
+				else if (Key == TEXT("place") && Parts.Num() == 2) { Out.bHasPlace = true; Out.PlaceLonDeg = FCString::Atod(*Parts[0]); Out.PlaceLatDeg = FCString::Atod(*Parts[1]); }
+				else if (Key == TEXT("place_title")) { Out.PlaceTitle = Value; }
+				else if (Key == TEXT("place_street")) { Out.PlaceStreet = Value; }
+				else if (Key == TEXT("frame") && Parts.Num() == 3) { Out.FrameOriginTile = FIntPoint(FCString::Atoi(*Parts[0]), FCString::Atoi(*Parts[1])); Out.FrameTileSizeM = FCString::Atod(*Parts[2]); }
 				else if (Key == TEXT("note")) { Out.Note = Value; }
 			}
 			continue;
@@ -314,6 +326,21 @@ void FSimCruiseInputTapeDriver::StartRecording(ASimCruisePlayerController& Playe
 	if (const ASimCruiseGameMode* Mode = Player.GetWorld()->GetAuthGameMode<ASimCruiseGameMode>())
 	{
 		Recording.bHasLonLat = Mode->WorldToLonLat(Recording.StartGroundCm, Recording.StartLonDeg, Recording.StartLatDeg);
+		// Where the drive is, so that a replay travels there first.
+		const FSimCruisePlace& Place = Mode->GetPlace();
+		if (Mode->IsWorldDrive() && Place.IsValid())
+		{
+			Recording.bHasPlace = true;
+			Recording.PlaceTitle = Place.Title;
+			Recording.PlaceStreet = Place.Street;
+			Recording.PlaceLonDeg = Place.Lon;
+			Recording.PlaceLatDeg = Place.Lat;
+			if (const ASimCruiseWorldStreamer* Stream = Mode->GetStreamer())
+			{
+				Recording.FrameOriginTile = Stream->GetFrame().OriginTile;
+				Recording.FrameTileSizeM = Stream->GetFrame().TileSizeM;
+			}
+		}
 	}
 	RecordClock = 0.0;
 	PendingShift = 0;
@@ -403,11 +430,54 @@ void FSimCruiseInputTapeDriver::TickReplay(ASimCruisePlayerController& Player, F
 		// As the drive robot waits: the car placed, the tiles round it built, no shaders compiling.
 		if (Vehicle && SimCruiseDriveRobot::IsReadyToDrive(World, Vehicle) && StageFrames > 30)
 		{
+			// The tape's place first: a drive recorded at another place travels there, waits for its
+			// tiles, then the car goes to the recorded start.
+			if (!bPad && !bTravelled && Mode)
+			{
+				bTravelled = true;
+				if (!Tape.bHasPlace)
+				{
+					UE_LOG(LogSimCruiseInputTape, Warning, TEXT("Replay: the tape has no place (an older recording); it replays at the game's start, %s"), *Mode->GetPlace().Title);
+				}
+				else
+				{
+					const double ToLon = Tape.bHasLonLat ? Tape.StartLonDeg : Tape.PlaceLonDeg;
+					const double ToLat = Tape.bHasLonLat ? Tape.StartLatDeg : Tape.PlaceLatDeg;
+					double HereLon = 0.0, HereLat = 0.0;
+					const bool bHere = Mode->WorldToLonLat(Vehicle->GetActorLocation(), HereLon, HereLat);
+					// About 111 km a degree.
+					const double Km = bHere ? FMath::Sqrt(FMath::Square((HereLat - ToLat) * 111.0) + FMath::Square((HereLon - ToLon) * 111.0 * FMath::Cos(FMath::DegreesToRadians(ToLat)))) : 1.0e9;
+					if (Km > 2.0)
+					{
+						// To the recorded start itself (its nearest road); the place's own street may be elsewhere.
+						const FSimCruisePlace Target = FSimCruisePlace::Make(ToLon, ToLat, Tape.PlaceTitle.IsEmpty() ? FString(TEXT("Recorded start")) : Tape.PlaceTitle,
+							Tape.bHasLonLat ? FString() : Tape.PlaceStreet);
+						UE_LOG(LogSimCruiseInputTape, Display, TEXT("Replay: travelling to the tape's place %s (%.6f, %.6f), %.0f km from here"), *Target.Title, ToLat, ToLon, bHere ? Km : -1.0);
+						Mode->TravelTo(Target);
+						Next(EStage::Travel);
+						break;
+					}
+				}
+			}
 			Next(EStage::Place);
 		}
 		else if (Now - StageStarted > 400.0)
 		{
 			UE_LOG(LogSimCruiseInputTape, Error, TEXT("REPLAY FAILED the car was not ready after 400 s"));
+			Stage = EStage::Done;
+			Player.ConsoleCommand(TEXT("quit"));
+		}
+		break;
+	case EStage::Travel:
+		// The new place's tiles are built and the car stands on its road.
+		if (Vehicle && StageFrames > 30 && (!Mode || Mode->IsDriveReady()) && SimCruiseDriveRobot::IsReadyToDrive(World, Vehicle))
+		{
+			UE_LOG(LogSimCruiseInputTape, Display, TEXT("Replay: arrived at %s after %.0f s"), Mode ? *Mode->GetPlace().Title : TEXT("-"), Now - StageStarted);
+			Next(EStage::Place);
+		}
+		else if (Now - StageStarted > 400.0)
+		{
+			UE_LOG(LogSimCruiseInputTape, Error, TEXT("REPLAY FAILED the tape's place did not load in 400 s"));
 			Stage = EStage::Done;
 			Player.ConsoleCommand(TEXT("quit"));
 		}
@@ -450,6 +520,10 @@ void FSimCruiseInputTapeDriver::TickReplay(ASimCruisePlayerController& Player, F
 			if (AwayM < 500.0 && (!Stream || Stream->AreTilesReadyAround(Ground, 1)))
 			{
 				Vehicle->ResetAt(Ground + FVector(0.0, 0.0, 5.0), static_cast<float>(Tape.StartYawDeg));
+				double Lon = 0.0, Lat = 0.0;
+				const bool bGeo = Mode && Mode->WorldToLonLat(Ground, Lon, Lat);
+				UE_LOG(LogSimCruiseInputTape, Display, TEXT("REPLAY START place=\"%s\" lat=%.6f lon=%.6f yaw=%.1f (%.0f m from where the car stood)"),
+					Mode ? *Mode->GetPlace().Title : TEXT("-"), bGeo ? Lat : 0.0, bGeo ? Lon : 0.0, Tape.StartYawDeg, AwayM);
 			}
 			else
 			{

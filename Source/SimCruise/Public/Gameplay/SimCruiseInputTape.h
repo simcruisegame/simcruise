@@ -37,6 +37,18 @@ struct SIMCRUISE_API FSimCruiseInputTape
 	double StartLatDeg = 0.0;
 	/** Speed at the start (m/s): a replay always starts at rest. */
 	double StartSpeedMps = 0.0;
+	/**
+	 * The place the drive was at (the one ASimCruiseGameMode::GetPlace gave) and the world frame
+	 * of the recording (origin tile, tile size): a replay travels there first. Older tapes have
+	 * none and replay at the game's start.
+	 */
+	bool bHasPlace = false;
+	FString PlaceTitle;
+	FString PlaceStreet;
+	double PlaceLonDeg = 0.0;
+	double PlaceLatDeg = 0.0;
+	FIntPoint FrameOriginTile = FIntPoint::ZeroValue;
+	double FrameTileSizeM = 0.0;
 	FString Note;
 	TArray<FSimCruiseInputFrame> Frames;
 
@@ -93,7 +105,8 @@ private:
  * recording stops or the game ends.
  *
  * Replay: -SimCruiseReplayInput=FILE waits for the car and the tiles (as the drive robot does),
- * puts the tape's car at the tape's start at rest (or on the drive robot's test pad with
+ * travels to the tape's place when the car is more than 2 km from the recorded start (and
+ * waits for its tiles again), puts the tape's car at the tape's start at rest (or on the drive robot's test pad with
  * -SimCruiseReplayPad), then feeds the recorded controls through the same shaper and vehicle
  * as a pad, and writes speed, yaw rate, slip and lap time to Saved/DriveTest/replay-<tape>.csv
  * (-SimCruiseReplayOut=FILE), logs a "REPLAY ..." summary line and quits
@@ -109,12 +122,12 @@ public:
 	/** The driver asked for a gear (recorded with the frame). */
 	void NoteShift(int32 Step) { PendingShift += Step; }
 	/** While a tape drives, the pad's own gear buttons do nothing. */
-	bool IsReplaying() const { return Stage == EStage::Replay || Stage == EStage::Settle || Stage == EStage::Place; }
+	bool IsReplaying() const { return Stage == EStage::Replay || Stage == EStage::Settle || Stage == EStage::Place || Stage == EStage::Travel; }
 	bool IsRecording() const { return bRecording; }
 	void End();
 
 private:
-	enum class EStage : uint8 { Off, WaitCar, Place, Settle, Replay, Done };
+	enum class EStage : uint8 { Off, WaitCar, Travel, Place, Settle, Replay, Done };
 
 	void StartRecording(ASimCruisePlayerController& Player);
 	void StopRecording(ASimCruisePlayerController& Player);
@@ -135,6 +148,8 @@ private:
 	FString TapePath;
 	FString OutPath;
 	bool bPad = false;
+	/** The replay has asked for the tape's place once (or found it not needed). */
+	bool bTravelled = false;
 	double StageStarted = 0.0;
 	int32 StageFrames = 0;
 	double Clock = 0.0;

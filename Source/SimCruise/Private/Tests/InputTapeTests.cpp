@@ -111,6 +111,31 @@ bool FSimCruiseInputReplayTest::RunTest(const FString& Parameters)
 	TestNull(TEXT("nothing past the end"), Tape.At(Tape.GetDuration() + 0.1, Cursor));
 	FSimCruiseInputTape Broken;
 	TestFalse(TEXT("a file that is not a tape is refused"), FSimCruiseInputTape::FromCsv(TEXT("t,speed\n1,2\n"), Broken, Error));
+	TestFalse(TEXT("a tape without a place has none"), Tape.bHasPlace);
+
+	// The place and the world frame go round the file too (a title with a comma and an equals sign).
+	FSimCruiseInputTape Placed = SyntheticTape();
+	Placed.bHasLonLat = true;
+	Placed.StartLonDeg = -83.93273;
+	Placed.StartLatDeg = 35.47928;
+	Placed.bHasPlace = true;
+	Placed.PlaceTitle = TEXT("Tail of the Dragon (US-129), Deals Gap = TN");
+	Placed.PlaceStreet = TEXT("Calderwood Highway");
+	Placed.PlaceLonDeg = -83.9327265;
+	Placed.PlaceLatDeg = 35.4792763;
+	Placed.FrameOriginTile = FIntPoint(17488, 25851);
+	Placed.FrameTileSizeM = 497.96;
+	FSimCruiseInputTape PlacedBack;
+	if (TestTrue(TEXT("a tape with a place reads back"), FSimCruiseInputTape::FromCsv(Placed.ToCsv(), PlacedBack, Error)))
+	{
+		TestTrue(TEXT("place"), PlacedBack.bHasPlace);
+		TestEqual(TEXT("place title"), PlacedBack.PlaceTitle, Placed.PlaceTitle);
+		TestEqual(TEXT("place street"), PlacedBack.PlaceStreet, Placed.PlaceStreet);
+		TestTrue(TEXT("place lon/lat"), FMath::IsNearlyEqual(PlacedBack.PlaceLonDeg, Placed.PlaceLonDeg, 1e-7) && FMath::IsNearlyEqual(PlacedBack.PlaceLatDeg, Placed.PlaceLatDeg, 1e-7));
+		TestEqual(TEXT("frame origin tile"), PlacedBack.FrameOriginTile, Placed.FrameOriginTile);
+		TestTrue(TEXT("frame tile size"), FMath::IsNearlyEqual(PlacedBack.FrameTileSizeM, 497.96, 1e-4));
+		TestEqual(TEXT("same text after a round trip"), PlacedBack.ToCsv(), Placed.ToCsv());
+	}
 
 	FSimCruiseReplayStats A;
 	FSimCruiseReplayStats B;

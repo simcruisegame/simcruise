@@ -3,7 +3,8 @@
   Replays one recording of the driver's controls on two builds or two cars and prints the differences.
 
 .DESCRIPTION
-  Each run is a game (-game, offline on the bundled Miami Beach tiles) started with
+  Each run is a game (-game, started at the tape's recorded start: the place a tape names, else
+  the bundled Ocean Drive start for an older tape) started with
   scripts\editor.ps1 -TimeoutMinutes from its checkout, so it takes the PC-wide editor lock
   and is stopped if it hangs. The game puts the tape's car (or -CarA / -CarB) at the tape's
   start at rest, or on the drive robot's test pad with -Pad, feeds the recorded controls
@@ -53,13 +54,24 @@ if (-not $RootA) { $RootA = $Here }
 if (-not $RootB) { $RootB = $RootA }
 if (-not $CarB) { $CarB = $CarA }
 $Tape = (Resolve-Path $Tape).Path
+# Start the game where the tape was recorded: its '# lonlat=' line (newer tapes also name the place).
+# An older tape without it starts at the bundled Ocean Drive start, as before.
+$Start = @('-SimCruiseBundledStart')
+$LonLat = Select-String -Path $Tape -Pattern '^# lonlat=([-0-9.]+),([-0-9.]+)' | Select-Object -First 1
+$HasPlace = [bool](Select-String -Path $Tape -Pattern '^# place=' -Quiet)
+if ($LonLat -and $HasPlace) {
+    $Start = @("-SimCruiseStart=$($LonLat.Matches[0].Groups[2].Value),$($LonLat.Matches[0].Groups[1].Value)")
+    Write-Host "Tape start: $($LonLat.Matches[0].Groups[2].Value), $($LonLat.Matches[0].Groups[1].Value)"
+} else {
+    Write-Host 'WARNING: the tape names no place (an older recording); it replays at the bundled Ocean Drive start.'
+}
 $Out = Join-Path $Here ("Saved\DriveTest\compare-" + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 New-Item -ItemType Directory -Force $Out | Out-Null
 
 function Invoke-Replay([string]$Name, [string]$Root, [string]$Car) {
     $Log = Join-Path $Out "$Name.log"
     $Csv = (Join-Path $Out "$Name.csv") -replace '\\', '/'
-    $Args = @('-game', '-SimCruiseWorld', '-SimCruiseBundledStart', '-SimCruiseNoLive', '-SimCruiseNoNeural', '-SimCruiseRealCar',
+    $Args = @('-game', '-SimCruiseWorld') + $Start + @('-SimCruiseNoLive', '-SimCruiseNoNeural', '-SimCruiseRealCar',
         "-SimCruiseReplayInput=$($Tape -replace '\\', '/')", "-SimCruiseReplayOut=$Csv", '-windowed', '-ResX=1280', '-ResY=720', '-log', "-abslog=$Log")
     if ($Car) { $Args += "-SimCruiseReplayCar=$Car"; $Args += "-SimCruiseCar=$Car" }
     if ($Pad) { $Args += '-SimCruiseReplayPad' }
