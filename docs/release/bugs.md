@@ -29,6 +29,15 @@ Run `scripts\preflight.ps1` on 29b12ea: `Saved\Preflight\20261112-211916\report.
 | P3 | Strong motion blur on near objects at 25-30 mph | every Ocean Drive sheet: parked cars and buildings at the side are smeared in most frames at 28 mph (`Saved\Preflight\20261112-211916\ocean-drive-*-sheet.png`) | release (look) | open (minor): check against a real dashcam at the same speed |
 | P4 | About 1.3 m with no road surface under the car on US 129 | `dragon-nb2001_aaron` and `dragon-mustang65` on 7fa5b8a (`Saved\Preflight\20261112-232928\report.md`): both cars, at the same place about 515 m from the start in the hairpins, the trace down under the car centre finds no asphalt for 1.27 m between road samples (on 062f1c6 the probe 2.5 m ahead found it too, at 515-516 m). Shorter than a frame at 16 mph, so the video does not show it; no jolt. Likely a crack or a missing strip of the road mesh (a seam or a junction), to look at in the editor | world | open |
 
+## Found by the 2.0.2 release pre-flight (841633c = freeze 30ca1e2, 2026-11-13)
+
+Run `scripts\preflight.ps1` on 841633c: `Saved\Preflight\20261113-001655\report.md` (D:\sc\lane-release), 9 of 12 runs passed. Dragon Mustang failed on P4 (no road surface for 1.43 m at 515 m). P1 (fling after a traffic contact) was not seen in any of the 12 runs after 611f955; no run had a traffic contact, so it stays open until a contact is tested.
+
+| # | Bug | Run, frame and evidence | Owner | Status |
+|---|---|---|---|---|
+| P5 | About 1.3 m with no road surface at a tile border on CA-1 | `big-sur-mustang65`, 441 m from the start: "no road surface for 1.30 m", then a body jolt of -8.7 m/s^2 at 442 m at a tile border (frame 279). The Miata and the Corvette passed the same place (max steps 3.2 and 4.8 cm). Not the 10 cm step fixed in 52e9779. Intermittent: a rerun on 841633c passed (`20261113-004144`, no gap, max step 3.2 cm) | world (seams) | open, known issue in 2.0.2 |
+| P6 | The forest beside the road drops out for a frame, and the cabin exposure flickers | `dragon-nb2001_aaron`, 4 flash frames: at about 10.3-11.5 s and 45.5-46.4 s the cabin goes light and dark from frame to frame; at about 45.8 s the trees vanish for one or two frames and open grassy hills show, then the trees come back (`evidence-2.0.2/preflight-841633c-dragon-nb2001_aaron-45s.jpg`). The 29b12ea pre-flight also failed this run on flash frames, so it is older than 2.0.2. Repeatable: a rerun on 841633c failed again with 5 flash frames (`20261113-003951`) | world (vegetation) / release (look) | open, known issue in 2.0.2 |
+
 ## Code review (12 items, verified 2026-11-12 against main 391cffc)
 
 | # | Bug | Verdict and evidence | Owner | Status |
