@@ -518,3 +518,24 @@ void ASimCruiseWorldTile::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	ParkedWaiting.Reset();
 	Super::EndPlay(EndPlayReason);
 }
+
+ESimCruiseTileLayer ASimCruiseWorldTile::LayerAtFace(int32 FaceIndex) const
+{
+	TSharedPtr<const FSurfaceMap, ESPMode::ThreadSafe> Map;
+	{
+		FScopeLock Lock(&SurfaceLock);
+		Map = SurfaceMap;
+	}
+	if (!Map.IsValid() || FaceIndex < 0)
+	{
+		return ESimCruiseTileLayer::Count;
+	}
+	for (int32 S = Map->FirstFace.Num() - 1; S >= 0; --S)
+	{
+		if (FaceIndex >= Map->FirstFace[S])
+		{
+			return static_cast<ESimCruiseTileLayer>(Map->Layer[S]);
+		}
+	}
+	return ESimCruiseTileLayer::Count;
+}

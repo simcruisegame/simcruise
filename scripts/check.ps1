@@ -27,6 +27,10 @@
   Builds queue on Unreal Build Tool's own mutex (-WaitMutex); the test run takes the
   one-editor lock in scripts\EditorLock.ps1, so checks from several worktrees take turns.
 
+.PARAMETER NoViewCheck
+  Skip the view check (viewcheck.ps1 in this folder: the game at fixed places, the screenshots
+  judged by ASimCruiseViewCheck). It runs after the automation tests pass and needs a GPU.
+
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts\check.ps1
   powershell -ExecutionPolicy Bypass -File scripts\check.ps1 -Filter SimCruise.Audio -NoBuild
@@ -36,7 +40,8 @@ param(
     [switch]$NoBuild,
     [string]$EngineDir = $(if ($env:UE_ROOT) { $env:UE_ROOT } else { 'C:\Program Files\Epic Games\UE_5.8' }),
     [int]$TimeoutMinutes = 20,
-    [int]$LockTimeoutMinutes = 60
+    [int]$LockTimeoutMinutes = 60,
+    [switch]$NoViewCheck
 )
 
 $ErrorActionPreference = 'Stop'
@@ -98,5 +103,9 @@ foreach ($L in ($Logged | Select-Object -First 10)) { Write-Host "LOGGED ERROR $
 if ($Results.Count -eq 0) { Write-Host "No test results in $Log (no test matched '$Filter'?)."; exit 1 }
 Write-Host ("{0} passed, {1} failed, {2} logged errors in {3} s (log: {4})" -f $Passed, $Failures.Count, @($Logged).Count, $Seconds, $Log)
 if ($Failures.Count -gt 0 -or @($Logged).Count -gt 0) { Write-Host 'CHECKS FAILED'; exit 1 }
+if (-not $NoViewCheck) {
+    & powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'viewcheck.ps1') -EngineDir $EngineDir -LockTimeoutMinutes $LockTimeoutMinutes | Out-Host
+    if ($LASTEXITCODE -ne 0) { Write-Host 'CHECKS FAILED (view check)'; exit 1 }
+}
 Write-Host 'CHECKS PASSED'
 exit 0

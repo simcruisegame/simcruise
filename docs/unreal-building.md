@@ -203,6 +203,24 @@ Driving tests: `-SimCruiseDriveTest` drives the car the way a person with a game
 
 The drive robot runs the pad manoeuvres as a regression check: `powershell -ExecutionPolicy Bypass -File scripts\drive-robot.ps1` (`-Cars nb2001,nb2001_aaron` by default, `-LowFps` adds a 15 fps run) takes the editor lock, drives each car, prints each manoeuvre's peak rear-axle slip and yaw rate, appends them with the commit to `Saved/DriveTest/history.csv`, and fails if a manoeuvre a real car drives through in control (part-trigger junction turns and launch, the 50 km/h circle and turn-in, the 80 km/h lane change) slips the rear past 15 degrees. It needs the editor binaries built. To run it every night, register a Windows task once (for example `schtasks /Create /TN "SimCruise drive robot" /SC DAILY /ST 04:00 /TR "powershell -NoProfile -ExecutionPolicy Bypass -File D:\simcruise\scripts\drive-robot.ps1 -LowFps"`).
 
+On the pad, the HUD shows an orange banner "DRIVE ROBOT · TEST PAD 60 m ABOVE <place> · NOT THE REAL ROAD" and does not show the place cards or the place name: the pad is not the real road. The tiles of the real place are 60 m below it.
+
+### View check
+
+The view check looks at what the player sees and tells if the world is there. `-SimCruiseViewCheck` (or `-SimCruiseViewCheck=<seconds>`, default 6) waits until the car is placed, the tiles round it are built and the shaders are compiled, then waits the given seconds. Then it:
+
+1. Shoots a grid of 48 x 27 line traces from the player camera through the view, to 2 km, and ignores the player car. It sorts each hit: road (tile asphalt and concrete), building, ground (tile and regional terrain), tree, car (traffic and parked), props, other (any other actor, for example the test pad) and empty (sky). It counts the rays that point more than 1 degree below the horizon.
+2. Takes a screenshot to `Saved/Screenshots/ViewCheck/<place>-<yyyymmdd-hhmmss>.png` and measures the lower 60 % of it: the luminance standard deviation, the mean absolute luminance gradient (edges) and the number of colour hue bins.
+3. Writes one log line and a JSON file next to the screenshot:
+
+```
+VIEWCHECK PASS|FAIL place="..." road=..% building=..% ground=..% tree=..% car=..% props=..% other=..% empty=..% world=..% road_near=..m building_cells=.. edges=.. lumsd=.. hues=.. shot=<png> reason=<...>
+```
+
+The view fails when: less than 70 % of the rays below the horizon hit the real world (road, building, ground, tree, car, props); the map has roads round the car but no ray hits a road within 300 m; the map has buildings round the car but no ray hits one; the edges value is below 2.0 (a flat image); or there is no screenshot. The thresholds are in `SimCruiseViewCheckRules` (`Source/SimCruise/Public/Gameplay/SimCruiseViewCheck.h`). `-SimCruiseViewCheckQuit` quits the game after the line.
+
+`scripts\viewcheck.ps1` is the gate. It runs three offline cases on the bundled Miami Beach tiles at Ultra, 1280x720: `ocean-drive` (the bundled start, must pass), `collins-ave` (a second start on the bundled tiles, must pass) and `test-pad` (the drive robot's pad, must fail). A missing `VIEWCHECK` line fails the gate. `scripts\check.ps1` runs it after the automation tests (`-NoViewCheck` skips it). After each run, look at the screenshots: `Saved\ViewCheck\latest\` holds `<case>-<pass|fail>.png` with its `.json` and the game log, and `Saved\ViewCheck\<date-time>\` keeps the last 10 runs. A pass with a wrong picture (a wrong place, a black sky, a car in a wall) is a bug in the check: report it and tune the rules.
+
 Frame time on the drive: `-SimCruiseDrivePerf=medium,high,ultra` (with `-SimCruiseDriveCapture`, ideally `-fullscreen -ResX=1920 -ResY=1080`) waits for the car, then for each preset samples 10 s parked in the driver's seat and 10 s in the chase view, and logs one `SimCruisePerf:` line each (also appended to `Saved/Profiling/SimCruisePerf.csv`). `-SimCruiseDrivePerfProfile` adds a `ProfileGPU` pass breakdown after each window.
 
 Signs cost (2026-11-12, this laptop, Ultra 1920x1080, Ocean Drive start, 159 signs on the 9 tiles): with signs 36.2-37.7 fps in the driver's seat and 45.2-48.0 in the chase view over four runs; with `-DPCVars=simcruise.World.Signs=0` 37.6-37.9 and 43.0-48.1 over two. GPU time is the same (24.8-25.7 ms); the difference is under 1 fps, inside the run-to-run spread. Set cvars that tiles read at install with `-DPCVars=`, not `-ExecCmds` (which runs after the first tiles are in).

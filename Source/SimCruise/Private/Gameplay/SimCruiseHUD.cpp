@@ -10,6 +10,7 @@
 #include "Engine/Engine.h"
 #include "Engine/Font.h"
 #include "Engine/World.h"
+#include "Gameplay/SimCruiseDriveTest.h"
 #include "Gameplay/SimCruisePlayerCameraManager.h"
 #include "Gameplay/SimCruiseGameMode.h"
 #include "Gameplay/SimCruisePlayerController.h"
@@ -169,12 +170,43 @@ void ASimCruiseHUD::DrawHUD()
 	{
 		DrawMinimap(Scale, Level == ESimCruiseHudLevel::Glance ? GlanceAlphaValue : 1.f);
 	}
-	if (bHasVehicle && Level != ESimCruiseHudLevel::Off)
+	// On the drive robot's test pad the place's names would lie: no place card, a banner instead.
+	bOnTestPad = UpdateTestPad(Now);
+	if (bHasVehicle && Level != ESimCruiseHudLevel::Off && !bOnTestPad)
 	{
 		DrawPlaceCard(Scale);
 	}
+	if (bOnTestPad)
+	{
+		DrawTestPadBanner(Scale);
+	}
 	DrawLoading(Scale);
 	DrawMessage(Scale);
+}
+
+bool ASimCruiseHUD::UpdateTestPad(double Now)
+{
+	if (!TestPad.IsValid() && Now >= NextTestPadSearch)
+	{
+		NextTestPadSearch = Now + 1.0;
+		TestPad = SimCruiseTestPad::Find(GetWorld());
+	}
+	return TestPad.IsValid();
+}
+
+void ASimCruiseHUD::DrawTestPadBanner(float Scale)
+{
+	const ASimCruiseGameMode* Mode = GetWorld() ? GetWorld()->GetAuthGameMode<ASimCruiseGameMode>() : nullptr;
+	const FString Place = Mode && !Mode->GetPlace().Title.IsEmpty() ? Mode->GetPlace().Title.ToUpper() : FString(TEXT("THE START"));
+	const FString Text = FString::Printf(TEXT("DRIVE ROBOT  ·  TEST PAD 60 m ABOVE %s  ·  NOT THE REAL ROAD"), *Place);
+	const float Size = 22.f * Scale;
+	const FVector2D T = MeasureText(Text, true, Size);
+	const float H = T.Y + 20.f * Scale;
+	const float Y = 24.f * Scale;
+	FCanvasTileItem Band(FVector2D(0.f, Y), FVector2D(Canvas->ClipX, H), FLinearColor(0.85f, 0.32f, 0.f, 0.88f));
+	Band.BlendMode = SE_BLEND_Translucent;
+	Canvas->DrawItem(Band);
+	DrawTextAt(Text, true, Size, (Canvas->ClipX - T.X) * 0.5f, Y + 10.f * Scale, FLinearColor::White);
 }
 
 void ASimCruiseHUD::DrawPlaceCard(float Scale)
@@ -497,7 +529,10 @@ void ASimCruiseHUD::DrawMinimap(float Scale, float Alpha)
 		Line.LineThickness = 2.5f * Scale;
 		Canvas->DrawItem(Line);
 	}
-	DrawTextAt(Mode->GetPlace().Title, false, 10.f * Scale, X + 8.f * Scale, Y + 6.f * Scale, WithAlpha(Dim, Alpha));
+	if (!bOnTestPad)
+	{
+		DrawTextAt(Mode->GetPlace().Title, false, 10.f * Scale, X + 8.f * Scale, Y + 6.f * Scale, WithAlpha(Dim, Alpha));
+	}
 }
 
 void ASimCruiseHUD::DrawLoading(float Scale)

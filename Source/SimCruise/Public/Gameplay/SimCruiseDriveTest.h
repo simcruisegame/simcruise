@@ -8,6 +8,15 @@
 
 class ASimCruisePlayerController;
 
+/** The drive robot's flat test pad (-SimCruiseDriveTestPad): it is not the real road. */
+namespace SimCruiseTestPad
+{
+	/** The actor tag of the pad. */
+	SIMCRUISE_API FName Tag();
+	/** The pad in this world, or null. */
+	SIMCRUISE_API AActor* Find(const UWorld* World);
+}
+
 /**
  * A scripted test driver (-SimCruiseDriveTest): once the car stands on the
  * start road with its tiles built, it drives a fixed set of manoeuvres the
