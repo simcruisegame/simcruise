@@ -27,8 +27,58 @@ public:
 	TSharedPtr<UE::NNE::IModelCPU> CpuModel;
 	TSharedPtr<UE::NNE::IModelInstanceCPU> Cpu;
 	TArray<float> Input;
-	TArray<float> Output;
+	/** One buffer per model output; SemIndex is the class scores. */
+	TArray<TArray<float>> Outputs;
+	int32 SemIndex = 0;
+	int32 InW = 0, InH = 0, Scale = 1, NumClasses = 0;
+	/** Model class -> ESimCruiseSceneClass. */
+	TArray<uint8> ToScene;
+	FString Name;
 };
+
+namespace SimCruiseSceneParserModels
+{
+	using S = ESimCruiseSceneClass;
+
+	/**
+	 * Detectron2 Panoptic FPN's semantic head (COCO panoptic): class 0 is every "thing" (people,
+	 * cars, bicycles ...), then the 53 stuff classes in COCO id order. Windows, doors and the
+	 * like map to Fence (not wall), so a wall colour never comes from glass.
+	 */
+	TArray<uint8> CocoStuffToScene()
+	{
+		const S Map[54] = {
+			S::Car,                                                   // things
+			S::TrafficSign, S::Fence, S::Building, S::Fence, S::Fence, // banner, blanket, bridge, cardboard, counter
+			S::Fence, S::Fence, S::Sidewalk, S::Vegetation, S::Fence, // curtain, door, floor-wood, flower, fruit
+			S::Terrain, S::Building, S::Pole, S::Fence, S::Fence,     // gravel, house, light, mirror, net
+			S::Fence, S::Sidewalk, S::Terrain, S::Road, S::Terrain,   // pillow, platform, playingfield, railroad, river
+			S::Road, S::Building, S::Terrain, S::Terrain, S::Fence,   // road, roof, sand, sea, shelf
+			S::Terrain, S::Sidewalk, S::Fence, S::Fence,              // snow, stairs, tent, towel
+			S::Wall, S::Wall, S::Wall, S::Wall,                        // wall-brick, -stone, -tile, -wood
+			S::Terrain, S::Fence, S::Fence,                           // water-other, window-blind, window-other
+			S::Vegetation, S::Fence, S::Fence, S::Sky,                // tree, fence, ceiling, sky
+			S::Fence, S::Fence, S::Sidewalk, S::Sidewalk,             // cabinet, table, floor-other, pavement
+			S::Terrain, S::Terrain, S::Terrain, S::Fence, S::Fence,   // mountain, grass, dirt, paper, food
+			S::Building, S::Terrain, S::Wall, S::Fence};              // building-other, rock, wall-other, rug
+		TArray<uint8> Out;
+		for (const S V : Map)
+		{
+			Out.Add(static_cast<uint8>(V));
+		}
+		return Out;
+	}
+
+	TArray<uint8> Identity(int32 N)
+	{
+		TArray<uint8> Out;
+		for (int32 I = 0; I < N; ++I)
+		{
+			Out.Add(static_cast<uint8>(I));
+		}
+		return Out;
+	}
+}
 
 FSimCruiseSceneParser& FSimCruiseSceneParser::Get()
 {
@@ -58,11 +108,18 @@ bool FSimCruiseSceneParser::Initialize()
 	{
 		return false;
 	}
-	const FString Path = FPaths::ProjectDir() / TEXT("data/ai/ddrnet23-slim-cityscapes.onnx");
+	// The open model first: Detectron2 Panoptic FPN's semantic head on COCO (Apache-2.0, CC BY
+	// 4.0 labels), fetched by scripts/ai/fetch_open_models.py into Saved/AI (120 MB, not in git).
+	// The Cityscapes model (non-commercial terms) only on request: -SimCruiseSceneParser=ddrnet.
+	FString Choice = TEXT("coco");
+	FParse::Value(FCommandLine::Get(), TEXT("SimCruiseSceneParser="), Choice);
+	const bool bCoco = !Choice.Equals(TEXT("ddrnet"), ESearchCase::IgnoreCase);
+	const FString Path = bCoco ? FPaths::ProjectSavedDir() / TEXT("AI/detectron2-panoptic-semseg-coco.onnx")
+		: FPaths::ProjectDir() / TEXT("data/ai/ddrnet23-slim-cityscapes.onnx");
 	TArray64<uint8> Bytes;
 	if (!FFileHelper::LoadFileToArray(Bytes, *Path))
 	{
-		UE_LOG(LogSimCruiseSceneParser, Display, TEXT("Scene parser off: no %s"), *Path);
+		UE_LOG(LogSimCruiseSceneParser, Display, TEXT("Scene parser off: no %s%s"), *Path, bCoco ? TEXT(" (python -I scripts/ai/fetch_open_models.py)") : TEXT(""));
 		return false;
 	}
 	TWeakInterfacePtr<INNERuntimeCPU> Runtime = UE::NNE::GetRuntime<INNERuntimeCPU>(TEXT("NNERuntimeORTCpu"));
@@ -72,28 +129,62 @@ bool FSimCruiseSceneParser::Initialize()
 		return false;
 	}
 	TSharedPtr<FSimCruiseSceneModel> M = MakeShared<FSimCruiseSceneModel>();
+	if (bCoco)
+	{
+		M->InW = M->InH = 800;
+		M->Scale = 4;
+		M->NumClasses = 54;
+		M->ToScene = SimCruiseSceneParserModels::CocoStuffToScene();
+		M->Name = TEXT("Detectron2 Panoptic FPN semantic head (COCO, 54 classes)");
+	}
+	else
+	{
+		M->InW = 2048;
+		M->InH = 1024;
+		M->Scale = 8;
+		M->NumClasses = static_cast<int32>(ESimCruiseSceneClass::Count);
+		M->ToScene = SimCruiseSceneParserModels::Identity(M->NumClasses);
+		M->Name = TEXT("DDRNet23-Slim (Cityscapes, 19 classes)");
+	}
 	M->Data.Reset(NewObject<UNNEModelData>(GetTransientPackage(), NAME_None, RF_Transient));
 	M->Data->Init(TEXT("onnx"), Bytes);
 	if (Runtime->CanCreateModelCPU(M->Data.Get()) != UE::NNE::EResultStatus::Ok)
 	{
-		UE_LOG(LogSimCruiseSceneParser, Warning, TEXT("Scene parser: the CPU runtime cannot load the model"));
+		UE_LOG(LogSimCruiseSceneParser, Warning, TEXT("Scene parser: the CPU runtime cannot load %s"), *Path);
 		return false;
 	}
 	M->CpuModel = Runtime->CreateModelCPU(M->Data.Get());
 	M->Cpu = M->CpuModel.IsValid() ? M->CpuModel->CreateModelInstanceCPU() : nullptr;
-	const uint32 Shape[] = {1, 3, static_cast<uint32>(InputHeight), static_cast<uint32>(InputWidth)};
+	const uint32 Shape[] = {1, 3, static_cast<uint32>(M->InH), static_cast<uint32>(M->InW)};
 	if (!M->Cpu.IsValid() || M->Cpu->SetInputTensorShapes({UE::NNE::FTensorShape::Make(Shape)}) != UE::NNE::EResultStatus::Ok)
 	{
-		UE_LOG(LogSimCruiseSceneParser, Warning, TEXT("Scene parser: the model refused a 1x3x%dx%d input"), InputHeight, InputWidth);
+		UE_LOG(LogSimCruiseSceneParser, Warning, TEXT("Scene parser: the model refused a 1x3x%dx%d input"), M->InH, M->InW);
 		return false;
 	}
-	M->Input.SetNumZeroed(3 * InputWidth * InputHeight);
-	M->Output.SetNumZeroed(static_cast<int32>(ESimCruiseSceneClass::Count) * (InputWidth / OutputScale) * (InputHeight / OutputScale));
+	M->Input.SetNumZeroed(3 * M->InW * M->InH);
+	// A buffer for every output (the COCO model also gives its FPN features and proposals).
+	const TConstArrayView<UE::NNE::FTensorDesc> Descs = M->Cpu->GetOutputTensorDescs();
+	const TConstArrayView<UE::NNE::FTensorShape> Shapes = M->Cpu->GetOutputTensorShapes();
+	const uint64 Expected = uint64(M->NumClasses) * (M->InW / M->Scale) * (M->InH / M->Scale);
+	M->SemIndex = -1;
+	for (int32 I = 0; I < Shapes.Num(); ++I)
+	{
+		M->Outputs.AddDefaulted_GetRef().SetNumZeroed(static_cast<int32>(Shapes[I].Volume()));
+		if (uint64(Shapes[I].Volume()) == Expected && (M->SemIndex < 0 || (Descs.IsValidIndex(I) && Descs[I].GetName().Contains(TEXT("sem")))))
+		{
+			M->SemIndex = I;
+		}
+	}
+	if (M->SemIndex < 0)
+	{
+		UE_LOG(LogSimCruiseSceneParser, Warning, TEXT("Scene parser: no output of %llu class scores in %s"), Expected, *Path);
+		return false;
+	}
 	Model = M;
 	// Workers decode and encode pictures; a module may only be loaded on the game thread.
 	ImageWrappers = &FModuleManager::LoadModuleChecked<IImageWrapperModule>(TEXT("ImageWrapper"));
 	bReady = true;
-	UE_LOG(LogSimCruiseSceneParser, Display, TEXT("Scene parser ready: DDRNet23-Slim (Cityscapes, 19 classes) on NNERuntimeORTCpu"));
+	UE_LOG(LogSimCruiseSceneParser, Display, TEXT("Scene parser ready: %s on NNERuntimeORTCpu"), *M->Name);
 	return true;
 }
 
@@ -119,6 +210,7 @@ bool FSimCruiseSceneParser::Parse(const TArray<FColor>& Pixels, int32 Width, int
 	ON_SCOPE_EXIT { RunLock.Unlock(); };
 	const double Start = FPlatformTime::Seconds();
 	// Letterbox: the photograph scaled to fit at the top left, the rest mid grey.
+	const int32 InputWidth = Model->InW, InputHeight = Model->InH, OutputScale = Model->Scale;
 	const double Scale = FMath::Min(double(InputWidth) / Width, double(InputHeight) / Height);
 	const int32 SW = FMath::Clamp(FMath::RoundToInt(Width * Scale), 1, InputWidth);
 	const int32 SH = FMath::Clamp(FMath::RoundToInt(Height * Scale), 1, InputHeight);
@@ -142,8 +234,12 @@ bool FSimCruiseSceneParser::Parse(const TArray<FColor>& Pixels, int32 Width, int
 		}
 	}
 	const UE::NNE::FTensorBindingCPU InBinding{Model->Input.GetData(), static_cast<uint64>(Model->Input.Num() * sizeof(float))};
-	const UE::NNE::FTensorBindingCPU OutBinding{Model->Output.GetData(), static_cast<uint64>(Model->Output.Num() * sizeof(float))};
-	if (Model->Cpu->RunSync({InBinding}, {OutBinding}) != UE::NNE::EResultStatus::Ok)
+	TArray<UE::NNE::FTensorBindingCPU> OutBindings;
+	for (TArray<float>& Buffer : Model->Outputs)
+	{
+		OutBindings.Add({Buffer.GetData(), static_cast<uint64>(Buffer.Num() * sizeof(float))});
+	}
+	if (Model->Cpu->RunSync({InBinding}, OutBindings) != UE::NNE::EResultStatus::Ok)
 	{
 		UE_LOG(LogSimCruiseSceneParser, Warning, TEXT("Scene parser: inference failed"));
 		return false;
@@ -153,7 +249,7 @@ bool FSimCruiseSceneParser::Parse(const TArray<FColor>& Pixels, int32 Width, int
 	OutWidth = FMath::Clamp(FMath::DivideAndRoundUp(SW, OutputScale), 1, GW);
 	OutHeight = FMath::Clamp(FMath::DivideAndRoundUp(SH, OutputScale), 1, GH);
 	OutLabels.SetNumUninitialized(OutWidth * OutHeight);
-	const float* Out = Model->Output.GetData();
+	const float* Out = Model->Outputs[Model->SemIndex].GetData();
 	for (int32 y = 0; y < OutHeight; ++y)
 	{
 		for (int32 x = 0; x < OutWidth; ++x)
@@ -161,7 +257,7 @@ bool FSimCruiseSceneParser::Parse(const TArray<FColor>& Pixels, int32 Width, int
 			const int32 G = y * GW + x;
 			int32 Best = 0;
 			float BestScore = Out[G];
-			for (int32 C = 1; C < static_cast<int32>(ESimCruiseSceneClass::Count); ++C)
+			for (int32 C = 1; C < Model->NumClasses; ++C)
 			{
 				if (Out[C * GPlane + G] > BestScore)
 				{
@@ -169,7 +265,7 @@ bool FSimCruiseSceneParser::Parse(const TArray<FColor>& Pixels, int32 Width, int
 					Best = C;
 				}
 			}
-			OutLabels[y * OutWidth + x] = static_cast<uint8>(Best);
+			OutLabels[y * OutWidth + x] = Model->ToScene[Best];
 		}
 	}
 	if (OutSeconds)

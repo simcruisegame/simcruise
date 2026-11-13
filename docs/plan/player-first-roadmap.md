@@ -1,8 +1,7 @@
 # SimCruise: player-first roadmap
 
-Date: 12 November 2026. Status: **proposal, waits for Aaron's yes or changes.**
-No thread changes course before Aaron agrees. This plan does not stop the
-v2.0.1 release.
+Date: 12 November 2026. Status: **agreed 13 November 2026** (Aaron: "up to
+you"; order as written). This plan does not stop the v2.0.1 release.
 
 ## 1. Why this plan
 
@@ -147,7 +146,9 @@ Numbers and tests stay, but as guards, not as the goal.
   chooses).
 - **Rural:** a two-lane country road with farms (the Nebraska gravel road, or a
   paved road near it).
-- **Aaron's road:** one road Aaron drives in real life (Aaron to choose).
+- **Coast:** CA-1 through Big Sur, California (Aaron left the fourth road to
+  us; a famous coast drive with cliffs, fog and sea). Aaron can swap in a road
+  he drives in real life at any time.
 
 ### 5.0 Drive like the real car, and let me adjust it — FIRST (driving thread, already started)
 
