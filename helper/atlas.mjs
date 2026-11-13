@@ -19,6 +19,7 @@ import {measuredGround,elevationGate} from './usgs-ground.mjs';
 import {streamedTerrain} from './road-grade.mjs';
 import {pedestrianSurfaces} from './pedestrian.mjs';
 import {cartography} from './cartography.mjs';
+import {route,tileWaysReader,parseStops} from './route.mjs';
 import {conditions} from './conditions.mjs';
 import {fetchObjects} from './street-objects.mjs';
 import {mappedGuardRails} from './guard-rails.mjs';
@@ -197,6 +198,8 @@ try{
   }
  }
  else if(command==='map'){result=await cartography(+args[0],+args[1],+args[2],data)}
+ // GPS route on the map tiles' roads: route <cache> lon,lat lon,lat ... (route.mjs).
+ else if(command==='route'){result={...await route(parseStops(args.filter(a=>!a.startsWith('--'))),tileWaysReader(data)),requests}}
  else if(command==='recent'){result={...await recent(+args[0],+args[1],readCached),requests}}
  else if(command==='shrub-cover'){
   try{result={...await shrubCover(+args[0],+args[1],cache,readCached),requests};}

@@ -501,7 +501,7 @@ void ASimCruisePlayerController::OnToggleAtlas()
 		CloseOverlays();
 		return;
 	}
-	OpenRoadAtlas();
+	OpenPauseMenu(MenuPage);
 }
 
 void ASimCruisePlayerController::OnTuning()
@@ -788,6 +788,9 @@ void ASimCruisePlayerController::CloseOverlays()
 	AtlasPanel.Reset();
 	TuningPanel.Reset();
 	SeatPanel.Reset();
+	PausePanel.Reset();
+	PlannerPanel.Reset();
+	ListPanel.Reset();
 	if (bWasOpen)
 	{
 		SetPause(false);

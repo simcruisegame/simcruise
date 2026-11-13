@@ -18,6 +18,10 @@ struct FSimCruisePlace;
 struct FSimCruiseAtlasView;
 class ASimCruiseHUD;
 class ASimCruisePlayerCameraManager;
+class SSimCruisePauseMenu;
+class SSimCruiseRoutePlanner;
+struct FSimCruiseMenuState;
+enum class ESimCruiseMenuRow : uint8;
 
 /**
  * The driver. Reads the Enhanced Input actions built in code, shapes them into
@@ -120,6 +124,17 @@ public:
 	void OpenSeatMenu();
 	TSharedPtr<class SSimCruiseSeatMenu> GetSeatMenu() const { return SeatPanel; }
 
+	/** The pause menu (Menu, Tab) and the GPS screens: SimCruisePlayerControllerMenu.cpp. */
+	void OpenPauseMenu(int32 Page = 0);
+	void OpenRoutePlanner();
+	void OpenFamousRoads();
+	void OpenWhereTo();
+	TSharedPtr<SSimCruisePauseMenu> GetPauseMenu() const { return PausePanel; }
+	TSharedPtr<SSimCruiseRoutePlanner> GetRoutePlanner() const { return PlannerPanel; }
+	/** What a pause menu row does (Dir 0 choose, -1 / +1 change, 2 back to stock). */
+	void MenuAction(ESimCruiseMenuRow Row, int32 Dir);
+	FSimCruiseMenuState MenuState() const;
+
 	/** Engine sound on (M toggles it). */
 	bool IsSoundOn() const { return bSoundOn; }
 
@@ -159,6 +174,11 @@ protected:
 	bool bMenuHintShown = false;
 	/** The car whose seat the camera has (reloaded when the car changes). */
 	FString SeatCarId;
+	TSharedPtr<SSimCruisePauseMenu> PausePanel;
+	TSharedPtr<SSimCruiseRoutePlanner> PlannerPanel;
+	/** Famous roads, and what to do with a found place. */
+	TSharedPtr<SWidget> ListPanel;
+	int32 MenuPage = 0;
 	FString PendingMessage;
 	float PendingMessageSeconds = 0.f;
 

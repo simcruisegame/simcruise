@@ -8,6 +8,7 @@
 #include "SimCruiseHUD.generated.h"
 
 class UFont;
+class FSimCruiseDriveHud;
 
 /** HUD levels, cycled with F2 or the left-stick click (godot-final:game/Hud.gd).
  *  Off: only prompts. Glance: a translucent speed tag and g-meter that fade
@@ -43,6 +44,8 @@ class SIMCRUISE_API ASimCruiseHUD : public AHUD
 
 public:
 	ASimCruiseHUD();
+	/** The 2.0.2 HUD (SimCruiseDriveHud.cpp) reads the frame's snapshot and draws the g-g meter. */
+	friend class FSimCruiseDriveHud;
 
 	virtual void DrawHUD() override;
 
@@ -83,6 +86,9 @@ private:
 	TObjectPtr<UFont> RobotoRegular;
 	UPROPERTY(Transient)
 	TObjectPtr<UFont> RobotoBold;
+
+	/** The guide-sign HUD and GPS (simcruise.Hud.Look 1); the drawing below is the earlier HUD. */
+	TSharedPtr<FSimCruiseDriveHud> DriveHud;
 
 	ESimCruiseHudLevel Level = ESimCruiseHudLevel::Glance;
 	FString Message;

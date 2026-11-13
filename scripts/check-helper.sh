@@ -22,7 +22,7 @@ check_overture_heights check_regional_aerial check_signal_controls
 check_verified_footprints nsi-check optional-street-objects street-appearance-check
 street_sample_check verify-road-banks"
 # node:test suites run under Bun's test runner.
-suites="test-spectral-ground"
+suites="test-spectral-ground test-route"
 
 failed=0; passed=0
 printf '%-34s %-6s\n' TEST RESULT

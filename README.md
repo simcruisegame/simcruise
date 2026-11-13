@@ -84,7 +84,7 @@ From the 2.0.1 Shipping build, Ultra preset, 1920x1080 (the gravel road in dayli
    & 'C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe' "$PWD\SimCruise.uproject" -game
    ```
 
-The game starts on a random US road from the start pool (it needs the network; offline it falls back to the bundled Ocean Drive streets) and puts you in Aaron's 2001 roadster. Press / to search for a place, or Tab for the road atlas. `-SimCruiseBundledStart` always starts on Ocean Drive. To make a standalone Windows build instead (no editor needed to play it), run `powershell -ExecutionPolicy Bypass -File scripts\package.ps1` and start `Saved\Package\Windows\SimCruise.exe`; `scripts\release.ps1` makes the installer too ([release checklist](docs/release/RELEASE-CHECKLIST.md)). Options (another car, a fixed time, graphics presets, captures) are in [docs/unreal-building.md](docs/unreal-building.md#drive-it).
+The game starts on a random US road from the start pool (it needs the network; offline it falls back to the bundled Ocean Drive streets) and puts you in Aaron's 2001 roadster. Press / to search for a place, or Tab for the pause menu: plan a GPS route, pick a famous road, or open the road atlas. `-SimCruiseBundledStart` always starts on Ocean Drive. To make a standalone Windows build instead (no editor needed to play it), run `powershell -ExecutionPolicy Bypass -File scripts\package.ps1` and start `Saved\Package\Windows\SimCruise.exe`; `scripts\release.ps1` makes the installer too ([release checklist](docs/release/RELEASE-CHECKLIST.md)). Options (another car, a fixed time, graphics presets, captures) are in [docs/unreal-building.md](docs/unreal-building.md#drive-it).
 
 | Action | Keyboard | Xbox controller |
 |---|---|---|
@@ -93,6 +93,9 @@ The game starts on a random US road from the start pool (it needs the network; o
 | Camera | C | Y |
 | Manual gearbox | T | B |
 | Recover to the road | R | View |
+| Pause menu (route, places, car, view, settings) | Tab | Menu |
+| Menu pages | Q / E | LB / RB |
+| Plan a route: move, add stop, remove, start, zoom | Arrows or drag, Enter or click, Delete, Y, - / + | Left stick, A, X, Y, LT / RT |
 
 Every control is in [docs/controls.md](docs/controls.md).
 

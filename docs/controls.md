@@ -19,18 +19,22 @@ The Unreal client starts in the 2001 roadster in Ocean Drive's lane, Miami Beach
 | Look around (seat and hood views) | | Right stick |
 | Hide or show the driving HUD | F2 | X |
 | Frame time and stats | F3 | — |
-| Driver lens: natural (the default), true FOV, wide | F6 | Menu, then D-pad to View, then A |
+| Driver lens: natural (the default), true FOV, wide | F6 | Menu, RB to Seat & view, Lens, D-pad left / right |
 | Head lamps on / off | L | — |
 | Recover to the nearest road | R | View |
 | Sound on / off (engine, tyres, road, wind) | M | — |
-| Road atlas, find a place | Tab, / | Menu, X in the atlas |
+| Pause menu (Drive, Your car, Seat & view, Settings) | Tab | Menu |
+| Menu pages | Q / E | LB / RB |
+| Find a place | / | Where to? in the pause menu |
 | Tune the car (standing still) | F4 | D-pad Right |
 
 **Tuning.** Press D-pad Right (F4), or open the menu and pick *Tune car...* in the *Your car* row; while moving the game waits, and a setup saved on the move goes on when the car next stops. Up/Down (D-pad or stick) chooses a row, Left/Right changes it, X resets the row, Y pressed twice puts the whole car back as it left the factory, A (Enter) saves the setup for this car and applies it, and B (Esc, F4) cancels. The rows are front and rear spring rates (lb/in), damping (% of stock), ride height (mm), front and rear anti-roll bars (% of stock, 0 disconnects one), engine torque (%), final drive and steering ratio (a lower ratio is quicker: the stick turns the wheels further and faster). Each stays inside a safe range around the real car's. Under the rows the menu shows the body roll in degrees per g of cornering, so you see what springs and bars do before you drive. The setup is saved per car and comes back next time you drive that car.
 
 The engine sound is on at the start.
 
-**Go somewhere else.** Press / for "Where to?": type a street, a town, a landmark or `latitude, longitude` and press Enter, or pick a preset, or press Surprise me (Y on the pad) for a random US road. Press Tab (Menu) for the road atlas: move the map with the left stick, the mouse or the arrow keys, zoom with the D-pad, the wheel or +/−, click to pin a spot, and press Enter (A) or Drive here to go to the pin or the map centre. In the atlas, X finds a place, Y recentres, RB changes the car and LB the gearbox, and the buttons in its top bar set the sound, the HUD level, head motion (100, 50 or 0 %) and rumble strength (100, 60, 30 or 0 %), all remembered; Esc, Tab or B goes back to the drive. The game pauses while either is open.
+**Pause menu and GPS.** Tab (Menu) opens the pause menu. Up and down (D-pad, stick, arrows) choose a row, A (Enter) chooses it, left and right change a value, Y puts a slider back to stock, LB and RB (Q and E) change the page, B (Esc) goes back to the drive. On the Drive page: Where to?, Plan a route, Famous roads and the road atlas; X ends a route. In Plan a route the left stick (arrows, drag) moves the map under the cross, A (Enter, a click) adds a stop, X (Delete) removes the stop under the cross or the last one, LT and RT (- and +, the wheel) zoom, Y starts the route and B goes back. While you follow a route the turn sign is at the top, magenta chevrons are on the road ahead and the round map shows the course; leave the route for more than 30 m for 3 s and the GPS finds a new one from where you are.
+
+**Go somewhere else.** Press / for "Where to?": type a street, a town, a landmark or `latitude, longitude` and press Enter, or pick a preset, or press Surprise me (Y on the pad) for a random US road. Choose Road atlas in the pause menu (Tab, Menu) for the road atlas: move the map with the left stick, the mouse or the arrow keys, zoom with the D-pad, the wheel or +/−, click to pin a spot, and press Enter (A) or Drive here to go to the pin or the map centre. In the atlas, X finds a place, Y recentres, RB changes the car and LB the gearbox, and the buttons in its top bar set the sound, the HUD level, head motion (100, 50 or 0 %) and rumble strength (100, 60, 30 or 0 %), all remembered; Esc, Tab or B goes back to the drive. The game pauses while either is open.
 
 **Automatic gearbox.** It changes up early with a light pedal and holds each gear longer the deeper you press, kicks down when you floor it, never changes up while you brake and holds its gear through a corner.
 

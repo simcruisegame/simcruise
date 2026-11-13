@@ -10,6 +10,7 @@
 #include "Engine/Engine.h"
 #include "Engine/Font.h"
 #include "Engine/World.h"
+#include "Gameplay/SimCruiseDriveHud.h"
 #include "Gameplay/SimCruiseDriveTest.h"
 #include "Gameplay/SimCruisePlayerCameraManager.h"
 #include "Gameplay/SimCruiseGameMode.h"
@@ -158,6 +159,15 @@ void ASimCruiseHUD::DrawHUD()
 
 	SampleVehicle(DeltaTimeS);
 	const float Scale = Canvas->ClipY / 900.f;
+	if (FSimCruiseDriveHud::IsEnabled())
+	{
+		if (!DriveHud.IsValid()) DriveHud = MakeShared<FSimCruiseDriveHud>();
+		bOnTestPad = UpdateTestPad(Now);
+		DriveHud->Draw(*this, DeltaTimeS);
+		if (bOnTestPad) DrawTestPadBanner(Scale);
+		DrawLoading(Scale);
+		return;
+	}
 	if (bHasVehicle && Level == ESimCruiseHudLevel::Glance)
 	{
 		DrawGlance(Scale, DeltaTimeS);

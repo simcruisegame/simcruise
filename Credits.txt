@@ -43,6 +43,8 @@ Unreal Engine 5.8 by Epic Games, used under the Unreal Engine EULA. https://www.
 Map decoder built with Bun, @mapbox/vector-tile, pbf, earcut and fast-png.
 https://bun.com/ • https://github.com/mapbox/vector-tile-js
 Barlow Semi Condensed and Instrument Serif, SIL Open Font License. License files inside the app.
+Overpass (Regular, SemiBold, Bold, ExtraBold, Black) by Delve Withrington and the Overpass Project Authors for Red Hat, SIL Open Font License 1.1, unchanged, for the menus and the HUD. data/fonts/overpass, licenses/Overpass font (OFL-1.1).txt.
+https://github.com/RedHatOfficial/Overpass
 Street oak mesh adapted from Innerscene (CC0). Three geometry detail levels use folded individual leaves, trunk, and branches. Tree positions come from the canopy height map, or from a city's tree inventory where one is connected (species labels and trunk diameters where available). Shapes represent broadleaf trees, not individual tree scans. Bark texture: Poly Haven, Jølcham Oak Bark 01, CC0.
 https://www.innerscene.com/tools/library/3d-parts/oak-street-tree-detailed-leaves-a273fef9
 https://polyhaven.com/a/jolcham_oak_bark_01
