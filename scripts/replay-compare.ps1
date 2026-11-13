@@ -75,7 +75,8 @@ function Invoke-Replay([string]$Name, [string]$Root, [string]$Car) {
         "-SimCruiseReplayInput=$($Tape -replace '\\', '/')", "-SimCruiseReplayOut=$Csv", '-windowed', '-ResX=1280', '-ResY=720', '-log', "-abslog=$Log")
     if ($Car) { $Args += "-SimCruiseReplayCar=$Car"; $Args += "-SimCruiseCar=$Car" }
     if ($Pad) { $Args += '-SimCruiseReplayPad' }
-    if (-not $Traffic) { $Args += '-DPCVars=simcruise.Traffic.Cars=0' }
+    # The replay turns traffic off itself; -Traffic keeps it (-SimCruiseReplayTraffic).
+    if (-not $Traffic) { $Args += '-DPCVars=simcruise.Traffic.Cars=0' } else { $Args += '-SimCruiseReplayTraffic' }
     $Commit = (git -C $Root rev-parse --short HEAD).Trim()
     Write-Host "Replay $Name on $Root ($Commit)$(if ($Car) { ", car $Car" })"
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'scripts\editor.ps1') -TimeoutMinutes $TimeoutMinutes @Args | Out-Null

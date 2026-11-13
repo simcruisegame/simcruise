@@ -8,6 +8,7 @@
 #include "Gameplay/SimCruisePlayerController.h"
 #include "HAL/FileManager.h"
 #include "InputCoreTypes.h"
+#include "HAL/IConsoleManager.h"
 #include "Misc/CommandLine.h"
 #include "Misc/DateTime.h"
 #include "Misc/FileHelper.h"
@@ -27,6 +28,26 @@ namespace
 	const TCHAR* TapeColumns = TEXT("t,dt,pad_steer,key_steer,pad_throttle,pad_brake,key_throttle,key_brake,full_brake,handbrake,clutch,"
 		"wheel,wheel_rack_rad,wheel_throttle,wheel_brake,wheel_has_clutch,wheel_clutch,shift,manual");
 	constexpr int32 TapeColumnCount = 19;
+
+	/** The moving traffic (simcruise.Traffic.Cars above 0). */
+	bool IsTrafficOn()
+	{
+		const IConsoleVariable* Cars = IConsoleManager::Get().FindConsoleVariable(TEXT("simcruise.Traffic.Cars"));
+		return Cars && Cars->GetInt() > 0;
+	}
+
+	/** Traffic is not the same from run to run: a recording that is to replay the same drives without it. */
+	void TurnTrafficOff(const TCHAR* Why)
+	{
+		if (IConsoleVariable* Cars = IConsoleManager::Get().FindConsoleVariable(TEXT("simcruise.Traffic.Cars")))
+		{
+			if (Cars->GetInt() > 0)
+			{
+				Cars->Set(0, ECVF_SetByCode);
+				UE_LOG(LogSimCruiseInputTape, Display, TEXT("%s: traffic off (traffic does not drive the same way twice)"), Why);
+			}
+		}
+	}
 
 	FString DriveTestDir()
 	{
@@ -80,6 +101,10 @@ FString FSimCruiseInputTape::ToCsv() const
 		Lines.Add(FString::Printf(TEXT("# place_street=%s"), *PlaceStreet.Replace(TEXT("\n"), TEXT(" "))));
 		Lines.Add(FString::Printf(TEXT("# frame=%d,%d,%.6f"), FrameOriginTile.X, FrameOriginTile.Y, FrameTileSizeM));
 	}
+	if (!Traffic.IsEmpty())
+	{
+		Lines.Add(FString::Printf(TEXT("# traffic=%s"), *Traffic));
+	}
 	if (!Note.IsEmpty())
 	{
 		Lines.Add(FString::Printf(TEXT("# note=%s"), *Note.Replace(TEXT("\n"), TEXT(" "))));
@@ -124,6 +149,7 @@ bool FSimCruiseInputTape::FromCsv(const FString& Text, FSimCruiseInputTape& Out,
 				else if (Key == TEXT("start_speed_mps")) { Out.StartSpeedMps = FCString::Atod(*Value); }
 				else if (Key == TEXT("place") && Parts.Num() == 2) { Out.bHasPlace = true; Out.PlaceLonDeg = FCString::Atod(*Parts[0]); Out.PlaceLatDeg = FCString::Atod(*Parts[1]); }
 				else if (Key == TEXT("place_title")) { Out.PlaceTitle = Value; }
+				else if (Key == TEXT("traffic")) { Out.Traffic = Value; }
 				else if (Key == TEXT("place_street")) { Out.PlaceStreet = Value; }
 				else if (Key == TEXT("frame") && Parts.Num() == 3) { Out.FrameOriginTile = FIntPoint(FCString::Atoi(*Parts[0]), FCString::Atoi(*Parts[1])); Out.FrameTileSizeM = FCString::Atod(*Parts[2]); }
 				else if (Key == TEXT("note")) { Out.Note = Value; }
@@ -296,6 +322,14 @@ void FSimCruiseInputTapeDriver::Begin(ASimCruisePlayerController& Player)
 		Stage = EStage::WaitCar;
 		StageStarted = FPlatformTime::Seconds();
 		UE_LOG(LogSimCruiseInputTape, Display, TEXT("Replay %s: %s, %d frames, %.1f s -> %s"), *TapePath, *Tape.CarId, Tape.Frames.Num(), Tape.GetDuration(), *OutPath);
+		if (!FParse::Param(Cmd, TEXT("SimCruiseReplayTraffic")))
+		{
+			TurnTrafficOff(TEXT("Replay"));
+		}
+		if (Tape.Traffic == TEXT("on"))
+		{
+			UE_LOG(LogSimCruiseInputTape, Warning, TEXT("Replay: the tape was recorded with traffic; the replay can take another path"));
+		}
 		return;
 	}
 	FString Path;
@@ -307,6 +341,10 @@ void FSimCruiseInputTapeDriver::Begin(ASimCruisePlayerController& Player)
 	else if (FParse::Param(Cmd, TEXT("SimCruiseRecordInput")))
 	{
 		bRecordAtStart = true;
+	}
+	if (bRecordAtStart && !FParse::Param(Cmd, TEXT("SimCruiseRecordTraffic")))
+	{
+		TurnTrafficOff(TEXT("Input recording"));
 	}
 }
 
@@ -323,6 +361,12 @@ void FSimCruiseInputTapeDriver::StartRecording(ASimCruisePlayerController& Playe
 	Recording.StartYawDeg = Vehicle->GetActorRotation().Yaw;
 	Recording.StartSpeedMps = Player.GetTelemetry().BodyVelocityMps.X;
 	Recording.Note = FString::Printf(TEXT("recorded %s"), *FDateTime::Now().ToString(TEXT("%Y-%m-%d %H:%M:%S")));
+	Recording.Traffic = IsTrafficOn() ? TEXT("on") : TEXT("off");
+	RecordPathStats = FSimCruiseReplayStats();
+	if (IsTrafficOn())
+	{
+		UE_LOG(LogSimCruiseInputTape, Warning, TEXT("Input recording with traffic on: a replay drives without traffic and can take another path"));
+	}
 	if (const ASimCruiseGameMode* Mode = Player.GetWorld()->GetAuthGameMode<ASimCruiseGameMode>())
 	{
 		Recording.bHasLonLat = Mode->WorldToLonLat(Recording.StartGroundCm, Recording.StartLonDeg, Recording.StartLatDeg);
@@ -345,7 +389,8 @@ void FSimCruiseInputTapeDriver::StartRecording(ASimCruisePlayerController& Playe
 	RecordClock = 0.0;
 	PendingShift = 0;
 	bRecording = true;
-	Player.ShowMessage(FMath::Abs(Recording.StartSpeedMps) > 0.5 ? TEXT("Recording input (F9 stops) · a replay starts at rest") : TEXT("Recording input (F9 stops)"), 3.f);
+	Player.ShowMessage(IsTrafficOn() ? TEXT("Recording input (F9 stops) · traffic on: a replay can differ")
+		: (FMath::Abs(Recording.StartSpeedMps) > 0.5 ? TEXT("Recording input (F9 stops) · a replay starts at rest") : TEXT("Recording input (F9 stops)")), 3.f);
 }
 
 void FSimCruiseInputTapeDriver::StopRecording(ASimCruisePlayerController& Player)
@@ -358,8 +403,8 @@ void FSimCruiseInputTapeDriver::StopRecording(ASimCruisePlayerController& Player
 	const FString Path = !RecordPath.IsEmpty() ? RecordPath
 		: FPaths::Combine(DriveTestDir(), FString::Printf(TEXT("input-%s.csv"), *FDateTime::Now().ToString(TEXT("%Y%m%d-%H%M%S"))));
 	RecordPath.Reset();
-	const bool bSaved = Recording.Save(Path);
-	UE_LOG(LogSimCruiseInputTape, Display, TEXT("Input recording: %d frames, %.1f s -> %s%s"), Recording.Frames.Num(), Recording.GetDuration(), *Path, bSaved ? TEXT("") : TEXT(" (NOT SAVED)"));
+	SaveRecording(Path);
+	const bool bSaved = FPaths::FileExists(Path);
 	Player.ShowMessage(bSaved ? FString::Printf(TEXT("Input saved: %s"), *FPaths::GetCleanFilename(Path)) : TEXT("Input recording could not be saved"), 4.f);
 }
 
@@ -370,8 +415,8 @@ void FSimCruiseInputTapeDriver::End()
 		bRecording = false;
 		const FString Path = !RecordPath.IsEmpty() ? RecordPath
 			: FPaths::Combine(DriveTestDir(), FString::Printf(TEXT("input-%s.csv"), *FDateTime::Now().ToString(TEXT("%Y%m%d-%H%M%S"))));
-		Recording.Save(Path);
-		UE_LOG(LogSimCruiseInputTape, Display, TEXT("Input recording at exit: %d frames -> %s"), Recording.Frames.Num(), *Path);
+		UE_LOG(LogSimCruiseInputTape, Display, TEXT("Input recording at exit"));
+		SaveRecording(Path);
 	}
 }
 
@@ -411,6 +456,23 @@ void FSimCruiseInputTapeDriver::Process(ASimCruisePlayerController& Player, FSim
 	Frame.Shift = PendingShift;
 	Frame.bManual = Player.GetTelemetry().bManualTransmission;
 	PendingShift = 0;
+	// The recorded drive's path, sampled as a replay samples its own.
+	if (const APawn* Pawn = Player.GetPawn())
+	{
+		const FSimCruiseDriveTelemetry& T = Player.GetTelemetry();
+		const FSimCruiseVehicleSetup& Setup = Player.GetCachedVehicleSetup();
+		RecordPathStats.Add(RecordClock, Pawn->GetActorLocation() / 100.0, T.BodyVelocityMps, T.BodyAngularVelocityRadPerS.Z,
+			Setup.WheelbaseM - Setup.CenterOfMassToFrontAxleM, T.Gear);
+	}
+}
+
+void FSimCruiseInputTapeDriver::SaveRecording(const FString& Path)
+{
+	const bool bSaved = Recording.Save(Path);
+	const FString PathCsv = FPaths::Combine(FPaths::GetPath(Path), FPaths::GetBaseFilename(Path) + TEXT("-path.csv"));
+	RecordPathStats.SaveCsv(PathCsv);
+	UE_LOG(LogSimCruiseInputTape, Display, TEXT("Input recording: %d frames, %.1f s, traffic %s -> %s%s; path %s (RECORDED %s)"), Recording.Frames.Num(), Recording.GetDuration(),
+		*Recording.Traffic, *Path, bSaved ? TEXT("") : TEXT(" (NOT SAVED)"), *PathCsv, *RecordPathStats.Summary());
 }
 
 void FSimCruiseInputTapeDriver::TickReplay(ASimCruisePlayerController& Player, FSimCruiseRawControls& Raw, float DeltaSeconds)

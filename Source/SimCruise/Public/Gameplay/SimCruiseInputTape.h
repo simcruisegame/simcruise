@@ -49,6 +49,11 @@ struct SIMCRUISE_API FSimCruiseInputTape
 	double PlaceLatDeg = 0.0;
 	FIntPoint FrameOriginTile = FIntPoint::ZeroValue;
 	double FrameTileSizeM = 0.0;
+	/**
+	 * The moving traffic during the recording: "off", "on", or empty for an older tape. Traffic is
+	 * not the same from run to run, so a tape recorded with it can replay on a different path.
+	 */
+	FString Traffic;
 	FString Note;
 	TArray<FSimCruiseInputFrame> Frames;
 
@@ -111,6 +116,11 @@ private:
  * as a pad, and writes speed, yaw rate, slip and lap time to Saved/DriveTest/replay-<tape>.csv
  * (-SimCruiseReplayOut=FILE), logs a "REPLAY ..." summary line and quits
  * (-SimCruiseKeepOpen stays).
+ *
+ * Traffic is not the same from run to run, so a replay and a -SimCruiseRecordInput recording turn
+ * the moving traffic off (-SimCruiseReplayTraffic / -SimCruiseRecordTraffic keep it). An F9
+ * recording keeps the traffic the driver has, writes "# traffic=on" and warns that a replay can differ.
+ * Each recording also saves its own path as <tape>-path.csv, in the replay CSV's columns.
  */
 class SIMCRUISE_API FSimCruiseInputTapeDriver
 {
@@ -141,6 +151,9 @@ private:
 	FSimCruiseInputTape Recording;
 	double RecordClock = 0.0;
 	int32 PendingShift = 0;
+	/** The recorded drive's own path, in the replay's CSV form (<tape>-path.csv), to compare a replay with. */
+	FSimCruiseReplayStats RecordPathStats;
+	void SaveRecording(const FString& Path);
 
 	// Replay.
 	EStage Stage = EStage::Off;
