@@ -66,6 +66,8 @@ private:
 	FString OutputDir;
 	double StageStarted = 0.0;
 	float Clock = 0.f;
+	/** When the menus' shots began (-SimCruiseShowMenus), 0 before. */
+	float MenusAt = 0.f;
 	int32 SettleFrames = 0;
 	int32 NextShot = 0;
 

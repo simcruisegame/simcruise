@@ -54,10 +54,12 @@ public:
 	const FSimCruiseTuning& GetTuning() const { return Tuning; }
 	/** Rebuild the car from the real one with this tuning (clamped to safe ranges); bSave writes
 	 *  it to Saved/SimCruise/tuning-<id>.json (false when that write fails). Resets the
-	 *  drivetrain: apply standing still. */
+	 *  drivetrain, so a save on the move waits for the car to stop (HasPendingTuning). */
 	bool ApplyTuning(const FSimCruiseTuning& InTuning, bool bSave);
 	/** Apply the driver's saved tuning for this car, if there is one (the player's car only). */
 	bool LoadSavedTuning();
+	/** A setup saved while moving, waiting for the car to stop. */
+	bool HasPendingTuning() const { return bTuningPending; }
 
 	/**
 	 * Build the car's downloaded model on this pawn (blocking the first time a
@@ -200,6 +202,7 @@ private:
 	FSimCruiseCarDefinition RealCar;
 	FSimCruiseTuning Tuning;
 	bool bTuned = false;
+	bool bTuningPending = false;
 	bool bManualRequested = false;
 	FString LastShownGearMessage;
 	bool bMirrorsLive = false;

@@ -243,7 +243,13 @@ void FSimCruiseChaseFrame::Update(ESimCruiseView View, const FTransform& Body, c
 	const double Speed = FMath::Abs(BodyVelocityMps.X);
 	FVector Offset;
 	FVector Look;
-	if (View == ESimCruiseView::Scenic)
+	if (View == ESimCruiseView::FarChase)
+	{
+		// Twice as far and higher: the car small in its road, the road ahead seen.
+		Offset = FVector(-1050.0, 90.0 * FMath::Max(0.18, 1.0 - Speed / 14.0), 330.0);
+		Look = FVector(520.0, 0.0, 60.0);
+	}
+	else if (View == ESimCruiseView::Scenic)
 	{
 		Offset = FVector(-720.0, 490.0, 345.0);
 		Look = FVector(65.0, 0.0, 56.0);

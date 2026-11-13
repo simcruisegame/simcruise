@@ -576,6 +576,26 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 		}
 	}
 
+	// Roll centres: the links carry the axle's side force at the roll centre's height straight to
+	// the outer tyre (F h_rc / track, the geometric load transfer), at once and without rolling the
+	// body; the springs carry only the rest. The body's forces are unchanged in sum. From the
+	// last substep's side forces (positive to the right moves load to the left, even, wheel).
+	for (int32 Axle = 0; Axle < 2; ++Axle)
+	{
+		const double Height = AxleValue(Car.RollCentreHeightMByAxle, Axle);
+		const int32 Left = Axle * 2;
+		if (Height <= 0.0 || !Rows[Left].bValid || !Rows[Left + 1].bValid)
+		{
+			continue;
+		}
+		const double Track = Axle == 0 ? Car.FrontTrackM : Car.RearTrackM;
+		const double Side = State.Wheels[Left].LateralForceN + State.Wheels[Left + 1].LateralForceN;
+		const double Transfer = FMath::Clamp(Side * Height / FMath::Max(Track, 0.5),
+			-Rows[Left].Load, Rows[Left + 1].Load);
+		Rows[Left].Load += Transfer;
+		Rows[Left + 1].Load -= Transfer;
+	}
+
 	// Gear selection.
 	double ForwardRatio = (State.bInReverse ? Car.ReverseGearRatio : Car.ForwardGearRatios[State.Gear]) * Car.FinalDriveRatio;
 	const double SignDirection = State.bInReverse ? -1.0 : 1.0;
@@ -715,13 +735,16 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 			State.EngineRpm = State.EngineOmegaRadPerSecond * 60.0 / Tau;
 			const double Rpm = State.EngineRpm;
 			const double Friction = Car.EngineFrictionTorqueNm + Car.EngineFrictionTorqueNmPerRpm * Rpm;
-			double Torque = Rpm < Car.FuelCutSpeedRpm ? (SimCruiseDynamics::SampleEngineTorqueNm(Car, Rpm) + Friction) * Throttle : 0.0;
+			// The pedal opens the throttle plate; the cylinders fill by how much air that opening
+			// passes against what the engine draws at this speed (SimCruiseDynamics::EngineLoad).
+			const double Load = SimCruiseDynamics::EngineLoad(Car, Throttle, Rpm);
+			double Torque = Rpm < Car.FuelCutSpeedRpm ? (SimCruiseDynamics::SampleEngineTorqueNm(Car, Rpm) + Friction) * Load : 0.0;
 			double Drag = Friction * (Rpm > Car.IdleSpeedRpm ? 1.0 : 0.5);
 			// A closed throttle also pumps against manifold vacuum; at full throttle that loss is
 			// already in the published curve.
 			if (Rpm > Car.IdleSpeedRpm)
 			{
-				Drag += (Car.EnginePumpingTorqueNm + Car.EnginePumpingTorqueNmPerRpm * Rpm) * (1.0 - FMath::Clamp(Throttle, 0.0, 1.0));
+				Drag += (Car.EnginePumpingTorqueNm + Car.EnginePumpingTorqueNmPerRpm * Rpm) * (1.0 - Load);
 			}
 			double Governor = FMath::Clamp((Car.GovernorSpeedRpm - Rpm) * 0.8, 0.0, 100.0);
 			AxleSpeed = DrivenOmega() * SignDirection;
@@ -831,10 +854,7 @@ void FSimCruiseVehicleSim::Step(double DeltaTimeS, int32 Substeps, const FSimCru
 		{
 			FSimCruiseWheelState& Wheel = State.Wheels[WheelIndex];
 			FContactRow& Row = Rows[WheelIndex];
-			// A proportioning valve: past its knee the rear line pressure rises at a fraction of the
-			// pedal's, so in a hard stop the fronts lock before the rears.
-			const double RearPedal = BrakeAmount <= Car.RearBrakeKneeFraction ? BrakeAmount
-				: Car.RearBrakeKneeFraction + Car.RearBrakeSlopeAboveKnee * (BrakeAmount - Car.RearBrakeKneeFraction);
+			const double RearPedal = SimCruiseDynamics::RearBrakePedal(Car, BrakeAmount);
 			double BrakeNm = WheelIndex < 2 ? BrakeAmount * Car.FrontBrakeTorqueNm : RearPedal * Car.RearBrakeTorqueNm;
 			const double RowSpeed = Row.bValid ? Row.ForwardSpeed : 0.0;
 			// ABS: a per-wheel pressure modulator cycling each tyre about its peak slip.

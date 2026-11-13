@@ -87,6 +87,15 @@ namespace SimCruiseDynamics
 
 	double GetWheelSpringRateNPerM(const FSimCruiseCarDefinition& Car, int32 AxleIndex);
 	double GetAntiRollBarRateNPerM(const FSimCruiseCarDefinition& Car, int32 AxleIndex);
+	/**
+	 * Engine load (the share of full-throttle torque, 0..1) for an accelerator pedal at an engine
+	 * speed. The throttle plate's flow saturates against what the engine draws: at low speed a
+	 * small opening already fills the cylinders, at high speed the response is nearly linear.
+	 * Load = (1 - e^(-k p)) / (1 - e^(-k)), k = ThrottleProgression x 3000 / rpm (0 = linear).
+	 */
+	double EngineLoad(const FSimCruiseCarDefinition& Car, double Pedal, double EngineRpm);
+	/** The rear brakes' share of the pedal (0..1) after the proportioning valve. */
+	double RearBrakePedal(const FSimCruiseCarDefinition& Car, double Pedal);
 	double ComputeSuspensionLoadN(
 		const FSimCruiseCarDefinition& Car,
 		int32 AxleIndex,

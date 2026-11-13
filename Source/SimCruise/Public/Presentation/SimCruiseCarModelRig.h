@@ -74,6 +74,17 @@ struct FSimCruiseRiggedCar
 	bool bHasSteeringWheel = false;
 	double SteeringWheelRadiusM = 0.0;
 
+	/** Dials placed in the vehicle frame (Unreal axes, cm): the face's centre, its normal toward the driver, its 12 o'clock. */
+	struct FDial
+	{
+		int32 Spec = INDEX_NONE;
+		FVector CentreCm = FVector::ZeroVector;
+		FVector Normal = FVector::BackwardVector;
+		FVector Up = FVector::UpVector;
+		double RadiusCm = 4.0;
+	};
+	TArray<FDial> Dials;
+
 	/** Hub centres at static ride, vehicle frame, centimetres. */
 	FVector HubsCm[4];
 	bool bNamedWheels = false;

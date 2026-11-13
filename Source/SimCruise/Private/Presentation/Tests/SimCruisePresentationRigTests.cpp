@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 #include "Misc/Paths.h"
 #include "Presentation/SimCruiseCarModelRig.h"
+#include "Presentation/SimCruiseCarPresentationComponent.h"
 #include "Presentation/SimCruiseGltfModel.h"
 #include "Presentation/SimCruisePresentationProfile.h"
 #include "Vehicle/CarDefinition.h"
@@ -196,6 +197,32 @@ bool FSimCruisePresentationRigNbTest::RunTest(const FString& Parameters)
 	{
 		CheckRig(*this, TEXT("nb1999"), L);
 		TestFalse(TEXT("nb1999 wheels are found by geometry"), L.Rigged.bNamedWheels);
+		// The instruments: five live dials in the cluster, behind the steering wheel and in front
+		// of the driver's eye, facing the driver, the speedometer and tachometer the big two.
+		// Live dials are placed when the profile gives them (none ship yet: the faces are not finished).
+		if (L.Rigged.Dials.Num() > 0 && L.Rigged.bHasSteeringWheel)
+		{
+			const FVector Wheel = L.Rigged.SteeringWheel.PartToVehicle.GetLocation();
+			for (const FSimCruiseRiggedCar::FDial& Dial : L.Rigged.Dials)
+			{
+				const FString What = L.Profile.Dials.IsValidIndex(Dial.Spec) ? L.Profile.Dials[Dial.Spec].Quantity : TEXT("?");
+				AddInfo(FString::Printf(TEXT("dial %s at %s cm (wheel %s), facing %s, radius %.1f cm"), *What, *Dial.CentreCm.ToString(), *Wheel.ToString(),
+					*Dial.Normal.ToString(), Dial.RadiusCm));
+				TestTrue(What + TEXT(": ahead of the steering wheel, within 30 cm"), Dial.CentreCm.X > Wheel.X && Dial.CentreCm.X < Wheel.X + 30.0);
+				TestTrue(What + TEXT(": in line with the wheel across the car (within 15 cm)"), FMath::Abs(Dial.CentreCm.Y - Wheel.Y) < 15.0);
+				TestTrue(What + TEXT(": faces back toward the driver"), Dial.Normal.X < -0.6);
+				TestTrue(What + TEXT(": a gauge-sized face (2-7 cm)"), Dial.RadiusCm > 2.0 && Dial.RadiusCm < 7.0);
+			}
+		}
+		// The needles read the car: the speedometer in mph, the tachometer in rpm, rest with the engine off.
+		FSimCruiseCarVisualState State;
+		State.SpeedMps = 26.8224f;
+		State.EngineRpm = 3200.f;
+		TestEqual(TEXT("60 mph on the speedometer"), USimCruiseCarPresentationComponent::DialTarget(TEXT("speed_mph"), State), 60.0, 0.01);
+		TestEqual(TEXT("96.6 km/h on a metric one"), USimCruiseCarPresentationComponent::DialTarget(TEXT("speed_kmh"), State), 96.56, 0.01);
+		TestEqual(TEXT("3200 rpm on the tachometer"), USimCruiseCarPresentationComponent::DialTarget(TEXT("rpm"), State), 3200.0, 0.01);
+		State.bEngineRunning = false;
+		TestEqual(TEXT("the tachometer rests with the engine off"), USimCruiseCarPresentationComponent::DialTarget(TEXT("rpm"), State), 0.0);
 	}
 	return true;
 }

@@ -10,6 +10,7 @@
 #include "Gameplay/SimCruiseHaptics.h"
 #include "Gameplay/SimCruiseHUD.h"
 #include "Gameplay/SimCruiseInputConfig.h"
+#include "Gameplay/SimCruisePlayerCameraManager.h"
 #include "Gameplay/SimCruisePlaceholderVehicle.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
@@ -655,3 +656,24 @@ bool FSimCruiseHudRulesTest::RunTest(const FString& Parameters)
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseSeatRangeTest, "SimCruise.Gameplay.Camera.SeatRange", Flags)
+bool FSimCruiseSeatRangeTest::RunTest(const FString& Parameters)
+{
+	// The seat & view menu keeps the eye in the cabin and the view angle sane.
+	FSimCruiseSeat Seat;
+	TestTrue(TEXT("a new seat is the car's own"), Seat.IsDefault());
+	Seat.UpCm = 40.0;
+	Seat.ForwardCm = -40.0;
+	Seat.PitchDeg = 30.0;
+	Seat.FovDeg = 120.0;
+	Seat.Clamp();
+	TestEqual(TEXT("height within 10 cm"), Seat.UpCm, FSimCruiseSeat::MaxUpCm);
+	TestEqual(TEXT("fore-aft within 15 cm"), Seat.ForwardCm, -FSimCruiseSeat::MaxForwardCm);
+	TestEqual(TEXT("tilt within 8 deg"), Seat.PitchDeg, FSimCruiseSeat::MaxPitchDeg);
+	TestEqual(TEXT("view angle at most 75 deg tall"), Seat.FovDeg, FSimCruiseSeat::MaxFovDeg);
+	Seat.FovDeg = -3.0;
+	Seat.Clamp();
+	TestEqual(TEXT("no view angle is the lens's"), Seat.FovDeg, 0.0);
+	return true;
+}

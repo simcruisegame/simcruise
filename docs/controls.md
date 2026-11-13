@@ -15,7 +15,8 @@ The Unreal client starts in the 2001 roadster in Ocean Drive's lane, Miami Beach
 | Clutch (manual mode) | Shift (hold) | A (hold) |
 | Shift up / shift down (manual mode) | E / Q | RB / LB |
 | Restart a stalled engine | I, with the clutch held | D-pad left, with the clutch held |
-| Camera: driver's seat, chase | C | Y |
+| Camera: driver's seat, hood, near chase, far chase, scenic | C | Y |
+| Look around (seat and hood views) | | Right stick |
 | Hide or show the driving HUD | F2 | X |
 | Frame time and stats | F3 | — |
 | Driver lens: natural (the default), true FOV, wide | F6 | Menu, then D-pad to View, then A |
@@ -25,7 +26,7 @@ The Unreal client starts in the 2001 roadster in Ocean Drive's lane, Miami Beach
 | Road atlas, find a place | Tab, / | Menu, X in the atlas |
 | Tune the car (standing still) | F4 | D-pad Right |
 
-**Tuning.** Stop the car and press D-pad Right (F4). Up/Down (D-pad or stick) chooses a row, Left/Right changes it, X resets the row, Y pressed twice puts the whole car back as it left the factory, A (Enter) saves the setup for this car and applies it, and B (Esc, F4) cancels. The rows are front and rear spring rates (lb/in), damping (% of stock), ride height (mm), front and rear anti-roll bars (% of stock, 0 disconnects one), engine torque (%), final drive and steering ratio (a lower ratio is quicker: the stick turns the wheels further and faster). Each stays inside a safe range around the real car's. Under the rows the menu shows the body roll in degrees per g of cornering, so you see what springs and bars do before you drive. The setup is saved per car and comes back next time you drive that car.
+**Tuning.** Press D-pad Right (F4), or open the menu and pick *Tune car...* in the *Your car* row; while moving the game waits, and a setup saved on the move goes on when the car next stops. Up/Down (D-pad or stick) chooses a row, Left/Right changes it, X resets the row, Y pressed twice puts the whole car back as it left the factory, A (Enter) saves the setup for this car and applies it, and B (Esc, F4) cancels. The rows are front and rear spring rates (lb/in), damping (% of stock), ride height (mm), front and rear anti-roll bars (% of stock, 0 disconnects one), engine torque (%), final drive and steering ratio (a lower ratio is quicker: the stick turns the wheels further and faster). Each stays inside a safe range around the real car's. Under the rows the menu shows the body roll in degrees per g of cornering, so you see what springs and bars do before you drive. The setup is saved per car and comes back next time you drive that car.
 
 The engine sound is on at the start.
 
@@ -36,6 +37,10 @@ The engine sound is on at the start.
 **Manual gearbox.** Press T (right-stick click) to take over the gearbox. Hold the clutch (Shift / A), tap E (RB) for first, add throttle and let the clutch out. Shifts need the clutch; the gearbox refuses a gear that would over-rev the engine, and a stalled engine restarts with I (D-pad left) while the clutch is held. On the pad the right thumb holds the clutch and the bumpers change gear like paddles (RB up, LB down), so you can brake with LT, hold the clutch and change down at the same time.
 
 **New pad layout in 2.0.0.** The clutch moved from LB to A, the parking brake from A to B, shift down from X to LB, the gearbox switch from B to the right-stick click, the engine restart from the right-stick click to D-pad left and the HUD from the left-stick click to X; the left-stick click does nothing (since 2.0.1: it changed the lens when pressed by accident while steering; the lens is F6 or the atlas's View setting). The reason: the clutch on LB used the same finger as the brake trigger, and hard steering pressed the left stick by accident.
+
+**Traffic.** The road atlas's Settings row sets the traffic: Normal (about 20 cars around you), Light (8) or Off; it is remembered.
+
+**Seat & view.** Parked, open the menu and pick *Seat & view...* in the *Your car* row (D-pad to it, A). Seat height (up to 10 cm either way), seat fore-aft (15 cm), view tilt (8° up or down) and the view angle (Auto follows the lens; 30-75° tall) change the live picture behind the panel, held on the brakes; A saves them for this car, B puts the seat back. The view also widens slightly with speed (6 % by 130 km/h).
 
 **True field of view.** The driver's seat starts on the natural lens (45° tall, 74° across a 16:9 screen). F6 changes it to the true field of view and to wide; on the pad open the road atlas (Menu), move with the D-pad to "View" and press A. With the true field of view the game shows the world at the angle your screen really covers at your eye, as if the screen were a window: a 15.6" 16:9 laptop at 60 cm spans 32° across (2·atan(width / 2·distance)). Set your screen's diagonal and your eye's distance on the road atlas (Tab: Screen, Eye to screen), or with `simcruise.Lens.ScreenInches` and `simcruise.Lens.ViewDistanceCm`. View · Wide (67° tall) shows more of the cabin for tight streets. The eye sits at each car's real driver's head position; the chase view keeps its wider angle.
 

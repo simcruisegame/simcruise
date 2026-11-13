@@ -5,6 +5,7 @@
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
+#include "Gameplay/SimCruisePreferences.h"
 #include "Gameplay/SimCruiseVehicleControl.h"
 #include "HAL/IConsoleManager.h"
 #include "Presentation/SimCruiseCarPresentationComponent.h"
@@ -22,6 +23,37 @@ static TAutoConsoleVariable<float> CVarHeadMotion(
 	TEXT("simcruise.Camera.HeadMotion"), 1.f,
 	TEXT("Driver head motion 0..1 (0 welds the eye to the seat; the horizon hold stays)."));
 
+void FSimCruiseSeat::Clamp()
+{
+	UpCm = FMath::Clamp(UpCm, -MaxUpCm, MaxUpCm);
+	ForwardCm = FMath::Clamp(ForwardCm, -MaxForwardCm, MaxForwardCm);
+	PitchDeg = FMath::Clamp(PitchDeg, -MaxPitchDeg, MaxPitchDeg);
+	FovDeg = FovDeg <= 0.0 ? 0.0 : FMath::Clamp(FovDeg, MinFovDeg, MaxFovDeg);
+}
+
+FSimCruiseSeat FSimCruiseSeat::Load(const FString& CarId)
+{
+	// "up,forward,pitch,fov" in mm, mm, tenths of a degree and tenths of a degree.
+	FSimCruiseSeat Seat;
+	TArray<FString> Parts;
+	SimCruisePreferences::GetString(TEXT("seat_") + CarId, FString()).ParseIntoArray(Parts, TEXT(","));
+	if (Parts.Num() == 4)
+	{
+		Seat.UpCm = FCString::Atoi(*Parts[0]) / 10.0;
+		Seat.ForwardCm = FCString::Atoi(*Parts[1]) / 10.0;
+		Seat.PitchDeg = FCString::Atoi(*Parts[2]) / 10.0;
+		Seat.FovDeg = FCString::Atoi(*Parts[3]) / 10.0;
+		Seat.Clamp();
+	}
+	return Seat;
+}
+
+void FSimCruiseSeat::Save(const FString& CarId) const
+{
+	SimCruisePreferences::SetString(TEXT("seat_") + CarId, FString::Printf(TEXT("%d,%d,%d,%d"),
+		FMath::RoundToInt(UpCm * 10.0), FMath::RoundToInt(ForwardCm * 10.0), FMath::RoundToInt(PitchDeg * 10.0), FMath::RoundToInt(FovDeg * 10.0)));
+}
+
 ASimCruisePlayerCameraManager::ASimCruisePlayerCameraManager()
 {
 	DefaultFOV = 90.f;
@@ -33,7 +65,9 @@ const TCHAR* ASimCruisePlayerCameraManager::ViewName(ESimCruiseView InView)
 {
 	switch (InView)
 	{
-	case ESimCruiseView::Chase: return TEXT("Chase view");
+	case ESimCruiseView::Hood: return TEXT("Hood view");
+	case ESimCruiseView::Chase: return TEXT("Near chase view");
+	case ESimCruiseView::FarChase: return TEXT("Far chase view");
 	case ESimCruiseView::Scenic: return TEXT("Scenic view");
 	default: return TEXT("Driver view");
 	}
@@ -41,7 +75,7 @@ const TCHAR* ASimCruisePlayerCameraManager::ViewName(ESimCruiseView InView)
 
 void ASimCruisePlayerCameraManager::CycleView()
 {
-	SetView(static_cast<ESimCruiseView>((static_cast<uint8>(View) + 1) % 3));
+	SetView(static_cast<ESimCruiseView>((static_cast<uint8>(View) + 1) % SimCruiseViewCount));
 }
 
 void ASimCruisePlayerCameraManager::SetView(ESimCruiseView InView)
@@ -108,6 +142,16 @@ void ASimCruisePlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float 
 	const USimCruiseCarPresentationComponent* Car = Pawn->FindComponentByClass<USimCruiseCarPresentationComponent>();
 	const bool bHasCabin = !Car || Car->GetCarId().IsEmpty() || Car->HasSteeringWheel();
 	const ESimCruiseView Shown = (View == ESimCruiseView::Driver && !bHasCabin) ? ESimCruiseView::Chase : View;
+	// Free look: the head turns toward the stick quickly (about 0.15 s) and back to the road a
+	// little slower when it is let go, as a glance does.
+	{
+		const double Rate = 1.0 - FMath::Exp(-FMath::Max(static_cast<double>(DeltaTime), 0.0) / (LookInput.IsNearlyZero(0.05) ? 0.22 : 0.15));
+		const FVector2D Clamped(FMath::Clamp(LookInput.X, -1.0, 1.0), FMath::Clamp(LookInput.Y, -1.0, 1.0));
+		LookYawDeg += (Clamped.X * LookMaxYawDeg - LookYawDeg) * Rate;
+		LookPitchDeg += (Clamped.Y * LookMaxPitchDeg - LookPitchDeg) * Rate;
+	}
+	// A little wider with speed (up to 6 % at 130 km/h), as the eye's attention spreads: the speed reads.
+	const double SpeedWiden = 1.0 + 0.06 * FMath::Clamp(FMath::Abs(Telemetry.BodyVelocityMps.X) / 36.0, 0.0, 1.0);
 	ShownView = Shown;
 
 	if (Shown == ESimCruiseView::Driver)
@@ -117,13 +161,31 @@ void ASimCruisePlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float 
 			Head.Reset();
 		}
 		Head.HeadMotion = CVarHeadMotion.GetValueOnGameThread();
-		const FSimCruiseEyePose Eye = Head.Update(Body, WorldVelocityMps, Setup, Telemetry, DeltaTime);
+		// The driver's own seat: the eye moved in the car's frame (X forward, Z up).
+		FSimCruiseVehicleSetup Seated = Setup;
+		Seated.DriverEyeLocalCm += FVector(Seat.ForwardCm, 0.0, Seat.UpCm);
+		const FSimCruiseEyePose Eye = Head.Update(Body, WorldVelocityMps, Seated, Telemetry, DeltaTime);
 		OutVT.POV.Location = Eye.Location;
-		OutVT.POV.Rotation = Eye.ToRotator();
+		// The view tilted down (negative) or up about the eye's own side axis.
+		const FQuat Tilt(FVector::CrossProduct(Eye.Up, Eye.Forward).GetSafeNormal(), FMath::DegreesToRadians(-Seat.PitchDeg));
+		OutVT.POV.Rotation = Looked((Tilt * Eye.ToRotator().Quaternion()).Rotator(), Body);
 		const double HeightCm = CVarScreenHeightCm.GetValueOnGameThread() > 0.f ? CVarScreenHeightCm.GetValueOnGameThread()
 			: SimCruiseLens::ScreenHeightCm(CVarScreenInches.GetValueOnGameThread(), Aspect);
-		const double Vertical = SimCruiseLens::VerticalFovDeg(Lens, HeightCm, CVarViewDistanceCm.GetValueOnGameThread());
+		const double Vertical = SpeedWiden * (Seat.FovDeg > 0.0 ? Seat.FovDeg : SimCruiseLens::VerticalFovDeg(Lens, HeightCm, CVarViewDistanceCm.GetValueOnGameThread()));
 		OutVT.POV.FOV = static_cast<float>(SimCruiseLens::HorizontalFromVerticalDeg(Vertical, Aspect));
+		bSnap = false;
+		return;
+	}
+	if (Shown == ESimCruiseView::Hood)
+	{
+		// On the car's centre line just ahead of the windscreen, a little under the eye's height (115 cm ahead,
+		// 8 cm lower), past the windscreen's foot: the hood fills the foot of the picture. Rides the body, half its roll.
+		const FVector Local = FVector(Setup.DriverEyeLocalCm.X + 115.0, 0.0, Setup.DriverEyeLocalCm.Z - 8.0);
+		OutVT.POV.Location = Body.TransformPosition(Local);
+		FRotator Rotation = Body.Rotator();
+		Rotation.Roll *= 0.5;
+		OutVT.POV.Rotation = Looked(Rotation, Body);
+		OutVT.POV.FOV = static_cast<float>(SimCruiseLens::HorizontalFromVerticalDeg(SpeedWiden * SimCruiseLens::NaturalVerticalDeg, Aspect));
 		bSnap = false;
 		return;
 	}
@@ -157,5 +219,17 @@ void ASimCruisePlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float 
 	OutVT.POV.Location = Goal;
 	OutVT.POV.Rotation = (LookAt - Goal).Rotation();
 	OutVT.POV.Rotation.Roll = 0.0;
-	OutVT.POV.FOV = static_cast<float>(SimCruiseLens::HorizontalFromVerticalDeg(SimCruiseLens::ChaseVerticalDeg, Aspect));
+	OutVT.POV.FOV = static_cast<float>(SimCruiseLens::HorizontalFromVerticalDeg(SpeedWiden * SimCruiseLens::ChaseVerticalDeg, Aspect));
+}
+
+FRotator ASimCruisePlayerCameraManager::Looked(const FRotator& Gaze, const FTransform& Body) const
+{
+	if (FMath::Abs(LookYawDeg) < 0.01 && FMath::Abs(LookPitchDeg) < 0.01)
+	{
+		return Gaze;
+	}
+	const FQuat Yaw(Body.GetRotation().GetUpVector(), FMath::DegreesToRadians(LookYawDeg));
+	const FQuat Turned = Yaw * Gaze.Quaternion();
+	const FQuat Pitch(Turned.GetRightVector(), FMath::DegreesToRadians(-LookPitchDeg));
+	return (Pitch * Turned).Rotator();
 }

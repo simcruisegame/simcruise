@@ -512,13 +512,17 @@ void SSimCruiseRoadAtlas::Construct(const FArguments& InArgs)
 	OnSetting = InArgs._OnSetting;
 	OnClose = InArgs._OnClose;
 	TSharedRef<SHorizontalBox> SettingsRow = SNew(SHorizontalBox);
+	SettingsRow->AddSlot().AutoWidth().VAlign(VAlign_Center).Padding(0, 0, 10, 0)[Label(TEXT("Settings"), 14, SimCruiseUiStyle::Dim())];
 	// The cockpit settings (0-6) sit with the car; the stick and trigger ones (7-10) get a row of their own.
 	TSharedRef<SHorizontalBox> ControlsRow = SNew(SHorizontalBox);
 	ControlsRow->AddSlot().AutoWidth().VAlign(VAlign_Center).Padding(0, 0, 10, 0)[Label(TEXT("Controls"), 14, SimCruiseUiStyle::Dim())];
-	for (int32 Index = 0; Index < 11; ++Index)
+	// Your car (11-12): the tuning and the seat and view menus, one press away.
+	TSharedRef<SHorizontalBox> CarRow = SNew(SHorizontalBox);
+	CarRow->AddSlot().AutoWidth().VAlign(VAlign_Center).Padding(0, 0, 10, 0)[Label(TEXT("Your car"), 14, SimCruiseUiStyle::Dim())];
+	for (int32 Index = 0; Index < 14; ++Index)
 	{
 		TSharedPtr<STextBlock> Text;
-		(Index < 7 ? SettingsRow : ControlsRow)->AddSlot().AutoWidth().Padding(0, 0, 8, 0)
+		(Index < 7 || Index == 13 ? SettingsRow : Index < 11 ? ControlsRow : CarRow)->AddSlot().AutoWidth().Padding(0, 0, 8, 0)
 		[
 			SNew(SButton)
 			// The pad's cursor lights its setting.
@@ -588,10 +592,6 @@ void SSimCruiseRoadAtlas::Construct(const FArguments& InArgs)
 							SAssignNew(GearLabel, STextBlock).Font(Font(14)).ColorAndOpacity(SimCruiseUiStyle::Paper())
 						]
 					]
-					+ SHorizontalBox::Slot().AutoWidth()
-					[
-						SettingsRow
-					]
 					+ SHorizontalBox::Slot().FillWidth(1.f).HAlign(HAlign_Right).VAlign(VAlign_Center)
 					[
 						Label(TEXT("D-pad ◀ ▶: pick a setting, A: change it  ·  Stick or drag: move  ·  D-pad ▲ ▼, wheel or +/−: zoom  ·  A or Enter: drive here  ·  X: find  ·  Y: recenter  ·  RB: car  ·  B: back"), 12, SimCruiseUiStyle::Dim())
@@ -599,7 +599,15 @@ void SSimCruiseRoadAtlas::Construct(const FArguments& InArgs)
 				]
 				+ SVerticalBox::Slot().AutoHeight().Padding(0, 8, 0, 0)
 				[
+					SettingsRow
+				]
+				+ SVerticalBox::Slot().AutoHeight().Padding(0, 8, 0, 0)
+				[
 					ControlsRow
+				]
+				+ SVerticalBox::Slot().AutoHeight().Padding(0, 8, 0, 0)
+				[
+					CarRow
 				]
 			]
 		]

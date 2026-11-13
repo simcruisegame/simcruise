@@ -30,6 +30,8 @@ ASimCruiseDriveCapture::ASimCruiseDriveCapture()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickGroup = TG_PostPhysics;
+	// The menus pause the game; their shots still need this clock.
+	PrimaryActorTick.bTickEvenWhenPaused = true;
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 }
 
@@ -137,6 +139,21 @@ void ASimCruiseDriveCapture::Tick(float DeltaSeconds)
 	APawn* Pawn = Player ? Player->GetPawn() : nullptr;
 	const double Now = FPlatformTime::Seconds();
 	const bool bShadersBusy = GShaderCompilingManager && GShaderCompilingManager->GetNumRemainingJobs() > 0;
+	// -SimCruiseSeat=up,forward,pitch,fov (cm, cm, deg, deg tall; 0 = the lens): a seat to check.
+	FString SeatText;
+	if (Player && FParse::Value(FCommandLine::Get(), TEXT("SimCruiseSeat="), SeatText, false))
+	{
+		TArray<FString> Parts;
+		SeatText.ParseIntoArray(Parts, TEXT(","));
+		if (ASimCruisePlayerCameraManager* SeatCamera = Cast<ASimCruisePlayerCameraManager>(Player->PlayerCameraManager); SeatCamera && Parts.Num() == 4)
+		{
+			SeatCamera->Seat.UpCm = FCString::Atod(*Parts[0]);
+			SeatCamera->Seat.ForwardCm = FCString::Atod(*Parts[1]);
+			SeatCamera->Seat.PitchDeg = FCString::Atod(*Parts[2]);
+			SeatCamera->Seat.FovDeg = FCString::Atod(*Parts[3]);
+			SeatCamera->Seat.Clamp();
+		}
+	}
 
 	switch (Stage)
 	{
@@ -239,8 +256,29 @@ void ASimCruiseDriveCapture::Tick(float DeltaSeconds)
 		}
 		if (Crossed(14.3f) && Hud) { Hud->SetLevel(ESimCruiseHudLevel::Glance); }
 		if (Crossed(15.0f)) { Shoot(TEXT("drive-cockpit-moving"), true); }
-		if (Crossed(15.2f) && Camera) { Camera->SetView(ESimCruiseView::Chase); }
-		if (Crossed(17.0f)) { Shoot(TEXT("drive-chase-moving"), true); }
+		if (Crossed(15.1f) && Camera) { Camera->SetView(ESimCruiseView::Hood); }
+		if (Crossed(15.6f)) { Shoot(TEXT("drive-hood-moving"), true); }
+		if (Crossed(15.7f) && Camera) { Camera->SetView(ESimCruiseView::Chase); }
+		if (Crossed(16.6f)) { Shoot(TEXT("drive-chase-moving"), true); }
+		if (Crossed(16.7f) && Camera) { Camera->SetView(ESimCruiseView::FarChase); }
+		if (Crossed(17.15f)) { Shoot(TEXT("drive-farchase-moving"), true); }
+		// -SimCruiseShowMenus: once stopped, the seat & view menu over the live view, then the atlas.
+		if (MenusAt > 0.f)
+		{
+			if (Crossed(MenusAt + 1.5f)) { Shoot(TEXT("drive-seat-menu"), true); }
+			if (Crossed(MenusAt + 1.8f)) { Player->CloseOverlays(); Player->OpenRoadAtlas(); }
+			if (Crossed(MenusAt + 4.0f)) { Shoot(TEXT("drive-atlas"), true); }
+			if (Clock > MenusAt + 4.5f) { Player->CloseOverlays(); Finish(); }
+			break;
+		}
+		if (Clock > 18.0f && FMath::Abs(Speed) < 0.3f && FParse::Param(FCommandLine::Get(), TEXT("SimCruiseShowMenus")))
+		{
+			Player->InjectAxis(EKeys::Gamepad_LeftTriggerAxis, 0.f);
+			if (Camera) { Camera->SetView(ESimCruiseView::Driver); }
+			Player->OpenSeatMenu();
+			MenusAt = Clock;
+			break;
+		}
 		if (Clock > 18.0f && FMath::Abs(Speed) < 0.3f)
 		{
 			Player->InjectAxis(EKeys::Gamepad_LeftTriggerAxis, 0.f);

@@ -19,7 +19,9 @@ namespace SimCruiseDynamics
 			double BiasRatio)
 		{
 			const double HalfTorqueNm = AxleTorqueNm * 0.5;
-			if (!bIsDriveTorque || DeltaTimeS <= 0.0 || BiasRatio <= 1.0)
+			// The caller passes the drive or the coast bias: a torque-sensing (Torsen) differential biases
+			// engine braking as well as drive.
+			if (DeltaTimeS <= 0.0 || BiasRatio <= 1.0)
 			{
 				return TPair<double, double>(HalfTorqueNm, HalfTorqueNm);
 			}
@@ -131,7 +133,7 @@ namespace SimCruiseDynamics
 		if (Car.DrivetrainLayout == TEXT("fwd"))
 		{
 			const TPair<double, double> Front = SplitAxleTorque(AxleTorqueNm, W[0], W[1], I, DeltaTimeS, bIsDriveTorque,
-				Car.FrontDifferentialBiasRatio);
+				bIsDriveTorque ? Car.FrontDifferentialBiasRatio : 1.0);
 			OutWheelTorquesNm[0] = Front.Key;
 			OutWheelTorquesNm[1] = Front.Value;
 			return;
@@ -154,13 +156,13 @@ namespace SimCruiseDynamics
 			}
 
 			const TPair<double, double> Front = SplitAxleTorque(FrontTorqueNm, W[0], W[1], I, DeltaTimeS, bIsDriveTorque,
-				Car.FrontDifferentialBiasRatio);
+				bIsDriveTorque ? Car.FrontDifferentialBiasRatio : 1.0);
 			OutWheelTorquesNm[0] = Front.Key;
 			OutWheelTorquesNm[1] = Front.Value;
 		}
 
 		const TPair<double, double> Rear = SplitAxleTorque(RearTorqueNm, W[2], W[3], I, DeltaTimeS, bIsDriveTorque,
-			Car.RearDifferentialBiasRatio);
+			bIsDriveTorque ? Car.RearDifferentialBiasRatio : Car.RearDifferentialCoastBiasRatio);
 		OutWheelTorquesNm[2] = Rear.Key;
 		OutWheelTorquesNm[3] = Rear.Value;
 	}

@@ -59,6 +59,17 @@ struct SIMCRUISE_API FSimCruiseCarVisualState
 	/** Tail and head lamps on. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SimCruise|Presentation")
 	bool bLamps = false;
+
+	/** For the instruments: road speed (m/s, as the speedometer reads it) and engine speed. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SimCruise|Presentation")
+	float SpeedMps = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SimCruise|Presentation")
+	float EngineRpm = 0.f;
+
+	/** The engine is running (the gauges rest when it is not). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SimCruise|Presentation")
+	bool bEngineRunning = true;
 };
 
 UINTERFACE(MinimalAPI, BlueprintType)
@@ -232,6 +243,23 @@ private:
 	float ClockCheck = 0.f;
 	FString LastError;
 	TArray<FString> RigLog;
+
+	/** The live dial faces (one render target each) and the values their needles show. */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UTextureRenderTarget2D>> DialTargets;
+	TArray<double> DialShown;
+	TArray<double> DialDrawn;
+	FSimCruiseCarVisualState LastState;
+	float DialClock = 0.f;
+	void UpdateDials(float DeltaTime);
+	void DrawDial(int32 Index, double Value);
+
+public:
+	/** The value a dial's needle shows now (tests and the pre-flight check), NaN when the car has no such dial. */
+	double GetDialValue(const FString& Quantity) const;
+	int32 GetDialCount() const { return DialTargets.Num(); }
+	/** The value a dial should show for a car state (speed in its unit, rpm, or 0..1 for the small gauges). */
+	static double DialTarget(const FString& Quantity, const FSimCruiseCarVisualState& State);
 };
 
 /** A car body on its own (turntable, showroom, parked cars): a presentation component as root. */

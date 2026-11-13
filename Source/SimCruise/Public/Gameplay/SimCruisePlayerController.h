@@ -89,7 +89,7 @@ private:
 	void TickSelfTest(float DeltaTime);
 	void TickCapture(float DeltaTime);
 	ASimCruiseHUD* GetSimHUD() const;
-	void ShowOverlay(const TSharedRef<SWidget>& Widget, const TSharedPtr<SWidget>& Focus);
+	void ShowOverlay(const TSharedRef<SWidget>& Widget, const TSharedPtr<SWidget>& Focus, bool bPause = true);
 	void ChoosePlace(const FSimCruisePlace& Place);
 	/** The atlas's cockpit settings: 0 sound, 1 HUD level, 2 head motion, 3 rumble strength. */
 	void ChangeSetting(int32 Index);
@@ -116,6 +116,9 @@ public:
 	/** Open the tuning menu for the car being driven (tests call it directly). */
 	void OpenTuning();
 	TSharedPtr<class SSimCruiseTuningMenu> GetTuningMenu() const { return TuningPanel; }
+	/** Open the seat and view menu over the live driver's view. */
+	void OpenSeatMenu();
+	TSharedPtr<class SSimCruiseSeatMenu> GetSeatMenu() const { return SeatPanel; }
 
 	/** Engine sound on (M toggles it). */
 	bool IsSoundOn() const { return bSoundOn; }
@@ -150,6 +153,12 @@ protected:
 	TSharedPtr<SSimCruisePlaceSearch> SearchPanel;
 	TSharedPtr<SSimCruiseRoadAtlas> AtlasPanel;
 	TSharedPtr<class SSimCruiseTuningMenu> TuningPanel;
+	TSharedPtr<class SSimCruiseSeatMenu> SeatPanel;
+	/** A tuning saved on the move, waiting for the stop. */
+	bool bTuningWaits = false;
+	bool bMenuHintShown = false;
+	/** The car whose seat the camera has (reloaded when the car changes). */
+	FString SeatCarId;
 	FString PendingMessage;
 	float PendingMessageSeconds = 0.f;
 

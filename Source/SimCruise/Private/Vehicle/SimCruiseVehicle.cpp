@@ -86,6 +86,14 @@ bool ASimCruiseVehicle::ApplyTuning(const FSimCruiseTuning& InTuning, bool bSave
 	const FSimCruiseTuning Stock = GetStockTuning();
 	Tuning = InTuning;
 	Tuning.Clamp(Stock);
+	// A new definition resets the drivetrain, so a car on the move keeps its setup until it
+	// stops (Tick applies it then); the save happens now.
+	if (bSave && FMath::Abs(VehicleMovement->GetTelemetry().SpeedMps) > 1.0)
+	{
+		bTuningPending = true;
+		return Tuning.Save(RealCar.Id);
+	}
+	bTuningPending = false;
 	const FSimCruiseCarDefinition Tuned = Tuning.Apply(RealCar, Stock);
 	// The new definition resets the drivetrain, not where the car stands.
 	ApplyBodyShape(Tuned);
@@ -424,6 +432,11 @@ void ASimCruiseVehicle::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	UpdateHeadLamps();
+	// A setup saved on the move goes on when the car has stopped.
+	if (bTuningPending && FMath::Abs(VehicleMovement->GetTelemetry().SpeedMps) < 0.5)
+	{
+		ApplyTuning(Tuning, false);
+	}
 	// Rain on the road reaches the tyres' grip.
 	if (const USimCruiseEnvironmentSubsystem* Environments = USimCruiseEnvironmentSubsystem::Get(GetWorld()))
 	{
@@ -600,6 +613,10 @@ void ASimCruiseVehicle::ToVisualState(const FSimCruiseCarDefinition& Car, const 
 		W.SuspensionTravelCm = static_cast<float>(Car.StaticSuspensionLengthM * 100.0 - V.SuspensionLengthCm);
 	}
 	Out.bBrake = In.bServiceBrake;
+	// The instruments: the speedometer reads the road speed along the car, the tachometer the engine.
+	Out.SpeedMps = static_cast<float>(FMath::Abs(In.ForwardSpeedMps));
+	Out.EngineRpm = static_cast<float>(In.EngineRpm);
+	Out.bEngineRunning = !In.bStalled;
 }
 
 bool ASimCruiseVehicle::AreLampsWanted() const

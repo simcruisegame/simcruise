@@ -71,6 +71,39 @@ struct FSimCruiseClockSpec
 	double RadioMHz = 0.0;
 };
 
+/**
+ * A dashboard dial drawn live over the model's own (whose needle is part of the dash mesh): a face
+ * with ticks, numerals and a needle at the car's value, just in front of the model's dial hub.
+ * Centre, normal, radius and offset in the vehicle frame (Godot axes: x right, y up, z rearward; metres), as a steering-wheel rim is given.
+ */
+struct FSimCruiseDialSpec
+{
+	/** speed_mph, speed_kmh, rpm, coolant, fuel, oil_pressure. */
+	FString Quantity;
+	FVector Centre = FVector::ZeroVector;
+	/** Toward the driver. */
+	FVector Normal = FVector(0, 0, 1);
+	/** The face's radius, m. */
+	double Radius = 0.05;
+	/** Where the face is drawn along the normal from the centre (the model's hub), m. */
+	double Offset = 0.0015;
+	/** Scale: the value at the start and the end of the sweep. */
+	double MinValue = 0.0;
+	double MaxValue = 1.0;
+	/** Needle sweep: start angle clockwise from 12 o'clock as the driver sees it, and its span, degrees. */
+	double StartDeg = -135.0;
+	double SweepDeg = 270.0;
+	/** Ticks: major every MajorStep (labelled, divided by LabelDivisor), MinorPerMajor between. */
+	double MajorStep = 1.0;
+	int32 MinorPerMajor = 1;
+	double LabelDivisor = 1.0;
+	/** Red from this value (0 = none). */
+	double RedFrom = 0.0;
+	/** Words at the ends instead of numerals (C/H, E/F, L/H), and a caption under the hub. */
+	FString StartLabel;
+	FString EndLabel;
+	FString Caption;
+};
 struct FSimCruiseCarPresentationProfile
 {
 	FString CarId;
@@ -124,6 +157,9 @@ struct FSimCruiseCarPresentationProfile
 
 	/** Set when the model's dashboard has a clock to drive. */
 	TOptional<FSimCruiseClockSpec> Clock;
+
+	/** Dials drawn live over the model's (speedometer, tachometer, gauges). */
+	TArray<FSimCruiseDialSpec> Dials;
 
 	/** Steering-wheel override: node-name substring, explicit rim (vehicle frame, metres) or none. */
 	FString SteeringWheelNode;

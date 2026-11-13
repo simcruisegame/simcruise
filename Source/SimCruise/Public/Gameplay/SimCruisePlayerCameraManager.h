@@ -8,6 +8,30 @@
 #include "SimCruisePlayerCameraManager.generated.h"
 
 /**
+ * The driver's own seat and view for one car (the seat & view menu), saved in preferences.json
+ * as "seat_<car id>": the eye moved from the car's driver_eye, the view's tilt, and its own
+ * vertical field of view (0 = the lens's).
+ */
+struct SIMCRUISE_API FSimCruiseSeat
+{
+	double UpCm = 0.0;
+	double ForwardCm = 0.0;
+	double PitchDeg = 0.0;
+	double FovDeg = 0.0;
+
+	static constexpr double MaxUpCm = 10.0;
+	static constexpr double MaxForwardCm = 15.0;
+	static constexpr double MaxPitchDeg = 8.0;
+	static constexpr double MinFovDeg = 30.0;
+	static constexpr double MaxFovDeg = 75.0;
+
+	void Clamp();
+	bool IsDefault() const { return UpCm == 0.0 && ForwardCm == 0.0 && PitchDeg == 0.0 && FovDeg == 0.0; }
+	static FSimCruiseSeat Load(const FString& CarId);
+	void Save(const FString& CarId) const;
+};
+
+/**
  * Driver, chase and scenic views for a pawn that implements
  * ISimCruiseVehicleControl. Driver: the lagged head model at the car's
  * driver_eye through the chosen lens (natural 45 deg vertical by default).
@@ -39,6 +63,24 @@ public:
 
 	FSimCruiseHeadModel& GetHeadModel() { return Head; }
 	const FSimCruiseChaseFrame& GetChaseFrame() const { return Chase; }
+
+	/** The driver's seat and view for the car being driven (applied every frame, live). */
+	FSimCruiseSeat Seat;
+
+	/** Free look from the seat or the hood: the right stick (-1..1 each way); the head turns
+	 *  toward it and comes back to the road when it is let go. */
+	void SetLookInput(const FVector2D& Stick) { LookInput = Stick; }
+	static constexpr double LookMaxYawDeg = 110.0;
+	static constexpr double LookMaxPitchDeg = 35.0;
+	FVector2D GetLookDeg() const { return FVector2D(LookYawDeg, LookPitchDeg); }
+
+private:
+	FVector2D LookInput = FVector2D::ZeroVector;
+	double LookYawDeg = 0.0;
+	double LookPitchDeg = 0.0;
+	/** Turn the eye's view by the free look (about the car's up, then the eye's side). */
+	FRotator Looked(const FRotator& Gaze, const FTransform& Body) const;
+public:
 
 private:
 	ESimCruiseView View = ESimCruiseView::Driver;

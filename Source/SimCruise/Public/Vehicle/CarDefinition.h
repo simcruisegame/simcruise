@@ -175,6 +175,8 @@ struct FSimCruiseCarDefinition
 	/** Closed-throttle pumping loss above idle (scaled by 1 - throttle), N m and N m per rpm. */
 	double EnginePumpingTorqueNm = 0.0;
 	double EnginePumpingTorqueNmPerRpm = 0.0;
+	/** How fast the throttle plate's flow saturates (SimCruiseDynamics::EngineLoad): 0 = pedal is load; 3 = a light pedal gives 70 % load at 1500 rpm, 35 % at 6000. */
+	double ThrottleProgression = 3.0;
 	double MinimumAutomaticEngineSpeedRadPerSecond = 78.0;
 	double MaximumEngineSpeedRadPerSecond = 750.0;
 	double StallEngineSpeedRadPerSecond = 35.0;
@@ -221,6 +223,8 @@ struct FSimCruiseCarDefinition
 	double AwdFrontTorqueShareFraction = 0.5;
 	double FrontDifferentialBiasRatio = 1.0;
 	double RearDifferentialBiasRatio = 2.0;
+	/** The rear differential's bias under engine braking (1 = open on the coast side, the default). */
+	double RearDifferentialCoastBiasRatio = 1.0;
 	double CenterDifferentialBiasRatio = 1.0;
 	bool bTractionControlEnabled = false;
 	double TractionControlTargetSlipRatio = 0.0;
@@ -248,6 +252,8 @@ struct FSimCruiseCarDefinition
 	double MaximumTireContactLoadN = 14200.0;
 	TArray<double> StaticCamberDegByAxle = {-0.53, -1.10};
 	TArray<double> CamberGainDegPerMByAxle = {23.0, 25.0};
+	/** Roll-centre height above the ground per axle, m (0 = at the ground: all load transfer through the springs). */
+	TArray<double> RollCentreHeightMByAxle = {0.0, 0.0};
 	double CasterAngleDeg = 6.0;
 	double ToeAngleDegPerWheel = 0.15;
 	double UnsprungMassKgPerCorner = 23.0;

@@ -12,6 +12,7 @@
 #include "Engine/Engine.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Gameplay/SimCruiseAtlasUI.h"
+#include "Gameplay/SimCruiseSeatUI.h"
 #include "Gameplay/SimCruiseTuningUI.h"
 #include "Gameplay/SimCruiseGameMode.h"
 #include "Gameplay/SimCruisePreferences.h"
@@ -148,6 +149,12 @@ void ASimCruisePlayerController::OnPossess(APawn* InPawn)
 			Tunable->LoadSavedTuning();
 		}
 	}
+	// Where the car's own menus are, once a session (the 2.0.0 playtest could not find them).
+	if (!bMenuHintShown && Cast<ASimCruiseVehicle>(InPawn))
+	{
+		bMenuHintShown = true;
+		ShowMessage(TEXT("Menu: map and settings  ·  D-pad Right: tune the car  ·  Menu, then D-pad to Seat & view"), 9.f);
+	}
 	if (ISimCruiseVehicleControl* Vehicle = GetVehicle())
 	{
 		Setup = Vehicle->GetVehicleSetup();
@@ -221,6 +228,12 @@ FSimCruiseRawControls ASimCruisePlayerController::ReadRawControls() const
 	Raw.bKeyThrottle = Held(InputConfig->ThrottleKey);
 	Raw.bKeyBrake = Held(InputConfig->BrakeKey);
 	Raw.bFullServiceBrake = Held(InputConfig->FullBrake);
+	// Parked with the seat menu open: held on the brakes.
+	if (SeatPanel.IsValid())
+	{
+		Raw.bFullServiceBrake = true;
+		Raw.bParkingBrake = true;
+	}
 	Raw.bParkingBrake = Held(InputConfig->ParkingBrake);
 	Raw.bClutch = Held(InputConfig->Clutch);
 	return Raw;
@@ -251,6 +264,8 @@ void ASimCruisePlayerController::PlayerTick(float DeltaTime)
 				if (Percent >= 0 && Var) Var->Set(Percent / 100.f, ECVF_SetByCode);
 			}
 			for (int32 i = 0; i < 3 && static_cast<int32>(Camera->GetLens()) != Lens; ++i) Camera->CycleLens();
+			const int32 TrafficCars = SimCruisePreferences::GetInt(TEXT("traffic_cars"), -1, -1, 60);
+			if (TrafficCars >= 0) if (IConsoleVariable* Var = IConsoleManager::Get().FindConsoleVariable(TEXT("simcruise.Traffic.Cars"))) Var->Set(TrafficCars, ECVF_SetByCode);
 			// The screen the true-FOV lens is computed for: diagonal in tenths of an inch, eye distance in cm.
 			const int32 Tenths = SimCruisePreferences::GetInt(TEXT("screen_tenths_inch"), -1, -1, 1000);
 			const int32 Distance = SimCruisePreferences::GetInt(TEXT("view_distance_cm"), -1, -1, 400);
@@ -275,6 +290,40 @@ void ASimCruisePlayerController::PlayerTick(float DeltaTime)
 		return;
 	}
 	Vehicle->GetVehicleTelemetry(Telemetry);
+	// A setup saved on the move went on at the stop: take its steering ratio and limits.
+	if (bTuningWaits)
+	{
+		const ASimCruiseVehicle* Tuned = Cast<ASimCruiseVehicle>(GetPawn());
+		if (!Tuned || !Tuned->HasPendingTuning())
+		{
+			bTuningWaits = false;
+			Setup = Vehicle->GetVehicleSetup();
+			if (Tuned)
+			{
+				ShowMessage(TEXT("New setup on"), 2.f);
+			}
+		}
+	}
+	// Free look on the right stick (its click stays the gearbox switch): a small dead zone, then
+	// the head turns toward it; nothing while a menu has the pad.
+	if (ASimCruisePlayerCameraManager* LookCamera = GetSimCamera())
+	{
+		FVector2D Stick(GetInputAnalogKeyState(EKeys::Gamepad_RightX), GetInputAnalogKeyState(EKeys::Gamepad_RightY));
+		if (IsOverlayOpen() || Stick.Size() < 0.18) Stick = FVector2D::ZeroVector;
+		LookCamera->SetLookInput(Stick);
+	}
+	// This car's seat and view, as the driver left them.
+	if (const ASimCruiseVehicle* Seated = Cast<ASimCruiseVehicle>(GetPawn()))
+	{
+		if (Seated->GetRealCar().Id != SeatCarId)
+		{
+			SeatCarId = Seated->GetRealCar().Id;
+			if (ASimCruisePlayerCameraManager* Camera = GetSimCamera())
+			{
+				Camera->Seat = FSimCruiseSeat::Load(SeatCarId);
+			}
+		}
+	}
 	FSimCruiseRawControls Raw = ReadRawControls();
 	UpdateWheel(Raw, DeltaTime);
 	if (FMath::Abs(Raw.PadSteer) > 0.0 || Raw.PadThrottle > 0.0 || Raw.PadBrake > 0.0)
@@ -463,11 +512,7 @@ void ASimCruisePlayerController::OnTuning()
 		CloseOverlays();
 		return;
 	}
-	if (FMath::Abs(Telemetry.BodyVelocityMps.X) > 1.0)
-	{
-		ShowMessage(TEXT("Stop the car to tune it"), 2.f);
-		return;
-	}
+	// Open anywhere (the car waits while you choose); a setup saved on the move goes on at the next stop.
 	OpenTuning();
 }
 
@@ -490,7 +535,13 @@ void ASimCruisePlayerController::OpenTuning()
 			{
 				Setup = Vehicle->GetVehicleSetup();
 			}
-			if (Result == SSimCruiseTuningMenu::ETuningResult::Saved)
+			const ASimCruiseVehicle* Tuned = Cast<ASimCruiseVehicle>(GetPawn());
+			if (Result == SSimCruiseTuningMenu::ETuningResult::Saved && Tuned && Tuned->HasPendingTuning())
+			{
+				bTuningWaits = true;
+				ShowMessage(TEXT("Setup saved: it goes on when you stop"), 3.f);
+			}
+			else if (Result == SSimCruiseTuningMenu::ETuningResult::Saved)
 			{
 				ShowMessage(TEXT("Setup saved for this car"), 2.f);
 			}
@@ -504,6 +555,42 @@ void ASimCruisePlayerController::OpenTuning()
 			}
 		});
 	ShowOverlay(TuningPanel.ToSharedRef(), TuningPanel);
+}
+
+void ASimCruisePlayerController::OpenSeatMenu()
+{
+	ASimCruiseVehicle* Car = Cast<ASimCruiseVehicle>(GetPawn());
+	ASimCruisePlayerCameraManager* Camera = GetSimCamera();
+	if (!Car || !Camera)
+	{
+		return;
+	}
+	// A seat is set parked: the menu keeps the world running and the car on its brakes.
+	if (FMath::Abs(Telemetry.BodyVelocityMps.X) > 1.0)
+	{
+		CloseOverlays();
+		ShowMessage(TEXT("Stop the car to set your seat"), 2.f);
+		return;
+	}
+	CloseOverlays();
+	// The seat is set from the seat: the driver's view while the menu is open.
+	const ESimCruiseView Before = Camera->GetView();
+	Camera->SetView(ESimCruiseView::Driver);
+	SeatPanel = SNew(SSimCruiseSeatMenu)
+		.Camera(Camera)
+		.CarId(Car->GetRealCar().Id)
+		.CarName(Car->GetRealCar().Name)
+		.OnClose_Lambda([this, Before]()
+		{
+			const bool bSaved = SeatPanel.IsValid() && SeatPanel->WasSaved();
+			CloseOverlays();
+			if (ASimCruisePlayerCameraManager* Cam = GetSimCamera())
+			{
+				Cam->SetView(Before);
+			}
+			ShowMessage(bSaved ? TEXT("Seat and view saved for this car") : TEXT("Seat and view unchanged"), 2.f);
+		});
+	ShowOverlay(SeatPanel.ToSharedRef(), SeatPanel, false);
 }
 
 void ASimCruisePlayerController::OnFindPlace()
@@ -563,11 +650,15 @@ FSimCruiseAtlasView ASimCruisePlayerController::AtlasView() const
 		FString::Printf(TEXT("Throttle trigger · %s"), SimCruiseSettingValue(TEXT("simcruise.TriggerGamma")) < 1.2f ? TEXT("Linear")
 			: SimCruiseSettingValue(TEXT("simcruise.TriggerGamma")) < 1.6f ? TEXT("Gentle") : SimCruiseSettingValue(TEXT("simcruise.TriggerGamma")) < 2.1f ? TEXT("Progressive")
 			: TEXT("Very progressive")),
+		TEXT("Tune car..."),
+		TEXT("Seat & view..."),
+		FString::Printf(TEXT("Traffic · %s"), SimCruiseSettingValue(TEXT("simcruise.Traffic.Cars")) < 0.5f ? TEXT("Off")
+			: SimCruiseSettingValue(TEXT("simcruise.Traffic.Cars")) < 12.f ? TEXT("Light") : TEXT("Normal")),
 	};
 	return View;
 }
 
-void ASimCruisePlayerController::ShowOverlay(const TSharedRef<SWidget>& Widget, const TSharedPtr<SWidget>& Focus)
+void ASimCruisePlayerController::ShowOverlay(const TSharedRef<SWidget>& Widget, const TSharedPtr<SWidget>& Focus, bool bPause)
 {
 	if (!GEngine || !GEngine->GameViewport)
 	{
@@ -580,7 +671,9 @@ void ASimCruisePlayerController::ShowOverlay(const TSharedRef<SWidget>& Widget, 
 	OverlayWidget = Widget;
 	GEngine->GameViewport->AddViewportWidgetContent(Widget, 50);
 	// The car waits while you choose (Drive.gd froze it with a menu open); pad and keys go to the screen.
-	SetPause(true);
+	// The seat menu keeps the world running (a paused frame smears in the temporal filters) and holds
+	// the parked car on its brakes instead.
+	SetPause(bPause);
 	FInputModeUIOnly Mode;
 	Mode.SetWidgetToFocus(Focus.IsValid() ? Focus : TSharedPtr<SWidget>(Widget));
 	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
@@ -667,6 +760,18 @@ void ASimCruisePlayerController::ChangeSetting(int32 Index)
 	case 8: Step(TEXT("simcruise.Pad.SteerLinearity"), { 0.f, 0.5f, 1.f }, TEXT("pad_steer_linearity")); break;
 	case 9: Step(TEXT("simcruise.Pad.SteerDeadZone"), { 0.f, 0.05f, 0.1f, 0.15f }, TEXT("pad_steer_dead_zone")); break;
 	case 10: Step(TEXT("simcruise.TriggerGamma"), { 1.8f, 2.4f, 1.f, 1.4f }, TEXT("trigger_gamma")); break;
+	// The atlas closes and the menu opens in its place.
+	case 11: OpenTuning(); break;
+	case 12: OpenSeatMenu(); break;
+	case 13:
+	{
+		// Normal (20 cars about you), light (8) or none; remembered as the car count.
+		const float Now = SimCruiseSettingValue(TEXT("simcruise.Traffic.Cars"));
+		const int32 Next = Now > 12.f ? 8 : Now > 0.5f ? 0 : 20;
+		if (IConsoleVariable* Var = IConsoleManager::Get().FindConsoleVariable(TEXT("simcruise.Traffic.Cars"))) Var->Set(Next, ECVF_SetByCode);
+		SimCruisePreferences::SetInt(TEXT("traffic_cars"), Next);
+		break;
+	}
 	default: break;
 	}
 }
@@ -682,6 +787,7 @@ void ASimCruisePlayerController::CloseOverlays()
 	SearchPanel.Reset();
 	AtlasPanel.Reset();
 	TuningPanel.Reset();
+	SeatPanel.Reset();
 	if (bWasOpen)
 	{
 		SetPause(false);
@@ -861,7 +967,7 @@ void ASimCruisePlayerController::TickSelfTest(float DeltaTime)
 		{
 			const int32 ViewNow = Camera ? static_cast<int32>(Camera->GetView()) : -1;
 			const int32 HudNow = Hud ? static_cast<int32>(Hud->GetLevel()) : -1;
-			if (ViewNow != (SelfTestViewBefore + 1) % 3) { Fail(TEXT("Y did not cycle the camera")); break; }
+			if (ViewNow != (SelfTestViewBefore + 1) % SimCruiseViewCount) { Fail(TEXT("Y did not cycle the camera")); break; }
 			if (HudNow != (SelfTestHudBefore + 1) % 3) { Fail(TEXT("X did not cycle the HUD")); break; }
 			InjectKey(EKeys::C, true);
 			InjectKey(EKeys::F2, true);
@@ -878,7 +984,7 @@ void ASimCruisePlayerController::TickSelfTest(float DeltaTime)
 		{
 			const int32 ViewNow = Camera ? static_cast<int32>(Camera->GetView()) : -1;
 			const int32 HudNow = Hud ? static_cast<int32>(Hud->GetLevel()) : -1;
-			if (ViewNow != (SelfTestViewBefore + 2) % 3) { Fail(TEXT("C did not cycle the camera")); break; }
+			if (ViewNow != (SelfTestViewBefore + 2) % SimCruiseViewCount) { Fail(TEXT("C did not cycle the camera")); break; }
 			if (HudNow != (SelfTestHudBefore + 2) % 3) { Fail(TEXT("F2 did not cycle the HUD")); break; }
 			Next();
 		}

@@ -74,6 +74,25 @@ namespace SimCruiseDynamics
 
 	static double GetAntiRollBarRateUnscaled(const FSimCruiseCarDefinition& Car, int32 AxleIndex);
 
+	double EngineLoad(const FSimCruiseCarDefinition& Car, double Pedal, double EngineRpm)
+	{
+		const double P = FMath::Clamp(Pedal, 0.0, 1.0);
+		const double K = Car.ThrottleProgression * 3000.0 / FMath::Max(EngineRpm, Car.IdleSpeedRpm);
+		if (K < 1.0e-3)
+		{
+			return P;
+		}
+		return (1.0 - FMath::Exp(-K * P)) / (1.0 - FMath::Exp(-K));
+	}
+
+	double RearBrakePedal(const FSimCruiseCarDefinition& Car, double Pedal)
+	{
+		// A proportioning valve: past its knee the rear line pressure rises at a fraction of the
+		// pedal's, so in a hard stop the fronts lock before the rears.
+		return Pedal <= Car.RearBrakeKneeFraction ? Pedal
+			: Car.RearBrakeKneeFraction + Car.RearBrakeSlopeAboveKnee * (Pedal - Car.RearBrakeKneeFraction);
+	}
+
 	double GetAntiRollBarRateNPerM(const FSimCruiseCarDefinition& Car, int32 AxleIndex)
 	{
 		return GetAntiRollBarRateUnscaled(Car, AxleIndex) * FMath::Max(GetAxleValue(Car.AntiRollBarScaleByAxle, AxleIndex, 1.0), 0.0);

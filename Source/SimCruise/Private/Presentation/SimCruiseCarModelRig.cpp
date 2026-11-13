@@ -988,7 +988,20 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 	}
 	FVector Hub[4];
 	for (int32 W = 0; W < 4; ++W) Hub[W] = ToVehicle(Centres[W]);
-	if (!bNamed || Profile.bRelabelWheels)
+	// Dials (Godot frame, metres, until step 10): the profile places them in the vehicle frame,
+	// as it does a steering-wheel rim; the lateral fit below scales them with the model.
+	TArray<FSimCruiseRiggedCar::FDial> DialsG;
+	for (int32 D = 0; D < Profile.Dials.Num(); ++D)
+	{
+		const FSimCruiseDialSpec& Spec = Profile.Dials[D];
+		FSimCruiseRiggedCar::FDial& Dial = DialsG.AddDefaulted_GetRef();
+		Dial.Spec = D;
+		Dial.Normal = Spec.Normal.GetSafeNormal();
+		Dial.CentreCm = Spec.Centre + Dial.Normal * Spec.Offset;
+		Dial.Up = (Up - Dial.Normal * (Up | Dial.Normal)).GetSafeNormal();
+		Dial.RadiusCm = Spec.Radius;
+		Context.Note(FString::Printf(TEXT("dial %s: centre %s, facing %s, radius %.3f m"), *Spec.Quantity, *V3(Dial.CentreCm), *V3(Dial.Normal), Dial.RadiusCm));
+	}	if (!bNamed || Profile.bRelabelWheels)
 	{
 		// Left/right and front/rear as the vehicle sees them.
 		FVector Relabelled[4];
@@ -1031,6 +1044,7 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 				for (FVector4& T : Job.Tan) T = FVector4(FVector(T.X * Lateral, T.Y, T.Z).GetSafeNormal(), T.W);
 			}
 			for (int32 W = 0; W < 4; ++W) Hub[W].X *= Lateral;
+			for (FSimCruiseRiggedCar::FDial& Dial : DialsG) Dial.CentreCm.X *= Lateral;
 			OutCar.LateralScale = Lateral;
 			Context.Note(FString::Printf(TEXT("lateral fit: model track %.3f m against the car's %.3f m, scaled across by %.4f"), ModelTrack, CarTrack, Lateral));
 		}
@@ -1633,6 +1647,15 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 		OutCar.Wheels[W].PartToVehicle = FTransform(OutCar.HubsCm[W]);
 		OutCar.Uprights[W].Name = FName(FString(WheelKeys[W]) + TEXT("_upright"));
 		OutCar.Uprights[W].PartToVehicle = FTransform(OutCar.HubsCm[W]);
+	}
+	for (const FSimCruiseRiggedCar::FDial& G : DialsG)
+	{
+		FSimCruiseRiggedCar::FDial& Dial = OutCar.Dials.AddDefaulted_GetRef();
+		Dial.Spec = G.Spec;
+		Dial.CentreCm = GodotToUnrealCm(G.CentreCm);
+		Dial.Normal = GodotToUnrealDir(G.Normal);
+		Dial.Up = GodotToUnrealDir(G.Up);
+		Dial.RadiusCm = G.RadiusCm * 100.0;
 	}
 	OutCar.Body.Name = TEXT("body");
 	OutCar.SteeringWheel.Name = TEXT("steering_wheel");
