@@ -1,0 +1,58 @@
+{
+  "model": "stabilityai/stable-diffusion-xl-base-1.0",
+  "licence": "CreativeML Open RAIL++-M",
+  "steps": 30,
+  "guidance": 6.0,
+  "size": 1024,
+  "negative": "shadow, vignette, perspective, horizon, sky, object, person, text, watermark, logo, border, frame, blurry, painting, illustration, 3d render, cartoon",
+  "slices": [
+    {
+      "index": 0,
+      "name": "asphalt",
+      "prompt": "worn asphalt road surface, grey bitumen with exposed small stone aggregate, fine cracks, top-down orthographic close-up photograph, seamless texture, flat overcast light, no shadows, no perspective, evenly lit, high detail, sharp focus, 1 metre across",
+      "seed": 20261113
+    },
+    {
+      "index": 1,
+      "name": "concrete",
+      "prompt": "weathered poured concrete slab, fine pores, small pits, faint stains, broom finish, top-down orthographic close-up photograph, seamless texture, flat overcast light, no shadows, no perspective, evenly lit, high detail, sharp focus, 1 metre across",
+      "seed": 20261114
+    },
+    {
+      "index": 2,
+      "name": "stucco",
+      "prompt": "painted exterior stucco plaster wall, fine sand float finish, slight unevenness, hairline cracks, top-down orthographic close-up photograph, seamless texture, flat overcast light, no shadows, no perspective, evenly lit, high detail, sharp focus, 1 metre across",
+      "seed": 20261115
+    },
+    {
+      "index": 3,
+      "name": "brick",
+      "prompt": "old common red brick wall, running bond, mortar joints, chipped edges, varied brick colour, top-down orthographic close-up photograph, seamless texture, flat overcast light, no shadows, no perspective, evenly lit, high detail, sharp focus, 1 metre across",
+      "seed": 20261116
+    },
+    {
+      "index": 4,
+      "name": "soil",
+      "prompt": "bare dry soil with small gravel and pebbles, compacted dirt, few dry grass bits, top-down orthographic close-up photograph, seamless texture, flat overcast light, no shadows, no perspective, evenly lit, high detail, sharp focus, 1 metre across",
+      "seed": 20261117
+    },
+    {
+      "index": 5,
+      "name": "sand",
+      "prompt": "beach sand, fine quartz and shell fragments, small footprints smoothed by wind, top-down orthographic close-up photograph, seamless texture, flat overcast light, no shadows, no perspective, evenly lit, high detail, sharp focus, 1 metre across",
+      "seed": 20261118
+    },
+    {
+      "index": 6,
+      "name": "litter",
+      "prompt": "forest floor, dry fallen leaves, pine needles, twigs, dark humus between them, top-down orthographic close-up photograph, seamless texture, flat overcast light, no shadows, no perspective, evenly lit, high detail, sharp focus, 1 metre across",
+      "seed": 20261119
+    },
+    {
+      "index": 7,
+      "name": "bark",
+      "prompt": "tree bark close-up, deep vertical furrows and ridges, grey brown, lichen spots, top-down orthographic close-up photograph, seamless texture, flat overcast light, no shadows, no perspective, evenly lit, high detail, sharp focus, 1 metre across",
+      "seed": 20261120
+    }
+  ]
+}

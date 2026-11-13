@@ -381,6 +381,11 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 			static const float GrassDry = [] { float V = 0.f; FParse::Value(FCommandLine::Get(), TEXT("SimCruiseGrassDry="), V); return FMath::Clamp(V, 0.f, 1.f); }();
 			MID->SetScalarParameterValue(TEXT("GrassField"), bGrassField ? 1.f : 0.f);
 			MID->SetScalarParameterValue(TEXT("GrassDry"), GrassDry);
+			// The AI detail kit (world-detail-methods.md): on unless -SimCruiseNoDetailLayer.
+			static const bool bDetailLayer = !FParse::Param(FCommandLine::Get(), TEXT("SimCruiseNoDetailLayer"));
+			MID->SetTextureParameterValue(TEXT("DetailAlb"), Resources->DetailAlbTexture);
+			MID->SetTextureParameterValue(TEXT("DetailNrm"), Resources->DetailNrmTexture);
+			MID->SetScalarParameterValue(TEXT("DetailLayer"), bDetailLayer ? 1.f : 0.f);
 			Materials.Add(MID);
 			const int32 Slot = RenderSlots.IndexOfByKey(i);
 			if (RenderMesh && Slot != INDEX_NONE)

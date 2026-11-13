@@ -102,6 +102,64 @@ struct FGF
 	}
 };
 )HLSL");
+		// The fine-detail layer (docs/research/world-detail-methods.md, "The AI detail kit"): eight
+		// slices made once, offline, by an open image model (lab/detail-kit), stored as albedo
+		// ratios with mean 1 (data/art/detail-kit), so absolute colour still comes from the
+		// aerial photograph or the class colour and the kit only adds what a photograph of the
+		// material shows up close. Hex tiling: three rotated, offset lookups per map, so a slice
+		// never repeats. Slices: 0 asphalt, 1 concrete, 2 stucco, 3 brick, 4 soil, 5 sand,
+		// 6 leaf litter, 7 bark.
+		const TCHAR* DetailKitCode = TEXT(R"HLSL(
+struct FDK
+{
+	float H(float2 p, float s) { return frac(sin(dot(p, float2(127.1, 311.7)) + s * 74.7) * 43758.5453); }
+	// p: surface metres; scale: metres one slice covers; fpx: metres per pixel; depthCm: pixel
+	// depth. Returns the albedo ratio (1 = no change) and, in nOut, the surface slope in p's axes.
+	// The layer fades in from 0.5 m, out by 40 m, and out before a slice is under ~30 pixels
+	// (its mip chain is clamped at 32 px a slice, so it never mixes slices or aliases).
+	float3 Sample(Texture2D Alb, SamplerState AlbS, Texture2D Nor, SamplerState NorS, float slice, float2 p, float scale,
+		float fpx, float depthCm, float on, out float2 nOut)
+	{
+		float w = on * saturate((depthCm - 50.0) / 50.0) * saturate((4000.0 - depthCm) / 1000.0) * saturate(2.0 - fpx * 60.0 / scale);
+		nOut = float2(0.0, 0.0);
+		float2 q = p / scale;
+		float2 gx = ddx(q), gy = ddy(q);
+		[branch] if (w <= 0.0) return float3(1.0, 1.0, 1.0);
+		float2 cell = float2(fmod(slice, 4.0), floor(slice / 4.0));
+		const float2 CS = float2(0.25, 0.5), INNER = float2(480.0 / 512.0, 480.0 / 512.0), TEX = float2(2048.0, 1024.0);
+		// clamp the footprint to mip 4 (16 atlas texels a pixel)
+		float lg = max(length(gx * CS * INNER * TEX), length(gy * CS * INNER * TEX));
+		float k = lg > 16.0 ? 16.0 / lg : 1.0;
+		gx *= k; gy *= k;
+		float2 sk = float2(q.x * 1.1547, q.y + 0.57735 * q.x);
+		float2 hb = floor(sk), fr = frac(sk);
+		float3 acc = 0.0; float2 nacc = 0.0; float ws = 0.0, w2 = 0.0;
+		[unroll] for (int i = 0; i < 3; ++i)
+		{
+			float2 cc = hb + (i == 0 ? float2(0, 0) : (i == 1 ? float2(1, 0) : float2(0, 1)));
+			if (fr.x + fr.y > 1.0) cc = hb + (i == 0 ? float2(1, 1) : (i == 1 ? float2(1, 0) : float2(0, 1)));
+			float2 ck = cc - floor(cc / 251.0) * 251.0;
+			float2 cq = float2(cc.x / 1.1547, cc.y - 0.5 * cc.x);
+			float wi = pow(saturate(1.0 - 0.95 * length(q - cq)), 3.0);
+			// Brick (3) and bark (7) have a direction (courses, furrows): never rotated; brick
+			// is not offset either (a bond is a regular pattern, plain tiling is what a wall is).
+			float an = (slice == 3.0 || slice == 7.0) ? 0.0 : H(ck, 3.0) * 6.2832, ca = cos(an), sa = sin(an);
+			float2x2 R = float2x2(ca, -sa, sa, ca);
+			float2 r = mul(R, q) + (slice == 3.0 ? float2(0.0, 0.0) : float2(H(ck, 5.0), H(ck, 7.0)));
+			float2 uv = (cell + (16.0 / 512.0) + frac(r) * INNER) * CS;
+			float2 dx = mul(R, gx) * INNER * CS, dy = mul(R, gy) * INNER * CS;
+			acc += wi * (Alb.SampleGrad(AlbS, uv, dx, dy).rgb + 0.5);
+			float2 nt = Nor.SampleGrad(NorS, uv, dx, dy).rg * 2.0 - 1.0;
+			nacc += wi * mul(nt, R); // back from the rotated lookup to p's axes
+			ws += wi; w2 += wi * wi;
+		}
+		float3 ratio = acc / max(ws, 1e-4);
+		ratio = 1.0 + (ratio - 1.0) * ws / max(sqrt(w2), 1e-4); // keep the contrast blending would lose
+		nOut = nacc / max(ws, 1e-4) * w;
+		return lerp(float3(1.0, 1.0, 1.0), clamp(ratio, 0.5, 1.5), w);
+	}
+};
+)HLSL");
 		const TCHAR* GroundCode = TEXT(R"HLSL(
 const float3 W = float3(0.2126, 0.7152, 0.0722);
 float2 uv = LP.xy / TileSizeCm;
@@ -226,6 +284,20 @@ if (GrassField > 0.5 && veg > 0.01)
 	}
 }
 float3 detail = (p1 * lerp(1.0, p2, 0.4)) * (bare + paved) + grass * veg + s1 * lerp(1.0, s2, 0.6) * sand;
+// The AI detail kit (DetailKitCode): the dominant ground class picks its slice (bare soil,
+// pavement concrete, sand, leaf litter under a canopy); lawns keep the grass field. Its slope
+// tilts VN, which the normal output below takes.
+{
+	FDK dk; float2 dn;
+	float ksl = 4.0, kw = bare;
+	if (paved > kw) { ksl = 1.0; kw = paved; }
+	if (sand > kw) { ksl = 5.0; kw = sand; }
+	if (forest > kw) { ksl = 6.0; kw = forest; }
+	kw = saturate(kw * 1.5);
+	float3 kr = dk.Sample(DetailAlb, DetailAlbSampler, DetailNrm, DetailNrmSampler, ksl, m, ksl == 1.0 ? 1.5 : 1.2, fpx, Depth, DetailLayer, dn);
+	detail *= lerp(float3(1.0, 1.0, 1.0), kr, kw);
+	VN = normalize(VN + float3(dn * kw, 0.0));
+}
 float dl = dot(detail, W);
 float3 hue = lerp(float3(1.0, 1.0, 1.0), detail / max(dl, 0.001), 0.3 * veg + 0.15 * sand);
 baseColor *= lerp(1.0, dl, 0.55 * veg + 0.25 * sand + 0.4 * (bare + paved)) * hue;
@@ -255,6 +327,13 @@ float3 gravel = float3(0.26, 0.23, 0.19) * lerp(1.0, a, 1.0);
 col = lerp(col, gravel, VC.r);
 Roughness = saturate(0.80 + 0.10 * (1.0 - a) + 0.05 * VC.r);
 float3 g = float3(-(ax - a), -(ay - a), 0.0) * Bump;
+// The AI detail kit (DetailKitCode): aggregate and cracks up close; the gravel edge is soil.
+{
+	FDK dk; float2 dn;
+	float3 kr = dk.Sample(DetailAlb, DetailAlbSampler, DetailNrm, DetailNrmSampler, VC.r > 0.5 ? 4.0 : 0.0, m, 1.0, length(fwidth(m)), Depth, DetailLayer, dn);
+	col *= kr;
+	g += float3(dn * 0.6, 0.0);
+}
 Nrm = normalize(VN + g);
 // Rain (Wet 0..1, the environment's road water, from the live weather): water fills the
 // pores and darkens the stone (dark asphalt to about 0.6 of its dry albedo, Lekner and Dorf
@@ -648,12 +727,24 @@ return col;
 		AddInput(Custom, TEXT("VC"), VertexColor);          // RGB
 		AddInput(Custom, TEXT("VA"), VertexColor, 4);       // alpha (output 4)
 		AddInput(Custom, TEXT("Anchor"), VectorParam(Material, TEXT("Anchor"), FLinearColor(0, 0, 0, 0)));
+		// The AI detail kit (DetailKitCode): two atlases and the on switch (-SimCruiseNoDetailLayer).
+		// Road and ground only (kept small: walls, kerbs and bark are left as they were).
+		if (Layer == ESimCruiseTileLayer::Terrain || Layer == ESimCruiseTileLayer::Asphalt)
+		{
+			AddInput(Custom, TEXT("DetailAlb"), TextureParam(Material, TEXT("DetailAlb"), DefaultTexture));
+			AddInput(Custom, TEXT("DetailNrm"), TextureParam(Material, TEXT("DetailNrm"), DefaultTexture));
+			AddInput(Custom, TEXT("DetailLayer"), ScalarParam(Material, TEXT("DetailLayer"), 0.f));
+			if (Layer != ESimCruiseTileLayer::Terrain)
+			{
+				AddInput(Custom, TEXT("Depth"), AddExpression<UMaterialExpressionPixelDepth>(Material));
+			}
+		}
 
 		switch (Layer)
 		{
 		case ESimCruiseTileLayer::Terrain:
 		{
-			Custom->Code = FString(GrassFieldCode) + GroundCode;
+			Custom->Code = FString(GrassFieldCode) + DetailKitCode + GroundCode;
 			UMaterialExpressionConstant* GroundSpecular = AddExpression<UMaterialExpressionConstant>(Material);
 			GroundSpecular->R = 0.35f; // vegetation and soil reflect less than the 0.5 default
 			Material->GetEditorOnlyData()->Specular.Connect(0, GroundSpecular);
@@ -676,7 +767,7 @@ return col;
 			AddInput(Custom, TEXT("Depth"), AddExpression<UMaterialExpressionPixelDepth>(Material));
 			break;
 		case ESimCruiseTileLayer::Asphalt:
-			Custom->Code = AsphaltCode;
+			Custom->Code = FString(DetailKitCode) + AsphaltCode;
 			Custom->AdditionalOutputs.Add({ FName(TEXT("Spec")), CMOT_Float1 });
 			Custom->RebuildOutputs();
 			Material->GetEditorOnlyData()->Specular.Connect(3, Custom);
@@ -870,6 +961,29 @@ void USimCruiseWorldResources::Initialise()
 	AsphaltTexture = LoadDetail(TEXT("data/art/ground/asphalt.jpg"), TEXT("T_SimCruiseAsphalt"), AsphaltMean);
 	GrassTexture = LoadDetail(TEXT("data/art/ground/grass-detail.jpg"), TEXT("T_SimCruiseGrass"), GrassMean);
 	SandTexture = LoadDetail(TEXT("data/art/ground/mineral-ground.png"), TEXT("T_SimCruiseSand"), SandMean);
+	// The AI detail kit (lab/detail-kit, docs/research/world-detail-methods.md): albedo ratios and
+	// normals, 4 x 2 slices; when missing, a flat stand-in (ratio 1, flat normal) keeps it inert.
+	auto LoadKit = [this](const TCHAR* Relative, const TCHAR* Name) -> UTexture2D*
+	{
+		TArray<FColor> Pixels;
+		int32 W = 0, H = 0;
+		const FString Path = FPaths::Combine(SimCruiseTileData::RepositoryRoot(), Relative);
+		if (!DecodeImageFile(Path, Pixels, W, H))
+		{
+			UE_LOG(LogSimCruiseWorldResources, Warning, TEXT("Missing detail kit %s"), *Path);
+			return nullptr;
+		}
+		return CreateTexture(this, Name, Pixels, W, H, true, true);
+	};
+	DetailAlbTexture = LoadKit(TEXT("data/art/detail-kit/detail-albedo.png"), TEXT("T_SimCruiseDetailAlb"));
+	DetailNrmTexture = LoadKit(TEXT("data/art/detail-kit/detail-normal.png"), TEXT("T_SimCruiseDetailNrm"));
+	if (!DetailAlbTexture || !DetailNrmTexture)
+	{
+		TArray<FColor> Flat;
+		Flat.Init(FColor(188, 188, 188, 128), 4 * 4); // sRGB 188 = linear 0.5: ratio 1, normal flat
+		DetailAlbTexture = CreateTexture(this, TEXT("T_SimCruiseDetailAlbFlat"), Flat, 4, 4, true, true);
+		DetailNrmTexture = DetailAlbTexture;
+	}
 	TArray<FColor> Grey;
 	Grey.Init(FColor(128, 128, 128, 255), 4 * 4);
 	BlankTexture = CreateTexture(this, TEXT("T_SimCruiseBlank"), Grey, 4, 4, true, true);

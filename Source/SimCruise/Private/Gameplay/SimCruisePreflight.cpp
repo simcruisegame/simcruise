@@ -561,8 +561,9 @@ void ASimCruisePreflight::DriveTick(ASimCruisePlayerController* Player, float De
 	// The keen pace from the car's own grip (its published skidpad).
 	double Grip = 1.0;
 	if (const ASimCruiseVehicle* Driven = Cast<ASimCruiseVehicle>(Player->GetPawn())) Grip = FMath::Clamp(Driven->GetRealCar().TargetSkidpadG, 0.5, 1.3);
-	const double Lat = bKeen ? 0.75 * Grip * 9.80665 : LateralAccel;
-	const double Decel = bKeen ? 0.7 * Grip * 9.80665 : BrakeAccel;
+	const double Lat = bKeen ? 0.7 * Grip * 9.80665 : LateralAccel;
+	// Braking done early, mostly in a straight line, as a quick driver does on a road.
+	const double Decel = bKeen ? 0.55 * Grip * 9.80665 : BrakeAccel;
 	double TargetMps = bKeen ? 45.0 : FMath::Min(SimCruiseTrafficModel::SpeedLimitMps(Line.Class), MaxSpeedMps);
 	if (TargetMps <= 1.0) TargetMps = 13.4;
 	if (SpeedOverrideMps > 0.0) TargetMps = SpeedOverrideMps;
