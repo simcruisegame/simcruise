@@ -1,6 +1,6 @@
 # Installing OSDS
 
-OSDS 2.0 and later is the Unreal Engine 5.8 client, for Windows. Downloads are on the [Releases page](https://github.com/simcruisegame/simcruise/releases):
+OSDS 2.0 and later is the Unreal Engine 5.8 client, for Windows. Downloads are on the [Releases page](https://github.com/simcruisegame/osds/releases):
 
 | File | Type |
 |---|---|

@@ -12,8 +12,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/simcruisegame/simcruise/releases/latest"><b>Download for Windows (free)</b></a>
-  · <a href="https://simcruisegame.github.io/simcruise/">Website</a>
+  <a href="https://github.com/simcruisegame/osds/releases/latest"><b>Download for Windows (free)</b></a>
+  · <a href="https://simcruisegame.github.io/osds/">Website</a>
   · <a href="#screenshots">Screenshots</a>
   · <a href="#famous-roads-to-drive">Famous roads</a>
   · <a href="docs/controls.md">Controls</a>
@@ -21,8 +21,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/simcruisegame/simcruise/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/simcruisegame/simcruise?include_prereleases&sort=semver"></a>
-  <a href="https://github.com/simcruisegame/simcruise/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/simcruisegame/simcruise/total"></a>
+  <a href="https://github.com/simcruisegame/osds/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/simcruisegame/osds?include_prereleases&sort=semver"></a>
+  <a href="https://github.com/simcruisegame/osds/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/simcruisegame/osds/total"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/code-MIT-blue"></a>
   <a href="https://www.unrealengine.com/"><img alt="Made with Unreal Engine 5.8" src="https://img.shields.io/badge/Unreal_Engine-5.8-0e1128?logo=unrealengine&logoColor=white"></a>
 </p>
@@ -43,11 +43,11 @@ OSDS (Open Source Driving Simulator) puts you behind the wheel anywhere in the U
 
 No account, no API keys, no subscription, no telemetry. The game talks directly to open data services and caches what it fetches on your disk.
 
-> **OSDS moved to Unreal Engine 5.8 in November 2026.** The Godot client that made the 1.x releases is kept at the git tag [`godot-final`](https://github.com/simcruisegame/simcruise/tree/godot-final) (`git show godot-final:game/<file>`); everything below is about the Unreal client. The Unreal client goes anywhere in the US again: a normal start is a random road from the start pool, `/` searches for a place, and Tab (Menu on the pad) opens the pause menu, whose Drive page has the road atlas to drive anywhere on the map. Trees, rangeland scrub, the land to the horizon, guard rails, bridges, gravel roads and traffic signals are built for wherever you are. What is still being ported is in [the migration ledger](docs/unreal-migration-ledger.md).
+> **OSDS moved to Unreal Engine 5.8 in November 2026.** The Godot client that made the 1.x releases is kept at the git tag [`godot-final`](https://github.com/simcruisegame/osds/tree/godot-final) (`git show godot-final:game/<file>`); everything below is about the Unreal client. The Unreal client goes anywhere in the US again: a normal start is a random road from the start pool, `/` searches for a place, and Tab (Menu on the pad) opens the pause menu, whose Drive page has the road atlas to drive anywhere on the map. Trees, rangeland scrub, the land to the horizon, guard rails, bridges, gravel roads and traffic signals are built for wherever you are. What is still being ported is in [the migration ledger](docs/unreal-migration-ledger.md).
 
 ## Download
 
-**OSDS 2.0.2 for Windows** (64-bit Windows 10 or 11, DirectX 12): get `SimCruise-2.0.2-windows-x64-setup.exe` from the [latest release](https://github.com/simcruisegame/simcruise/releases/latest), run it, and start it from the Start menu (the 2.0.x releases still use the old name, SimCruise, for their files and the Start menu entry). A portable zip and SHA-256 checksums are on the same page. Install steps and system requirements: [docs/install.md](docs/install.md). Controls (keyboard, Xbox controller, USB wheel): [docs/controls.md](docs/controls.md).
+**OSDS 2.0.2 for Windows** (64-bit Windows 10 or 11, DirectX 12): get `SimCruise-2.0.2-windows-x64-setup.exe` from the [latest release](https://github.com/simcruisegame/osds/releases/latest), run it, and start it from the Start menu (the 2.0.x releases still use the old name, SimCruise, for their files and the Start menu entry). A portable zip and SHA-256 checksums are on the same page. Install steps and system requirements: [docs/install.md](docs/install.md). Controls (keyboard, Xbox controller, USB wheel): [docs/controls.md](docs/controls.md).
 
 **New in 2.0.2:** a GPS that drives you on the real roads (turn sign, chevrons on the road, a round map, a route planner and famous roads), a new pause menu and speed display, your seat and the car's setup one press away, hood and far chase views, looking around with the right stick, and traffic Normal, Light or Off. What to try first, in plain words: [docs/release/v2.0.2-what-you-should-notice.md](docs/release/v2.0.2-what-you-should-notice.md). Everything, with the known issues: [CHANGELOG.md](CHANGELOG.md).
 
@@ -169,7 +169,7 @@ The automated tests (`scripts/check.ps1`) and the pre-flight drives check the ph
 
 ## Running it
 
-**Windows:** install with the setup from [Releases](https://github.com/simcruisegame/simcruise/releases) (see [Download](#download)). macOS follows when a Mac is available to build on. From source on Windows:
+**Windows:** install with the setup from [Releases](https://github.com/simcruisegame/osds/releases) (see [Download](#download)). macOS follows when a Mac is available to build on. From source on Windows:
 
 1. Install Unreal Engine 5.8, Visual Studio 2022 Build Tools with the C++ game workload, and [Bun](https://bun.com/) (for the map helper).
 2. Clone the repository and build the editor target (PowerShell, editor closed):
@@ -238,7 +238,7 @@ It prints each failure with its first errors and `CHECKS PASSED` or `CHECKS FAIL
 
 Contributions are welcome: code, data sources, bug reports from places that look wrong, and documentation. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first. The short version: no keys or paid services, only freely licensed assets, and every change comes with a measurement.
 
-- Report bugs and request features in [Issues](https://github.com/simcruisegame/simcruise/issues).
+- Report bugs and request features in [Issues](https://github.com/simcruisegame/osds/issues).
 - See the [roadmap](docs/roadmap.md) for what is planned.
 - Report security problems privately, as described in [SECURITY.md](SECURITY.md).
 - Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).

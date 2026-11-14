@@ -34,9 +34,9 @@ AppName=OSDS
 AppVersion={#AppVersion}
 AppVerName=OSDS {#AppVersion}
 AppPublisher=OSDS contributors
-AppPublisherURL=https://github.com/simcruisegame/simcruise
-AppSupportURL=https://github.com/simcruisegame/simcruise/issues
-AppUpdatesURL=https://github.com/simcruisegame/simcruise/releases
+AppPublisherURL=https://github.com/simcruisegame/osds
+AppSupportURL=https://github.com/simcruisegame/osds/issues
+AppUpdatesURL=https://github.com/simcruisegame/osds/releases
 DefaultDirName={autopf}\OSDS
 DefaultGroupName=OSDS
 ; An update from 2.0.x moves the Start menu entry from the old SimCruise folder to OSDS.
