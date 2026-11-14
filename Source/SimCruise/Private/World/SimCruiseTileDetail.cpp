@@ -705,7 +705,7 @@ namespace SimCruiseTileDetail
 				else if (Height >= FloorH + 1.2)
 				{
 					// The fascia between the shop glass (or porch) and the first-floor windows.
-					Letter = bHotel ? 0.7 : 0.4;
+					Letter = bHotel ? 0.55 : 0.4;
 					Z = Ground + FloorH + 0.42;
 				}
 				else

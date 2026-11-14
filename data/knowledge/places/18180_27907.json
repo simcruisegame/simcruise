@@ -1,7 +1,7 @@
 {
 	"tile": "18180_27907",
-	"fetched": "2026-11-12T07:31:55.735Z",
-	"sources": "overpass:178 wikidata:71 photos photos",
+	"fetched": "2026-11-12T06:57:06.863Z",
+	"sources": "overpass:178 wikidata:71 photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -62,7 +62,7 @@
 				"Art Deco architecture"
 			],
 			"year": 1936,
-			"image": "Miami Beach - Cavalier Hotel.jpg|Art Deco Cavalier Hotel, Miami Beach, Florida LCCN2011631110.tif",
+			"image": "Miami Beach - Cavalier Hotel.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -244,9 +244,7 @@
 			"year": 1939,
 			"architect": "Anton Skislewicz",
 			"heritage": "National Register of Historic Places contributing property",
-			"colour": "#EBF0EB",
-			"colour_source": "measured in File:Breakwater Ocean Drive.jpg (2016, Gzzz, CC BY-SA 4.0; wall 35% of the facade band)",
-			"image": "Miami Beach - Breakwater Hotel.jpg|Breakwater Ocean Drive.jpg",
+			"image": "Miami Beach - Breakwater Hotel.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -405,9 +403,7 @@
 			],
 			"year": 1938,
 			"architect": "Albert Anis",
-			"colour": "#DCDDD5",
-			"colour_source": "measured in File:Miami Beach - Clevelander Hotel.jpg (2021, P. Hughes, CC BY-SA 4.0; wall 59% of the facade band)",
-			"image": "Miami Beach - The Clevelander Hotel 01.jpg|Miami Beach - Clevelander Hotel.jpg",
+			"image": "Miami Beach - The Clevelander Hotel 01.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -434,7 +430,7 @@
 			"heritage": "National Register of Historic Places contributing property",
 			"colour": "#D6BE80",
 			"colour_source": "measured in File:Tides Hotel Miami Beach.jpg (2012, Alexf, CC BY-SA 3.0; wall 59% of the facade band)",
-			"image": "Tides Hotel Miami Beach.jpg|Miami Beach - The Tides Hotel 01.jpg",
+			"image": "Tides Hotel Miami Beach.jpg",
 			"building": "hotel"
 		},
 		{
@@ -485,7 +481,7 @@
 			"heritage": "National Register of Historic Places contributing property",
 			"colour": "#A19796",
 			"colour_source": "measured in File:Waldorf Towers (Miami Beach)-1.jpg (2014, Visitor7, CC BY-SA 3.0; wall 25% of the facade band)",
-			"image": "Waldorf Towers (Miami Beach)-1.jpg|Miami Beach - Waldorf Towers Hotel (1950) 01.jpg",
+			"image": "Waldorf Towers (Miami Beach)-1.jpg",
 			"building": "hotel"
 		},
 		{

@@ -1,7 +1,7 @@
 {
 	"tile": "18180_27908",
-	"fetched": "2026-11-12T07:32:03.400Z",
-	"sources": "overpass:139 wikidata:68 photos photos",
+	"fetched": "2026-11-12T06:57:20.567Z",
+	"sources": "overpass:139 wikidata:68 photos",
 	"licence": "OpenStreetMap data (c) OpenStreetMap contributors, ODbL 1.0; Wikidata CC0",
 	"records": [
 		{
@@ -55,9 +55,7 @@
 			],
 			"year": 1941,
 			"architect": "Albert Anis",
-			"colour": "#D4CEC9",
-			"colour_source": "measured in File:Miami Beach - Majestic Hotel (2020).jpg (2020, P. Hughes, CC BY-SA 4.0; wall 45% of the facade band)",
-			"image": "Miami Beach - Majestic Hotel.jpg|Miami Beach - Majestic Hotel (2020).jpg",
+			"image": "Miami Beach - Majestic Hotel.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -123,7 +121,7 @@
 			"heritage": "National Register of Historic Places contributing property",
 			"colour": "#F1E6DB",
 			"colour_source": "measured in File:Park Central Hotel (Miami Beach).jpg (2014, Visitor7, CC BY-SA 3.0; wall 38% of the facade band)",
-			"image": "Park Central Hotel (Miami Beach).jpg|Miami Beach 0- Park Central Hotel.jpg",
+			"image": "Park Central Hotel (Miami Beach).jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -193,9 +191,7 @@
 			],
 			"year": 1941,
 			"architect": "Albert Anis",
-			"colour": "#F7F5EE",
-			"colour_source": "measured in File:Miami Beach - Avalon Hotel (2011).jpg (2011, P. Hughes, CC BY-SA 4.0; wall 42% of the facade band)",
-			"image": "Miami Beach - The Avalon Hotel 01.jpg|Miami Beach - Avalon Hotel (2011).jpg",
+			"image": "Miami Beach - The Avalon Hotel 01.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -212,7 +208,7 @@
 			"architect": "Harry O. Nelson",
 			"colour": "#E0DDD9",
 			"colour_source": "measured in File:Miami Beach - Beacon Hotel.jpg (2020, P. Hughes, CC BY-SA 4.0; wall 65% of the facade band)",
-			"image": "Miami Beach - Beacon Hotel.jpg|Miami Beach - Beacon Hotel (1949) 01.jpg",
+			"image": "Miami Beach - Beacon Hotel.jpg",
 			"levels": 5,
 			"building": "hotel",
 			"amenity": "hotel"
@@ -288,7 +284,7 @@
 			"heritage": "National Register of Historic Places contributing property",
 			"colour": "#A19796",
 			"colour_source": "measured in File:Waldorf Towers (Miami Beach)-1.jpg (2014, Visitor7, CC BY-SA 3.0; wall 25% of the facade band)",
-			"image": "Waldorf Towers (Miami Beach)-1.jpg|Miami Beach - Waldorf Towers Hotel (1950) 01.jpg",
+			"image": "Waldorf Towers (Miami Beach)-1.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -344,9 +340,7 @@
 			"year": 1939,
 			"architect": "Anton Skislewicz",
 			"heritage": "National Register of Historic Places contributing property",
-			"colour": "#EBF0EB",
-			"colour_source": "measured in File:Breakwater Ocean Drive.jpg (2016, Gzzz, CC BY-SA 4.0; wall 35% of the facade band)",
-			"image": "Miami Beach - Breakwater Hotel.jpg|Breakwater Ocean Drive.jpg",
+			"image": "Miami Beach - Breakwater Hotel.jpg",
 			"building": "hotel",
 			"amenity": "hotel"
 		},
@@ -526,9 +520,7 @@
 			],
 			"year": 1938,
 			"architect": "Albert Anis",
-			"colour": "#DCDDD5",
-			"colour_source": "measured in File:Miami Beach - Clevelander Hotel.jpg (2021, P. Hughes, CC BY-SA 4.0; wall 59% of the facade band)",
-			"image": "Miami Beach - The Clevelander Hotel 01.jpg|Miami Beach - Clevelander Hotel.jpg",
+			"image": "Miami Beach - The Clevelander Hotel 01.jpg",
 			"building": "hotel"
 		},
 		{
