@@ -158,3 +158,54 @@ Use these numbers as quick checks during a review.
 - ISO 8608:2016, Mechanical vibration, road surface profiles. Paid standard.
 - Epic, Large World Coordinates: https://dev.epicgames.com/documentation/unreal-engine/large-world-coordinates-in-unreal-engine-5 [link not fetched in this session]
 - Project files: `docs/data-sources.md`, `Credits.txt`, `licenses/Road Atlas.txt`, `docs/research/domain-ideas.md`.
+
+## What I now know (onboarding, 2026-11-14)
+
+**How my area works today.**
+- The game calls only these helper commands: `tile`, `aerial`, `landscape`, `map`, `snow`, `canopy`, `shrub-cover`, `route` and `search` (`Private/Atlas/SimCruiseAtlasClient.cpp:143`, `SimCruiseWorldStreamer.cpp:272`, `SimCruiseRegionalTerrain.cpp:295`). It never calls `buildings`, `roofs`, `lane-counts`, `road-layout` or `road-banks`.
+- `chunk()` (`helper/atlas.mjs:92-144`) reads the OpenFreeMap z14 vector tile, the Terrarium z13 PNG, and USGS 3DEP 1/3" through `measuredGround` (`usgs-ground.mjs:90`). The 3DEP read is a Range read of the GeoTIFF, with a 160 m apron and a budget of 5.8 MB and 10 ranges (`usgs-ground.mjs:59`). The helper drops tunnels. Roads are rows `[class, oneway, name, pts, width, surface?, "bridge"?]`.
+- `usgs-elevation-products.json` lists 1 449 one-degree cells, and 442 of them are in Alaska. I checked all 18 test places against the list, and each one has a cell. A lasting 3DEP failure falls back to Terrarium. A transient failure rejects the tile up to 3 times in 20 min, then the tile builds on Terrarium (`usgs-ground.mjs:128-141`).
+- Road widths depend only on the OpenMapTiles class (`road-widths.mjs:26`): motorway 19, trunk 16, primary 12, secondary 11, tertiary 10, minor 8, service 4.6 and track 3 m. A one-way road gets 2 x 3.6 m lanes plus shoulders (`:31-41`). OSM `lanes` tags are not used.
+- The C++ lane widths are 3.65, 3.5, 3.35 and 3.2 m by class (`SimCruiseRoadNetwork.cpp:377-382`). Lane markings use US defaults, because the C++ does not parse `road_lanes` or `road_layout`.
+- The C++ computes its own profile from the tile `h` grid (sigma 16 m). It parses the helper's `road_surface` Z/E (`SimCruiseTileData.cpp:239-272`) but never uses it.
+- Superelevation is `e = min(0.06, 0.5 V^2/(127 R))` (`SimCruiseRoadNetwork.cpp:914`). V is 90 km/h for motorway and trunk, 60 for primary and secondary, 55 for tertiary and 45 for "unclassified" (`:48-57`). Tertiary and unclassified roads do not bank in town (`:898-899`, `IsTown` `:596`).
+- The surface is gravel only when the tile says `surface=="unpaved"` (`SimCruiseRoadNetwork.cpp:497`, `atlas.mjs:130`).
+- Aerial photos come from three sources (`regional-aerial.mjs:12-27`):
+  - USGS ImageryOnly inside the box lon -125 to -66.6, lat 24.4 to 49.5.
+  - NAIP 2021 for Hawaii (lon -160.3 to -154.7, lat 18.9 to 22.3).
+  - USFS R10 for Alaska, only lon -150.2 to -129.9 and lat 54.6 to 61.6.
+  - Everywhere else, `aerialSource` returns null and the tile installs with no photo (`SimCruiseWorldStreamer.cpp:569`).
+- The frame uses one tile size per session, from the start latitude (`SimCruiseGeo.cpp:23-26`). The ring is 1 tile in every direction, at every latitude (`SimCruiseWorldStreamer.h:78`). The rebase distance is 2 km. The tile side is 550 m at Miami, 575 m at Hilo and 294 m at Anchorage.
+- Some data covers only a few districts, and the game uses none of it today:
+  - `crossfall-roads.json`: 3 tiles, at Lincoln NE (15168-24617), Anchorage (5479-18579) and Greenbrier WV (18123-25324). It is used only by the `roofs` command (`roof-stream.mjs:17`) and expires after 365 days (`road-crossfall.mjs:16`).
+  - `footprint-surveys.json`: 2 tiles (Miami-Dade and Cambridge MA).
+  - Municipal crowns: Cambridge only. Civic trees: Lincoln and Cambridge (`civic-trees.mjs:15,23`).
+  - `lidar-projects.json`: 2 289 USGS EPT projects in 77 state prefixes, but only the roofs path reads it.
+- The place graph regions are boxes in `data/knowledge/place-graph.json`. Where no box matches, the climate comes from a latitude band (`SimCruisePlaceGraph.cpp:276-282`).
+
+**Does it work at a random US place?**
+- These parts work US-wide: OSM roads (OpenFreeMap), 3DEP 1/3" ground (all 18 test places, plus Fairbanks, Nome and Kodiak by the product list), Terrarium as the fallback, width and lane width by class, and the profile fit. I judged us-casselton-nd, us-bronx-ny, us-welch-wv, us-hilo-hi, us-anchorage-ak and us-jasper-ar (estimate).
+- us-jasper-ar, us-welch-wv, us-hazard-ky and us-stonington-me (estimate): rural OSM `unclassified` roads reach the C++ as class `minor`, because OpenMapTiles has no `unclassified` class (the bundled tiles show only service, minor, tertiary, trunk, secondary and primary). The 45 km/h bank rule never fires. Twisty county two-lanes keep a 2 % crown that leans the outside of each curve away.
+- us-casselton-nd (estimate): a gravel section road shows as gravel only if OSM has a `surface` tag. An untagged road draws as asphalt with asphalt grip.
+- us-anchorage-ak has an aerial photo, 3DEP and a crossfall entry. Fairbanks, Kenai, Kodiak and Nome get no aerial photo. With 294 m tiles and a 1-tile ring, the built road can end about 300 m ahead (estimate).
+- us-hilo-hi has NAIP and 3DEP cells (n20w156). Puerto Rico and the other territories get no aerial photo (`regional-aerial.mjs:26`).
+- us-delta-ut and us-rawlins-wy match no region box. They get the latitude-band climate "humid_continental", which is wrong for the semi-arid Great Basin and high plains. The box `us_southwest_desert` stops at lat 37.2, and `us_midwest` stops at lon -104.
+
+**Main gaps against "realistic everywhere".**
+1. P1: Rural minor roads never bank, because the code tests `"unclassified"` and the tile class is `"minor"`. File: `SimCruiseRoadNetwork.cpp:56,898`.
+2. P1: Most of Alaska and all of the territories have no aerial photo, so the ground is shaded from land cover only. File: `regional-aerial.mjs:14,26`.
+3. P1: The ring is 1 tile at every latitude, so streaming reach and helper load depend on latitude. At 61 deg N the car crosses a tile every 8.8 s at 120 km/h, against 16.5 s at Miami. Files: `SimCruiseWorldStreamer.h:78`, `SimCruiseGeo.cpp:25`.
+4. P2: Measured crossfall, lane counts, Overture and NSI never reach the game. Outside the 3 crossfall tiles, the class defaults are the only US-wide rule. Files: `atlas.mjs:86`, `SimCruiseAtlasClient.cpp`.
+5. P2: Unpaved roads depend on the OSM `surface` tag only. No fallback exists, for example the HPMS surface type that the helper already reads or the `track` class. Files: `atlas.mjs:130`, `SimCruiseRoadNetwork.cpp:497`.
+6. P2: The place-graph region boxes leave the Mountain West without a region. File: `data/knowledge/place-graph.json`.
+
+**My first three actions.**
+1. Bank rural minor roads. In `SimCruiseRoadNetwork.cpp:56`, make `minor` use the 45 km/h rule when the road is out of town, and keep `track` crowned. Done when a synthetic minor curve with R = 80 m outside town gives e > 0 toward the inside and e <= 0.06, and `scripts\preflight.ps1 -Roads us-jasper-ar` shows no "past edge" and no spin for all 3 cars.
+2. Run a coverage probe script in the scratchpad. It runs helper `tile` and `aerial` once per place, for the 18 test places plus 6 random points (Fairbanks, Kodiak, Nome, Key West, San Juan, Northwest Angle), with cache, backoff and at most 1 request per second. It records `road_grade.source`, `elevation_fallback`, aerial yes/no and requests. Done when every CONUS place reports 3DEP and an aerial photo, and every gap is listed with its file and rule.
+3. Add a hilly fixture from one us-welch-wv tile and one us-hazard-ky tile to `World/Tests`, for checks G2, G4 and G10. Done when the seam grade change is <= 1 % and the bank change rate is <= 0.6 %/m, and `scripts\preflight.ps1 -Roads random` (3 places) plus us-welch-wv passes.
+
+**Docs that are wrong or old.**
+- `docs/unreal-architecture.md` (Roads, step 4) says superelevation applies "on 60/90 km/h classes". The code also banks tertiary at 55 and unclassified at 45 (`SimCruiseRoadNetwork.cpp:48-57`).
+- `docs/data-sources.md` says lane counts are fetched "for every streamed tile around the car", and that Overture, NSI and lidar road camber reach the game "At runtime". Unreal never calls `lane-counts`, `buildings` or `roofs`, and the tile command returns `pending` (`atlas.mjs:86`).
+- `docs/data-sources.md` "Aerial imagery" does not say that the Alaska layer covers only lon -150.2 to -129.9 and lat 54.6 to 61.6, or that the territories have no aerial layer.
+- `docs/team/gis-data-scientist.md` section 7 says there is no superelevation below secondary. That is out of date; see the first bullet.

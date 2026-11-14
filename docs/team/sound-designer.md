@@ -158,3 +158,73 @@ Test methods:
 11. G. Taylor (Sony), "Loudness and how to measure it" (ASWG loudness talk). **[U]** (slides seen only as a search result)
 
 Licence notes: EBU documents are free to download. Epic docs are reference only. arXiv 2603.09391 is non-commercial share-alike: learn from it, do not copy code or weights into the product.
+
+## What I now know (onboarding, 2026-11-14)
+
+**How my area works today.**
+- Engine voice. `FSimCruiseInlineFourSynth::Render` (`Source/SimCruise/Private/Audio/SimCruiseInlineFourSynth.cpp:62`) renders mono audio at 22.05 kHz. The phase runs at rpm/30 for an inline four and at rpm/120 over a 720-degree cycle of 8 events for a V8 (`:77`). The firing frequency is correct for both: I4 = 2 pulses per revolution, V8 = 4.
+- The timbre blends a light-load table (12 harmonics) and a full-load table (16 harmonics) by delivered combustion (`:19-20`, `:157`). Overrun has its own level term (`:89`, `:158`). Pops come above `PopRpm = 3000` for every car (`SimCruiseInlineFourSynth.h:28`).
+- Limiter. The limiter now reads each car's data: `LimiterRpm = FuelCutSpeedRpm - 25` (`Source/SimCruise/Private/Vehicle/SimCruiseVehicle.cpp:521`). The pitch clamps at `LimiterRpm + 200` (`:77`). The stutter runs at 14 Hz with a 42 % cut (`.h:27`, `.cpp:130`). This fixes finding 1 of the 2026-11-12 review. Fuel cuts: Miata 7250, C8 6600, Mustang 5000 rpm.
+- V8 voice. `ConfigureCrossPlaneV8` (`.cpp:39`) scales each event by its bank's gain (near 1.0, far 0.62, an estimate). Data: `Content/Vehicles/CarPresentation.json:818` (Mustang, 289, 1-5-4-2-6-3-7-8) and `:926` (C8, LT2, 1-8-7-2-6-5-4-3). A car without `engine_sound` gets the inline four.
+- Pickup. Cabin: a one-pole at about 780 Hz (coefficient .20), a 120 Hz boom at .45, then a 2.4 kHz biquad (`SimCruiseEngineSoundComponent.cpp:36-45`). Exterior: a one-pole at about 2.6 kHz (.52). I estimate the cabin at about 22 dB down at 5 kHz. Both filters keep their state on a view change, but the boom level and the filter coefficient switch in one step (`SimCruiseInlineFourSynth.cpp:92-93`).
+- Levels. The player engine volume is 0.25 (-12 dB) for all cars (`SimCruiseVehicle.cpp:504`). In `SimCruiseRoadNoiseSynth.h:39-40`, road is -8 dB and wind is -30 dB (the owner's "faint hiss" request). There is no Sound Class, no Submix and no master limiter. The engine output still hard-clips at ±.94 (`SimCruiseInlineFourSynth.cpp:167`). The road and wind use tanh limits (.90 and .85).
+- Road noise. `RenderRoad` (`SimCruiseRoadNoiseSynth.cpp:74`) receives only one surface number: the mean `SurfaceGrip` of the wheels in contact (`SimCruiseVehicle.cpp:575,584`). It derives these from that number:
+  - `Paved = SmoothStep(.70,.92,Grip)` (`:80`).
+  - Hiss level ∝ v^1.5, through a band-pass at 850 + 9·v Hz (`:86,89`).
+  - Gravel crunch: Poisson bursts at 25 + 4.5·v per second.
+  - A 60 Hz rumble, from off-road and from `Bump`.
+  - `Bump` is the high-passed suspension travel rate (`SimCruiseVehicle.cpp:536-548`).
+- Surface grip comes from `ASimCruiseWorldTile::SurfaceGripAtFace` (`Source/SimCruise/Private/World/SimCruiseWorldTile.cpp:96-141`):
+  - Asphalt 1.0.
+  - Gravel 0.7, set by the vertex colour R from OSM `surface=unpaved` (`SimCruiseRoadNetwork.cpp:497`, `SimCruiseTileBuilder.cpp:747`).
+  - Terrain 0.8.
+  - Concrete is only curbs and sidewalks (`SimCruiseTileBuilder.cpp:88`) and has the default grip of 1.0.
+  - Then grip = DryGrip × (1 − WetLoss × Wetness) (`SimCruiseVehicleMovementComponent.cpp:339`).
+- Tyres. `RenderTyres` (`:130`): scrub from s = 0.6, squeal from s = 1.0 to 1.4 at 700 + 25 Hz per m/s of slide, skid hiss from 1.4 to 2.5. The tyre layer is gated by `SmoothStep(.80,.95,Grip)`, so it is silent on gravel.
+- Wind. `RenderWind(SpeedMps)` (`:190`) uses only the car's own speed. Level ∝ v², cutoff 160 + 7·v. It ignores the live wind that physics receives (`SetAir`, `VehicleMovementComponent.cpp:630`).
+- Traffic. `ASimCruiseTraffic::UpdateVoice` (`Source/SimCruise/Private/World/SimCruiseTraffic.cpp:681-725`):
+  - A voice plays within 40 m (`:31`). Exterior pickup, NaturalSound falloff, volume 0.25.
+  - Rpm = 750 + 80·v + 600·accel (`:718`).
+  - Only `model3` is silent, and that is a hard-coded id (`:684`).
+  - There is no Doppler and no distance low-pass.
+  - F-150, Grand Cherokee and Odyssey all use the I4 voice.
+- Ambience. None exists. A search for ambience, SoundWave, Submix or SoundClass in `Source` finds no audio match. There is also no rain sound and no tyre spray.
+- Tests: `SimCruise.Audio.InlineFour`, `.CrossPlaneV8`, `.Limiter` (`Audio/Tests/SimCruiseAudioTests.cpp:63,163,206`) and `SimCruise.Audio.RoadNoise` (`SimCruiseRoadNoiseTests.cpp:79`). All are offline. None measures the full mix (LUFS or true peak). Pre-flight records video only (`scripts/preflight.ps1:1-20`). No run captures sound.
+
+**Does it work at a random US place?**
+- General (works anywhere): the engine and tyre layers. They read physics only (rpm, combustion, slip, load), and the roughness comes from suspension travel. Expansion joints at Doraville (us-doraville-ga) and broken pavement in Detroit (us-detroit-mi) will give rumble through `Bump` (estimate).
+- Surface depends on one OSM bit. Only `surface=unpaved` gives gravel, and a road with no tag is asphalt (`helper/atlas.mjs:130`). Many TIGER-imported section roads at Casselton ND (us-casselton-nd) and Delta UT (us-delta-ut) may have no tag (estimate). Those gravel roads will sound like asphalt. Chip seal and tined concrete (I-80 at us-rawlins-wy, interstates in general) have no data path at all. Every paved road sounds the same.
+- Rain breaks the surface cue at wet places such as us-seattle-wa, us-hilo-hi and us-stonington-me. Wet asphalt at full wetness gives grip 1.0 × (1 − 0.3) = 0.70, which equals `GravelGrip`. The road then plays full gravel crunch, the hiss falls by 45 %, and the tyre layer goes silent (tyre gate 0 at 0.70) (read in code). At wetness 0.5 (grip 0.85), crunch is already about 30 % (estimate). `NOAA` wetness is US-wide, so this happens wherever it rains.
+- No ambience anywhere. The Bronx (us-bronx-ny) has no city bed and no wall reflections. Jasper AR (us-jasper-ar) has no forest sound. Stonington has no surf. Rawlins I-80 has no crosswind, because wind ignores `WindMps`. Data that exists US-wide and could drive ambience: NLCD land cover, OSM building density, NOAA wind and rain, and coast distance (estimate).
+- Car-bound items: the car voice is chosen per car (it is not tied to a region or road). The cabin filter is one 2.4 kHz value for a soft-top 2001 Miata, a 2020s coupe and a 1965 hardtop.
+
+**Main gaps against "realistic everywhere".**
+1. P1: Wet roads sound like gravel, and the tyres go silent in rain. Files: `Source/SimCruise/Private/Audio/SimCruiseRoadNoiseSynth.cpp:80-81` and `Source/SimCruise/Private/Vehicle/SimCruiseVehicleMovementComponent.cpp:339`. The sound reads grip after wetness is applied. It must read the dry surface class.
+2. P1: The Mustang and the C8 have one shared V8 voice. Rotate the C8's `bank_of_event` [0,1,0,1,1,0,1,0] left by one step and you get the Mustang's [1,0,1,1,0,1,0,0] (`CarPresentation.json:818,926`). The two cars also share the harmonic tables, the 1.0/0.62 bank gains, the filters and the 0.25 level. Only the rpm range differs. The voice has no data for displacement, exhaust system (X-pipe, H-pipe, mufflers) or cabin per car.
+3. P1: The surface only has paved and unpaved. Asphalt, concrete and chip seal sound the same (fixed band 850 + 9·v Hz). Untagged gravel sounds paved. Files: `SimCruiseRoadNoiseSynth.cpp:86-89`, `SimCruiseWorldTile.cpp:122-140`, `helper/atlas.mjs:130`.
+4. P1: There is no place ambience and no rain or spray layer. Wind uses the car's speed only. File: `SimCruiseRoadNoiseSynth.cpp:190`.
+5. P2: Items still open from the 2026-11-12 review:
+   - No volume sliders, no submix and no loudness gate (review #2 and #3).
+   - Hard clip at `SimCruiseInlineFourSynth.cpp:167` (#4).
+   - Smoothing applied once per buffer, `SimCruiseRoadNoiseSynth.cpp:90,195` (#6).
+   - Traffic: I4 voice for V6 cars and no Doppler (#5).
+   - `PopRpm` is one constant for all cars (#8).
+
+**My first three actions.**
+1. Separate surface from wetness for sound.
+   - Change: add a dry surface kind (or `DryGrip`) and the wetness to the wheel telemetry. Feed them to `FSimCruiseRoadNoiseSynth::FInputs` (`SimCruiseVehicle.cpp:562-584`).
+   - Done when: a new test `SimCruise.Audio.RoadNoise.WetAsphalt` passes. At wetness 1 and 25 m/s, crunch RMS is at least 40 dB below the dry gravel case. Squeal at s = 1.5 is within 1 dB of dry.
+   - Note: `-SimCruiseLiveWet=` changes only the materials, not physics wetness (`SimCruiseLiveWorldSubsystem.cpp:510` and `SimCruiseVehicle.cpp:445`). The proof must therefore be offline.
+2. Measure the surface at random places.
+   - Change: log a surface histogram per drive (the share of wheel contact on asphalt, gravel and terrain) in `ASimCruisePreflight`.
+   - Run: `scripts\preflight.ps1 -Roads us-casselton-nd,us-delta-ut,random -Cars nb2001_aaron,mustang65,meridian_z -Seconds 60`.
+   - Done when: each `preflight.json` reports the gravel share. I compare that share with OSM `surface` tag coverage on the same roads. That gives the size of the untagged-gravel problem before anyone designs a fallback rule.
+3. Prove that each car has its own voice, and measure the mix.
+   - Change: an offline render test `SimCruise.Audio.CarVoices`. It renders each of the 3 cars at idle, 3000 rpm at full load, 3000 rpm on overrun, and the limiter.
+   - Done when: the firing peak is at rpm × N/120 ±2 % for each car. The test reports the order-level difference between the Mustang and the C8; today I expect about 0 dB (estimate), which proves gap 2. The same render, summed at the mix gains and measured with `ffmpeg -af ebur128=peak=true`, reports integrated LUFS and true peak. The target is −24 ±2 LUFS and below −1 dBTP.
+
+**Docs that are wrong or old.**
+- `docs/unreal-architecture.md:743` says "Worst case at the output: engine 0.236 + road 0.358 + wind 0.027, under 1, so nothing clips." It leaves out traffic voices. Each traffic voice can reach 0.235 within 3 m, so two or three close cars can push the sum past 1 (estimate).
+- `Source/SimCruise/Public/Audio/SimCruiseRoadNoiseSynth.h:56` says "1 paved, about 0.76 gravel, 0.65 verge". The code uses gravel 0.70 and terrain 0.80, and wet asphalt also falls to 0.70 (`SimCruiseWorldTile.cpp:129,135`).
+- `docs/unreal-architecture.md:574` says ToggleSound is a "flag until audio and lamps are ported". Audio is ported.
+- `docs/team/ownership.md:55` sends readers to `docs/team/test-places.md`. That file does not exist. The list is `data/test-places.json`.
