@@ -609,3 +609,54 @@ bool FSimCruiseRoofColourTest::RunTest(const FString& Parameters)
 	return true;
 }
 #endif
+
+#if WITH_DEV_AUTOMATION_TESTS
+#include "World/SimCruiseScan.h"
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseScanRulesTest, "SimCruise.World.Scan.RulesScan", SimCruiseCellContextTest::Flags)
+bool FSimCruiseScanRulesTest::RunTest(const FString& Parameters)
+{
+	// The rules-only scan of the Ocean Drive tile: every cell has a class, two bakes are
+	// byte-identical but for the build time, the file reads back the same, and the classes are
+	// where the map puts them (carriageways, roofs, water, the beach).
+	FSimCruiseTileData Data;
+	double Side;
+	if (!SimCruiseCellContextTest::LoadOceanDrive(*this, Data, Side)) return false;
+	const TSharedRef<FSimCruiseTileBuild> Build = SimCruiseTileBuilder::Build(Data, Side);
+	FSimCruiseTileScan A, B;
+	SimCruiseScan::BakeRules(Data, *Build, A);
+	SimCruiseScan::BakeRules(Data, *Build, B);
+	const TArray<uint8> Ba = A.SerializeWithoutTime(), Bb = B.SerializeWithoutTime();
+	TestTrue(TEXT("two bakes byte-identical (but the time)"), Ba == Bb);
+	int32 Unknown = 0, Counts[64] = { 0 };
+	for (const FColor& C : A.Clas) { Unknown += C.R == 0; ++Counts[C.R & 63]; }
+	int32 KerbCells = 0; // a 17 cm curb is a 1 m cell's second class, rarely its first
+	for (const FColor& C : A.Clas) KerbCells += C.R == 23 || C.G == 23;
+	TestEqual(TEXT("every cell classed"), Unknown, 0);
+	const int32 N = SimCruiseScan::Stored * SimCruiseScan::Stored;
+	using SimCruiseScan::EClass;
+	auto Share = [&](EClass C) { return 100.0 * Counts[static_cast<int32>(C)] / N; };
+	AddInfo(FString::Printf(TEXT("bake %.0f ms; asphalt %.1f %%, roof %.1f %%, water %.1f %%, sand %.1f %%, grass %.1f %%, kerb %.1f %%, concrete %.1f %%; file %.2f MB"),
+		A.BuildSeconds * 1000.0, Share(EClass::Asphalt), Share(EClass::Roof), Share(EClass::Water), Share(EClass::Sand), Share(EClass::GrassShort) + Share(EClass::DryGrass),
+		Share(EClass::Kerb), Share(EClass::Concrete), Ba.Num() / 1048576.0));
+	TestTrue(TEXT("carriageways"), Share(EClass::Asphalt) > 3.0);
+	TestTrue(TEXT("roofs"), Share(EClass::Roof) > 5.0);
+	TestTrue(FString::Printf(TEXT("kerbs (%.2f %% of cells hold one)"), 100.0 * KerbCells / N), 100.0 * KerbCells / N > 0.2);
+	FSimCruiseTileScan Back;
+	FString Error;
+	if (TestTrue(FString::Printf(TEXT("reads back (%s)"), *Error), Back.Deserialize(A.Serialize(), Error)))
+	{
+		TestTrue(TEXT("round trip identical"), Back.SerializeWithoutTime() == Ba);
+		TestTrue(TEXT("meta kept"), Back.Meta == A.Meta && Back.Meta.Contains(TEXT("\"scan_version\":3")));
+	}
+	// A cell on Ocean Drive's carriageway is asphalt.
+	const FSimCruiseRibbon* Ocean = Build->Roads.Ribbons.FindByPredicate([](const FSimCruiseRibbon& R) { return R.Name == TEXT("Ocean Drive") && R.St.Num() > 10; });
+	if (TestNotNull(TEXT("Ocean Drive on the tile"), Ocean))
+	{
+		const FIntPoint Cell = A.CellOf(Ocean->St[Ocean->St.Num() / 2].C, Side);
+		TestEqual(TEXT("Ocean Drive is asphalt"), static_cast<int32>(A.ClassAt(Cell.X, Cell.Y)), static_cast<int32>(EClass::Asphalt));
+	}
+	TestTrue(TEXT("a bake under 400 ms"), A.BuildSeconds < 0.4);
+	return true;
+}
+#endif

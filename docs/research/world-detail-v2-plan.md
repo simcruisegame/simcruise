@@ -83,3 +83,28 @@ real frames at the highest setting before and after each item.
   keep your change small and additive.
 - Do not run the game or the editor while another lane runs a pre-flight or
   packages. Open the editor only with `scripts\editor.ps1`. Do not use Live Coding.
+
+## Status for v2.0.3 (14 November 2026)
+
+In:
+- Context record per 32 m of road (OSM edge tags, else rules), read by palms, furniture, grass.
+- Junction road steps fixed (per-column fade); a road-step check per tile and in the tests.
+- Tiles load ahead by speed on the route (2 x load + 4 s, one slot kept for the route).
+- Fallback ground slabs under tiles in range that have no collision.
+- Köppen-Geiger 1991-2020 global grid (0.05 degree); season and grass dryness from it.
+- Ground patterns seamless across tile borders (1664 m anchor, integer hash).
+- Rural cross-section: foreslope, ditch, backslope cut or fill slope.
+- Steep ground: soil from 25 degrees, rock from 33 degrees, triplanar; albedo and
+  saturation limits on lawns and meadows.
+- Roof colour from the aerial photograph inside each footprint.
+- Scan core (format SCN1 v3, rules-only scan, disk cache, class-map view); opt-in with
+  `-SimCruiseScan` / `-SimCruiseScanView` until the first reader uses it.
+
+Moves to v2.0.4:
+- SSURGO soil colour and USGS SGMC rock type (new helper fetches; the rule palette stands in).
+- HPMS and lidar fit of the cross-section; rumble strips; mapped guard rails from the record.
+- A 1 s cross-fade for late tiles (needs masked twins of the ground materials).
+- Facades from FACD rules (bays, storefronts, signs), roof parts, MATL/RSTR/GENR readers.
+- Trees grown to lidar or CHM crowns, impostors, TREE chunk.
+- Prediction queue, speed rule, standstill ladder, the scan governor and two passes.
+- The eyes (`satlas_landcover`, `aerial_student`) through `ISimCruiseScanEye`.

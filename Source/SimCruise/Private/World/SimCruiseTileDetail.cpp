@@ -390,7 +390,14 @@ namespace SimCruiseTileDetail
 		const float L = FMath::Max(0.2126f * Col.R + 0.7152f * Col.G + 0.0722f * Col.B, 1e-4f);
 		const float Mx = FMath::Max3(Col.R, Col.G, Col.B), Mn = FMath::Min3(Col.R, Col.G, Col.B);
 		const float Sat = (Mx - Mn) / FMath::Max(Mx, 1e-4f);
-		if (Sat > 0.45f) Col = FLinearColor(L, L, L) + (Col - FLinearColor(L, L, L)) * (0.45f / Sat);
+		if (Sat > 0.45f)
+		{
+			// Toward grey at the same luminance by the exact factor that leaves saturation 0.45:
+			// with c' = L + k (c - L), (max' - min') / max' = s gives k = s L / ((max - min) - s (max - L)).
+			const float Den = (Mx - Mn) - 0.45f * (Mx - L);
+			const float K = Den > 1e-6f ? FMath::Clamp(0.45f * L / Den, 0.0f, 1.0f) : 0.0f;
+			Col = FLinearColor(L, L, L) + (Col - FLinearColor(L, L, L)) * K;
+		}
 		Col *= FMath::Clamp(L, 0.04f, 0.60f) / L;
 		Col.A = 1.0f;
 		OutColour = Col;

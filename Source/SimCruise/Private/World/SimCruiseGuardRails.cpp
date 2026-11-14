@@ -1,6 +1,7 @@
 // Copyright SimCruise contributors. All Rights Reserved.
 
 #include "World/SimCruiseGuardRails.h"
+#include "World/SimCruiseCellContext.h"
 
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
@@ -141,9 +142,11 @@ void ASimCruiseGuardRails::BuildTile(const FIntPoint& Id)
 	FBuffers B;
 	double Metres = 0.0;
 	FString FirstRail;
+	const FSimCruiseTileContext* Ctx = Build->Context.Get();
 	for (const FSimCruiseRibbon& Ribbon : Build->Roads.Ribbons)
 	{
 		if (Ribbon.bService || Ribbon.St.Num() < 3) continue;
+		const int32 RibbonIndex = static_cast<int32>(&Ribbon - Build->Roads.Ribbons.GetData());
 		TArray<double> S;
 		for (const FSimCruiseRibbonStation& St : Ribbon.St) S.Add(St.S);
 		for (int32 Side = -1; Side <= 1; Side += 2)
@@ -158,6 +161,13 @@ void ASimCruiseGuardRails::BuildTile(const FIntPoint& Id)
 				double Edge = 0.0, Out = 0.0;
 				if (bCut || !Ground(St.C + St.R * Side * (St.HalfW + RailOffsetM), Edge) || !Ground(St.C + St.R * Side * (St.HalfW + RailOffsetM + ProbeM), Out)) continue;
 				Drop[k] = Edge - Out;
+				// OpenStreetMap maps a guard rail beside this station (the tile's context record):
+				// a rail there, whatever the drop (bridges' approaches, curves, medians).
+				if (Ctx)
+				{
+					const FSimCruiseCellContext* Cell = Ctx->At(RibbonIndex, St.S);
+					if (Cell && Cell->Sides[Side > 0 ? 1 : 0].Barrier == TEXT("guard_rail")) Drop[k] = FMath::Max(Drop[k], 10.0);
+				}
 			}
 			for (const FIntPoint& Run : HazardRuns(S, Drop))
 			{

@@ -168,6 +168,9 @@ struct SIMCRUISE_API FSimCruiseTileBuild
 	/** The context record of every ~32 m of road (SimCruiseCellContext), baked before the detail. */
 	TSharedPtr<const struct FSimCruiseTileContext, ESPMode::ThreadSafe> Context;
 
+	/** The tile scan (SimCruiseScan), when -SimCruiseScan or -SimCruiseScanView asks for it (no reader uses it yet). */
+	TSharedPtr<const struct FSimCruiseTileScan, ESPMode::ThreadSafe> Scan;
+
 	/** Palms to instance on this tile. */
 	TArray<FSimCruisePalmInstance> PalmInstances;
 

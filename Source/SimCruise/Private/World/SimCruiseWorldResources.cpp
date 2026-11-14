@@ -390,7 +390,9 @@ baseColor *= lerp(1.0, dl, 0.55 * veg + 0.25 * sand + 0.4 * (bare + paved)) * hu
 	float mx = max(baseColor.r, max(baseColor.g, baseColor.b)), mn = min(baseColor.r, min(baseColor.g, baseColor.b));
 	float sat = (mx - mn) / max(mx, 1e-4);
 	float sMax = lerp(1.0, 0.55, veg);
-	baseColor = Lb + (baseColor - Lb) * (sat > sMax ? sMax / sat : 1.0);
+	// The exact pull toward grey that leaves saturation sMax (c' = L + k (c - L)).
+	float den = (mx - mn) - sMax * (mx - Lb);
+	baseColor = Lb + (baseColor - Lb) * (sat > sMax && den > 1e-5 ? saturate(sMax * Lb / den) : 1.0);
 	baseColor *= min(1.0, lerp(0.8, 0.18, veg) / Lb);
 }
 baseColor = lerp(baseColor, float3(0.025, 0.15, 0.17), water);

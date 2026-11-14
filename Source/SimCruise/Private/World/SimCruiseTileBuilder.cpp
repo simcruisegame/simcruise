@@ -11,6 +11,7 @@
 #include "World/SimCruiseStreetFurniture.h"
 #include "World/SimCruiseCellContext.h"
 #include "World/SimCruiseRoadCheck.h"
+#include "World/SimCruiseScan.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 #include "Knowledge/SimCruiseRoadsideData.h"
@@ -1325,6 +1326,16 @@ namespace SimCruiseTileBuilder
 		}
 
 		B.BuildMs = (FPlatformTime::Seconds() - Started) * 1000.0;
+		// -SimCruiseScan / -SimCruiseScanView: the tile scan (rules only for now), from the disk cache
+		// or baked here on the worker; the view writes its class map to Saved/Scan/view.
+		static const bool bScanView = FParse::Param(FCommandLine::Get(), TEXT("SimCruiseScanView"));
+		static const bool bScan = bScanView || FParse::Param(FCommandLine::Get(), TEXT("SimCruiseScan"));
+		if (bScan)
+		{
+			B.Scan = SimCruiseScan::ForBuild(Data, B);
+			FString ViewPath;
+			if (bScanView && SimCruiseScan::WriteClassView(*B.Scan, &ViewPath)) UE_LOG(LogTemp, Display, TEXT("Scan view %s"), *ViewPath);
+		}
 		// -SimCruiseRoadCheck: the road-step check on every tile built (on this worker), logged.
 		static const bool bRoadCheck = FParse::Param(FCommandLine::Get(), TEXT("SimCruiseRoadCheck"));
 		if (bRoadCheck)

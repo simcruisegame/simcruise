@@ -86,7 +86,8 @@ if (HasSnow > 0.5)
 	float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b));
 	float green = saturate((c.g - max(c.r, c.b)) / L2 * 4.0);
 	float s2 = (mx - mn) / max(mx, 1e-4), sMax = lerp(1.0, 0.55, green);
-	c = L2 + (c - L2) * (s2 > sMax ? sMax / s2 : 1.0);
+	float den = (mx - mn) - sMax * (mx - L2);
+	c = L2 + (c - L2) * (s2 > sMax && den > 1e-5 ? saturate(sMax * L2 / den) : 1.0);
 	c *= min(1.0, lerp(1.0, 0.2, green) / L2);
 }
 // An orthophoto is taken from above with some shading in it; seen from the ground across many
