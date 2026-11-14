@@ -1,0 +1,62 @@
+# World detail v2: plan (14 November 2026)
+
+Owner: Aaron. Approved by the coordinator. Branch: `world-detail-v2`.
+Background: [realtime-context.md](../team/research/realtime-context.md),
+[world-detail-methods.md](world-detail-methods.md).
+
+## Rules
+
+1. Measure first. Use lidar and OpenStreetMap (OSM) before you use a model.
+2. AI only reads photographs into facts. AI does not draw the world.
+3. Do not run AI on the game thread. Do not run AI on the GPU while the car drives.
+4. Every source is free and needs no key or account (CONTRIBUTING.md).
+   Record the source and the licence in `docs/data-sources.md` and `licenses/`
+   in the same commit.
+5. Each step has a test. Each step has frames from the Dragon and Ocean Drive
+   at the highest graphics setting, and fps before and after.
+
+## Models we can ship
+
+| Model | Licence | Use |
+|---|---|---|
+| SDXL base 1.0 | OpenRAIL++-M | Detail kit textures, offline only |
+| Real-ESRGAN x4v3 | BSD-3-Clause | Upscale (in use) |
+| Moondream2 | Apache-2.0 | On the CPU: read street photos into facts |
+| Florence-2 base | MIT | OCR and captions |
+| SAM 2 small | Apache-2.0 | Masks |
+
+Do not use: Depth Anything V2, Marigold, Depth Pro, SegFormer, or any model
+trained on Cityscapes or Mapillary Vistas. Their weights or data are not
+for commercial use.
+
+## Build order
+
+| # | Step | What it gives |
+|---|---|---|
+| 1 | One context record per 32 m of road | Surface, smoothness, edge, kerb, sidewalk, lit, barriers, land use left and right, Köppen class, season, species weights, a stable seed. All generators read it. |
+| 2 | Familiar things | Street name signs in the local style; shop names on their buildings (text and brand colour, no logos); lamps, poles, signals and guard rails at their OSM positions |
+| 3 | One detail layer over everything | A context map per tile and detail-kit taps within 40 m. Target 0.5 ms or less. |
+| 4 | Facades from OSM tags | `building:levels` gives window rows; shop ground floor; colour, material, roof, `start_date` |
+| 5 | Terrain | Rock and road cuts from 0.5 m USGS 3DEP lidar; a slope rule elsewhere |
+| 6 | Tree species | OSM, city tree inventories, GBIF |
+| 7 | Street photos | Panoramax (CC BY-SA, no token) into Moondream2, then facts in the place graph |
+
+## Familiar things: sources by rank
+
+1. OSM street names.
+2. OSM shops, with the Name Suggestion Index (BSD-3-Clause) for brand colours.
+3. OSM lanes and markings, with MUTCD (public domain).
+4. OSM street lamps, poles, signals and guard rails.
+5. OSM building tags, then street photos.
+6. Wikidata (CC0) landmarks.
+7. OSM, city inventories and GBIF trees.
+8. Lidar intensity for road markings (US).
+
+## Work rules
+
+- Commit and push the branch after every step. Push to `main` only when
+  `scripts\check.ps1` (full tier) passes. Do not force-push.
+- Before you change a file that another lane changed in the last 24 hours,
+  keep your change small and additive.
+- Do not run the game or the editor while another lane runs a pre-flight or
+  packages. Open the editor only with `scripts\editor.ps1`. Do not use Live Coding.
