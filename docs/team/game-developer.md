@@ -190,3 +190,85 @@ Status of facts: "[verified]" = read in a primary source on 2026-11-12.
 
 Licences: Epic docs and forum posts are read for reference only. Do not copy
 their code. Gaffer on Games and Microsoft Learn are read for reference only.
+
+## What I now know (onboarding, 2026-11-14)
+
+**How my area works today.**
+- Physics runs async at a fixed 1/360 s. `MaxPhysicsDeltaTime=0.1` is now set (`Config/DefaultEngine.ini:93-97`), so a 30 fps frame does not lose sim time.
+- `StepVehicleOnPhysicsThread` (`Vehicle/SimCruiseVehicleMovementComponent.cpp:167`) holds the vehicle mutex for the whole step. It puts back the car's mass properties if they changed (190-215) and applies a queued reset (217-226). A contact guard limits speed gain to 3 g, spin gain to 40 rad/s², and spin to 12 rad/s (235-271). Four suspension rays call `World->LineTraceSingleByChannel` from the physics thread (326). Grip comes from `ASimCruiseWorldTile::SurfaceGripAtFace` through `Cast<ASimCruiseWorldTile>(Hit.GetActor())` (335).
+- Lifetime: `BeginPlay` registers the sim callback (505). `EndPlay` unregisters it (550). A physics-state destroy clears the proxy (517-523).
+- `ASimCruiseWorldStreamer::TickStreaming` runs in `TG_PrePhysics` (`World/SimCruiseWorldStreamer.cpp:29,483`). The order in each frame is:
+  - It rebases when the focus is more than 2000 m from the origin (494; header :84).
+  - It predicts where the car will be in 5 s (501).
+  - It evicts and requests tiles.
+  - It installs 1 tile per frame, with a 6 ms step budget (523-532). An aerial photo uploads in a frame of its own (535-548).
+  - It trims unused aerials only on frames that install a tile (581-586).
+- `FSimCruiseTileManager` (`World/SimCruiseTileManager.cpp`):
+  - The ring is 3x3 (`RingRadius=1`, header :78). At most 25 tiles stay resident (header :59). At most 2 tiles build at once (`MaxInFlight=2`).
+  - Two edge neighbours never build together (62-67). The score is 0.4 × the gap now + 0.6 × the gap in 5 s (53).
+  - A generation and serial number drop stale results (97-103). A failed tile waits 15 s before a retry (116; header :32).
+- `Launch` (`Streamer.cpp:222`) reads the bundled tile first (297). Otherwise it calls `RequestTile` with a 90 s timeout (314; `AtlasClient.h:113`). The future continuation sends the parse and build to the thread pool (318-331). One worker fetches each aerial photo with the `aerial` command (60 s timeout). The other workers sleep-poll every 50 ms until it is done (253-279).
+- `FSimCruiseAtlasClient` (`Atlas/SimCruiseAtlasClient.cpp`):
+  - It starts one helper process per job on its own thread. `MaxConcurrent` defaults to 2, clamped to 1-8 (119, 197).
+  - It polls every 5 ms. A cancel or a timeout kills the process tree (267-293).
+  - The answer is the last non-empty stdout line, parsed as JSON (316-341).
+  - It looks for the helper in this order: `SIMCRUISE_MAP_HELPER`, `tools/atlas.exe`, the folder of the game binary, then Bun (92-113).
+- Floating origin: `TileSizeM = 40075016/65536 × cos(start lat)` is set once per drive (`World/SimCruiseGeo.cpp:23-25,46`). `RebaseTo` moves by whole tiles (82-87). These listen to `OnRebased`:
+  - GameMode moves the car with `TeleportPhysics` and snaps the camera (`Gameplay/SimCruiseGameMode.cpp:690-705`).
+  - Traffic and LiveSky also listen.
+  - Trees, guard rails and regional terrain do not listen. They poll the frame each tick.
+- `USimCruiseWorldSubsystem::OnWorldBeginPlay` (`World/SimCruiseWorldSubsystem.cpp:23-49`):
+  - A packaged game starts the drive by default. The editor needs `-SimCruiseWorld`.
+  - It reads `-SimCruiseStart=lat,lon`. If the string does not parse, it falls back to Ocean Drive and does not log it.
+- Live feeds (`Live/SimCruiseLiveWorldSubsystem.cpp`): the slow feeds read again after the car moves `MoveRefetchKm` (5 km per the doc) (331). The request budget is 3 in flight and 600 an hour (577).
+- AI detail (`Live/SimCruiseNeuralDetail.cpp`):
+  - The engine is a heap singleton that is never freed (81). One worker thread takes the newest photo first, and the queue has no limit (313-345).
+  - On the GPU it rests between windows, to use about 35 % (`Duty 0.35`, 228). It keeps photos at 2x (`OutputScale=2`, header :80).
+  - The texture swap walks every `UMaterialInstanceDynamic` on the game thread (`LiveWorldSubsystem.cpp:160-168`).
+  - The cache in `Saved/NeuralDetail` has no eviction (289-295).
+
+**Does it work at a random US place?**
+- General: the tile math, rebase, thread model and physics are plain Web Mercator with no region in them. They work at any lat/lon. Only the 24 Miami tiles are bundled, so every other place needs the helper and the network.
+- Hard-wired: sky glow is scaled to Miami Beach's 300 lamps (`Streamer.cpp:388-399`). Street lights are a fixed 1800 cd at 3000 K (413-441). A bad start string, or a start where the tiles fail, falls back to Ocean Drive (`WorldSubsystem.cpp:36-37`; `GameMode.cpp:541-545`).
+- us-rawlins-wy (I-80, about 120 km/h): a tile is 456 m, so the car crosses one in about 13.7 s. The tile straight ahead builds alone, because its two side tiles are edge neighbours. On an empty cache, the helper fetch plus the 1-9 s build (`docs/unreal-architecture.md:290`) must finish in under 14 s (estimate: often too slow). us-casselton-nd: 418 m tiles, about 14 s at 105 km/h (estimate).
+- us-welch-wv, us-hilo-hi, us-stonington-me (poor data or slow sources): a failed tile is a hole for at least 15 s. Nothing catches the car there:
+  - The regional terrain has `NoCollision` (`SimCruiseRegionalTerrain.cpp:262`).
+  - Only the start waits for tiles (`GameMode.cpp:534`).
+  - So the car falls through (estimate, from the code).
+- us-anchorage-ak: tiles are 294 m, so the tile changes and rebases come more often. The scale error grows fastest here (tan 61° = 1.8).
+- us-bronx-ny: dense tiles move build time toward the 9 s end. Install steps keep the 6 ms budget. GPU memory for aerials is about 4 × 21 MB at 2x (estimate).
+
+**Main gaps against "realistic everywhere".**
+1. P0: A missing or failed tile ahead has no safety net. The car drives onto ground with no collision and falls. `SimCruiseWorldStreamer.cpp:532-559`, `SimCruiseTileManager.cpp:114-117`, `SimCruiseRegionalTerrain.cpp:262`. Unverified: the KillZ check may then destroy the pawn.
+2. P1: Streaming may not keep up at highway speed.
+   - When a tile drops out of the ring, its helper job is not cancelled. `TakeEvictions` (`SimCruiseTileManager.cpp:78-95`) never touches `InFlight`, so a stale job holds 1 of the 2 slots for up to 90 s.
+   - The edge-neighbour rule makes the tiles ahead build one after another.
+3. P1: The tile scale is fixed at the start latitude (`SimCruiseGeo.cpp:46`). The error is tan(lat) × Δlat. 500 km north from 42° is about 7 % too large. 100 km at Anchorage is about 2.9 %. Road lengths and grades come out wrong (estimate).
+4. P1 (hypothesis, open since review 2026-11-12): at each rebase the tiles move at once (`Streamer.cpp:351`). The car's teleport reaches the physics thread later (`GameMode.cpp:699`). Steps already running then cast rays at moved tiles (`MovementComponent.cpp:326`): no contact for 1-12 steps every 2 km.
+5. P2: Three smaller faults.
+   - A reset queued in the same frame as a rebase is not moved with the rebase (`MovementComponent.cpp:33,219`; `HandleRebased` does not shift it). It is still open from the review.
+   - The physics thread reads the tile actor and its `SurfaceLock` (`SimCruiseWorldTile.cpp:106`). `StartAt` destroys all tiles while the car may still stand on them (`Streamer.cpp:69-71`). This could be a use-after-free (hypothesis).
+   - The `Saved/NeuralDetail` disk cache grows without limit on long drives.
+
+**My first three actions.**
+1. Missing-ground guard.
+   - What: if the tile under the car, or the next tile on its path, is not `IsCollisionReady`, hold the car at its last road pose and show the loading line. Log `GROUND-MISSING`.
+   - Where: `Gameplay/SimCruiseGameMode.cpp`, with a test flag `-SimCruiseHelperFailAfter=<s>`.
+   - Done when: `scripts\preflight.ps1 -Roads us-welch-wv,us-hilo-hi -Cars nb2001_aaron -Seconds 120`, with the flag at 30 s, never puts the car more than 2 m below the road. Also, `SimCruise.World.MissingTile` fails before the fix.
+2. Cancel stale tile jobs and measure lead time.
+   - What: keep the atlas job for each ticket. Cancel it when its tile leaves the ring. Log the lead time (distance to the tile edge ÷ speed) when each tile becomes ready.
+   - Where: `World/SimCruiseWorldStreamer.cpp` and `World/SimCruiseTileManager.cpp`.
+   - Done when: with an empty `SIMCRUISE_MAP_CACHE`, `scripts\preflight.ps1 -Roads us-rawlins-wy,us-casselton-nd -Cars meridian_z -Seconds 300` shows 0 frames on a tile that is not ready.
+3. Prove or close the rebase contact loss, and fix the pending reset.
+   - What: log `WheelContactCount` for each step around the "Floating origin moved" log line. Add `ShiftPendingReset(Offset)` under the mutex, called from `HandleRebased`.
+   - Done when: `scripts\preflight.ps1 -Roads random -RandomCount 3 -Seconds 180` shows 4 contacts on every step and no jolt over 8 m/s² at a rebase. The new unit test `SimCruise.Vehicle.RebasePendingReset` passes.
+
+**Docs that are wrong or old.**
+- `docs/unreal-architecture.md:286-303` ("Known gaps") says there are no trees, furniture, signals, traffic, bridges or surface friction. The code has all of them, for example `SurfaceGripAtFace` (`SimCruiseWorldTile.cpp:96`) and `SimCruiseTraffic`.
+- `docs/unreal-architecture.md:513` says "the streamer waits for" the AI detail. The code does not wait: `EnhanceAerial` queues the photo and returns false (`SimCruiseNeuralDetail.cpp:313-325`; `Streamer.cpp:284`).
+- `docs/team/ownership.md` rule 5 points to `docs/team/test-places.md`, which does not exist. The list is `data/test-places.json`. The "about 550 m" tile size in `how-the-game-works.md` is true only at Miami's latitude; it is 294-576 m across the test places.
+- `docs/unreal-building.md:268-270` describes the pre-flight as the 12 hero-road runs only. It leaves out `-Roads us-*|random|pool` (`scripts/preflight.ps1:21-30`).
+
+Proposed line for `docs/team/game-developer.md`: "Tile size is fixed at the start latitude (`SimCruiseGeo.cpp:46`); scale error = tan(lat) × Δlat, about 7 % after 500 km north at 42° [verified in code]."
+
+Note: I did not use any outside web sources. Every claim above comes from the repo files cited. The pawn-destroy-at-KillZ point is unverified engine behaviour.

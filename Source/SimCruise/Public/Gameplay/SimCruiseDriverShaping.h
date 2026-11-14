@@ -41,6 +41,16 @@ namespace SimCruiseShaping
 	constexpr double CountersteerRateRadPerS = 40.0 * UE_DOUBLE_PI / 180.0;
 	constexpr double CountersteerMinBetaRad = 2.0 * UE_DOUBLE_PI / 180.0;
 	constexpr double BetaMinForwardSpeedMps = 5.0;
+	// The hand on the rim: how fast a driver turns a real steering wheel (deg/s of the rim). Parking
+	// and slow corners take it up to about 450 deg/s (a turn and a quarter a second, hand over hand),
+	// at speed about 300; letting the wheel unwind through the hands is quicker (600 / 400), and a
+	// slide is caught at up to 700. NHTSA's test drivers reached 963 deg/s sustained for one second
+	// in emergency manoeuvres (ESV 2005 paper on steering inputs), the ceiling none of these pass.
+	constexpr double HandApplyParkingDegPerS = 450.0;
+	constexpr double HandApplyHighwayDegPerS = 300.0;
+	constexpr double HandReturnParkingDegPerS = 600.0;
+	constexpr double HandReturnHighwayDegPerS = 400.0;
+	constexpr double HandCatchDegPerS = 700.0;
 
 	/** Quilez polynomial smooth minimum (Powertrain.smooth_min). */
 	SIMCRUISE_API double SmoothMin(double A, double B, double K);

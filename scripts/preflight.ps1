@@ -47,6 +47,10 @@ param(
     # The negative test: at speed the robot yanks the stick with the handbrake on. Every run must
     # FAIL with a spin; the script exits 0 when they do, and writes no row to the index.
     [switch]$ForceSpin,
+    # The seed for 'random' and 'pool' (default: today's date as yyyyMMdd).
+    [int]$Seed = -1,
+    # How many places 'random' draws from data\test-places.json.
+    [int]$RandomCount = 3,
     # More game arguments for every run, for A/B tests (for example "-DPCVars=simcruise.Reflex=1").
     [string]$ExtraArgs = '',
     # The graphics preset of every run (ultra by default; high for the second fps number).
@@ -88,6 +92,36 @@ $Defs = @{
     'minnesota-north' = @('-SimCruiseStart=48.0519,-92.8310')   # US-53, Orr MN
     'south-texas'    = @('-SimCruiseStart=26.4815,-97.7831')    # US-77, Raymondville TX
 }
+if ($Seed -lt 0) { $Seed = [int](Get-Date -Format 'yyyyMMdd') }
+# Ordinary US places: the world must work everywhere, not only on the hero roads.
+$PlacesFile = Join-Path $Root 'data\test-places.json'
+$TestPlaces = @()
+if (Test-Path $PlacesFile) { $TestPlaces = @((Get-Content $PlacesFile -Raw | ConvertFrom-Json)) }
+# Each test place drives at its own local solar noon on the -Utc date (12 h - lon/15), so Anchorage
+# and Hilo get daylight too; an explicit -Utc keeps one time for every run.
+$PlaceUtc = @{}
+$UtcGiven = $PSBoundParameters.ContainsKey('Utc')
+$Day = ([datetime]::Parse($Utc, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::AdjustToUniversal)).Date
+foreach ($P in $TestPlaces) {
+    $Defs[$P.key] = @("-SimCruiseStart=$($P.lat),$($P.lon)")
+    $PlaceUtc[$P.key] = $Day.AddHours(12.0 - [double]$P.lon / 15.0).ToString('yyyy-MM-ddTHH:mm:ssZ')
+}
+$Defs['pool'] = @('-SimCruiseRandomStart', "-SimCruiseStartSeed=$Seed")
+$Expanded = @()
+foreach ($Road in $Roads) {
+    if ($Road -eq 'random') {
+        if (-not $TestPlaces.Count) { Write-Host "No places in $PlacesFile"; exit 2 }
+        # A seeded System.Random partial shuffle: the same draw in Windows PowerShell 5.1 and PowerShell 7.
+        $Rng = [System.Random]::new($Seed)
+        $Keys = @($TestPlaces | ForEach-Object { $_.key })
+        $Take = [Math]::Max(1, [Math]::Min($RandomCount, $Keys.Count))
+        for ($i = 0; $i -lt $Take; $i++) { $j = $Rng.Next($i, $Keys.Count); $t = $Keys[$i]; $Keys[$i] = $Keys[$j]; $Keys[$j] = $t }
+        $Draw = @($TestPlaces | Where-Object { $Keys[0..($Take - 1)] -contains $_.key })
+        Write-Host "Random places (seed $Seed): $(($Draw | ForEach-Object { $_.key }) -join ', ')"
+        $Expanded += @($Draw | ForEach-Object { $_.key })
+    } else { $Expanded += $Road }
+}
+$Roads = $Expanded
 $CarNames = @{ 'nb2001_aaron' = 'Miata'; 'mustang65' = 'Mustang'; 'meridian_z' = 'Corvette' }
 
 # A game run needs no platform SDK check: skip the start-up call to Unreal Build Tool,
@@ -163,7 +197,7 @@ foreach ($Road in $Roads) {
 # The report.
 $Failed = @($Rows | Where-Object { $_.Result -ne 'PASS' })
 $Verdict = if ($Failed.Count) { 'FAIL' } else { 'PASS' }
-$Md = @("# Pre-flight $Stamp", '', "Commit ``$Commit``, $($Rows.Count) runs of $Seconds s, time $Utc. Result: **$Verdict** ($($Rows.Count - $Failed.Count) passed, $($Failed.Count) failed).", '',
+$Md = @("# Pre-flight $Stamp", '', "Commit ``$Commit``, $($Rows.Count) runs of $Seconds s, time $Utc (test places: their own solar noon), seed $Seed. Result: **$Verdict** ($($Rows.Count - $Failed.Count) passed, $($Failed.Count) failed).", '',
     '| Road | Car | Result | View | Distance (m) | Mean speed (m/s) | Off road (s) | Rear slip (deg) / backwards (s) | Past the edge (m / s) | Frame p95 (ms) / hitches | White sky (%) | Tile pop-in | Car pop-in | Flashes | Road steps (max cm) | Gaps | Jolts (at borders) | Stuck traffic | Video | Sheet | Reasons |',
     '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|')
 foreach ($R in $Rows) {

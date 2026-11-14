@@ -166,3 +166,84 @@ Checks:
 No peer-reviewed paper on gamepad steering response curves was found in this session. Treat the curve rules in section 2.2 as engineering practice, to be confirmed by a player test. **[U]**
 
 Licence notes: XAG and Microsoft docs are public reference (Microsoft terms). GAG is free to use as guidance. Do not copy text blocks into the game.
+
+## What I now know (onboarding, 2026-11-14)
+
+Role: ux-accessibility. This is a desk study of code and docs. Nothing was run. Numbers marked (estimate) show their arithmetic.
+
+**How my area works today.**
+- Bindings are one table in `Source/SimCruise/Private/Gameplay/SimCruiseInputConfig.cpp:23-80`.
+  - Stick X dead zone: 0.12, axial, rescaled to 0..1 (`:13`, `:131-137`).
+  - Trigger dead zone: 0.04, fixed (`:12`).
+  - L3 is unbound. R3 toggles the gearbox (`:45`). X cycles the HUD (`:59`).
+  - Lens (F6), sound (M), lights (L) and stats (F3) have no pad button. The lens, sound and lights are in the pause menu rows (`SimCruisePlayerControllerMenu.cpp:169,177,196`).
+- Extra steering dead zone: `SimCruiseShaping::StickDeadZone` (`SimCruiseDriverShaping.cpp:36-41`). It is clamped to 0..0.25, and the rest of the travel is rescaled again. The menu ladder is {0, 0.05, 0.10, 0.15} (`SimCruisePlayerControllerMenu.cpp:56`), shown as 12-25 % total. A resting stick gives exactly 0.
+- Stick range: `AvailableSteeringRad` (`SimCruiseDriverShaping.cpp:58-64`) is the Ackermann angle for the car file's `assist_lateral_g` (default 0.95), plus a 5° slip surplus, smooth-min blended into the parking lock. It reads speed only. It does not read `SurfaceGrip`.
+- Stick curve: `ThumbstickCommand` (`:87-94`) is s·(c+(1-c)s²), with c = Ackermann angle for 0.89 g divided by the range, clamped to 0.16..1. Miata at 30 m/s (estimate):
+  - Range: atan(2.265·0.95·9.81/900) + 5° = 1.34° + 5° = 6.34°.
+  - c = 1.26/6.34 = 0.199.
+  - Half stick = 0.5·(0.199+0.801·0.25) = 0.20 of range = 1.27°. That is about 0.89 g steady state, on dry road only.
+- Pad apply rate: `ApplyRate = 2.75 · Cap · Quick · HandSpeed` (`:166`). Return rate: 4.4·Cap (`:167`). Constants are at `SimCruiseDriverShaping.h:35-36`.
+  - Miata parked: 2.75·36.6° = 100.6°/s at the road wheel, ×15 = about 1510°/s at the hand wheel.
+  - At the 1.5 "Stick steering speed" setting (`SimCruisePlayerControllerMenu.cpp:55`): about 2265°/s.
+  - The rate scales with Cap, so it falls with speed (about 290°/s at 25 m/s, per `docs/team/research/steering-ratio.md`).
+  - Countersteer applies up to 40°/s (`:178-182`).
+- Pedals: throttle = trigger^1.8 (`simcruise.TriggerGamma`). Brake = trigger^1.4 (`SimCruiseDriverShaping.cpp:15-18`). Key pedals ramp at 3/s and 2.5/s, and release at 8/s.
+- Racing wheel: `UpdateWheel` (`SimCruisePlayerController.cpp:357-408`).
+  - Rack = rim angle / the presentation model's ratio. The ratio falls back to 15 (`:372-380`). It is applied 1:1 (`SimCruiseDriverShaping.cpp:185-190`).
+  - The tuned ratio (`SteeringQuickness`) is not applied to the wheel.
+  - FFB = aligning torque / ratio / 2.5 Nm × 0.6.
+- Rumble: `FSimCruiseHapticsModel::Sample` (`SimCruiseHaptics.cpp:87-150`) uses these channels:
+  - Slip on both motors.
+  - ABS at 8 Hz.
+  - Road texture, which reads `RoadRoughness`.
+  - "Loose" ground, from `SurfaceGrip`: 1 − smoothstep(0.70, 0.92), ×0.25 gain (`:105`, `:53`).
+  - Engine load ×0.06.
+  - The backend is hard-wired to XInput (`SimCruisePlayerController.cpp:74`), so trigger motors get 0 (`SimCruiseHaptics.cpp:74-82`).
+- HUD (`SimCruiseDriveHud.cpp:309-353`):
+  - Text sizes, in px at 1080p (`Scale = ClipY/1080`, `:258`): speed 132, gear 56 (amber), "mph" 26 (Mist #A9B6AF), ABS 20, rpm 20, car name 21. The card note is 17 px (`:724`).
+  - Backing plate: `Glass(0.55)` (`:316`).
+  - In Glance mode, everything fades to alpha 0.4 while moving (`SimCruiseHUD.h:27`, `SimCruiseDriveHud.cpp:270-274`). The plate fades with the text.
+  - There is no text-scale setting.
+- Units: `SimCruiseSpeedUnits.cpp`. mph is the default. The value is rounded |v_x|, and rpm is shown to the nearest 50. The setting is saved in preferences.
+
+**Does it work at a random US place?**
+- General: bindings, dead zones, the stick curve and the pad rate read only car speed and car data. They do not read the road or the place, so they behave the same in the Bronx, Ankeny or Hilo. This is correct for input.
+- Fails where grip is low: the stick range assumes 0.95 g on every surface. Tiles give gravel and earth 0.7-0.8 of dry grip (`SimCruiseWorldTile.cpp:129-136`), and rain multiplies grip by (1 − 0.3·wetness) (`SimCruiseVehicleMovementComponent.cpp:339`).
+  - Places hit: us-casselton-nd section gravel, us-seattle-wa and us-hilo-hi in rain, us-anchorage-ak.
+  - Half stick asks for about 0.89 g where about 0.6-0.7 g exists (estimate: 0.9 dry μ × 0.7). The player overshoots on an ordinary road.
+- Rumble depends on place:
+  - Wet asphalt (grip 0.70) and gravel (0.70) give the same "loose" buzz: 4 wheels × 1.0 × 0.25 = 25 % on the high-frequency motor, above 6 m/s, when coasting straight. The player cannot tell rain from gravel. This breaks "zero when coasting straight".
+  - The road-texture and kerb cues are dead on the real car (`SimCruiseVehicle.cpp:347`, `Out.RoadRoughness = 0.0;`), so Detroit potholes and Welch broken pavement feel like new asphalt.
+- HUD contrast depends on the background (estimate, WCAG luminance). White text has L = 0.913.
+  - Glance faded, over sunlit concrete (L_bg 0.5, us-gilbert-az, us-rawlins-wy): the plate gives 0.78·0.5 = 0.39, and the text gives 0.4·0.913 + 0.6·0.39 = 0.60. Ratio = 0.65/0.44 = 1.5:1.
+  - Glance faded, over snow (L_bg 0.8, us-anchorage-ak): 1.2:1.
+  - The awake "mph" label (Mist, L = 0.45) over concrete: 0.50/0.28 = 1.8:1.
+  - Results: Miami noon and desert fail, and any snow fails. The 4.5:1 target (3:1 for large text) fails at the places in the test list.
+- Hard-wired: the wheel ratio falls back to 15:1 when a car has no presentation model. The stick does not care about the region or the hero road.
+
+**Main gaps against "realistic everywhere".**
+1. P1: The stick range and centre gain ignore surface grip. Half stick exceeds grip on gravel, wet roads and snow. Files: `SimCruiseDriverShaping.cpp:58-64,87-94`. Fix: scale the assist g by the smoothed mean contact `SurfaceGrip`, which telemetry already has. This is input shaping only; the physics stays the same.
+2. P1: The pad apply rate is about 1510°/s at the hand wheel at parking speed, and 2265°/s at the 150 % setting (`SimCruiseDriverShaping.cpp:166`, `.h:35`). This matters most at low speed in city grids and cul-de-sacs (us-bronx-ny, us-ankeny-ia). Fix: cap the rate in hand-wheel °/s (about 540 apply and 720 return, per `steering-ratio.md`, estimate).
+3. P1: The Glance fade to 0.4 and the 0.55 plate fail contrast on bright, snow and concrete backgrounds (`SimCruiseHUD.h:27`, `SimCruiseDriveHud.cpp:316`). Fix: keep the plate at 0.7 or more when faded, and fade only secondary items. Also, the 17-21 px texts (`:329,344,350,724`) are under the XAG 101 minimum of 26 px.
+4. P1: The wet road buzz is the same as the gravel buzz, and the texture cue is dead (`SimCruiseHaptics.cpp:105`, `SimCruiseVehicle.cpp:347`). Fix: key the "loose" cue on dry grip only. Feed `RoadRoughness` from the tile surface or the suspension rate.
+5. P2: The tuned steering ratio is not applied to a racing wheel (`SimCruiseDriverShaping.cpp:185-190`).
+6. P2: The right-stick look dead zone (0.18) is not rescaled, so the look jumps from 0 to 0.18 (`SimCruisePlayerController.cpp:326`). The trigger dead zone (0.04) cannot be adjusted.
+
+**My first three actions.**
+1. Make the stick range use surface grip (`SimCruiseDriverShaping.cpp`, `AvailableSteeringRad` and `ThumbstickCommand`). Done when:
+   - A new test, `SimCruise.Gameplay.Steering.GripAwareRange`, passes. At 30 m/s with SurfaceGrip 0.7, half stick asks no more than 0.7 × dry steady-state g. Dry results do not change.
+   - `scripts\preflight.ps1 -Roads us-casselton-nd,us-seattle-wa,random -Cars nb2001_aaron -Seconds 60` shows no "past edge" or spin reason.
+2. Cap the pad rate in hand-wheel °/s (`SimCruiseDriverShaping.cpp:166-167`). Done when:
+   - A test shows that a full-stick step from rest takes 1.0 s or more to reach 90 % of lock, and no pad case exceeds 720°/s at the hand wheel at any HandSpeed setting.
+   - `scripts\preflight.ps1 -Roads us-bronx-ny,us-ankeny-ia -Seconds 60` shows no new jolts.
+3. Fix the HUD contrast and the wet-road buzz (`SimCruiseHUD.h:27`, `SimCruiseDriveHud.cpp:316-350`, `SimCruiseHaptics.cpp:105`). Done when:
+   - Tests show that the plate alpha stays at 0.7 or more when faded.
+   - `SimCruise.Gameplay.Haptics.SlipRumble` gets a wet-asphalt coasting case that gives 0 rumble.
+   - Capture frames from `scripts\preflight.ps1 -Roads us-anchorage-ak,us-gilbert-az,ocean-drive` measure 4.5:1 or better for the "mph" and rpm text. I read every `*-sheet.png`.
+
+**Docs that are wrong or old.**
+- `docs/unreal-architecture.md`, "Input" table. It lists the pre-2.0.0 pad layout: parking brake on A, clutch on LB, gearbox on B, shift down on X, engine start on R3, HUD on L3. It also says "triggers linear" and calls the atlas and search a "message until ported". The code is at `SimCruiseInputConfig.cpp:42-59` and `SimCruiseDriverShaping.cpp:15-18`.
+- `docs/controls.md`, "Steering on a pad". It says the pad rumbles from road texture and that the trigger motors carry wheelspin with GameInput. In code, `RoadRoughness` is 0 (`SimCruiseVehicle.cpp:347`) and the backend is fixed to XInput (`SimCruisePlayerController.cpp:74`).
+- `SimCruiseDriverShaping.h:28` and `docs/team/ux-accessibility.md` §2.3 say the brake trigger is linear. The code uses gamma 1.4 (`SimCruiseDriverShaping.cpp:16`).
+- `docs/team/ux-accessibility.md` §2.1 says the dead zone has no setting. A 12-25 % setting now exists (`SimCruisePlayerControllerMenu.cpp:56,124`).
