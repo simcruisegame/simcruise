@@ -26,18 +26,18 @@
     and, on request only, ten places across the US for the world-detail checks: mojave,
     colorado-pass, kansas-plains, maine-forest, oregon-coast, atlanta-suburb, iowa-town,
     chicago, minnesota-north, south-texas (the car starts on the nearest road).
-  Cars: nb2001_aaron (Miata), mustang65 (Mustang), meridian_z (Corvette).
+  Cars: nb2001_lowered (Miata), mustang65 (Mustang), meridian_z (Corvette).
   The roads other than Ocean Drive need the map helper (tools\atlas.exe) and the network.
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts\preflight.ps1
-  powershell -ExecutionPolicy Bypass -File scripts\preflight.ps1 -Roads ocean-drive -Cars nb2001_aaron -Seconds 20
+  powershell -ExecutionPolicy Bypass -File scripts\preflight.ps1 -Roads ocean-drive -Cars nb2001_lowered -Seconds 20
 #>
 param(
     # Show the game's window (default: off screen, -RenderOffScreen, nothing on the desktop).
     [switch]$ShowWindow,
     [string[]]$Roads = @('ocean-drive', 'dragon', 'nebraska', 'big-sur'),
-    [string[]]$Cars = @('nb2001_aaron', 'mustang65', 'meridian_z'),
+    [string[]]$Cars = @('nb2001_lowered', 'mustang65', 'meridian_z'),
     [int]$Seconds = 60,
     [string]$Utc = '2026-11-12T17:00:00Z',
     [string]$EngineDir = $(if ($env:UE_ROOT) { $env:UE_ROOT } else { 'C:\Program Files\Epic Games\UE_5.8' }),
@@ -125,7 +125,7 @@ foreach ($Road in $Roads) {
     } else { $Expanded += $Road }
 }
 $Roads = $Expanded
-$CarNames = @{ 'nb2001_aaron' = 'Miata'; 'mustang65' = 'Mustang'; 'meridian_z' = 'Corvette' }
+$CarNames = @{ 'nb2001_lowered' = 'Miata'; 'mustang65' = 'Mustang'; 'meridian_z' = 'Corvette' }
 
 # A game run needs no platform SDK check: skip the start-up call to Unreal Build Tool,
 # which waits while another checkout builds.

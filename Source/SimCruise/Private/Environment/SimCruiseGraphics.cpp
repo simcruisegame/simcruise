@@ -183,7 +183,7 @@ void FSimCruiseGraphics::Apply(ESimCruiseGraphicsPreset Preset)
 	SetCVar(TEXT("r.AntiAliasingMethod"), TEXT("4"));
 	SetCVar(TEXT("r.ScreenPercentage"), FString::SanitizeFloat(S.ScreenPercentage));
 	// Sharpen after the upscale, more the lower the internal resolution: TSR's output from a
-	// 58 % picture is soft (Aaron: "the graphics look fuzzy"). 100 % gets a light 0.4.
+	// 58 % picture is soft (the project owner: "the graphics look fuzzy"). 100 % gets a light 0.4.
 	SetCVar(TEXT("r.Tonemapper.Sharpen"), FString::SanitizeFloat(SharpenFor(S.ScreenPercentage)));
 	// Frame guard: when the GPU cannot hold 60 fps (a laptop held at 28 W), TSR's internal picture
 	// shrinks, down to 50 %, so frames come on time; the preset's screen percentage stays the top.

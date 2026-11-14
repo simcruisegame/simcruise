@@ -787,7 +787,7 @@ UMaterialInstanceDynamic* SimCruiseCarMaterials::MakeInstance(UObject* Outer, ES
 		break;
 	case R::InteriorPlastic:
 		// Grained dash plastic is near-matte (roughness about 0.85): at 0.66 the sky's reflection
-		// turned the near-black dash light grey in the sun (Aaron's Miata screenshot, 2026-11-14).
+		// turned the near-black dash light grey in the sun (a screenshot of the Miata, 2026-11-14).
 		Base = ToAlbedo(AuthorBase, 0.025f, 0.12f);
 		Surface = FLinearColor(0.f, 0.85f, 0.f, 0.05f);
 		Detail.R = KindInteriorPlastic;

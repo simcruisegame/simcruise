@@ -43,7 +43,7 @@ function Add-CaseResults($Cases, $Findings, $Numbers, $Frames, $Ran) {
     foreach ($C in $Cases) {
         $Name = $C.Def.Name
         $Teams = switch ($C.Def.Case) { 'standstill' { @('world', 'picture') } 'fallback' { @('world') } 'cooked-drive' { @('driving', 'picture', 'release') } 'eye' { @('world', 'ai') } 'eyeoff' { @('ai') } default { @('world', 'ai', 'picture') } }
-        $Car = 'nb2001_aaron'
+        $Car = 'nb2001_lowered'
         $Add = { param($Team, $Sev, $Time, $Ev, $What) $Findings[$Team] += [pscustomobject]@{ Sev = $Sev; Place = $Name; Car = $Car; Time = $Time; Evidence = $Ev; What = $What } }
         if (-not $C.Ran) { foreach ($T in $Teams) { $Numbers[$T] += "| $Name | test case | NOT RUN: $($C.Reason) | - | NOT RUN |" }; continue }
         foreach ($T in $Teams) { $Ran[$T] = $true }

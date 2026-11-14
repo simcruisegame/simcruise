@@ -22,7 +22,7 @@
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts\cockpit-review.ps1
-  powershell -ExecutionPolicy Bypass -File scripts\cockpit-review.ps1 -Cars nb2001_aaron,mustang65,meridian_z
+  powershell -ExecutionPolicy Bypass -File scripts\cockpit-review.ps1 -Cars nb2001_lowered,mustang65,meridian_z
 #>
 param(
     # Show the game's window (default: off screen, -RenderOffScreen, nothing on the desktop).

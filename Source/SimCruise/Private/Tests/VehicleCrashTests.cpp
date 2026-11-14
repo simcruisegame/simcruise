@@ -265,7 +265,7 @@ namespace
 	bool FSimCruiseVehicleCrash_##CarIdent::RunTest(const FString& Parameters) { return RunCrashTest(*this, TEXT(#CarIdent)); }
 
 SIMCRUISE_VEHICLE_CRASH(nb2001)
-SIMCRUISE_VEHICLE_CRASH(nb2001_aaron)
+SIMCRUISE_VEHICLE_CRASH(nb2001_lowered)
 SIMCRUISE_VEHICLE_CRASH(mustang65)
 SIMCRUISE_VEHICLE_CRASH(meridian_z)
 

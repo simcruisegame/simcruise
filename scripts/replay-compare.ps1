@@ -33,7 +33,7 @@
   Stop a run that has not quit after this many minutes (default 15).
 
 .EXAMPLE
-  powershell -ExecutionPolicy Bypass -File scripts\replay-compare.ps1 -Tape Saved\DriveTest\input-20261113-101500.csv -CarB nb2001_aaron
+  powershell -ExecutionPolicy Bypass -File scripts\replay-compare.ps1 -Tape Saved\DriveTest\input-20261113-101500.csv -CarB nb2001_lowered
   powershell -ExecutionPolicy Bypass -File scripts\replay-compare.ps1 -Tape lap.csv -RootB D:\sc\lane2 -Pad
 #>
 param(

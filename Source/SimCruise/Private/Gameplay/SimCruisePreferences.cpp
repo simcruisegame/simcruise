@@ -6,6 +6,7 @@
 #include "HAL/FileManager.h"
 #include "HAL/PlatformMisc.h"
 #include "Misc/CommandLine.h"
+#include "Misc/Crc.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Parse.h"
 #include "Misc/Paths.h"
@@ -20,6 +21,8 @@ namespace
 		return FPlatformMisc::GetEnvironmentVariable(TEXT("SIMCRUISE_QA_PREFS_DIR"));
 	}
 
+	void Write(const TSharedPtr<FJsonObject>& Doc);
+
 	TSharedPtr<FJsonObject> Read()
 	{
 		FString Text;
@@ -29,7 +32,9 @@ namespace
 			const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Text);
 			FJsonSerializer::Deserialize(Reader, Doc);
 		}
-		return Doc.IsValid() ? Doc : MakeShared<FJsonObject>();
+		if (!Doc.IsValid()) return MakeShared<FJsonObject>();
+		if (SimCruisePreferences::MigrateRenamedCarIds(*Doc)) Write(Doc);
+		return Doc;
 	}
 
 	void Write(const TSharedPtr<FJsonObject>& Doc)
@@ -112,5 +117,57 @@ namespace SimCruisePreferences
 		TSharedPtr<FJsonObject> Doc = Read();
 		Doc->SetBoolField(Key, Value);
 		Write(Doc);
+	}
+
+	uint32 CarIdCrc(const FString& CarId)
+	{
+		const FTCHARToUTF8 Utf8(*CarId);
+		return FCrc::MemCrc32(Utf8.Get(), Utf8.Length());
+	}
+
+	const TMap<uint32, FString>& RenamedCarIds()
+	{
+		// The CRC-32 of each retired car id and the id that replaced it.
+		static const TMap<uint32, FString> Renamed = {
+			{ 0xBEEACA7Cu, TEXT("nb2001_lowered") }, // 2026-11-14: the lowered 2001 Miata got a neutral id
+		};
+		return Renamed;
+	}
+
+	bool MigrateRenamedCarIds(FJsonObject& Doc)
+	{
+		return MigrateCarIds(Doc, RenamedCarIds());
+	}
+
+	bool MigrateCarIds(FJsonObject& Doc, const TMap<uint32, FString>& OldIdCrcToNewId)
+	{
+		auto NewIdFor = [&OldIdCrcToNewId](const FString& OldId) -> const FString*
+		{
+			const FString* NewId = OldIdCrcToNewId.Find(CarIdCrc(OldId));
+			return NewId && *NewId != OldId ? NewId : nullptr;
+		};
+		bool bChanged = false;
+		FString Car;
+		if (Doc.TryGetStringField(TEXT("car"), Car))
+		{
+			if (const FString* NewId = NewIdFor(Car))
+			{
+				Doc.SetStringField(TEXT("car"), *NewId);
+				bChanged = true;
+			}
+		}
+		TArray<FString> Keys;
+		Doc.Values.GetKeys(Keys);
+		for (const FString& Key : Keys)
+		{
+			if (!Key.StartsWith(TEXT("seat_"))) continue;
+			const FString* NewId = NewIdFor(Key.Mid(5));
+			if (!NewId) continue;
+			const FString NewKey = TEXT("seat_") + *NewId;
+			if (!Doc.HasField(NewKey)) Doc.SetField(NewKey, Doc.Values[Key]);
+			Doc.RemoveField(Key);
+			bChanged = true;
+		}
+		return bChanged;
 	}
 }

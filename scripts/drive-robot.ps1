@@ -4,7 +4,7 @@
   flat test pad for each car and fails if a car spins where a real one stays in control.
 
 .DESCRIPTION
-  For each car (default nb2001, nb2001_aaron, mustang65 and meridian_z) it builds nothing, takes the PC-wide editor
+  For each car (default nb2001, nb2001_lowered, mustang65 and meridian_z) it builds nothing, takes the PC-wide editor
   lock (scripts\editor.ps1), runs -SimCruiseDriveTest -SimCruiseDriveTestPad, and reads the
   DRIVETEST summary lines (peak rear-axle slip and yaw rate per manoeuvre). Each run is
   appended to Saved\DriveTest\history.csv with the commit, so a change in feel shows as a
@@ -22,7 +22,7 @@
 param(
     # Show the game's window (default: off screen, -RenderOffScreen, nothing on the desktop).
     [switch]$ShowWindow,
-    [string[]]$Cars = @('nb2001', 'nb2001_aaron', 'mustang65', 'meridian_z'),
+    [string[]]$Cars = @('nb2001', 'nb2001_lowered', 'mustang65', 'meridian_z'),
     # Cap the frame rate at 15 fps as well, to catch frame-rate dependence.
     [switch]$LowFps
 )

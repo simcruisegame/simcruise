@@ -77,7 +77,7 @@ New-Item -ItemType Directory -Force (Join-Path $RunDir 'teams') | Out-Null
 $Started = Get-Date
 
 # The places: the hero roads with the cars turning round them, then the seeded ordinary places.
-$Cars = @('nb2001_aaron', 'mustang65', 'meridian_z')
+$Cars = @('nb2001_lowered', 'mustang65', 'meridian_z')
 $Heroes = @('ocean-drive', 'dragon', 'nebraska', 'big-sur')
 $Plan = @()
 for ($I = 0; $I -lt $Heroes.Count; $I++) {

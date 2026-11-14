@@ -17,7 +17,7 @@
 #>
 param(
     [string]$OutRoot = '',
-    [string]$Car = 'nb2001_aaron',
+    [string]$Car = 'nb2001_lowered',
     [int]$Seconds = 60
 )
 

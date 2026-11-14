@@ -103,7 +103,7 @@ void SimCruiseFramePacing::Apply()
 	}
 	// VSync: with only a sleep-based 60 fps cap on a 60 Hz screen, each frame started at a
 	// drifting point of the scan, so a tear line rolled through the picture and frames came
-	// unevenly (Aaron, 2026-11-13: "it looks like it was glitching / laggy").
+	// unevenly (the project owner, 2026-11-13: "it looks like it was glitching / laggy").
 	// Not here: r.GTSyncType 1 / r.OneFrameThreadLag 0 and Reflex on by default cut stick-to-picture
 	// delay (214 -> 102 ms on a 28 W GPU) but broke frame pacing: the Tail of the Dragon pre-flight
 	// frame p95 went 16.7 -> 52 ms with both, 51 ms with the sync alone, 32 ms with Reflex alone

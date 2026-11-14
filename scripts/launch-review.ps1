@@ -34,7 +34,7 @@ param(
     [string]$Road = 'ocean-drive',
     [string]$Start = '',
     [string]$StartRoad = '',
-    [string]$Car = 'nb2001_aaron',
+    [string]$Car = 'nb2001_lowered',
     [int]$Seconds = 60,
     [string]$Graphics = 'ultra',
     [string]$Utc = '2026-11-12T17:00:00Z',

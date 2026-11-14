@@ -18,7 +18,7 @@
 
 /**
  * The HUD's speed and rpm readouts: the unit conversion and rounding, and the
- * numbers shown while a robot drives Aaron's Miata on the flat bench pad,
+ * numbers shown while a robot drives the lowered Miata on the flat bench pad,
  * compared with the car body's own speed and the engine's own rpm.
  */
 namespace SimCruiseHudReadoutTest
@@ -132,10 +132,10 @@ bool FSimCruiseHudUnitsTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseHudReadoutDriveTest, "SimCruise.Hud.ReadoutDrive", SimCruiseHudReadoutTest::Flags)
 bool FSimCruiseHudReadoutDriveTest::RunTest(const FString& Parameters)
 {
-	// Aaron's Miata on the flat bench pad, driven by a robot through the shell's control interface:
+	// the lowered Miata on the flat bench pad, driven by a robot through the shell's control interface:
 	// the same FSimCruiseDriveTelemetry the player controller hands the HUD every frame.
 	FSimCruiseCarDefinition Car;
-	if (!SimCruiseLoadBenchCar(*this, TEXT("nb2001_aaron"), Car))
+	if (!SimCruiseLoadBenchCar(*this, TEXT("nb2001_lowered"), Car))
 	{
 		return false;
 	}

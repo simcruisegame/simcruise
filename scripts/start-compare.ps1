@@ -29,8 +29,8 @@ $Builds = @($Builds | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 if (-not $OutRoot) { $OutRoot = Join-Path (Split-Path -Parent $PSScriptRoot) "Saved\Review\$(Get-Date -Format 'yyyyMMdd-HHmm')-start-compare" }
 New-Item -ItemType Directory -Force $OutRoot | Out-Null
 $Places = @(
-    @{ Name = 'dragon'; Args = @('-Road', 'dragon'); Car = 'nb2001_aaron'; Utc = '2026-11-12T17:00:00Z' },
-    @{ Name = 'detroit'; Args = @('-Start', '42.3500,-83.0600'); Car = 'nb2001_aaron'; Utc = '2026-11-12T17:32:14Z' }
+    @{ Name = 'dragon'; Args = @('-Road', 'dragon'); Car = 'nb2001_lowered'; Utc = '2026-11-12T17:00:00Z' },
+    @{ Name = 'detroit'; Args = @('-Start', '42.3500,-83.0600'); Car = 'nb2001_lowered'; Utc = '2026-11-12T17:32:14Z' }
 )
 
 function Get-T([string]$Line) {
