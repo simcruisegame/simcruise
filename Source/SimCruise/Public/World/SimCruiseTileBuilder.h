@@ -224,7 +224,7 @@ namespace SimCruiseTileBuilder
 	SIMCRUISE_API bool Triangulate(const TArray<FVector2d>& Ring, TArray<int32>& OutIndices);
 
 	/** World-anchored texture offset (m) for a tile: (tile * size) mod Period, so detail textures run on across seams. */
-	/** The ground materials' anchor period: every pattern period divides it (SeamCode, SimCruiseWorldResources.cpp). */
-	inline constexpr double TextureAnchorPeriodM = 1664.0;
+	/** The ground materials' anchor period (64 m; the seamless 1664 m anchor with its shaders comes in v2.0.4). */
+	inline constexpr double TextureAnchorPeriodM = 64.0;
 	SIMCRUISE_API FVector2d TextureAnchorM(const FIntPoint& Tile, double TileSizeM, double PeriodM = TextureAnchorPeriodM);
 }
