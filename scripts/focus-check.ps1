@@ -22,6 +22,9 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'EditorLock.ps1')
+Set-GpuBusy 'focus-check (timed game launches)' 40
+try {
 . (Join-Path $PSScriptRoot 'ReviewLib.ps1')
 . (Join-Path $PSScriptRoot 'ViewerWatch.ps1')
 $Root = Split-Path -Parent $PSScriptRoot
@@ -88,3 +91,5 @@ $Md = @('# Focus check', '', "Verdict: **$Result**. Two visible runs of Ocean Dr
 $Md | Set-Content -Encoding utf8 (Join-Path $OutRoot 'focus-check.md')
 Write-Host "FOCUS CHECK $Result baseline p50 $($B.P50) p95 $($B.P95) ms; focus run p50 $($F.P50) p95 $($F.P95) ms; $($Notes -join '; ') -> $(Join-Path $OutRoot 'focus-check.md')"
 if ($Ok) { exit 0 } else { exit 1 }
+}
+finally { Clear-GpuBusy }

@@ -26,7 +26,9 @@ An editor build compiles shaders the first time a place needs them, and a fresh 
 
 ## The GPU
 
-The release test owns the GPU while it runs: other lanes ask before they launch a game. Every game launch takes `Global\SimCruiseGpuTest` (`scripts\EditorLock.ps1`); the holder is in `%LOCALAPPDATA%\SimCruise\gpu-test-lock.txt` (empty when free) and in each `load.csv` row (`gpu_lock_holder`). `load.csv` also counts other lanes' builds (UnrealBuildTool, cl, link, shader workers) as load.
+The release test owns the GPU while it runs: other lanes ask before they launch a game. Every game launch takes `Global\SimCruiseGpuTest` (`scripts\EditorLock.ps1`); the holder is in `%LOCALAPPDATA%\SimCruise\gpu-test-lock.txt` (empty when free) and in each `load.csv` row (`gpu_lock_holder`). `load.csv` also counts other lanes' builds (UnrealBuildTool, cl, link, shader workers) as load, and names each process's lane (`name#pid@lane`, from its command line); `summary.md` lists the other lanes with their first and last time.
+
+`C:\aiwork\GPU-BUSY` holds one line while this lane uses the GPU (`holder=lane-view, start=<UTC>, end_estimate=<UTC>, purpose=<text>`); `release-test.ps1`, `start-compare.ps1` and `focus-check.ps1` set it and clear it in a finally block (`Set-GpuBusy` / `Clear-GpuBusy` in `scripts\EditorLock.ps1`). Other lanes call `scripts\gpu-wait.ps1` before a build or a game launch: it waits while the file is there (`-TimeoutMinutes`, default 120); a file whose end_estimate is more than 30 min past is stale, so it is ignored and logged.
 
 ## A quiet window
 

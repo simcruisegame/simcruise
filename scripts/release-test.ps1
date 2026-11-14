@@ -67,6 +67,7 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'ReleaseReport.ps1')
 . (Join-Path $PSScriptRoot 'LoadWatch.ps1')
 . (Join-Path $PSScriptRoot 'ViewerWatch.ps1')
+. (Join-Path $PSScriptRoot 'EditorLock.ps1')
 $Root = Split-Path -Parent $PSScriptRoot
 if ($Seed -lt 0) { $Seed = [int](Get-Date -Format 'yyyyMMdd') }
 $Commit = Get-ReviewCommit $Root
@@ -113,6 +114,8 @@ foreach ($P in $Plan) { Write-Host "  $($P.Name) with $($P.Car)" }
 # A quiet window: other lanes' games and GPU work add to the frame times (about 2 ms p95).
 $Before = Get-LoadSample $RunDir
 if ($Before.OtherProcesses -or $Before.OtherGpu -gt 5) { Write-Host "WARNING: the PC is not quiet: $($Before.OtherProcesses) (other GPU use $($Before.OtherGpu) %). Frame times will be NOT QUIET." -ForegroundColor Yellow }
+Set-GpuBusy "release test of $Commit$(if ($Retest) { ' (re-test)' })" ($Estimate + 30)
+try {
 $LoadJob = Start-LoadWatch $RunDir
 $ViewerJob = if ($ShowWindow) { Start-ViewerWatch $RunDir } else { $null }
 $Rows = @()
@@ -202,6 +205,8 @@ $Load = Stop-LoadWatch $LoadJob $RunDir
 Stop-ViewerWatch $ViewerJob
 Write-Host "Load: $(if ($Load.Quiet) { 'quiet' } else { "NOT QUIET: $($Load.OtherProcesses), other GPU mean $($Load.MeanOtherGpu) % (max $($Load.MaxOtherGpu) %)" })"
 Write-ReleaseReports -RunDir $RunDir -Rows $Rows -Commit $Commit -Seed $Seed -PadResult $PadResult -PadDir $PadDir -Cases $Cases -Load $Load -Minutes ([int]((Get-Date) - $Started).TotalMinutes)
+}
+finally { Clear-GpuBusy }
 Write-Host "Summary: $(Join-Path $RunDir 'summary.md')"
 Write-Host "Team reports: $(Join-Path $RunDir 'teams')"
 Write-Host "Run time: $([int]((Get-Date) - $Started).TotalMinutes) min (estimate $Estimate)"

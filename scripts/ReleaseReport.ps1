@@ -289,7 +289,7 @@ function Write-ReleaseReports {
     if ($Invalid.Count) { $Overall = 'FAIL' }
     $Sum = @("# Release test $(Split-Path -Leaf $RunDir)", '', "Commit $Commit, seed $Seed, $($Rows.Count) places, $Minutes min. Verdict: **$Overall**$(if ($Invalid.Count) { " (NOT VALID FOR SIGN-OFF: $($Invalid -join ', '))" }).", '',
         '| Place | Car | Verdict | Drive judge | Cockpit | View | Frame p95 (ms) | Minutes | Display | Review |', '|---|---|---|---|---|---|---|---|---|---|') + $Table
-    $Sum += @('', "Load on the PC (load.csv): $(if (-not $Load) { 'not recorded' } elseif ($Load.Quiet) { "quiet ($($Load.Samples) samples, other GPU mean $($Load.MeanOtherGpu) %)" } else { "**NOT QUIET**: $($Load.OtherProcesses), other GPU mean $($Load.MeanOtherGpu) % (max $($Load.MaxOtherGpu) %). The frame times are not valid for sign-off." })")
+    $Sum += @('', "Load on the PC (load.csv): $(if (-not $Load) { 'not recorded' } elseif ($Load.Quiet) { "quiet ($($Load.Samples) samples, other GPU mean $($Load.MeanOtherGpu) %)" } else { "**NOT QUIET**: other lanes $(if ($Load.Lanes) { $Load.Lanes } else { '-' }); processes $($Load.OtherProcesses), other GPU mean $($Load.MeanOtherGpu) % (max $($Load.MaxOtherGpu) %). The frame times are not valid for sign-off." })")
     $Sum += @('', '## Teams', '')
     foreach ($T in $script:Teams.Keys) {
         $C = @($Findings[$T]).Count
