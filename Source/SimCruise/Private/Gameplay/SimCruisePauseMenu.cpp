@@ -186,7 +186,8 @@ void SSimCruisePauseMenu::Construct(const FArguments& InArgs)
 
 TSharedRef<SWidget> SSimCruisePauseMenu::BuildTabs()
 {
-	const TAttribute<bool> bPad = TAttribute<bool>::CreateLambda([this]() { return State.bPad; });
+	EnsurePadWatcher();
+	const TAttribute<bool> bPad = TAttribute<bool>::CreateStatic(&IsPadInUse);
 	TSharedRef<SHorizontalBox> Tabs = SNew(SHorizontalBox);
 	auto Shoulder = [bPad](const FString& Pad, const FString& Key)
 	{

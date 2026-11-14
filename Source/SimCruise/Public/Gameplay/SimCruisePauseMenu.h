@@ -118,6 +118,8 @@ public:
 	const FSimCruiseMenuState& GetStateNow() const { return State; }
 	/** Is the pad on the tab row (and on which tab)? */
 	bool IsOnTabs() const { return bTabs; }
+	/** Do the button hints show the pad's buttons (else the keyboard's keys)? */
+	bool ShowsPadHints() const { return SimCruiseTheme::IsPadInUse(); }
 	/** Has the tab bar the pad's focus (SimCruise.UI.PadNavigation asks this)? */
 	bool IsTabBarFocused() const { return bTabs; }
 	int32 GetTabCursor() const { return TabCursor; }

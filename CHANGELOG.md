@@ -4,6 +4,8 @@ Notable changes to SimCruise, newest first. The format follows [Keep a Changelog
 
 ## Unreleased
 
+- Fix: the button hints on every screen follow the device used last. The pause menu kept showing the keyboard's keys (Q E, Enter, Esc) while you used the pad, because each screen guessed on its own. Now one flag, set from all of Slate's input (also keys sent through `FSlateApplication` by scripts and tests), switches every screen's hints: any pad button or a stick pushed past half shows the pad's buttons, any key, mouse button or mouse move the keyboard's. The road atlas, Where to?, Tune car and Seat & view help lines switch too. New test `SimCruise.UI.PadHints`.
+
 - Fix: no more black tears on the Miata's spokes when the wheel is turned. They were the turning wheel's own shadow (gone with its shadow off, still there with its shadow pages redrawn every frame), so the cockpit wheel casts no shadow; under the cowl the dash's shadow covers that area anyway (`-SimCruiseWheelShadow` turns it back on). The wheel's slab also reaches as deep as its spokes (8.5 cm). Pre-flight: a traffic car waiting behind the player, or standing since before the drive began, is no longer counted as stuck (both cars the release test flagged at the Dragon were queued behind the player's car at the start).
 
 - **Fix: a black dash stays black under trees** — from the driver's seat the camera may open at most 1.5 EV in daylight (`DriverDaylightOpenStops`; outside views and captures keep 3 EV). Metering the shaded cabin and forest opened 3 EV, so the sunlit near-black Miata dash and wheel came out light grey-tan (owner's screenshot). The Tail of the Dragon realism score is unchanged (45.6).
