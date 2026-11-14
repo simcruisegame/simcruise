@@ -99,7 +99,7 @@ namespace SimCruisePreflightRules
 		return FString::Join(R, TEXT(","));
 	}
 
-	int32 CountSteps(const TArray<FVector2f>& D, float& OutMaxStepCm, float MaxGapM)
+	int32 CountSteps(const TArray<FVector2f>& D, float& OutMaxStepCm, float MaxGapM, TArray<int32>* OutIndices)
 	{
 		OutMaxStepCm = 0.f;
 		int32 Count = 0;
@@ -119,6 +119,7 @@ namespace SimCruisePreflightRules
 			{
 				++Count;
 				LastCounted = I;
+				if (OutIndices) OutIndices->Add(I);
 			}
 		}
 		return Count;
@@ -948,20 +949,15 @@ void ASimCruisePreflight::Finish()
 	{
 		if (SurfaceIsRoad[I]) RoadOnly.Add(Surface[I]);
 	}
-	Stats.RoadSteps = CountSteps(RoadOnly, Stats.MaxStepCm);
-	// Where each step is (the same measure as CountSteps), for the road-step check to find it again.
+	TArray<int32> StepAt;
+	Stats.RoadSteps = CountSteps(RoadOnly, Stats.MaxStepCm, 1.f, &StepAt);
+	// Where each counted step is, for the road-step check to find it again.
 	{
 		TArray<FVector2d> RoadLatLon;
 		for (int32 I = 0; I < Surface.Num(); ++I) if (SurfaceIsRoad[I] && SurfaceLatLon.IsValidIndex(I)) RoadLatLon.Add(SurfaceLatLon[I]);
-		for (int32 I = 1; I + 1 < RoadOnly.Num() && RoadLatLon.Num() == RoadOnly.Num(); ++I)
+		for (const int32 I : StepAt)
 		{
-			const float AB = RoadOnly[I].X - RoadOnly[I - 1].X, BC = RoadOnly[I + 1].X - RoadOnly[I].X;
-			if (AB < 0.02f || BC < 0.02f || AB > 1.f || BC > 1.f) continue;
-			const float JumpCm = FMath::Abs((RoadOnly[I + 1].Y - RoadOnly[I].Y) - (RoadOnly[I].Y - RoadOnly[I - 1].Y) * BC / AB) * 100.f;
-			if (JumpCm > SimCruisePreflightRules::StepCm)
-			{
-				UE_LOG(LogSimCruisePreflight, Display, TEXT("Pre-flight: road step %.1f cm at %.0f m, %.6f, %.6f"), JumpCm, RoadOnly[I].X, RoadLatLon[I].X, RoadLatLon[I].Y);
-			}
+			if (RoadLatLon.Num() == RoadOnly.Num()) UE_LOG(LogSimCruisePreflight, Display, TEXT("Pre-flight: road step at %.0f m, %.6f, %.6f"), RoadOnly[I].X, RoadLatLon[I].X, RoadLatLon[I].Y);
 		}
 	}
 	for (int32 I = 1; I < Surface.Num(); ++I)

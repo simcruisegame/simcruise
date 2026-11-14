@@ -1256,7 +1256,9 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 							const double Wj = Smooth01(1.0 - FMath::Abs(St.S - Ribbon.St[j].S) / JoinFadeM);
 							if (Wj > ColWeight) { ColWeight = Wj; ColBest = Snap[c][j] - Own[c][j]; }
 						}
-						St.Column(c) += ColWeight > 0.0 ? ColBest * ColWeight * Protect : Shift;
+						// Blend by the column's own weight, so a column moves smoothly from the station
+						// shift (far from its own snapped points) to its own offset (on them).
+						St.Column(c) += ColWeight * ColBest * Protect + (1.0 - ColWeight) * Shift;
 					}
 					St.Z += St.HC - Own[2][i]; // Z is the centre column's height
 					if (Protect >= 0.999)

@@ -91,6 +91,7 @@ void ASimCruiseWorldStreamer::StartAt(double LonDeg, double LatDeg, const FStrin
 	Tiles.Reset();
 	for (auto& Pair : FallbackGround) if (Pair.Value) Pair.Value->DestroyComponent();
 	FallbackGround.Reset();
+	LaunchedAt.Reset();
 	if (Atlas.IsValid()) Atlas->CancelAll();
 	Frame = FSimCruiseWorldFrame::ForPlace(LonDeg, LatDeg);
 	Title = InTitle;
@@ -247,6 +248,7 @@ void ASimCruiseWorldStreamer::Launch(const FSimCruiseTileJobTicket& Ticket)
 		TSharedPtr<FResult, ESPMode::ThreadSafe> Result = MakeShared<FResult, ESPMode::ThreadSafe>();
 		Result->Ticket = Ticket;
 		Result->Error = TEXT("forced failure (-SimCruiseFailTiles)");
+		Result->FinishedAt = FPlatformTime::Seconds();
 		Inbox->Queue.Enqueue(Result);
 		return;
 	}
@@ -268,7 +270,20 @@ void ASimCruiseWorldStreamer::Launch(const FSimCruiseTileJobTicket& Ticket)
 		TSharedPtr<FResult, ESPMode::ThreadSafe> Result = MakeShared<FResult, ESPMode::ThreadSafe>();
 		Result->Ticket = Ticket;
 		if (Box->bClosed) return;
-		Result->Build = SimCruiseTileBuilder::Build(Data, TileSizeM, Contracts);
+		// The photograph, when it is on disk already (bundled, or fetched for a neighbour of the same
+		// zoom-14 cell): the build reads roof colours from it; otherwise the rules colour the roofs.
+		TSharedPtr<const FSimCruiseAerialImage, ESPMode::ThreadSafe> Photo;
+		if (!Data.AerialKey.IsEmpty())
+		{
+			FString Known = SimCruiseTileData::BundledAerialPath(Data.AerialKey);
+			if (Known.IsEmpty() && Client.IsValid())
+			{
+				const FString Cached = FPaths::Combine(Client->GetConfig().CacheDir, Data.AerialKey);
+				if (IFileManager::Get().FileExists(*Cached)) Known = Cached;
+			}
+			Photo = SimCruiseAerialCache::Load(Data.AerialKey, Known);
+		}
+		Result->Build = SimCruiseTileBuilder::Build(Data, TileSizeM, Contracts, Photo.Get());
 		Result->AerialKey = Data.AerialKey;
 		if (!Data.AerialKey.IsEmpty() && !KnownAerials.Contains(Data.AerialKey))
 		{
@@ -309,10 +324,12 @@ void ASimCruiseWorldStreamer::Launch(const FSimCruiseTileJobTicket& Ticket)
 				if (IFileManager::Get().FileExists(*Cached)) Path = Cached;
 			}
 			USimCruiseWorldResources::DecodeImageFile(Path, Result->AerialPixels, Result->AerialWidth, Result->AerialHeight);
+			SimCruiseAerialCache::Put(Data.AerialKey, Result->AerialWidth, Result->AerialHeight, Result->AerialPixels); // before the AI sharpening
 			// The local AI detail engine (Live/SimCruiseNeuralDetail): its cached sharper photograph, or queued for it.
 			FSimCruiseNeuralDetail::Get().EnhanceAerial(Path, Result->AerialPixels, Result->AerialWidth, Result->AerialHeight);
 			USimCruiseWorldResources::BuildMipChain(Result->AerialPixels, Result->AerialWidth, Result->AerialHeight, true, Result->AerialMips);
 		}
+		Result->FinishedAt = FPlatformTime::Seconds();
 		if (!Box->bClosed) Box->Queue.Enqueue(Result);
 	};
 	auto Fail = [Box, Ticket](const FString& Error)
@@ -320,6 +337,7 @@ void ASimCruiseWorldStreamer::Launch(const FSimCruiseTileJobTicket& Ticket)
 		TSharedPtr<FResult, ESPMode::ThreadSafe> Result = MakeShared<FResult, ESPMode::ThreadSafe>();
 		Result->Ticket = Ticket;
 		Result->Error = Error;
+		Result->FinishedAt = FPlatformTime::Seconds();
 		if (!Box->bClosed) Box->Queue.Enqueue(Result);
 	};
 
@@ -571,8 +589,9 @@ void ASimCruiseWorldStreamer::TickStreaming(float DeltaSeconds)
 		if (!Result.IsValid()) continue;
 		if (const double* Started = LaunchedAt.Find(Result->Ticket.Serial))
 		{
-			// A running mean of the load time (helper fetch, worker build), 0.5-60 s.
-			LoadSecondsMean = FMath::Clamp(0.8 * LoadSecondsMean + 0.2 * (FPlatformTime::Seconds() - *Started), 0.5, 60.0);
+			// A running mean of the load time (helper fetch, worker build; not the install queue),
+			// 0.5-20 s (the look-ahead caps at one tile past the ring anyway).
+			if (Result->FinishedAt > *Started) LoadSecondsMean = FMath::Clamp(0.8 * LoadSecondsMean + 0.2 * (Result->FinishedAt - *Started), 0.5, 20.0);
 			LaunchedAt.Remove(Result->Ticket.Serial);
 		}
 		if (Result->AerialPixels.Num() > 0 && !Resources->FindAerial(Result->AerialKey))
@@ -659,7 +678,17 @@ void ASimCruiseWorldStreamer::UpdateFallbackGround(const FVector& AtCm)
 	const double HalfCm = Frame.TileSizeM * 50.0;
 	for (const FIntPoint& T : Need)
 	{
-		if (FallbackGround.Contains(T)) continue;
+		if (TObjectPtr<UBoxComponent>* Existing = FallbackGround.Find(T))
+		{
+			// Neighbours built since: the slab takes their edge height, but never moves under the car.
+			if (*Existing && T != Here)
+			{
+				const double H = SimCruiseFallbackGround::HeightM(T, Ready, AtCm.Z / 100.0 - 0.5);
+				const FVector L = (*Existing)->GetComponentLocation();
+				if (FMath::Abs(H * 100.0 - 100.0 - L.Z) > 25.0) (*Existing)->SetWorldLocation(FVector(L.X, L.Y, H * 100.0 - 100.0));
+			}
+			continue;
+		}
 		int32 Neighbours = 0;
 		// Without a built neighbour: half a metre under the car (it stands on the start tile's slab).
 		const double HeightM = SimCruiseFallbackGround::HeightM(T, Ready, AtCm.Z / 100.0 - 0.5, &Neighbours);

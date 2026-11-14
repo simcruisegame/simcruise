@@ -4,6 +4,7 @@
 
 #include "HAL/PlatformTime.h"
 #include "Misc/App.h"
+#include "Misc/ScopeLock.h"
 #include "StaticMeshResources.h"
 #include "World/SimCruiseGeo.h"
 #include "World/SimCruiseTileData.h"
@@ -28,6 +29,33 @@ namespace
 	constexpr double EndFadeM = 3.0;
 	constexpr double MarkLiftM = 0.006;
 	constexpr double OceanLevelM = -0.1;        // mean sea level is ~0.1 m under NAVD88 zero on the US east coast
+	// A rural road's cross-section beyond its shoulder (AASHTO Roadside Design Guide; FHWA
+	// typical sections): a 1:4 recoverable foreslope into a 0.45 m V-ditch with a 0.6 m flat
+	// bottom, then a 1:1.5 backslope cut into rising ground; where the ground falls away, a
+	// 1:2 fill slope down to it instead. The profile reaches the natural ground and stops.
+	constexpr double DitchDepthM = 0.45;
+	constexpr double ForeslopeRun = 4.0;       // horizontal metres per metre down
+	constexpr double DitchBottomM = 0.6;
+	constexpr double BackslopeRun = 1.5;       // horizontal metres per metre up (cut)
+	constexpr double FillSlopeRun = 2.0;       // horizontal metres per metre down (fill)
+	constexpr double SectionReachM = 30.0;     // the profile is sought this far out
+
+	/** The cross-section's ground height at D metres beyond the outer edge (shoulder top Base), given the natural ground Hn. */
+	double RuralSection(double D, double Base, double Hn)
+	{
+		if (Hn >= Base - DitchDepthM)
+		{
+			// Cut or level: foreslope, ditch bottom, backslope rising until it meets the hill.
+			const double Fore = ForeslopeRun * DitchDepthM;
+			double Z;
+			if (D <= Fore) Z = Base - D / ForeslopeRun;
+			else if (D <= Fore + DitchBottomM) Z = Base - DitchDepthM;
+			else Z = Base - DitchDepthM + (D - Fore - DitchBottomM) / BackslopeRun;
+			return FMath::Min(Hn, Z);
+		}
+		// Fill: the embankment falls to the ground below.
+		return FMath::Max(Hn, Base - D / FillSlopeRun);
+	}
 
 	double Smooth01(double T)
 	{
@@ -467,7 +495,7 @@ namespace SimCruiseTileBuilder
 		return Out;
 	}
 
-	TSharedRef<FSimCruiseTileBuild> Build(const FSimCruiseTileData& Data, double TileSizeM, const TArray<FSimCruiseSeamEnd>& NeighbourEnds)
+	TSharedRef<FSimCruiseTileBuild> Build(const FSimCruiseTileData& Data, double TileSizeM, const TArray<FSimCruiseSeamEnd>& NeighbourEnds, const FSimCruiseAerialImage* Aerial)
 	{
 		const double Started = FPlatformTime::Seconds();
 		TSharedRef<FSimCruiseTileBuild> Out = MakeShared<FSimCruiseTileBuild>();
@@ -567,8 +595,17 @@ namespace SimCruiseTileBuilder
 			bool bInside = false;
 			double BestWeight = 0.0, BestTarget = H;
 
-			auto Consider = [&](double AbsL, double HalfW, double Outer, double Lowest, double OuterH, double Along)
+			const double Natural = H;
+			double SectionDist = TNumericLimits<double>::Max(), SectionTarget = H;
+			auto Consider = [&](double AbsL, double HalfW, double Outer, double Lowest, double OuterH, double Along, bool bRural = false)
 			{
+				// Beyond a rural shoulder, the nearest road's cross-section shapes the ground.
+				if (bRural && AbsL > Outer && Along <= 0.0 && AbsL - Outer < SectionReachM)
+				{
+					const double D = AbsL - Outer;
+					if (D < SectionDist) { SectionDist = D; SectionTarget = RuralSection(D, OuterH - OuterGapM, Natural); }
+					return;
+				}
 				const double RampStart = Outer - OuterRampM;
 				const double InTarget = AbsL <= RampStart ? Lowest - UnderDepthM
 					: FMath::Lerp(Lowest - UnderDepthM, OuterH - OuterGapM, (AbsL - RampStart) / OuterRampM);
@@ -625,11 +662,14 @@ namespace SimCruiseTileBuilder
 					const double Outer = FMath::Lerp(OuterA, OuterB, Hit.T);
 					const double OuterH = FMath::Lerp(OuterHA, OuterHB, Hit.T);
 					const double Lowest = FMath::Min(Roads.LowestSurface(Seg.Key, Seg.Value), Roads.LowestSurface(Seg.Key, Seg.Value + 1));
-					Consider(FMath::Abs(Hit.Lateral), Hit.HalfW, Outer, Lowest, OuterH, Along);
+					const bool bRural = !Ribbon.bService && Ribbon.Sides[SideIndex].Edge.IsValidIndex(Seg.Value)
+						&& Ribbon.Sides[SideIndex].Edge[Seg.Value] == ESimCruiseRoadEdge::Rural && !Ribbon.Sides[SideIndex].Cut[Seg.Value];
+					Consider(FMath::Abs(Hit.Lateral), Hit.HalfW, Outer, Lowest, OuterH, Along, bRural);
 				}
 			}
 
 			if (bInside) H = InsideTarget;
+			else if (SectionDist < TNumericLimits<double>::Max() && (BestWeight <= 0.0 || SectionDist <= FadeM)) H = SectionTarget;
 			else if (BestWeight > 0.0) H = FMath::Lerp(H, BestTarget, BestWeight);
 			if (FMath::Abs(H - B.NaturalHeights[K]) > 0.001) ++B.ConditionedVertices;
 			B.TerrainHeights[K] = static_cast<float>(H);
@@ -912,7 +952,7 @@ namespace SimCruiseTileBuilder
 				[&](const FVector2d& P) { return Sample(Veg, P); },
 				[&](const FVector2d& P) { return Sample(Paved, P); },
 				[&](const FVector2d& P) { return Sample(Water, P); },
-				B.Context.Get() };
+				B.Context.Get(), Aerial };
 			SimCruiseTileDetail::BuildBuildings(Context);
 			SimCruiseTileDetail::BuildPalms(Context);
 			SimCruiseTileDetail::BuildStreetLights(Context);
@@ -1293,5 +1333,44 @@ namespace SimCruiseTileBuilder
 			if (Steps.Num() > 0) UE_LOG(LogTemp, Display, TEXT("%s"), *SimCruiseRoadCheck::Describe(B, Steps, 4));
 		}
 		return Out;
+	}
+}
+
+namespace SimCruiseAerialCache
+{
+	namespace
+	{
+		FCriticalSection AerialLock;
+		TArray<TSharedPtr<const FSimCruiseAerialImage, ESPMode::ThreadSafe>>& Recent() { static TArray<TSharedPtr<const FSimCruiseAerialImage, ESPMode::ThreadSafe>> R; return R; }
+	}
+
+	TSharedPtr<const FSimCruiseAerialImage, ESPMode::ThreadSafe> Find(const FString& Key)
+	{
+		if (Key.IsEmpty()) return nullptr;
+		FScopeLock Lock(&AerialLock);
+		for (const TSharedPtr<const FSimCruiseAerialImage, ESPMode::ThreadSafe>& I : Recent()) if (I->Key == Key) return I;
+		return nullptr;
+	}
+
+	void Put(const FString& Key, int32 Width, int32 Height, const TArray<FColor>& Pixels)
+	{
+		if (Key.IsEmpty() || Width <= 0 || Height <= 0 || Pixels.Num() != Width * Height) return;
+		TSharedPtr<FSimCruiseAerialImage, ESPMode::ThreadSafe> I = MakeShared<FSimCruiseAerialImage, ESPMode::ThreadSafe>();
+		I->Key = Key; I->Width = Width; I->Height = Height; I->Pixels = Pixels;
+		FScopeLock Lock(&AerialLock);
+		Recent().RemoveAll([&](const TSharedPtr<const FSimCruiseAerialImage, ESPMode::ThreadSafe>& X) { return X->Key == Key; });
+		Recent().Insert(I, 0);
+		if (Recent().Num() > 8) Recent().SetNum(8); // 4 MB each at 1024 px
+	}
+
+	TSharedPtr<const FSimCruiseAerialImage, ESPMode::ThreadSafe> Load(const FString& Key, const FString& Path)
+	{
+		if (TSharedPtr<const FSimCruiseAerialImage, ESPMode::ThreadSafe> Hit = Find(Key)) return Hit;
+		if (Key.IsEmpty() || Path.IsEmpty()) return nullptr;
+		TArray<FColor> Px;
+		int32 W = 0, H = 0;
+		if (!USimCruiseWorldResources::DecodeImageFile(Path, Px, W, H)) return nullptr;
+		Put(Key, W, H, Px);
+		return Find(Key);
 	}
 }

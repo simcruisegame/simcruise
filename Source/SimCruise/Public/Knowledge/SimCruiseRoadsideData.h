@@ -12,7 +12,8 @@
  *
  *   roads     the tile's highway ways with their geometry (clipped to the tile) and
  *             surface, smoothness, shoulder, sidewalk, kerb, lit, maxspeed, name
- *   barriers  barrier=guard_rail / fence / wall / retaining_wall within 15 m of a road
+ *   barriers  barrier=guard_rail / wall / retaining_wall in the tile (the bake keeps those
+ *             within 12 m of a road edge; garden fences are left out of the query)
  *   lines     power=line / minor_line
  *   points    highway=street_lamp / traffic_signals / stop / give_way, power=pole /
  *             tower, man_made=utility_pole, and named shop / amenity / office with
@@ -67,6 +68,8 @@ namespace SimCruiseRoadsideData
 {
 	/** Point lines for the Overpass union whose answer is "out tags center" ("(s,w,n,e)" box). */
 	SIMCRUISE_API FString OverpassPointLines(const FString& Box);
+	/** Named shops, amenities and offices: a statement of its own (its own element cap). */
+	SIMCRUISE_API FString OverpassBusinessStatement(const FString& Box);
 	/** Statements after that union's out: roads, barriers near them and power lines, with clipped geometry. */
 	SIMCRUISE_API FString OverpassGeometryStatements(const FString& Box);
 
@@ -83,4 +86,6 @@ namespace SimCruiseRoadsideData
 	/** The tile's roadside from the cache (thread-safe, kept in memory). False when none was fetched. */
 	SIMCRUISE_API bool ForTile(const FIntPoint& Tile, FSimCruiseRoadside& Out);
 	SIMCRUISE_API void Store(const FIntPoint& Tile, const FSimCruiseRoadside& Data, bool bSave = true);
+	/** True when the tile has a saved answer (even an empty one). */
+	SIMCRUISE_API bool IsKnown(const FIntPoint& Tile);
 }

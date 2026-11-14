@@ -6,6 +6,7 @@
 #include "Knowledge/SimCruisePlaceGraphSubsystem.h"
 
 #include "World/SimCruiseCellContext.h"
+#include "World/SimCruiseGeo.h"
 #include "World/SimCruiseRoadNetwork.h"
 #include "World/SimCruiseTileData.h"
 #include "HAL/IConsoleManager.h"
@@ -358,6 +359,42 @@ namespace SimCruiseTileDetail
 				OutSource.Add(k < Segments ? INDEX_NONE : i); // the arc's chords, then the edge on from P1
 			}
 		}
+	}
+
+	bool RoofColourFromAerial(const FContext& X, const TArray<FVector2d>& Ring, FLinearColor& OutColour)
+	{
+		const FSimCruiseAerialImage* A = X.Aerial;
+		if (!A || A->Width <= 0 || Ring.Num() < 3) return false;
+		const FIntPoint Z14 = SimCruiseGeo::AerialTileOf(X.Data.Id);
+		const FVector2d CellUnit(X.Data.Id.X - Z14.X * 4, X.Data.Id.Y - Z14.Y * 4);
+		const double PxM = X.Side * 4.0 / A->Width; // metres a pixel
+		FBox2d Box(Ring);
+		const int32 X0 = FMath::Max(0, FMath::FloorToInt(((Box.Min.X / X.Side) + CellUnit.X) / 4.0 * A->Width));
+		const int32 X1 = FMath::Min(A->Width - 1, FMath::CeilToInt(((Box.Max.X / X.Side) + CellUnit.X) / 4.0 * A->Width));
+		const int32 Y0 = FMath::Max(0, FMath::FloorToInt(((Box.Min.Y / X.Side) + CellUnit.Y) / 4.0 * A->Height));
+		const int32 Y1 = FMath::Min(A->Height - 1, FMath::CeilToInt(((Box.Max.Y / X.Side) + CellUnit.Y) / 4.0 * A->Height));
+		TArray<FLinearColor> In;
+		for (int32 py = Y0; py <= Y1; ++py)
+		for (int32 px = X0; px <= X1; ++px)
+		{
+			const FVector2d P(((px + 0.5) / A->Width * 4.0 - CellUnit.X) * X.Side, ((py + 0.5) / A->Height * 4.0 - CellUnit.Y) * X.Side);
+			if (!PointInRing(Ring, P)) continue;
+			double Edge = 1e9;
+			for (int32 i = 0; i < Ring.Num(); ++i) Edge = FMath::Min(Edge, FVector2d::Distance(P, FMath::ClosestPointOnSegment2D(P, Ring[i], Ring[(i + 1) % Ring.Num()])));
+			if (Edge < 0.5 * PxM) continue;
+			In.Add(FLinearColor::FromSRGBColor(A->Pixels[py * A->Width + px]));
+		}
+		if (In.Num() < 6) return false;
+		auto Median = [&In](int32 C) { TArray<float> V; for (const FLinearColor& L : In) V.Add(C == 0 ? L.R : C == 1 ? L.G : L.B); V.Sort(); return V[V.Num() / 2]; };
+		FLinearColor Col(Median(0), Median(1), Median(2), 1.0f);
+		const float L = FMath::Max(0.2126f * Col.R + 0.7152f * Col.G + 0.0722f * Col.B, 1e-4f);
+		const float Mx = FMath::Max3(Col.R, Col.G, Col.B), Mn = FMath::Min3(Col.R, Col.G, Col.B);
+		const float Sat = (Mx - Mn) / FMath::Max(Mx, 1e-4f);
+		if (Sat > 0.45f) Col = FLinearColor(L, L, L) + (Col - FLinearColor(L, L, L)) * (0.45f / Sat);
+		Col *= FMath::Clamp(L, 0.04f, 0.60f) / L;
+		Col.A = 1.0f;
+		OutColour = Col;
+		return true;
 	}
 
 	void BuildBuildings(const FContext& X)
@@ -1068,7 +1105,10 @@ namespace SimCruiseTileDetail
 					const bool bTile = Unit(Hash(H, 30)) < ChanceOf(TEXT("detail:tile_roof"), 0.1);
 					static const TCHAR* Shingles[] = { TEXT("5E5E5C"), TEXT("4A4642"), TEXT("6F6457"), TEXT("545A61"), TEXT("3F3D3B"), TEXT("7A746C") };
 					static const TCHAR* Tiles[] = { TEXT("B5603E"), TEXT("C2734D"), TEXT("A45237"), TEXT("C98A62") };
-					const FLinearColor RoofC = bTile ? Srgb(Tiles[Hash(H, 31) % 4]) : Srgb(Shingles[Hash(H, 31) % 6]);
+					FLinearColor RoofC = bTile ? Srgb(Tiles[Hash(H, 31) % 4]) : Srgb(Shingles[Hash(H, 31) % 6]);
+					// What the photograph shows of this roof, when it shows enough (the palette otherwise).
+					FLinearColor Seen;
+					if (RoofColourFromAerial(X, Ring, Seen)) RoofC = Seen;
 					const double Vm = 0.5 * (V0 + V1);
 					auto Face = [&](std::initializer_list<FVector3d> Pts, const FLinearColor& C, float SurfaceKind, const FVector& Facing)
 					{
@@ -1111,7 +1151,10 @@ namespace SimCruiseTileDetail
 			if (!bRoofDone)
 			{
 				TArray<int32> Tris;
-				const FLinearColor RoofColour = bRegionDeco ? Srgb(TEXT("C9C6BF")) : FLinearColor(0.42f, 0.41f, 0.39f);
+				FLinearColor RoofColour = bRegionDeco ? Srgb(TEXT("C9C6BF")) : FLinearColor(0.42f, 0.41f, 0.39f);
+				// The roof as the photograph shows it (membrane, gravel, tar, rooftop gardens).
+				FLinearColor SeenRoof;
+				if (!bFloating && RoofColourFromAerial(X, Ring, SeenRoof)) RoofColour = SeenRoof;
 				const int32 Base = Mesh.Positions.Num();
 				for (const FVector2d& P : Ring) Mesh.Add(Cm3(P, Top), FVector::UpVector, RoofColour, FVector2D(P.X, P.Y), FVector2D(Kind::Roof, W.Seed));
 				if (SimCruiseTileBuilder::Triangulate(Ring, Tris))

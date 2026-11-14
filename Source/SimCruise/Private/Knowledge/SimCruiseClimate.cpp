@@ -45,7 +45,8 @@ namespace
 
 	FCriticalSection GridLock;
 	bool bTried = false;
-	FGrid TheGrid;
+	/** Never changed once published: a test that swaps grids cannot free one under a reader. */
+	TSharedPtr<const FGrid, ESPMode::ThreadSafe> TheGrid;
 
 	bool Decode(const TArray<uint8>& Png, FGrid& Out)
 	{
@@ -77,14 +78,15 @@ namespace
 		return true;
 	}
 
-	const FGrid& Grid()
+	TSharedPtr<const FGrid, ESPMode::ThreadSafe> Grid()
 	{
 		FScopeLock Lock(&GridLock);
 		if (!bTried)
 		{
 			bTried = true;
 			TArray<uint8> Png;
-			if (FFileHelper::LoadFileToArray(Png, *SimCruiseClimate::GridPath(), FILEREAD_Silent)) Decode(Png, TheGrid);
+			TSharedPtr<FGrid, ESPMode::ThreadSafe> G = MakeShared<FGrid, ESPMode::ThreadSafe>();
+			if (FFileHelper::LoadFileToArray(Png, *SimCruiseClimate::GridPath(), FILEREAD_Silent) && Decode(Png, *G)) TheGrid = G;
 		}
 		return TheGrid;
 	}
@@ -124,15 +126,15 @@ namespace SimCruiseClimate
 		return HasGrid() ? TEXT("Beck et al. 2023 Köppen-Geiger 1991-2020 (CC BY 4.0)") : TEXT("latitude band");
 	}
 
-	bool HasGrid() { return Grid().Width > 0; }
+	bool HasGrid() { const TSharedPtr<const FGrid, ESPMode::ThreadSafe> G = Grid(); return G.IsValid() && G->Width > 0; }
 
 	bool LoadGridForTest(const TArray<uint8>& Png)
 	{
-		FGrid G;
-		if (!Decode(Png, G)) return false;
+		TSharedPtr<FGrid, ESPMode::ThreadSafe> G = MakeShared<FGrid, ESPMode::ThreadSafe>();
+		if (!Decode(Png, *G)) return false;
 		FScopeLock Lock(&GridLock);
 		bTried = true;
-		TheGrid = MoveTemp(G);
+		TheGrid = G;
 		return true;
 	}
 
@@ -140,13 +142,14 @@ namespace SimCruiseClimate
 	{
 		FScopeLock Lock(&GridLock);
 		bTried = false;
-		TheGrid = FGrid();
+		TheGrid.Reset();
 	}
 
 	uint8 KoppenAt(double LatDeg, double LonDeg)
 	{
-		const FGrid& G = Grid();
-		if (G.Width <= 0 || !FMath::IsFinite(LatDeg) || !FMath::IsFinite(LonDeg)) return 0;
+		const TSharedPtr<const FGrid, ESPMode::ThreadSafe> Held = Grid();
+		if (!Held.IsValid() || Held->Width <= 0 || !FMath::IsFinite(LatDeg) || !FMath::IsFinite(LonDeg)) return 0;
+		const FGrid& G = *Held;
 		const int32 X = FMath::FloorToInt((LonDeg + 180.0) / 360.0 * G.Width);
 		const int32 Y = FMath::FloorToInt((90.0 - LatDeg) / 180.0 * G.Height);
 		if (const uint8 C = G.At(X, Y)) return C;

@@ -78,6 +78,17 @@ if (HasSnow > 0.5)
 	float snow = smoothstep(0.38, 0.76, Texture2DSample(Snow, SnowSampler, uv).r);
 	c = lerp(c, float3(0.80, 0.84, 0.88), snow * 0.95);
 }
+// Green ground keeps a plant's saturation (0.55 at most) and albedo (luminance 0.2 at most):
+// a summer photograph's greens never read neon (realtime-context.md, item 4).
+{
+	const float3 W2 = float3(0.2126, 0.7152, 0.0722);
+	float L2 = max(dot(c, W2), 1e-4);
+	float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b));
+	float green = saturate((c.g - max(c.r, c.b)) / L2 * 4.0);
+	float s2 = (mx - mn) / max(mx, 1e-4), sMax = lerp(1.0, 0.55, green);
+	c = L2 + (c - L2) * (s2 > sMax ? sMax / s2 : 1.0);
+	c *= min(1.0, lerp(1.0, 0.2, green) / L2);
+}
 // An orthophoto is taken from above with some shading in it; seen from the ground across many
 // kilometres its tones read a little lighter and flatter.
 return c * 0.92;

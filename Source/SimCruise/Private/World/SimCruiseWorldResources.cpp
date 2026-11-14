@@ -359,11 +359,46 @@ float3 detail = (p1 * lerp(1.0, p2, 0.4)) * (bare + paved) + grass * veg + s1 * 
 float dl = dot(detail, W);
 float3 hue = lerp(float3(1.0, 1.0, 1.0), detail / max(dl, 0.001), 0.3 * veg + 0.15 * sand);
 baseColor *= lerp(1.0, dl, 0.55 * veg + 0.25 * sand + 0.4 * (bare + paved)) * hue;
+// Steep ground (road cuts, banks, gullies): bare soil from 25 degrees, rock from 33 to 45,
+// sampled triplanar so a cut face is not stretched, rock with horizontal bedding bands.
+// Colours from the rule palette (drier climates have paler, redder soil; the GEOL chunk's
+// SSURGO soil and SGMC rock colours replace it when they arrive).
+{
+	float steep = saturate((0.906 - VN.z) / 0.067);   // cos 25 -> cos 33 degrees
+	float rocky = saturate((0.839 - VN.z) / 0.132);   // cos 33 -> cos 45 degrees
+	[branch] if (steep > 0.0)
+	{
+		float3 an = abs(normalize(VN)); an /= max(an.x + an.y + an.z, 1e-4);
+		float z = LP.z * 0.01;
+		float Tg = sc.QP(1.9), gm0 = max(dot(GrainMean.rgb, W), 0.001);
+		float gx = dot(Texture2DSample(Grain, GrainSampler, float2(m.y, z) / Tg).rgb, W) / gm0;
+		float gy = dot(Texture2DSample(Grain, GrainSampler, float2(m.x, z) / Tg).rgb, W) / gm0;
+		float gz = dot(Texture2DSample(Grain, GrainSampler, m / Tg).rgb, W) / gm0;
+		float grain = gx * an.x + gy * an.y + gz * an.z;
+		float strata = 0.82 + 0.18 * sc.Hash(float2(floor(z / 0.35), 0.0), 9.0, 0.0);
+		float3 soil = lerp(float3(0.16, 0.115, 0.075), float3(0.29, 0.21, 0.14), GrassDry);
+		float3 rock = float3(0.21, 0.20, 0.18) * strata;
+		float3 face = lerp(soil, rock, rocky) * lerp(1.0, grain, 0.6);
+		baseColor = lerp(baseColor, face, steep * (1.0 - water));
+	}
+}
+// Albedo limits (docs/team/research/realtime-context.md, item 4): lawns and meadows keep a
+// grass albedo (luminance 0.18 at most) and a natural saturation (0.55 at most), so a field
+// never turns neon; the photograph's tone and the class colour keep their hue.
+{
+	float Lb = max(dot(baseColor, W), 1e-4);
+	float mx = max(baseColor.r, max(baseColor.g, baseColor.b)), mn = min(baseColor.r, min(baseColor.g, baseColor.b));
+	float sat = (mx - mn) / max(mx, 1e-4);
+	float sMax = lerp(1.0, 0.55, veg);
+	baseColor = Lb + (baseColor - Lb) * (sat > sMax ? sMax / sat : 1.0);
+	baseColor *= min(1.0, lerp(0.8, 0.18, veg) / Lb);
+}
 baseColor = lerp(baseColor, float3(0.025, 0.15, 0.17), water);
 // Snow lying now (MODIS snow cover, set per tile by ASimCruiseRegionalTerrain): settled snow
 // over the ground, thinner where grass and shrubs poke through.
 baseColor = lerp(baseColor, float3(0.80, 0.83, 0.86), SnowCover * (1.0 - water) * (1.0 - 0.35 * veg));
 Roughness = lerp(lerp(lerp(0.9, 0.97, veg), 0.86, sand), 0.08, water);
+Roughness = lerp(Roughness, 0.92, saturate((0.906 - VN.z) / 0.067) * (1.0 - water));
 Nrm = normalize(VN);
 return max(baseColor, 0.0);
 )HLSL");

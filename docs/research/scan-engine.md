@@ -183,3 +183,110 @@ corridor texture in a runtime virtual texture.
 - Our AI team trains our own eye later, with the standard channel names.
 - Every model goes in `docs/data-sources.md` with its weights licence and
   training-data origin.
+
+## H. Budget while the game drives (Aaron, 14 November 2026)
+
+- Scan plus eyes: up to about 10 of the 16 hardware threads and about 16 GB of RAM,
+  at below-normal thread priority.
+- A governor drops workers when the game-thread time or the frame-time p95 rises more
+  than 0.5 ms over its baseline, and adds them back when it recovers.
+- Two passes. Pass 1 (rules and light eyes) makes each tile ready at least 440 m ahead
+  at 130 km/h. Pass 2 (heavier eyes, tree segmentation, self-check rounds) runs further
+  ahead and upgrades tiles in place with a 1 s cross-fade.
+- A RAM scan cache of about 4-6 GB (least recently used by distance along the route) in
+  front of the disk cache. Several eyes per tile are allowed; each one's cost goes in META.
+- A fast test with a synthetic scan load: the frame-time p95 stays within 0.5 ms of the
+  run without the load.
+- The extra workers load tiles further ahead and build terrain, buildings and trees in
+  more detail.
+
+## H2. Budget v2 (final; replaces the thread and RAM numbers of H)
+
+- AI eyes: up to 8 threads and 8 GB while driving, at below-normal priority; up to 12
+  threads while loading or paused. All eyes of a tile: p95 6 s or less, fed by the
+  prediction queue (J). The eye runner pauses when the frame-time p95 over 2 s is above
+  1.1 x its AI-idle value.
+- Scan work uses the rest of the free CPU and RAM, with the same back-off.
+- Release gate (run by the release test): the Dragon pre-flight with AI on keeps p95
+  within +0.5 ms of AI off, with 0 extra hitches.
+
+## I. Restoration slot (SCAN_VERSION 3)
+
+- `RSTR`: 256 x 256 px pages at 0.15 m/px (38.4 m squares on the z16 grid), RGBA8 sRGB
+  de-lit, A confidence. At most 64 pages a tile, only within 60 m of roads, footprints and
+  parcels. BC7 + zstd in the cache. Made by the AI thread's eye `aerial_restore`.
+- `MATL` records per surface: surface id, kind (roof, wall, yard, parking, field,
+  shoulder, cut face), CC0 material id (`data/scan/materials.json`), RGB tint and
+  strength, texel scale (mm), rotation, wear, confidence, flags. Rules fallback: class,
+  region, era, use, and the roof colour from the albedo weighted by `building_prob`.
+- Detail layer: within 40 m the RSTR page (one RVT fetch) where its A beats the rule,
+  with the class detail kit on top. Roofs: RSTR, else the MATL roof material and tint.
+  Walls: the MATL wall material and tint with interior mapping. Far away: ALBD only.
+  Without the eye the scan stays complete. RSTR and GENR are v2.0.4 slots: the loader and
+  the fallback come first; they do not hold v2.0.3.
+
+## J. Prediction queue (replaces "tiles round the car" for every scan job)
+
+- With a GPS route, follow it. Without one, walk the road graph ahead: the current road
+  first; at each junction weight the branches by road class, heading change, turn signal
+  or steering, and speed. Horizon 30-120 s at the current speed.
+- Priority = P(seen) x 1 / time-to-seen x closeness of the view. It orders pass 1, pass 2,
+  RSTR, GENR and trees. Jobs that leave the path are cancelled.
+- Pre-scan the start area and the first 2 km of each likely path while the menu or map
+  is open.
+- Measure with a fast test on a recorded drive: lead time (s) at city speed and at 130
+  km/h, prediction on and off, share of late tiles.
+
+### J2. Speed rule
+
+- Detail size needed per surface: s = max(pixel footprint, v T_blur sin(theta),
+  v T_blur d_side / r), T_blur about 1/60 s. View time t_view = 40 m / v.
+- A close-detail job (RSTR, GENR close detail, small props, grass tufts, fine FACD parts)
+  runs only if s is under the job's detail size and t_view > 0.5 s on the predicted path.
+- At high speed the budget goes far ahead: terrain shape, cut faces, tree line and
+  crowns, building mass and roof colour, TINT, road markings ahead.
+- Never skipped at any speed: road height, cross-section, kerbs, collision, fallback
+  ground, the pass 1 tile. A rule fallback fills every skipped job: never a hole.
+- Below 0.7 x the skip speed for 2 s, or stopped: the skipped near jobs go back to the
+  top of the queue, nearest first, with a 1 s fade.
+- Pass 1 ready at least 12 s ahead: about 300 m in town, 440 m at 130 km/h, 800 m at
+  240 km/h. s_needed per surface goes to the materials (detail-kit taps and mips).
+- Measure: lead time and late share at city speed, 130 and 240 km/h, prediction and
+  speed rule on and off, CPU seconds per km.
+
+### J3. Standstill ladder
+
+Below 15 km/h or stopped, free CPU and RAM refine what is in view, nearest first:
+L0 at once (pass 1, TINT, MATL rules); L1 0-5 s (RSTR pages in view, FACD rules, roof
+parts); L2 5-15 s (GENR facade materials; window reveals, sills, eaves as real 3D; kerb
+wear; stones and gravel from GEOL/PROC); L3 15-60 s (props within 20 m from a process
+field or RSTR evidence: litter, leaves, weeds in cracks, kerb grass, drain grates, paint
+wear, stains; near bark and branch detail); L4 60 s+ (unique 4 mm/px pages within 10 m).
+Each level fades in over 1 s; generated detail agrees with RSTR on a 0.6 m downsample;
+a GPU job only at standstill with GPU p95 under 70 % of budget, stopped at once on move;
+levels cached by surface id; the speed rule drops levels that leave the view.
+`-SimCruiseStandstillTest` stops at a place and captures frames at 0/5/15/60 s, plus 1 m
+from a wall and from the ground. v2.0.3: the scheduler and the L0-L2 rule parts.
+
+## K. Generated detail
+
+- `GENR`: a shared library keyed by hash(style region, era/10, use, wall material, colour
+  bin, Köppen group), cached at `Saved/Scan/genr/<key>.genr`: a 1024 PBR set (BC7 albedo,
+  BC5 normal, BC7 height/rough/AO) and a parts mask, made by the AI thread. A building
+  fades from MATL to GENR over 1 s when its entry is ready.
+- `FACD` per facade side: bays, floor heights, window w/h, sill/head, window type, door
+  bay, storefront, awning, sign text id (OSM shop name), trim RGB, shutters, balcony,
+  GENR key or MATL id, seed, confidence, flags. Rules: floors from levels or height / 3 m;
+  bays from facade length / regional bay width; storefronts at OSM shops or retail on
+  main streets; window type by era.
+- `BLDG` roof parts (chimney, dormer, vent, solar, AC, skylight) by rules of era and use,
+  unless an eye sees them.
+
+## L. TINT (the cheapest big gain for familiar places)
+
+Per tile, for each surface class 0-63: RGB8 linear multiplier (128 = x1.0), u8
+confidence, u16 sample count. The AI colour match fills it with the place's own asphalt,
+dirt, grass, roof and soil colours; materials read it as a 64-entry per-tile constant.
+Fallback x1.0, or the GEOL soil colour. Eyes for v2.0.3 (read through
+`FSimCruiseAerialEye::Get().Lookup` until the engine calls `Run`): `aerial_student`,
+`satlas_landcover` (model in `data/ai/`, MIT).

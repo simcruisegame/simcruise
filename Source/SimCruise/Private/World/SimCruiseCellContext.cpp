@@ -91,6 +91,24 @@ namespace
 		return 0;
 	}
 
+	/** Points binned in square cells (tile metres), for "what is near here" without a full scan. */
+	struct FBins
+	{
+		double CellM = 32.0;
+		TMap<FIntPoint, TArray<int32>> Cells;
+		FIntPoint Key(const FVector2d& P) const { return FIntPoint(FMath::FloorToInt(P.X / CellM), FMath::FloorToInt(P.Y / CellM)); }
+		void Add(const FVector2d& P, int32 Index) { Cells.FindOrAdd(Key(P)).Add(Index); }
+		template <typename F> void Near(const FVector2d& P, double R, F&& Visit) const
+		{
+			const FIntPoint A = Key(P - FVector2d(R, R)), B = Key(P + FVector2d(R, R));
+			for (int32 y = A.Y; y <= B.Y; ++y)
+			for (int32 x = A.X; x <= B.X; ++x)
+			{
+				if (const TArray<int32>* L = Cells.Find(FIntPoint(x, y))) for (const int32 i : *L) Visit(i);
+			}
+		}
+	};
+
 	FCriticalSection ContextLock;
 	using FContextRef = TSharedRef<const FSimCruiseTileContext, ESPMode::ThreadSafe>;
 	TMap<FIntPoint, FContextRef>& ContextCache() { static TMap<FIntPoint, FContextRef> C; return C; }
@@ -153,11 +171,20 @@ namespace SimCruiseCellContext
 		return FDateTime::Now().GetMonth();
 	}
 
-	uint32 StableSeed(int64 WayId, int32 WayStation, const FVector2d& WorldM, FName RoadClass)
+	uint32 StableSeed(int64 WayId, int32 WayStation, const FVector2d& GlobalM, FName RoadClass)
 	{
 		if (WayId != 0) return Mix(Mix(static_cast<uint32>(WayId), static_cast<uint32>(WayId >> 32)), static_cast<uint32>(WayStation) * 7919u + 1u);
-		// No mapped way: the world position on a 4 m grid (a rebuild moves a centre by centimetres).
-		return Mix(Mix(Q(WorldM.X, 4.0), Q(WorldM.Y, 4.0)), GetTypeHash(RoadClass));
+		// No mapped way: the global (Web Mercator) position on a 4 m grid (a rebuild moves a centre
+		// by centimetres; the session's start place does not matter).
+		return Mix(Mix(Q(GlobalM.X, 4.0), Q(GlobalM.Y, 4.0)), GetTypeHash(RoadClass));
+	}
+
+	double CellMercatorM(double LatDeg)
+	{
+		// Web Mercator stretches the ground by 1 / cos(latitude). By 5 degree bands, so every tile
+		// of a band cuts its cells on the same global marks (within 4 % of 32 m on the ground).
+		const double Band = FMath::Clamp(FMath::RoundToDouble(LatDeg / 5.0) * 5.0, -80.0, 80.0);
+		return CellM / FMath::Cos(FMath::DegreesToRadians(Band));
 	}
 
 	void SpeciesFor(uint8 Koppen, FName Climate, double Lat, double Lon, TArray<TPair<FName, float>>& Out)
@@ -166,11 +193,13 @@ namespace SimCruiseCellContext
 		Out.Reset();
 		auto Add = [&Out](const TCHAR* Name, float W) { Out.Add(TPair<FName, float>(FName(Name), W)); };
 		const FString C = Climate.ToString();
+		// Coconut palms wherever they live outdoors (USDA zone 10b and warmer: the curated
+		// SimCruiseTileDetail::IsCoconutPalmRegion), whatever class a 0.05 degree grid cell has:
+		// leeward Oahu and Kona are BSh there and line their streets with coconut palms.
+		if (SimCruiseTileDetail::IsCoconutPalmRegion(Lat, Lon)) Add(TEXT("cocos_nucifera"), 1.0f);
 		const bool bTropical = (Koppen >= 1 && Koppen <= 3) || (Koppen == 0 && C == TEXT("climate:tropical"));
 		if (bTropical)
 		{
-			// Coconut palms only where they live outdoors (USDA 10b+, SimCruiseTileDetail::IsCoconutPalmRegion).
-			if (SimCruiseTileDetail::IsCoconutPalmRegion(Lat, Lon)) Add(TEXT("cocos_nucifera"), 1.0f);
 			Add(TEXT("roystonea_regia"), 0.4f);
 			Add(TEXT("sabal_palmetto"), 0.3f);
 			Add(TEXT("ficus"), 0.3f);
@@ -253,7 +282,7 @@ namespace SimCruiseCellContext
 		return H;
 	}
 
-	void Bake(const FInputs& In, FSimCruiseTileContext& Out)
+	void Bake(const FInputs& In, FSimCruiseTileContext& Out, const uint32* KnownHash)
 	{
 		const double T0 = FPlatformTime::Seconds();
 		const FSimCruiseTileData& Data = In.Data;
@@ -262,7 +291,7 @@ namespace SimCruiseCellContext
 		Out = FSimCruiseTileContext();
 		Out.Tile = Data.Id;
 		Out.RulesVersion = RulesVersion;
-		Out.DataHash = DataHash(In);
+		Out.DataHash = KnownHash ? *KnownHash : DataHash(In);
 		Out.Month = In.Month;
 
 		// ---------------------------------------------------------------- the place: climate, season, species
@@ -298,12 +327,17 @@ namespace SimCruiseCellContext
 			}
 			BarrierSamples.Add({ W.P.Last(), RS.Barriers[W.Index].Kind });
 		}
+		FBins BarrierBins; BarrierBins.CellM = 16.0;
+		for (int32 i = 0; i < BarrierSamples.Num(); ++i) BarrierBins.Add(BarrierSamples[i].P, i);
 		// Named businesses in tile metres (commercial land use beside a road).
 		TArray<FVector2d> Businesses;
 		for (const FSimCruiseRoadsidePoint& P : RS.Points) if (P.Kind == TEXT("business")) Businesses.Add(ToTileM(Data.Id, Side, P.Lon, P.Lat));
 		TArray<FVector2d> Centres;
 		Centres.Reserve(Data.BuildingCentres.Num());
 		for (const FVector2d& U : Data.BuildingCentres) Centres.Add(U * Side);
+		FBins CentreBins, BusinessBins;
+		for (int32 i = 0; i < Centres.Num(); ++i) CentreBins.Add(Centres[i], i);
+		for (int32 i = 0; i < Businesses.Num(); ++i) BusinessBins.Add(Businesses[i], i);
 
 		auto LandUseAt = [&](const FVector2d& C, const FVector2d& Out2, double HalfW, const FVector2d& T)
 		{
@@ -315,14 +349,16 @@ namespace SimCruiseCellContext
 			}
 			int32 Built = 0;
 			const FVector2d P = C + Out2 * (HalfW + 15.0);
-			for (const FVector2d& B : Centres) Built += FVector2d::DistSquared(B, P) < 30.0 * 30.0 ? 1 : 0;
+			CentreBins.Near(P, 30.0, [&](int32 i) { Built += FVector2d::DistSquared(Centres[i], P) < 30.0 * 30.0 ? 1 : 0; });
 			if (Built > 0)
 			{
-				for (const FVector2d& B : Businesses)
+				bool bShop = false;
+				BusinessBins.Near(C, 45.0, [&](int32 i)
 				{
-					const FVector2d D = B - C;
-					if (FVector2d::DotProduct(D, Out2) > 0.0 && FMath::Abs(FVector2d::DotProduct(D, T)) < 30.0 && D.SizeSquared() < 45.0 * 45.0) return FName(TEXT("commercial"));
-				}
+					const FVector2d D = Businesses[i] - C;
+					bShop |= FVector2d::DotProduct(D, Out2) > 0.0 && FMath::Abs(FVector2d::DotProduct(D, T)) < 30.0 && D.SizeSquared() < 45.0 * 45.0;
+				});
+				if (bShop) return FName(TEXT("commercial"));
 				return Built >= 2 ? FName(TEXT("residential")) : FName(TEXT("built"));
 			}
 			for (const double D : { 8.0, 20.0 })
@@ -342,17 +378,21 @@ namespace SimCruiseCellContext
 			// World-anchored marks along a canonical direction (as the street lights and the dashes).
 			const FVector2d T0v = Ribbon.St[0].T;
 			const double Canon = (T0v.X > 1e-6 || (FMath::Abs(T0v.X) <= 1e-6 && T0v.Y > 0.0)) ? 1.0 : -1.0;
-			const FVector2d World0(Data.Id.X * Side + Ribbon.St[0].C.X, Data.Id.Y * Side + Ribbon.St[0].C.Y);
+			// Marks on global Web Mercator metres (the same in every session and on both sides of a
+			// tile border), every CellMercatorM of them: about 32 m on the ground.
+			const double MercPerM = MercatorTileM / Side;
+			const double Lc = CellMercatorM(In.LatDeg);
+			const FVector2d World0 = (FVector2d(Data.Id.X, Data.Id.Y) + Ribbon.St[0].C / Side) * MercatorTileM;
 			const double Anchor = FVector2d::DotProduct(World0, T0v) * Canon;
 			const double SA = Ribbon.St[0].S, SB = Ribbon.St.Last().S;
-			auto UOf = [&](double S) { return Anchor + Canon * (S - SA); };
-			auto SOf = [&](double U) { return SA + (U - Anchor) * Canon; };
+			auto UOf = [&](double S) { return Anchor + Canon * (S - SA) * MercPerM; };
+			auto SOf = [&](double U) { return SA + (U - Anchor) * Canon / MercPerM; };
 			const double ULo = FMath::Min(UOf(SA), UOf(SB)), UHi = FMath::Max(UOf(SA), UOf(SB));
-			const int64 K0 = FMath::FloorToInt64(ULo / CellM), K1 = FMath::FloorToInt64((UHi - 1e-6) / CellM);
+			const int64 K0 = FMath::FloorToInt64(ULo / Lc), K1 = FMath::FloorToInt64((UHi - 1e-6) / Lc);
 			TArray<FSimCruiseCellContext> RibbonCells;
 			for (int64 K = K0; K <= K1; ++K)
 			{
-				const double Ua = FMath::Max(ULo, K * CellM), Ub = FMath::Min(UHi, (K + 1) * CellM);
+				const double Ua = FMath::Max(ULo, K * Lc), Ub = FMath::Min(UHi, (K + 1) * Lc);
 				if (Ub - Ua < 1e-3) continue;
 				FSimCruiseCellContext Cell;
 				Cell.Ribbon = r;
@@ -384,6 +424,13 @@ namespace SimCruiseCellContext
 				Cell.WayStation = static_cast<int32>(K);
 				if (Way)
 				{
+					// The station along the way: its own canonical direction, global metres, so both
+					// tiles of a way (and every session) number its 32 m cells alike.
+					const TArray<FVector2d>& LL = Way->LonLat;
+					FVector2d Dir = (SimCruiseGeo::LonLatToTile(LL.Last().X, LL.Last().Y) - SimCruiseGeo::LonLatToTile(LL[0].X, LL[0].Y)).GetSafeNormal();
+					if (Dir.X < -1e-9 || (FMath::Abs(Dir.X) <= 1e-9 && Dir.Y < 0.0)) Dir = -Dir;
+					const FVector2d CentreGlobal = (FVector2d(Data.Id.X, Data.Id.Y) + Cell.CentreM / Side) * MercatorTileM;
+					Cell.WayStation = static_cast<int32>(FMath::FloorToInt64(FVector2d::DotProduct(CentreGlobal, Dir) / Lc));
 					Cell.WayId = Way->Id;
 					if (Cell.StreetName.IsEmpty()) Cell.StreetName = Way->Name;
 					++Out.MatchedCells;
@@ -420,14 +467,15 @@ namespace SimCruiseCellContext
 				const double HalfLen = 0.5 * (Cell.S1 - Cell.S0) + 1.0;
 				int32 Rank[2] = { 0, 0 };
 				double Off[2] = { 1e9, 1e9 };
-				for (const FBarrierSample& B : BarrierSamples)
+				BarrierBins.Near(Cell.CentreM, HalfLen + Cell.HalfW + 12.0, [&](int32 Bi)
 				{
+					const FBarrierSample& B = BarrierSamples[Bi];
 					const FVector2d D = B.P - Cell.CentreM;
 					const double Along = FVector2d::DotProduct(D, Cell.Tangent);
-					if (FMath::Abs(Along) > HalfLen) continue;
+					if (FMath::Abs(Along) > HalfLen) return;
 					const double Lat = FVector2d::DotProduct(D, Cell.Right);
 					const double Beyond = FMath::Abs(Lat) - Cell.HalfW;
-					if (Beyond < -0.5 || Beyond > 12.0) continue;
+					if (Beyond < -0.5 || Beyond > 12.0) return;
 					const int32 s = Lat > 0.0 ? 1 : 0;
 					const int32 Rk = BarrierRank(B.Kind);
 					if (Rk > Rank[s] || (Rk == Rank[s] && Beyond < Off[s]))
@@ -437,10 +485,10 @@ namespace SimCruiseCellContext
 						Cell.Sides[s].Barrier = B.Kind;
 						Cell.Sides[s].BarrierOffsetM = static_cast<float>(FMath::Max(0.0, Beyond));
 					}
-				}
+				});
 
-				const FVector2d WorldM(Data.Id.X * Side + Cell.CentreM.X, Data.Id.Y * Side + Cell.CentreM.Y);
-				Cell.Seed = StableSeed(Cell.WayId, Cell.WayStation, WorldM, Cell.RoadClass);
+				const FVector2d GlobalM = (FVector2d(Data.Id.X, Data.Id.Y) + Cell.CentreM / Side) * MercatorTileM;
+				Cell.Seed = StableSeed(Cell.WayId, Cell.WayStation, GlobalM, Cell.RoadClass);
 				RibbonCells.Add(MoveTemp(Cell));
 			}
 			// Station order (the marks ran in world order, which is backwards when Canon < 0).
@@ -511,7 +559,7 @@ namespace SimCruiseCellContext
 			}
 		}
 		TSharedRef<FSimCruiseTileContext, ESPMode::ThreadSafe> Made = MakeShared<FSimCruiseTileContext, ESPMode::ThreadSafe>();
-		Bake(In, *Made);
+		Bake(In, *Made, &Hash);
 		UE_LOG(LogSimCruiseContext, Verbose, TEXT("%s"), *Made->Describe());
 		FScopeLock Lock(&ContextLock);
 		ContextCache().Add(In.Data.Id, Made);

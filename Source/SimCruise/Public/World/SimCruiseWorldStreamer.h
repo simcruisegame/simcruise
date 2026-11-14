@@ -131,6 +131,8 @@ private:
 		TArray<TArray<FColor>> AerialMips;
 		int32 AerialWidth = 0;
 		int32 AerialHeight = 0;
+		/** When the worker finished it (FPlatformTime::Seconds), for the load-time mean. */
+		double FinishedAt = 0.0;
 	};
 	struct FInbox
 	{
