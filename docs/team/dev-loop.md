@@ -97,4 +97,5 @@ The D: drive is 100 GB and every lane fills it with test runs, packages and buil
 - A lane that is idle for a day: `-Package -Build` (it also removes Intermediate, Binaries and DerivedDataCache), or remove the worktree when all its commits are on origin. Push a backup branch for uncommitted files first.
 - Never clean another lane that is in use, and never clean D:\simcruise (Aaron plays from it). The script stops when an editor, game, build or test of the checkout runs.
 - Keep the evidence that the current release test uses until the release is out. Put files that must stay in `docs/release/evidence-<version>/`, not only in Saved.
+- No pull request stays open after its work is merged or dropped. When you merge or drop work, close its PR with one line that says where the work went. Each release ends with zero stale PRs (`gh pr list --repo simcruisegame/simcruise`).
 - Temporary files (logs, patches, scratch scripts) go in your session scratchpad or in your lane's Saved folder, not loose in D:\sc.
