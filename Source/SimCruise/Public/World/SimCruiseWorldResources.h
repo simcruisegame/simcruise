@@ -92,8 +92,23 @@ public:
 	UPROPERTY()
 	TObjectPtr<UTexture2D> DetailNrmTexture;
 
+	/** The field noise (FieldNoiseSize square, wrapping): see MakeFieldNoise. Set as "FieldNoise" on the ground and the landscape. */
+	UPROPERTY()
+	TObjectPtr<UTexture2D> FieldNoiseTexture;
+
 	UPROPERTY()
 	TObjectPtr<UMaterialInstanceDynamic> PalmBarkMaterial;
+
+	static constexpr int32 FieldNoiseSize = 1024;
+	/**
+	 * The grass field's and the steep ground's noise, made once instead of hashed per pixel:
+	 * four independent channels of three-octave value noise (256, 512 and 1024 cells a repeat,
+	 * weights 0.571, 0.286, 0.143, smooth-step interpolation), periodic over the texture, in
+	 * [0, 1]. RGB is stored sRGB-encoded (so a colour sampler returns the value), A linear.
+	 */
+	static void MakeFieldNoise(int32 Size, TArray<FColor>& OutPixels);
+	/** One channel's value at texel (X, Y) of MakeFieldNoise, before encoding (for the tests). */
+	static float FieldNoiseValue(int32 Size, int32 Channel, int32 X, int32 Y);
 
 	/** Decode a JPEG or PNG file to BGRA8 (any thread). */
 	static bool DecodeImageFile(const FString& Path, TArray<FColor>& OutPixels, int32& OutWidth, int32& OutHeight);
@@ -108,7 +123,7 @@ public:
 	static FLinearColor MeanLinear(const TArray<FColor>& Pixels);
 
 #if WITH_EDITOR
-	/** HLSL shared by the ground and the regional landscape: struct FGF (hash, value noise, the grass field's meso layer). Prepend it to a Custom node's code. */
+	/** HLSL shared by the ground and the regional landscape: struct FGF (hashes, the field noise's fetch, the grass field's meso layer). Prepend it to a Custom node's code; the node needs a "FieldNoise" texture input. */
 	static const TCHAR* GrassFieldHlsl();
 #endif
 };

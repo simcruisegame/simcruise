@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "World/SimCruiseRoadNetwork.h"
+#include "World/SimCruiseScan.h"
 
 struct FSimCruiseTileData;
 class FStaticMeshRenderData;
@@ -170,6 +171,13 @@ struct SIMCRUISE_API FSimCruiseTileBuild
 
 	/** The tile scan (SimCruiseScan), when -SimCruiseScan or -SimCruiseScanView asks for it (no reader uses it yet). */
 	TSharedPtr<const struct FSimCruiseTileScan, ESPMode::ThreadSafe> Scan;
+
+	/**
+	 * TINT by colour match (SimCruiseScan::MatchTints): the place's own grass, soil, sand and
+	 * paving hues from its aerial photograph, x1.0 where there is no photograph or too little of
+	 * a class. Always made (cheap); the scan's TINT starts from it and an eye may override it.
+	 */
+	SimCruiseScan::FTint Tint[64];
 
 	/** Palms to instance on this tile. */
 	TArray<FSimCruisePalmInstance> PalmInstances;

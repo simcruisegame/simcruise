@@ -387,17 +387,20 @@ void ASimCruiseWorldTile::Install(const TSharedRef<FSimCruiseTileBuild>& InBuild
 			const float GrassDry = bGrassDryOverride ? GrassDryOverride : (InBuild->Context.IsValid() ? FMath::Clamp(InBuild->Context->GrassDry, 0.f, 1.f) : 0.f);
 			MID->SetScalarParameterValue(TEXT("GrassField"), bGrassField ? 1.f : 0.f);
 			MID->SetScalarParameterValue(TEXT("GrassDry"), GrassDry);
-			// The scan's TINT (the place's own grass, soil and sand colours, from the eye): x1 without one.
-			if (InBuild->Scan.IsValid())
+			// TINT (the place's own grass, soil, sand and paving hues): the scan's when there is one
+			// (an eye may have filled it), else the build's colour match; x1 without a photograph.
 			{
-				auto Tint = [&](SimCruiseScan::EClass C) { const SimCruiseScan::FTint& T = InBuild->Scan->Tint[static_cast<int32>(C)]; return FLinearColor(T.R / 128.f, T.G / 128.f, T.B / 128.f, 1.f); };
+				const SimCruiseScan::FTint* Tints = InBuild->Scan.IsValid() ? InBuild->Scan->Tint : InBuild->Tint;
+				auto Tint = [Tints](SimCruiseScan::EClass C) { const SimCruiseScan::FTint& T = Tints[static_cast<int32>(C)]; return FLinearColor(T.R / 128.f, T.G / 128.f, T.B / 128.f, 1.f); };
 				MID->SetVectorParameterValue(TEXT("TintGrass"), Tint(SimCruiseScan::EClass::GrassShort));
 				MID->SetVectorParameterValue(TEXT("TintSoil"), Tint(SimCruiseScan::EClass::BareSoil));
 				MID->SetVectorParameterValue(TEXT("TintSand"), Tint(SimCruiseScan::EClass::Sand));
+				MID->SetVectorParameterValue(TEXT("TintPaved"), Tint(SimCruiseScan::EClass::Paving));
 			}
 			// The AI detail kit (world-detail-methods.md): on unless -SimCruiseNoDetailLayer.
 			static const bool bDetailLayer = !FParse::Param(FCommandLine::Get(), TEXT("SimCruiseNoDetailLayer"));
 			MID->SetTextureParameterValue(TEXT("DetailAlb"), Resources->DetailAlbTexture);
+			if (Resources->FieldNoiseTexture) MID->SetTextureParameterValue(TEXT("FieldNoise"), Resources->FieldNoiseTexture);
 			MID->SetTextureParameterValue(TEXT("DetailNrm"), Resources->DetailNrmTexture);
 			MID->SetScalarParameterValue(TEXT("DetailLayer"), bDetailLayer ? 1.f : 0.f);
 			Materials.Add(MID);

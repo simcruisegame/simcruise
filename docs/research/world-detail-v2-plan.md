@@ -109,3 +109,30 @@ need a profile at a true 75 % before they ship):
 - A 1 s cross-fade for late tiles; facades (FACD), roof parts, MATL/RSTR/GENR readers.
 - Trees grown to lidar or CHM crowns, impostors, TREE chunk.
 - Prediction queue, speed rule, standstill ladder, the scan governor and two passes.
+
+## v2.0.4 work so far (world-detail-v2, 14 November 2026)
+
+Made cheap (step 2 of the v2.0.4 order; the GPU profile at a true 75 % waits for the release
+test to free the GPU, then one run measures the branch against main):
+- Ground integer hash: the grass field's meso layer (clumps, clover, patches, dry patches) and
+  the steep mottling read one baked field-noise texture (1024², four channels, three octaves,
+  whole repeats per 1664 m), two fetches instead of 48 pcg hashes a grass pixel; a blade cell's
+  six draws come from one hash (16 hashes in the blade march, which stops at its first hit,
+  instead of 96); the detail kit's and the lawn's hex cells one hash instead of three. The far
+  landscape's grass field reads the same texture.
+- Steep ground only above 30 degrees (rock 35-45), the triplanar grain only within 60 m; beyond
+  it the face keeps its colour and its mottling.
+- Tree cross-fade: by the tree's distance (its bounds centre, one for all three levels of a
+  species, as the GPU's draw distances measure it), so each ring stops exactly at its band (4 m
+  wide at 33 m, 8 m at 92 m) and one level draws outside the bands; the 4 m crown margin and
+  its 16 and 24 m of double drawing are gone.
+
+TINT in the material (step 3): `SimCruiseScan::MatchTints` takes each tile's grass, soil, sand
+and paving hues from its own aerial photograph on every build (no model, about 2 ms), the scan's
+TINT starts from it and an eye overrides it; the ground reads all four.
+
+Trees grown to crowns (step 4): `helper/crown-segments.mjs` segments the CHMv2 1 m grid (local
+maxima in a window of the Popescu-Wynne crown width, then highest-first region growing to 45 %
+of the top and 55 % of the crown's mean height); the game stands each tree at its crown's
+middle, turned to its long axis, at its two widths. 3DEP point clouds replace the CHM where
+they exist in a later step (same segmentation on a lidar canopy model).

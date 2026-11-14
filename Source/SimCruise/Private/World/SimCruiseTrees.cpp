@@ -23,7 +23,9 @@
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionTextureObjectParameter.h"
+#include "Materials/MaterialExpressionTransformPosition.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialExpressionVertexInterpolator.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Misc/App.h"
 #include "Misc/Paths.h"
@@ -40,17 +42,23 @@ DEFINE_LOG_CATEGORY_STATIC(LogSimCruiseTrees, Log, All);
 
 namespace
 {
-	/** Where a tree changes detail level (cm from the camera), and the cross-fade band either side. */
+	/**
+	 * Where a tree changes detail level (cm from the camera), and the cross-fade band either side.
+	 * Outside the bands one level draws; inside, the two levels dither into each other. The
+	 * distance is the tree's (its bounds centre, the point the GPU's per-instance draw distances
+	 * test), the same for both levels, so a ring ends exactly where its fade does.
+	 */
 	constexpr float LodSwitchCm[2] = { 3300.f, 9200.f };
-	constexpr float LodBandCm[2] = { 400.f, 800.f };
+	constexpr float LodBandCm[2] = { 200.f, 400.f };
 }
 
 namespace
 {
 	// The detail levels cross-fade over a band of distance instead of switching: a level fades
 	// out (pixel shown while n < w) as the next fades in (shown while 1 - n < w) with the same
-	// screen noise n, so every pixel shows exactly one level. Shadows keep the whole mask (the
-	// rings' own cull distances, measured from the camera, switch them).
+	// screen noise n, so every pixel shows exactly one level. Depth is the tree's distance (one
+	// value for the whole tree and both levels), not the pixel's. Shadows keep the whole mask
+	// (the rings' own draw distances switch them).
 	const TCHAR* FadeCode = TEXT(R"HLSL(
 float fin = FadeIn > 0.0 ? saturate((Depth - (FadeIn - BandIn)) / max(2.0 * BandIn, 1.0)) : 1.0;
 float fout = saturate(((FadeOut + BandOut) - Depth) / max(2.0 * BandOut, 1.0));
@@ -102,14 +110,26 @@ return b;
 		return P;
 	}
 
-	/** The cross-fade's inputs: the pixel's depth and the level's band (cm; FadeIn 0: no fade in). */
+	/** The cross-fade's inputs: the tree's distance and the level's band (cm; FadeIn 0: no fade in). */
 	void AddFadeInputs(UMaterial* Material, UMaterialExpressionCustom* Custom)
 	{
-		// The pixel's distance from the camera (radial, as the rings' cull distances are).
+		// The tree's distance from the camera: its bounds centre (FadeCentre, in the mesh's own
+		// space, the same for all three levels of a species) to the camera, radial, as the GPU's
+		// per-instance draw distances measure it. Worked out per vertex (the instance's transform
+		// is there) and passed on, constant over the tree.
+		UMaterialExpressionVectorParameter* Centre = AddExpression<UMaterialExpressionVectorParameter>(Material);
+		Centre->ParameterName = TEXT("FadeCentre");
+		Centre->DefaultValue = FLinearColor(0.f, 0.f, 0.f, 0.f);
+		UMaterialExpressionTransformPosition* ToWorld = AddExpression<UMaterialExpressionTransformPosition>(Material);
+		ToWorld->TransformSourceType = TRANSFORMPOSSOURCE_Local;
+		ToWorld->TransformType = TRANSFORMPOSSOURCE_World;
+		ToWorld->Input.Connect(0, Centre);
 		UMaterialExpressionDistance* Dist = AddExpression<UMaterialExpressionDistance>(Material);
-		Dist->A.Connect(0, AddExpression<UMaterialExpressionWorldPosition>(Material));
+		Dist->A.Connect(0, ToWorld);
 		Dist->B.Connect(0, AddExpression<UMaterialExpressionCameraPositionWS>(Material));
-		AddInput(Custom, TEXT("Depth"), Dist);
+		UMaterialExpressionVertexInterpolator* PerTree = AddExpression<UMaterialExpressionVertexInterpolator>(Material);
+		PerTree->Input.Connect(0, Dist);
+		AddInput(Custom, TEXT("Depth"), PerTree);
 		AddInput(Custom, TEXT("FadeIn"), ScalarParam(Material, TEXT("FadeIn"), 0.f));
 		AddInput(Custom, TEXT("BandIn"), ScalarParam(Material, TEXT("BandIn"), 0.f));
 		AddInput(Custom, TEXT("FadeOut"), ScalarParam(Material, TEXT("FadeOut"), 1.0e9f));
@@ -344,8 +364,14 @@ TArray<FSimCruiseTreeRow> ASimCruiseTrees::ParseCanopy(const TSharedPtr<FJsonVal
 	{
 		return Rows;
 	}
-	for (const TSharedPtr<FJsonValue>& T : *Trees)
+	// With `--segment` the helper adds "shapes", one per segmented crown, in the order of the
+	// first rows of "trees" (rows a city inventory adds after them have none): the 8 reaches and
+	// the crown base.
+	const TArray<TSharedPtr<FJsonValue>>* Shapes = nullptr;
+	if (!(*Doc)->TryGetArrayField(TEXT("shapes"), Shapes)) Shapes = nullptr;
+	for (int32 i = 0; i < Trees->Num(); ++i)
 	{
+		const TSharedPtr<FJsonValue>& T = (*Trees)[i];
 		const TArray<TSharedPtr<FJsonValue>>* R = nullptr;
 		if (!T.IsValid() || !T->TryGetArray(R) || R->Num() < 4) continue;
 		FSimCruiseTreeRow Row;
@@ -355,9 +381,54 @@ TArray<FSimCruiseTreeRow> ASimCruiseTrees::ParseCanopy(const TSharedPtr<FJsonVal
 		// Peaks under 3 m are shrubs; the map tops out near 60 m.
 		if (Row.HeightM < 3.0 || Row.HeightM > 70.0 || Row.CrownM <= 0.0) continue;
 		if (Row.TileUV.X < 0.0 || Row.TileUV.Y < 0.0 || Row.TileUV.X > 1.0 || Row.TileUV.Y > 1.0) continue;
+		const TArray<TSharedPtr<FJsonValue>>* Shape = nullptr;
+		if (Shapes && Shapes->IsValidIndex(i) && (*Shapes)[i].IsValid() && (*Shapes)[i]->TryGetArray(Shape) && Shape->Num() >= 9)
+		{
+			bool bOk = true;
+			for (int32 k = 0; k < 8; ++k)
+			{
+				Row.RadiiM[k] = static_cast<float>((*Shape)[k]->AsNumber());
+				bOk &= Row.RadiiM[k] > 0.f && Row.RadiiM[k] < 30.f;
+			}
+			Row.CrownBaseM = static_cast<float>(FMath::Clamp((*Shape)[8]->AsNumber(), 0.0, Row.HeightM));
+			Row.bShape = bOk;
+		}
 		Rows.Add(Row);
 	}
 	return Rows;
+}
+
+FSimCruiseCrownFit ASimCruiseTrees::FitCrown(const FSimCruiseTreeRow& Row)
+{
+	FSimCruiseCrownFit Fit;
+	Fit.LongM = Fit.ShortM = Row.CrownM;
+	if (!Row.bShape) return Fit;
+	// Directions k * 45 degrees anticlockwise from east (north up); the reach r_k from the top.
+	// The crown's middle: opposite reaches differ by twice the offset along their axis, and the
+	// four axes 45 degrees apart give o = 1/2 sum_k (r_k - r_k+4) / 2 * dir_k.
+	FVector2D East(0.0, 0.0); // x east, y north
+	double Half[4];
+	for (int32 k = 0; k < 4; ++k)
+	{
+		const double A = k * UE_DOUBLE_PI / 4.0;
+		const double D = 0.5 * (Row.RadiiM[k] - Row.RadiiM[k + 4]);
+		East += 0.5 * D * FVector2D(FMath::Cos(A), FMath::Sin(A));
+		Half[k] = FMath::Max(0.25, 0.5 * (Row.RadiiM[k] + Row.RadiiM[k + 4]));
+	}
+	Fit.OffsetM = FVector2D(East.X, -East.Y); // tile axes: y south
+	// An ellipse's 1/r^2 = P + Q cos 2t + R sin 2t (semi-axes a >= b at angle f: P = (1/a^2 +
+	// 1/b^2) / 2, (Q, R) = (1/a^2 - 1/b^2) / 2 (cos 2f, sin 2f)): fitted from the four axes' half
+	// widths. The long axis is where 1/r^2 is least.
+	double Inv[4];
+	for (int32 k = 0; k < 4; ++k) Inv[k] = 1.0 / (Half[k] * Half[k]);
+	const double P = 0.25 * (Inv[0] + Inv[1] + Inv[2] + Inv[3]);
+	const double Q = 0.5 * (Inv[0] - Inv[2]), R = 0.5 * (Inv[1] - Inv[3]);
+	const double Amp = FMath::Min(FMath::Sqrt(Q * Q + R * R), 0.9 * P);
+	const double LongAngle = 0.5 * FMath::Atan2(-R, -Q); // anticlockwise from east, north up
+	Fit.LongM = 2.0 / FMath::Sqrt(P - Amp);
+	Fit.ShortM = 2.0 / FMath::Sqrt(P + Amp);
+	Fit.YawDeg = FMath::RadiansToDegrees(-LongAngle); // tile axes (y south): clockwise from above
+	return Fit;
 }
 
 double ASimCruiseTrees::ConiferShare(double LatDeg, double LonDeg, double ElevationM)
@@ -447,6 +518,8 @@ bool ASimCruiseTrees::BuildMeshes()
 	{
 		UMaterialInstanceDynamic* Crown = Leaf(*FString::Printf(TEXT("cluster-%s.png"), Species[S]));
 		UMaterialInstanceDynamic* Spray = Leaf(*FString::Printf(TEXT("spray-%s.png"), Species[S]));
+		UStaticMesh* LevelMeshes[3] = { nullptr, nullptr, nullptr };
+		TArray<UMaterialInstanceDynamic*> LevelMaterials;
 		for (int32 Level = 0; Level < 3; ++Level)
 		{
 			// Level 0: the wood with its sprays plus the crown clusters; levels 1 and 2: one mesh of bark and crown.
@@ -508,24 +581,43 @@ bool ASimCruiseTrees::BuildMeshes()
 			StaticSlots.SetNum(Slots.Num());
 			for (int32 i = 0; i < Slots.Num(); ++i) StaticSlots[i].MaterialInterface = Slots[i];
 			Meshes.Add(Mesh);
-
+			LevelMeshes[Level] = Mesh;
+			for (UMaterialInterface* M : Slots) LevelMaterials.Add(Cast<UMaterialInstanceDynamic>(M));
+		}
+		// One bounds box for the species' three levels (their union), so a tree has one centre
+		// and one distance in every level: the GPU's draw distances and the materials' fade
+		// (FadeCentre) both measure from it, and the two levels in a band add up to one tree.
+		FBox Union(ForceInit);
+		for (UStaticMesh* M : LevelMeshes) Union += M->GetBoundingBox();
+		for (UStaticMesh* M : LevelMeshes)
+		{
+			const FBox Own = M->GetBoundingBox();
+			M->SetPositiveBoundsExtension(Union.Max - Own.Max);
+			M->SetNegativeBoundsExtension(Own.Min - Union.Min);
+			M->CalculateExtendedBounds();
+		}
+		const FVector Centre = Union.GetCenter();
+		for (UMaterialInstanceDynamic* M : LevelMaterials)
+		{
+			if (M) M->SetVectorParameterValue(TEXT("FadeCentre"), FLinearColor(Centre.X, Centre.Y, Centre.Z, 0.f));
+		}
+		for (int32 Level = 0; Level < 3; ++Level)
+		{
 			UHierarchicalInstancedStaticMeshComponent* Ring = NewObject<UHierarchicalInstancedStaticMeshComponent>(this);
-			Ring->SetStaticMesh(Mesh);
+			Ring->SetStaticMesh(LevelMeshes[Level]);
 			Ring->SetMobility(EComponentMobility::Movable);
 			Ring->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			Ring->SetupAttachment(RootComponent);
 			// The crowns' detail by distance: the full tree to 33 m, the cluster crown to 92 m, the low
 			// crown to 600 m (Grove.gd's distances; 45 and 130 m were tried and cost frame time). SetCullDistances is where a ring
-			// fades out and ends; its near limit is InstanceMinDrawDistance. Without one every ring
-			// drew from the camera out, so near the car all three crowns stood on top of each other
-			// (three times the triangles, and the blobby low crown over the detailed one). Each ring
-			// now starts half a band before its switch and ends half a band after the next, where
-			// the materials cross-fade the two levels.
-			// The ranges reach half a crown (4 m) past the bands: a ring culls by its tree's
-			// distance, the materials fade by each pixel's, and a crown spans both.
-			constexpr float CrownMarginCm = 400.f;
-			const int32 Near = Level == 0 ? 0 : FMath::RoundToInt(FMath::Max(0.f, LodSwitchCm[Level - 1] - LodBandCm[Level - 1] - CrownMarginCm));
-			const int32 Far = Level == 2 ? 60000 : FMath::RoundToInt(LodSwitchCm[Level] + LodBandCm[Level] + CrownMarginCm);
+			// ends; its near limit is InstanceMinDrawDistance. Without one every ring drew from the
+			// camera out, so near the car all three crowns stood on top of each other (three times
+			// the triangles, and the blobby low crown over the detailed one). Each ring starts where
+			// its fade in starts and ends where its fade out ends (one tree distance for both, see
+			// FadeCentre), so outside the bands one level draws; 50 cm spare for rounding.
+			constexpr float SpareCm = 50.f;
+			const int32 Near = Level == 0 ? 0 : FMath::RoundToInt(FMath::Max(0.f, LodSwitchCm[Level - 1] - LodBandCm[Level - 1] - SpareCm));
+			const int32 Far = Level == 2 ? 60000 : FMath::RoundToInt(LodSwitchCm[Level] + LodBandCm[Level] + SpareCm);
 			Ring->InstanceMinDrawDistance = Near;
 			Ring->SetCullDistances(Far, Far);
 			Ring->SetCastShadow(Level < 2);
@@ -619,7 +711,10 @@ void ASimCruiseTrees::Refresh()
 		}
 		for (const FSimCruiseTreeRow& Row : *Rows)
 		{
-			const FVector2D Local = Row.TileUV * Side;
+			// A segmented crown stands at its own middle (its top is where the canopy is highest,
+			// which for a one-sided or leaning crown is off the middle), turned to its long axis.
+			const FSimCruiseCrownFit Fit = FitCrown(Row);
+			const FVector2D Local = Row.TileUV * Side + Fit.OffsetM;
 			const double Clear = FMath::Max(1.5, Row.CrownM * 0.3);
 			bool bOnRoad = false;
 			const FIntPoint Cell(FMath::FloorToInt(Local.X / 20.0), FMath::FloorToInt(Local.Y / 20.0));
@@ -658,10 +753,14 @@ void ASimCruiseTrees::Refresh()
 				}
 			}
 			const bool bPine = !bPalms && (H % 1000) < Conifers * 1000.0;
-			const double Yaw = (H >> 10) % 360;
-			// A conifer's crown is narrower than the canopy peak's footprint suggests.
-			const double Width = FMath::Clamp(Row.CrownM * (bPine ? 0.75 : 1.0), 1.5, Row.HeightM * 0.95);
-			const FTransform Xf(FRotator(0.0, Yaw, 0.0), At, FVector(Width, Width, Row.HeightM));
+			// A conifer's crown is narrower than the canopy peak's footprint suggests; a segmented
+			// crown is its own measured width (a conifer's mesh a little inside it).
+			const double Narrow = Row.bShape ? (bPine ? 0.85 : 1.0) : (bPine ? 0.75 : 1.0);
+			const double Long = FMath::Clamp(Fit.LongM * Narrow, 1.5, Row.HeightM * 0.95);
+			const double Short = FMath::Clamp(Fit.ShortM * Narrow, 1.5, Row.HeightM * 0.95);
+			// A round crown (within 15 %) keeps a random turn, so the meshes do not all face one way.
+			const double Yaw = Row.bShape && Fit.LongM > 1.15 * Fit.ShortM ? Fit.YawDeg : (H >> 10) % 360;
+			const FTransform Xf(FRotator(0.0, Yaw, 0.0), At, FVector(Long, Short, Row.HeightM));
 			for (int32 Level = 0; Level < 3; ++Level)
 			{
 				Lists[(bPine ? 3 : 0) + Level].Add(Xf);
@@ -792,6 +891,10 @@ void ASimCruiseTrees::Tick(float DeltaSeconds)
 			FSimCruiseAtlasRequest Request;
 			Request.Command = TEXT("canopy");
 			Request.Args = { FString::FromInt(Id.X), FString::FromInt(Id.Y) };
+			// Crowns segmented from the canopy height grid (helper/crown-segments.mjs); the old
+			// peak finder with -SimCruiseOldCrowns (for an A/B).
+			static const bool bOldCrowns = FParse::Param(FCommandLine::Get(), TEXT("SimCruiseOldCrowns"));
+			if (!bOldCrowns) Request.Args.Add(TEXT("--segment"));
 			Request.TimeoutSeconds = 90.0;
 			const FSimCruiseAtlasResult Result = FSimCruiseAtlasClient::RunBlocking(Config, Request, nullptr);
 			if (Result.IsOk())

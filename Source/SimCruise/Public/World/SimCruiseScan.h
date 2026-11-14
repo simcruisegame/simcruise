@@ -9,6 +9,7 @@ struct FSimCruiseTileBuild;
 struct FSimCruiseTileContext;
 struct FSimCruiseScanChannel;
 struct FSimCruiseClassTint;
+struct FSimCruiseAerialImage;
 
 /**
  * The tile scan (docs/research/scan-engine.md): everything the game knows about one zoom-16
@@ -121,6 +122,19 @@ namespace SimCruiseScan
 	 * tile's road context. Pure; worker-thread safe.
 	 */
 	SIMCRUISE_API void BakeRules(const FSimCruiseTileData& Data, const FSimCruiseTileBuild& Build, FSimCruiseTileScan& Out);
+
+	/**
+	 * TINT by colour match, no model: for the ground classes the materials colour themselves
+	 * (short grass, bare soil, sand, paving), the median colour of the tile's aerial photograph
+	 * over the build's mask where that class is pure (grass only where the photograph is green),
+	 * as a hue: relative to the class colour, at the class colour's own luminance (the
+	 * photograph's brightness carries its sun and haze), held to x0.8-x1.25 a channel, and
+	 * faded to x1.0 under 4000 samples. Classes with under 400 samples keep x1.0. Returns the
+	 * number of classes tinted.
+	 */
+	SIMCRUISE_API int32 MatchTints(const TArray<FColor>& Mask, int32 MaskSize, FIntPoint TileId, const FSimCruiseAerialImage& Aerial, FTint (&Out)[64]);
+	/** The ground material's class colours (linear) that the tints multiply (GroundCode). */
+	SIMCRUISE_API FLinearColor GroundClassColour(EClass Class);
 
 	/** The scan from the disk cache by (tile, version, rules version, data hash), else baked and saved. */
 	SIMCRUISE_API TSharedRef<const FSimCruiseTileScan, ESPMode::ThreadSafe> ForBuild(const FSimCruiseTileData& Data, const FSimCruiseTileBuild& Build, bool* bOutCacheHit = nullptr);

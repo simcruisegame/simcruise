@@ -1334,6 +1334,10 @@ namespace SimCruiseTileBuilder
 		}
 
 		B.BuildMs = (FPlatformTime::Seconds() - Started) * 1000.0;
+		// TINT by colour match (the place's own grass, soil, sand and paving hues from its aerial
+		// photograph; about 2 ms), for the ground material and the scan. -SimCruiseNoTint: x1.0.
+		static const bool bNoTint = FParse::Param(FCommandLine::Get(), TEXT("SimCruiseNoTint"));
+		if (Aerial && !bNoTint) SimCruiseScan::MatchTints(B.Mask, SimCruiseGroundMask::Size, Data.Id, *Aerial, B.Tint);
 		// -SimCruiseScan / -SimCruiseScanView: the tile scan (rules only for now), from the disk cache
 		// or baked here on the worker; the view writes its class map to Saved/Scan/view.
 		static const bool bScanView = FParse::Param(FCommandLine::Get(), TEXT("SimCruiseScanView"));

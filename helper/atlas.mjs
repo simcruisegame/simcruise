@@ -28,6 +28,7 @@ import {streetSample} from './street-samples.mjs';
 import {estimateStreetAppearance} from './street-appearance.mjs';
 import {recent} from './recent.mjs';
 import {canopyObservation} from './canopy.mjs';
+import {segmentCrowns} from './crown-segments.mjs';
 import {signalControls} from './signal-controls.mjs';
 import {applyMunicipalCrowns} from './municipal-crowns.mjs';
 import {anchorCrowns,cityInventory} from './civic-trees.mjs';
@@ -231,9 +232,15 @@ try{
    args.includes('--signal-controls')?signalControls(x,y,cache,readCached):null,
   ]);
   const side=611.496/Math.cosh(Math.PI*(1-2*(y+.5)/65536));
-  const merged=anchorCrowns(base.crowns,survey.stems,side,base.grid);
+  // --segment: crowns by classic segmentation of the canopy grid (crown-segments.mjs) instead of
+  // the coarse peak finder; their shapes in "shapes", one per row, in the order of the first rows
+  // of "trees" (anchorCrowns and the municipal crowns keep that order and only append).
+  const segmented=args.includes('--segment')&&base.grid?segmentCrowns(base.grid,side):null;
+  const crowns=segmented?segmented.map(c=>[c.u,c.v,c.h,c.w]):base.crowns;
+  const merged=anchorCrowns(crowns,survey.stems,side,base.grid);
   const geometry=await applyMunicipalCrowns(x,y,merged.trees,survey.stems,cache,()=>requests++);
-  result={...merged,...geometry,inventorySource:survey.source,...(controls?{signalControls:controls}:{}),requests};
+  const shapes=segmented?{shapes:segmented.map(c=>[...c.radii,c.base])}:{};
+  result={...merged,...geometry,...shapes,inventorySource:survey.source,...(controls?{signalControls:controls}:{}),requests};
  }
  else if(command==='aerial'){result=await photograph(+args[0],+args[1])}
  else if(command==='search'){

@@ -11,6 +11,7 @@
 #include "World/SimCruiseRoadNetwork.h"
 #include "World/SimCruiseTileBuilder.h"
 #include "World/SimCruiseTileData.h"
+#include "World/SimCruiseWorldResources.h"
 #include "World/SimCruiseWorldSubsystem.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
@@ -516,6 +517,36 @@ bool FSimCruiseTextureSeamTest::RunTest(const FString& Parameters)
 		TestTrue(FString::Printf(TEXT("%.2f m quantised to %.4f m (within 6 %%)"), T, Q), FMath::Abs(Q / T - 1.0) < 0.06);
 	}
 	TestEqual(TEXT("no border jumps"), Bad, 0);
+
+	// The field noise (MakeFieldNoise) the grass field and the steep ground read instead of
+	// hashing per pixel: periodic over the texture (so whole repeats per anchor period continue
+	// across borders), as smooth across its wrap as inside, mean near 0.5, channels independent.
+	{
+		const int32 N = 256; // the same lattice at a quarter of the game's 1024 texels
+		double Sum[4] = {}, Cross = 0.0, Wrap = 0.0, Inner = 0.0;
+		for (int32 Y = 0; Y < N; Y += 3)
+		for (int32 X = 0; X < N; X += 3)
+		{
+			for (int32 C = 0; C < 4; ++C) Sum[C] += USimCruiseWorldResources::FieldNoiseValue(N, C, X, Y);
+			Cross += (USimCruiseWorldResources::FieldNoiseValue(N, 0, X, Y) - 0.5) * (USimCruiseWorldResources::FieldNoiseValue(N, 1, X, Y) - 0.5);
+		}
+		const double Count = FMath::Square((N + 2) / 3);
+		for (int32 C = 0; C < 4; ++C) TestTrue(FString::Printf(TEXT("field noise channel %d mean %.3f"), C, Sum[C] / Count), FMath::Abs(Sum[C] / Count - 0.5) < 0.05);
+		TestTrue(FString::Printf(TEXT("field noise channels independent (covariance %.4f)"), Cross / Count), FMath::Abs(Cross / Count) < 0.004);
+		for (int32 Y = 0; Y < N; ++Y)
+		{
+			TestEqual(TEXT("field noise periodic"), USimCruiseWorldResources::FieldNoiseValue(N, 2, Y, N + 5), USimCruiseWorldResources::FieldNoiseValue(N, 2, Y, 5));
+			Wrap = FMath::Max(Wrap, (double)FMath::Abs(USimCruiseWorldResources::FieldNoiseValue(N, 0, N - 1, Y) - USimCruiseWorldResources::FieldNoiseValue(N, 0, 0, Y)));
+			Inner = FMath::Max(Inner, (double)FMath::Abs(USimCruiseWorldResources::FieldNoiseValue(N, 0, N / 2 - 1, Y) - USimCruiseWorldResources::FieldNoiseValue(N, 0, N / 2, Y)));
+		}
+		TestTrue(FString::Printf(TEXT("field noise as smooth across its wrap (%.3f) as inside (%.3f)"), Wrap, Inner), Wrap <= 1.5 * Inner + 0.01);
+		// The shader's frequencies (FGF.NS): a whole number of 256-cell repeats per 1664 m, near the size asked for.
+		for (const double F : { 2.2, 1.0 / 6.5, 1.0 / 1.6 })
+		{
+			const double Repeats = FMath::Max(FMath::RoundToDouble(F * P / 256.0), 1.0), Q = Repeats * 256.0 / P;
+			TestTrue(FString::Printf(TEXT("%.3f cells a metre quantised to %.3f (within 8 %%)"), F, Q), FMath::Abs(Q / F - 1.0) < 0.08);
+		}
+	}
 	return true;
 }
 #endif
@@ -713,6 +744,118 @@ bool FSimCruiseScanEyeFuseTest::RunTest(const FString& Parameters)
 	FSimCruiseTileScan WeakOnly = Rules;
 	TArray<FSimCruiseScanChannel> Weak = { Bare };
 	TestEqual(TEXT("bare ground under 0.5 is ignored"), SimCruiseScan::FuseEye(WeakOnly, TEXT("test_eye"), Weak, TArray<FSimCruiseClassTint>()), 0);
+	return true;
+}
+#endif
+
+#include "Dom/JsonObject.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+#include "World/SimCruiseTrees.h"
+
+#if WITH_DEV_AUTOMATION_TESTS
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseCrownShapeTest, "SimCruise.World.Trees.CrownShapes", SimCruiseCellContextTest::Flags)
+bool FSimCruiseCrownShapeTest::RunTest(const FString& Parameters)
+{
+	// The helper's `canopy --segment` answer: rows as before, and one shape per segmented crown
+	// (8 reaches from the top, east first anticlockwise, then the crown base); a city inventory's
+	// extra row after them has none, and a shape with a bad reach is dropped.
+	const FString Text = TEXT("{\"trees\":[[0.5,0.5,20,9],[0.25,0.75,14,6],[0.1,0.1,2,3],[0.6,0.6,12,5]],")
+		TEXT("\"shapes\":[[6,6,3,3,6,6,3,3,8],[5,4,3,4,1,4,3,4,6],[1,1,1,1,1,1,1,1,1]]}");
+	TSharedPtr<FJsonValue> Json;
+	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Text);
+	if (!TestTrue(TEXT("answer parses"), FJsonSerializer::Deserialize(Reader, Json))) return false;
+	const TArray<FSimCruiseTreeRow> Rows = ASimCruiseTrees::ParseCanopy(Json);
+	if (!TestEqual(TEXT("rows (the 2 m shrub left out)"), Rows.Num(), 3)) return false;
+	TestTrue(TEXT("first crown has its shape"), Rows[0].bShape);
+	TestEqual(TEXT("crown base"), Rows[0].CrownBaseM, 8.f);
+	TestTrue(TEXT("second crown has its shape"), Rows[1].bShape);
+	TestFalse(TEXT("the inventory's extra row is round"), Rows[2].bShape);
+
+	auto Near = [this](const TCHAR* What, double A, double B, double Tol) { TestTrue(FString::Printf(TEXT("%s: %.3f vs %.3f"), What, A, B), FMath::Abs(A - B) <= Tol); };
+	// Wide east-west (reach 6 m), narrow north-south (3 m): long 12 m along x, short 6 m.
+	FSimCruiseTreeRow Ew = Rows[0];
+	for (int32 k = 0; k < 8; ++k) Ew.RadiiM[k] = (k % 4 == 0) ? 6.f : (k % 4 == 2) ? 3.f : 6.f * 3.f / FMath::Sqrt(0.5f * (36.f + 9.f));
+	FSimCruiseCrownFit F = ASimCruiseTrees::FitCrown(Ew);
+	Near(TEXT("long width"), F.LongM, 12.0, 0.05);
+	Near(TEXT("short width"), F.ShortM, 6.0, 0.05);
+	Near(TEXT("long axis east-west"), FMath::Abs(FMath::Fmod(F.YawDeg + 360.0, 180.0)), 0.0, 0.5);
+	Near(TEXT("no offset"), F.OffsetM.Size(), 0.0, 1e-6);
+	// The same crown turned to run north-east: its long axis 45 degrees anticlockwise from east,
+	// which in tile axes (y south) is a yaw of -45 (135 the same axis).
+	FSimCruiseTreeRow Ne = Ew;
+	for (int32 k = 0; k < 8; ++k) Ne.RadiiM[(k + 1) % 8] = Ew.RadiiM[k];
+	F = ASimCruiseTrees::FitCrown(Ne);
+	Near(TEXT("turned: long width"), F.LongM, 12.0, 0.05);
+	Near(TEXT("turned: long axis north-east"), FMath::Fmod(F.YawDeg + 360.0, 180.0), 135.0, 0.5);
+	// A round 5 m crown whose middle is 1 m east of its top (a one-sided crown): its reach from
+	// the top at angle t is cos t + sqrt(25 - sin^2 t). The fit finds the middle and the width.
+	FSimCruiseTreeRow Lop;
+	Lop.bShape = true;
+	Lop.CrownM = 10.0;
+	for (int32 k = 0; k < 8; ++k)
+	{
+		const double T = k * UE_DOUBLE_PI / 4.0;
+		Lop.RadiiM[k] = static_cast<float>(FMath::Cos(T) + FMath::Sqrt(25.0 - FMath::Square(FMath::Sin(T))));
+	}
+	F = ASimCruiseTrees::FitCrown(Lop);
+	Near(TEXT("offset east"), F.OffsetM.X, 1.0, 0.01);
+	Near(TEXT("offset north-south"), F.OffsetM.Y, 0.0, 0.01);
+	Near(TEXT("one-sided crown: width"), F.LongM, 10.0, 0.4);
+	// A round crown is its width each way; a row without a shape is its CrownM.
+	FSimCruiseTreeRow Round;
+	Round.bShape = true;
+	for (int32 k = 0; k < 8; ++k) Round.RadiiM[k] = 4.f;
+	F = ASimCruiseTrees::FitCrown(Round);
+	Near(TEXT("round: long"), F.LongM, 8.0, 1e-6);
+	Near(TEXT("round: short"), F.ShortM, 8.0, 1e-6);
+	F = ASimCruiseTrees::FitCrown(Rows[2]);
+	Near(TEXT("no shape: its width"), F.LongM, 5.0, 1e-9);
+	return true;
+}
+#endif
+
+#if WITH_DEV_AUTOMATION_TESTS
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseTintMatchTest, "SimCruise.World.Scan.TintColourMatch", SimCruiseCellContextTest::Flags)
+bool FSimCruiseTintMatchTest::RunTest(const FString& Parameters)
+{
+	using namespace SimCruiseScan;
+	// A tile (column 1, row 2 of its zoom-14 photograph) whose west half is lawn and east half sand,
+	// under a photograph whose grass is a yellower green and whose sand is redder than the classes'.
+	const FIntPoint Tile(4 * 1000 + 1, 4 * 700 + 2);
+	const int32 M = 256;
+	TArray<FColor> Mask;
+	Mask.SetNumZeroed(M * M);
+	for (int32 y = 0; y < M; ++y) for (int32 x = 0; x < M; ++x) Mask[y * M + x] = x < M / 2 ? FColor(255, 0, 0, 0) : FColor(0, 255, 0, 0);
+	FSimCruiseAerialImage Aerial;
+	Aerial.Width = Aerial.Height = 512;
+	Aerial.Pixels.Init(FColor(255, 255, 255, 255), 512 * 512); // glare elsewhere: never sampled
+	const FColor Lawn = FLinearColor(0.09f, 0.11f, 0.03f).ToFColor(true), Beach = FLinearColor(0.42f, 0.30f, 0.20f).ToFColor(true);
+	for (int32 y = 256; y < 384; ++y) for (int32 x = 128; x < 256; ++x) Aerial.Pixels[y * 512 + x] = x < 192 ? Lawn : Beach;
+	FTint T[64];
+	TestEqual(TEXT("grass and sand tinted"), MatchTints(Mask, M, Tile, Aerial, T), 2);
+	auto Mul = [&T](EClass C) { const FTint& X = T[static_cast<int32>(C)]; return FLinearColor(X.R / 128.f, X.G / 128.f, X.B / 128.f); };
+	auto Lum = [](const FLinearColor& X) { return 0.2126f * X.R + 0.7152f * X.G + 0.0722f * X.B; };
+	const FLinearColor G = Mul(EClass::GrassShort), S = Mul(EClass::Sand);
+	TestTrue(FString::Printf(TEXT("grass yellower (r %.2f > 1, b %.2f <= 1)"), G.R, G.B), G.R > 1.1f && G.B <= 1.0f);
+	TestTrue(FString::Printf(TEXT("sand redder (r %.2f > b %.2f)"), S.R, S.B), S.R > S.B);
+	for (const EClass C : { EClass::GrassShort, EClass::Sand })
+	{
+		const FLinearColor Ref = GroundClassColour(C), Tinted = Ref * Mul(C);
+		TestTrue(FString::Printf(TEXT("%s keeps its luminance (%.4f vs %.4f)"), ClassName(static_cast<uint8>(C)), Lum(Tinted), Lum(Ref)), FMath::Abs(Lum(Tinted) / Lum(Ref) - 1.f) < 0.05f);
+		const FTint& X = T[static_cast<int32>(C)];
+		TestTrue(TEXT("held to x0.8-x1.25"), FMath::Min3(X.R, X.G, X.B) >= 102 && FMath::Max3(X.R, X.G, X.B) <= 160);
+		TestTrue(TEXT("below an eye's confidence"), X.Confidence > 0 && X.Confidence <= 120);
+	}
+	const FTint& Soil = T[static_cast<int32>(EClass::BareSoil)];
+	TestTrue(TEXT("no bare soil seen: x1.0"), Soil.R == 128 && Soil.G == 128 && Soil.B == 128 && Soil.Confidence == 0);
+	// A grey photograph over the lawn says nothing about grass (it is not green there): x1.0.
+	for (int32 y = 256; y < 384; ++y) for (int32 x = 128; x < 192; ++x) Aerial.Pixels[y * 512 + x] = FColor(90, 90, 90, 255);
+	MatchTints(Mask, M, Tile, Aerial, T);
+	TestEqual(TEXT("grey lawn photo: no grass tint"), T[static_cast<int32>(EClass::GrassShort)].Confidence, (uint8)0);
+	// No photograph: nothing tinted.
+	FSimCruiseAerialImage None;
+	TestEqual(TEXT("no photograph"), MatchTints(Mask, M, Tile, None, T), 0);
 	return true;
 }
 #endif

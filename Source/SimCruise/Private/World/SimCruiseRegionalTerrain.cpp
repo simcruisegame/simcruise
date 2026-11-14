@@ -53,6 +53,10 @@ if (HasMiddle > 0.5 && edge > 0.0)
 // water (bluer than green) or today's snow. No micro texture or blades: past 550 m a pixel
 // covers metres of hill. Each part fades out before a pixel is wide enough to alias it.
 float fpx = length(fwidth(LP.xy)) * 0.01; // metres per pixel, outside the branch
+const float K = 25.0;
+float2 p = LP.xy * 0.01 / K;
+p -= floor(p / 4096.0) * 4096.0; // one seam per 100 km, beyond the landscape's edge
+float2 dpx = ddx(p), dpy = ddy(p); // for the field noise's fetches (outside the branch)
 if (GrassField > 0.5)
 {
 	const float3 W = float3(0.2126, 0.7152, 0.0722);
@@ -62,11 +66,8 @@ if (GrassField > 0.5)
 	if (herb > 0.01)
 	{
 		FGF gf;
-		const float K = 25.0;
-		float2 p = LP.xy * 0.01 / K;
-		p -= floor(p / 4096.0) * 4096.0; // one seam per 100 km, beyond the landscape's edge
 		float clump, dr;
-		float3 meso = gf.Meso(p, GrassDry, saturate(2.0 - fpx / (0.1 * K)), saturate(2.0 - fpx / (1.5 * K)), clump, dr);
+		float3 meso = gf.Meso(FieldNoise, FieldNoiseSampler, p, dpx, dpy, GrassDry, saturate(2.0 - fpx / (0.1 * K)), saturate(2.0 - fpx / (1.5 * K)), clump, dr);
 		float ml = clamp(dot(meso, W), 0.6, 1.6);
 		c *= lerp(1.0, ml, 0.5 * herb) * lerp(float3(1, 1, 1), meso / ml, 0.25 * herb);
 		// cured grass: the same brightness, straw hue, a little lighter (dry blades reflect more)
@@ -239,6 +240,7 @@ UMaterial* ASimCruiseRegionalTerrain::BuildMaterial(UObject* Outer, FName Name, 
 	AddInput(Colour, TEXT("Middle"), TextureParam(TEXT("Middle")));
 	AddInput(Colour, TEXT("GrassField"), ScalarParam(TEXT("GrassField"), 0.f));
 	AddInput(Colour, TEXT("GrassDry"), ScalarParam(TEXT("GrassDry"), 0.f));
+	AddInput(Colour, TEXT("FieldNoise"), TextureParam(TEXT("FieldNoise")));
 
 	UMaterialExpressionCustom* Offset = Custom(Material, LandscapeOffset, CMOT_Float3);
 	AddInput(Offset, TEXT("WP"), WP);
@@ -410,7 +412,11 @@ void ASimCruiseRegionalTerrain::Install(FJob& Done)
 		// -SimCruiseNoGrassField; the dry share from -SimCruiseGrassDry=0..1.
 		static const bool bGrassField = !FParse::Param(FCommandLine::Get(), TEXT("SimCruiseNoGrassField"));
 		static const float GrassDry = [] { float V = 0.f; FParse::Value(FCommandLine::Get(), TEXT("SimCruiseGrassDry="), V); return FMath::Clamp(V, 0.f, 1.f); }();
-		Material->SetScalarParameterValue(TEXT("GrassField"), bGrassField ? 1.f : 0.f);
+		// The field noise the grass field reads; without it (no streamer yet) the grass field stays off.
+		const ASimCruiseWorldStreamer* NoiseFrom = Streamer.Get();
+		UTexture2D* Noise = NoiseFrom && NoiseFrom->Resources ? NoiseFrom->Resources->FieldNoiseTexture.Get() : nullptr;
+		if (Noise) Material->SetTextureParameterValue(TEXT("FieldNoise"), Noise);
+		Material->SetScalarParameterValue(TEXT("GrassField"), bGrassField && Noise ? 1.f : 0.f);
 		Material->SetScalarParameterValue(TEXT("GrassDry"), GrassDry);
 		if (Done.Photo.Num() > 0)
 		{

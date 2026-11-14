@@ -28,7 +28,7 @@ namespace
 	using namespace SimCruiseScan;
 
 	/** The rules' version: bump when BakeRules changes what it writes (part of the cache key). */
-	constexpr int32 ScanRulesVersion = 1;
+	constexpr int32 ScanRulesVersion = 2; // 2: TINT by colour match (MatchTints)
 	constexpr uint32 Magic = 0x314E4353; // "SCN1"
 	enum : uint8 { CodecRaw = 0, CodecZlib = 2 };
 
@@ -347,7 +347,8 @@ namespace SimCruiseScan
 				Out.GroundOffset[k] = static_cast<int16>(FMath::Clamp(FMath::RoundToInt(Off * 200.0), -32767, 32767));
 			}
 		}
-		for (int32 c = 0; c < 64; ++c) Out.Tint[c] = SimCruiseScan::FTint();
+		// TINT: the build's colour match (x1.0 where it had no photograph); an eye may override it.
+		for (int32 c = 0; c < 64; ++c) Out.Tint[c] = Build.Tint[c];
 
 		// 5. Strings (the street names of the road record) and META.
 		TSet<FString> Streets;
@@ -374,6 +375,8 @@ namespace SimCruiseScan
 		Hash = HashCombine(Hash, FCrc::MemCrc32(Build.NaturalHeights.GetData(), Build.NaturalHeights.Num() * sizeof(float)));
 		Hash = HashCombine(Hash, FCrc::MemCrc32(Build.Mask.GetData(), Build.Mask.Num() * sizeof(FColor)));
 		Hash = HashCombine(Hash, static_cast<uint32>(Data.Buildings.Num() * 7919 + Data.Land.Num()));
+		// and the photograph's colour match (TINT)
+		Hash = HashCombine(Hash, FCrc::MemCrc32(Build.Tint, sizeof(Build.Tint)));
 		if (Eye.IsReady()) Hash = HashCombine(Hash, HashCombine(GetTypeHash(Eye.Name()), static_cast<uint32>(Eye.Version())));
 		TArray<uint8> Bytes;
 		if (FFileHelper::LoadFileToArray(Bytes, *Path, FILEREAD_Silent))
@@ -403,6 +406,80 @@ namespace SimCruiseScan
 		UE_LOG(LogSimCruiseScan, Display, TEXT("Scan %s: rules bake %.1f ms, %.2f MB on disk"), *SimCruiseTileName(Data.Id), Made->BuildSeconds * 1000.0, Out.Num() / 1048576.0);
 		if (bOutCacheHit) *bOutCacheHit = false;
 		return Made;
+	}
+
+	FLinearColor GroundClassColour(EClass Class)
+	{
+		switch (Class)
+		{
+		case EClass::GrassShort: return FLinearColor(0.052f, 0.088f, 0.026f);
+		case EClass::BareSoil: return FLinearColor(0.15f, 0.14f, 0.11f);
+		case EClass::Sand: return FLinearColor(0.50f, 0.45f, 0.35f);
+		case EClass::Paving: return FLinearColor(0.27f, 0.26f, 0.24f);
+		default: return ClassAlbedo(static_cast<uint8>(Class));
+		}
+	}
+
+	int32 MatchTints(const TArray<FColor>& Mask, int32 MaskSize, FIntPoint TileId, const FSimCruiseAerialImage& Aerial, FTint (&Out)[64])
+	{
+		for (int32 c = 0; c < 64; ++c) Out[c] = FTint();
+		if (MaskSize <= 0 || Mask.Num() != MaskSize * MaskSize || Aerial.Width <= 0 || Aerial.Pixels.Num() != Aerial.Width * Aerial.Height) return 0;
+		// The photograph covers the zoom-14 cell: 4 x 4 tiles.
+		const FIntPoint Z14 = SimCruiseGeo::AerialTileOf(TileId);
+		const FIntPoint CellUnit(TileId.X - Z14.X * 4, TileId.Y - Z14.Y * 4);
+		const EClass Classes[4] = { EClass::GrassShort, EClass::BareSoil, EClass::Sand, EClass::Paving };
+		TArray<FLinearColor> Seen[4];
+		const int32 Step = FMath::Max(1, MaskSize / 256); // 256 x 256 samples
+		for (int32 y = Step / 2; y < MaskSize; y += Step)
+		for (int32 x = Step / 2; x < MaskSize; x += Step)
+		{
+			const FColor M = Mask[y * MaskSize + x];
+			const float Veg = M.R / 255.f, Sand = M.G / 255.f, Paved = M.B / 255.f, Water = M.A / 255.f;
+			int32 C = -1;
+			if (Water > 0.15f) continue;
+			if (Veg >= 0.85f) C = 0;
+			else if (Sand >= 0.85f) C = 2;
+			else if (Paved >= 0.85f) C = 3;
+			else if (Veg < 0.15f && Sand < 0.15f && Paved < 0.15f) C = 1;
+			if (C < 0) continue;
+			const int32 Px = FMath::Clamp(FMath::FloorToInt((CellUnit.X + (x + 0.5) / MaskSize) / 4.0 * Aerial.Width), 0, Aerial.Width - 1);
+			const int32 Py = FMath::Clamp(FMath::FloorToInt((CellUnit.Y + (y + 0.5) / MaskSize) / 4.0 * Aerial.Height), 0, Aerial.Height - 1);
+			const FLinearColor P = FLinearColor::FromSRGBColor(Aerial.Pixels[Py * Aerial.Width + Px]);
+			const float L = 0.2126f * P.R + 0.7152f * P.G + 0.0722f * P.B;
+			// Shadow and canopy (dark), glare and roofs (bright) say nothing about the ground's hue;
+			// grass only where the photograph shows green (the shader's own test).
+			if (L < 0.02f || L > 0.6f) continue;
+			if (C == 0 && P.G <= FMath::Max(P.R, P.B)) continue;
+			Seen[C].Add(P);
+		}
+		int32 Tinted = 0;
+		for (int32 c = 0; c < 4; ++c)
+		{
+			const int32 N = Seen[c].Num();
+			if (N < 400) continue;
+			auto Median = [&](int32 Ch)
+			{
+				TArray<float> V;
+				V.Reserve(N);
+				for (const FLinearColor& P : Seen[c]) V.Add(Ch == 0 ? P.R : Ch == 1 ? P.G : P.B);
+				V.Sort();
+				return V[N / 2];
+			};
+			const FLinearColor Photo(Median(0), Median(1), Median(2));
+			const FLinearColor Ref = GroundClassColour(Classes[c]);
+			auto Lum = [](const FLinearColor& X) { return FMath::Max(0.2126f * X.R + 0.7152f * X.G + 0.0722f * X.B, 1e-5f); };
+			// The photograph's hue over the class colour's hue, then held at the class luminance.
+			FLinearColor T((Photo.R / Lum(Photo)) / (Ref.R / Lum(Ref)), (Photo.G / Lum(Photo)) / (Ref.G / Lum(Ref)), (Photo.B / Lum(Photo)) / (Ref.B / Lum(Ref)));
+			T = T / (Lum(Ref * T) / Lum(Ref));
+			const float Strength = FMath::Min(1.f, N / 4000.f);
+			auto Ch = [Strength](float V) { return static_cast<uint8>(FMath::RoundToInt(128.f * FMath::Lerp(1.f, FMath::Clamp(V, 0.8f, 1.25f), Strength))); };
+			FTint& O = Out[static_cast<int32>(Classes[c])];
+			O.R = Ch(T.R); O.G = Ch(T.G); O.B = Ch(T.B);
+			O.Confidence = static_cast<uint8>(FMath::Clamp(N / 40, 1, 120)); // below an eye's (it overrides)
+			O.Samples = static_cast<uint16>(FMath::Min(N, 65535));
+			++Tinted;
+		}
+		return Tinted;
 	}
 
 	uint8 ClassOfChannel(FName Channel)
