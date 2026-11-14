@@ -201,7 +201,7 @@ namespace
 
 	FAutoConsoleCommandWithWorldAndArgs GLookCommand(
 		TEXT("SimCruise.Env.Look"),
-		TEXT("SimCruise.Env.Look <name> <value>: look development. Names: a cloud material scalar (Cloud_GlobalCoverage, Cloud_GlobalDensity), LayerBottomKm, LayerHeightKm, AerosolScaleHeightKm, AerosolAlbedo, MieAnisotropy, MultiScattering, ExposureCompensation, OpenStops, CloseStops, Saturation"),
+		TEXT("SimCruise.Env.Look <name> <value>: look development. Names: a cloud material scalar (Cloud_GlobalCoverage, Cloud_GlobalDensity), LayerBottomKm, LayerHeightKm, AerosolScaleHeightKm, AerosolAlbedo, MieAnisotropy, MultiScattering, ExposureCompensation, OpenStops, DaylightOpenStops, LowPercent, CloseStops, Saturation"),
 		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
 		{
 			if (ASimCruiseEnvironment* Env = FindEnvironment(World); Env && Args.Num() >= 2)
