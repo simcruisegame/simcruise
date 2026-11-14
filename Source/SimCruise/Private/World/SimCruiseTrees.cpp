@@ -14,7 +14,12 @@
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "Materials/Material.h"
+#include "Materials/MaterialExpressionConstant.h"
 #include "Materials/MaterialExpressionCustom.h"
+#include "Materials/MaterialExpressionCameraPositionWS.h"
+#include "Materials/MaterialExpressionDistance.h"
+#include "Materials/MaterialExpressionWorldPosition.h"
+#include "Materials/MaterialExpressionShadowReplace.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionTextureObjectParameter.h"
@@ -35,9 +40,29 @@ DEFINE_LOG_CATEGORY_STATIC(LogSimCruiseTrees, Log, All);
 
 namespace
 {
+	/** Where a tree changes detail level (cm from the camera), and the cross-fade band either side. */
+	constexpr float LodSwitchCm[2] = { 3300.f, 9200.f };
+	constexpr float LodBandCm[2] = { 400.f, 800.f };
+}
+
+namespace
+{
+	// The detail levels cross-fade over a band of distance instead of switching: a level fades
+	// out (pixel shown while n < w) as the next fades in (shown while 1 - n < w) with the same
+	// screen noise n, so every pixel shows exactly one level. Shadows keep the whole mask (the
+	// rings' own cull distances, measured from the camera, switch them).
+	const TCHAR* FadeCode = TEXT(R"HLSL(
+float fin = FadeIn > 0.0 ? saturate((Depth - (FadeIn - BandIn)) / max(2.0 * BandIn, 1.0)) : 1.0;
+float fout = saturate(((FadeOut + BandOut) - Depth) / max(2.0 * BandOut, 1.0));
+float2 sp = Parameters.SvPosition.xy + float2(View.StateFrameIndexMod8 * 7.0, View.StateFrameIndexMod8 * 3.0);
+float n = frac(52.9829189 * frac(dot(sp, float2(0.06711056, 0.00583715)))); // interleaved gradient noise
+float keep = ((1.0 - n) < fin ? 1.0 : 0.0) * (n < fout ? 1.0 : 0.0);
+)HLSL");
+
 	const TCHAR* LeafCode = TEXT(R"HLSL(
 float4 t = Texture2DSample(Foliage, FoliageSampler, UV);
-Mask = t.a;
+RawMask = t.a;
+Mask = t.a * keep;
 float3 c = t.rgb * Tint.rgb;
 Sss = c * float3(0.7, 1.0, 0.4);
 Roughness = 0.8;
@@ -45,6 +70,7 @@ return c;
 )HLSL");
 
 	const TCHAR* BarkCode = TEXT(R"HLSL(
+Mask = keep;
 float3 b = Texture2DSample(Bark, BarkSampler, UV * float2(2.0, 6.0)).rgb;
 Roughness = 0.95;
 return b;
@@ -66,6 +92,43 @@ return b;
 		Input.InputName = Name;
 		Input.Input.Connect(Output, From);
 		Custom->Inputs.Add(Input);
+	}
+
+	UMaterialExpression* ScalarParam(UMaterial* Material, const TCHAR* Name, float Default)
+	{
+		UMaterialExpressionScalarParameter* P = AddExpression<UMaterialExpressionScalarParameter>(Material);
+		P->ParameterName = Name;
+		P->DefaultValue = Default;
+		return P;
+	}
+
+	/** The cross-fade's inputs: the pixel's depth and the level's band (cm; FadeIn 0: no fade in). */
+	void AddFadeInputs(UMaterial* Material, UMaterialExpressionCustom* Custom)
+	{
+		// The pixel's distance from the camera (radial, as the rings' cull distances are).
+		UMaterialExpressionDistance* Dist = AddExpression<UMaterialExpressionDistance>(Material);
+		Dist->A.Connect(0, AddExpression<UMaterialExpressionWorldPosition>(Material));
+		Dist->B.Connect(0, AddExpression<UMaterialExpressionCameraPositionWS>(Material));
+		AddInput(Custom, TEXT("Depth"), Dist);
+		AddInput(Custom, TEXT("FadeIn"), ScalarParam(Material, TEXT("FadeIn"), 0.f));
+		AddInput(Custom, TEXT("BandIn"), ScalarParam(Material, TEXT("BandIn"), 0.f));
+		AddInput(Custom, TEXT("FadeOut"), ScalarParam(Material, TEXT("FadeOut"), 1.0e9f));
+		AddInput(Custom, TEXT("BandOut"), ScalarParam(Material, TEXT("BandOut"), 1.f));
+	}
+
+	/** Main passes take the faded mask, shadow passes the whole one. */
+	UMaterialExpression* FadeOrShadow(UMaterial* Material, UMaterialExpression* From, int32 Faded, UMaterialExpression* Whole, int32 WholeOut)
+	{
+		UMaterialExpressionShadowReplace* S = AddExpression<UMaterialExpressionShadowReplace>(Material);
+		S->Default.Connect(Faded, From);
+		if (Whole) S->Shadow.Connect(WholeOut, Whole);
+		else
+		{
+			UMaterialExpressionConstant* One = AddExpression<UMaterialExpressionConstant>(Material);
+			One->R = 1.f;
+			S->Shadow.Connect(0, One);
+		}
+		return S;
 	}
 
 	UMaterialExpression* TextureParam(UMaterial* Material, const TCHAR* Name)
@@ -217,10 +280,12 @@ UMaterial* ASimCruiseTrees::BuildLeafMaterial(UObject* Outer, FName Name, EObjec
 	UMaterialExpressionCustom* Custom = AddExpression<UMaterialExpressionCustom>(Material);
 	Custom->Inputs.Reset();
 	Custom->OutputType = CMOT_Float3;
-	Custom->Code = LeafCode;
+	Custom->Code = FString(FadeCode) + LeafCode;
 	Custom->AdditionalOutputs.Add({ FName(TEXT("Mask")), CMOT_Float1 });
 	Custom->AdditionalOutputs.Add({ FName(TEXT("Sss")), CMOT_Float3 });
 	Custom->AdditionalOutputs.Add({ FName(TEXT("Roughness")), CMOT_Float1 });
+	Custom->AdditionalOutputs.Add({ FName(TEXT("RawMask")), CMOT_Float1 });
+	AddFadeInputs(Material, Custom);
 	AddInput(Custom, TEXT("UV"), AddExpression<UMaterialExpressionTextureCoordinate>(Material));
 	AddInput(Custom, TEXT("Foliage"), TextureParam(Material, TEXT("Foliage")));
 	UMaterialExpressionVectorParameter* Tint = AddExpression<UMaterialExpressionVectorParameter>(Material);
@@ -229,7 +294,7 @@ UMaterial* ASimCruiseTrees::BuildLeafMaterial(UObject* Outer, FName Name, EObjec
 	AddInput(Custom, TEXT("Tint"), Tint);
 	Custom->RebuildOutputs();
 	Material->GetEditorOnlyData()->BaseColor.Connect(0, Custom);
-	Material->GetEditorOnlyData()->OpacityMask.Connect(1, Custom);
+	Material->GetEditorOnlyData()->OpacityMask.Connect(0, FadeOrShadow(Material, Custom, 1, Custom, 4));
 	Material->GetEditorOnlyData()->SubsurfaceColor.Connect(2, Custom);
 	Material->GetEditorOnlyData()->Roughness.Connect(3, Custom);
 	Material->PreEditChange(nullptr);
@@ -245,17 +310,23 @@ UMaterial* ASimCruiseTrees::BuildBarkMaterial(UObject* Outer, FName Name, EObjec
 #if WITH_EDITOR
 	UMaterial* Material = NewObject<UMaterial>(Outer, Name, Flags);
 	Material->TwoSided = true;
+	// Masked only for the detail levels' cross-fade (dithered, never translucent).
+	Material->BlendMode = BLEND_Masked;
+	Material->OpacityMaskClipValue = 0.5f;
 	Material->SetUsageByFlag(MATUSAGE_InstancedStaticMeshes, true);
 	UMaterialExpressionCustom* Custom = AddExpression<UMaterialExpressionCustom>(Material);
 	Custom->Inputs.Reset();
 	Custom->OutputType = CMOT_Float3;
-	Custom->Code = BarkCode;
+	Custom->Code = FString(FadeCode) + BarkCode;
 	Custom->AdditionalOutputs.Add({ FName(TEXT("Roughness")), CMOT_Float1 });
+	Custom->AdditionalOutputs.Add({ FName(TEXT("Mask")), CMOT_Float1 });
+	AddFadeInputs(Material, Custom);
 	AddInput(Custom, TEXT("UV"), AddExpression<UMaterialExpressionTextureCoordinate>(Material));
 	AddInput(Custom, TEXT("Bark"), TextureParam(Material, TEXT("Bark")));
 	Custom->RebuildOutputs();
 	Material->GetEditorOnlyData()->BaseColor.Connect(0, Custom);
 	Material->GetEditorOnlyData()->Roughness.Connect(1, Custom);
+	Material->GetEditorOnlyData()->OpacityMask.Connect(0, FadeOrShadow(Material, Custom, 2, nullptr, 0));
 	Material->PreEditChange(nullptr);
 	Material->PostEditChange();
 	return Material;
@@ -406,6 +477,28 @@ bool ASimCruiseTrees::BuildMeshes()
 				if (!LoadInto(FString::Printf(TEXT("crown-%s-%d.glb"), Species[S], Level))) return false;
 				Slots = { Bark, Crown };
 			}
+			// This level's own instances of the materials: its cross-fade band (FadeCode).
+			{
+				static const float FadeIn[3] = { 0.f, LodSwitchCm[0], LodSwitchCm[1] };
+				static const float BandIn[3] = { 0.f, LodBandCm[0], LodBandCm[1] };
+				static const float FadeOut[3] = { LodSwitchCm[0], LodSwitchCm[1], 1.0e9f };
+				static const float BandOut[3] = { LodBandCm[0], LodBandCm[1], 1.f };
+				for (UMaterialInterface*& M : Slots)
+				{
+					// From the base material with the slot's overrides copied (its leaf texture and
+					// tint): an instance parented to another dynamic instance drew with the default
+					// texture and a solid mask (grey shards in the Dragon capture, 2026-11-14).
+					UMaterialInstanceDynamic* Src = Cast<UMaterialInstanceDynamic>(M);
+					UMaterialInstanceDynamic* L = UMaterialInstanceDynamic::Create(Src ? Src->GetMaterial() : M, this);
+					if (Src) L->CopyParameterOverrides(Src);
+					L->SetScalarParameterValue(TEXT("FadeIn"), FadeIn[Level]);
+					L->SetScalarParameterValue(TEXT("BandIn"), BandIn[Level]);
+					L->SetScalarParameterValue(TEXT("FadeOut"), FadeOut[Level]);
+					L->SetScalarParameterValue(TEXT("BandOut"), BandOut[Level]);
+					Materials.Add(L);
+					M = L;
+				}
+			}
 			Parts.SetNum(Slots.Num());
 			TArray<const FSimCruiseMeshData*> Ptrs;
 			for (const FSimCruiseMeshData& P : Parts) Ptrs.Add(&P);
@@ -421,10 +514,20 @@ bool ASimCruiseTrees::BuildMeshes()
 			Ring->SetMobility(EComponentMobility::Movable);
 			Ring->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			Ring->SetupAttachment(RootComponent);
-			// The crowns' detail by distance (Grove.gd: 33 m, 92 m, 485 m).
-			static const int32 Near[3] = { 0, 3300, 9200 };
-			static const int32 Far[3] = { 3300, 9200, 60000 };
-			Ring->SetCullDistances(Near[Level], Far[Level]);
+			// The crowns' detail by distance: the full tree to 33 m, the cluster crown to 92 m, the low
+			// crown to 600 m (Grove.gd's distances; 45 and 130 m were tried and cost frame time). SetCullDistances is where a ring
+			// fades out and ends; its near limit is InstanceMinDrawDistance. Without one every ring
+			// drew from the camera out, so near the car all three crowns stood on top of each other
+			// (three times the triangles, and the blobby low crown over the detailed one). Each ring
+			// now starts half a band before its switch and ends half a band after the next, where
+			// the materials cross-fade the two levels.
+			// The ranges reach half a crown (4 m) past the bands: a ring culls by its tree's
+			// distance, the materials fade by each pixel's, and a crown spans both.
+			constexpr float CrownMarginCm = 400.f;
+			const int32 Near = Level == 0 ? 0 : FMath::RoundToInt(FMath::Max(0.f, LodSwitchCm[Level - 1] - LodBandCm[Level - 1] - CrownMarginCm));
+			const int32 Far = Level == 2 ? 60000 : FMath::RoundToInt(LodSwitchCm[Level] + LodBandCm[Level] + CrownMarginCm);
+			Ring->InstanceMinDrawDistance = Near;
+			Ring->SetCullDistances(Far, Far);
 			Ring->SetCastShadow(Level < 2);
 			Ring->bAffectDistanceFieldLighting = false;
 			Ring->RegisterComponent();

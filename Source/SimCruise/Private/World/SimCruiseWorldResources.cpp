@@ -75,27 +75,64 @@ namespace SimCruiseWorldMaterials
 		// The grass field's shared helpers (docs/research/world-detail-methods.md): hashed value
 		// noise and the meso layer, used by the ground (lawns, 1x) and the regional landscape
 		// (hillsides, at a larger size). Prepended to a Custom node's code, so one text serves both.
+		// Seamless across tiles (docs/team/reviews/2026-11-14-scan-engine.md, P0): the surface metres
+		// m carry the tile's anchor fmod(tile x size, 1664 m), computed exactly on the CPU, so the
+		// two sides of a border differ by a whole number of 1664 m. Every pattern period divides
+		// 1664 m (QP), and every hashed lattice key wraps with its own period (n cells per 1664 m),
+		// so each pattern continues across the border. The hash is integer pcg2d (Jarzynski and
+		// Olano, JCGT 9(3), 2020): exact on every GPU, unlike frac(sin(...)) on large arguments.
+		// A struct (Custom node code is a function body): prepended once to each material.
+		const TCHAR* SeamCode = TEXT(R"HLSL(
+struct FSC
+{
+	float P() { return 1664.0; }
+	float QP(float t) { return 1664.0 / max(round(1664.0 / t), 1.0); }
+	uint2 Pcg(uint2 v)
+	{
+		v = v * 1664525u + 1013904223u;
+		v.x += v.y * 1664525u; v.y += v.x * 1664525u;
+		v = v ^ (v >> 16u);
+		v.x += v.y * 1664525u; v.y += v.x * 1664525u;
+		v = v ^ (v >> 16u);
+		return v;
+	}
+	// A lattice cell's random value in [0, 1): the key wrapped by n cells (0: no wrap), salted by s.
+	float Hash(float2 cell, float s, float n)
+	{
+		if (n > 0.5) cell -= floor(cell / n) * n;
+		uint2 k = uint2(int2(cell)) + uint2(asuint(s), asuint(s) * 747796405u);
+		return float(Pcg(k).x >> 8u) * (1.0 / 16777216.0);
+	}
+};
+)HLSL");
 		const TCHAR* GrassFieldCode = TEXT(R"HLSL(
 struct FGF
 {
-	float H(float2 p, float s) { return frac(sin(dot(p, float2(127.1, 311.7)) + s * 74.7) * 43758.5453); }
-	float N(float2 p, float s)
+	float H(float2 p, float s) { FSC sc; return sc.Hash(p, s, 0.0); }
+	float N(float2 p, float s, float n)
 	{
+		FSC sc;
 		float2 i = floor(p), f = frac(p), u = f * f * (3.0 - 2.0 * f);
-		float a = H(i, s), b = H(i + float2(1, 0), s), c = H(i + float2(0, 1), s), d = H(i + float2(1, 1), s);
+		float a = sc.Hash(i, s, n), b = sc.Hash(i + float2(1, 0), s, n), c = sc.Hash(i + float2(0, 1), s, n), d = sc.Hash(i + float2(1, 1), s, n);
 		return a + (b - a) * u.x + (c - a) * u.y + (a - b - c + d) * u.x * u.y;
 	}
-	float F(float2 p, float s) { return (N(p, s) * 0.571 + N(p * 2.03 + 1.7, s + 1) * 0.286 + N(p * 4.1 + 9.2, s + 2) * 0.143); }
+	// Three octaves at x1, x2, x4 (whole multiples keep one period); n: cells per period, 0 none.
+	float F(float2 p, float s, float n) { return (N(p, s, n) * 0.571 + N(p * 2.0 + 1.7, s + 1, n * 2.0) * 0.286 + N(p * 4.0 + 9.2, s + 2, n * 4.0) * 0.143); }
+	// p * f where f is made a whole number of cells per period P (metres; 0: no period).
+	float2 At(float2 p, float f, float P, out float n) { n = P > 0.0 ? max(round(f * P), 1.0) : 0.0; return p * (P > 0.0 ? n / P : f); }
 	// Meso: clumps (0.3-1 units), patches of yellower or bluer grass (2-8), clover and dry
 	// patches (GrassDry from the season; 0 = growing; out dr). A multiplier around 1 on the grass
 	// albedo. wSmall and wLarge fade the small (clumps, clover) and large (patches, dry) parts,
 	// so a far surface does not alias them.
-	float3 Meso(float2 p, float dry, float wSmall, float wLarge, out float clump, out float dr)
+	// P: the period of p (the anchor period in p's units; 0 where p is not tile-anchored).
+	float3 Meso(float2 p, float dry, float wSmall, float wLarge, out float clump, out float dr, float P = 0.0)
 	{
-		clump = F(p * 2.2, 11.0);
-		float gpatch = F(p / 5.0, 23.0);
-		float clover = saturate((F(p * 3.0, 41.0) - 0.70) * 12.0) * wSmall;
-		dr = saturate((F(p / 7.0, 31.0) - (0.62 - 0.25 * dry)) * 3.0) * max(dry, 0.15) * wLarge;
+		float n1, n2, n3, n4;
+		float2 p1 = At(p, 2.2, P, n1), p2 = At(p, 0.2, P, n2), p3 = At(p, 3.0, P, n3), p4 = At(p, 1.0 / 7.0, P, n4);
+		clump = F(p1, 11.0, n1);
+		float gpatch = F(p2, 23.0, n2);
+		float clover = saturate((F(p3, 41.0, n3) - 0.70) * 12.0) * wSmall;
+		dr = saturate((F(p4, 31.0, n4) - (0.62 - 0.25 * dry)) * 3.0) * max(dry, 0.15) * wLarge;
 		float3 meso = (1.0 + (0.24 * clump - 0.12) * wSmall) * lerp(float3(1, 1, 1), float3(1.25, 1.08, 1.15), gpatch * 0.6 * wLarge);
 		meso = lerp(meso, float3(0.7, 0.8, 0.6), clover);
 		return meso; // the dry share dr is applied by the caller: lawn and hillside albedos differ
@@ -112,7 +149,20 @@ struct FGF
 		const TCHAR* DetailKitCode = TEXT(R"HLSL(
 struct FDK
 {
-	float H(float2 p, float s) { return frac(sin(dot(p, float2(127.1, 311.7)) + s * 74.7) * 43758.5453); }
+	// The hex lattice uses the skew 15/13 (for 2/sqrt 3): with a rational skew a shift of 26 cells
+	// in x maps the lattice onto itself, so it can repeat exactly with the anchor period.
+	// A cell key (i, j) wraps by the lattice's period: (30 N, 15 N) and (0, 26 N), N = P / (26 scale).
+	float H(float2 c, float s, float N)
+	{
+		if (N > 0.5)
+		{
+			float k = floor(c.x / (30.0 * N));
+			c -= k * float2(30.0 * N, 15.0 * N);
+			c.y -= floor(c.y / (26.0 * N)) * 26.0 * N;
+		}
+		FSC sc;
+		return sc.Hash(c, s, 0.0);
+	}
 	// p: surface metres; scale: metres one slice covers; fpx: metres per pixel; depthCm: pixel
 	// depth. Returns the albedo ratio (1 = no change) and, in nOut, the surface slope in p's axes.
 	// The layer fades in from 0.5 m, out by 40 m, and out before a slice is under ~30 pixels
@@ -120,6 +170,7 @@ struct FDK
 	float3 Sample(Texture2D Alb, SamplerState AlbS, Texture2D Nor, SamplerState NorS, float slice, float2 p, float scale,
 		float fpx, float depthCm, float on, out float2 nOut)
 	{
+		scale = 1664.0 / (26.0 * max(round(1664.0 / (26.0 * scale)), 1.0));
 		float w = on * saturate((depthCm - 50.0) / 50.0) * saturate((4000.0 - depthCm) / 1000.0) * saturate(2.0 - fpx * 60.0 / scale);
 		nOut = float2(0.0, 0.0);
 		float2 q = p / scale;
@@ -131,21 +182,22 @@ struct FDK
 		float lg = max(length(gx * CS * INNER * TEX), length(gy * CS * INNER * TEX));
 		float k = lg > 16.0 ? 16.0 / lg : 1.0;
 		gx *= k; gy *= k;
-		float2 sk = float2(q.x * 1.1547, q.y + 0.57735 * q.x);
+		float2 sk = float2(q.x * (15.0 / 13.0), q.y + (15.0 / 26.0) * q.x);
 		float2 hb = floor(sk), fr = frac(sk);
 		float3 acc = 0.0; float2 nacc = 0.0; float ws = 0.0, w2 = 0.0;
+		const float NP = round(1664.0 / (26.0 * scale)); // lattice periods per anchor period
 		[unroll] for (int i = 0; i < 3; ++i)
 		{
 			float2 cc = hb + (i == 0 ? float2(0, 0) : (i == 1 ? float2(1, 0) : float2(0, 1)));
 			if (fr.x + fr.y > 1.0) cc = hb + (i == 0 ? float2(1, 1) : (i == 1 ? float2(1, 0) : float2(0, 1)));
-			float2 ck = cc - floor(cc / 251.0) * 251.0;
-			float2 cq = float2(cc.x / 1.1547, cc.y - 0.5 * cc.x);
+			float2 cq = float2(cc.x * (13.0 / 15.0), cc.y - 0.5 * cc.x);
 			float wi = pow(saturate(1.0 - 0.95 * length(q - cq)), 3.0);
 			// Brick (3) and bark (7) have a direction (courses, furrows): never rotated; brick
 			// is not offset either (a bond is a regular pattern, plain tiling is what a wall is).
-			float an = (slice == 3.0 || slice == 7.0) ? 0.0 : H(ck, 3.0) * 6.2832, ca = cos(an), sa = sin(an);
+			float an = (slice == 3.0 || slice == 7.0) ? 0.0 : H(cc, 3.0, NP) * 6.2832, ca = cos(an), sa = sin(an);
 			float2x2 R = float2x2(ca, -sa, sa, ca);
-			float2 r = mul(R, q) + (slice == 3.0 ? float2(0.0, 0.0) : float2(H(ck, 5.0), H(ck, 7.0)));
+			// Rotated about the cell's own centre: a whole-period shift of q leaves q - cq unchanged.
+			float2 r = mul(R, q - cq) + (slice == 3.0 ? float2(0.0, 0.0) : float2(H(cc, 5.0, NP), H(cc, 7.0, NP)));
 			float2 uv = (cell + (16.0 / 512.0) + frac(r) * INNER) * CS;
 			float2 dx = mul(R, gx) * INNER * CS, dy = mul(R, gy) * INNER * CS;
 			acc += wi * (Alb.SampleGrad(AlbS, uv, dx, dy).rgb + 0.5);
@@ -162,19 +214,20 @@ struct FDK
 )HLSL");
 		const TCHAR* GroundCode = TEXT(R"HLSL(
 const float3 W = float3(0.2126, 0.7152, 0.0722);
+FSC sc; // SeamCode
 float2 uv = LP.xy / TileSizeCm;
 float2 m = LP.xy * 0.01 + Anchor.xy;
 float4 mask = saturate(Texture2DSample(Mask, MaskSampler, uv));
 mask.rgb = pow(mask.rgb, 1.0 / 2.2); // stored as an sRGB texture; alpha is linear
 float3 photo = Texture2DSample(Aerial, AerialSampler, (Cell.xy + uv) * 0.25).rgb;
-float3 g1 = Texture2DSample(Grass, GrassSampler, m / 2.3).rgb / max(GrassMean.rgb, 0.001);
-float3 g2 = Texture2DSample(Grass, GrassSampler, m / 9.7 + 0.31).rgb / max(GrassMean.rgb, 0.001);
+float3 g1 = Texture2DSample(Grass, GrassSampler, m / sc.QP(2.3)).rgb / max(GrassMean.rgb, 0.001);
+float3 g2 = Texture2DSample(Grass, GrassSampler, m / sc.QP(9.7) + 0.31).rgb / max(GrassMean.rgb, 0.001);
 // Two scales at an irrational ratio and a rotation, so the 512 px photograph never reads as a grid.
-float3 s1 = Texture2DSample(Sand, SandSampler, m / 2.9).rgb / max(SandMean.rgb, 0.001);
-float3 s2 = Texture2DSample(Sand, SandSampler, float2(m.x * 0.8 - m.y * 0.6, m.x * 0.6 + m.y * 0.8) / 7.37 + 0.17).rgb / max(SandMean.rgb, 0.001);
+float3 s1 = Texture2DSample(Sand, SandSampler, m / sc.QP(2.9)).rgb / max(SandMean.rgb, 0.001);
+float3 s2 = Texture2DSample(Sand, SandSampler, float2(m.x * 0.8 - m.y * 0.6, m.x * 0.6 + m.y * 0.8) / (sc.QP(5.0 * 7.37) / 5.0) + 0.17).rgb / max(SandMean.rgb, 0.001);
 s1 = lerp(float3(1.0, 1.0, 1.0), s1, 0.5);
-float3 p1 = Texture2DSample(Grain, GrainSampler, m / 3.1).rgb / max(GrainMean.rgb, 0.001);
-float3 p2 = Texture2DSample(Grain, GrainSampler, m / 23.0 + 0.53).rgb / max(GrainMean.rgb, 0.001);
+float3 p1 = Texture2DSample(Grain, GrainSampler, m / sc.QP(3.1)).rgb / max(GrainMean.rgb, 0.001);
+float3 p2 = Texture2DSample(Grain, GrainSampler, m / sc.QP(23.0) + 0.53).rgb / max(GrainMean.rgb, 0.001);
 // A mapped park or meadow is turf only where the photograph is green: a tribal park in the
 // desert, dry rangeland or a winter field keeps the colour the photograph shows.
 float green = saturate((photo.g - max(photo.r, photo.b)) * 25.0 + 0.6);
@@ -183,7 +236,8 @@ float sand = mask.g * (1.0 - veg);
 float water = mask.a;
 float paved = mask.b * (1.0 - water);
 float bare = saturate(1.0 - veg - sand - paved);
-float3 classColor = float3(0.15, 0.14, 0.11) * bare + float3(0.052, 0.088, 0.026) * veg + float3(0.50, 0.45, 0.35) * sand + float3(0.27, 0.26, 0.24) * paved;
+// The place's own soil, grass and sand colours (the scan's TINT, x1 without it).
+float3 classColor = float3(0.15, 0.14, 0.11) * TintSoil.rgb * bare + float3(0.052, 0.088, 0.026) * TintGrass.rgb * veg + float3(0.50, 0.45, 0.35) * TintSand.rgb * sand + float3(0.27, 0.26, 0.24) * paved;
 // The photograph is taken from above: white roofs, sand and glare. Ground seen from the
 // street is darker (grass ~0.1, concrete ~0.3, sand ~0.35 albedo), so highlights compress.
 float3 shot = photo * AerialGain;
@@ -216,20 +270,25 @@ float fpx = length(fwidth(m)); // ground metres per pixel (outside the branch, s
 if (GrassField > 0.5 && veg > 0.01)
 {
 	FGF gf; // the grass field helpers (GrassFieldCode)
-	float2 gm = m - floor(m / 512.0) * 512.0; // small numbers keep the sine hash exact (one seam per 512 m)
-	// micro: hex tiling of the CC0 grass photograph at 1.7 m
-	float2 q = gm / 1.7;
-	float2 sk = float2(q.x * 1.1547, q.y + 0.57735 * q.x);
+	float2 gm = m; // tile-anchored metres (the hash is exact at any size: FSC::Hash)
+	// micro: hex tiling of the CC0 grass photograph at about 1.7 m (a rational hex lattice whose
+	// period divides the anchor period; see FDK.H)
+	const float HexM = 1664.0 / (26.0 * round(1664.0 / (26.0 * 1.7)));
+	const float HexN = round(1664.0 / (26.0 * HexM));
+	FDK hk;
+	float2 q = gm / HexM;
+	float2 sk = float2(q.x * (15.0 / 13.0), q.y + (15.0 / 26.0) * q.x);
 	float2 hexBase = floor(sk), fr = frac(sk);
 	float3 acc = 0.0; float wsum = 0.0, w2 = 0.0;
 	[unroll] for (int k = 0; k < 3; ++k)
 	{
 		float2 cc = hexBase + (k == 0 ? float2(0, 0) : (k == 1 ? float2(1, 0) : float2(0, 1)));
 		if (fr.x + fr.y > 1.0) cc = hexBase + (k == 0 ? float2(1, 1) : (k == 1 ? float2(1, 0) : float2(0, 1)));
-		float2 cq = float2(cc.x / 1.1547, cc.y - 0.5 * cc.x);
+		float2 cq = float2(cc.x * (13.0 / 15.0), cc.y - 0.5 * cc.x);
 		float w = pow(saturate(1.0 - 0.95 * length(q - cq)), 3.0);
-		float an = gf.H(cc, 3.0) * 6.2832;
-		float2 r = float2(q.x * cos(an) - q.y * sin(an), q.x * sin(an) + q.y * cos(an)) + float2(gf.H(cc, 5.0), gf.H(cc, 7.0));
+		float an = hk.H(cc, 3.0, HexN) * 6.2832;
+		float2 ql = q - cq; // rotated about the cell's centre (seamless, as FDK)
+		float2 r = float2(ql.x * cos(an) - ql.y * sin(an), ql.x * sin(an) + ql.y * cos(an)) + float2(hk.H(cc, 5.0, HexN), hk.H(cc, 7.0, HexN));
 		acc += w * Texture2DSampleGrad(Grass, GrassSampler, r, ddx(q), ddy(q)).rgb / max(GrassMean.rgb, 0.001);
 		wsum += w; w2 += w * w;
 	}
@@ -237,7 +296,7 @@ if (GrassField > 0.5 && veg > 0.01)
 	micro = 1.0 + (micro - 1.0) * wsum / max(sqrt(w2), 1e-4); // keep the contrast blending would lose
 	// meso: clumps, patches, clover, dry patches (GrassDry from the season; 0 = growing)
 	float clump, dryShare;
-	float3 meso = gf.Meso(gm, GrassDry, 1.0, 1.0, clump, dryShare);
+	float3 meso = gf.Meso(gm, GrassDry, 1.0, 1.0, clump, dryShare, 1664.0);
 	meso = lerp(meso, float3(2.6, 1.6, 2.4), dryShare);
 	grass = micro * meso;
 	// nearW: parallax blade shells within 22 m
@@ -255,7 +314,7 @@ if (GrassField > 0.5 && veg > 0.01)
 		float Hb = 8.0 * (1.0 + 0.4 * GrassDry);  // tallest blade, cm
 		// One leaning, tapering, flat blade per 2 cm cell on two offset grids; the eight height
 		// slices start at a per-pixel random offset so the slices do not show as steps.
-		float2 jk = floor(gm * 1013.0); float jit = gf.H(jk - floor(jk / 251.0) * 251.0, 71.0);
+		float2 jk = floor(gm * 1013.0); float jit = sc.Hash(jk, 71.0, 1013.0 * 1664.0);
 		float shade = 0.55; bool hit = false;
 		[unroll] for (int s = 0; s < 8; ++s)
 		{
@@ -264,7 +323,7 @@ if (GrassField > 0.5 && veg > 0.01)
 			[unroll] for (int g = 0; g < 2; ++g)
 			{
 				float2 pc = pz + (g == 0 ? float2(0, 0) : float2(0.5, 0.5));
-				float2 ci = floor(pc), ck = ci - floor(ci / 251.0) * 251.0; // small hash keys: sin() stays exact
+				float2 ci = floor(pc), ck = ci - floor(ci / (50.0 * 1664.0)) * (50.0 * 1664.0); // 2 cm cells, wrapped by the anchor period
 				float sd = 80.0 + g * 9.0;
 				float bh = Hb * (0.55 + 0.45 * gf.H(ck, sd)) * (0.8 + 0.4 * clump);
 				float t = z / bh;
@@ -301,6 +360,38 @@ float3 detail = (p1 * lerp(1.0, p2, 0.4)) * (bare + paved) + grass * veg + s1 * 
 float dl = dot(detail, W);
 float3 hue = lerp(float3(1.0, 1.0, 1.0), detail / max(dl, 0.001), 0.3 * veg + 0.15 * sand);
 baseColor *= lerp(1.0, dl, 0.55 * veg + 0.25 * sand + 0.4 * (bare + paved)) * hue;
+// Steep ground (road cuts, banks, gullies): bare soil from 25 degrees, rock from 33 to 45,
+// sampled triplanar so a cut face is not stretched, rock with horizontal bedding bands.
+// Colours from the rule palette (drier climates have paler, redder soil; the GEOL chunk's
+// SSURGO soil and SGMC rock colours replace it when they arrive).
+{
+	float steep = saturate((0.906 - VN.z) / 0.067);   // cos 25 -> cos 33 degrees
+	float rocky = saturate((0.839 - VN.z) / 0.132);   // cos 33 -> cos 45 degrees
+	[branch] if (steep > 0.0)
+	{
+		float3 an = abs(normalize(VN)); an /= max(an.x + an.y + an.z, 1e-4);
+		float z = LP.z * 0.01;
+		float Tg = sc.QP(1.9), gm0 = max(dot(GrainMean.rgb, W), 0.001);
+		float gx = dot(Texture2DSample(Grain, GrainSampler, float2(m.y, z) / Tg).rgb, W) / gm0;
+		float gy = dot(Texture2DSample(Grain, GrainSampler, float2(m.x, z) / Tg).rgb, W) / gm0;
+		float gz = dot(Texture2DSample(Grain, GrainSampler, m / Tg).rgb, W) / gm0;
+		float grain = gx * an.x + gy * an.y + gz * an.z;
+		float strata = 0.82 + 0.18 * sc.Hash(float2(floor(z / 0.35), 0.0), 9.0, 0.0);
+		// Exposed soil is dark where it rains (humus, iron) and pale only in dry climates.
+		float3 soil = lerp(float3(0.095, 0.072, 0.050), float3(0.26, 0.19, 0.13), GrassDry * GrassDry);
+		float3 rock = float3(0.20, 0.19, 0.17) * strata;
+		// Large-scale mottling (6 m and 1.5 m, periods that divide the anchor): a bank is never one tone.
+		FGF fm;
+		float nm1, nm2;
+		float2 pm1 = fm.At(m, 1.0 / 6.0, 1664.0, nm1), pm2 = fm.At(m, 1.0 / 1.5, 1664.0, nm2);
+		float mot = fm.F(pm1, 61.0, nm1) * 0.65 + fm.F(pm2, 67.0, nm2) * 0.35;
+		float3 face = lerp(soil, rock, rocky) * lerp(1.0, grain, 0.9) * lerp(0.72, 1.25, mot);
+		// A vegetated slope stays partly plants until it is steep enough to be rock: grass and
+		// weeds hold on in patches (the mottling), bare soil shows between them.
+		float bareShare = lerp(saturate(1.0 - 0.75 * veg + (mot - 0.5) * 1.2), 1.0, rocky);
+		baseColor = lerp(baseColor, face, steep * bareShare * (1.0 - water));
+	}
+}
 // Albedo limits (docs/team/research/realtime-context.md, item 4): lawns and meadows keep a
 // grass albedo (luminance 0.18 at most) and a natural saturation (0.55 at most), so a field
 // never turns neon; the photograph's tone and the class colour keep their hue.
@@ -319,20 +410,22 @@ baseColor = lerp(baseColor, float3(0.025, 0.15, 0.17), water);
 // over the ground, thinner where grass and shrubs poke through.
 baseColor = lerp(baseColor, float3(0.80, 0.83, 0.86), SnowCover * (1.0 - water) * (1.0 - 0.35 * veg));
 Roughness = lerp(lerp(lerp(0.9, 0.97, veg), 0.86, sand), 0.08, water);
+Roughness = lerp(Roughness, 0.92, saturate((0.906 - VN.z) / 0.067) * (1.0 - water));
 Nrm = normalize(VN);
 return max(baseColor, 0.0);
 )HLSL");
 
 		const TCHAR* AsphaltCode = TEXT(R"HLSL(
 const float3 W = float3(0.2126, 0.7152, 0.0722);
+FSC sc; // SeamCode
 float2 m = LP.xy * 0.01 + Anchor.xy;
 float meanL = max(dot(AsphaltMean.rgb, W), 0.001);
-float2 uv = m / 2.6;
+float2 uv = m / sc.QP(2.6);
 float a = dot(Texture2DSample(Asphalt, AsphaltSampler, uv).rgb, W) / meanL;
 float ax = dot(Texture2DSample(Asphalt, AsphaltSampler, uv + float2(0.0012, 0.0)).rgb, W) / meanL;
 float ay = dot(Texture2DSample(Asphalt, AsphaltSampler, uv + float2(0.0, 0.0012)).rgb, W) / meanL;
-float macro = dot(Texture2DSample(Asphalt, AsphaltSampler, m / 23.0 + 0.41).rgb, W) / meanL;
-float macro2 = dot(Texture2DSample(Asphalt, AsphaltSampler, m / 61.0 + 0.77).rgb, W) / meanL;
+float macro = dot(Texture2DSample(Asphalt, AsphaltSampler, m / sc.QP(23.0) + 0.41).rgb, W) / meanL;
+float macro2 = dot(Texture2DSample(Asphalt, AsphaltSampler, m / sc.QP(61.0) + 0.77).rgb, W) / meanL;
 float v = lerp(1.0, macro, 0.30) * lerp(1.0, macro2, 0.25);
 float fine = lerp(1.0, a, 0.45);
 float3 col = Tint.rgb * fine * v;
@@ -364,14 +457,15 @@ return max(col, 0.0);
 
 		const TCHAR* ConcreteCode = TEXT(R"HLSL(
 const float3 W = float3(0.2126, 0.7152, 0.0722);
+FSC sc; // SeamCode
 float2 m = LP.xy * 0.01 + Anchor.xy;
 float vertical = 1.0 - saturate(abs(VN.z) * 2.0 - 0.5);
-float2 uv = lerp(m, float2(m.x + m.y, LP.z * 0.01), vertical) / 1.9;
+float2 uv = lerp(m, float2(m.x + m.y, LP.z * 0.01), vertical) / sc.QP(1.9);
 float meanL = max(dot(GrainMean.rgb, W), 0.001);
 float a = dot(Texture2DSample(Grain, GrainSampler, uv).rgb, W) / meanL;
 float ax = dot(Texture2DSample(Grain, GrainSampler, uv + float2(0.0015, 0.0)).rgb, W) / meanL;
 float ay = dot(Texture2DSample(Grain, GrainSampler, uv + float2(0.0, 0.0015)).rgb, W) / meanL;
-float macro = dot(Texture2DSample(Grain, GrainSampler, m / 17.0 + 0.29).rgb, W) / meanL;
+float macro = dot(Texture2DSample(Grain, GrainSampler, m / sc.QP(17.0) + 0.29).rgb, W) / meanL;
 float3 col = Tint.rgb * lerp(1.0, a, 0.30) * lerp(1.0, macro, 0.25);
 col *= lerp(1.0, 0.72, VC.g);   // gutter pan grime
 col *= lerp(1.0, 1.06, VC.b);   // curb
@@ -383,10 +477,11 @@ return max(col, 0.0);
 
 		const TCHAR* PaintCode = TEXT(R"HLSL(
 const float3 W = float3(0.2126, 0.7152, 0.0722);
+FSC sc; // SeamCode
 float2 m = LP.xy * 0.01 + Anchor.xy;
 float meanL = max(dot(GrainMean.rgb, W), 0.001);
-float a = dot(Texture2DSample(Grain, GrainSampler, m / 2.6).rgb, W) / meanL;
-float worn = dot(Texture2DSample(Grain, GrainSampler, m / 9.0 + 0.61).rgb, W) / meanL;
+float a = dot(Texture2DSample(Grain, GrainSampler, m / sc.QP(2.6)).rgb, W) / meanL;
+float worn = dot(Texture2DSample(Grain, GrainSampler, m / sc.QP(9.0) + 0.61).rgb, W) / meanL;
 float keep = saturate(0.55 + 0.45 * a) * saturate(0.8 + 0.2 * worn);
 Roughness = 0.6 + 0.2 * (1.0 - keep);
 Nrm = normalize(VN);
@@ -757,7 +852,7 @@ return col;
 		{
 		case ESimCruiseTileLayer::Terrain:
 		{
-			Custom->Code = FString(GrassFieldCode) + DetailKitCode + GroundCode;
+			Custom->Code = FString(SeamCode) + GrassFieldCode + DetailKitCode + GroundCode;
 			UMaterialExpressionConstant* GroundSpecular = AddExpression<UMaterialExpressionConstant>(Material);
 			GroundSpecular->R = 0.35f; // vegetation and soil reflect less than the 0.5 default
 			Material->GetEditorOnlyData()->Specular.Connect(0, GroundSpecular);
@@ -765,6 +860,9 @@ return col;
 			AddInput(Custom, TEXT("TileSizeCm"), ScalarParam(Material, TEXT("TileSizeCm"), 55000.f));
 			AddInput(Custom, TEXT("Cell"), VectorParam(Material, TEXT("Cell"), FLinearColor(0, 0, 0, 0)));
 			AddInput(Custom, TEXT("AerialGain"), ScalarParam(Material, TEXT("AerialGain"), 1.f));
+			AddInput(Custom, TEXT("TintGrass"), VectorParam(Material, TEXT("TintGrass"), FLinearColor(1, 1, 1, 1)));
+			AddInput(Custom, TEXT("TintSoil"), VectorParam(Material, TEXT("TintSoil"), FLinearColor(1, 1, 1, 1)));
+			AddInput(Custom, TEXT("TintSand"), VectorParam(Material, TEXT("TintSand"), FLinearColor(1, 1, 1, 1)));
 			AddInput(Custom, TEXT("SnowCover"), ScalarParam(Material, TEXT("SnowCover"), 0.f));
 			AddInput(Custom, TEXT("Mask"), TextureParam(Material, TEXT("Mask"), DefaultTexture));
 			AddInput(Custom, TEXT("Aerial"), TextureParam(Material, TEXT("Aerial"), DefaultTexture));
@@ -780,7 +878,7 @@ return col;
 			AddInput(Custom, TEXT("Depth"), AddExpression<UMaterialExpressionPixelDepth>(Material));
 			break;
 		case ESimCruiseTileLayer::Asphalt:
-			Custom->Code = FString(DetailKitCode) + AsphaltCode;
+			Custom->Code = FString(SeamCode) + DetailKitCode + AsphaltCode;
 			Custom->AdditionalOutputs.Add({ FName(TEXT("Spec")), CMOT_Float1 });
 			Custom->RebuildOutputs();
 			Material->GetEditorOnlyData()->Specular.Connect(3, Custom);
@@ -791,14 +889,14 @@ return col;
 			AddInput(Custom, TEXT("Wet"), ScalarParam(Material, TEXT("Wet"), 0.f));
 			break;
 		case ESimCruiseTileLayer::Concrete:
-			Custom->Code = ConcreteCode;
+			Custom->Code = FString(SeamCode) + ConcreteCode;
 			AddInput(Custom, TEXT("Grain"), TextureParam(Material, TEXT("Grain"), DefaultTexture));
 			AddInput(Custom, TEXT("GrainMean"), VectorParam(Material, TEXT("GrainMean"), FLinearColor(0.2f, 0.2f, 0.2f)));
 			AddInput(Custom, TEXT("Tint"), VectorParam(Material, TEXT("Tint"), FLinearColor(0.34f, 0.33f, 0.31f)));
 			AddInput(Custom, TEXT("Bump"), ScalarParam(Material, TEXT("Bump"), 0.15f));
 			break;
 		case ESimCruiseTileLayer::Paint:
-			Custom->Code = PaintCode;
+			Custom->Code = FString(SeamCode) + PaintCode;
 			AddInput(Custom, TEXT("Grain"), TextureParam(Material, TEXT("Grain"), DefaultTexture));
 			AddInput(Custom, TEXT("GrainMean"), VectorParam(Material, TEXT("GrainMean"), FLinearColor(0.2f, 0.2f, 0.2f)));
 			break;
@@ -925,7 +1023,9 @@ return float3(dir * bend, -0.25 * bend + flutter);
 #if WITH_EDITOR
 const TCHAR* USimCruiseWorldResources::GrassFieldHlsl()
 {
-	return SimCruiseWorldMaterials::GrassFieldCode;
+	// The landscape's grass field needs the seam helpers it calls (SeamCode) in front.
+	static const FString Code = FString(SimCruiseWorldMaterials::SeamCode) + SimCruiseWorldMaterials::GrassFieldCode;
+	return *Code;
 }
 #endif
 
