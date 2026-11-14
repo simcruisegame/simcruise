@@ -5,6 +5,7 @@
 #include "Knowledge/SimCruisePlaceGraph.h"
 #include "Knowledge/SimCruisePlaceGraphSubsystem.h"
 
+#include "World/SimCruiseCellContext.h"
 #include "World/SimCruiseRoadNetwork.h"
 #include "World/SimCruiseTileData.h"
 #include "HAL/IConsoleManager.h"
@@ -1227,7 +1228,9 @@ namespace SimCruiseTileDetail
 
 	void BuildPalms(const FContext& X)
 	{
-		if (!IsCoconutPalmRegion(X.LatDeg, X.LonDeg) || CVarPalms.GetValueOnAnyThread() == 0) return;
+		// The context record says which palms grow here (Köppen class and region); without one, the old rule.
+		const float Weight = X.Cells ? X.Cells->SpeciesWeight(TEXT("cocos_nucifera")) : 1.0f;
+		if (!IsCoconutPalmRegion(X.LatDeg, X.LonDeg) || Weight <= 0.0f || CVarPalms.GetValueOnAnyThread() == 0) return;
 		FSimCruiseTileBuild& B = X.B;
 		const FSimCruiseRoadNetwork& Roads = B.Roads;
 
@@ -1236,12 +1239,12 @@ namespace SimCruiseTileDetail
 		// one of the shared palm meshes (USimCruiseWorldResources::PalmMeshes).
 		constexpr double Spacing = 10.5;
 		const int32 Cells = FMath::FloorToInt(X.Side / Spacing);
-		const uint32 TileHash = GetTypeHash(X.Data.Id);
+		const uint32 TileHash = X.Cells ? X.Cells->TileSeed : GetTypeHash(X.Data.Id);
 		for (int32 gy = 0; gy < Cells; ++gy)
 		for (int32 gx = 0; gx < Cells; ++gx)
 		{
 			const uint32 H = Hash(TileHash, static_cast<uint32>(gy * 4099 + gx));
-			if (Unit(H) > 0.42) continue;
+			if (Unit(H) > 0.42 * Weight) continue;
 			const FVector2d P((gx + 0.5 + 0.7 * (Unit(Hash(H, 1)) - 0.5)) * Spacing, (gy + 0.5 + 0.7 * (Unit(Hash(H, 2)) - 0.5)) * Spacing);
 			if (!X.IsVegetation(P) || X.IsPavedPath(P) || X.IsWater(P)) continue;
 			FSimCruiseRoadHit Hit;

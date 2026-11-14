@@ -5,6 +5,7 @@
 #include "Knowledge/SimCruiseFurnitureData.h"
 
 #include "Knowledge/SimCruisePlacePhotos.h"
+#include "Knowledge/SimCruiseRoadsideData.h"
 
 #include "Dom/JsonObject.h"
 #include "GenericPlatform/GenericPlatformHttp.h"
@@ -72,8 +73,11 @@ namespace SimCruisePlaceFacts
 		double S, W, N, E;
 		Bounds(Tile, S, W, N, E);
 		const FString B = FString::Printf(TEXT("(%.6f,%.6f,%.6f,%.6f)"), S, W, N, E);
-		return FString::Printf(TEXT("[out:json][timeout:25];(way[\"building\"]%s;relation[\"building\"]%s;node[\"wikidata\"]%s;node[\"building:architecture\"]%s;way[\"historic\"=\"district\"]%s;relation[\"historic\"=\"district\"]%s;%s);out tags center 5000;"),
-			*B, *B, *B, *B, *B, *B, *SimCruiseFurniture::OverpassLines(B));
+		// One answer for the place facts, the street furniture and the roadside (SimCruiseRoadsideData):
+		// the tagged places and points with their centres, then the roads, the barriers near them
+		// and the power lines with their geometry clipped to the tile.
+		return FString::Printf(TEXT("[out:json][timeout:40];(way[\"building\"]%s;relation[\"building\"]%s;node[\"wikidata\"]%s;node[\"building:architecture\"]%s;way[\"historic\"=\"district\"]%s;relation[\"historic\"=\"district\"]%s;%s%s);out tags center 5000;%s"),
+			*B, *B, *B, *B, *B, *B, *SimCruiseFurniture::OverpassLines(B), *SimCruiseRoadsideData::OverpassPointLines(B), *SimCruiseRoadsideData::OverpassGeometryStatements(B));
 	}
 
 	FString WikidataQuery(const FIntPoint& Tile)

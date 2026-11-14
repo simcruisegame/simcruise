@@ -748,6 +748,11 @@ void ASimCruisePreflight::MeasureTick(ASimCruisePlayerController* Player, float 
 	const bool bUnderRoad = SurfaceAt(CarCm, UnderZm);
 	Surface.Add(FVector2f(static_cast<float>(PathM), static_cast<float>(UnderZm)));
 	SurfaceIsRoad.Add(bUnderRoad ? 1 : 0);
+	{
+		double Lon = 0.0, Lat = 0.0;
+		if (Stream) Stream->GetFrame().WorldCmToLonLat(CarCm, Lon, Lat);
+		SurfaceLatLon.Add(FVector2d(Lat, Lon));
+	}
 	OffRoadNow = bUnderRoad ? 0.f : OffRoadNow + DeltaSeconds;
 	Stats.OffRoadSeconds = FMath::Max(Stats.OffRoadSeconds, OffRoadNow);
 
@@ -944,6 +949,21 @@ void ASimCruisePreflight::Finish()
 		if (SurfaceIsRoad[I]) RoadOnly.Add(Surface[I]);
 	}
 	Stats.RoadSteps = CountSteps(RoadOnly, Stats.MaxStepCm);
+	// Where each step is (the same measure as CountSteps), for the road-step check to find it again.
+	{
+		TArray<FVector2d> RoadLatLon;
+		for (int32 I = 0; I < Surface.Num(); ++I) if (SurfaceIsRoad[I] && SurfaceLatLon.IsValidIndex(I)) RoadLatLon.Add(SurfaceLatLon[I]);
+		for (int32 I = 1; I + 1 < RoadOnly.Num() && RoadLatLon.Num() == RoadOnly.Num(); ++I)
+		{
+			const float AB = RoadOnly[I].X - RoadOnly[I - 1].X, BC = RoadOnly[I + 1].X - RoadOnly[I].X;
+			if (AB < 0.02f || BC < 0.02f || AB > 1.f || BC > 1.f) continue;
+			const float JumpCm = FMath::Abs((RoadOnly[I + 1].Y - RoadOnly[I].Y) - (RoadOnly[I].Y - RoadOnly[I - 1].Y) * BC / AB) * 100.f;
+			if (JumpCm > SimCruisePreflightRules::StepCm)
+			{
+				UE_LOG(LogSimCruisePreflight, Display, TEXT("Pre-flight: road step %.1f cm at %.0f m, %.6f, %.6f"), JumpCm, RoadOnly[I].X, RoadLatLon[I].X, RoadLatLon[I].Y);
+			}
+		}
+	}
 	for (int32 I = 1; I < Surface.Num(); ++I)
 	{
 		if (SurfaceIsRoad[I] || !SurfaceIsRoad[I - 1]) continue;
