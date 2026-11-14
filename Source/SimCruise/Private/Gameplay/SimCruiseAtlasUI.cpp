@@ -375,7 +375,9 @@ void SSimCruisePlaceSearch::Construct(const FArguments& InArgs)
 						SNew(SHorizontalBox)
 						+ SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
 						[
-							Label(TEXT("A: go  ·  A on the search box: the pad keyboard  ·  Y: Surprise me  ·  B: back"), 12, SimCruiseUiStyle::Dim())
+							SNew(STextBlock).Font(Font(12)).ColorAndOpacity(SimCruiseUiStyle::Dim())
+							.Text(SimCruiseTheme::PadOrKeys(TEXT("A: go  ·  A on the search box: the pad keyboard  ·  Y: Surprise me  ·  B: back"),
+								TEXT("Enter: go  ·  type a place in the box  ·  Esc: back")))
 						]
 						+ SHorizontalBox::Slot().AutoWidth()
 						[
@@ -565,7 +567,8 @@ TSharedRef<SWidget> SSimCruisePlaceSearch::BuildPadKeys()
 	Box->AddSlot().AutoHeight().HAlign(HAlign_Center)[Last];
 	Box->AddSlot().AutoHeight().HAlign(HAlign_Center).Padding(0, 4, 0, 0)
 	[
-		Label(TEXT("D-pad: move  ·  A: type  ·  X: delete  ·  Y: space  ·  B: done"), 12, SimCruiseUiStyle::Dim())
+		SNew(STextBlock).Font(Font(12)).ColorAndOpacity(SimCruiseUiStyle::Dim())
+		.Text(SimCruiseTheme::PadOrKeys(TEXT("D-pad: move  ·  A: type  ·  X: delete  ·  Y: space  ·  B: done"), TEXT("Click a key, or type  ·  Esc: back")))
 	];
 	return Box;
 }
@@ -819,7 +822,10 @@ void SSimCruiseRoadAtlas::Construct(const FArguments& InArgs)
 					]
 					+ SHorizontalBox::Slot().FillWidth(1.f).HAlign(HAlign_Right).VAlign(VAlign_Center)
 					[
-						Label(TEXT("D-pad ◀ ▶: onto the buttons (D-pad moves, A presses, B back to the map)  ·  Stick or drag: move  ·  D-pad ▲ ▼, wheel or +/−: zoom  ·  A or Enter: drive here  ·  X: find  ·  Y: recenter  ·  RB: car  ·  B: back"), 12, SimCruiseUiStyle::Dim())
+						SNew(STextBlock).Font(Font(12)).ColorAndOpacity(SimCruiseUiStyle::Dim())
+						.Text(SimCruiseTheme::PadOrKeys(
+							TEXT("D-pad ◀ ▶: onto the buttons (D-pad moves, A presses, B back to the map)  ·  Stick: move  ·  D-pad ▲ ▼: zoom  ·  A: drive here  ·  X: find  ·  Y: recenter  ·  RB: car  ·  LB: gearbox  ·  B: back"),
+							TEXT("Arrows or drag: move  ·  wheel or +/−: zoom  ·  click: pin  ·  Enter: drive here  ·  F or /: find  ·  Home: recenter  ·  Esc or Tab: back")))
 					]
 				]
 				+ SVerticalBox::Slot().AutoHeight().Padding(0, 8, 0, 0)

@@ -60,6 +60,46 @@ class Student(nn.Module):
         return torch.softmax(F.interpolate(self.logits(x), scale_factor=4, mode="bilinear", align_corners=False), 1)
 
 
+class Lite(nn.Module):
+    """The shippable eye: the first two stages of the Satlas Swin-v2-B backbone (2.1 M parameters, ODC-BY,
+    kept and fine-tuned) for the 1/4 and 1/8 features, our own small blocks for context at 1/16 and 1/32
+    (in place of Satlas's 84 M-parameter deep stages), and our decoder (MIT)."""
+
+    def __init__(self, swin=None):
+        super().__init__()
+        if swin is None:
+            import torchvision
+            swin = torchvision.models.swin_v2_b()
+        self.s1 = nn.Sequential(*swin.features[:2])   # 1/4, 128 channels (NHWC)
+        self.s2 = nn.Sequential(*swin.features[2:4])  # 1/8, 256 channels (NHWC)
+        self.e3 = nn.Sequential(block(256, 256, 2), block(256, 256))   # 1/16
+        self.e4 = nn.Sequential(block(256, 320, 2), block(320, 320))   # 1/32
+        self.d3 = block(320 + 256, 256)
+        self.d2 = block(256 + 256, 160)
+        self.d1 = block(160 + 128, 96)
+        self.out = nn.Conv2d(96, K, 1)
+
+    def logits(self, x):
+        a = self.s1(x); b = self.s2(a)
+        a = a.permute(0, 3, 1, 2); b = b.permute(0, 3, 1, 2)
+        c = self.e3(b); d = self.e4(c)
+        up = lambda t, ref: F.interpolate(t, size=ref.shape[-2:], mode="bilinear", align_corners=False)
+        c2 = self.d3(torch.cat([up(d, c), c], 1))
+        b2 = self.d2(torch.cat([up(c2, b), b], 1))
+        a2 = self.d1(torch.cat([up(b2, a), a], 1))
+        return self.out(a2)
+
+    def forward(self, x):
+        return torch.softmax(F.interpolate(self.logits(x), scale_factor=4, mode="bilinear", align_corners=False), 1)
+
+
+def make_net(a, pretrained=True):
+    if a.arch == "lite":
+        swin = se.satlas().backbone.backbone if pretrained else None
+        return Lite(swin)
+    return Student(widths(a.width))
+
+
 def cmd_teach(a):
     """Teacher probabilities at 1/4 resolution (12 x 128 x 128, fp16) for each tile and its degraded copy."""
     head = se.Head(); head.load_state_dict(torch.load(os.path.join(a.data, "satlas-head.pt"))); head.eval()
@@ -141,10 +181,21 @@ def cmd_train(a):
             del ui, ut
     print("train", len(xi), "held-out", len(vi), flush=True)
     w, _ = se.class_weights(xl)
-    net = Student(widths(a.width))
+    net = make_net(a)
+    if a.resume:
+        net.load_state_dict(torch.load(os.path.join(a.data, "student.pt")))
     print("params", sum(p.numel() for p in net.parameters()), flush=True)
-    opt = torch.optim.AdamW(net.parameters(), lr=3e-3, weight_decay=1e-4)
-    sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=3e-3, total_steps=a.steps, pct_start=0.1)
+    if a.arch == "lite":  # the pretrained Satlas stages learn slowly, our layers fast
+        pre = list(net.s1.parameters()) + list(net.s2.parameters())
+        ids = {id(p) for p in pre}
+        groups = [{"params": pre, "lr": a.lr * 0.1}, {"params": [p for p in net.parameters() if id(p) not in ids], "lr": a.lr}]
+        opt = torch.optim.AdamW(groups, weight_decay=1e-4)
+        sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=[a.lr * 0.1, a.lr], total_steps=a.steps, pct_start=0.1)
+    else:
+        opt = torch.optim.AdamW(net.parameters(), lr=a.lr, weight_decay=1e-4)
+        sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=a.lr, total_steps=a.steps, pct_start=0.1)
+    # Rare classes (water, roads, roofs, bare) weigh more in the teacher loss too.
+    kd_w = (w / w.mean()).view(1, -1, 1, 1)
     ce = nn.CrossEntropyLoss(weight=w, ignore_index=sd.IGNORE)
     best = (-1, None, None)
     C = a.crop
@@ -164,8 +215,9 @@ def cmd_train(a):
         aug = lambda u: torch.rot90(u.flip(-1) if fl else u, r, (-2, -1))
         x, y, t = aug(x), aug(y), aug(t)
         lg = net.logits(x)
-        loss_t = F.kl_div(F.log_softmax(lg, 1), t, reduction="batchmean") / (lg.shape[-1] * lg.shape[-2])
-        loss_l = ce(F.interpolate(lg, scale_factor=4, mode="bilinear", align_corners=False), y)
+        loss_t = (kd_w * t * (torch.log(t.clamp_min(1e-6)) - F.log_softmax(lg, 1))).sum() / (lg.shape[0] * lg.shape[-1] * lg.shape[-2])
+        # A batch of only unlabelled photos has no label pixels: cross-entropy would be NaN.
+        loss_l = ce(F.interpolate(lg, scale_factor=4, mode="bilinear", align_corners=False), y) if (y != sd.IGNORE).any() else lg.sum() * 0
         loss = a.alpha * loss_t + (1 - a.alpha) * loss_l
         opt.zero_grad(); loss.backward(); opt.step(); sched.step()
         if step % 100 == 0 or step == a.steps - 1:
@@ -182,7 +234,7 @@ def cmd_train(a):
 
 
 def cmd_export(a):
-    net = Student(widths(a.width)); net.load_state_dict(torch.load(os.path.join(a.data, "student.pt"))); net.eval()
+    net = make_net(a, pretrained=False); net.load_state_dict(torch.load(os.path.join(a.data, "student.pt"))); net.eval()
     torch.onnx.export(net, torch.rand(1, 3, 512, 512), a.out, input_names=["image"], output_names=["probs"], opset_version=17, dynamo=False)
     print(a.out, round(os.path.getsize(a.out) / 1e6, 2), "MB")
 
@@ -202,6 +254,9 @@ def main():
     ap.add_argument("--unlab", default="")
     ap.add_argument("--unlab-limit", type=int, default=100000)
     ap.add_argument("--width", type=float, default=1.0)
+    ap.add_argument("--resume", action="store_true")
+    ap.add_argument("--arch", default="small", choices=["small", "lite"])
+    ap.add_argument("--lr", type=float, default=3e-3)
     a = ap.parse_args()
     {"teach": cmd_teach, "teach-unlabelled": cmd_teach_unlabelled, "train": cmd_train, "export": cmd_export}[a.cmd](a)
 

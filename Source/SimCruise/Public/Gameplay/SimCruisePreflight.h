@@ -111,7 +111,7 @@ namespace SimCruisePreflightRules
 	 * Height steps along a path: samples (distance m, height m) in path order. A step is a
 	 * sample further than StepCm from the line through its neighbours, all within MaxGapM.
 	 */
-	SIMCRUISE_API int32 CountSteps(const TArray<FVector2f>& DistanceHeight, float& OutMaxStepCm, float MaxGapM = 1.f);
+	SIMCRUISE_API int32 CountSteps(const TArray<FVector2f>& DistanceHeight, float& OutMaxStepCm, float MaxGapM = 1.f, TArray<int32>* OutIndices = nullptr);
 
 	/**
 	 * Frames whose change (the percent of the picture that changed by more than 40 of 255) is above

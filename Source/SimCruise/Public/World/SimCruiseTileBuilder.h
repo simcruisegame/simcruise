@@ -115,6 +115,27 @@ struct FSimCruiseSign
 };
 
 /** Everything one tile needs on the game thread; built off it. */
+/** A decoded zoom-14 aerial photograph (sRGB pixels), shared read-only by the tile builds. */
+struct SIMCRUISE_API FSimCruiseAerialImage
+{
+	FString Key;
+	int32 Width = 0;
+	int32 Height = 0;
+	TArray<FColor> Pixels;
+};
+
+/**
+ * The photographs the tile builds read (roof colours), decoded once on a worker and kept on the
+ * CPU for the tiles of the same zoom-14 cell (thread-safe; the 8 most recent).
+ */
+namespace SimCruiseAerialCache
+{
+	SIMCRUISE_API TSharedPtr<const FSimCruiseAerialImage, ESPMode::ThreadSafe> Find(const FString& Key);
+	SIMCRUISE_API void Put(const FString& Key, int32 Width, int32 Height, const TArray<FColor>& Pixels);
+	/** The cached image, else decoded from Path (empty: none) and cached. */
+	SIMCRUISE_API TSharedPtr<const FSimCruiseAerialImage, ESPMode::ThreadSafe> Load(const FString& Key, const FString& Path);
+}
+
 struct SIMCRUISE_API FSimCruiseTileBuild
 {
 	FIntPoint Tile = FIntPoint::ZeroValue;
@@ -146,6 +167,9 @@ struct SIMCRUISE_API FSimCruiseTileBuild
 
 	/** The context record of every ~32 m of road (SimCruiseCellContext), baked before the detail. */
 	TSharedPtr<const struct FSimCruiseTileContext, ESPMode::ThreadSafe> Context;
+
+	/** The tile scan (SimCruiseScan), when -SimCruiseScan or -SimCruiseScanView asks for it (no reader uses it yet). */
+	TSharedPtr<const struct FSimCruiseTileScan, ESPMode::ThreadSafe> Scan;
 
 	/** Palms to instance on this tile. */
 	TArray<FSimCruisePalmInstance> PalmInstances;
@@ -180,7 +204,9 @@ struct SIMCRUISE_API FSimCruiseTileBuild
 namespace SimCruiseTileBuilder
 {
 	/** Build terrain, road ribbons, curbs, markings, water and the ground mask. Thread-safe, pure. */
-	SIMCRUISE_API TSharedRef<FSimCruiseTileBuild> Build(const FSimCruiseTileData& Data, double TileSizeM, const TArray<FSimCruiseSeamEnd>& NeighbourEnds = TArray<FSimCruiseSeamEnd>());
+	/** Aerial: the tile's photograph when it is on disk already (roof colours); null builds by the rules. */
+	SIMCRUISE_API TSharedRef<FSimCruiseTileBuild> Build(const FSimCruiseTileData& Data, double TileSizeM, const TArray<FSimCruiseSeamEnd>& NeighbourEnds = TArray<FSimCruiseSeamEnd>(),
+		const FSimCruiseAerialImage* Aerial = nullptr);
 
 	/** Seam contracts of built edge neighbours, moved into the frame of Tile. */
 	SIMCRUISE_API TArray<FSimCruiseSeamEnd> NeighbourContracts(const FIntPoint& Tile, double TileSizeM, TFunctionRef<const FSimCruiseTileBuild*(const FIntPoint&)> Find);
@@ -198,5 +224,7 @@ namespace SimCruiseTileBuilder
 	SIMCRUISE_API bool Triangulate(const TArray<FVector2d>& Ring, TArray<int32>& OutIndices);
 
 	/** World-anchored texture offset (m) for a tile: (tile * size) mod Period, so detail textures run on across seams. */
-	SIMCRUISE_API FVector2d TextureAnchorM(const FIntPoint& Tile, double TileSizeM, double PeriodM = 64.0);
+	/** The ground materials' anchor period (64 m; the seamless 1664 m anchor with its shaders comes in v2.0.4). */
+	inline constexpr double TextureAnchorPeriodM = 64.0;
+	SIMCRUISE_API FVector2d TextureAnchorM(const FIntPoint& Tile, double TileSizeM, double PeriodM = TextureAnchorPeriodM);
 }

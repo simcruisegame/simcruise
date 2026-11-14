@@ -77,6 +77,8 @@ private:
 	bool bFetching = false;
 	FIntPoint FetchTile = FIntPoint::ZeroValue;
 	FString PendingOsmBody;
+	/** The tile's place facts are known (bundled or cached): this fetch only adds its roadside. */
+	bool bRoadsideOnly = false;
 	double SlowestTickMs = 0.0;
 	double SlowestCardMs = 0.0;
 	TSet<FIntPoint> Failed;

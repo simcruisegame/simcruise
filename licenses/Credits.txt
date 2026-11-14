@@ -17,6 +17,11 @@ https://www.usgs.gov/3d-elevation-program
 https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer
 https://registry.opendata.aws/dataforgood-fb-forestsv2/
 
+CLIMATE
+Köppen-Geiger climate classes, 1991-2020: Beck, H.E., McVicar, T.R., Vergopolan, N., Berg, A., Lutsko, N.J., Dufour, A., Zeng, Z., Jiang, X., van Dijk, A.I.J.M., Miralles, D.G. (2023). High-resolution (1 km) Köppen-Geiger maps for 1901-2099 based on constrained CMIP6 projections. Scientific Data 10, 724. CC BY 4.0. The 1 km map is reduced to 0.05 degree cells (the class most land pixels have) for data/climate/koppen-1991-2020.png.
+https://doi.org/10.6084/m9.figshare.21789074
+https://creativecommons.org/licenses/by/4.0/
+
 PHOTOGRAPHY AND MODELS
 1999 Mazda MX-5 Miata rear 4.28.18 by Kevauto. Cropped and perspective-adjusted rear lamp texture, CC BY-SA 4.0.
 https://commons.wikimedia.org/wiki/File:1999_Mazda_MX-5_Miata_rear_4.28.18.jpg

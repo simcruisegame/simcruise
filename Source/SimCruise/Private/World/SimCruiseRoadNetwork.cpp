@@ -1231,16 +1231,30 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 				// Causeway, Miami Beach; SimCruise.World.RoadSteps). A column never on the other
 				// road takes the station mean, as before.
 				TArray<double> Own[5];
+				TArray<double> Ss;
+				Ss.SetNum(N);
+				for (int32 i = 0; i < N; ++i) Ss[i] = Ribbon.St[i].S;
 				for (int32 c = 0; c < 5; ++c) { Own[c].SetNum(N); for (int32 i = 0; i < N; ++i) Own[c][i] = Ribbon.St[i].Column(c); }
+				int32 Lo = 0;
 				for (int32 i = 0; i < N; ++i)
 				{
 					FSimCruiseRibbonStation& St = Ribbon.St[i];
+					// The stations within the fade (stations run in S order).
+					while (Lo < N && Ss[Lo] < St.S - JoinFadeM) ++Lo;
+					// The nearest snapped stations (the strongest weight) give the offsets: means over
+					// every station in reach mixed two junctions' offsets and made more steps
+					// (SimCruise.World.RoadSteps: 362 steps over 2 cm against 236).
 					double Best = 0.0, Weight = 0.0;
-					for (int32 j = 0; j < N; ++j)
+					double ColBest[5] = { 0, 0, 0, 0, 0 }, ColWeight[5] = { 0, 0, 0, 0, 0 };
+					for (int32 j = Lo; j < N && Ss[j] <= St.S + JoinFadeM; ++j)
 					{
-						if (!Covered[j]) continue;
-						const double Wj = Smooth01(1.0 - FMath::Abs(St.S - Ribbon.St[j].S) / JoinFadeM);
-						if (Wj > Weight) { Weight = Wj; Best = Delta[j]; }
+						const double Wj = Smooth01(1.0 - FMath::Abs(St.S - Ss[j]) / JoinFadeM);
+						if (Wj <= 0.0) continue;
+						if (Covered[j] && Wj > Weight) { Weight = Wj; Best = Delta[j]; }
+						for (int32 c = 0; c < 5; ++c)
+						{
+							if (Snapped[c][j] && Wj > ColWeight[c]) { ColWeight[c] = Wj; ColBest[c] = Snap[c][j] - Own[c][j]; }
+						}
 					}
 					// Never move a pinned seam end: the neighbour tile cannot see this junction.
 					double Protect = 1.0;
@@ -1249,14 +1263,12 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 					const double Shift = Best * Weight * Protect;
 					for (int32 c = 0; c < 5; ++c)
 					{
-						double ColBest = 0.0, ColWeight = 0.0;
-						for (int32 j = 0; j < N; ++j)
-						{
-							if (!Snapped[c][j]) continue;
-							const double Wj = Smooth01(1.0 - FMath::Abs(St.S - Ribbon.St[j].S) / JoinFadeM);
-							if (Wj > ColWeight) { ColWeight = Wj; ColBest = Snap[c][j] - Own[c][j]; }
-						}
-						St.Column(c) += ColWeight > 0.0 ? ColBest * ColWeight * Protect : Shift;
+						// A column with a snapped point in reach fades from it alone; one without takes
+						// the station shift. Blending the two (by the column's weight, or eased) made
+						// more and larger steps on the 24 Miami tiles (SimCruise.World.RoadSteps: 236-257
+						// steps over 2 cm and up to 50 cm, against 260 and 33 cm), because the station
+						// shift belongs to whichever column was covered, often across the road.
+						St.Column(c) += ColWeight[c] > 0.0 ? ColBest[c] * ColWeight[c] * Protect : Shift;
 					}
 					St.Z += St.HC - Own[2][i]; // Z is the centre column's height
 					if (Protect >= 0.999)

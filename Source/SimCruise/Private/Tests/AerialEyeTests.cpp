@@ -4,6 +4,7 @@
 
 #if WITH_DEV_AUTOMATION_TESTS
 
+#include "Async/Async.h"
 #include "Live/SimCruiseAerialEye.h"
 
 /** The scan eye's cache file reads back exactly, and its channel names follow the scan contract. */
@@ -96,6 +97,25 @@ bool FSimCruiseAerialEyeInputsTest::RunTest(const FString& Parameters)
 		TestEqual(TEXT("road tint is the photo's colour"), int32(Tints[0].Mean.R), 40);
 		TestTrue(TEXT("full share and confidence"), Tints[0].Share > 0.99f && Tints[0].Confidence > 0.99f);
 	}
+	return true;
+}
+
+/**
+ * The eye's back-off reads the frame time on its worker thread without touching FApp's game-thread
+ * time (that raised an ensure, "no inherited time context", in game runs).
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseAerialEyeBackOffTest, "SimCruise.AI.AerialEye.BackOffOffGameThread",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FSimCruiseAerialEyeBackOffTest::RunTest(const FString& Parameters)
+{
+	FSimCruiseAerialEye::NoteFrameSeconds(1.f / 30.f);
+	TFuture<bool> Slow = Async(EAsyncExecution::Thread, []() { return FSimCruiseAerialEye::IsGameSlow(); });
+	TestTrue(TEXT("a 30 fps frame is slow, read on a worker"), Slow.Get());
+	FSimCruiseAerialEye::NoteFrameSeconds(1.f / 90.f);
+	TFuture<bool> Fast = Async(EAsyncExecution::Thread, []() { return FSimCruiseAerialEye::IsGameSlow(); });
+	TestFalse(TEXT("a 90 fps frame is not slow"), Fast.Get());
+	FSimCruiseAerialEye::NoteFrameSeconds(0.f);
 	return true;
 }
 

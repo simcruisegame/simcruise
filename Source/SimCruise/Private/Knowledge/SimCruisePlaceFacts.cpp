@@ -76,8 +76,9 @@ namespace SimCruisePlaceFacts
 		// One answer for the place facts, the street furniture and the roadside (SimCruiseRoadsideData):
 		// the tagged places and points with their centres, then the roads, the barriers near them
 		// and the power lines with their geometry clipped to the tile.
-		return FString::Printf(TEXT("[out:json][timeout:40];(way[\"building\"]%s;relation[\"building\"]%s;node[\"wikidata\"]%s;node[\"building:architecture\"]%s;way[\"historic\"=\"district\"]%s;relation[\"historic\"=\"district\"]%s;%s%s);out tags center 5000;%s"),
-			*B, *B, *B, *B, *B, *B, *SimCruiseFurniture::OverpassLines(B), *SimCruiseRoadsideData::OverpassPointLines(B), *SimCruiseRoadsideData::OverpassGeometryStatements(B));
+		return FString::Printf(TEXT("[out:json][timeout:40];(way[\"building\"]%s;relation[\"building\"]%s;node[\"wikidata\"]%s;node[\"building:architecture\"]%s;way[\"historic\"=\"district\"]%s;relation[\"historic\"=\"district\"]%s;%s%s);out tags center 5000;%s%s"),
+			*B, *B, *B, *B, *B, *B, *SimCruiseFurniture::OverpassLines(B), *SimCruiseRoadsideData::OverpassPointLines(B),
+			*SimCruiseRoadsideData::OverpassBusinessStatement(B), *SimCruiseRoadsideData::OverpassGeometryStatements(B));
 	}
 
 	FString WikidataQuery(const FIntPoint& Tile)

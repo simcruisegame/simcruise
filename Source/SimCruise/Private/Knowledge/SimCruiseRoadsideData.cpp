@@ -15,6 +15,8 @@ namespace
 {
 	FCriticalSection RoadsideLock;
 	TMap<FIntPoint, FSimCruiseRoadside>& RoadsideCache() { static TMap<FIntPoint, FSimCruiseRoadside> C; return C; }
+	/** Tiles whose cache file was looked for and not found (Store clears an entry). */
+	TSet<FIntPoint>& MissingFiles() { static TSet<FIntPoint> M; return M; }
 
 	FString Tag(const TSharedPtr<FJsonObject>& Tags, const TCHAR* Key)
 	{
@@ -137,16 +139,22 @@ namespace SimCruiseRoadsideData
 	FString OverpassPointLines(const FString& B)
 	{
 		return FString::Printf(TEXT("node[\"highway\"~\"^(street_lamp|traffic_signals|stop|give_way)$\"]%s;node[\"power\"~\"^(pole|tower)$\"]%s;")
-			TEXT("node[\"man_made\"=\"utility_pole\"]%s;nwr[\"shop\"][\"name\"]%s;nwr[\"amenity\"][\"name\"]%s;nwr[\"office\"][\"name\"]%s;"),
-			*B, *B, *B, *B, *B, *B);
+			TEXT("node[\"man_made\"=\"utility_pole\"]%s;"), *B, *B, *B);
+	}
+
+	FString OverpassBusinessStatement(const FString& B)
+	{
+		// Its own union and cap, so a busy downtown cannot push the buildings past theirs.
+		return FString::Printf(TEXT("(nwr[\"shop\"][\"name\"]%s;nwr[\"amenity\"][\"name\"]%s;nwr[\"office\"][\"name\"]%s;);out tags center 3000;"), *B, *B, *B);
 	}
 
 	FString OverpassGeometryStatements(const FString& B)
 	{
 		// Geometry clipped to the tile (out geom(box)): a long road returns only its piece here.
-		return FString::Printf(TEXT("way[\"highway\"~\"%s\"]%s->.r;.r out tags geom%s;")
-			TEXT("(way(around.r:15)[\"barrier\"~\"^(guard_rail|fence|wall|retaining_wall)$\"];way[\"power\"~\"^(line|minor_line)$\"]%s;);out tags geom%s;"),
-			DrivableRegex, *B, *B, *B, *B);
+		// Barriers by the tile's box (an around-filter would walk every road's whole length).
+		return FString::Printf(TEXT("way[\"highway\"~\"%s\"]%s;out tags geom%s;")
+			TEXT("(way[\"barrier\"~\"^(guard_rail|wall|retaining_wall)$\"]%s;way[\"power\"~\"^(line|minor_line)$\"]%s;);out tags geom%s;"),
+			DrivableRegex, *B, *B, *B, *B, *B);
 	}
 
 	int32 ParseMaxSpeedKph(const FString& Text)
@@ -428,11 +436,28 @@ namespace SimCruiseRoadsideData
 		return true;
 	}
 
+	bool IsKnown(const FIntPoint& Tile)
+	{
+		{
+			FScopeLock Lock(&RoadsideLock);
+			if (RoadsideCache().Contains(Tile)) return true;
+			if (MissingFiles().Contains(Tile)) return false;
+		}
+		const bool bFile = FPaths::FileExists(CachePath(Tile));
+		if (!bFile)
+		{
+			FScopeLock Lock(&RoadsideLock);
+			MissingFiles().Add(Tile);
+		}
+		return bFile;
+	}
+
 	void Store(const FIntPoint& Tile, const FSimCruiseRoadside& Data, bool bSave)
 	{
 		if (bSave) FFileHelper::SaveStringToFile(ToJson(Tile, Data), *CachePath(Tile), FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 		FScopeLock Lock(&RoadsideLock);
 		RoadsideCache().Add(Tile, Data);
+		MissingFiles().Remove(Tile);
 		// Keep the tiles around the car only.
 		if (RoadsideCache().Num() > 96)
 		{

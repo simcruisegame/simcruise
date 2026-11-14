@@ -130,9 +130,9 @@ bool FSimCruiseContextReadyTest::RunTest(const FString& Parameters)
 		if (Range.Y == 0) { ++Uncovered; continue; }
 		const double Covered = C.Cells[Range.X + Range.Y - 1].S1 - C.Cells[Range.X].S0;
 		if (FMath::Abs(Covered - R.Length()) > 0.01) ++Uncovered;
-		for (int32 i = Range.X; i < Range.X + Range.Y; ++i) if (C.Cells[i].S1 - C.Cells[i].S0 > SimCruiseCellContext::CellM + 1e-3) ++Uncovered;
+		for (int32 i = Range.X; i < Range.X + Range.Y; ++i) if (C.Cells[i].S1 - C.Cells[i].S0 > SimCruiseCellContext::CellM * 1.05) ++Uncovered; // 5 degree bands
 	}
-	TestEqual(TEXT("every road covered by cells of 32 m or less"), Uncovered, 0);
+	TestEqual(TEXT("every road covered by cells of about 32 m"), Uncovered, 0);
 	const double Speed = 100.0 / 3.6;
 	for (const double Lat : { 25.78, 35.48, 45.0 })
 	{
@@ -480,6 +480,205 @@ bool FSimCruiseFallbackGroundTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("two built neighbours"), Neighbours, 2);
 	TestEqual(TEXT("mean of the shared edges"), H, (10.0 + 12.0 + 14.0 + 20.0 + 22.0 + 24.0) / 6.0, 1e-6);
 	TestEqual(TEXT("no neighbour: the default"), SimCruiseFallbackGround::HeightM(FIntPoint(0, 0), [](const FIntPoint&) -> const FSimCruiseTileBuild* { return nullptr; }, -5.0), -5.0, 1e-9);
+	return true;
+}
+#endif
+
+
+
+#if WITH_DEV_AUTOMATION_TESTS
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseRuralSectionTest, "SimCruise.World.RuralCrossSection", SimCruiseCellContextTest::Flags)
+bool FSimCruiseRuralSectionTest::RunTest(const FString& Parameters)
+{
+	// A rural road along a 20 % hillside (the ground rises to the north): beyond the uphill
+	// shoulder the ground drops into a ditch (foreslope 1:4, about 0.45 m deep) before the cut
+	// rises back to the hill; far out the natural ground is untouched.
+	constexpr double Side = 550.0;
+	const int32 Grid = 64;
+	FString H;
+	for (int32 j = 0; j <= Grid; ++j)
+	for (int32 i = 0; i <= Grid; ++i)
+	{
+		const double South = (j / double(Grid)) * Side;
+		if (!H.IsEmpty()) H += TEXT(",");
+		H += FString::Printf(TEXT("%.3f"), 100.0 + 0.2 * (0.5 * Side - South));
+	}
+	FSimCruiseTileData Data;
+	FString Error;
+	const FString Json = FString::Printf(TEXT("{\"id\":[300,600],\"grid\":%d,\"h\":[%s],\"roads\":[[\"secondary\",0,\"Hill Road\",[[0.05,0.5],[0.95,0.5]],7]]}"), Grid, *H);
+	if (!TestTrue(FString::Printf(TEXT("synthetic tile parses (%s)"), *Error), SimCruiseTileData::Parse(Json, Data, Error))) return false;
+	const TSharedRef<FSimCruiseTileBuild> B = SimCruiseTileBuilder::Build(Data, Side);
+	FSimCruiseRoadHit Hit;
+	const FVector2d Mid(0.5 * Side, 0.5 * Side);
+	if (!TestTrue(TEXT("the road is there"), B->Roads.FindNearest(Mid, 10.0, Hit))) return false;
+	const FSimCruiseRibbon& R = B->Roads.Ribbons[Hit.Ribbon];
+	const FSimCruiseRibbonStation& St = R.St[Hit.Station];
+	// The uphill side: -y (north). Which ribbon side that is depends on the station direction.
+	const int32 Up = FVector2d::DotProduct(St.R, FVector2d(0.0, -1.0)) > 0.0 ? 1 : 0;
+	TestTrue(TEXT("a rural edge"), R.Sides[Up].Edge.IsValidIndex(Hit.Station) && R.Sides[Up].Edge[Hit.Station] == ESimCruiseRoadEdge::Rural);
+	double Outer = 0.0, OuterH = 0.0;
+	B->Roads.OuterEdge(Hit.Ribbon, Hit.Station, Up, Outer, OuterH);
+	const FVector2d Dir = St.R * (Up == 1 ? 1.0 : -1.0);
+	double Lowest = 1e9, LowestD = 0.0;
+	for (double D = 0.5; D <= 5.0; D += 0.25)
+	{
+		const double Z = B->TerrainHeightAt(St.C + Dir * (Outer + D));
+		if (Z < Lowest) { Lowest = Z; LowestD = D; }
+	}
+	const double FarD = 25.0;
+	const FVector2d FarP = St.C + Dir * (Outer + FarD);
+	const double Far = B->TerrainHeightAt(FarP), FarNatural = Data.HeightAtUnit(FarP / Side);
+	AddInfo(FString::Printf(TEXT("shoulder %.2f m; ditch %.2f m below it at %.1f m out; 25 m out %.2f m (natural %.2f)"), OuterH, OuterH - Lowest, LowestD, Far, FarNatural));
+	TestTrue(TEXT("a ditch below the shoulder on the uphill side"), OuterH - Lowest > 0.25 && OuterH - Lowest < 0.9);
+	TestTrue(TEXT("the hill untouched 25 m out"), FMath::Abs(Far - FarNatural) < 0.3);
+	return true;
+}
+#endif
+
+#if WITH_DEV_AUTOMATION_TESTS
+#include "World/SimCruiseTileDetail.h"
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseRoofColourTest, "SimCruise.World.Buildings.RoofColourFromAerial", SimCruiseCellContextTest::Flags)
+bool FSimCruiseRoofColourTest::RunTest(const FString& Parameters)
+{
+	// A synthetic zoom-14 photograph (1024 px, about 2.1 m a pixel): grass, with a red roof
+	// 40 m square in the middle of the tile. The roof's colour is read from inside its outline,
+	// kept red, and clamped to a roof's saturation and albedo; a 3 m shed is too small to read.
+	constexpr double Side = 550.0;
+	FSimCruiseTileData Data;
+	Data.Id = FIntPoint(400, 800); // the north-west cell of zoom-14 tile (100, 200)
+	FSimCruiseTileBuild Build;
+	FSimCruiseAerialImage Img;
+	Img.Width = Img.Height = 1024;
+	Img.Pixels.Init(FColor(70, 110, 45), 1024 * 1024);
+	const double PxM = Side * 4.0 / 1024.0;
+	for (int32 y = 0; y < 1024; ++y)
+	for (int32 x = 0; x < 1024; ++x)
+	{
+		const double Mx = (x + 0.5) * PxM, My = (y + 0.5) * PxM; // metres in this tile (cell 0,0)
+		if (Mx > 255.0 && Mx < 295.0 && My > 255.0 && My < 295.0) Img.Pixels[y * 1024 + x] = FColor(200, 60, 50);
+	}
+	const SimCruiseTileDetail::FContext X{ Data, Build, Side, 25.0, -80.0, {}, {}, {}, nullptr, &Img };
+	const TArray<FVector2d> Roof = { FVector2d(255, 255), FVector2d(295, 255), FVector2d(295, 295), FVector2d(255, 295) };
+	FLinearColor C;
+	if (!TestTrue(TEXT("a roof colour is read"), SimCruiseTileDetail::RoofColourFromAerial(X, Roof, C))) return false;
+	const float L = 0.2126f * C.R + 0.7152f * C.G + 0.0722f * C.B;
+	const float Sat = (FMath::Max3(C.R, C.G, C.B) - FMath::Min3(C.R, C.G, C.B)) / FMath::Max3(C.R, C.G, C.B);
+	AddInfo(FString::Printf(TEXT("roof %.3f %.3f %.3f, luminance %.3f, saturation %.2f"), C.R, C.G, C.B, L, Sat));
+	TestTrue(TEXT("still red"), C.R > C.G && C.R > C.B);
+	TestTrue(TEXT("saturation clamped"), Sat <= 0.451f);
+	TestTrue(TEXT("albedo in the roof range"), L >= 0.039f && L <= 0.601f);
+	const TArray<FVector2d> Shed = { FVector2d(100, 100), FVector2d(103, 100), FVector2d(103, 103), FVector2d(100, 103) };
+	TestFalse(TEXT("a 3 m shed is too small to read"), SimCruiseTileDetail::RoofColourFromAerial(X, Shed, C));
+	const SimCruiseTileDetail::FContext NoPhoto{ Data, Build, Side, 25.0, -80.0, {}, {}, {}, nullptr, nullptr };
+	TestFalse(TEXT("no photograph: the rules"), SimCruiseTileDetail::RoofColourFromAerial(NoPhoto, Roof, C));
+	return true;
+}
+#endif
+
+#if WITH_DEV_AUTOMATION_TESTS
+#include "World/SimCruiseScan.h"
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseScanRulesTest, "SimCruise.World.Scan.RulesScan", SimCruiseCellContextTest::Flags)
+bool FSimCruiseScanRulesTest::RunTest(const FString& Parameters)
+{
+	// The rules-only scan of the Ocean Drive tile: every cell has a class, two bakes are
+	// byte-identical but for the build time, the file reads back the same, and the classes are
+	// where the map puts them (carriageways, roofs, water, the beach).
+	FSimCruiseTileData Data;
+	double Side;
+	if (!SimCruiseCellContextTest::LoadOceanDrive(*this, Data, Side)) return false;
+	const TSharedRef<FSimCruiseTileBuild> Build = SimCruiseTileBuilder::Build(Data, Side);
+	FSimCruiseTileScan A, B;
+	SimCruiseScan::BakeRules(Data, *Build, A);
+	SimCruiseScan::BakeRules(Data, *Build, B);
+	const TArray<uint8> Ba = A.SerializeWithoutTime(), Bb = B.SerializeWithoutTime();
+	TestTrue(TEXT("two bakes byte-identical (but the time)"), Ba == Bb);
+	int32 Unknown = 0, Counts[64] = { 0 };
+	for (const FColor& C : A.Clas) { Unknown += C.R == 0; ++Counts[C.R & 63]; }
+	int32 KerbCells = 0; // a 17 cm curb is a 1 m cell's second class, rarely its first
+	for (const FColor& C : A.Clas) KerbCells += C.R == 23 || C.G == 23;
+	TestEqual(TEXT("every cell classed"), Unknown, 0);
+	const int32 N = SimCruiseScan::Stored * SimCruiseScan::Stored;
+	using SimCruiseScan::EClass;
+	auto Share = [&](EClass C) { return 100.0 * Counts[static_cast<int32>(C)] / N; };
+	AddInfo(FString::Printf(TEXT("bake %.0f ms; asphalt %.1f %%, roof %.1f %%, water %.1f %%, sand %.1f %%, grass %.1f %%, kerb %.1f %%, concrete %.1f %%; file %.2f MB"),
+		A.BuildSeconds * 1000.0, Share(EClass::Asphalt), Share(EClass::Roof), Share(EClass::Water), Share(EClass::Sand), Share(EClass::GrassShort) + Share(EClass::DryGrass),
+		Share(EClass::Kerb), Share(EClass::Concrete), Ba.Num() / 1048576.0));
+	TestTrue(TEXT("carriageways"), Share(EClass::Asphalt) > 3.0);
+	TestTrue(TEXT("roofs"), Share(EClass::Roof) > 5.0);
+	TestTrue(FString::Printf(TEXT("kerbs (%.2f %% of cells hold one)"), 100.0 * KerbCells / N), 100.0 * KerbCells / N > 0.03);
+	FSimCruiseTileScan Back;
+	FString Error;
+	if (TestTrue(FString::Printf(TEXT("reads back (%s)"), *Error), Back.Deserialize(A.Serialize(), Error)))
+	{
+		TestTrue(TEXT("round trip identical"), Back.SerializeWithoutTime() == Ba);
+		TestTrue(TEXT("meta kept"), Back.Meta == A.Meta && Back.Meta.Contains(TEXT("\"scan_version\":3")));
+	}
+	// A cell on Ocean Drive's carriageway is asphalt.
+	const FSimCruiseRibbon* Ocean = Build->Roads.Ribbons.FindByPredicate([](const FSimCruiseRibbon& R) { return R.Name == TEXT("Ocean Drive") && R.St.Num() > 10; });
+	if (TestNotNull(TEXT("Ocean Drive on the tile"), Ocean))
+	{
+		const FIntPoint Cell = A.CellOf(Ocean->St[Ocean->St.Num() / 2].C, Side);
+		TestEqual(TEXT("Ocean Drive is asphalt"), static_cast<int32>(A.ClassAt(Cell.X, Cell.Y)), static_cast<int32>(EClass::Asphalt));
+	}
+	TestTrue(TEXT("a bake under 1 s (a worker; about 0.3 s on an idle PC)"), A.BuildSeconds < 1.0);
+	return true;
+}
+#endif
+
+#if WITH_DEV_AUTOMATION_TESTS
+#include "Live/SimCruiseAerialEye.h"
+#include "Scan/SimCruiseScanEye.h"
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseScanEyeFuseTest, "SimCruise.World.Scan.EyeFusion", SimCruiseCellContextTest::Flags)
+bool FSimCruiseScanEyeFuseTest::RunTest(const FString& Parameters)
+{
+	// Eye off: the rules scan is complete. Eye on (synthetic channels in the eye's own 528 x 528
+	// grid): a sure grass channel turns rule ground into lawn, never a road or a roof; a weak
+	// bare-ground channel changes nothing; the grass tint fills TINT; every cell keeps a class.
+	FSimCruiseTileData Data;
+	double Side;
+	if (!SimCruiseCellContextTest::LoadOceanDrive(*this, Data, Side)) return false;
+	const TSharedRef<FSimCruiseTileBuild> Build = SimCruiseTileBuilder::Build(Data, Side);
+	FSimCruiseTileScan Rules;
+	SimCruiseScan::BakeRules(Data, *Build, Rules);
+	const int32 N = SimCruiseScan::Stored * SimCruiseScan::Stored;
+	int32 Unknown = 0;
+	for (const FColor& C : Rules.Clas) Unknown += C.R == 0;
+	TestEqual(TEXT("eye off: every cell classed"), Unknown, 0);
+
+	using SimCruiseScan::EClass;
+	TArray<FSimCruiseScanChannel> Channels;
+	FSimCruiseScanChannel& Grass = Channels.AddDefaulted_GetRef();
+	Grass.Name = TEXT("surface_logits_grass_short"); Grass.Size = SimCruiseScan::Stored; Grass.Confidence = 1.0f; Grass.Data.Init(250, N);
+	FSimCruiseScanChannel& Bare = Channels.AddDefaulted_GetRef();
+	Bare.Name = TEXT("surface_logits_bare_soil"); Bare.Size = SimCruiseScan::Stored; Bare.Confidence = 1.0f; Bare.Data.Init(100, N); // under 0.5: ignored
+	TArray<FSimCruiseClassTint> Tints;
+	FSimCruiseClassTint& T = Tints.AddDefaulted_GetRef();
+	T.Channel = TEXT("surface_logits_grass_short"); T.Mean = FColor(90, 110, 60); T.Share = 0.2f; T.Confidence = 0.9f;
+
+	FSimCruiseTileScan Fused = Rules;
+	const int32 Changed = SimCruiseScan::FuseEye(Fused, TEXT("test_eye"), Channels, Tints);
+	int32 RoadOrRoofChanged = 0, ParkingToGrass = 0, Unknown2 = 0;
+	for (int32 k = 0; k < N; ++k)
+	{
+		const uint8 Before = Rules.Clas[k].R, After = Fused.Clas[k].R;
+		Unknown2 += After == 0;
+		if ((Before == static_cast<uint8>(EClass::Asphalt) || Before == static_cast<uint8>(EClass::Roof) || Before == static_cast<uint8>(EClass::Kerb)) && After != Before) ++RoadOrRoofChanged;
+		if (Before == static_cast<uint8>(EClass::Parking) && After == static_cast<uint8>(EClass::GrassShort)) ++ParkingToGrass;
+	}
+	AddInfo(FString::Printf(TEXT("eye on: %d cells changed, %d rule lots to lawn; grass tint %d %d %d"), Changed, ParkingToGrass,
+		Fused.Tint[static_cast<int32>(EClass::GrassShort)].R, Fused.Tint[static_cast<int32>(EClass::GrassShort)].G, Fused.Tint[static_cast<int32>(EClass::GrassShort)].B));
+	TestEqual(TEXT("map geometry wins: no road, kerb or roof changed"), RoadOrRoofChanged, 0);
+	TestTrue(TEXT("a sure eye changes rule ground"), ParkingToGrass > 0);
+	TestEqual(TEXT("eye on: every cell classed"), Unknown2, 0);
+	TestTrue(TEXT("the grass tint is filled"), Fused.Tint[static_cast<int32>(EClass::GrassShort)].Confidence > 200);
+	TestTrue(TEXT("META names the eye"), Fused.Meta.Contains(TEXT("test_eye")));
+	// The weak bare channel alone changes nothing.
+	FSimCruiseTileScan WeakOnly = Rules;
+	TArray<FSimCruiseScanChannel> Weak = { Bare };
+	TestEqual(TEXT("bare ground under 0.5 is ignored"), SimCruiseScan::FuseEye(WeakOnly, TEXT("test_eye"), Weak, TArray<FSimCruiseClassTint>()), 0);
 	return true;
 }
 #endif

@@ -46,7 +46,17 @@ namespace SimCruiseTileDetail
 		TFunction<bool(const FVector2d&)> IsWater;
 		/** The tile's context record (climate, species, per-segment roadside); null in old callers. */
 		const FSimCruiseTileContext* Cells = nullptr;
+		/** The tile's aerial photograph (zoom 14, this tile one of its 4 x 4 cells); null: none. */
+		const FSimCruiseAerialImage* Aerial = nullptr;
 	};
+
+	/**
+	 * A roof's colour seen from above: the median of the photograph's pixels well inside the
+	 * footprint (half a pixel in from its outline, so walls and shadows at the edge stay out),
+	 * linear, clamped to the albedo range of roofs (luminance 0.04-0.60, saturation 0.45 at most).
+	 * False when there is no photograph or under 6 pixels fall inside.
+	 */
+	SIMCRUISE_API bool RoofColourFromAerial(const FContext& Context, const TArray<FVector2d>& RingM, FLinearColor& OutColour);
 
 	/** Footprints extruded by the place's recipe into the Building layer. */
 	SIMCRUISE_API void BuildBuildings(const FContext& Context);

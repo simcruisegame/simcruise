@@ -140,14 +140,20 @@ namespace SimCruiseCellContext
 	SIMCRUISE_API uint32 DataHash(const FInputs& In);
 
 	/** Bakes the record (pure; worker thread safe). */
-	SIMCRUISE_API void Bake(const FInputs& In, FSimCruiseTileContext& Out);
+	/** KnownHash: DataHash(In) when the caller has it already. */
+	SIMCRUISE_API void Bake(const FInputs& In, FSimCruiseTileContext& Out, const uint32* KnownHash = nullptr);
 
 	/** The record from the cache by (tile, rules version, data hash), baked and stored when missing. */
 	SIMCRUISE_API TSharedRef<const FSimCruiseTileContext, ESPMode::ThreadSafe> ForBuild(const FInputs& In, bool* bOutCacheHit = nullptr);
 	SIMCRUISE_API void ClearCache();
 
-	/** The stable seed of a cell: its OSM way and 32 m station, else its quantised world position. */
-	SIMCRUISE_API uint32 StableSeed(int64 WayId, int32 WayStation, const FVector2d& WorldM, FName RoadClass);
+	/** The stable seed of a cell: its OSM way and 32 m station, else its quantised global position. */
+	SIMCRUISE_API uint32 StableSeed(int64 WayId, int32 WayStation, const FVector2d& GlobalM, FName RoadClass);
+
+	/** Web Mercator metres of a z16 tile (equatorial tile size): global and the same in every session. */
+	inline constexpr double MercatorTileM = 40075016.685578488 / 65536.0;
+	/** The cell length in Mercator metres at a latitude: 32 m on the ground, by 5 degree bands. */
+	SIMCRUISE_API double CellMercatorM(double LatDeg);
 
 	/** Species weights for a climate class at a place (data/knowledge has no tree rules yet: estimates here). */
 	SIMCRUISE_API void SpeciesFor(uint8 Koppen, FName Climate, double LatDeg, double LonDeg, TArray<TPair<FName, float>>& Out);

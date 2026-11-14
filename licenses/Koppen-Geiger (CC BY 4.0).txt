@@ -1,0 +1,16 @@
+Köppen-Geiger climate classification maps, 1991-2020
+
+Source: Beck, H.E., McVicar, T.R., Vergopolan, N., Berg, A., Lutsko, N.J., Dufour, A.,
+Zeng, Z., Jiang, X., van Dijk, A.I.J.M., Miralles, D.G. (2023). High-resolution (1 km)
+Köppen-Geiger maps for 1901-2099 based on constrained CMIP6 projections.
+Scientific Data 10, 724. https://doi.org/10.1038/s41597-023-02549-6
+Data: https://doi.org/10.6084/m9.figshare.21789074 (koppen_geiger_tif.zip, file
+1991_2020/koppen_geiger_0p00833333.tif)
+
+Licence: Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+
+Changes: the 1 km map was reduced to 0.05 degree cells by majority of the land pixels
+(sea pixels do not vote) with lab/koppen/make_grid.py, and saved as an 8-bit grey PNG:
+data/climate/koppen-1991-2020.png (pixel value = the source's class number, 1 Af ... 30 EF;
+0 = sea or no data).

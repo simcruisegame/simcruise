@@ -134,6 +134,7 @@ private:
 
 void ASimCruisePlayerController::StartMenuInput()
 {
+	SimCruiseTheme::EnsurePadWatcher();
 	if (MenuInput.IsValid() || !FSlateApplication::IsInitialized()) return;
 	MenuInput = MakeShared<FSimCruiseMenuInput>(this);
 	FSlateApplication::Get().RegisterInputPreProcessor(MenuInput);
@@ -153,6 +154,7 @@ bool ASimCruisePlayerController::IsMenuButtonDown() const
 void ASimCruisePlayerController::NotePadUse(bool bPad)
 {
 	bUsingGamepad = bPad;
+	SimCruiseTheme::SetPadInUse(bPad);
 	// The cursor shows for the mouse and hides while the pad drives the screens.
 	if (IsOverlayOpen()) bShowMouseCursor = !bPad;
 }

@@ -308,7 +308,11 @@ void USimCruisePlaceGraphSubsystem::FetchAhead()
 			{
 				if (FMath::Max(FMath::Abs(dx), FMath::Abs(dy)) != R) continue;
 				const FIntPoint Tile = Here + FIntPoint(dx, dy);
-				if (Failed.Contains(Tile) || SimCruisePlaceFacts::IsKnown(Tile)) continue;
+				// Place facts and the roadside come in one answer; a tile whose place facts are
+				// bundled or cached still asks once for its roadside (and keeps its place facts).
+				const bool bPlaces = SimCruisePlaceFacts::IsKnown(Tile);
+				if (Failed.Contains(Tile) || (bPlaces && SimCruiseRoadsideData::IsKnown(Tile))) continue;
+				bRoadsideOnly = bPlaces;
 				StartFetch(Tile);
 				return;
 			}
@@ -342,6 +346,38 @@ void USimCruisePlaceGraphSubsystem::OnOverpass(const FIntPoint& Tile, const FStr
 {
 	// Keep the answer as text: Overpass answers run to megabytes, so they are parsed on a
 	// worker thread with the Wikidata answer (OnWikidata), never on the game thread.
+	if (bRoadsideOnly)
+	{
+		// Only the roadside is new for this tile: parse it on a worker, no Wikidata.
+		if (!bOk)
+		{
+			LastError = FString::Printf(TEXT("Overpass %s (%s): no answer"), *SimCruiseTileName(Tile), *SimCruisePlaceFacts::OverpassUrl(OverpassAttempt));
+			++OverpassAttempt;
+			bFetching = false;
+			Failed.Add(Tile);
+			NextFetch = FPlatformTime::Seconds() + 10.0;
+			return;
+		}
+		TWeakObjectPtr<USimCruisePlaceGraphSubsystem> Weak(this);
+		Async(EAsyncExecution::ThreadPool, [Weak, Tile, Body]()
+		{
+			FSimCruiseRoadside Roadside;
+			FString Error;
+			const bool bParsed = SimCruiseRoadsideData::ParseOverpass(Body, Roadside, Error);
+			if (bParsed) SimCruiseRoadsideData::Store(Tile, Roadside, true);
+			AsyncTask(ENamedThreads::GameThread, [Weak, Tile, bParsed]()
+			{
+				if (!Weak.IsValid()) return;
+				USimCruisePlaceGraphSubsystem& S = *Weak;
+				S.bFetching = false;
+				++S.Fetched;
+				if (!bParsed) S.Failed.Add(Tile);
+				// The Overpass fair-use rule: one request at a time, a pause between them.
+				S.NextFetch = FPlatformTime::Seconds() + 3.0;
+			});
+		});
+		return;
+	}
 	PendingOsmBody = bOk ? Body : FString();
 	if (!bOk)
 	{

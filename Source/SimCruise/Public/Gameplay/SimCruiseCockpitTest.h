@@ -20,6 +20,8 @@ namespace SimCruiseCockpitRules
 	constexpr double MaxWheelOffAxisDeg = 0.5;
 	constexpr double MaxHubMoveCm = 0.1;
 	constexpr double MaxRimTiltDeg = 2.0;
+	/** The rim circle's centre from the column axis (cm), as the rig check holds it. */
+	constexpr double MaxRimAxisOffsetCm = 0.5;
 	/** The rim angle at full lock may differ from the car data's by this share. */
 	constexpr double MaxLockError = 0.05;
 	/** Cluster pixels that change by more than 25 of 255 between the centre and full lock (wheel hidden). */
@@ -29,6 +31,13 @@ namespace SimCruiseCockpitRules
 	SIMCRUISE_API double OffAxisDeg(const FQuat& Rotation, const FVector& Axis);
 	/** The normal of the best plane through the points (least squares); zero with fewer than 3. */
 	SIMCRUISE_API FVector PlaneNormal(const TArray<FVector>& Points);
+
+	/**
+	 * The rim as a circle: a plane through the points, then a least-squares circle in that plane
+	 * (Kasa), three passes that drop points off the rim's tube (over 1.5 cm from the plane or 15 %
+	 * from the radius: spokes, the hub, a flat bottom's straight part). False with too few points.
+	 */
+	SIMCRUISE_API bool FitRimCircle(const TArray<FVector>& Points, FVector& OutNormal, FVector& OutCentre, double& OutRadius, int32& OutKept);
 }
 
 /**
@@ -105,6 +114,8 @@ private:
 	TArray<FPose> Poses;
 	bool bShotPending = false;
 	int32 NoWheelFrames = 0;
+	/** The wheel's own shadow setting, put back after the picture without the wheel. */
+	bool bWheelCastShadow = false;
 	FDelegateHandle ShotHandle;
 	FString CarId;
 	double FullLockRoadWheelDeg = 0.0;

@@ -301,6 +301,19 @@ float3 detail = (p1 * lerp(1.0, p2, 0.4)) * (bare + paved) + grass * veg + s1 * 
 float dl = dot(detail, W);
 float3 hue = lerp(float3(1.0, 1.0, 1.0), detail / max(dl, 0.001), 0.3 * veg + 0.15 * sand);
 baseColor *= lerp(1.0, dl, 0.55 * veg + 0.25 * sand + 0.4 * (bare + paved)) * hue;
+// Albedo limits (docs/team/research/realtime-context.md, item 4): lawns and meadows keep a
+// grass albedo (luminance 0.18 at most) and a natural saturation (0.55 at most), so a field
+// never turns neon; the photograph's tone and the class colour keep their hue.
+{
+	float Lb = max(dot(baseColor, W), 1e-4);
+	float mx = max(baseColor.r, max(baseColor.g, baseColor.b)), mn = min(baseColor.r, min(baseColor.g, baseColor.b));
+	float sat = (mx - mn) / max(mx, 1e-4);
+	float sMax = lerp(1.0, 0.55, veg);
+	// The exact pull toward grey that leaves saturation sMax (c' = L + k (c - L)).
+	float den = (mx - mn) - sMax * (mx - Lb);
+	baseColor = Lb + (baseColor - Lb) * (sat > sMax && den > 1e-5 ? saturate(sMax * Lb / den) : 1.0);
+	baseColor *= min(1.0, lerp(0.8, 0.18, veg) / Lb);
+}
 baseColor = lerp(baseColor, float3(0.025, 0.15, 0.17), water);
 // Snow lying now (MODIS snow cover, set per tile by ASimCruiseRegionalTerrain): settled snow
 // over the ground, thinner where grass and shrubs poke through.
