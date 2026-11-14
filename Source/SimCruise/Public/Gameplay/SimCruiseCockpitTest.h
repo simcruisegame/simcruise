@@ -101,6 +101,7 @@ private:
 	int32 PoseIndex = 0;
 	TArray<FPose> Poses;
 	bool bShotPending = false;
+	int32 NoWheelFrames = 0;
 	FDelegateHandle ShotHandle;
 	FString CarId;
 	double FullLockRoadWheelDeg = 0.0;

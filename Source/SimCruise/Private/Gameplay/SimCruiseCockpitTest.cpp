@@ -192,6 +192,11 @@ void ASimCruiseCockpitTest::Tick(float DeltaSeconds)
 	case EStage::ShotWheel:
 	case EStage::ShotNoWheel:
 		if (Player) Player->InjectAxis(EKeys::Gamepad_LeftX, PoseSpecs[PoseIndex].Stick);
+		// The wheel hidden for three frames, then the second picture.
+		if (Stage == EStage::ShotNoWheel && !bShotPending && ++NoWheelFrames == 3)
+		{
+			RequestShot();
+		}
 		if (Now - StageStarted > 10.0)
 		{
 			// No picture came: go on without it (the image check then has nothing to judge).
@@ -227,7 +232,8 @@ void ASimCruiseCockpitTest::Record(ASimCruisePlayerController& Player, FPose& Po
 		if (!Mesh || !IsCockpitPart(Mesh->GetName())) continue;
 		FPartPose& Part = Pose.Parts.AddDefaulted_GetRef();
 		Part.Name = Mesh->GetName();
-		Part.World = Mesh->GetComponentTransform();
+		// In the car's own frame: the car may creep or settle a little between poses, and that is not the cockpit moving.
+		Part.World = Mesh->GetComponentTransform().GetRelativeTransform(Model->GetComponentTransform());
 		Part.BoundsCentre = Mesh->GetStaticMesh() ? Part.World.TransformPosition(Mesh->GetStaticMesh()->GetBounds().Origin) : Part.World.GetLocation();
 		for (const USceneComponent* P = Mesh->GetAttachParent(); P && P != Model; P = P->GetAttachParent()) Part.Parent += P->GetName() + TEXT("/");
 		// The cluster on screen: the dial faces' and needles' boxes.
@@ -287,11 +293,12 @@ void ASimCruiseCockpitTest::OnShot(int32 Width, int32 Height, const TArray<FColo
 	{
 		Pose.Pixels = Pixels;
 		SavePng(Pose.Name, Width, Height, Pixels);
-		// The same pose without the steering wheel: what stays is the cluster behind it.
+		// The same pose without the steering wheel: what stays is the cluster behind it. The request
+		// waits for the next frames (one made inside this callback is dropped by the engine).
 		if (Wheel)
 		{
 			Wheel->SetVisibility(false);
-			RequestShot();
+			NoWheelFrames = 0;
 			Stage = EStage::ShotNoWheel;
 			StageStarted = FPlatformTime::Seconds();
 			return;
@@ -349,7 +356,8 @@ void ASimCruiseCockpitTest::Judge()
 				continue;
 			}
 			if (Part.Name.StartsWith(TEXT("dial_")) && Part.Parent.Contains(TEXT("steering_wheel"))) Hanging.Add(Part.Name);
-			const double Move = FVector::Dist(Part.World.GetLocation(), C->World.GetLocation());
+			// A needle's mesh origin is not its pivot: turning about the pivot moves the origin, so only its turn axis is judged.
+			const double Move = Part.Name.Contains(TEXT("_needle")) ? 0.0 : FVector::Dist(Part.World.GetLocation(), C->World.GetLocation());
 			// A needle turns about its own +Z by the value it shows; nothing else may turn.
 			const double Turn = Part.Name.Contains(TEXT("_needle")) ? OffAxisDeg(Rel, FVector::ZAxisVector) : FMath::RadiansToDegrees(Rel.GetAngle());
 			if (Move > MaxFixedMove || Turn > MaxFixedTurn) WorstFixed = FString::Printf(TEXT("%s at %s"), *Part.Name, *Pose.Name);

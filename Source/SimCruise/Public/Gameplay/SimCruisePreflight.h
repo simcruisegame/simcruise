@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Async/Future.h"
 #include "Gameplay/SimCruiseReview.h"
 #include "SimCruisePreflight.generated.h"
 
@@ -235,6 +236,8 @@ private:
 	FSimCruisePreflightStats Stats;
 	/** -SimCruiseReview: frames, sidecars and close-ups for a person to look at. */
 	FSimCruiseReviewRecorder Review;
+	/** Frames still being written as JPEG on worker threads. */
+	TArray<TFuture<void>> JpegJobs;
 	double SpeedSum = 0.0;
 	int32 SpeedSamples = 0;
 	FVector LastCarCm = FVector::ZeroVector;

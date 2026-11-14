@@ -23,6 +23,7 @@
 #include "ImageUtils.h"
 #include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
+#include "Async/Async.h"
 #include "Misc/App.h"
 #include "Misc/CommandLine.h"
 #include "Misc/FileHelper.h"
@@ -904,10 +905,19 @@ void ASimCruisePreflight::OnFrame(int32 Width, int32 Height, const TArray<FColor
 	}
 	bFramePending = false;
 	CaptureSkip = FMath::Max(CaptureSkip, 1);
-	TArray64<uint8> Jpeg;
-	if (FImageUtils::CompressImage(Jpeg, TEXT("jpg"), FImageView(Pixels.GetData(), Width, Height), 85))
+	// The JPEG on a worker thread: on the game thread it stalled the frame a person watches.
 	{
-		FFileHelper::SaveArrayToFile(Jpeg, *FPaths::Combine(OutputDir, TEXT("frames"), FString::Printf(TEXT("%05d.jpg"), FrameIndex)));
+		TArray<FColor> Copy = Pixels;
+		const FString JpegPath = FPaths::Combine(OutputDir, TEXT("frames"), FString::Printf(TEXT("%05d.jpg"), FrameIndex));
+		JpegJobs.Add(Async(EAsyncExecution::ThreadPool, [Copy = MoveTemp(Copy), Width, Height, JpegPath]()
+		{
+			TArray64<uint8> Jpeg;
+			if (FImageUtils::CompressImage(Jpeg, TEXT("jpg"), FImageView(Copy.GetData(), Width, Height), 85))
+			{
+				FFileHelper::SaveArrayToFile(Jpeg, *JpegPath);
+			}
+		}));
+		JpegJobs.RemoveAll([](const TFuture<void>& Job) { return Job.IsReady(); });
 	}
 	Review.OnFrame(Width, Height, Pixels);
 	++FrameIndex;
@@ -958,6 +968,9 @@ void ASimCruisePreflight::OnFrame(int32 Width, int32 Height, const TArray<FColor
 
 void ASimCruisePreflight::Finish()
 {
+	// Every frame on disk before the script makes the video.
+	for (TFuture<void>& Job : JpegJobs) Job.Wait();
+	JpegJobs.Reset();
 	if (Stage == EStage::Done)
 	{
 		return;
