@@ -305,10 +305,10 @@ namespace SimCruiseTheme
 
 	ENav NavOf(const FKey& Key)
 	{
-		if (Key == EKeys::Up || Key == EKeys::Gamepad_DPad_Up || Key == EKeys::Gamepad_LeftStick_Up || Key == EKeys::W) return ENav::Up;
-		if (Key == EKeys::Down || Key == EKeys::Gamepad_DPad_Down || Key == EKeys::Gamepad_LeftStick_Down || Key == EKeys::S) return ENav::Down;
-		if (Key == EKeys::Left || Key == EKeys::Gamepad_DPad_Left || Key == EKeys::Gamepad_LeftStick_Left || Key == EKeys::A) return ENav::Left;
-		if (Key == EKeys::Right || Key == EKeys::Gamepad_DPad_Right || Key == EKeys::Gamepad_LeftStick_Right || Key == EKeys::D) return ENav::Right;
+		if (Key == EKeys::Up || Key == EKeys::Gamepad_DPad_Up || Key == EKeys::W) return ENav::Up;
+		if (Key == EKeys::Down || Key == EKeys::Gamepad_DPad_Down || Key == EKeys::S) return ENav::Down;
+		if (Key == EKeys::Left || Key == EKeys::Gamepad_DPad_Left || Key == EKeys::A) return ENav::Left;
+		if (Key == EKeys::Right || Key == EKeys::Gamepad_DPad_Right || Key == EKeys::D) return ENav::Right;
 		if (Key == EKeys::Gamepad_FaceButton_Bottom || Key == EKeys::Enter || Key == EKeys::SpaceBar || Key == EKeys::Virtual_Accept) return ENav::Accept;
 		if (Key == EKeys::Gamepad_FaceButton_Right || Key == EKeys::Escape || Key == EKeys::BackSpace || Key == EKeys::Virtual_Back) return ENav::Back;
 		if (Key == EKeys::Gamepad_LeftShoulder || Key == EKeys::Q || Key == EKeys::PageUp) return ENav::PrevPage;
@@ -319,6 +319,68 @@ namespace SimCruiseTheme
 		if (Key == EKeys::Gamepad_LeftTrigger || Key == EKeys::Hyphen || Key == EKeys::Subtract) return ENav::ZoomOut;
 		if (Key == EKeys::Gamepad_Special_Right || Key == EKeys::Tab) return ENav::Menu;
 		return ENav::None;
+	}
+
+	bool IsLeftStick(const FKey& Axis)
+	{
+		return Axis == EKeys::Gamepad_LeftX || Axis == EKeys::Gamepad_LeftY;
+	}
+
+	ENav StickNav(const FKey& Axis, float Value, FStickRepeat& State, double Now)
+	{
+		// Past 0.6 is a push; back under 0.35 lets go. Held, it repeats after 0.4 s, then every 0.16 s.
+		const bool bY = Axis == EKeys::Gamepad_LeftY;
+		if (!bY && Axis != EKeys::Gamepad_LeftX) return ENav::None;
+		ENav& Held = bY ? State.HeldY : State.HeldX;
+		double& Next = bY ? State.NextY : State.NextX;
+		if (FMath::Abs(Value) < 0.35f) { Held = ENav::None; return ENav::None; }
+		if (FMath::Abs(Value) < 0.6f) return ENav::None;
+		const ENav Dir = bY ? (Value > 0.f ? ENav::Up : ENav::Down) : (Value > 0.f ? ENav::Right : ENav::Left);
+		if (Held != Dir) { Held = Dir; Next = Now + 0.4; return Dir; }
+		if (Now >= Next) { Next = Now + 0.16; return Dir; }
+		return ENav::None;
+	}
+
+	bool FocusPad(const TSharedPtr<SWidget>& Widget)
+	{
+		if (!Widget.IsValid() || !FSlateApplication::IsInitialized()) return false;
+		FSlateApplication& App = FSlateApplication::Get();
+		// Each user by index: SetAllUserFocus looks only in real windows, this also finds a virtual one (the tests).
+		if (App.GetUserFocusedWidget(0) != Widget)
+		{
+			App.ForEachUser([&App, &Widget](FSlateUser& User) { App.SetUserFocus(User.GetUserIndex(), Widget, EFocusCause::SetDirectly); });
+		}
+		return App.GetUserFocusedWidget(0) == Widget;
+	}
+
+	TSharedPtr<SWidget> StepGrid(const TArray<TArray<TSharedPtr<SWidget>>>& Rows, const TSharedPtr<SWidget>& From, int32 DX, int32 DY, bool bAcross)
+	{
+		int32 R = INDEX_NONE, C = 0;
+		for (int32 i = 0; i < Rows.Num() && R == INDEX_NONE; ++i) for (int32 j = 0; j < Rows[i].Num(); ++j) if (Rows[i][j] == From) { R = i; C = j; break; }
+		if (R == INDEX_NONE) return nullptr;
+		if (DY != 0)
+		{
+			// From the left edge across: a single wide control lands on the first of the row above.
+			const float Across = static_cast<float>(C) / Rows[R].Num();
+			int32 Next = R + DY;
+			while (Rows.IsValidIndex(Next) && Rows[Next].Num() == 0) Next += DY;
+			if (!Rows.IsValidIndex(Next)) return Rows[R][C];
+			return Rows[Next][FMath::Clamp(FMath::FloorToInt(Across * Rows[Next].Num()), 0, Rows[Next].Num() - 1)];
+		}
+		C += DX;
+		if (C >= Rows[R].Num() || C < 0)
+		{
+			if (!bAcross) return Rows[R][(C + Rows[R].Num()) % Rows[R].Num()];
+			// On into the next (or the last) row that has any control.
+			do { R = (R + (DX > 0 ? 1 : Rows.Num() - 1)) % Rows.Num(); } while (Rows[R].Num() == 0);
+			C = DX > 0 ? 0 : Rows[R].Num() - 1;
+		}
+		return Rows[R][C];
+	}
+
+	bool IsRealMouseMove(const FPointerEvent& Event)
+	{
+		return !Event.GetCursorDelta().IsNearlyZero();
 	}
 
 	TSharedRef<SWidget> TextOf(const TAttribute<FText>& InText, EWeight Weight, float Px, const FLinearColor& Color)
@@ -502,7 +564,7 @@ FReply SSimCruiseGuideRow::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 void SSimCruiseGuideRow::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	SCompoundWidget::OnMouseEnter(MyGeometry, MouseEvent);
-	OnHover.ExecuteIfBound();
+	if (IsRealMouseMove(MouseEvent)) OnHover.ExecuteIfBound();
 }
 
 void SSimCruiseSliderRow::Construct(const FArguments& InArgs)
@@ -595,7 +657,7 @@ FReply SSimCruiseSliderRow::OnMouseButtonDown(const FGeometry& MyGeometry, const
 void SSimCruiseSliderRow::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	SCompoundWidget::OnMouseEnter(MyGeometry, MouseEvent);
-	OnHover.ExecuteIfBound();
+	if (IsRealMouseMove(MouseEvent)) OnHover.ExecuteIfBound();
 }
 
 void SSimCruiseSegmentedRow::Construct(const FArguments& InArgs)
@@ -665,5 +727,41 @@ FReply SSimCruiseSegmentedRow::OnMouseButtonDown(const FGeometry& MyGeometry, co
 void SSimCruiseSegmentedRow::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	SCompoundWidget::OnMouseEnter(MyGeometry, MouseEvent);
-	OnHover.ExecuteIfBound();
+	if (IsRealMouseMove(MouseEvent)) OnHover.ExecuteIfBound();
+}
+
+void SSimCruiseTab::Construct(const FArguments& InArgs)
+{
+	Focused = InArgs._Focused;
+	OnHover = InArgs._OnHover;
+	OnClick = InArgs._OnClick;
+	const TAttribute<bool> Current = InArgs._Current;
+	const TAttribute<bool> F = Focused;
+	ChildSlot
+	[
+		// The ring sits 5 px outside the pill, so it shows round the white open tab too.
+		SNew(SBorder)
+		.BorderImage_Lambda([F]() { return F.Get() ? RoundedBrush(FLinearColor::Transparent, 29.f, SimCruiseTheme::White(), 4.f) : RoundedBrush(FLinearColor::Transparent, 29.f); })
+		.Padding(5.f)
+		[
+			SNew(SBorder)
+			.BorderImage_Lambda([Current, F]()
+			{
+				if (Current.Get()) return RoundedBrush(SimCruiseTheme::White(), 24.f);
+				return F.Get() ? RoundedBrush(SimCruiseTheme::Guide(), 24.f) : RoundedBrush(FLinearColor::Transparent, 24.f);
+			})
+			.Padding(FMargin(26.f, 9.f))
+			[
+				SNew(STextBlock).Text(InArgs._Label).Font(Font(EWeight::Bold, 26.f))
+				.ColorAndOpacity_Lambda([Current]() { return FSlateColor(Current.Get() ? SimCruiseTheme::GuideDeep() : SimCruiseTheme::White()); })
+			]
+		]
+	];
+}
+
+FReply SSimCruiseTab::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if (MouseEvent.GetEffectingButton() != EKeys::LeftMouseButton) return FReply::Unhandled();
+	OnClick.ExecuteIfBound();
+	return FReply::Handled();
 }

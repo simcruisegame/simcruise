@@ -75,8 +75,9 @@ public:
 	UFUNCTION(Exec)
 	void SimCruiseShellCapture(int32 Quit = 0);
 
-	/** The place search (/ key; X in the atlas): the game pauses while it is open. */
-	void OpenPlaceSearch(bool bGamepad);
+	/** The place search (/ key; X in the atlas): the game pauses while it is open.
+	 *  From the atlas, B goes back to the atlas. */
+	void OpenPlaceSearch(bool bGamepad, bool bFromAtlas = false);
 	/** The road atlas (Tab, Menu). */
 	void OpenRoadAtlas();
 	/** Close the search or the atlas and give the drive back. */
@@ -97,6 +98,8 @@ private:
 	void TickCapture(float DeltaTime);
 	ASimCruiseHUD* GetSimHUD() const;
 	void ShowOverlay(const TSharedRef<SWidget>& Widget, const TSharedPtr<SWidget>& Focus, bool bPause = true);
+	void StartMenuInput();
+	void StopMenuInput();
 	void ChoosePlace(const FSimCruisePlace& Place);
 	/** The atlas's cockpit settings: 0 sound, 1 HUD level, 2 head motion, 3 rumble strength. */
 	void ChangeSetting(int32 Index);
@@ -128,7 +131,17 @@ public:
 	TSharedPtr<class SSimCruiseSeatMenu> GetSeatMenu() const { return SeatPanel; }
 
 	/** The pause menu (Menu, Tab) and the GPS screens: SimCruisePlayerControllerMenu.cpp. */
-	void OpenPauseMenu(int32 Page = 0);
+	void OpenPauseMenu(int32 Page = 0, int32 Row = 0);
+	/** Leave a screen the pause menu opened: B goes back to the menu, on the row that opened it;
+	 *  Menu (Start), or a screen opened from the drive, goes back to the drive. */
+	void LeaveSubScreen();
+	/** The last input was the pad (true) or the keyboard and mouse (false): the hints and the
+	 *  mouse cursor follow it (the menu input watcher calls it). */
+	void NotePadUse(bool bPad);
+	/** Pad focus back onto the open screen when it was lost (the menu input watcher calls it). */
+	void RefocusOverlay();
+	/** Is the pad's Menu (Start) button down now? */
+	bool IsMenuButtonDown() const;
 	void OpenRoutePlanner();
 	void OpenFamousRoads();
 	void OpenWhereTo();
@@ -169,6 +182,12 @@ protected:
 	bool bStatsShown = false;
 	bool bPreferencesApplied = false;
 	TSharedPtr<SWidget> OverlayWidget;
+	TWeakPtr<SWidget> OverlayFocus;
+	/** Watches every pad, key and mouse event before the screens get it (SimCruisePlayerControllerMenu.cpp). */
+	TSharedPtr<class FSimCruiseMenuInput> MenuInput;
+	/** The pause menu page and row that opened the screen now on show, -1 for none (opened from the drive). */
+	int32 ReturnPage = -1;
+	int32 ReturnRow = 0;
 	TSharedPtr<SSimCruisePlaceSearch> SearchPanel;
 	TSharedPtr<SSimCruiseRoadAtlas> AtlasPanel;
 	TSharedPtr<class SSimCruiseTuningMenu> TuningPanel;
