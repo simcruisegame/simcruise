@@ -2,6 +2,7 @@
 
 #include "Gameplay/SimCruisePauseMenu.h"
 
+#include "Framework/Application/SlateApplication.h"
 #include "HAL/PlatformTime.h"
 #include "Rendering/DrawElements.h"
 #include "Widgets/Layout/SBackgroundBlur.h"
@@ -140,10 +141,15 @@ void SSimCruisePauseMenu::Construct(const FArguments& InArgs)
 	OnPage = InArgs._OnPage;
 	OnClose = InArgs._OnClose;
 	Page = FMath::Clamp(InArgs._Page, 0, NumPages - 1);
+	Selected[Page] = FMath::Clamp(InArgs._Row, 0, Rows(Page).Num() - 1);
+	TabCursor = Page;
 	if (GetState.IsBound()) State = GetState.Execute();
 
-	TSharedRef<SWidgetSwitcher> Switcher = SNew(SWidgetSwitcher).WidgetIndex_Lambda([this]() { return Page; });
+	// The index is set, not bound: after LB or RB the new page is on screen at once, so the
+	// pad's focus can move onto its first row in the same frame.
+	TSharedRef<SWidgetSwitcher> Switcher = SNew(SWidgetSwitcher);
 	for (int32 P = 0; P < NumPages; ++P) Switcher->AddSlot()[BuildPage(P)];
+	Switcher->SetActiveWidgetIndex(Page);
 	Pages = Switcher;
 
 	ChildSlot
@@ -191,17 +197,16 @@ TSharedRef<SWidget> SSimCruisePauseMenu::BuildTabs()
 	Tabs->AddSlot().AutoWidth().VAlign(VAlign_Center).Padding(0, 0, 18, 0)[Shoulder(TEXT("LB"), TEXT("Q"))];
 	for (int32 P = 0; P < NumPages; ++P)
 	{
-		Tabs->AddSlot().AutoWidth().VAlign(VAlign_Center).Padding(0, 0, 6, 0)
-		[
-			SNew(SBorder)
-			.BorderImage_Lambda([this, P]() { return Page == P ? RoundedBrush(White(), 24.f) : RoundedBrush(FLinearColor::Transparent, 24.f); })
-			.Padding(FMargin(26.f, 9.f))
-			.OnMouseButtonDown_Lambda([this, P](const FGeometry&, const FPointerEvent&) { SetPage(P); return FReply::Handled(); })
-			[
-				SNew(STextBlock).Text(FText::FromString(PageName(P))).Font(Font(EWeight::Bold, 26.f))
-				.ColorAndOpacity_Lambda([this, P]() { return FSlateColor(Page == P ? GuideDeep() : White()); })
-			]
-		];
+		TSharedRef<SSimCruiseTab> Tab = SNew(SSimCruiseTab)
+			.Tag(FName(*FString::Printf(TEXT("Tab.%s"), *PageName(P))))
+			.Label(FText::FromString(PageName(P)))
+			.Current_Lambda([this, P]() { return Page == P; })
+			.Focused_Lambda([this, P]() { return bTabs && TabCursor == P; })
+			// The tab got the focus (the pad, or a real mouse moving onto it): the pad is on the tab row.
+			.OnHover_Lambda([this, P]() { if (bSyncing) return; bTabs = true; TabCursor = P; SyncFocus(); })
+			.OnClick_Lambda([this, P]() { SetPage(P); });
+		TabWidgets[P] = Tab;
+		Tabs->AddSlot().AutoWidth().VAlign(VAlign_Center)[Tab];
 	}
 	Tabs->AddSlot().AutoWidth().VAlign(VAlign_Center).Padding(12, 0, 0, 0)[Shoulder(TEXT("RB"), TEXT("E"))];
 	return Tabs;
@@ -216,9 +221,10 @@ TSharedRef<SWidget> SSimCruisePauseMenu::BuildPage(int32 P)
 	for (int32 i = 0; i < List.Num(); ++i)
 	{
 		const FRowInfo Info = List[i];
-		const TAttribute<bool> Focused = TAttribute<bool>::CreateLambda([this, P, i]() { return Page == P && Selected[P] == i; });
-		const FSimpleDelegate Hover = FSimpleDelegate::CreateLambda([this, P, i]() { if (Page == P) Selected[P] = i; });
-		const FSimpleDelegate Click = FSimpleDelegate::CreateLambda([this, P, i]() { if (Page == P) { Selected[P] = i; Choose(0); } });
+		const TAttribute<bool> Focused = TAttribute<bool>::CreateLambda([this, P, i]() { return !bTabs && Page == P && Selected[P] == i; });
+		// The row got the focus (the pad, Slate, or a real mouse moving onto it).
+		const FSimpleDelegate Hover = FSimpleDelegate::CreateLambda([this, P, i]() { if (bSyncing || Page != P) return; bTabs = false; Selected[P] = i; SyncFocus(); });
+		const FSimpleDelegate Click = FSimpleDelegate::CreateLambda([this, P, i]() { if (Page == P) { bTabs = false; Selected[P] = i; SyncFocus(); Choose(0); } });
 		const ESimCruiseMenuRow R = Info.Row;
 		TSharedPtr<SWidget> Widget;
 		if (Info.Kind == EKind::Slider)
@@ -249,6 +255,8 @@ TSharedRef<SWidget> SSimCruisePauseMenu::BuildPage(int32 P)
 					return FText::FromString(V.Unit.IsEmpty() ? V.Text : V.Text + TEXT(" ") + V.Unit);
 				});
 		}
+		Widget->SetTag(FName(*FString::Printf(TEXT("Row.%s"), *Info.Title)));
+		RowWidgets[P].Add(Widget);
 		// Eight rows (Settings) sit closer so the list stays above the hints.
 		Column->AddSlot().AutoHeight().Padding(0, 0, 0, List.Num() > 7 ? 4 : 14)[Widget.ToSharedRef()];
 	}
@@ -381,12 +389,15 @@ TSharedRef<SWidget> SSimCruisePauseMenu::BuildHints()
 		SNew(SWidgetSwitcher).WidgetIndex_Lambda([this]()
 		{
 			const EKind Kind = Rows(Page)[FMath::Clamp(Selected[Page], 0, Rows(Page).Num() - 1)].Kind;
+			if (bTabs) return 3;
 			if (Page == 0) return State.bRoute ? 1 : 0;
 			return Kind == EKind::Action ? 0 : 2;
 		})
 		+ SWidgetSwitcher::Slot()[Hints({ { TEXT("A"), TEXT("Choose"), TEXT("Enter") }, { TEXT("B"), TEXT("Back to the drive"), TEXT("Esc") }, { TEXT("LB RB"), TEXT("Change page"), TEXT("Q E") } }, bPad)]
 		+ SWidgetSwitcher::Slot()[Hints({ { TEXT("A"), TEXT("Choose"), TEXT("Enter") }, { TEXT("X"), TEXT("End the route"), TEXT("X") }, { TEXT("B"), TEXT("Back to the drive"), TEXT("Esc") }, { TEXT("LB RB"), TEXT("Change page"), TEXT("Q E") } }, bPad)]
 		+ SWidgetSwitcher::Slot()[Hints({ { TEXT("D-pad"), TEXT("Change"), TEXT("Left Right") }, { TEXT("Y"), TEXT("Back to stock"), TEXT("Y") }, { TEXT("B"), TEXT("Back to the drive"), TEXT("Esc") }, { TEXT("LB RB"), TEXT("Change page"), TEXT("Q E") } }, bPad)]
+		// On the tab row.
+		+ SWidgetSwitcher::Slot()[Hints({ { TEXT("D-pad"), TEXT("Choose a page"), TEXT("Left Right") }, { TEXT("A"), TEXT("Open"), TEXT("Enter") }, { TEXT("B"), TEXT("Back to the drive"), TEXT("Esc") }, { TEXT("LB RB"), TEXT("Change page"), TEXT("Q E") } }, bPad)]
 	];
 	return Box;
 }
@@ -394,9 +405,49 @@ TSharedRef<SWidget> SSimCruisePauseMenu::BuildHints()
 void SSimCruisePauseMenu::SetPage(int32 InPage)
 {
 	const int32 Next = (InPage % NumPages + NumPages) % NumPages;
-	if (Next == Page) return;
+	const bool bChanged = Next != Page;
 	Page = Next;
-	OnPage.ExecuteIfBound(Page);
+	// Every page opens on its first row, with the pad on it.
+	Selected[Page] = 0;
+	bTabs = false;
+	TabCursor = Page;
+	if (Pages.IsValid()) Pages->SetActiveWidgetIndex(Page);
+	if (bChanged) OnPage.ExecuteIfBound(Page);
+	SyncFocus();
+}
+
+TSharedPtr<SWidget> SSimCruisePauseMenu::GetFocusTarget() const
+{
+	if (bTabs) return TabWidgets[FMath::Clamp(TabCursor, 0, NumPages - 1)];
+	return RowWidgets[Page].IsValidIndex(Selected[Page]) ? RowWidgets[Page][Selected[Page]] : TSharedPtr<SWidget>();
+}
+
+void SSimCruisePauseMenu::SyncFocus()
+{
+	if (bSyncing) return;
+	TGuardValue<bool> Guard(bSyncing, true);
+	bFocusDirty = !FocusPad(GetFocusTarget());
+}
+
+FReply SSimCruisePauseMenu::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
+{
+	// The menu itself was given the focus (it opened): hand it on to the row or tab the pad is on.
+	bFocusDirty = true;
+	const TSharedPtr<SWidget> Target = GetFocusTarget();
+	return Target.IsValid() ? FReply::Handled().SetUserFocus(Target.ToSharedRef(), EFocusCause::SetDirectly, false) : FReply::Handled();
+}
+
+FReply SSimCruisePauseMenu::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	// A real mouse move shows the keyboard's keys in the hints.
+	if (IsRealMouseMove(MouseEvent)) State.bPad = false;
+	return FReply::Unhandled();
+}
+
+FNavigationReply SSimCruisePauseMenu::OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent)
+{
+	// The menu moves the focus itself; Slate's own navigation never takes it off the menu.
+	return FNavigationReply::Stop();
 }
 
 void SSimCruisePauseMenu::Choose(int32 Dir)
@@ -411,10 +462,30 @@ void SSimCruisePauseMenu::Choose(int32 Dir)
 void SSimCruisePauseMenu::Navigate(ENav Nav)
 {
 	const int32 N = Rows(Page).Num();
+	if (bTabs)
+	{
+		// On the tab row: left and right move along it, A or Down opens the tab (on its first row).
+		switch (Nav)
+		{
+		case ENav::Left: TabCursor = (TabCursor + NumPages - 1) % NumPages; SyncFocus(); break;
+		case ENav::Right: TabCursor = (TabCursor + 1) % NumPages; SyncFocus(); break;
+		case ENav::Accept: case ENav::Down: SetPage(TabCursor); break;
+		case ENav::PrevPage: SetPage(Page - 1); break;
+		case ENav::NextPage: SetPage(Page + 1); break;
+		case ENav::Back: case ENav::Menu: OnClose.ExecuteIfBound(); break;
+		default: break;
+		}
+		return;
+	}
 	switch (Nav)
 	{
-	case ENav::Up: Selected[Page] = (Selected[Page] + N - 1) % N; break;
-	case ENav::Down: Selected[Page] = (Selected[Page] + 1) % N; break;
+	case ENav::Up:
+		// Up from the first row goes onto the tab row, on the open page's tab.
+		if (Selected[Page] == 0) { bTabs = true; TabCursor = Page; }
+		else --Selected[Page];
+		SyncFocus();
+		break;
+	case ENav::Down: Selected[Page] = (Selected[Page] + 1) % N; SyncFocus(); break;
 	case ENav::Left: Choose(-1); break;
 	case ENav::Right: Choose(+1); break;
 	case ENav::Accept: Choose(0); break;
@@ -447,13 +518,15 @@ FReply SSimCruisePauseMenu::OnKeyDown(const FGeometry& MyGeometry, const FKeyEve
 FReply SSimCruisePauseMenu::OnAnalogValueChanged(const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent)
 {
 	const FKey Key = InAnalogInputEvent.GetKey();
-	const float V = InAnalogInputEvent.GetAnalogValue();
-	const double Now = FPlatformTime::Seconds();
-	if (FMath::Abs(V) < 0.6f || Now < StickHeldUntil) return FReply::Unhandled();
-	State.bPad = true;
-	if (Key == EKeys::Gamepad_LeftY) { Navigate(V > 0.f ? ENav::Up : ENav::Down); StickHeldUntil = Now + 0.22; return FReply::Handled(); }
-	if (Key == EKeys::Gamepad_LeftX) { Navigate(V > 0.f ? ENav::Right : ENav::Left); StickHeldUntil = Now + 0.22; return FReply::Handled(); }
-	return FReply::Unhandled();
+	if (!IsLeftStick(Key)) return FReply::Unhandled();
+	const ENav Nav = StickNav(Key, InAnalogInputEvent.GetAnalogValue(), Stick, FPlatformTime::Seconds());
+	if (Nav != ENav::None)
+	{
+		State.bPad = true;
+		Navigate(Nav);
+	}
+	// All of the stick is the menu's: Slate's own stick navigation must not move the focus as well.
+	return FReply::Handled();
 }
 
 void SSimCruisePauseMenu::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
@@ -463,6 +536,9 @@ void SSimCruisePauseMenu::Tick(const FGeometry& AllottedGeometry, const double I
 	if (GetState.IsBound()) State = GetState.Execute();
 	// The last device used wins over the controller's guess.
 	State.bPad = bPad;
+	// The pad's focus is always on the menu: put it back if it went (the menu just opened,
+	// a click outside a row, the window came back).
+	if (bFocusDirty || !HasFocusedDescendants()) SyncFocus();
 }
 
 // ====================================================================== list menu
@@ -477,15 +553,15 @@ void SSimCruiseListMenu::Construct(const FArguments& InArgs)
 	for (int32 i = 0; i < Items.Num(); ++i)
 	{
 		const FItem& Item = Items[i];
-		Column->AddSlot().AutoHeight().Padding(0, 0, 0, 14)
-		[
-			SNew(SSimCruiseGuideRow).Width(980.f).Icon(Item.Icon)
+		TSharedRef<SSimCruiseGuideRow> Row = SNew(SSimCruiseGuideRow).Width(980.f).Icon(Item.Icon)
+			.Tag(FName(*FString::Printf(TEXT("Item.%s"), *Item.Title)))
 			.Fill(Item.bCourse ? Course() : Guide())
 			.Title(FText::FromString(Item.Title)).Note(FText::FromString(Item.Note)).Value(FText::FromString(Item.Value))
 			.Focused_Lambda([this, i]() { return Selected == i; })
-			.OnHover_Lambda([this, i]() { Selected = i; })
-			.OnClick_Lambda([this, i]() { Selected = i; OnChoose.ExecuteIfBound(i); })
-		];
+			.OnHover_Lambda([this, i]() { if (bSyncing) return; Selected = i; SyncFocus(); })
+			.OnClick_Lambda([this, i]() { Selected = i; OnChoose.ExecuteIfBound(i); });
+		RowWidgets.Add(Row);
+		Column->AddSlot().AutoHeight().Padding(0, 0, 0, 14)[Row];
 	}
 	const TAttribute<bool> Pad = TAttribute<bool>::CreateLambda([this]() { return bPad; });
 	ChildSlot
@@ -514,8 +590,8 @@ void SSimCruiseListMenu::Navigate(ENav Nav)
 	const int32 N = FMath::Max(Items.Num(), 1);
 	switch (Nav)
 	{
-	case ENav::Up: Selected = (Selected + N - 1) % N; break;
-	case ENav::Down: Selected = (Selected + 1) % N; break;
+	case ENav::Up: Selected = (Selected + N - 1) % N; SyncFocus(); break;
+	case ENav::Down: Selected = (Selected + 1) % N; SyncFocus(); break;
 	case ENav::Accept: OnChoose.ExecuteIfBound(Selected); break;
 	case ENav::Back: case ENav::Menu: OnBack.ExecuteIfBound(); break;
 	default: break;
@@ -529,4 +605,42 @@ FReply SSimCruiseListMenu::OnKeyDown(const FGeometry& MyGeometry, const FKeyEven
 	bPad = InKeyEvent.GetKey().IsGamepadKey();
 	Navigate(Nav);
 	return FReply::Handled();
+}
+
+FReply SSimCruiseListMenu::OnAnalogValueChanged(const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent)
+{
+	const FKey Key = InAnalogInputEvent.GetKey();
+	if (!IsLeftStick(Key)) return FReply::Unhandled();
+	const ENav Nav = StickNav(Key, InAnalogInputEvent.GetAnalogValue(), Stick, FPlatformTime::Seconds());
+	if (Nav == ENav::Up || Nav == ENav::Down)
+	{
+		bPad = true;
+		Navigate(Nav);
+	}
+	return FReply::Handled();
+}
+
+void SSimCruiseListMenu::SyncFocus()
+{
+	if (bSyncing) return;
+	TGuardValue<bool> Guard(bSyncing, true);
+	bFocusDirty = !FocusPad(GetRowWidget(Selected));
+}
+
+FReply SSimCruiseListMenu::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
+{
+	bFocusDirty = true;
+	const TSharedPtr<SWidget> Target = GetRowWidget(Selected);
+	return Target.IsValid() ? FReply::Handled().SetUserFocus(Target.ToSharedRef(), EFocusCause::SetDirectly, false) : FReply::Handled();
+}
+
+FNavigationReply SSimCruiseListMenu::OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent)
+{
+	return FNavigationReply::Stop();
+}
+
+void SSimCruiseListMenu::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	if (bFocusDirty || !HasFocusedDescendants()) SyncFocus();
 }

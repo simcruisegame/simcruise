@@ -14,6 +14,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Knowledge/SimCruisePlaceAI.h"
 #include "Knowledge/SimCruiseFurnitureData.h"
+#include "Knowledge/SimCruiseRoadsideData.h"
 #include "Knowledge/SimCruisePlaceFacts.h"
 // The live feeds (Source/SimCruise/*/Live) join when that code is in the tree; until then
 // other systems push live facts with SimCruisePlaceHub::SetLive.
@@ -399,6 +400,9 @@ void USimCruisePlaceGraphSubsystem::OnWikidata(const FIntPoint& Tile, const FStr
 			TArray<FSimCruiseFurniture> Furniture;
 			FString FError;
 			if (SimCruiseFurniture::ParseOverpass(OsmBody, Furniture, FError)) SimCruiseFurniture::Store(Tile, Furniture, true);
+			// ... and the roadside: road-edge tags, barriers, poles, lamps, signals, named shops.
+			FSimCruiseRoadside Roadside;
+			if (SimCruiseRoadsideData::ParseOverpass(OsmBody, Roadside, FError)) SimCruiseRoadsideData::Store(Tile, Roadside, true);
 		}
 		const FString Line = FString::Printf(TEXT("Place facts %s: %d useful records (%d OSM, %d Wikidata)%s%s."), *SimCruiseTileName(Tile), Useful.Num(), Osm.Num(), Wd.Num(),
 			OsmError.IsEmpty() ? TEXT("") : *(TEXT("; ") + OsmError), WdError.IsEmpty() ? TEXT("") : *(TEXT("; ") + WdError));

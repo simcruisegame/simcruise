@@ -95,6 +95,10 @@ public:
 
 	UPROPERTY(VisibleAnywhere, Category = "SimCruise|World")
 	int32 TilesFailed = 0;
+	/** Seconds a tile takes from request to result (a running mean; the look-ahead reads it). */
+	double LoadSecondsMean = 6.0;
+	/** How far ahead the streamer asks for tiles: speed x (2 x LoadSecondsMean + LookAheadMarginSeconds). */
+	static constexpr double LookAheadMarginSeconds = 4.0;
 
 	UPROPERTY(Transient)
 	TObjectPtr<USimCruiseWorldResources> Resources;
@@ -139,6 +143,19 @@ private:
 	};
 
 	void Launch(const FSimCruiseTileJobTicket& Ticket);
+	/** When each job was launched (game thread), by ticket serial. */
+	TMap<uint64, double> LaunchedAt;
+
+	/** Flat collision under every tile in range that has none yet (SimCruiseFallbackGround). */
+	void UpdateFallbackGround(const FVector& FocusCm);
+	UPROPERTY(Transient)
+	TMap<FIntPoint, TObjectPtr<class UBoxComponent>> FallbackGround;
+	/** -SimCruiseFailTiles=x_y,x_y: these tiles' loads fail (the fallback-ground test). */
+	TSet<FIntPoint> ForcedFailures;
+public:
+	int32 NumFallbackGround() const { return FallbackGround.Num(); }
+	bool HasFallbackGround(const FIntPoint& Tile) const { return FallbackGround.Contains(Tile); }
+private:
 	void Rebase(const FIntPoint& NewOrigin);
 	void RemoveTile(const FIntPoint& Tile);
 	FVector CurrentFocus(FVector& OutVelocity) const;

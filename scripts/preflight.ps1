@@ -23,12 +23,9 @@
     dragon       US 129 Tail of the Dragon at Deals Gap, TN
     nebraska     Princeton Road gravel, Lancaster County, NE
     big-sur      CA-1 Cabrillo Highway, Big Sur, south of Bixby Bridge
-    us-*         ordinary US places from data\test-places.json (city, suburb, farm, desert,
-                 mountain town, interstate, coast, Alaska, Hawaii); the start snaps to the nearest road
-    random       -RandomCount places drawn from data\test-places.json (seeded by -Seed; default
-                 today's date, so one day's runs repeat)
-    pool         a random road from data\start\start-pool.json (-SimCruiseRandomStart, seeded by -Seed)
-  The world must work at a random US place, not only on the hero roads (docs\team\ownership.md).
+    and, on request only, ten places across the US for the world-detail checks: mojave,
+    colorado-pass, kansas-plains, maine-forest, oregon-coast, atlanta-suburb, iowa-town,
+    chicago, minnesota-north, south-texas (the car starts on the nearest road).
   Cars: nb2001_aaron (Miata), mustang65 (Mustang), meridian_z (Corvette).
   The roads other than Ocean Drive need the map helper (tools\atlas.exe) and the network.
 
@@ -37,6 +34,8 @@
   powershell -ExecutionPolicy Bypass -File scripts\preflight.ps1 -Roads ocean-drive -Cars nb2001_aaron -Seconds 20
 #>
 param(
+    # Show the game's window (default: off screen, -RenderOffScreen, nothing on the desktop).
+    [switch]$ShowWindow,
     [string[]]$Roads = @('ocean-drive', 'dragon', 'nebraska', 'big-sur'),
     [string[]]$Cars = @('nb2001_aaron', 'mustang65', 'meridian_z'),
     [int]$Seconds = 60,
@@ -55,11 +54,14 @@ param(
     # How many places 'random' draws from data\test-places.json.
     [int]$RandomCount = 3,
     # More game arguments for every run, for A/B tests (for example "-DPCVars=simcruise.Reflex=1").
-    [string]$ExtraArgs = ''
+    [string]$ExtraArgs = '',
+    # The graphics preset of every run (ultra by default; high for the second fps number).
+    [ValidateSet('low', 'medium', 'high', 'ultra')][string]$Graphics = 'ultra'
 )
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'EditorLock.ps1')
+. (Join-Path $PSScriptRoot 'ReviewLib.ps1')
 $Root = Split-Path -Parent $PSScriptRoot
 $Project = Join-Path $Root 'SimCruise.uproject'
 $Editor = Join-Path $EngineDir 'Engine\Binaries\Win64\UnrealEditor.exe'
@@ -80,6 +82,18 @@ $Defs = @{
     'dragon'      = @('-SimCruiseStart=35.4792763,-83.9327265', '"-SimCruiseStartRoad=Calderwood Highway"')
     'nebraska'    = @('-SimCruiseStart=40.56724,-96.5909', '"-SimCruiseStartRoad=Princeton Road"')
     'big-sur'     = @('-SimCruiseStart=36.363197,-121.900041', '"-SimCruiseStartRoad=Cabrillo Highway"')
+    # Places across the US for the world-detail checks (docs/research/world-detail-v2-plan.md):
+    # not in the default list; the car starts on the nearest road.
+    'mojave'         = @('-SimCruiseStart=34.5583,-115.7442')   # National Trails Highway (Route 66), Amboy CA
+    'colorado-pass'  = @('-SimCruiseStart=39.1087,-106.5642')   # CO-82, Independence Pass
+    'kansas-plains'  = @('-SimCruiseStart=38.3634,-98.7648')    # near Great Bend KS
+    'maine-forest'   = @('-SimCruiseStart=45.3417,-69.9706')    # US-201, The Forks ME
+    'oregon-coast'   = @('-SimCruiseStart=45.8918,-123.9615')   # US-101, Cannon Beach OR
+    'atlanta-suburb' = @('-SimCruiseStart=33.9526,-84.5499')    # Marietta GA
+    'iowa-town'      = @('-SimCruiseStart=41.4080,-92.9163')    # Pella IA
+    'chicago'        = @('-SimCruiseStart=41.8847,-87.6245')    # Michigan Avenue, the Loop
+    'minnesota-north' = @('-SimCruiseStart=48.0519,-92.8310')   # US-53, Orr MN
+    'south-texas'    = @('-SimCruiseStart=26.4815,-97.7831')    # US-77, Raymondville TX
 }
 if ($Seed -lt 0) { $Seed = [int](Get-Date -Format 'yyyyMMdd') }
 # Ordinary US places: the world must work everywhere, not only on the hero roads.
@@ -119,7 +133,8 @@ $env:UE_SKIP_UBT_SDK_SETUP = '1'
 $Commit = (& git -C $Root rev-parse --short HEAD).Trim()
 if (& git -C $Root status --porcelain --untracked-files=no -- Source Config Content) { $Commit += '-dirty' }
 $Stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$RunDir = Join-Path $Root "Saved\Preflight\$Stamp"
+# Every launch keeps its evidence for a review (scripts\ReviewLib.ps1): one folder for the whole pre-flight.
+$RunDir = Join-Path $Root "Saved\Review\$Stamp-$($Commit -replace '-dirty', 'd')-preflight"
 New-Item -ItemType Directory -Force $RunDir | Out-Null
 Write-Host "Pre-flight of $Commit -> $RunDir"
 
@@ -131,21 +146,25 @@ foreach ($Road in $Roads) {
         $Out = Join-Path $RunDir $Name
         New-Item -ItemType Directory -Force $Out | Out-Null
         $Log = Join-Path $Out 'game.log'
-        $Args = @("`"$Project`"", '-game', '-SimCruiseWorld', '-SimCruiseNoLive', '-SimCruiseNoNeural', '-SimCruiseGraphics=ultra', "-SimCruiseUtc=$(if (-not $UtcGiven -and $PlaceUtc.ContainsKey($Road)) { $PlaceUtc[$Road] } else { $Utc })",
-            "-SimCruiseCar=$Car", '-SimCruiseViewCheck', '-SimCruisePreflight', "-SimCruisePreflightRoad=$Road", "-SimCruisePreflightSeconds=$Seconds",
-            "`"-SimCruisePreflightOut=$Out`"", '-NoLiveCoding', '-windowed', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + $Defs[$Road] + @(if ($Keen) { '-SimCruisePreflightKeen' }) + @(if ($ForceSpin) { '-SimCruisePreflightForceSpin' })
+        $Args = @("`"$Project`"", '-game', '-SimCruiseWorld', '-SimCruiseNoLive', '-SimCruiseNoNeural', "-SimCruiseGraphics=$Graphics", "-SimCruiseUtc=$(if (-not $UtcGiven -and $PlaceUtc.ContainsKey($Road)) { $PlaceUtc[$Road] } else { $Utc })",
+            "-SimCruiseCar=$Car", '-SimCruiseViewCheck', '-SimCruisePreflight', '-SimCruiseReview', "-SimCruisePreflightRoad=$Road", "-SimCruisePreflightSeconds=$Seconds",
+            "`"-SimCruisePreflightOut=$Out`"", '-NoLiveCoding', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + @(Get-TestWindowArgs $ShowWindow) + @(Get-NativeResolution) + $Defs[$Road] + @(if ($Keen) { '-SimCruisePreflightKeen' }) + @(if ($ForceSpin) { '-SimCruisePreflightForceSpin' })
         if ($ExtraArgs) { $Args += $ExtraArgs }
-        if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "pre-flight $Name on $Root")) { exit 1 }
+        if (-not (Enter-EditorLock -GpuTest -TimeoutMinutes $LockTimeoutMinutes -Why "pre-flight $Name on $Root")) { exit 1 }
         $TimedOut = $false
+        $Started = Get-Date
+        $ExitCode = -1
         try {
             Write-Host "Pre-flight: $Name"
             $P = Start-Process -FilePath $Editor -ArgumentList ($Args -join ' ') -PassThru
             if (-not $P.WaitForExit($TimeoutMinutes * 60 * 1000)) {
                 Stop-ProcessTree -ProcessId $P.Id
                 $TimedOut = $true
-            }
+            } else { $ExitCode = $P.ExitCode }
         }
         finally { Exit-EditorLock }
+        # The evidence (log, command line, commit, GPU, a crash's dump) even when the game crashed or hung.
+        $Evidence = Save-ReviewEvidence -RunDir $Out -Root $Root -Log $Log -CommandLine ("`"$Editor`" " + ($Args -join ' ')) -Started $Started -TimedOut $TimedOut -ExitCode $ExitCode
 
         $Line = if (Test-Path $Log) { Select-String -Path $Log -Pattern 'PREFLIGHT (PASS|FAIL) .*' | Select-Object -Last 1 } else { $null }
         $ViewLine = if (Test-Path $Log) { Select-String -Path $Log -Pattern 'VIEWCHECK (PASS|FAIL)' | Select-Object -Last 1 } else { $null }
@@ -157,6 +176,7 @@ foreach ($Road in $Roads) {
         if (-not $Line) { $Reasons += 'no PREFLIGHT line' }
         elseif ($Line.Matches[0].Groups[1].Value -ne 'PASS' -and $Stats) { $Reasons += $Stats.reasons }
         if ($Engine.Count) { $Reasons += "$($Engine.Count) engine errors" }
+        if ($Evidence.Crashed) { $Reasons += 'crash (see crash\)' }
         $Result = if ($Reasons.Count) { 'FAIL' } else { 'PASS' }
 
         # The video and its contact sheet.
@@ -171,6 +191,11 @@ foreach ($Road in $Roads) {
             if (-not $KeepFrames -and (Test-Path $Video)) { Remove-Item -Recurse -Force $Frames }
         }
         else { $Reasons += 'no frames'; $Result = 'FAIL' }
+        # Close-ups and the review sheet: the numbers fill some verdicts, a person fills the rest.
+        $Crops = New-ReviewCrops -RunDir $Out -Ffmpeg $Ffmpeg
+        if (Test-Path $Video) { Copy-Item $Video (Join-Path $Out 'video.mp4') -Force }
+        if (Test-Path $Sheet) { Copy-Item $Sheet (Join-Path $Out 'sheet.png') -Force }
+        Write-ReviewSheet -RunDir $Out -Kind 'preflight' -Title $Name -Result $Result -Reasons ($Reasons -join ',') -Evidence $Evidence
 
         $Text = if ($Line) { $Line.Matches[0].Value } else { "PREFLIGHT FAIL road=$Road car=$Car reasons=$($Reasons -join ',')" }
         Write-Host "  $Text"
@@ -178,7 +203,7 @@ foreach ($Road in $Roads) {
         $Rows += [pscustomobject]@{
             Road = $Road; Car = $Car; Result = $Result; Reasons = ($Reasons -join '; ')
             Stats = $Stats; View = if ($ViewLine) { $ViewLine.Matches[0].Groups[1].Value } else { '-' }
-            Video = "$Name.mp4"; Sheet = "$Name-sheet.png"
+            Video = "$Name.mp4"; Sheet = "$Name-sheet.png"; Review = "$Name/review.md"
         }
     }
 }
@@ -187,18 +212,18 @@ foreach ($Road in $Roads) {
 $Failed = @($Rows | Where-Object { $_.Result -ne 'PASS' })
 $Verdict = if ($Failed.Count) { 'FAIL' } else { 'PASS' }
 $Md = @("# Pre-flight $Stamp", '', "Commit ``$Commit``, $($Rows.Count) runs of $Seconds s, time $Utc (test places: their own solar noon), seed $Seed. Result: **$Verdict** ($($Rows.Count - $Failed.Count) passed, $($Failed.Count) failed).", '',
-    '| Road | Car | Result | View | Distance (m) | Mean speed (m/s) | Off road (s) | Rear slip (deg) / backwards (s) | Past the edge (m / s) | Frame p95 (ms) / hitches | White sky (%) | Tile pop-in | Car pop-in | Flashes | Road steps (max cm) | Gaps | Jolts (at borders) | Stuck traffic | Video | Sheet | Reasons |',
-    '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|')
+    '| Road | Car | Result | View | Distance (m) | Mean speed (m/s) | Off road (s) | Rear slip (deg) / backwards (s) | Past the edge (m / s) | Frame p95 (ms) / hitches | White sky (%) | Tile pop-in | Car pop-in | Flashes | Road steps (max cm) | Gaps | Jolts (at borders) | Stuck traffic | Video | Sheet | Review | Reasons |',
+    '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|')
 foreach ($R in $Rows) {
     $S = $R.Stats
     $Car = if ($CarNames.ContainsKey($R.Car)) { $CarNames[$R.Car] } else { $R.Car }
     if ($S) {
-        $Md += "| $($R.Road) | $Car | $($R.Result) | $($R.View) | $([int]$S.distance_m) | $($S.mean_speed_mps) | $($S.offroad_seconds) | $($S.peak_rear_slip_deg) / $($S.backwards_seconds) | $($S.max_past_edge_m) / $($S.past_edge_seconds) | $($S.frame_p95_ms) / $($S.hitches_over_100ms) | $($S.sky_white_percent) | $($S.tile_popins) | $($S.car_popins) | $($S.flash_frames) | $($S.road_steps) ($($S.max_step_cm)) | $($S.road_gaps) | $($S.jolts) ($($S.border_jolts)) | $($S.stuck_traffic) | [video]($($R.Video)) | [sheet]($($R.Sheet)) | $($R.Reasons) |"
+        $Md += "| $($R.Road) | $Car | $($R.Result) | $($R.View) | $([int]$S.distance_m) | $($S.mean_speed_mps) | $($S.offroad_seconds) | $($S.peak_rear_slip_deg) / $($S.backwards_seconds) | $($S.max_past_edge_m) / $($S.past_edge_seconds) | $($S.frame_p95_ms) / $($S.hitches_over_100ms) | $($S.sky_white_percent) | $($S.tile_popins) | $($S.car_popins) | $($S.flash_frames) | $($S.road_steps) ($($S.max_step_cm)) | $($S.road_gaps) | $($S.jolts) ($($S.border_jolts)) | $($S.stuck_traffic) | [video]($($R.Video)) | [sheet]($($R.Sheet)) | [review]($($R.Review)) | $($R.Reasons) |"
     } else {
-        $Md += "| $($R.Road) | $Car | $($R.Result) | $($R.View) | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | $($R.Reasons) |"
+        $Md += "| $($R.Road) | $Car | $($R.Result) | $($R.View) | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | [review]($($R.Review)) | $($R.Reasons) |"
     }
 }
-$Md += @('', 'Look at every contact sheet and watch the videos of failed runs before a play-test build goes out. Real game bugs go in docs/release/bugs.md with the run, the frame and a screenshot.')
+$Md += @('', 'Before this pre-flight counts as PASS, look at every run: the frames in <run>/review/ and the close-ups in <run>/review/crops/, then write a verdict for every TODO item and your name in each <run>/review.md, and run scripts\review-check.ps1 on this folder. Real game bugs go in docs/release/bugs.md with the run, the frame and a screenshot.')
 $Md | Set-Content -Encoding utf8 (Join-Path $RunDir 'report.md')
 
 if ($ForceSpin) {
@@ -222,9 +247,14 @@ else {
 }
 # Why each failed run failed, in one quoted CSV field.
 $Why = ($Failed | ForEach-Object { "$($_.Road)-$($_.Car): $($_.Reasons)" }) -join ' | '
+# The game's own checks passing is not enough: the result is UNREVIEWED until scripts\review-check.ps1
+# finds a verdict for every item of every run's review.md (it then adds the PASS row playtest.ps1 needs).
+@("commit $Commit", "result $Verdict") | Set-Content -Encoding utf8 (Join-Path $RunDir 'preflight-auto.txt')
+if ($Verdict -eq 'PASS') { $Verdict = 'UNREVIEWED'; $Why = 'the game checks passed; the frames are not reviewed yet' }
 "$Stamp,$Commit,$Verdict,$($Rows.Count),$($Roads -join ' '),$($Cars -join ' '),$(Join-Path $RunDir 'report.md'),`"$($Why -replace '"', '""')`"" | Add-Content -Encoding utf8 $Index
 
 Write-Host "Report: $(Join-Path $RunDir 'report.md')"
 if ($Failed.Count) { Write-Host "PRE-FLIGHT FAILED: $(($Failed | ForEach-Object { "$($_.Road)-$($_.Car)" }) -join ', ')"; exit 1 }
-Write-Host 'PRE-FLIGHT PASSED'
+Write-Host 'PRE-FLIGHT CHECKS PASSED, NOT REVIEWED YET: look at each run''s review\ frames and close-ups, fill every review.md, then run:'
+Write-Host "  powershell -ExecutionPolicy Bypass -File scripts\review-check.ps1 `"$RunDir`""
 exit 0

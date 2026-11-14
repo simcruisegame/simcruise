@@ -48,3 +48,14 @@ Copy this list into the release's report (`docs/release/v<version>-report.md`) a
 - [ ] `gh release create v<version> --title "SimCruise <version>" --notes-file <notes>` with the setup, the zip, the checksums and the screenshots attached. Use `--prerelease` when any gate row is not PASS.
 - [ ] Download the setup from the release page and check its SHA-256 against the checksums file.
 - [ ] Write `docs/release/v<version>-report.md`: the gate results with numbers, the bugs fixed, the bugs routed, the release URL, the file sizes and the open items for the next release.
+
+## 7. Findability (people must find the game on Google and GitHub)
+
+- [ ] Release notes start with one plain sentence that says what the game is, with the search words: "SimCruise <version> is a free, open-source driving simulator for Windows: drive the real roads anywhere in the US, made in Unreal Engine 5."
+- [ ] Website `docs/index.html` (GitHub Pages, https://simcruisegame.github.io/simcruise/): change the version in the hero line and in `softwareVersion` (JSON-LD), change the screenshots if new ones are better, and set `<lastmod>` in `docs/sitemap.xml` to the release date. Keep the facts true: do not claim a feature that the release does not have.
+- [ ] `README.md` and `docs/index.html` say the same things (platforms, cars, famous roads, questions). The famous roads come from `Source/SimCruise/Private/Gameplay/SimCruiseFamousRoads.cpp`.
+- [ ] Every screenshot has alt text that says the place, the car and the view.
+- [ ] Repository description and topics are current: `gh repo view simcruisegame/simcruise --json description,homepageUrl,repositoryTopics`. The homepage is the website. Remove a topic that is no longer true.
+- [ ] `docs/images/social-preview.png` (1280 x 640) still shows the game as it is; if you change it, ask Aaron to upload it again in Settings > General > Social preview.
+- [ ] `CREDITS.md`: each new model, data source, car, texture, font or library has its maker, licence and link.
+- [ ] After the push, open the website and check that the page, the images and the download link work. Check GitHub search: `gh search repos "driving simulator" --limit 50 --json fullName` and write the rank in the release report.

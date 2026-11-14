@@ -7,7 +7,7 @@ install exit 0
 installed exe: True; atlas: True; pdb: 0; onnx: 0
 start menu: SimCruise controls.lnk, SimCruise.lnk, Uninstall SimCruise.lnk
 uninstall entry: SimCruise 2.0.2
-shortcut target: C:\Users\xuser\AppData\Local\Programs\SimCruise\SimCruise.exe
+shortcut target: %LOCALAPPDATA%\Programs\SimCruise\SimCruise.exe
 installed game run: exit 0
 settings folder kept between runs: True
 uninstall exit 0; program folder left: False; start menu left: False

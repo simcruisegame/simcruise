@@ -33,7 +33,8 @@ $Project = Join-Path $Root 'SimCruise.uproject'
 $Editor = Join-Path $EngineDir 'Engine\Binaries\Win64\UnrealEditor.exe'
 if (-not (Test-Path $Editor)) { Write-Host "No Unreal Editor at $Editor (set -EngineDir or UE_ROOT)."; exit 2 }
 
-if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "editor on $Root")) { exit 3 }
+$IsGame = @($EditorArgs) -contains '-game'
+if (-not (Enter-EditorLock -GpuTest:$IsGame -TimeoutMinutes $LockTimeoutMinutes -Why "editor on $Root")) { exit 3 }
 try {
     # Live Coding off: while an editor with Live Coding runs, Unreal Build Tool refuses every
     # build on the PC, so other checkouts could not build.

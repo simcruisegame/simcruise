@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   The view check gate: starts the game at fixed places, lets ASimCruiseViewCheck look at
   the player's view, and fails when a view that must pass fails (or the other way round).
@@ -28,6 +28,8 @@
   powershell -ExecutionPolicy Bypass -File scripts\viewcheck.ps1 -Cases ocean-drive
 #>
 param(
+    # Show the game's window (default: off screen, -RenderOffScreen, nothing on the desktop).
+    [switch]$ShowWindow,
     [string[]]$Cases = @('ocean-drive', 'collins-ave', 'test-pad'),
     [string]$EngineDir = $(if ($env:UE_ROOT) { $env:UE_ROOT } else { 'C:\Program Files\Epic Games\UE_5.8' }),
     [int]$TimeoutMinutes = 15,
@@ -37,13 +39,15 @@ param(
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'EditorLock.ps1')
+. (Join-Path $PSScriptRoot 'ReviewLib.ps1')
 $Root = Split-Path -Parent $PSScriptRoot
+$ReviewRoot = Get-ReviewRoot $Root
 $Project = Join-Path $Root 'SimCruise.uproject'
 $Editor = Join-Path $EngineDir 'Engine\Binaries\Win64\UnrealEditor.exe'
 if (-not (Test-Path $Editor)) { Write-Host "No Unreal Editor at $Editor (set -EngineDir or UE_ROOT)."; exit 2 }
 
 $Common = @('-game', '-SimCruiseWorld', '-SimCruiseNoLive', '-SimCruiseNoNeural', '-SimCruiseGraphics=ultra',
-    '-SimCruiseViewCheck', '-SimCruiseViewCheckQuit', '-NoLiveCoding', '-windowed', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log')
+    '-SimCruiseViewCheck', '-SimCruiseViewCheckQuit', '-NoLiveCoding', '-nosplash', '-unattended', '-log') + @(Get-TestWindowArgs $ShowWindow) + @(Get-NativeResolution)
 $Defs = @{
     'ocean-drive' = @{ Expect = 'PASS'; Args = @('-SimCruiseBundledStart') }
     'collins-ave' = @{ Expect = 'PASS'; Args = @('-SimCruiseStart=25.7850,-80.1318', '"-SimCruiseStartRoad=Collins Avenue"') }
@@ -64,7 +68,7 @@ $Failed = @()
 $Cases = @($Cases | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 # One lock for all the cases. Taken per case, each case queued again behind every other GPU run
 # (a three-case check waited about 30 min on a busy PC).
-if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "view check ($($Cases -join ', ')) on $Root")) { exit 1 }
+if (-not (Enter-EditorLock -GpuTest -TimeoutMinutes $LockTimeoutMinutes -Why "view check ($($Cases -join ', ')) on $Root")) { exit 1 }
 try {
 foreach ($Case in $Cases) {
     $Def = $Defs[$Case]
@@ -74,12 +78,23 @@ foreach ($Case in $Cases) {
     $Log = Join-Path $RunDir "$Case.log"
     $ArgLine = (@("`"$Project`"") + $Common + $Def.Args + @("`"-abslog=$Log`"")) -join ' '
     Write-Host "View check: $Case (must $($Def.Expect))"
+    $Started = Get-Date
+    $TimedOut = $false
     $P = Start-Process -FilePath $Editor -ArgumentList $ArgLine -PassThru
     if (-not $P.WaitForExit($TimeoutMinutes * 60 * 1000)) {
         Stop-ProcessTree -ProcessId $P.Id
+        $TimedOut = $true
         Write-Host "  TIMED OUT after $TimeoutMinutes min (log: $Log)"
     }
     $Line = if (Test-Path $Log) { Select-String -Path $Log -Pattern 'VIEWCHECK (PASS|FAIL) .*' | Select-Object -Last 1 } else { $null }
+    # Evidence for a review (scripts\ReviewLib.ps1): the log, command line, GPU, a crash's dump and the screenshot.
+    $ReviewDir = Join-Path $ReviewRoot "viewcheck-$Case"
+    $Evidence = Save-ReviewEvidence -RunDir $ReviewDir -Root $Root -Log $Log -CommandLine ("`"$Editor`" " + $ArgLine) -Started $Started -TimedOut $TimedOut
+    if ($Line -and $Line.Matches[0].Value -match 'shot=(.+?\.png)' -and (Test-Path $Matches[1])) {
+        New-Item -ItemType Directory -Force (Join-Path $ReviewDir 'review') | Out-Null
+        Copy-Item $Matches[1] (Join-Path $ReviewDir 'review\000-view.png')
+    }
+    Write-ReviewSheet -RunDir $ReviewDir -Kind 'viewcheck' -Title "view check $Case (must $($Def.Expect))" -Result $(if ($Line) { $Line.Matches[0].Groups[1].Value } else { '' }) -Reasons '' -Evidence $Evidence
     if (-not $Line) { Write-Host "  no VIEWCHECK line in $Log"; $Failed += "$Case (no VIEWCHECK line)"; continue }
     $Text = $Line.Matches[0].Value
     $Result = $Line.Matches[0].Groups[1].Value

@@ -34,3 +34,16 @@ Saved/
 *.user
 *.opensdf
 *.sdf
+
+# Cleanup 2026-11-14: more generated and local files
+Thumbs.db
+desktop.ini
+*.tmp
+*.orig
+.pytest_cache/
+*.blend1
+*.blend2
+.idea/
+*.code-workspace
+.vsconfig
+*.pdb

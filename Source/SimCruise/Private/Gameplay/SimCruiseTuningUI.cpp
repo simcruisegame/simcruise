@@ -228,7 +228,7 @@ FReply SSimCruiseTuningMenu::OnKeyDown(const FGeometry& MyGeometry, const FKeyEv
 		Close(true);
 		return FReply::Handled();
 	}
-	if (Key == EKeys::Gamepad_FaceButton_Right || Key == EKeys::Escape || Key == EKeys::F4)
+	if (Key == EKeys::Gamepad_FaceButton_Right || Key == EKeys::Gamepad_Special_Right || Key == EKeys::Escape || Key == EKeys::F4)
 	{
 		Close(false);
 		return FReply::Handled();

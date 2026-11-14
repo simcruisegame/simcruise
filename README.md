@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/simcruisegame/simcruise/releases/latest"><b>Download for Windows (free)</b></a>
+  · <a href="https://simcruisegame.github.io/simcruise/">Website</a>
   · <a href="#screenshots">Screenshots</a>
   · <a href="#famous-roads-to-drive">Famous roads</a>
   · <a href="docs/controls.md">Controls</a>
@@ -29,9 +30,9 @@
 
 ---
 
-## A message from the creator
+## Project status
 
-> Hey! My buddy and I just had this random idea. We are not pros. Please be cool and if you have good ideas, send pr's. I don't know what this tech means, but yes it could probably be used for more stuff too? I do worry about the API calls to all these public places and I don't fully know the effect to them. I did have Claude aim to lower the calls it makes but I am still doing research on how this scales. Thanks! Please comment any ideas or concerns as well.
+The game is currently in its first phase of development, and all contributions are appreciated. See [Contributing](#contributing) to help.
 
 ## About
 

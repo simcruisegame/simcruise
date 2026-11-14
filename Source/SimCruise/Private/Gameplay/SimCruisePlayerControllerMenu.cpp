@@ -7,6 +7,8 @@
 #include "Gameplay/SimCruisePlayerController.h"
 
 #include "Engine/World.h"
+#include "Framework/Application/IInputProcessor.h"
+#include "Framework/Application/SlateApplication.h"
 #include "Gameplay/SimCruiseAtlasUI.h"
 #include "Gameplay/SimCruiseDriveHud.h"
 #include "Gameplay/SimCruiseFamousRoads.h"
@@ -65,6 +67,118 @@ namespace
 		for (int32 i = 0; i < Ladder.Num(); ++i) if (FMath::Abs(Ladder[i] - Value) < FMath::Abs(Ladder[Index] - Value)) Index = i;
 		return Ladder.Num() > 1 ? static_cast<float>(Index) / (Ladder.Num() - 1) : 0.f;
 	}
+}
+
+/**
+ * Sees every pad, key and mouse event before Slate routes it: which device the player
+ * uses now (the hints and the mouse cursor follow it), whether the pad's Menu button
+ * is down (Menu closes every screen, B goes back one), and, while a screen is open,
+ * puts the pad's focus back on it if it was lost, so a pad press always reaches it.
+ * It never takes an event.
+ */
+class FSimCruiseMenuInput : public IInputProcessor
+{
+public:
+	explicit FSimCruiseMenuInput(ASimCruisePlayerController* InOwner) : Owner(InOwner) {}
+
+	bool bMenuDown = false;
+
+	virtual void Tick(const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor) override {}
+
+	virtual bool HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent) override
+	{
+		ASimCruisePlayerController* PC = Owner.Get();
+		if (!PC) return false;
+		const bool bPad = InKeyEvent.GetKey().IsGamepadKey();
+		if (InKeyEvent.GetKey() == EKeys::Gamepad_Special_Right) bMenuDown = true;
+		PC->NotePadUse(bPad);
+		if (bPad && PC->IsOverlayOpen()) PC->RefocusOverlay();
+		return false;
+	}
+
+	virtual bool HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent) override
+	{
+		if (InKeyEvent.GetKey() == EKeys::Gamepad_Special_Right) bMenuDown = false;
+		return false;
+	}
+
+	virtual bool HandleAnalogInputEvent(FSlateApplication& SlateApp, const FAnalogInputEvent& InAnalogInputEvent) override
+	{
+		ASimCruisePlayerController* PC = Owner.Get();
+		if (PC && FMath::Abs(InAnalogInputEvent.GetAnalogValue()) > 0.5f && InAnalogInputEvent.GetKey().IsGamepadKey())
+		{
+			PC->NotePadUse(true);
+			if (PC->IsOverlayOpen()) PC->RefocusOverlay();
+		}
+		return false;
+	}
+
+	virtual bool HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) override
+	{
+		ASimCruisePlayerController* PC = Owner.Get();
+		if (PC && SimCruiseTheme::IsRealMouseMove(MouseEvent)) PC->NotePadUse(false);
+		return false;
+	}
+
+	virtual bool HandleMouseButtonDownEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) override
+	{
+		if (ASimCruisePlayerController* PC = Owner.Get()) PC->NotePadUse(false);
+		return false;
+	}
+
+	virtual const TCHAR* GetDebugName() const override { return TEXT("SimCruiseMenuInput"); }
+
+private:
+	TWeakObjectPtr<ASimCruisePlayerController> Owner;
+};
+
+void ASimCruisePlayerController::StartMenuInput()
+{
+	if (MenuInput.IsValid() || !FSlateApplication::IsInitialized()) return;
+	MenuInput = MakeShared<FSimCruiseMenuInput>(this);
+	FSlateApplication::Get().RegisterInputPreProcessor(MenuInput);
+}
+
+void ASimCruisePlayerController::StopMenuInput()
+{
+	if (MenuInput.IsValid() && FSlateApplication::IsInitialized()) FSlateApplication::Get().UnregisterInputPreProcessor(MenuInput);
+	MenuInput.Reset();
+}
+
+bool ASimCruisePlayerController::IsMenuButtonDown() const
+{
+	return MenuInput.IsValid() && MenuInput->bMenuDown;
+}
+
+void ASimCruisePlayerController::NotePadUse(bool bPad)
+{
+	bUsingGamepad = bPad;
+	// The cursor shows for the mouse and hides while the pad drives the screens.
+	if (IsOverlayOpen()) bShowMouseCursor = !bPad;
+}
+
+void ASimCruisePlayerController::RefocusOverlay()
+{
+	const TSharedPtr<SWidget> Overlay = OverlayWidget;
+	if (!Overlay.IsValid() || !FSlateApplication::IsInitialized()) return;
+	FSlateApplication& App = FSlateApplication::Get();
+	const TSharedPtr<SWidget> Focused = App.GetUserFocusedWidget(0);
+	// Still on the screen (the screen itself or a widget in it): nothing to do.
+	if (Focused.IsValid() && (Focused == Overlay || Overlay->HasFocusedDescendants() || Overlay->HasAnyUserFocus().IsSet())) return;
+	const TSharedPtr<SWidget> Target = OverlayFocus.IsValid() ? OverlayFocus.Pin() : Overlay;
+	SimCruiseTheme::FocusPad(Target);
+}
+
+void ASimCruisePlayerController::LeaveSubScreen()
+{
+	const int32 Page = ReturnPage, Row = ReturnRow;
+	ReturnPage = -1;
+	if (Page >= 0 && !IsMenuButtonDown())
+	{
+		OpenPauseMenu(Page, Row);
+		return;
+	}
+	CloseOverlays();
 }
 
 FSimCruiseMenuState ASimCruisePlayerController::MenuState() const
@@ -149,6 +263,12 @@ void ASimCruisePlayerController::MenuAction(ESimCruiseMenuRow Row, int32 Dir)
 {
 	ASimCruiseGameMode* Mode = GetWorld() ? GetWorld()->GetAuthGameMode<ASimCruiseGameMode>() : nullptr;
 	USimCruiseRouteSubsystem* Gps = USimCruiseRouteSubsystem::Get(GetWorld());
+	// A screen this row opens comes back here with B.
+	if (Dir == 0 && PausePanel.IsValid())
+	{
+		ReturnPage = PausePanel->GetPage();
+		ReturnRow = PausePanel->GetSelected();
+	}
 	switch (Row)
 	{
 	case ESimCruiseMenuRow::Continue: CloseOverlays(); break;
@@ -210,12 +330,13 @@ void ASimCruisePlayerController::MenuAction(ESimCruiseMenuRow Row, int32 Dir)
 	}
 }
 
-void ASimCruisePlayerController::OpenPauseMenu(int32 Page)
+void ASimCruisePlayerController::OpenPauseMenu(int32 Page, int32 Row)
 {
 	CloseOverlays();
 	MenuPage = Page;
 	PausePanel = SNew(SSimCruisePauseMenu)
 		.Page(Page)
+		.Row(Row)
 		.GetState_Lambda([this]() { return MenuState(); })
 		.OnAction_Lambda([this](ESimCruiseMenuRow Row, int32 Dir) { MenuAction(Row, Dir); })
 		.OnPage_Lambda([this](int32 P)
@@ -224,7 +345,7 @@ void ASimCruisePlayerController::OpenPauseMenu(int32 Page)
 			// Seat & view keeps the world running so the view can be judged.
 			if (PausePanel.IsValid()) SetPause(P != 2);
 		})
-		.OnClose_Lambda([this]() { CloseOverlays(); });
+		.OnClose_Lambda([this]() { ReturnPage = -1; CloseOverlays(); });
 	ShowOverlay(PausePanel.ToSharedRef(), PausePanel);
 	SetPause(Page != 2);
 }
@@ -248,7 +369,7 @@ void ASimCruisePlayerController::OpenRoutePlanner()
 			CloseOverlays();
 			Gps->StartRoute(Stops);
 		})
-		.OnBack_Lambda([this]() { OpenPauseMenu(0); });
+		.OnBack_Lambda([this]() { LeaveSubScreen(); });
 	ShowOverlay(PlannerPanel.ToSharedRef(), PlannerPanel);
 }
 
@@ -278,7 +399,7 @@ void ASimCruisePlayerController::OpenFamousRoads()
 			ChoosePlace(Road.Start);
 			if (USimCruiseRouteSubsystem* Gps = USimCruiseRouteSubsystem::Get(GetWorld())) Gps->StartRouteAfterTravel(Road.Stops);
 		})
-		.OnBack_Lambda([this]() { OpenPauseMenu(0); });
+		.OnBack_Lambda([this]() { LeaveSubScreen(); });
 	ListPanel = List;
 	ShowOverlay(List, List);
 }
@@ -320,11 +441,11 @@ void ASimCruisePlayerController::OpenWhereTo()
 					Stop.Lat = Found.Lat;
 					if (USimCruiseRouteSubsystem* Gps = USimCruiseRouteSubsystem::Get(GetWorld())) Gps->StartRoute({ Stop });
 				})
-				.OnBack_Lambda([this]() { OpenWhereTo(); });
+				.OnBack_Lambda([this]() { if (IsMenuButtonDown()) CloseOverlays(); else OpenWhereTo(); });
 			ListPanel = Choice;
 			ShowOverlay(Choice, Choice);
 		})
 		.OnSurprise_Lambda([this]() { return SurpriseMe(); })
-		.OnClose_Lambda([this]() { OpenPauseMenu(0); });
+		.OnClose_Lambda([this]() { LeaveSubScreen(); });
 	ShowOverlay(SearchPanel.ToSharedRef(), SearchPanel->FocusTarget(bUsingGamepad));
 }

@@ -155,6 +155,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Exposure")
 	float ExposureOpenStops = 3.0f;
 
+	/** The same limit in daylight (reference EV100 above 11, fading in from 8). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Exposure")
+	float DaylightOpenStops = 3.0f;
+
+	/** Darkest part of the picture the exposure meter ignores (percent of pixels). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Exposure")
+	float ExposureLowPercent = 10.0f;
+
 	/**
 	 * EV above the reference the camera may close down to. Negative: real cameras on sunny
 	 * Ocean Drive exposed 1.1-1.6 EV below a grey-card reading (Commons EXIF), never above it.

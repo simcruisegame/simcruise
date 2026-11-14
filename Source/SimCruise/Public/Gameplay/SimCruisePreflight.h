@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Async/Future.h"
+#include "Gameplay/SimCruiseReview.h"
 #include "SimCruisePreflight.generated.h"
 
 class APlayerController;
@@ -234,6 +236,10 @@ private:
 
 	// Measurements.
 	FSimCruisePreflightStats Stats;
+	/** -SimCruiseReview: frames, sidecars and close-ups for a person to look at. */
+	FSimCruiseReviewRecorder Review;
+	/** Frames still being written as JPEG on worker threads. */
+	TArray<TFuture<void>> JpegJobs;
 	double SpeedSum = 0.0;
 	int32 SpeedSamples = 0;
 	FVector LastCarCm = FVector::ZeroVector;
@@ -241,6 +247,8 @@ private:
 	double PathM = 0.0;
 	TArray<FVector2f> Surface;
 	TArray<uint8> SurfaceIsRoad;
+	/** Where each surface sample was (lat, lon), so a step can be found again. */
+	TArray<FVector2d> SurfaceLatLon;
 	float OffRoadNow = 0.f;
 	double LastVz = 0.0;
 	bool bHasLastVz = false;

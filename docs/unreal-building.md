@@ -249,6 +249,99 @@ A game run from the editor binaries (any development build; not Shipping, not au
 
 A file with an error is not put on: the screen says "Reload failed: <file>: <reason>" and the car drives on as it was. Test: `SimCruise.Drive.HotReload` (fast tier) saves a calibration overlay next to a bench car and checks the new mass on the car, its movement model and its Chaos body.
 
+### How to test
+
+When to test:
+
+- **After each change:** the fast tier, `powershell -ExecutionPolicy Bypass -File scripts\check.ps1 -Tier fast` (about 1.5 min, no game, no GPU).
+- **Once per batch of related changes, before the merge to main:** the full check `scripts\check.ps1`, the pre-flight `scripts\preflight.ps1`, and `scripts\launch-review.ps1` for the places the batch touches (with `scripts\cockpit-review.ps1` when the cockpit changed). Look at the frames, write the verdicts in each `review.md`, and run `scripts\review-check.ps1` on the folders.
+- **Once per version (the release candidate):** one full test of the candidate commit for all teams, `scripts\release-test.ps1`: the hero roads and random US places, all three cars, the cockpit test, the controller menus, at Ultra and the screen's own resolution. The rule is fast tests per change and one full release test per version; see [the team loop](team/dev-loop.md) and [the release test](team/release-test.md).
+- **Controller menus:** `scripts\pad-review.ps1` (the automation test `SimCruise.UI.PadNavigation`, headless) walks every menu page with pad keys only and fails on any control the pad cannot reach. Its report is `report.md` in its folder.
+- **Picture and driving tests run at the top preset and the screen's own resolution** (1920x1080 on this PC; `Get-NativeResolution` in `scripts\ReviewLib.ps1`). A run below the top preset, below the screen's resolution, or below the preset's screen percentage is NOT VALID FOR SIGN-OFF.
+- **One GPU test at a time on the PC:** the scripts queue on the GPU test lock and print who holds it and how long they have waited.
+
+Two kinds of test, two ways to run them:
+
+- **Logic and data** (rules, physics benches, file formats, the review rules): no game, no picture. `scripts\check.ps1` runs the `SimCruise.*` automation tests in a headless editor (`-nullrhi`), in one of a few headless slots, next to other work.
+- **Picture and driving** (what the player sees and feels): the real game, **off screen** (`-RenderOffScreen`: no window, no focus taken, the renderer, TSR, Lumen, auto exposure and motion blur still run, and the game's own 60 fps cap still paces it), **one at a time on the PC**. Every script that starts a game takes the GPU test lock `Global\SimCruiseGpuTest` and then the editor lock `Global\SimCruiseEditor` (`scripts\EditorLock.ps1`, `Enter-EditorLock -GpuTest`). A test waits in the queue (up to `-LockTimeoutMinutes`). Add `-ShowWindow` to see the game.
+
+| Command | What it runs |
+|---|---|
+| `scripts\check.ps1` | build, automation tests, then the view check (off screen) |
+| `scripts\launch-review.ps1 [-Road ..] [-RandomUS N -Seed S]` | the robot's drive with full evidence and a review sheet (off screen) |
+| `scripts\cockpit-review.ps1 [-Cars ..]` | the cockpit steer test (off screen) |
+| `scripts\preflight.ps1` | the 12 hero runs (off screen), UNREVIEWED until `scripts\review-check.ps1` |
+| `scripts\viewcheck.ps1`, `scripts\drive-robot.ps1`, `scripts\replay-compare.ps1` | off screen; `-ShowWindow` to see |
+| `scripts\editor.ps1 -game ...` | a game you watch (a window); it takes the GPU test lock too |
+
+Unreal's own test tools, and what we use them for:
+
+| Unreal tool | Used for now | Kept custom, and why |
+|---|---|---|
+| Automation Test Framework (`IMPLEMENT_SIMPLE_AUTOMATION_TEST`, `Automation RunTests`) | every `SimCruise.*` test in `check.ps1` | - |
+| `-nullrhi` | the headless automation tests | games need a picture: they run with `-RenderOffScreen` |
+| `-RenderOffScreen` | every picture and driving test game | - |
+| Functional tests and automation screenshot comparison (`FunctionalTesting`, `TakeAutomationScreenshot`, ground-truth frames, Session Frontend comparison) | not yet | the next step: approved reference frames for fixed poses (view check, cockpit poses per car, a fixed Dragon pose) with time, weather and traffic pinned. The cockpit test's own geometry and needle numbers stay: no Unreal tool measures them |
+| Gauntlet (`RunUAT RunUnreal`) | not used | it needs a C# test node per test and starts its games outside our PC-wide locks; our launchers already give the lock, the time limit, the crash folder and the evidence. To look at again for runs on other PCs |
+
+### Before you say it works
+
+Numbers can pass while the picture is wrong. Before you say that a change works, launch the game, look at what it shows and write a verdict:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\launch-review.ps1 -Road ocean-drive -Car nb2001_aaron
+```
+
+(`-Road dragon`, `nebraska` or `big-sur`, or `-Start lat,lon -StartRoad name`; `-Seconds`, `-Graphics` (default `ultra`, the game's top preset), `-Name`, `-ExtraArgs`.) The robot drives for 60 s from the driver's seat. The game quits itself; a hang is stopped after 20 min. Everything goes into one folder, `Saved\Review\<yyyyMMdd-HHmm>-<commit>\<name>\`:
+
+- `review\NNN-<t>s-<event>.png`: full-size frames at the start, every 5 s and at each event (a spin, a run-off, a hitch over 100 ms, a tile built, a pop-in, a jolt, a place card). Each has a `.json` sidecar: the true speed and engine speed next to what the needles show, the stick, the rack, the road wheels' drawn steer, the steering wheel's drawn angle, and the screen boxes of the close-ups.
+- `review\crops\`: close-ups of the steering wheel, the instrument cluster, the mirrors and the windscreen, twice the size.
+- `video.mp4` and `sheet.png` (10 frames a second and a contact sheet), `game.log`, `cmdline.txt`, `run.txt` (commit, exit code), `gpu.txt`, `preflight.json`, `review.json`, and `crash\` with the minidump and CrashContext when the game crashed. A crash or a hang still gives the folder, and the launch FAILs.
+- `review.json` and `review.md` give the steering wheel as it is drawn: rim degrees per road-wheel degree, lock-to-lock turns (each next to the car data's), and the fastest rim motion. They also give the gauge errors (needle against the true value, while the speed is steady).
+- `review.md`: the fault list (launch, place, glitches and flicker, pop-in, missing or floating objects, sky, road seams, gauges, steering wheel, car body and wheels, mirrors and windscreen, HUD, traffic, audio). The numbers fill the launch, gauge and audio verdicts.
+
+Then open the frames and the crops, and for each TODO item write PASS, FAIL or N/A with the frame names, and your name after "Reviewed by". Check the sheet:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\review-check.ps1 Saved\Review\<folder>
+```
+
+It exits 0 only when every item has a verdict and none is FAIL. `scripts\preflight.ps1` makes the same evidence and a `review.md` for each of its runs, in `Saved\Review\<stamp>-<commit>-preflight\`. When its game checks pass, the index row says UNREVIEWED. `review-check.ps1` on that folder adds the PASS (or FAIL) row, and `scripts\playtest.ps1` builds only for a commit with a reviewed PASS. `scripts\viewcheck.ps1` and `scripts\drive-robot.ps1` also keep their evidence and a `review.md` under `Saved\Review\`.
+
+#### Cockpit steer test
+
+`launch-review.ps1` first runs the cockpit steer test (`-SimCruiseCockpitTest`; `-NoCockpit` leaves it out). For one car or all of them on their own:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\cockpit-review.ps1 -Cars nb2001_aaron,mustang65,meridian_z
+```
+
+(no `-Cars`: every car in `data\cars`). With the car at rest in the driver's seat (Ocean Drive, offline, Ultra, traffic off), the stick goes to the centre, half lock and full lock both ways, and each pose is held for 2 s. At each pose the game reads, in the car's own frame, the transforms of the steering wheel, the dial faces, the needles and the body. It also takes two frames: as the driver sees it, and with the steering wheel hidden. It FAILs when:
+
+- the dial faces or the body move more than 0.05 cm or turn more than 0.1 deg;
+- a needle turns about another axis than its own, or turns more than 0.5 deg while the speed and rpm it shows do not change (the gauges turn with the steering);
+- a gauge hangs on the wheel, or more than 2 % of the wheel mesh's vertices lie outside its rim;
+- the wheel turns about another axis than its column (0.5 deg), its hub (the mesh's centre) moves more than 1 mm, or its rim is tilted more than 2 deg on the column (fitted from the mesh);
+- the rim angle at full lock differs from the car data's (road-wheel lock x steering ratio) by more than 5 %, or the wheel turns the other way from the road wheels;
+- more than 1 % of the cluster's pixels change by more than 25 of 255 between the centre and full lock, with the wheel hidden.
+
+It writes `cockpit\<pose>.png`, `cockpit\<pose>-nowheel.png`, `cockpit\diff-full-left.png` and `diff-full-right.png` (the cluster's change, bright where it changed), `cockpit\cockpit.json` and one line `COCKPIT PASS|FAIL car=.. lock=.. ratio=.. lock_to_lock=.. ... reasons=..`. The review sheet's items "Cockpit: gauges fixed while steering" and "Steering wheel turns about its column" take their verdicts from it. Look at the frames before you call a fix done.
+
+#### Random places
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\launch-review.ps1 -RandomUS 8 -Seed 4242
+```
+
+The game builds any place in the US as you drive, so the review must look at ordinary places too. `-RandomUS N` makes N launches, one per place type (desert, mountains, plains and farms, forest, coast, suburb, small town, dense city), each a 45 s drive with the Miata at Ultra from the driver's seat. The places come from `data\test-places.json` when it is there, else from three areas per type in `scripts\RandomPlaces.ps1`, where a point is picked and the game puts the car on the nearest road. The seed (printed, and in the folder's name) repeats the same places. Each run's sheet adds: missing ground or holes, climate colours, floating or sunk objects, trees and plants, buildings, roads, slow frames, load (the car placed more than 60 s after the start fails), and a start that fell back to Miami Beach. `random-us.md` gives a table with the place type, the point, the road the car stood on, the load time, the game's result, the frame p95 and a link to each sheet.
+
+Real photographs next to the game's frames, where the licence allows:
+
+- Wikimedia Commons (used): the geosearch API (`list=geosearch`, file namespace, up to 10 km round the point, the nearest first) and `prop=imageinfo` for the licence and the author; only Creative Commons and public-domain files are kept, as `photo.jpg` with `photo.txt` (title, author, licence, link, distance). Terms: the Wikimedia API etiquette (one request at a time, a User-Agent that names the client, thumbnails rather than originals); each photo's own licence applies.
+- Mapillary (CC BY-SA 4.0): it needs a free API token. None is set on this PC, so it is not used.
+- USGS / NAIP aerial images (public domain): only as a fall-back, not used yet.
+- Google Street View: never (its terms forbid it).
+
 ### View check
 
 The view check looks at what the player sees and tells if the world is there. `-SimCruiseViewCheck` (or `-SimCruiseViewCheck=<seconds>`, default 6) waits until the car is placed, the tiles round it are built and the shaders are compiled, then waits the given seconds. Then it:
@@ -282,7 +375,7 @@ In each game, `-SimCruisePreflight` (`ASimCruisePreflight`) waits for the start'
 
 Each FAIL reason is in the `PREFLIGHT` line, in `preflight.json`, in the report table (rear slip and backwards time, distance past the edge, frame p95 and hitches) and in the last column (`reasons`) of the index row. The negative test `scripts\preflight.ps1 -Roads dragon -Cars nb2001_aaron -ForceSpin` makes the robot pull full stick with the handbrake on for 2 s at speed (`-SimCruisePreflightForceSpin`). Every run must FAIL with a spin: the script then prints `FORCED-SPIN TEST PASSED`, exits 0 and writes no index row.
 
-The game writes `PREFLIGHT PASS|FAIL road=.. car=.. ... reasons=..` and `preflight.json`. The script encodes the frames to `<road>-<car>.mp4` with ffmpeg (free: `winget install Gyan.FFmpeg`) and makes a 4 x 3 contact sheet `<road>-<car>-sheet.png`. It writes `report.md` with a table and links, all in `Saved\Preflight\<date-time>\`, and adds a row to the PC-wide index `%LOCALAPPDATA%\SimCruise\preflight-index.csv`. Look at every contact sheet, and watch the videos of failed runs. Put real game bugs in `docs/release/bugs.md` with the run, the frame and a screenshot.
+The game writes `PREFLIGHT PASS|FAIL road=.. car=.. ... reasons=..` and `preflight.json`. The script encodes the frames to `<road>-<car>.mp4` with ffmpeg (free: `winget install Gyan.FFmpeg`) and makes a 4 x 3 contact sheet `<road>-<car>-sheet.png`. It writes `report.md` with a table and links, all in `Saved\Review\<date-time>-<commit>-preflight\`, and adds a row to the PC-wide index `%LOCALAPPDATA%\SimCruise\preflight-index.csv`. Look at every contact sheet, and watch the videos of failed runs. Put real game bugs in `docs/release/bugs.md` with the run, the frame and a screenshot.
 
 `scripts\playtest.ps1` refuses to make a play-test zip unless the index has a passed pre-flight for the same commit. `-SkipPreflight` builds anyway and prints a warning.
 

@@ -86,12 +86,14 @@ void ASimCruisePlayerController::BeginPlay()
 		}
 		InputTape = MakeShared<FSimCruiseInputTapeDriver>();
 		InputTape->Begin(*this);
+		StartMenuInput();
 	}
 }
 
 void ASimCruisePlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	CloseOverlays();
+	StopMenuInput();
 	StopRumble();
 	if (InputTape)
 	{
@@ -523,6 +525,7 @@ void ASimCruisePlayerController::OnToggleAtlas()
 		CloseOverlays();
 		return;
 	}
+	ReturnPage = -1;
 	OpenPauseMenu(MenuPage);
 }
 
@@ -535,6 +538,7 @@ void ASimCruisePlayerController::OnTuning()
 		return;
 	}
 	// Open anywhere (the car waits while you choose); a setup saved on the move goes on at the next stop.
+	ReturnPage = -1;
 	OpenTuning();
 }
 
@@ -551,7 +555,8 @@ void ASimCruisePlayerController::OpenTuning()
 		.OnClose_Lambda([this]()
 		{
 			const SSimCruiseTuningMenu::ETuningResult Result = TuningPanel.IsValid() ? TuningPanel->GetResult() : SSimCruiseTuningMenu::ETuningResult::Cancelled;
-			CloseOverlays();
+			// Back to the pause menu when it opened the tuning, else to the drive.
+			LeaveSubScreen();
 			// The rebuilt car reports its new ratio and limits.
 			if (ISimCruiseVehicleControl* Vehicle = GetVehicle())
 			{
@@ -605,7 +610,7 @@ void ASimCruisePlayerController::OpenSeatMenu()
 		.OnClose_Lambda([this, Before]()
 		{
 			const bool bSaved = SeatPanel.IsValid() && SeatPanel->WasSaved();
-			CloseOverlays();
+			LeaveSubScreen();
 			if (ASimCruisePlayerCameraManager* Cam = GetSimCamera())
 			{
 				Cam->SetView(Before);
@@ -622,6 +627,7 @@ void ASimCruisePlayerController::OnFindPlace()
 		CloseOverlays();
 		return;
 	}
+	ReturnPage = -1;
 	OpenPlaceSearch(false);
 }
 
@@ -696,22 +702,28 @@ void ASimCruisePlayerController::ShowOverlay(const TSharedRef<SWidget>& Widget, 
 	// The seat menu keeps the world running (a paused frame smears in the temporal filters) and holds
 	// the parked car on its brakes instead.
 	SetPause(bPause);
+	const TSharedPtr<SWidget> Target = Focus.IsValid() ? Focus : TSharedPtr<SWidget>(Widget);
+	OverlayFocus = Target;
 	FInputModeUIOnly Mode;
-	Mode.SetWidgetToFocus(Focus.IsValid() ? Focus : TSharedPtr<SWidget>(Widget));
+	Mode.SetWidgetToFocus(Target);
 	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	SetInputMode(Mode);
-	bShowMouseCursor = true;
+	// Every Slate user, not only this player's: a pad in any slot reaches the screen.
+	FSlateApplication::Get().SetAllUserFocus(Target, EFocusCause::SetDirectly);
+	// The cursor shows for the mouse and hides while the pad drives the menus.
+	bShowMouseCursor = !bUsingGamepad;
 	StopRumble();
 	Haptics.Quiet();
 }
 
-void ASimCruisePlayerController::OpenPlaceSearch(bool bGamepad)
+void ASimCruisePlayerController::OpenPlaceSearch(bool bGamepad, bool bFromAtlas)
 {
 	CloseOverlays();
 	SearchPanel = SNew(SSimCruisePlaceSearch)
 		.OnChoose_Lambda([this](const FSimCruisePlace& Place) { ChoosePlace(Place); })
 		.OnSurprise_Lambda([this]() { return SurpriseMe(); })
-		.OnClose_Lambda([this]() { CloseOverlays(); });
+		// B goes back one screen: to the atlas that opened it, else as any screen the menu opened.
+		.OnClose_Lambda([this, bFromAtlas]() { if (bFromAtlas && !IsMenuButtonDown()) OpenRoadAtlas(); else LeaveSubScreen(); });
 	ShowOverlay(SearchPanel.ToSharedRef(), SearchPanel->FocusTarget(bGamepad));
 }
 
@@ -722,7 +734,7 @@ void ASimCruisePlayerController::OpenRoadAtlas()
 		.GetView_Lambda([this]() { return AtlasView(); })
 		.OnChoose_Lambda([this](const FSimCruisePlace& Place) { ChoosePlace(Place); })
 		.OnSurprise_Lambda([this]() { return SurpriseMe(); })
-		.OnFindPlace_Lambda([this]() { OpenPlaceSearch(true); })
+		.OnFindPlace_Lambda([this]() { OpenPlaceSearch(bUsingGamepad, true); })
 		.OnCycleCar_Lambda([this]()
 		{
 			if (ASimCruiseGameMode* Mode = GetWorld() ? GetWorld()->GetAuthGameMode<ASimCruiseGameMode>() : nullptr)
@@ -732,7 +744,7 @@ void ASimCruisePlayerController::OpenRoadAtlas()
 		})
 		.OnToggleTransmission_Lambda([this]() { OnToggleTransmission(); })
 		.OnSetting_Lambda([this](int32 Index) { ChangeSetting(Index); })
-		.OnClose_Lambda([this]() { CloseOverlays(); });
+		.OnClose_Lambda([this]() { LeaveSubScreen(); });
 	ShowOverlay(AtlasPanel.ToSharedRef(), AtlasPanel);
 }
 
