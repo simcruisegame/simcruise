@@ -10,7 +10,8 @@ Every role works to these rules:
 2. **Be innovative and original, and also research what exists and improve on it.** Study how the best games and the real world do it first; then do it better, in our own way. Never copy another game's content.
 3. **Be efficient, detailed and thorough.** Small tested steps; no guess left unmarked; no "works" without proof.
 4. **Launch and look.** Before you say a change works, run the game, capture it and look at the images yourself (procedure below).
-5. Standing rules: no money; legal APIs and licences only; do not break other threads' work; push from the owner's PC; editor and tests only through the scripts.
+5. **It must work at a random US place, not only on the hero roads.** The world generates as the player drives anywhere in the US (owner, 2026-11-14). Judge every change by "does this work at a random place": a city grid, a suburb, a farm road, a desert highway, a mountain pass, a coast, a place with poor map data. Every test plan includes random US places from `data/test-places.json` (`scripts\preflight.ps1 -Roads random`), and every fix is a general system (open data, the place graph, local AI), never a hand fix for one road. Hero roads are test cases only.
+6. Standing rules: no money; legal APIs and licences only; do not break other threads' work; push from the owner's PC; editor and tests only through the scripts.
 
 ## How real studios split the work
 
@@ -30,6 +31,8 @@ Sources: https://userpages.cs.umbc.edu/olano/class/493-24-2/roles.md.html · htt
 | World | gis-data-scientist | environment-artist (new), magician | Real-world data to roads, ground, roadside, buildings; no pop-in | Make the picture look like a photo (world look and the detail layer) |
 | Audio | sound-designer | — | Engine, tyre, wind, road sound; mix and loudness | Make the driving and traffic feel real (until an audio thread starts) |
 | QA and tools | qa-playtester | tools-engineer (new) | Tests, pre-flight, launch and look, replays, builds, installers | Review real game output on every test |
+| AI (local models) | research-scientist (new) | applied-mathematician (new), performance-engineer | Legal local AI models on the CPU (not the GPU): find, licence-check, measure speed and error; the eyes of the scan engine | Use local AI without the GPU |
+| Innovation (research) | applied-mathematician (new) | research-scientist (new), magician, environment-artist | Study how the best games and sims add detail (Flight Simulator and others); invent new, original hyper-detail methods; prove them with experiments | Research and invent hyper-detail methods |
 
 ## Current work by team (high level)
 
@@ -43,12 +46,14 @@ Sources: https://userpages.cs.umbc.edu/olano/class/493-24-2/roles.md.html · htt
 | World | Hill grass on main; AI detail layer on `detail-layer-wip` | Open again (owner 2026-11-14): more detail on buildings, terrain and trees; one detail layer over everything; legal AI models only; more local data so each area feels familiar | Frame next to a real photo of the same place: owner says it looks like there; GPU cost logged |
 | Audio | Limiter per car | Sound matched to recordings (later) | — |
 | QA and tools | Pre-flight with video and contact sheets; replay steps on the physics thread | Launch and look gaps (poses, night pass, reference diff); tests fail on spin and slow frames | A broken change turns the run red; every thread reads its captures |
+| AI (local models) | Satlas (Allen Institute, NAIP models, ODC-BY weights) found as a CPU candidate | Measure CPU models for each scan channel (trees, land cover, buildings, road edge) | Each model has a licence, a CPU time per tile and an error measured at random US places |
+| Innovation (research) | Team started 2026-11-14 | Methods that beat what exists, for the scan engine (scan map, self-check against the aerial photo, stable non-repeating detail) | Each method has an experiment with a metric and a pass line, and a before/after frame |
 
 ## Launch and look (every thread, before "it works")
 
 1. `scripts\watchdog.ps1` (stop stale runs with `-Stop` only after checking the list).
 2. `scripts\check.ps1 -Tier fast` (view check on; never `-NoViewCheck`).
-3. `scripts\preflight.ps1 -Cars nb2001_aaron,meridian_z,mustang65 -Seconds 60`: video, 4x3 contact sheet, `preflight.json`, `report.md` per road and car in `Saved\Preflight\<time>\`.
+3. `scripts\preflight.ps1 -Roads ocean-drive,dragon,nebraska,big-sur,random -Cars nb2001_aaron,meridian_z,mustang65 -Seconds 60` (hero roads plus 3 random US places): video, 4x3 contact sheet, `preflight.json`, `report.md` per road and car in `Saved\Preflight\<time>\`.
 4. Driving change: `scripts\replay-compare.ps1 -Tape <tape> -CarB <car>`. Frame-time change: `scripts\framecheck.ps1`. Look change: `scripts\realism.ps1`.
 5. Read the logs: PREFLIGHT reasons (spin, past edge, jolts, pop-ins, flash), any `Error:`, `Ensure` or `Fatal`, `Saved\Crashes`.
 6. **Open the images with the Read tool**: every `*-sheet.png` and `Saved\ViewCheck\latest\*.png`, and the same files from the last PASS run. List each defect with its image. "Tests pass" is not enough.
@@ -60,5 +65,7 @@ Gaps (tools-engineer): fixed pose list per car and road for chase and cockpit (M
 Real ratios are right in the car files (Miata 15:1, C8 15.7:1 variable, Mustang 21.7:1), but the pad turns the wheel up to about 1500°/s at low speed (faster than NHTSA's 1000°/s test robot) and the lock gives 7-19 % too many turns. Fixes and sources: `docs/team/research/steering-ratio.md`. Owner: car team, "Make the driving and traffic feel real".
 
 ## Updates
+
+- 2026-11-14 01:45: owner added a research scientist and an applied mathematician (18 experts); two new teams: AI ("Use local AI without the GPU") and Innovation ("Research and invent hyper-detail methods"). The scan engine (an AI scan on the CPU ahead of the car that writes one detail map per place, which the engine draws) is the main world item; contract v1 in `docs/research/scan-engine.md`.
 
 - 2026-11-14 00:42: world work open again (detail on buildings, terrain, trees; one layer over everything; legal AI; local data); Dragon spins solved; car team on the cockpit; GPU at 88 W, delay 53/56/103 ms (Medium/High/Ultra), Reflex off.

@@ -49,6 +49,7 @@
  "wheel_inertia": 1.05,
  "rolling_resistance": 0.012,
  "parking_rack_deg": 36.6,
+ "steering_turns_lock_to_lock": 2.6,
  "road_reference_deg": 35.5,
  "ackermann_blend": 0.49,
  "assist_lateral_g": 0.95,

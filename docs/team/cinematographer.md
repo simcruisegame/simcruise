@@ -156,3 +156,79 @@ The image must expose like a camera that a person trusts: the road readable, the
 - [C9] Land, M. F., Lee, D. N. (1994). Where we look when we steer. Nature 369:742-744. (Not fetched.)
 
 Licences: all sources are cited, not copied. Epic documentation is read under the Epic website terms. No text or figures are reproduced beyond short quotes.
+
+## What I now know (onboarding, 2026-11-14)
+
+This is a desk study of the code. I could not run Unreal here. Judgments without a run are marked (estimate).
+
+**How my area works today.**
+- `ASimCruisePlayerCameraManager::UpdateViewTarget` (`Source/SimCruise/Private/Gameplay/SimCruisePlayerCameraManager.cpp:92`) has five views: Driver, Hood, Near chase, Far chase, Scenic. A car with no cabin (no steering wheel found) shows Chase instead of Driver (:143-144).
+- Lens (`SimCruiseCameraModels.cpp:19-51`, `SimCruiseCameraModels.h:31-35`): natural 45° vertical (72.7° across 16:9), wide 67°, chase 50°. True FOV is 2·atan(H/2D) from `simcruise.Lens.ScreenInches` 15.6 and `ViewDistanceCm` 60, clamped 10-90°. Every view and every lens widens by up to 6 % at 36 m/s (:154). This includes true FOV and a seat FOV that the player set.
+- Head model (`SimCruiseCameraModels.cpp:118-200`):
+  - It is a critically damped spring at 9 rad/s, 3 cm/g lateral and 2 cm/g longitudinal (clamped ±3/±2 cm).
+  - Brake pitch is 1.5°/g. Gaze lead is 4°. The horizon shows 70 % of body roll.
+  - Acceleration now uses the physics sample time `SimTimeS` (:83-102), not the frame time.
+  - Vibration is 2.2 mm of RNG noise per rendered frame, filtered at 30/s (:179-181). Its spectrum still changes with the frame rate.
+- Chase (`SimCruiseCameraModels.cpp:223-280`):
+  - Frame: yaw only, swung 0.4·β (±35°, faded in from 2 to 8 m/s).
+  - Offsets: near -5.8/+1.92→0.35/+1.94 m; far -10.5/+0.9/+3.3 m; scenic -7.2/+4.9/+3.45 m.
+  - The offset lags at rate 10/s (τ 0.1 s). The look-at uses the car heading with no lag (:238-264), so the camera turns at once with every yaw twitch.
+- Chase collision (`SimCruisePlayerCameraManager.cpp:198-217`):
+  - A ground line trace starts 2.5 m above the camera and keeps it 55 cm above the ground. Nothing smooths this clamp.
+  - A wall line trace runs on ECC_Camera from 1.12 m above the car to the camera. On a hit it puts the camera 22 cm in front of the hit, at once (`OverrideLocation`, `SimCruiseCameraModels.h:153`). It moves back out at the same 0.1 s rate.
+  - There is no sphere sweep. Nothing is filtered out as a thin obstacle.
+- Every BlockAll object blocks that trace: tree trunk capsules (`World/SimCruiseTrees.cpp:454,801`), palms (`SimCruiseWorldTile.cpp:339`), parked-car boxes (:589), traffic boxes (`SimCruiseTraffic.cpp:148`), guard rails, and the tile mesh (`SimCruiseWorldTile.cpp:149`).
+- Exposure (`Environment/SimCruiseEnvironment.cpp:423-482`):
+  - Histogram metering over 10-90 %. Speed up 2 stops/s, speed down 1 stop/s.
+  - The band is `DisplayEV100(ref)` -3 to -0.5 EV (`SimCruiseEnvironment.h:156,163`).
+  - Bias is 0.2 + (-0.3 × day), so -0.1 by day and +0.2 at night.
+  - Motion blur: amount 0.15, TargetFPS 0, max 1.0. Saturation falls to 0.35 at night.
+  - `DisplayEV100` has a knee at EV 10 and a slope of 0.55 below it (`SimCruiseDaylightModel.cpp:111-116`).
+- The reference EV is an 18 % card under the open sky. Its inputs are sun elevation, cloud cover, moon lux and one artificial term (:404).
+  - The only artificial source is the player's low beams, `NightAdaptationLux` (`Vehicle/SimCruiseVehicle.cpp:267`).
+  - Street lights, tree canopy and the walls of a street canyon do not change the reference.
+- Local exposure in `Config/DefaultEngine.ini:34-35` is highlight 0.55 and shadow 0.95. No code overrides it.
+- Drive capture (`SimCruiseDriveCapture.cpp:213-300`):
+  - Shots are taken at fixed clock times: cockpit 2.0 s, chase 4.6 s, top (60°, 35 m) 7.3 s, then moving shots from 15.0 to 17.15 s at 45 % throttle.
+  - Hood and far chase are shot only 0.45-0.5 s after the view changes.
+  - The SHOT line logs speed, gear, rpm, wheel contacts and `Describe()`. That text gives the band, not the exposure the camera actually used.
+- View check (`SimCruiseViewCheck.cpp:147-208, 117-143`):
+  - It measures luma SD, edges and hue bins only in the lower 60 % of the frame (`Y0 = 0.4H`).
+  - It has no test for clipped sky, crushed black or mean exposure.
+
+**Does it work at a random US place?**
+- General: the lens, the head model, the exposure reference (sun and cloud from the place and time) and the snap on teleport do not depend on the road. They run the same at us-anchorage-ak (low winter sun) and us-hilo-hi (estimate).
+- us-jasper-ar, us-seattle-wa, us-hilo-hi (trees and palms beside the road): each trunk or palm between the car and the chase camera pulls the camera in at once. The camera then moves back out in about 0.1 s, so the frame pumps in bends (estimate, from the code above).
+- us-bronx-ny: a following SUV or truck taller than the trace height (about 1.5-1.9 m at that point) and parked cars put the camera 22 cm from their box. Scenic sits 4.9 m to the right and enters the parked-car lane and the walls on narrow side streets (estimate).
+- us-hazard-ky and us-welch-wv cut slopes: the wall trace hits the terrain and pulls the camera in. A hit point is not checked again for the 55 cm ground rule, so the camera can sit close to the slope face (inferred).
+- us-seattle-wa grades: on a 26 % grade the ground behind is about 1.5 m higher, so the near chase drops to about 0.44 m and the clamp lifts it. The clamp follows each DEM triangle with no smoothing (estimate).
+- Tunnels: the helper drops tunnel roads (`helper/atlas.mjs:115`, `p.brunnel==='tunnel'` returns). No tunnel exists in the world, so tunnel exposure is never exercised. Under dense canopy (us-jasper-ar) the band opens at most 3 EV. A road 4-6 EV under open sky stays 1-3 EV dark (estimate).
+
+**Main gaps against "realistic everywhere".**
+1. P1: each floating-origin rebase (every 2 km, `World/SimCruiseWorldStreamer.h:84`) calls `SnapNextFrame` (`Gameplay/SimCruiseGameMode.cpp:690-706`). The jump test fires too (`SimCruisePlayerCameraManager.cpp:119`).
+   - Driver view: `Head.Reset()` (:159-162) zeroes head offset, gaze lead (up to 4°) and brake pitch in one frame.
+   - Chase view: swing and offset snap.
+   - The player sees a view jump every 2 km, at every place. The jump is verified in code. Its size on screen is an estimate.
+2. P1: the chase collision is a line trace that pulls in at once and eases out fast, and thin props block it. `SimCruisePlayerCameraManager.cpp:210-216`, plus the BlockAll props listed above.
+3. P2: the chase look-at follows the car heading with no lag. `SimCruiseCameraModels.cpp:238-264`.
+4. P2: the exposure reference is open sky only. Canopy, canyon streets and street lights do not change the band. `SimCruiseEnvironment.cpp:404,437-440`. Tunnels are not built at all (`helper/atlas.mjs:115`).
+5. P2: the capture tools do not measure exposure. The view check ignores the top 40 % of the frame. SHOT lines do not log the exposure actually used. `SimCruiseViewCheck.cpp:154`, `SimCruiseDriveCapture.cpp:112`.
+6. P2: vibration is per-frame RNG, so its spectrum changes with the frame rate. `SimCruiseCameraModels.cpp:180-181`.
+
+**My first three actions.**
+1. Rebase without a camera pop.
+   - What: add `ASimCruisePlayerCameraManager::ShiftOrigin(Offset)`, which does `LastBodyLocation += Offset`. Call it from `ASimCruiseGameMode::HandleRebased` instead of `SnapNextFrame`.
+   - Done when (test): a new automation test rebases mid-corner. The head offset changes < 1 mm, gaze < 0.05°, and the chase offset < 1 cm across the rebase.
+   - Done when (run): `scripts\preflight.ps1 -Roads random -Seconds 120` shows at least one "Floating origin moved" line, with no frame step at that time in the video.
+2. Chase collision without pops.
+   - What: in `SimCruisePlayerCameraManager.cpp:212`, use a 20 cm sphere sweep. Make trunks, palms, traffic and parked boxes ignore ECC_Camera. Keep the instant pull-in and ease out with a τ of about 0.6 s. Check the ground rule again after a wall hit.
+   - Done when: preflight on `us-jasper-ar`, `us-bronx-ny` and `us-hazard-ky` in chase and scenic logs the camera-to-pivot distance. It never changes by more than 0.5 m in one frame except on snaps.
+3. Exposure numbers in the captures.
+   - What: in `SimCruiseViewCheck.cpp` `MeasureImage`, add the % of top-40 % pixels at 255 and the % of bottom-60 % pixels at luma ≤ 5. Log the exposure actually used in the `Shoot` SHOT line.
+   - Done when: `scripts\preflight.ps1 -Roads random` plus `us-seattle-wa` and `us-jasper-ar` at 12:00 show sky clip < 1 % and road crush < 5 %.
+
+**Docs that are wrong or old.**
+- `docs/unreal-architecture.md` "Light in physical units" says "+0.7 compensation" and "Local exposure 0.8 / 0.8". The code bias is 0.2 + (-0.3 × day) (`SimCruiseEnvironment.cpp:443`, `.h:172,181`). The ini local exposure is 0.55 / 0.95 (`DefaultEngine.ini:34-35`).
+- `docs/unreal-architecture.md` "Cameras" says the head model is "differentiated over the real frame time". The code uses physics sample time (`SimCruiseCameraModels.cpp:83-102`). The section also does not list the Hood and Far chase views.
+- `docs/controls.md` says natural is "74° across a 16:9 screen". The code gives 72.7° (`SimCruiseCameraModels.cpp:47-51`), and 77° only with the full speed widening. The "true FOV" text says "as if the screen were a window", but the code widens it by up to 6 % with speed (`SimCruisePlayerCameraManager.cpp:174`).
+- `docs/team/cinematographer.md` §2.1 says not to change the seat FOV with speed. The code does (:154). The rule or the code must change.

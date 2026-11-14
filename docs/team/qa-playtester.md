@@ -149,3 +149,45 @@ The peak slip, yaw rate and stopping distance must match within 5 %.
 - Fiedler, G., "Fix Your Timestep!": https://gafferongames.com/post/fix_your_timestep/
 
 Licences: all sources are read for reference only. Do not copy text from the paywalled ISO standard.
+
+## What I now know (onboarding, 2026-11-14)
+
+**How my area works today.**
+- `scripts/preflight.ps1:40` runs the 4 hero roads by default with 3 cars for 60 s at a fixed `-Utc 2026-11-12T17:00:00Z` (`:43`). Every run uses `-SimCruiseNoLive -SimCruiseNoNeural` (`:121`). The `us-*` keys come from `data/test-places.json` (`:86-89`, 18 places). They pass only `-SimCruiseStart=lat,lon` and no road name. `random` draws `-RandomCount 3` places with `Get-Random -SetSeed yyyyMMdd` (`:95`).
+- `SimCruisePreflight.cpp:376-383` waits until the car is placed, the 3x3 tiles are ready, the shaders are done and the view check is done. After `ReadyTimeoutS = 600` s (`:44`) it drives anyway.
+- The robot (`DriveTick`, `:499-640`) follows pure pursuit to the right-lane centre. It looks ahead 8 to 30 m (`:525`) and corners at 3 m/s² (`:52`). Its target speed comes from the OSM class (`SimCruiseTraffic.cpp:63-74`: motorway 29.1, unclassified 11.2 m/s), with a cap of `MaxSpeedMps = 30` (`:54`). It skips service ribbons (`:258`). With no road near, it brakes and waits (`:514-521`). At a line end it takes the best-aligned line within 3 m (`:338-350`).
+- `Judge` (`SimCruisePreflight.cpp:76-99`; limits in `SimCruisePreflight.h:78-100`) fails on any of these: distance < 200 m, off the road > 1 s, start > 3 km from the asked point (`:964-971`), tile pop-in ≥ 1 within 150 m, car pop-in > 2, flash frames > 2, road step > 5 cm, gap < 1.5 m, body jolt > 8 m/s² at a tile border, traffic stuck > 20 s, rear slip > 15° or sliding backwards > 0.3 s, more than 2 m past the edge for > 0.5 s, frame p95 > 50 ms or > 5 hitches over 100 ms.
+- `SimCruiseViewCheck.cpp:117-145` fails when world rays are < 70 %, no road is within 300 m, there is no building in view (only checked if ≥ 30 buildings are mapped, `SimCruiseViewCheck.h:61`), or the image edges are < 2.
+- `check.ps1:139` runs the automation tests (`fast` skips the Slow tag). It fails on `Ensure`, `Fatal` or `LogSimCruise*: Error:` (`:182`). Then it runs `viewcheck.ps1` on ocean-drive, collins-ave and test-pad only (`viewcheck.ps1:48-50`). All three are in Miami.
+- `drive-robot.ps1:23` runs 4 cars by default (nb2001, nb2001_aaron, mustang65, meridian_z) on the drive-test pad at the bundled start (`:52`). `-LowFps` adds a 15 fps cap (`:46`).
+- The soak cycles the car every 240 s and travels every 360 s, through 9 fixed presets (`SimCruiseSoak.cpp:127-143`, `SimCruisePlaces.cpp:49-59`).
+- The input tape replays with a fixed time step from the tape's recorded frame time (`SimCruiseInputTape.cpp:814-818`).
+- `playtest.ps1:54-55` builds a play-test only if the last index row for the commit is PASS. It does not check which roads that run used.
+
+**Does it work at a random US place?**
+- These parts are general: the start snap (a non-service road within 900 m, `SimCruiseGameMode.cpp:42,563`, `SimCruiseWorldStreamer.cpp:168`), the robot (OSM ribbons only), and all Judge metrics. A failed or empty helper answer shows up only as `start-fell-back` (> 3 km) or as `robot-moved-only`.
+- These parts are tied to one region: all 25 bundled tiles are Miami (`data/tiles/18178-18182_*`). Every streamed World or Drive test uses `BundledLon/Lat` (`SimCruiseWorldSubsystem.h:35-36`; `DriveIntegrationTests.cpp:200`; `SimCruiseWorldTests.cpp:208,583`). The only tests outside Miami are pure math: TileMath round trips (Anchorage, Honolulu, Death Valley, Bethel ME; `SimCruiseWorldTests.cpp:124-131`), CarClock time zones (`WorldDetailTests.cpp:82-89`) and palm regions (`:66-73`). No automated test builds or drives a tile outside Miami.
+- The fixed time is a problem. At 17:00Z on 12 Nov the sun is at -6.8° in us-anchorage-ak, +6.4° in us-hilo-hi and +13.9° in us-seattle-wa, against +46° in Miami (my own solar formula, low precision). Anchorage drives in twilight. The sheets go dark, and `flat-image-edges` can fail for no real fault (estimate).
+- us-welch-wv and us-casselton-nd (poor or empty map data): the building check is skipped below 30 mapped buildings, so missing buildings pass with no warning. No metric detects blank ground or a missing road. Only a person who reads the sheet can catch them (estimate).
+- us-casselton-nd and us-delta-ut: unclassified roads run at 11.2 m/s, so 60 s covers about 670 m, about 1 tile border. us-rawlins-wy (I-80): the robot drives at 29.1 m/s, but the real limit is 80 mph (35.8 m/s). Seams and rebases at real highway speed get no test (estimate).
+- us-bronx-ny and us-doraville-ga: the robot never turns at a junction. It always takes the best-aligned line. It ignores signals. Ramps on bridges work only through the bridge trace (`SimCruisePreflight.cpp:718`).
+
+**Main gaps against "realistic everywhere".**
+1. P1: Random places are optional. The default roads are hero only (`preflight.ps1:40`), and `playtest.ps1:54-55` accepts a hero-only PASS, even a 1-car 20 s PASS.
+2. P1: No automated World or Drive test runs outside Miami. Seam, collision, edge and drive tests use only the bundled tiles (`SimCruiseWorldTests.cpp:36-40`, `DriveIntegrationTests.cpp:184-260`). Fix: bundle cached helper tiles for 3 to 4 test places (OSM ODbL with attribution; licence check needed).
+3. P1: The fixed UTC (`preflight.ps1:43`) gives a twilight or low-sun drive west of the Central zone, and there is no night pass at all.
+4. P2: The pre-flight cannot catch: a wrong regional look (Art Deco applies only in Miami Beach, `StyleForPlace`), blank ground or missing roads where data is poor, junction turns, dead ends, live weather and the AI detail layer (both off, `preflight.ps1:121`), the packaged build (it uses editor binaries), and a cold map cache (nothing records cache state).
+5. P2: The 60 s at class speed is too short for random rural places to cross seams. The soak and the view check use only fixed presets and Miami (`SimCruiseSoak.cpp:136`, `viewcheck.ps1:48-50`).
+
+**My first three actions.**
+1. Run `scripts\preflight.ps1 -Roads random,us-welch-wv,us-anchorage-ak,us-hilo-hi -Cars nb2001_aaron,meridian_z,mustang65 -Seconds 120`. Done when: I have opened every `*-sheet.png` and `report.md`. Each defect has a ranked entry with repro steps, the frame and the run folder. Each false FAIL from the fixed UTC has its own entry.
+2. Propose a change to `scripts\preflight.ps1` (needs the caller's approval): if the caller gives no `-Utc`, use local solar noon from the place's longitude (12:00 UTC − lon/15 h). Done when: us-anchorage-ak shows a daylight reference EV100 in `preflight.json`, and `-Roads dragon -ForceSpin` still prints `FORCED-SPIN TEST PASSED`.
+3. Propose a change to the `scripts\playtest.ps1` gate: the index row must hold all 4 hero roads and ≥ 3 `us-*` keys, with all 3 priority cars. Done when: a fake index row with only ocean-drive is refused, and a full row is accepted.
+
+**Docs that are wrong or old.**
+- `docs/team/qa-playtester.md:122` says the drive robot defaults to the two NB cars. `scripts/drive-robot.ps1:23` runs 4 cars, including mustang65 and meridian_z.
+- `docs/unreal-building.md:270` says the pre-flight drives the hero roads (12 runs) "at a fixed midday time". The script also has `us-*`, `random` and `pool` (`preflight.ps1:26-30`). 17:00Z is twilight in Anchorage.
+- `docs/team/qa-playtester.md:56` says the smoke car "appears on Ocean Drive". Normal play now starts on a random pool road (`how-the-game-works.md:21`). I did not check the packaged self-test start.
+- `docs/team/qa-playtester.md:78` says the soak travels to 10 places with "Surprise me". `SimCruiseSoak.cpp:136-141` cycles 9 fixed presets.
+
+Proposed line for `docs/team/qa-playtester.md`: "Pre-flight default `-Utc 2026-11-12T17:00:00Z`: sun altitude Miami +46°, Bronx +31°, Seattle +14°, Hilo +6°, Anchorage -7° (low-precision solar formula; not run in game)."

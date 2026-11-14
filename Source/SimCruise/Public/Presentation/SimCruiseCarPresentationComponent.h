@@ -68,6 +68,13 @@ struct SIMCRUISE_API FSimCruiseCarVisualState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SimCruise|Presentation")
 	float EngineRpm = 0.f;
 
+	/** The hand wheel's angle (rad, positive left as the wheels' steer), when the car gives it (bHasSteeringWheel). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SimCruise|Presentation")
+	float SteeringWheelRad = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SimCruise|Presentation")
+	bool bHasSteeringWheel = false;
+
 	/** The engine is running (the gauges rest when it is not). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SimCruise|Presentation")
 	bool bEngineRunning = true;
@@ -136,6 +143,9 @@ public:
 	FTransform GetSteeringWheelRestTransform() const { return SteeringRest; }
 	bool HasSteeringWheel() const { return SteeringWheelMesh != nullptr; }
 	double GetSteeringRatio() const { return SteeringRatio; }
+	/** The ratio the cockpit wheel turns at: the driver's tuned one when set (Tune car), else the real car's. */
+	double GetWheelSteeringRatio() const { return TunedSteeringRatio > 1.0 ? TunedSteeringRatio : SteeringRatio; }
+	void SetTunedSteeringRatio(double Ratio) { TunedSteeringRatio = Ratio; }
 	/** The steering-wheel angle shown for the current state, radians (+ = anticlockwise as the driver sees it). */
 	double GetSteeringWheelAngleRad() const { return SteeringWheelAngle; }
 	/** The roll a road wheel is drawn with (its spinner's pitch), radians in (-pi, pi]; 0 without wheels. */
@@ -226,7 +236,10 @@ private:
 	FTransform SteeringRest = FTransform::Identity;
 	FVector DriverEyeCm = FVector::ZeroVector;
 	double SteeringRatio = 15.0;
+	double TunedSteeringRatio = 0.0;
 	double SteeringWheelAngle = 0.0;
+	/** World time of the last rim update (-1: none yet), for the hand-rate limit. */
+	double SteeringWheelTime = -1.0;
 	int32 LampLevel = -1;
 
 	/** The dashboard clock's material, when the profile has one; its minutes follow the place's local time. */
@@ -241,6 +254,10 @@ private:
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> MirrorMaterials;
 	UPROPERTY(Transient)
 	TObjectPtr<USceneCaptureComponent2D> MirrorCapture;
+	/** Sky fill in the cabin (driver's view only): see SetMirrorsLive. */
+	UPROPERTY(Transient)
+	TObjectPtr<class UPointLightComponent> CabinFill;
+	void UpdateCabinFill();
 	UPROPERTY(Transient)
 	TObjectPtr<UTextureRenderTarget2D> MirrorTarget;
 	uint32 MirrorFrame = 0;

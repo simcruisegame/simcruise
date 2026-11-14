@@ -1504,7 +1504,7 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 		{
 			FVector N = Ring.Normal;
 			if (N.Z < 0.0) N = -N; // toward the driver, who sits behind the wheel
-			const FVector Centre = Ring.Centre;
+			FVector Centre = Ring.Centre;
 			double R = Ring.Radius;
 			// The rim may be split into arcs, or the first ring found may be a
 			// horn ring inside it: look for arcs around the same axis that
@@ -1591,14 +1591,22 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 				for (const FVector& V : Part.Points)
 				{
 					if (!bInside) break;
-					bInside = InDisc(V, -0.12, 0.09, R * 1.08);
+					// A wheel's rim, spokes, hub and badge lie within about 8 cm of the rim's plane toward
+					// the dash; the cluster's hood and faces beyond that stay (the NB's are 8-12 cm deep).
+					bInside = InDisc(V, -0.085, 0.09, R * 1.08);
 				}
 				if (!bInside)
 				{
 					Joined.Add(&Part);
 					continue;
 				}
-				Turning.Append(Part.Tris);
+				// Instrument faces, their marks and lamps, and glass, are never part of a wheel.
+				for (const FTriRef& Tri : Part.Tris)
+				{
+					const FJob& TriJob = Context.Jobs[Tri.Job];
+					const ESimCruiseCarMaterialRole TriRole = Profile.RoleFor(TriJob.MaterialName, TriJob.Label);
+					if (TriRole != ESimCruiseCarMaterialRole::Gauge && TriRole != ESimCruiseCarMaterialRole::Glass) Turning.Add(Tri);
+				}
 				for (const FVector& V : Part.Points)
 				{
 					if (InDisc(V, -0.12, 0.09, R * 0.3))
@@ -1620,7 +1628,7 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 			if (!bHubTurns || FMath::CountBits(RimSectors) < 13)
 			{
 				// The original cut (spokes welded to the column, nothing turning yet) keeps its depth.
-				const double CutDepthM = bHubTurns ? 0.045 : 0.12;
+				const double CutDepthM = bHubTurns ? 0.045 : 0.09;
 				for (const FComponent* Part : Joined)
 				{
 					bool bReachesHub = false;
@@ -1637,10 +1645,14 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 					{
 						const FJob& Job = Context.Jobs[Tri.Job];
 						const TArray<uint32>& List = Job.Dest[DestBody];
+						// Instrument faces, their marks and lamps, and glass are never part of a wheel, however
+						// near the hub they sit: the NB's white dial marks were cut with its rim and turned with it.
+						const ESimCruiseCarMaterialRole CutRole = Profile.RoleFor(Job.MaterialName, Job.Label);
+						if (CutRole == ESimCruiseCarMaterialRole::Gauge || CutRole == ESimCruiseCarMaterialRole::Glass) continue;
 						// Only a slab around the rim's plane: the gauges and the column
 						// shroud a few centimetres further from the driver stay put.
-						if (InDisc(Job.Pos[List[Tri.Offset]], -CutDepthM, 0.09, R * 1.02) && InDisc(Job.Pos[List[Tri.Offset + 1]], -CutDepthM, 0.09, R * 1.02) &&
-							InDisc(Job.Pos[List[Tri.Offset + 2]], -CutDepthM, 0.09, R * 1.02))
+						if (InDisc(Job.Pos[List[Tri.Offset]], -CutDepthM, 0.09, R * 1.08) && InDisc(Job.Pos[List[Tri.Offset + 1]], -CutDepthM, 0.09, R * 1.08) &&
+							InDisc(Job.Pos[List[Tri.Offset + 2]], -CutDepthM, 0.09, R * 1.08))
 						{
 							Turning.Add(Tri);
 							++CutTriangles;
@@ -1651,10 +1663,174 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 			if (CutTriangles > 0)
 			{
 				Context.Note(FString::Printf(TEXT("steering wheel: %d triangles cut from parts joined to the column"), CutTriangles));
+				TMap<FString, int32> ByMaterial;
+				TMap<FString, double> DeepestBy;
+				double Deepest = 0.0;
+				for (const FTriRef& Tri : Turning)
+				{
+					const FJob& Job = Context.Jobs[Tri.Job];
+					++ByMaterial.FindOrAdd(Job.MaterialName);
+					double& D = DeepestBy.FindOrAdd(Job.MaterialName);
+					D = FMath::Min(D, (Job.Pos[Job.Dest[DestBody][Tri.Offset]] - Centre) | N);
+					Deepest = FMath::Min(Deepest, (Job.Pos[Job.Dest[DestBody][Tri.Offset]] - Centre) | N);
+				}
+				FString Summary;
+				for (const TPair<FString, int32>& Pair : ByMaterial) Summary += FString::Printf(TEXT(" %s %d (to %.3f)"), *Pair.Key, Pair.Value, DeepestBy.FindRef(Pair.Key));
+				Context.Note(FString::Printf(TEXT("steering wheel turning parts by material:%s; deepest %.3f m toward the dash"), *Summary, Deepest));
 			}
 			MoveTris(Context, Turning, DestBody, DestSteering);
 			int32 Moved = 0;
 			for (const FJob& Job : Context.Jobs) Moved += Job.Dest[DestSteering].Num() / 3;
+			// The pivot and the axis from the rim itself: the found (or profile) ring can sit a few
+			// centimetres off the hub and a few degrees off the column, and a wheel turned about the
+			// wrong point wobbles (the hub swinging, the rim tilting). The rim's vertices (an annulus
+			// near R) give the plane (least squares) and the centre (a circle fit in that plane).
+			{
+				TArray<FVector> RimPoints;
+				TArray<FString> RimMaterial;
+				TMap<FString, FVector4> RimBy;
+				TMap<FString, uint32> RimSectorsBy;
+				for (const FJob& Job : Context.Jobs)
+				{
+					const TArray<uint32>& List = Job.Dest[DestSteering];
+					for (const uint32 VI : List)
+					{
+						const FVector D = Job.Pos[VI] - Centre;
+						const double Axial = D | N;
+						const double Radial = (D - N * Axial).Size();
+						if (Radial > 0.8 * R && Radial < 1.15 * R && FMath::Abs(Axial) < 0.06)
+						{
+							RimPoints.Add(Job.Pos[VI]);
+							RimMaterial.Add(Job.MaterialName);
+							const FVector Flat = D - N * Axial;
+							RimSectorsBy.FindOrAdd(Job.MaterialName) |= 1u << (int32(FMath::FloorToDouble((FMath::Atan2(Flat | RimV, Flat | RimU) + UE_DOUBLE_PI) / UE_DOUBLE_TWO_PI * 16.0)) & 15);
+							FVector4& Tally = RimBy.FindOrAdd(Job.MaterialName);
+							Tally.X += 1; Tally.Y += Radial; Tally.Z += Axial;
+						}
+					}
+				}
+				FString RimSummary;
+				for (const TPair<FString, FVector4>& Pair : RimBy) RimSummary += FString::Printf(TEXT(" %s %d (r %.3f, ax %.3f)"), *Pair.Key, int32(Pair.Value.X), Pair.Value.Y / Pair.Value.X, Pair.Value.Z / Pair.Value.X);
+				Context.Note(FString::Printf(TEXT("steering wheel rim annulus:%s"), *RimSummary));
+				// The rim is the material that rings the column (most sectors, then most points); a horn pad
+				// or a spoke's root of another material reaching into the annulus is not the rim.
+				{
+					FString Best;
+					int32 BestSectors = -1, BestPoints = -1;
+					for (const TPair<FString, uint32>& Pair : RimSectorsBy)
+					{
+						const int32 Sec = FMath::CountBits(Pair.Value), Pts = int32(RimBy.FindRef(Pair.Key).X);
+						if (Sec > BestSectors || (Sec == BestSectors && Pts > BestPoints)) { Best = Pair.Key; BestSectors = Sec; BestPoints = Pts; }
+					}
+					if (BestSectors >= 12)
+					{
+						TArray<FVector> Kept;
+						for (int32 I = 0; I < RimPoints.Num(); ++I) if (RimMaterial[I] == Best) Kept.Add(RimPoints[I]);
+						RimPoints = MoveTemp(Kept);
+						Context.Note(FString::Printf(TEXT("steering wheel rim: '%s' (%d of 16 sectors)"), *Best, BestSectors));
+					}
+				}
+				// Three passes: after each fit keep only the points on the rim's tube (within 1.5 cm of
+				// its plane and 2 cm of its median radius), so a hood, a stalk or a spoke's root that
+				// reaches into the annulus does not pull the axis.
+				for (int32 Pass = 0; Pass < 3; ++Pass)
+				{
+				if (Pass > 0)
+				{
+					TArray<double> Radii;
+					for (const FVector& P : RimPoints)
+					{
+						const FVector D = P - Centre;
+						Radii.Add((D - N * (D | N)).Size());
+					}
+					Radii.Sort();
+					const double Median = Radii.Num() ? Radii[Radii.Num() / 2] : R;
+					RimPoints.RemoveAll([&](const FVector& P)
+					{
+						const FVector D = P - Centre;
+						const double Axial = D | N;
+						return FMath::Abs(Axial) > 0.015 || FMath::Abs((D - N * Axial).Size() - Median) > 0.02;
+					});
+				}
+				if (RimPoints.Num() >= 24)
+				{
+					FVector Mean = FVector::ZeroVector;
+					for (const FVector& P : RimPoints) Mean += P;
+					Mean /= RimPoints.Num();
+					// Covariance; the plane's normal is its smallest eigenvector (Jacobi rotations).
+					double A[3][3] = {};
+					for (const FVector& P : RimPoints)
+					{
+						const FVector D = P - Mean;
+						const double V[3] = { D.X, D.Y, D.Z };
+						for (int32 I = 0; I < 3; ++I) for (int32 J = 0; J < 3; ++J) A[I][J] += V[I] * V[J];
+					}
+					double E[3][3] = { {1, 0, 0}, {0, 1, 0}, {0, 0, 1} };
+					for (int32 Sweep = 0; Sweep < 30; ++Sweep)
+					{
+						for (int32 P = 0; P < 2; ++P)
+						{
+							for (int32 Q = P + 1; Q < 3; ++Q)
+							{
+								if (FMath::Abs(A[P][Q]) < 1e-15) continue;
+								const double Theta = 0.5 * FMath::Atan2(2.0 * A[P][Q], A[Q][Q] - A[P][P]);
+								const double Cs = FMath::Cos(Theta), Sn = FMath::Sin(Theta);
+								for (int32 K = 0; K < 3; ++K)
+								{
+									const double Akp = A[K][P], Akq = A[K][Q];
+									A[K][P] = Cs * Akp - Sn * Akq;
+									A[K][Q] = Sn * Akp + Cs * Akq;
+								}
+								for (int32 K = 0; K < 3; ++K)
+								{
+									const double Apk = A[P][K], Aqk = A[Q][K];
+									A[P][K] = Cs * Apk - Sn * Aqk;
+									A[Q][K] = Sn * Apk + Cs * Aqk;
+								}
+								for (int32 K = 0; K < 3; ++K)
+								{
+									const double Ekp = E[K][P], Ekq = E[K][Q];
+									E[K][P] = Cs * Ekp - Sn * Ekq;
+									E[K][Q] = Sn * Ekp + Cs * Ekq;
+								}
+							}
+						}
+					}
+					int32 Smallest = 0;
+					for (int32 I = 1; I < 3; ++I) if (A[I][I] < A[Smallest][Smallest]) Smallest = I;
+					FVector Fitted(E[0][Smallest], E[1][Smallest], E[2][Smallest]);
+					Fitted = Fitted.GetSafeNormal();
+					if ((Fitted | N) < 0.0) Fitted = -Fitted;
+					// The centre: a least-squares circle (Kasa) in the fitted plane.
+					const FVector U = (FVector(0, 1, 0) - Fitted * (Fitted | FVector(0, 1, 0))).GetSafeNormal();
+					const FVector W = Fitted ^ U;
+					double Suu = 0, Suv = 0, Svv = 0, Su = 0, Sv = 0, Suuu = 0, Svvv = 0, Suvv = 0, Svuu = 0;
+					const double Count = RimPoints.Num();
+					for (const FVector& P : RimPoints)
+					{
+						const double X = (P - Mean) | U, Y = (P - Mean) | W;
+						Suu += X * X; Svv += Y * Y; Suv += X * Y; Su += X; Sv += Y;
+						Suuu += X * X * X; Svvv += Y * Y * Y; Suvv += X * Y * Y; Svuu += Y * X * X;
+					}
+					// Solve [Suu Suv; Suv Svv] [a b] = 0.5 [Suuu + Suvv; Svvv + Svuu] (points about their mean).
+					const double Det = Suu * Svv - Suv * Suv;
+					if (Det > 1e-12 && FMath::Acos(FMath::Clamp(Fitted | N, -1.0, 1.0)) < FMath::DegreesToRadians(15.0))
+					{
+						const double Ra = 0.5 * (Suuu + Suvv), Rb = 0.5 * (Svvv + Svuu);
+						const double Ca = (Ra * Svv - Rb * Suv) / Det, Cb = (Rb * Suu - Ra * Suv) / Det;
+						const FVector FittedCentre = Mean + U * Ca + W * Cb;
+						const double Shift = FVector::Dist(FittedCentre, Centre);
+						if (Shift < 0.1)
+						{
+							Context.Note(FString::Printf(TEXT("steering wheel pivot from the rim (%d points): centre moved %.1f cm, column turned %.1f deg"),
+								RimPoints.Num(), Shift * 100.0, FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(Fitted | N, -1.0, 1.0)))));
+							Centre = FittedCentre;
+							N = Fitted;
+						}
+					}
+				}
+				}
+			}
 			SteerCentre = Centre;
 			SteerN = N;
 			SteerUp = (FVector(0, 1, 0) - N * (N | FVector(0, 1, 0))).GetSafeNormal();

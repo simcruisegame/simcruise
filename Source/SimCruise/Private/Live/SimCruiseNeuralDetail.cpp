@@ -112,8 +112,9 @@ bool FSimCruiseNeuralDetail::Initialize()
 	TArray64<uint8> Bytes;
 	if (!FFileHelper::LoadFileToArray(Bytes, *ModelPath))
 	{
-		RuntimeName = TEXT("no model file");
-		UE_LOG(LogSimCruiseNeural, Display, TEXT("AI detail engine off: no %s"), *ModelPath);
+		RuntimeName = TEXT("no model file: classic sharpening");
+		bSharpenFallback = true;
+		UE_LOG(LogSimCruiseNeural, Display, TEXT("AI detail engine off (no %s): aerial photographs get a classic unsharp mask"), *ModelPath);
 		return false;
 	}
 
@@ -161,7 +162,8 @@ bool FSimCruiseNeuralDetail::Initialize()
 	{
 		UE_LOG(LogSimCruiseNeural, Display, TEXT("AI detail engine off: no NNE GPU runtime (runtimes: %s)"),
 			*FString::Join(UE::NNE::GetAllRuntimeNames(), TEXT(", ")));
-		RuntimeName = TEXT("no GPU runtime");
+		RuntimeName = TEXT("no NNE runtime: classic sharpening");
+		bSharpenFallback = true;
 		Model.Reset();
 		return false;
 	}
@@ -296,7 +298,17 @@ FString FSimCruiseNeuralDetail::CachePath(const FString& SourcePath) const
 
 bool FSimCruiseNeuralDetail::EnhanceAerial(const FString& SourcePath, TArray<FColor>& Pixels, int32& Width, int32& Height)
 {
-	if (!bReady || Pixels.IsEmpty() || OutputScale <= 1)
+	if (!bReady)
+	{
+		// Without the network the photograph still gets a classic unsharp mask, in place.
+		if (bSharpenFallback && Pixels.Num() == Width * Height)
+		{
+			UnsharpMask(Pixels, Width, Height, 0.6f);
+			return true;
+		}
+		return false;
+	}
+	if (Pixels.IsEmpty() || OutputScale <= 1)
 	{
 		return false;
 	}
@@ -373,6 +385,77 @@ void FSimCruiseNeuralDetail::Process(const FString& SourcePath)
 			OnEnhanced(Key, *Mips, OW, OH);
 		}
 	});
+}
+
+void FSimCruiseNeuralDetail::UnsharpMask(TArray<FColor>& Pixels, int32 Width, int32 Height, float InAmount, float SigmaPx, int32 Threshold)
+{
+	if (Width < 3 || Height < 3 || Pixels.Num() != Width * Height || InAmount <= 0.0f)
+	{
+		return;
+	}
+	// Luminance (Rec. 709 weights on the 8-bit values), blurred by a separable Gaussian.
+	const int32 N = Width * Height;
+	TArray<float> Luma, Tmp, Blur;
+	Luma.SetNumUninitialized(N);
+	Tmp.SetNumUninitialized(N);
+	Blur.SetNumUninitialized(N);
+	for (int32 I = 0; I < N; ++I)
+	{
+		const FColor& C = Pixels[I];
+		Luma[I] = 0.2126f * C.R + 0.7152f * C.G + 0.0722f * C.B;
+	}
+	const int32 Radius = FMath::Max(1, FMath::CeilToInt(SigmaPx * 2.5f));
+	TArray<float> Kernel;
+	float Sum = 0.0f;
+	for (int32 K = -Radius; K <= Radius; ++K)
+	{
+		const float V = FMath::Exp(-0.5f * FMath::Square(K / SigmaPx));
+		Kernel.Add(V);
+		Sum += V;
+	}
+	for (float& V : Kernel)
+	{
+		V /= Sum;
+	}
+	for (int32 Y = 0; Y < Height; ++Y)
+	{
+		for (int32 X = 0; X < Width; ++X)
+		{
+			float Acc = 0.0f;
+			for (int32 K = -Radius; K <= Radius; ++K)
+			{
+				Acc += Kernel[K + Radius] * Luma[Y * Width + FMath::Clamp(X + K, 0, Width - 1)];
+			}
+			Tmp[Y * Width + X] = Acc;
+		}
+	}
+	for (int32 Y = 0; Y < Height; ++Y)
+	{
+		for (int32 X = 0; X < Width; ++X)
+		{
+			float Acc = 0.0f;
+			for (int32 K = -Radius; K <= Radius; ++K)
+			{
+				Acc += Kernel[K + Radius] * Tmp[FMath::Clamp(Y + K, 0, Height - 1) * Width + X];
+			}
+			Blur[Y * Width + X] = Acc;
+		}
+	}
+	// The luminance detail goes back on every channel (no colour fringes); small differences are
+	// JPEG noise and stay as they are.
+	for (int32 I = 0; I < N; ++I)
+	{
+		const float Detail = Luma[I] - Blur[I];
+		if (FMath::Abs(Detail) < Threshold)
+		{
+			continue;
+		}
+		const float Add = InAmount * Detail;
+		FColor& C = Pixels[I];
+		C.R = static_cast<uint8>(FMath::Clamp(FMath::RoundToInt(C.R + Add), 0, 255));
+		C.G = static_cast<uint8>(FMath::Clamp(FMath::RoundToInt(C.G + Add), 0, 255));
+		C.B = static_cast<uint8>(FMath::Clamp(FMath::RoundToInt(C.B + Add), 0, 255));
+	}
 }
 
 FString FSimCruiseNeuralDetail::Describe() const

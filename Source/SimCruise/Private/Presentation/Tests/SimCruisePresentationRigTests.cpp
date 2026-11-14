@@ -55,10 +55,125 @@ namespace SimCruisePresentationTests
 		return bOk;
 	}
 
+	/**
+	 * The cockpit wheel turns true: in its own frame (X along the column, the pivot at the origin)
+	 * the rim's points ring the axis (their centre within 0.5 cm of it, so the hub does not orbit)
+	 * and lie in a plane square to it (within 2 deg, so the rim does not wobble); and nothing of
+	 * the instruments (gauge role) or glass turns with it.
+	 */
+	void CheckSteeringWheel(FAutomationTestBase& Test, const FString& CarId, const FLoaded& L)
+	{
+		const FSimCruiseRiggedCar& R = L.Rigged;
+		if (!R.bHasSteeringWheel)
+		{
+			return;
+		}
+		const double RimCm = R.SteeringWheelRadiusM * 100.0;
+		double SumY = 0, SumZ = 0, Count = 0;
+		// Plane fit X = a Y + b Z + c over the rim points.
+		double Syy = 0, Szz = 0, Syz = 0, Sxy = 0, Sxz = 0, Sx = 0;
+		int32 InstrumentTris = 0;
+		TArray<FVector3f> Annulus;
+		// The rim: the section whose annulus points ring the column (most sectors, then most points).
+		int32 BestSectors = -1, BestPoints = -1;
+		for (const FSimCruiseRigSection& Section : R.SteeringWheel.Sections)
+		{
+			if (Section.Role == ESimCruiseCarMaterialRole::Gauge || Section.Role == ESimCruiseCarMaterialRole::Glass)
+			{
+				InstrumentTris += Section.NumTriangles();
+			}
+			TArray<FVector3f> Mine;
+			uint32 Mask = 0;
+			for (const FVector3f& P : Section.Positions)
+			{
+				const double Radial = FMath::Sqrt(double(P.Y) * P.Y + double(P.Z) * P.Z);
+				if (Radial >= 0.8 * RimCm && Radial <= 1.15 * RimCm && FMath::Abs(P.X) < 6.0)
+				{
+					Mine.Add(P);
+					Mask |= 1u << (int32(FMath::FloorToDouble((FMath::Atan2(double(P.Z), double(P.Y)) + UE_DOUBLE_PI) / UE_DOUBLE_TWO_PI * 16.0)) & 15);
+				}
+			}
+			const int32 Sec = FMath::CountBits(Mask);
+			if (Sec > BestSectors || (Sec == BestSectors && Mine.Num() > BestPoints))
+			{
+				BestSectors = Sec;
+				BestPoints = Mine.Num();
+				Annulus = MoveTemp(Mine);
+			}
+		}
+		// The rim's tube: within 2 cm of the median radius and 1.5 cm of the median depth.
+		TArray<double> Radii, Depths;
+		for (const FVector3f& P : Annulus) { Radii.Add(FMath::Sqrt(double(P.Y) * P.Y + double(P.Z) * P.Z)); Depths.Add(P.X); }
+		Radii.Sort(); Depths.Sort();
+		const double MedianR = Radii.Num() ? Radii[Radii.Num() / 2] : RimCm, MedianX = Depths.Num() ? Depths[Depths.Num() / 2] : 0.0;
+		for (const FVector3f& P : Annulus)
+		{
+			if (FMath::Abs(FMath::Sqrt(double(P.Y) * P.Y + double(P.Z) * P.Z) - MedianR) > 2.0 || FMath::Abs(P.X - MedianX) > 1.5) continue;
+			SumY += P.Y; SumZ += P.Z; Count += 1;
+			Syy += double(P.Y) * P.Y; Szz += double(P.Z) * P.Z; Syz += double(P.Y) * P.Z; Sxy += double(P.X) * P.Y; Sxz += double(P.X) * P.Z; Sx += P.X;
+		}
+		Test.TestEqual(CarId + TEXT(": no instrument or glass triangles turn with the wheel"), InstrumentTris, 0);
+		if (Count < 24)
+		{
+			Test.AddError(CarId + TEXT(": too few rim points to check the wheel's axis"));
+			return;
+		}
+		// Where the rim is: 16 sectors around the column, each must hold rim points (a rim left
+		// partly on the dash would turn in pieces), and the circle through them (Kasa) has its
+		// centre on the axis.
+		uint32 Sectors = 0;
+		double Suu = 0, Svv = 0, Suv = 0, Suuu = 0, Svvv = 0, Suvv = 0, Svuu = 0;
+		const double Mu = SumY / Count, Mv = SumZ / Count;
+		for (const FVector3f& P : Annulus)
+		{
+			if (FMath::Abs(FMath::Sqrt(double(P.Y) * P.Y + double(P.Z) * P.Z) - MedianR) > 2.0 || FMath::Abs(P.X - MedianX) > 1.5) continue;
+			Sectors |= 1u << (int32(FMath::FloorToDouble((FMath::Atan2(double(P.Z), double(P.Y)) + UE_DOUBLE_PI) / UE_DOUBLE_TWO_PI * 16.0)) & 15);
+			const double X = P.Y - Mu, Y = P.Z - Mv;
+			Suu += X * X; Svv += Y * Y; Suv += X * Y; Suuu += X * X * X; Svvv += Y * Y * Y; Suvv += X * Y * Y; Svuu += Y * X * X;
+		}
+		const double KasaDet = Suu * Svv - Suv * Suv;
+		const double Ra = 0.5 * (Suuu + Suvv), Rb = 0.5 * (Svvv + Svuu);
+		const double CircleY = KasaDet > 1e-9 ? Mu + (Ra * Svv - Rb * Suv) / KasaDet : Mu;
+		const double CircleZ = KasaDet > 1e-9 ? Mv + (Rb * Suu - Ra * Suv) / KasaDet : Mv;
+		Test.AddInfo(FString::Printf(TEXT("WHEELRIM %s: %d of 16 sectors hold rim points; the rim's circle is centred %.2f cm off the axis (point mean %.2f cm)"),
+			*CarId, FMath::CountBits(Sectors), FMath::Sqrt(CircleY * CircleY + CircleZ * CircleZ), FMath::Sqrt(Mu * Mu + Mv * Mv)));
+		Test.TestTrue(FString::Printf(TEXT("%s: the whole rim turns (%d of 16 sectors)"), *CarId, FMath::CountBits(Sectors)), FMath::CountBits(Sectors) >= 15);
+		if (FMath::CountBits(Sectors) < 15)
+		{
+			for (const FSimCruiseRigSection& Section : R.SteeringWheel.Sections)
+			{
+				uint32 Mask = 0;
+				int32 Points = 0;
+				for (const FVector3f& P : Section.Positions)
+				{
+					const double Radial = FMath::Sqrt(double(P.Y) * P.Y + double(P.Z) * P.Z);
+					if (Radial < 0.8 * RimCm || Radial > 1.15 * RimCm) continue;
+					++Points;
+					Mask |= 1u << (int32(FMath::FloorToDouble((FMath::Atan2(double(P.Z), double(P.Y)) + UE_DOUBLE_PI) / UE_DOUBLE_TWO_PI * 16.0)) & 15);
+				}
+				const FString Name = L.Model.Materials.IsValidIndex(Section.MaterialIndex) ? L.Model.Materials[Section.MaterialIndex].Name : FString::FromInt(Section.MaterialIndex);
+				Test.AddInfo(FString::Printf(TEXT("WHEELSECTION %s %s: %d annulus points, sectors %04x, x %.1f..%.1f cm"), *CarId, *Name, Points, Mask, 0.0, 0.0));
+			}
+		}
+		const double OffAxisCm = FMath::Sqrt(CircleY * CircleY + CircleZ * CircleZ);
+		// Centred sums for the tilt.
+		const double My = SumY / Count, Mz = SumZ / Count, Mx = Sx / Count;
+		const double Cyy = Syy / Count - My * My, Czz = Szz / Count - Mz * Mz, Cyz = Syz / Count - My * Mz;
+		const double Cxy = Sxy / Count - Mx * My, Cxz = Sxz / Count - Mx * Mz;
+		const double Det = Cyy * Czz - Cyz * Cyz;
+		const double A = Det > 1e-9 ? (Cxy * Czz - Cxz * Cyz) / Det : 0.0;
+		const double B = Det > 1e-9 ? (Cxz * Cyy - Cxy * Cyz) / Det : 0.0;
+		const double TiltDeg = FMath::RadiansToDegrees(FMath::Atan(FMath::Sqrt(A * A + B * B)));
+		Test.AddInfo(FString::Printf(TEXT("WHEELAXIS %s: rim centre %.2f cm off the axis, rim tilted %.2f deg on the column (%d points)"), *CarId, OffAxisCm, TiltDeg, int32(Count)));
+		Test.TestTrue(FString::Printf(TEXT("%s: the hub does not orbit (rim centre %.2f cm off the axis, at most 0.5)"), *CarId, OffAxisCm), OffAxisCm <= 0.5);
+		Test.TestTrue(FString::Printf(TEXT("%s: the rim is square to the column (%.2f deg, at most 2)"), *CarId, TiltDeg), TiltDeg <= 2.0);
+	}
+
 	/** Checks every car must pass: dimensions, wheel placement, frame and pivots. */
 	void CheckRig(FAutomationTestBase& Test, const FString& CarId, const FLoaded& L)
 	{
 		const FSimCruiseRiggedCar& R = L.Rigged;
+		CheckSteeringWheel(Test, CarId, L);
 		const double WheelbaseCm = ((R.HubsCm[0] + R.HubsCm[1]) * 0.5 - (R.HubsCm[2] + R.HubsCm[3]) * 0.5).Size();
 		Test.TestNearlyEqual(CarId + TEXT(" wheelbase (cm) equals the car's"), WheelbaseCm, L.Car.WheelbaseM * 100.0, 0.5);
 		// Front ahead of rear, left on -Y.

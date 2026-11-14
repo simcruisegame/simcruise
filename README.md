@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/simcruisegame/simcruise/releases/latest"><b>Download for Windows (free)</b></a>
+  · <a href="https://simcruisegame.github.io/simcruise/">Website</a>
   · <a href="#screenshots">Screenshots</a>
   · <a href="#famous-roads-to-drive">Famous roads</a>
   · <a href="docs/controls.md">Controls</a>
@@ -29,9 +30,9 @@
 
 ---
 
-## A message from the creator
+## Project status
 
-> Hey! My buddy and I just had this random idea. We are not pros. Please be cool and if you have good ideas, send pr's. I don't know what this tech means, but yes it could probably be used for more stuff too? I do worry about the API calls to all these public places and I don't fully know the effect to them. I did have Claude aim to lower the calls it makes but I am still doing research on how this scales. Thanks! Please comment any ideas or concerns as well.
+The game is currently in its first phase of development, and all contributions are appreciated. See [Contributing](#contributing) to help.
 
 ## About
 
@@ -259,10 +260,19 @@ Contributions are welcome: code, data sources, bug reports from places that look
 
 ## License
 
-The game code, shaders, map helper and tests are released under the [MIT License](LICENSE). Map data, imagery, models, textures and fonts keep their own licences, listed in [docs/data-sources.md](docs/data-sources.md), [`licenses/`](licenses/) and [Credits.txt](Credits.txt). Map data © OpenStreetMap contributors.
+The game code, shaders, map helper and tests are released under the [MIT License](LICENSE). Map data, imagery, models, textures and fonts keep their own licences, listed in [CREDITS.md](CREDITS.md), [docs/data-sources.md](docs/data-sources.md), [`licenses/`](licenses/) and [Credits.txt](Credits.txt). Map data © OpenStreetMap contributors.
 
 SimCruise was called *Sunday Driver* up to version 1.0.8; older notes still use that name.
 
 ## Credits
 
-Built with [Unreal Engine](https://www.unrealengine.com/) and [Bun](https://bun.com/). The player car's model is "Mazda MX-5 (NB) convertible HQ interior" by [niev](https://sketchfab.com/niev), CC BY 4.0. Data from OpenStreetMap contributors, USGS, USDA, NOAA, NASA, the US Army Corps of Engineers, Overture Maps Foundation, Copernicus, WRI and Meta, and the state, county and city sources named in [Credits.txt](Credits.txt), together with the artists and photographers credited there.
+SimCruise is built on the work of many makers. Thank you to each of them. The full list, with every licence and link, is in **[CREDITS.md](CREDITS.md)**.
+
+- **Map data** © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL), served by [OpenFreeMap](https://openfreemap.org/) with the [OpenMapTiles](https://openmaptiles.org/) schema. Place search by [Photon](https://photon.komoot.io/) (komoot). Buildings also from the [Overture Maps Foundation](https://overturemaps.org/), with Microsoft and Esri Community Maps footprints.
+- **Elevation, aerial photographs and land cover** from USGS (3D Elevation Program, The National Map), USDA (NAIP), LANDFIRE and MRLC (NLCD), Mapzen, NASA and Copernicus Sentinel-2. Tree heights from the WRI and Meta High Resolution Canopy Height Maps v2 (CC BY 4.0).
+- **Live data:** weather data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0), NOAA weather and tides, and aircraft from [adsb.lol](https://adsb.lol/) (ODbL).
+- **AI models:** [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) by Xintao Wang and others (BSD 3-Clause), [Stable Diffusion XL](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0) by Stability AI (CreativeML Open RAIL++-M, for the detail textures), [Detectron2](https://github.com/facebookresearch/detectron2) by Meta AI Research (a development tool; weights CC BY-SA 3.0), in testing [SatlasPretrain](https://github.com/allenai/satlaspretrain_models) by the Allen Institute for AI (ODC-BY) and [DeepForest](https://github.com/weecology/DeepForest) by the Weecology lab (MIT). Qualcomm AI Hub made the ONNX files of Real-ESRGAN and Detectron2. The models run with [ONNX Runtime](https://github.com/microsoft/onnxruntime) (Microsoft, MIT).
+- **Cars:** Sketchfab models under CC BY 4.0, among them "Mazda MX-5 (NB) convertible HQ interior" by [niev](https://sketchfab.com/niev), the 1965 Mustang by Kristian LaGrange and the Corvette C8 by Hari Prasath R. **Textures and sky:** Poly Haven, Innerscene and OpenGameArt (CC0). **Font:** Overpass by Delve Withrington for Red Hat (SIL OFL 1.1).
+- **Engine and tools:** [Unreal Engine](https://www.unrealengine.com/) by Epic Games and [Bun](https://bun.com/), with the open-source libraries listed in [CREDITS.md](CREDITS.md#engine-libraries-and-tools).
+
+The state, county and city sources and the photographers used for single places are named in [Credits.txt](Credits.txt).

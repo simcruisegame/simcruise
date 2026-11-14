@@ -337,7 +337,7 @@ void SSimCruisePlaceSearch::Construct(const FArguments& InArgs)
 					+ SVerticalBox::Slot().AutoHeight().Padding(0, 12, 0, 0)
 					[
 						SNew(STextBlock).Font(Font(10)).ColorAndOpacity(SimCruiseUiStyle::Dim()).AutoWrapText(true)
-						.Text(FText::FromString(TEXT("Map data © OpenStreetMap contributors (ODbL), served by OpenFreeMap and OpenMapTiles · search by Photon (komoot) · elevation USGS 3DEP and Mapzen · aerial photographs USGS NAIP and The National Map · trees WRI and Meta canopy height map v2 (CC BY 4.0) · buildings Overture Maps and OpenStreetMap · full list in DATA-SOURCES.md")))
+						.Text(FText::FromString(TEXT("Map data © OpenStreetMap contributors (ODbL), served by OpenFreeMap and OpenMapTiles · search by Photon (komoot) · elevation USGS 3DEP and Mapzen · aerial photographs USGS NAIP and The National Map · trees WRI and Meta canopy height map v2 (CC BY 4.0) · buildings Overture Maps and OpenStreetMap · weather data by Open-Meteo.com (CC BY 4.0) · aircraft adsb.lol (ODbL) · full list in DATA-SOURCES.md")))
 					]
 				]
 			]

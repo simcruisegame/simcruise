@@ -3,6 +3,7 @@
 #include "Environment/SimCruiseDaylightModel.h"
 #include "Knowledge/SimCruisePlacePhotos.h"
 #include "Live/SimCruiseLiveData.h"
+#include "Live/SimCruiseNeuralDetail.h"
 #include "Live/SimCruiseSceneParser.h"
 #include "Misc/AutomationTest.h"
 
@@ -312,6 +313,33 @@ bool FSimCruiseLiveWallMaskTest::RunTest(const FString&)
 
 	// Label lookup maps the photograph onto the grid.
 	TestEqual(TEXT("top-left cell"), FSimCruiseSceneParser::ClassAt(Labels, GW, GH, 0, 0, W, H), ESimCruiseSceneClass::Vegetation);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseLiveUnsharpTest, "SimCruise.Live.Unsharp", Flags)
+bool FSimCruiseLiveUnsharpTest::RunTest(const FString&)
+{
+	// A soft dark-to-light edge gets steeper; a flat field and its colour stay as they are.
+	const int32 W = 32, H = 8;
+	TArray<FColor> Px;
+	Px.SetNum(W * H);
+	for (int32 y = 0; y < H; ++y)
+	{
+		for (int32 x = 0; x < W; ++x)
+		{
+			const uint8 V = static_cast<uint8>(FMath::Clamp(80 + (x - 13) * 20, 80, 180));
+			Px[y * W + x] = FColor(V, V, V);
+		}
+	}
+	TArray<FColor> Flat;
+	Flat.Init(FColor(120, 150, 90), W * H);
+	const TArray<FColor> Before = Px;
+	FSimCruiseNeuralDetail::UnsharpMask(Px, W, H, 0.6f);
+	FSimCruiseNeuralDetail::UnsharpMask(Flat, W, H, 0.6f);
+	TestTrue(FString::Printf(TEXT("darker at the foot of the edge (%d < %d)"), Px[4 * W + 13].R, Before[4 * W + 13].R), Px[4 * W + 13].R < Before[4 * W + 13].R);
+	TestTrue(FString::Printf(TEXT("lighter at its top (%d > %d)"), Px[4 * W + 18].R, Before[4 * W + 18].R), Px[4 * W + 18].R > Before[4 * W + 18].R);
+	TestTrue(TEXT("far from the edge unchanged"), Px[4 * W + 2] == Before[4 * W + 2] && Px[4 * W + 29] == Before[4 * W + 29]);
+	TestTrue(TEXT("a flat field keeps its colour"), Flat[4 * W + 16] == FColor(120, 150, 90));
 	return true;
 }
 

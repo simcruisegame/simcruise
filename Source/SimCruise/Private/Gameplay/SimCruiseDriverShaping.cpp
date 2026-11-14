@@ -3,6 +3,7 @@
 #include "Gameplay/SimCruiseDriverShaping.h"
 
 #include "HAL/IConsoleManager.h"
+#include "Vehicle/SimCruiseSteeringGeometry.h"
 
 static TAutoConsoleVariable<float> CVarTriggerGamma(
 	TEXT("simcruise.TriggerGamma"),
@@ -175,10 +176,24 @@ FSimCruiseDriverCommand FSimCruiseDriverShaper::Update(const FSimCruiseVehicleSe
 
 	// A hand catching a slide moves fast: toward the front axle's velocity the
 	// rack may travel at up to 40 deg/s. Every other move keeps its own rate.
-	if (FMath::Abs(Beta) > CountersteerMinBetaRad && Target * Beta > 0.0)
+	const bool bCatching = FMath::Abs(Beta) > CountersteerMinBetaRad && Target * Beta > 0.0;
+	if (bCatching)
 	{
 		ApplyRate = FMath::Max(ApplyRate, CountersteerRateRadPerS);
 		ReturnRate = FMath::Max(ReturnRate, CountersteerRateRadPerS);
+	}
+	// No faster than a hand turns the real rim: the rack's rate is the hand's over the column's
+	// local ratio, so a slow ratio (the Mustang's 21.7:1) moves the wheels slower, and the rim on
+	// screen never spins faster than a driver's hands could turn it.
+	if (Setup.SteeringRatio > 0.0)
+	{
+		const double Local = SimCruiseSteering::LocalRatio(RackRad, Setup.SteeringRatio, Setup.ParkingRackAngleRad, Setup.SteeringLockTurns);
+		const double AtSpeed = FMath::SmoothStep(5.0, 25.0, FMath::Abs(ForwardSpeed));
+		const double Hand = bUsingThumbstick ? FMath::Clamp(static_cast<double>(CVarPadSteerSpeed.GetValueOnAnyThread()), 0.5, 2.0) : 1.0;
+		const double ApplyCap = FMath::DegreesToRadians(bCatching ? HandCatchDegPerS : FMath::Lerp(HandApplyParkingDegPerS, HandApplyHighwayDegPerS, AtSpeed)) * Hand / Local;
+		const double ReturnCap = FMath::DegreesToRadians(bCatching ? HandCatchDegPerS : FMath::Lerp(HandReturnParkingDegPerS, HandReturnHighwayDegPerS, AtSpeed)) * Hand / Local;
+		ApplyRate = FMath::Min(ApplyRate, ApplyCap);
+		ReturnRate = FMath::Min(ReturnRate, ReturnCap);
 	}
 
 	RackRad = AdvanceSteering(RackRad, Target, DeltaTimeS, ApplyRate, ReturnRate);

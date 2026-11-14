@@ -17,7 +17,7 @@ enum class ESimCruiseSceneClass : uint8
  * CPU and system RAM through Unreal's Neural Network Engine (NNERuntimeORTCpu), so the
  * power-capped GPU stays free.
  *
- * Model: the semantic head of Detectron2's Panoptic FPN R50 (Apache 2.0; COCO panoptic, labels
+ * Model: the semantic head of Detectron2's Panoptic FPN R50 (code Apache 2.0, model-zoo weights CC BY-SA 3.0; COCO panoptic, labels
  * CC BY 4.0), ONNX export by Qualcomm AI Hub, fetched by scripts/ai/fetch_open_models.py into
  * Saved/AI (120 MB; a development tool, not committed or shipped). Input 1x3x800x800 in 0..1,
  * 54 class scores at a quarter of that, mapped to the 19 classes above. A photograph is
