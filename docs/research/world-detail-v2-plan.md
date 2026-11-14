@@ -41,6 +41,29 @@ for commercial use.
 | 6 | Tree species | OSM, city tree inventories, GBIF |
 | 7 | Street photos | Panoramax (CC BY-SA, no token) into Moondream2, then facts in the place graph |
 
+## Coverage and fallback
+
+The world is made as you drive, anywhere in the US. Every method reads its data per
+tile on a worker thread before the car arrives (4 s or more ahead), keeps it in a disk
+cache, and has a fallback where the data is missing. Check each licence before use and
+record it in `docs/data-sources.md`.
+
+| Method | Data (coverage, licence) | Fallback |
+|---|---|---|
+| Context record | OSM roads (all US, ODbL); road-edge tags are thin on rural roads | Rules by road class, curb/edge, land use and climate |
+| Climate | Köppen-Geiger 1 km (global, CC BY 4.0); NLCD 30 m (CONUS, public domain) | Latitude band |
+| Buildings | OSM; Microsoft US Building Footprints, Overture buildings (nearly all US, ODbL) | Height and style rules |
+| Shops and landmarks | OSM; Overture Places (CDLA-Permissive-2.0); Wikidata (CC0) | No sign |
+| Trees | USFS TreeMap species (30 m CONUS, public domain); LANDFIRE canopy height (public domain); city inventories; OSM | Species mix from Köppen and NLCD |
+| Terrain | USGS 3DEP lidar (most of CONUS); 10 m DEM (everywhere) | Slope rule for rock and road cuts |
+| Aerial | NAIP, the existing tiles | Land-cover colour |
+| Street photos | Panoramax (thin) | Rules |
+
+Test every item on random US places, not only the hero roads: a Mojave desert road,
+a Colorado mountain pass, the Kansas plains, a Maine forest, the Oregon coast, an Atlanta
+suburb, a small Iowa town, downtown Chicago, northern Minnesota, south Texas. Look at
+real frames at the highest setting before and after each item.
+
 ## Familiar things: sources by rank
 
 1. OSM street names.

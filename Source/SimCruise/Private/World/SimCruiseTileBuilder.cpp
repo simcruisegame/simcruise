@@ -8,6 +8,8 @@
 #include "World/SimCruiseGeo.h"
 #include "World/SimCruiseTileData.h"
 #include "World/SimCruiseStreetFurniture.h"
+#include "World/SimCruiseCellContext.h"
+#include "Knowledge/SimCruiseRoadsideData.h"
 #include "World/SimCruiseTileDetail.h"
 #include "World/SimCruiseWorldResources.h"
 
@@ -895,10 +897,19 @@ namespace SimCruiseTileBuilder
 				const int32 Y = FMath::Clamp(FMath::FloorToInt(P.Y / Side * Coverage.Size), 0, Coverage.Size - 1);
 				return Coverage.Bits[Y * Coverage.Size + X] != 0;
 			};
+			// The context record of every 32 m of road, before any generator reads it (SimCruiseCellContext).
+			FSimCruiseRoadside Roadside;
+			const bool bRoadside = SimCruiseRoadsideData::ForTile(Data.Id, Roadside);
+			const SimCruiseCellContext::FInputs ContextIn{ Data, Roads, Side, Lat, Lon, SimCruiseCellContext::CurrentMonth(), bRoadside ? &Roadside : nullptr,
+				[&](const FVector2d& P) { return Sample(Veg, P); },
+				[&](const FVector2d& P) { return Sample(Water, P); },
+				[&](const FVector2d& P) { return Sample(Sand, P); } };
+			B.Context = SimCruiseCellContext::ForBuild(ContextIn);
 			SimCruiseTileDetail::FContext Context{ Data, B, Side, Lat, Lon,
 				[&](const FVector2d& P) { return Sample(Veg, P); },
 				[&](const FVector2d& P) { return Sample(Paved, P); },
-				[&](const FVector2d& P) { return Sample(Water, P); } };
+				[&](const FVector2d& P) { return Sample(Water, P); },
+				B.Context.Get() };
 			SimCruiseTileDetail::BuildBuildings(Context);
 			SimCruiseTileDetail::BuildPalms(Context);
 			SimCruiseTileDetail::BuildStreetLights(Context);

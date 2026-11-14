@@ -4,6 +4,7 @@
 
 #include "Knowledge/SimCruiseFurnitureData.h"
 #include "Knowledge/SimCruisePlaceGraph.h"
+#include "World/SimCruiseCellContext.h"
 #include "World/SimCruiseGeo.h"
 #include "World/SimCruiseRoadNetwork.h"
 #include "World/SimCruiseTileData.h"
@@ -250,10 +251,18 @@ namespace SimCruiseStreetFurniture
 		FStats Stats;
 
 		// The local look from the place graph: hydrant, bench and bin colours of the region.
+		// The tile's context record carries them already inferred (region, Köppen, season).
 		FSimCruiseFactSet Facts;
-		const FSimCruisePlaceRules& Rules = SimCruisePlaceGraph::Rules();
-		Rules.RegionFacts(X.LatDeg, X.LonDeg, Facts);
-		Rules.Infer(Facts);
+		if (X.Cells)
+		{
+			Facts = X.Cells->TileFacts;
+		}
+		else
+		{
+			const FSimCruisePlaceRules& Rules = SimCruisePlaceGraph::Rules();
+			Rules.RegionFacts(X.LatDeg, X.LonDeg, Facts);
+			Rules.Infer(Facts);
+		}
 		const FLinearColor HydrantBody = PlaceColour(Facts, TEXT("hydrant"), Srgb(196, 40, 36));
 		const FLinearColor HydrantCap = PlaceColour(Facts, TEXT("hydrant_cap"), HydrantBody);
 		const FLinearColor BenchSeat = PlaceColour(Facts, TEXT("bench"), Srgb(118, 84, 56));
@@ -315,6 +324,13 @@ namespace SimCruiseStreetFurniture
 					if (Side.Cut.IsValidIndex(i) && Side.Cut[i]) continue;
 					if (Side.SidewalkM.IsValidIndex(i) && Side.SidewalkM[i] < 1.2f) continue;
 					const double Tt = (Mark - U0) / (U1 - U0);
+					// The context record: no hydrant where OSM maps no sidewalk, or beside water or a beach.
+					const FSimCruiseCellContext* Cell = X.Cells ? X.Cells->At(r, FMath::Lerp(A.S, Bs.S, Tt)) : nullptr;
+					if (Cell)
+					{
+						const FSimCruiseCellSide& CS = Cell->Sides[SideIndex];
+						if ((CS.bSidewalkMapped && CS.Sidewalk == TEXT("no")) || CS.LandUse == TEXT("water") || CS.LandUse == TEXT("beach")) continue;
+					}
 					const double Sgn = SideIndex == 0 ? -1.0 : 1.0;
 					const FVector2d C = FMath::Lerp(A.C, Bs.C, Tt);
 					const FVector2d Rv = FMath::Lerp(A.R, Bs.R, Tt).GetSafeNormal();
@@ -329,7 +345,7 @@ namespace SimCruiseStreetFurniture
 					S.Along = FVector2d(-S.ToRoad.Y, S.ToRoad.X);
 					const double Edge = FMath::Lerp(A.Height(HalfW * Sgn), Bs.Height(HalfW * Sgn), Tt);
 					S.Z = Edge - GutterDropM + CurbFaceM;
-					FProps W{ Mesh, 0.3f };
+					FProps W{ Mesh, Cell ? static_cast<float>((Cell->Seed >> 8) & 0xFFFF) / 65535.f : 0.3f };
 					Hydrant(W, S, HydrantBody, HydrantCap);
 					Hydrants.Add(P);
 					++Stats.Inferred;

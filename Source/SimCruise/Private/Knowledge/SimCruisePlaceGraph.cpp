@@ -2,6 +2,8 @@
 
 #include "Knowledge/SimCruisePlaceGraph.h"
 
+#include "Knowledge/SimCruiseClimate.h"
+
 #include "Dom/JsonObject.h"
 #include "HAL/PlatformTime.h"
 #include "Misc/FileHelper.h"
@@ -273,12 +275,21 @@ void FSimCruisePlaceRules::RegionFacts(double LatDeg, double LonDeg, FSimCruiseF
 		const FString Why = FString::Printf(TEXT("region %s%s%s"), *R.Id, R.Why.IsEmpty() ? TEXT("") : TEXT(": "), *R.Why);
 		for (const TPair<FName, float>& F : R.Facts) Out.Add(F.Key, F.Value, Why);
 	}
-	// Latitude bands where no region speaks (Koppen, very roughly).
+	// Where no region speaks: the measured Köppen-Geiger class (Beck et al. 2023, the bundled
+	// grid); the old latitude band only when the grid file is missing.
 	if (Out.Strongest(TEXT("climate")).IsNone())
 	{
-		const double A = FMath::Abs(LatDeg);
-		const TCHAR* C = A < 23.5 ? TEXT("climate:tropical") : A < 35.0 ? TEXT("climate:humid_subtropical") : A < 55.0 ? TEXT("climate:humid_continental") : TEXT("climate:subarctic");
-		Out.Add(FName(C), 0.5f, TEXT("latitude band"));
+		const uint8 Koppen = SimCruiseClimate::KoppenAt(LatDeg, LonDeg);
+		if (Koppen != 0)
+		{
+			const FString Why = FString::Printf(TEXT("Köppen %s (%s)"), SimCruiseClimate::KoppenCode(Koppen), SimCruiseClimate::Source());
+			Out.Add(SimCruiseClimate::ClimateFact(Koppen), 0.8f, Why);
+			Out.Add(FName(*FString::Printf(TEXT("koppen:%s"), SimCruiseClimate::KoppenCode(Koppen))), 1.0f, Why);
+		}
+		else
+		{
+			Out.Add(SimCruiseClimate::LatitudeBandFact(LatDeg), 0.5f, TEXT("latitude band"));
+		}
 	}
 }
 

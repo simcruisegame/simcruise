@@ -6,6 +6,7 @@
 #include "World/SimCruiseTileBuilder.h"
 
 struct FSimCruiseTileData;
+struct FSimCruiseTileContext;
 
 /**
  * Detail built on top of a tile's terrain and roads: building recipes, palms
@@ -43,6 +44,8 @@ namespace SimCruiseTileDetail
 		TFunction<bool(const FVector2d&)> IsVegetation;
 		TFunction<bool(const FVector2d&)> IsPavedPath;
 		TFunction<bool(const FVector2d&)> IsWater;
+		/** The tile's context record (climate, species, per-segment roadside); null in old callers. */
+		const FSimCruiseTileContext* Cells = nullptr;
 	};
 
 	/** Footprints extruded by the place's recipe into the Building layer. */
