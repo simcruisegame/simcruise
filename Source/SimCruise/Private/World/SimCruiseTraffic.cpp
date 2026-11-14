@@ -507,7 +507,10 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 				// About to arrive on a road that does not stop (within 5 s).
 				const bool bTowards = FVector2d::DotProduct(OtherHeading, ToJ) > 0.0;
 				const bool bWillStop = OtherCar && OtherCar->StopState == 1;
-				return bTowards && !bWillStop && OtherSpeed > 1.0 && Dist > 2.0 && Dist / OtherSpeed < 5.0;
+				// A driver kept waiting takes a shorter gap (5 s, after 10 s 3 s, after 20 s 2 s): a
+				// steady stream never holds a stop line for good.
+				const double Window = Car.WaitS > 20.0 ? 2.0 : Car.WaitS > 10.0 ? 3.0 : 5.0;
+				return bTowards && !bWillStop && OtherSpeed > 1.0 && Dist > 2.0 && Dist / OtherSpeed < Window;
 			};
 			for (const ASimCruiseTrafficCar* Other : Cars)
 			{
@@ -548,7 +551,11 @@ void ASimCruiseTraffic::Advance(ASimCruiseTrafficCar& Car, double Dt, const FVec
 			if (FVector2d::DotProduct(OtherHeading, Fwd) > -0.7 || OtherSpeed < 1.0) return false;
 			const FVector2d ToJ((Centre.LocationCm.X - OtherCm.X) / 100.0, (Centre.LocationCm.Y - OtherCm.Y) / 100.0);
 			const double Ahead = FVector2d::DotProduct(ToJ, OtherHeading);
-			return Ahead > -2.0 && Ahead < 60.0 && Ahead / OtherSpeed < 4.5;
+			// The gap a left-turner waits for shrinks as it waits in the junction (4.5 s, after 8 s 2.5 s,
+			// after 15 s 1.5 s): it never stands across the junction for good while oncoming cars stream
+			// past (Stonington, Maine: a Corvette held the robot for a minute).
+			const double Window = Car.StandS > 15.0 ? 1.5 : Car.StandS > 8.0 ? 2.5 : 4.5;
+			return Ahead > -2.0 && Ahead < 60.0 && Ahead / OtherSpeed < Window;
 		};
 		bool bYield = false;
 		for (const ASimCruiseTrafficCar* Other : Cars)
