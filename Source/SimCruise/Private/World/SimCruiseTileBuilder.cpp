@@ -39,7 +39,8 @@ namespace
 	constexpr double DitchBottomM = 0.6;
 	constexpr double BackslopeRun = 1.5;       // horizontal metres per metre up (cut)
 	constexpr double FillSlopeRun = 2.0;       // horizontal metres per metre down (fill)
-	constexpr double SectionReachM = 30.0;     // the profile is sought this far out
+	constexpr double SectionReachM = 20.0;     // the profile is sought this far out (inside the 22 m segment search)
+	constexpr double SectionEndFadeM = 6.0;    // ... and returns to the natural ground over its last metres
 
 	/** The cross-section's ground height at D metres beyond the outer edge (shoulder top Base), given the natural ground Hn. */
 	double RuralSection(double D, double Base, double Hn)
@@ -604,7 +605,14 @@ namespace SimCruiseTileBuilder
 				if (bRural && AbsL > Outer && Along <= 0.0 && AbsL - Outer < SectionReachM)
 				{
 					const double D = AbsL - Outer;
-					if (D < SectionDist) { SectionDist = D; SectionTarget = RuralSection(D, OuterH - OuterGapM, Natural); }
+					if (D < SectionDist)
+					{
+						SectionDist = D;
+						// The far end blends back to the natural ground, so a cut into a steep hill or a
+						// fill over a deep valley never ends in a cliff at the edge of the search.
+						const double EndW = Smooth01((D - (SectionReachM - SectionEndFadeM)) / SectionEndFadeM);
+						SectionTarget = FMath::Lerp(RuralSection(D, OuterH - OuterGapM, Natural), Natural, EndW);
+					}
 					return;
 				}
 				const double RampStart = Outer - OuterRampM;
@@ -670,7 +678,7 @@ namespace SimCruiseTileBuilder
 			}
 
 			if (bInside) H = InsideTarget;
-			else if (SectionDist < TNumericLimits<double>::Max() && (BestWeight <= 0.0 || SectionDist <= FadeM)) H = SectionTarget;
+			else if (SectionDist < TNumericLimits<double>::Max()) H = SectionTarget;
 			else if (BestWeight > 0.0) H = FMath::Lerp(H, BestTarget, BestWeight);
 			if (FMath::Abs(H - B.NaturalHeights[K]) > 0.001) ++B.ConditionedVertices;
 			B.TerrainHeights[K] = static_cast<float>(H);

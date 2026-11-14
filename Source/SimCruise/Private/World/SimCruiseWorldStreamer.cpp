@@ -324,8 +324,18 @@ void ASimCruiseWorldStreamer::Launch(const FSimCruiseTileJobTicket& Ticket)
 				}
 				if (IFileManager::Get().FileExists(*Cached)) Path = Cached;
 			}
-			USimCruiseWorldResources::DecodeImageFile(Path, Result->AerialPixels, Result->AerialWidth, Result->AerialHeight);
-			SimCruiseAerialCache::Put(Data.AerialKey, Result->AerialWidth, Result->AerialHeight, Result->AerialPixels); // before the AI sharpening
+			if (Photo.IsValid() && Photo->Key == Data.AerialKey)
+			{
+				// Decoded before the build already (roof colours): copied, not decoded again.
+				Result->AerialPixels = Photo->Pixels;
+				Result->AerialWidth = Photo->Width;
+				Result->AerialHeight = Photo->Height;
+			}
+			else
+			{
+				USimCruiseWorldResources::DecodeImageFile(Path, Result->AerialPixels, Result->AerialWidth, Result->AerialHeight);
+				SimCruiseAerialCache::Put(Data.AerialKey, Result->AerialWidth, Result->AerialHeight, Result->AerialPixels); // before the AI sharpening
+			}
 			// The local AI detail engine (Live/SimCruiseNeuralDetail): its cached sharper photograph, or queued for it.
 			FSimCruiseNeuralDetail::Get().EnhanceAerial(Path, Result->AerialPixels, Result->AerialWidth, Result->AerialHeight);
 			USimCruiseWorldResources::BuildMipChain(Result->AerialPixels, Result->AerialWidth, Result->AerialHeight, true, Result->AerialMips);

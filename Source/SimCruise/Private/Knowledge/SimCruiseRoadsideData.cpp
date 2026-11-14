@@ -15,6 +15,8 @@ namespace
 {
 	FCriticalSection RoadsideLock;
 	TMap<FIntPoint, FSimCruiseRoadside>& RoadsideCache() { static TMap<FIntPoint, FSimCruiseRoadside> C; return C; }
+	/** Tiles whose cache file was looked for and not found (Store clears an entry). */
+	TSet<FIntPoint>& MissingFiles() { static TSet<FIntPoint> M; return M; }
 
 	FString Tag(const TSharedPtr<FJsonObject>& Tags, const TCHAR* Key)
 	{
@@ -439,8 +441,15 @@ namespace SimCruiseRoadsideData
 		{
 			FScopeLock Lock(&RoadsideLock);
 			if (RoadsideCache().Contains(Tile)) return true;
+			if (MissingFiles().Contains(Tile)) return false;
 		}
-		return FPaths::FileExists(CachePath(Tile));
+		const bool bFile = FPaths::FileExists(CachePath(Tile));
+		if (!bFile)
+		{
+			FScopeLock Lock(&RoadsideLock);
+			MissingFiles().Add(Tile);
+		}
+		return bFile;
 	}
 
 	void Store(const FIntPoint& Tile, const FSimCruiseRoadside& Data, bool bSave)
@@ -448,6 +457,7 @@ namespace SimCruiseRoadsideData
 		if (bSave) FFileHelper::SaveStringToFile(ToJson(Tile, Data), *CachePath(Tile), FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 		FScopeLock Lock(&RoadsideLock);
 		RoadsideCache().Add(Tile, Data);
+		MissingFiles().Remove(Tile);
 		// Keep the tiles around the car only.
 		if (RoadsideCache().Num() > 96)
 		{

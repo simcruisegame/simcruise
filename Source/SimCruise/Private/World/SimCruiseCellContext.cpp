@@ -424,13 +424,12 @@ namespace SimCruiseCellContext
 				Cell.WayStation = static_cast<int32>(K);
 				if (Way)
 				{
-					// The station along the way: its own canonical direction, global metres, so both
-					// tiles of a way (and every session) number its 32 m cells alike.
-					const TArray<FVector2d>& LL = Way->LonLat;
-					FVector2d Dir = (SimCruiseGeo::LonLatToTile(LL.Last().X, LL.Last().Y) - SimCruiseGeo::LonLatToTile(LL[0].X, LL[0].Y)).GetSafeNormal();
-					if (Dir.X < -1e-9 || (FMath::Abs(Dir.X) <= 1e-9 && Dir.Y < 0.0)) Dir = -Dir;
+					// The cell's "station" on the way: its global grid point (Web Mercator metres on the
+					// cell length's grid), the same on both tiles of a way and in every session. A chord
+					// of the way's geometry would differ per tile (it is clipped to each) and vanish on
+					// a closed loop.
 					const FVector2d CentreGlobal = (FVector2d(Data.Id.X, Data.Id.Y) + Cell.CentreM / Side) * MercatorTileM;
-					Cell.WayStation = static_cast<int32>(FMath::FloorToInt64(FVector2d::DotProduct(CentreGlobal, Dir) / Lc));
+					Cell.WayStation = static_cast<int32>(HashCombine(GetTypeHash(FMath::FloorToInt64(CentreGlobal.X / Lc)), GetTypeHash(FMath::FloorToInt64(CentreGlobal.Y / Lc))));
 					Cell.WayId = Way->Id;
 					if (Cell.StreetName.IsEmpty()) Cell.StreetName = Way->Name;
 					++Out.MatchedCells;

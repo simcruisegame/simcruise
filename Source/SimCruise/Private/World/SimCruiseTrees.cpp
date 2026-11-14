@@ -16,7 +16,9 @@
 #include "Materials/Material.h"
 #include "Materials/MaterialExpressionConstant.h"
 #include "Materials/MaterialExpressionCustom.h"
-#include "Materials/MaterialExpressionPixelDepth.h"
+#include "Materials/MaterialExpressionCameraPositionWS.h"
+#include "Materials/MaterialExpressionDistance.h"
+#include "Materials/MaterialExpressionWorldPosition.h"
 #include "Materials/MaterialExpressionShadowReplace.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
@@ -103,7 +105,11 @@ return b;
 	/** The cross-fade's inputs: the pixel's depth and the level's band (cm; FadeIn 0: no fade in). */
 	void AddFadeInputs(UMaterial* Material, UMaterialExpressionCustom* Custom)
 	{
-		AddInput(Custom, TEXT("Depth"), AddExpression<UMaterialExpressionPixelDepth>(Material));
+		// The pixel's distance from the camera (radial, as the rings' cull distances are).
+		UMaterialExpressionDistance* Dist = AddExpression<UMaterialExpressionDistance>(Material);
+		Dist->A.Connect(0, AddExpression<UMaterialExpressionWorldPosition>(Material));
+		Dist->B.Connect(0, AddExpression<UMaterialExpressionCameraPositionWS>(Material));
+		AddInput(Custom, TEXT("Depth"), Dist);
 		AddInput(Custom, TEXT("FadeIn"), ScalarParam(Material, TEXT("FadeIn"), 0.f));
 		AddInput(Custom, TEXT("BandIn"), ScalarParam(Material, TEXT("BandIn"), 0.f));
 		AddInput(Custom, TEXT("FadeOut"), ScalarParam(Material, TEXT("FadeOut"), 1.0e9f));
@@ -479,7 +485,12 @@ bool ASimCruiseTrees::BuildMeshes()
 				static const float BandOut[3] = { LodBandCm[0], LodBandCm[1], 1.f };
 				for (UMaterialInterface*& M : Slots)
 				{
-					UMaterialInstanceDynamic* L = UMaterialInstanceDynamic::Create(M, this);
+					// From the base material with the slot's overrides copied (its leaf texture and
+					// tint): an instance parented to another dynamic instance drew with the default
+					// texture and a solid mask (grey shards in the Dragon capture, 2026-11-14).
+					UMaterialInstanceDynamic* Src = Cast<UMaterialInstanceDynamic>(M);
+					UMaterialInstanceDynamic* L = UMaterialInstanceDynamic::Create(Src ? Src->GetMaterial() : M, this);
+					if (Src) L->CopyParameterOverrides(Src);
 					L->SetScalarParameterValue(TEXT("FadeIn"), FadeIn[Level]);
 					L->SetScalarParameterValue(TEXT("BandIn"), BandIn[Level]);
 					L->SetScalarParameterValue(TEXT("FadeOut"), FadeOut[Level]);
@@ -510,8 +521,11 @@ bool ASimCruiseTrees::BuildMeshes()
 			// (three times the triangles, and the blobby low crown over the detailed one). Each ring
 			// now starts half a band before its switch and ends half a band after the next, where
 			// the materials cross-fade the two levels.
-			const int32 Near = Level == 0 ? 0 : FMath::RoundToInt(LodSwitchCm[Level - 1] - LodBandCm[Level - 1]);
-			const int32 Far = Level == 2 ? 60000 : FMath::RoundToInt(LodSwitchCm[Level] + LodBandCm[Level]);
+			// The ranges reach a crown's size (8 m) past the bands: a ring culls by its tree's
+			// distance, the materials fade by each pixel's, and a crown spans both.
+			constexpr float CrownMarginCm = 800.f;
+			const int32 Near = Level == 0 ? 0 : FMath::RoundToInt(FMath::Max(0.f, LodSwitchCm[Level - 1] - LodBandCm[Level - 1] - CrownMarginCm));
+			const int32 Far = Level == 2 ? 60000 : FMath::RoundToInt(LodSwitchCm[Level] + LodBandCm[Level] + CrownMarginCm);
 			Ring->InstanceMinDrawDistance = Near;
 			Ring->SetCullDistances(Far, Far);
 			Ring->SetCastShadow(Level < 2);

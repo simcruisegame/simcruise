@@ -10,6 +10,7 @@
 #include "IImageWrapper.h"
 #include "IImageWrapperModule.h"
 #include "Misc/Compression.h"
+#include "Misc/Crc.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopeLock.h"
@@ -204,7 +205,8 @@ namespace SimCruiseScan
 				else if (M.R > 128)
 				{
 					// The season's dry share: a stable share of the lawn cells by their global id.
-					const uint32 H = Mix(Mix(static_cast<uint32>(Data.Id.X * F + i), static_cast<uint32>(Data.Id.Y * F + j)), 77u);
+					// Global half-cell ids (the guard band names the neighbour's cells by the same ids).
+					const uint32 H = Mix(Mix(static_cast<uint32>(Data.Id.X * 2 * Cells + i - 2 * Guard), static_cast<uint32>(Data.Id.Y * 2 * Cells + j - 2 * Guard)), 77u);
 					Set(k, (H & 0xFFFF) / 65535.0f < Dry ? EClass::DryGrass : EClass::GrassShort, 2);
 				}
 				if (M.B > 128) Set(k, EClass::Paving, 3);
@@ -367,6 +369,11 @@ namespace SimCruiseScan
 		// The key includes the eye when one is on (its name and version): its arrival is new data.
 		FSimCruiseAerialEye& Eye = FSimCruiseAerialEye::Get();
 		uint32 Hash = Build.Context.IsValid() ? Build.Context->DataHash : GetTypeHash(Data.Id);
+		// The ground the scan reads too: the shaped terrain, the natural terrain, the cover mask, the footprints.
+		Hash = HashCombine(Hash, FCrc::MemCrc32(Build.TerrainHeights.GetData(), Build.TerrainHeights.Num() * sizeof(float)));
+		Hash = HashCombine(Hash, FCrc::MemCrc32(Build.NaturalHeights.GetData(), Build.NaturalHeights.Num() * sizeof(float)));
+		Hash = HashCombine(Hash, FCrc::MemCrc32(Build.Mask.GetData(), Build.Mask.Num() * sizeof(FColor)));
+		Hash = HashCombine(Hash, static_cast<uint32>(Data.Buildings.Num() * 7919 + Data.Land.Num()));
 		if (Eye.IsReady()) Hash = HashCombine(Hash, HashCombine(GetTypeHash(Eye.Name()), static_cast<uint32>(Eye.Version())));
 		TArray<uint8> Bytes;
 		if (FFileHelper::LoadFileToArray(Bytes, *Path, FILEREAD_Silent))
@@ -624,7 +631,9 @@ bool FSimCruiseTileScan::Deserialize(const TArray<uint8>& Bytes, FString& OutErr
 	for (uint32 c = 0; c < NChunks; ++c)
 	{
 		const uint32 Tag = R.Get<uint32>(), Offset = R.Get<uint32>(), Size = R.Get<uint32>(), RawSize = R.Get<uint32>(), Codec = R.Get<uint32>();
-		if (!R.bOk || static_cast<int64>(Offset) + Size > Bytes.Num()) { OutError = TEXT("bad chunk table"); return false; }
+		// A chunk never holds more than a few rasters' worth (a corrupt table must not ask for gigabytes).
+		constexpr uint32 MaxChunk = SimCruiseScan::Stored * SimCruiseScan::Stored * 16u;
+		if (!R.bOk || static_cast<int64>(Offset) + Size > Bytes.Num() || RawSize > MaxChunk) { OutError = TEXT("bad chunk table"); return false; }
 		TArray<uint8> Data;
 		if ((Codec & 0xFF) == CodecZlib)
 		{
