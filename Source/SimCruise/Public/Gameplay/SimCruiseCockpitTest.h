@@ -38,6 +38,21 @@ namespace SimCruiseCockpitRules
 	 * from the radius: spokes, the hub, a flat bottom's straight part). False with too few points.
 	 */
 	SIMCRUISE_API bool FitRimCircle(const TArray<FVector>& Points, FVector& OutNormal, FVector& OutCentre, double& OutRadius, int32& OutKept);
+
+	/**
+	 * The rim's outer edge in the wheel's own frame (X along the column, the pivot at the origin,
+	 * cm): the farthest point from the column in each of 64 sectors, within 6 cm of the rim's
+	 * plane and 0.7 to 1.25 times the rim's radius (the median of the sector maxima), as the rig
+	 * check takes it. Spokes, the hub and the horn pad never reach the outer edge.
+	 */
+	SIMCRUISE_API TArray<FVector> RimOuterEdge(const TArray<FVector>& Points);
+
+	/**
+	 * The rim's tilt on the column (deg) and its circle's centre off the axis (cm) from its outer
+	 * edge: a least-squares plane X = aY + bZ + c (the tilt) and a Kasa circle in Y-Z (the centre),
+	 * over every edge point, as the rig check measures them. False with fewer than 24 edge points.
+	 */
+	SIMCRUISE_API bool MeasureRim(const TArray<FVector>& Points, double& OutTiltDeg, double& OutAxisOffsetCm, double& OutRadiusCm, int32& OutEdgePoints);
 }
 
 /**

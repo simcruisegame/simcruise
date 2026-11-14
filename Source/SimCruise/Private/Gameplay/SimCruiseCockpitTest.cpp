@@ -87,6 +87,67 @@ namespace SimCruiseCockpitRules
 		return N;
 	}
 
+	TArray<FVector> RimOuterEdge(const TArray<FVector>& Points)
+	{
+		auto Sector = [](const FVector& P) { return int32(FMath::FloorToDouble((FMath::Atan2(P.Z, P.Y) + UE_DOUBLE_PI) / UE_DOUBLE_TWO_PI * 64.0)) & 63; };
+		// The rim's radius: the median of the farthest point per sector, near the rim's plane.
+		double MaxR[64];
+		for (int32 K = 0; K < 64; ++K) MaxR[K] = -1.0;
+		for (const FVector& P : Points)
+		{
+			if (FMath::Abs(P.X) > 6.0) continue;
+			const int32 K = Sector(P);
+			MaxR[K] = FMath::Max(MaxR[K], FVector2D(P.Y, P.Z).Size());
+		}
+		TArray<double> Sorted;
+		for (int32 K = 0; K < 64; ++K) if (MaxR[K] > 0.0) Sorted.Add(MaxR[K]);
+		TArray<FVector> Edge;
+		if (Sorted.IsEmpty()) return Edge;
+		Sorted.Sort();
+		const double RimR = Sorted[Sorted.Num() / 2];
+		double EdgeR[64];
+		FVector EdgeP[64];
+		for (int32 K = 0; K < 64; ++K) EdgeR[K] = -1.0;
+		for (const FVector& P : Points)
+		{
+			const double R = FVector2D(P.Y, P.Z).Size();
+			if (R < 0.7 * RimR || R > 1.25 * RimR || FMath::Abs(P.X) > 6.0) continue;
+			const int32 K = Sector(P);
+			if (R > EdgeR[K]) { EdgeR[K] = R; EdgeP[K] = P; }
+		}
+		for (int32 K = 0; K < 64; ++K) if (EdgeR[K] > 0.0) Edge.Add(EdgeP[K]);
+		return Edge;
+	}
+
+	bool MeasureRim(const TArray<FVector>& Points, double& OutTiltDeg, double& OutAxisOffsetCm, double& OutRadiusCm, int32& OutEdgePoints)
+	{
+		const TArray<FVector> Edge = RimOuterEdge(Points);
+		OutEdgePoints = Edge.Num();
+		if (Edge.Num() < 24) return false;
+		const double N = Edge.Num();
+		double Sy = 0, Sz = 0, Sx = 0, Syy = 0, Szz = 0, Syz = 0, Sxy = 0, Sxz = 0;
+		for (const FVector& P : Edge) { Sy += P.Y; Sz += P.Z; Sx += P.X; Syy += P.Y * P.Y; Szz += P.Z * P.Z; Syz += P.Y * P.Z; Sxy += P.X * P.Y; Sxz += P.X * P.Z; }
+		const double My = Sy / N, Mz = Sz / N, Mx = Sx / N;
+		const double Cyy = Syy / N - My * My, Czz = Szz / N - Mz * Mz, Cyz = Syz / N - My * Mz, Cxy = Sxy / N - Mx * My, Cxz = Sxz / N - Mx * Mz;
+		const double Det = Cyy * Czz - Cyz * Cyz;
+		const double A = Det > 1e-9 ? (Cxy * Czz - Cxz * Cyz) / Det : 0.0;
+		const double B = Det > 1e-9 ? (Cxz * Cyy - Cxy * Cyz) / Det : 0.0;
+		OutTiltDeg = FMath::RadiansToDegrees(FMath::Atan(FMath::Sqrt(A * A + B * B)));
+		// Kasa circle in Y-Z about the points' mean.
+		double Suu = 0, Svv = 0, Suv = 0, Suuu = 0, Svvv = 0, Suvv = 0, Svuu = 0;
+		for (const FVector& P : Edge)
+		{
+			const double U = P.Y - My, V = P.Z - Mz;
+			Suu += U * U; Svv += V * V; Suv += U * V; Suuu += U * U * U; Svvv += V * V * V; Suvv += U * V * V; Svuu += V * U * U;
+		}
+		const double KDet = Suu * Svv - Suv * Suv;
+		const double Ra = 0.5 * (Suuu + Suvv), Rb = 0.5 * (Svvv + Svuu);
+		const double Uc = KDet > 1e-9 ? (Ra * Svv - Rb * Suv) / KDet : 0.0, Vc = KDet > 1e-9 ? (Rb * Suu - Ra * Suv) / KDet : 0.0;
+		OutAxisOffsetCm = FVector2D(My + Uc, Mz + Vc).Size();
+		OutRadiusCm = FMath::Sqrt(Uc * Uc + Vc * Vc + (Suu + Svv) / N);
+		return true;
+	}
+
 	bool FitRimCircle(const TArray<FVector>& Points, FVector& OutNormal, FVector& OutCentre, double& OutRadius, int32& OutKept)
 	{
 		TArray<FVector> Kept = Points;
@@ -495,14 +556,13 @@ void ASimCruiseCockpitTest::Judge()
 					const double R = FVector2D(P.Y, P.Z).Size();
 					if (R > 0.7 * RMax) { Rim.Add(P); RimR.Add(R); }
 				}
-				// A circle fitted to the rim's tube only: its plane against the column, its centre against the axis.
-				FVector N, Centre3;
+				// The rim's outer edge only (64 sectors, as the rig check): its plane against the column, its
+				// circle's centre against the axis. A fit over every far vertex took in the spokes' ends and
+				// the horn pad's rim on the Miata (12.9 deg where the frames show none).
 				double Radius = 0.0;
-				int32 Kept = 0;
-				if (FitRimCircle(Rim, N, Centre3, Radius, Kept))
+				int32 EdgePoints = 0;
+				if (MeasureRim(All, RimTiltDeg, RimAxisOffsetCm, Radius, EdgePoints))
 				{
-					RimTiltDeg = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(FMath::Abs(FVector::DotProduct(N, FVector::XAxisVector)), 0.0, 1.0)));
-					RimAxisOffsetCm = FVector2D(Centre3.Y, Centre3.Z).Size();
 					RimRadiusCm = Radius;
 					if (RimTiltDeg > MaxRimTiltDeg) Reasons.Add(FString::Printf(TEXT("rim-tilted-%.1fdeg-on-the-column"), RimTiltDeg));
 					if (RimAxisOffsetCm > MaxRimAxisOffsetCm) Reasons.Add(FString::Printf(TEXT("rim-centre-%.2fcm-off-the-column"), RimAxisOffsetCm));
