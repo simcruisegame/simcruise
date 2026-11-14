@@ -148,8 +148,20 @@ bool FSimCruiseBackgroundCarTest::RunTest(const FString& Parameters)
 	const int64 Miata = SimCruiseCarAssets::ModelBytes(TEXT("nb1999"));
 	TestTrue(FString::Printf(TEXT("the Miata's model is heavy (%.1f MB)"), Miata / 1048576.0), Miata > SimCruiseCarAssets::BackgroundModelMaxBytes);
 	TestTrue(TEXT("the Mustang's is light"), SimCruiseCarAssets::ModelBytes(TEXT("mustang65")) > 0 && SimCruiseCarAssets::ModelBytes(TEXT("mustang65")) <= SimCruiseCarAssets::BackgroundModelMaxBytes);
+	// The start's build list (every model a background car can be, built one a frame while the
+	// start tiles load, then the car is placed): each model once, and no heavy model that nothing
+	// has built (the start would wait 30 s for it).
+	const TArray<FString> StartList = SimCruiseParkedCars::AllCarIds();
+	TestTrue(TEXT("a start build list"), StartList.Num() >= 3);
+	for (int32 i = 0; i < StartList.Num(); ++i)
+	{
+		for (int32 j = i + 1; j < StartList.Num(); ++j) TestNotEqual(TEXT("each model once in the start list"), StartList[i], StartList[j]);
+		TestTrue(FString::Printf(TEXT("%s: light or built already"), *StartList[i]),
+			SimCruiseCarAssets::IsBuilt(StartList[i]) || SimCruiseCarAssets::ModelBytes(StartList[i]) <= SimCruiseCarAssets::BackgroundModelMaxBytes);
+	}
 	if (!SimCruiseCarAssets::IsBuilt(TEXT("nb1999")))
 	{
+		TestFalse(TEXT("the unbuilt Miata is not in the start list"), StartList.Contains(FString(TEXT("nb1999"))));
 		for (int32 Pick = 0; Pick < 25; ++Pick)
 		{
 			const FString Id = SimCruiseParkedCars::CarFor(static_cast<uint8>(Pick));
@@ -242,6 +254,51 @@ bool FSimCruiseReleaseFaultProbe::RunTest(const FString& Parameters)
 					if (BestI == INDEX_NONE) continue;
 					Text += FString::Printf(TEXT("\n    ribbon %d %s (%s) %d stations, station %d S %.1f: %.1f m from its centre line, half width %.1f, height %.2f, boundary start %d end %d"),
 						r, *R.Name, *R.Class, R.St.Num(), BestI, R.St[BestI].S, BestD, R.St[BestI].HalfW, R.St[BestI].HC, R.bStartOnBoundary, R.bEndOnBoundary);
+				}
+			}
+		}
+		// Short ribbons (driveways, service ways) that start or end within 12 m of a point: their end
+		// stations' column heights against the highest other carriageway under each column.
+		for (const FPoint& Pt : Points)
+		{
+			const FVector W = Pt.Lat > 1e8 ? FVector(Pt.Lat - 1e9, Pt.Lon, 0.0) : Frame.LonLatToWorldCm(Pt.Lon, Pt.Lat);
+			for (int32 t = 0; t < Tiles.Num(); ++t)
+			{
+				const FSimCruiseTileBuild& B = *Tiles[t].Build;
+				const FVector2d Local = (FVector2d(W.X, W.Y) - FVector2d(Tiles[t].OriginCm.X, Tiles[t].OriginCm.Y)) / 100.0;
+				if (Local.X < -12.0 || Local.Y < -12.0 || Local.X > B.TileSizeM + 12.0 || Local.Y > B.TileSizeM + 12.0) continue;
+				for (int32 r = 0; r < B.Roads.Ribbons.Num(); ++r)
+				{
+					const FSimCruiseRibbon& R = B.Roads.Ribbons[r];
+					for (const int32 End : { 0, 1 })
+					{
+						const int32 I0 = End == 0 ? 0 : R.St.Num() - 1;
+						if (FVector2d::Distance(R.St[I0].C, Local) > 12.0) continue;
+						Text += FString::Printf(TEXT("\n  %s: ribbon %d %s (%s, rank %d) %s end:"), *Pt.Label, r, *R.Name, *R.Class, R.Rank, End == 0 ? TEXT("start") : TEXT("far"));
+						for (int32 k = 0; k < FMath::Min(6, R.St.Num()); ++k)
+						{
+							const int32 I = End == 0 ? k : R.St.Num() - 1 - k;
+							const FSimCruiseRibbonStation& St = R.St[I];
+							Text += FString::Printf(TEXT("\n    S %.1f:"), St.S);
+							for (int32 c = 0; c < 5; ++c)
+							{
+								const FVector2d P = St.C + St.R * (FSimCruiseRibbonStation::ColumnOffset(c) * St.HalfW);
+								// The highest other carriageway under this column.
+								double Other = TNumericLimits<double>::Lowest();
+								int32 OtherR = INDEX_NONE;
+								TArray<TPair<int32, int32>> Segs;
+								B.Roads.GatherSegments(P, 15.0, Segs);
+								for (const TPair<int32, int32>& Sg : Segs)
+								{
+									if (Sg.Key == r) continue;
+									const FSimCruiseRoadHit H = B.Roads.Project(Sg.Key, Sg.Value, P);
+									if (FMath::Abs(H.Lateral) <= H.HalfW && FMath::Abs(H.Along) < 0.01 && H.Height > Other) { Other = H.Height; OtherR = Sg.Key; }
+								}
+								Text += OtherR == INDEX_NONE ? FString::Printf(TEXT(" %.3f/-"), St.Column(c))
+									: FString::Printf(TEXT(" %.3f/%.3f(r%d rank %d)"), St.Column(c), Other, OtherR, B.Roads.Ribbons[OtherR].Rank);
+							}
+						}
+					}
 				}
 			}
 		}
