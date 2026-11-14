@@ -308,6 +308,9 @@ def colour(lab):
 def places(kind, nrandom, seed):
     here = os.path.dirname(os.path.abspath(__file__))
     out = []
+    if kind.endswith(".json"):  # a list of {"key", "lat", "lon"}
+        with open(kind if os.path.isabs(kind) else os.path.join(here, kind)) as f:
+            out += [(p["key"], p["lat"], p["lon"]) for p in json.load(f)]
     if kind in ("test", "all"):
         with open(os.path.join(here, "..", "..", "data", "test-places.json")) as f:
             out += [(p["key"], p["lat"], p["lon"]) for p in json.load(f)]
@@ -330,7 +333,7 @@ def main():
     if a.aerial_only:
         # Unlabelled photos for distillation: the student learns the teacher's answers on many more places.
         n = 0
-        for key, lat, lon in places("none", a.random, a.seed):
+        for key, lat, lon in places(a.places if a.places.endswith(".json") else "none", a.random, a.seed):
             cx, cy = tile_of(lat, lon)
             for dy in range(-a.ring, a.ring + 1):
                 for dx in range(-a.ring, a.ring + 1):

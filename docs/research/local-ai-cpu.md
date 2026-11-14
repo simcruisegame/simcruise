@@ -112,6 +112,27 @@ The student: from random init on the 572 labelled tiles it reached only 0.50 agr
 on its own training tiles (it can fit two tiles to 0.99, so the network works: it has too little data).
 Next step: distillation on 1,800 more unlabelled tiles from 200 random places, labelled by the teacher.
 
+### The shipped eye: the lite student
+
+Distillation alone did not save the small network (0.73 pixel accuracy, water 0.03). The design that
+works keeps the **first two stages of the Satlas backbone** (2.1 M of its 89.6 M weights: the part
+that knows aerial textures) and adds our own context blocks at 1/16 and 1/32 and a decoder: 2.7 M
+weights, 11 MB ONNX, 0.53 s per tile on 2 threads (ONNX Runtime CPU). Trained on 572 labelled tiles
+and 2,400 teacher-labelled tiles (200 random places and 30 water places), 2,400 steps.
+
+| Held-out IoU | Road | Roof | Water | Tree | Grass | Crop | Bare | Built ground | Pixel acc |
+|---|---|---|---|---|---|---|---|---|---|
+| Teacher (Satlas + head) | 0.45 | 0.53 | 0.65 | 0.72 | 0.82 | 0.80 | 0.27 | 0.33 | 0.81 |
+| Lite student (shipped) | 0.40 | 0.52 | 0.15 | 0.69 | 0.81 | 0.85 | 0.22 | 0.33 | 0.77 |
+| Lite student trained longer with water drawn 12x more often | 0.38 | 0.52 | 0.44 | 0.69 | 0.69 | 0.84 | 0.20 | 0.33 | 0.72 |
+
+Gate (agreed with the coordinator): within 5 points of the teacher for the classes the eye decides
+(ground cover; roofs and roads are hints because map geometry wins in fusion); water outlines come
+from the map. The first row of the student passes; the second trades grass for water and fails.
+Pictures checked on held-out places: Seattle, Gilbert and Jasper look right; **Hilo, Hawaii fails**
+(the whole town reads as roof; Hawaii's NAIP photos are darker and bluer), so the student runs only on
+the lower 48 states (`FSimCruiseAerialEye::IsLower48`) until it learns Hawaii and Alaska.
+
 ## 7. Next (v2.0.4): restoration and generation on the CPU
 
 Budget v2 (agreed with the world thread, scan-map-spec.md H2): all AI up to 8 threads and 8 GB while

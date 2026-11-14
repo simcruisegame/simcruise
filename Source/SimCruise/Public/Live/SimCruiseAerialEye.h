@@ -79,6 +79,9 @@ public:
 
 	FString Describe() const;
 
+	/** The tile (z, x, y in X, Y, Z) is in the lower 48 states, where the student learned. */
+	static bool IsLower48(const FIntVector& TileZXY);
+
 	/** Game thread, once a frame: the last frame's time, for the worker's back-off. */
 	static void NoteFrameSeconds(float Seconds);
 	/** Any thread: the last frame took more than 1.1 x the 60 fps budget. */

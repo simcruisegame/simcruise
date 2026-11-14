@@ -91,6 +91,14 @@ bool FSimCruiseAerialEye::IsGameSlow()
 	return GSimCruiseEyeFrameSeconds.load(std::memory_order_relaxed) > 1.1f / 60.f;
 }
 
+bool FSimCruiseAerialEye::IsLower48(const FIntVector& TileZXY)
+{
+	const double N = FMath::Pow(2.0, TileZXY.X);
+	const double Lon = (TileZXY.Y + 0.5) / N * 360.0 - 180.0;
+	const double Lat = FMath::RadiansToDegrees(FMath::Atan(FMath::Sinh(PI * (1.0 - 2.0 * (TileZXY.Z + 0.5) / N))));
+	return Lon > -125.5 && Lon < -66.5 && Lat > 24.0 && Lat < 49.5;
+}
+
 FSimCruiseAerialEye& FSimCruiseAerialEye::Get()
 {
 	static FSimCruiseAerialEye* Instance = new FSimCruiseAerialEye();
@@ -120,7 +128,7 @@ const TArray<FName>& FSimCruiseAerialEye::ChannelNames()
 FString FSimCruiseAerialEye::Licence() const
 {
 	return bStudent
-		? TEXT("SimCruise aerial student (MIT, SimCruise contributors). Contains information from OpenStreetMap, (c) OpenStreetMap contributors, ODbL.")
+		? TEXT("SimCruise aerial student (MIT, SimCruise contributors), which contains the first two stages of the Satlas Aerial_SwinB_SI backbone (Allen Institute for AI, ODC-BY 1.0). Contains information from OpenStreetMap, (c) OpenStreetMap contributors, ODbL.")
 		: TEXT("Satlas Aerial_SwinB_SI backbone (Allen Institute for AI, ODC-BY 1.0) + SimCruise head (MIT). Contains information from OpenStreetMap, (c) OpenStreetMap contributors, ODbL.");
 }
 
@@ -128,7 +136,7 @@ FString FSimCruiseAerialEye::TrainingDataLicence() const
 {
 	FString Ours = TEXT("USGS The National Map aerial imagery (public domain); OpenStreetMap via OpenFreeMap (ODbL); Meta and WRI canopy height map v2 (CC BY 4.0); ESA WorldCover 2021 v200 (CC BY 4.0)");
 	return bStudent
-		? Ours + TEXT("; soft labels of the satlas_landcover eye")
+		? Ours + TEXT("; soft labels of the satlas_landcover eye on 2,100 more USGS aerial tiles; its first two stages by the Satlas makers on SatlasPretrain (NAIP public domain, OpenStreetMap and Microsoft Buildings ODbL, ESA WorldCover CC BY 4.0, own annotations ODC-BY) from an ImageNet start")
 		: Ours + TEXT(" for the head; the Satlas backbone by its makers on SatlasPretrain (NAIP public domain, OpenStreetMap and Microsoft Buildings ODbL, ESA WorldCover CC BY 4.0, own annotations ODC-BY) from an ImageNet start");
 }
 
@@ -242,7 +250,13 @@ void FSimCruiseAerialEye::InputsFromPhoto(const TArray<FColor>& Photo, int32 Pho
 
 bool FSimCruiseAerialEye::CanRun(const FSimCruiseScanInputs& Inputs) const
 {
-	return bReady && Inputs.AerialSize >= 64 && Inputs.AerialRGB.Num() >= Inputs.AerialSize * Inputs.AerialSize && Inputs.Cells > 0;
+	if (!bReady || Inputs.AerialSize < 64 || Inputs.AerialRGB.Num() < Inputs.AerialSize * Inputs.AerialSize || Inputs.Cells <= 0)
+	{
+		return false;
+	}
+	// The student learned on the lower 48 states' photographs; on Hawaii's and Alaska's it is wrong
+	// (checked: Hilo reads as one roof). There the scan rules decide until it learns them.
+	return !bStudent || IsLower48(Inputs.TileZXY);
 }
 
 bool FSimCruiseAerialEye::Run(const FSimCruiseScanInputs& Inputs, TArray<FSimCruiseScanChannel>& OutChannels, TArray<FSimCruiseScanPoint>& OutPoints)

@@ -199,10 +199,30 @@ def cmd_train(a):
     ce = nn.CrossEntropyLoss(weight=w, ignore_index=sd.IGNORE)
     best = (-1, None, None)
     C = a.crop
+    # Tiles with rare classes (in the teacher's eyes) are drawn more often: water most.
+    top = xt.argmax(1)
+    share = lambda c: (top == sd.C[c]).mean((1, 2))
+    pick = 1 + 12 * share("water") + 3 * (share("paved_road") + share("roof") + share("bare"))
+    pick = pick / pick.sum()
+    print("draw weight max/mean", round(float(pick.max() / pick.mean()), 1), flush=True)
     t0 = time.time()
-    for step in range(a.steps):
+    ckpt = os.path.join(a.data, f"train-{a.arch}.ckpt")
+    start = 0
+    if a.cont and os.path.exists(ckpt):
+        st = torch.load(ckpt, weights_only=False)
+        net.load_state_dict(st["net"]); opt.load_state_dict(st["opt"]); sched.load_state_dict(st["sched"])
+        start, best = st["step"], (st["best_miou"], torch.load(os.path.join(a.data, "student.pt")), st["best_eval"])
+        print("continue at step", start, flush=True)
+    pause = os.path.join(os.path.dirname(a.data.rstrip("/\\")), "PAUSE")
+    for step in range(start, a.steps):
+        # Quiet windows on the shared PC: create C:/aiwork/PAUSE to hold training, delete it to go on.
+        while os.path.exists(pause):
+            time.sleep(10)
+        if step % 200 == 0 and step > start:
+            torch.save({"net": net.state_dict(), "opt": opt.state_dict(), "sched": sched.state_dict(), "step": step,
+                        "best_miou": best[0], "best_eval": best[2]}, ckpt)
         net.train()
-        b = np.random.randint(0, len(xi), a.batch)
+        b = np.random.choice(len(xi), a.batch, p=pick)
         ys, xs = np.random.randint(0, 512 - C + 1, a.batch) // 4 * 4, np.random.randint(0, 512 - C + 1, a.batch) // 4 * 4
         img = np.stack([xi[i, y:y + C, x:x + C] for i, y, x in zip(b, ys, xs)])
         lab = np.stack([xl[i, y:y + C, x:x + C] for i, y, x in zip(b, ys, xs)])
@@ -225,6 +245,9 @@ def cmd_train(a):
             with torch.no_grad():
                 pred = np.concatenate([net(torch.from_numpy(vi[i:i + 4]).permute(0, 3, 1, 2).float() / 255).argmax(1).numpy() for i in range(0, len(vi), 4)])
             ev = se.evaluate(pred, vl)
+            # The game takes water outlines from the map (fusion: map geometry first); score that too.
+            ev_map = se.evaluate(np.where(vl == sd.C["water"], sd.C["water"], pred), vl)
+            ev["with_map_water"] = {"pixel_acc": round(ev_map["pixel_acc"], 3), "miou": ev_map["miou"]}
             print(f"step {step} loss {float(loss):.3f} (teacher {float(loss_t):.3f} labels {float(loss_l):.3f}) held-out acc {ev['pixel_acc']:.3f} miou {ev['miou']} {round(time.time() - t0)} s", flush=True)
             if ev["miou"] > best[0]:
                 best = (ev["miou"], {k: v.clone() for k, v in net.state_dict().items()}, ev)
@@ -256,6 +279,7 @@ def main():
     ap.add_argument("--width", type=float, default=1.0)
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--arch", default="small", choices=["small", "lite"])
+    ap.add_argument("--cont", action="store_true", help="continue from the last checkpoint of this arch")
     ap.add_argument("--lr", type=float, default=3e-3)
     a = ap.parse_args()
     {"teach": cmd_teach, "teach-unlabelled": cmd_teach_unlabelled, "train": cmd_train, "export": cmd_export}[a.cmd](a)

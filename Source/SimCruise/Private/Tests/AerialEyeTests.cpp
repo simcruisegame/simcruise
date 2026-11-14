@@ -82,6 +82,11 @@ bool FSimCruiseAerialEyeInputsTest::RunTest(const FString& Parameters)
 	FSimCruiseAerialEye::InputsFromPhoto(Photo, N, FIntPoint(4 * 100, 4 * 200), In);
 	TestEqual(TEXT("mirrored at the photo edge"), int32(In.AerialRGB[(In.AerialSize / 2) * In.AerialSize].R), 40);
 
+	// The student runs only on the lower 48 states' photographs.
+	TestTrue(TEXT("Ankeny, Iowa is in the lower 48"), FSimCruiseAerialEye::IsLower48(FIntVector(16, 15728, 24393)));
+	TestFalse(TEXT("Hilo, Hawaii is not"), FSimCruiseAerialEye::IsLower48(FIntVector(16, 4535, 29104)));
+	TestFalse(TEXT("Anchorage, Alaska is not"), FSimCruiseAerialEye::IsLower48(FIntVector(16, 5476, 19225)));
+
 	// Tints: a class sure everywhere takes the photo's colour; a class sure nowhere gives no tint.
 	const int32 Size = FSimCruiseAerialEye::Cells + 2 * FSimCruiseAerialEye::GuardCells;
 	TArray<FSimCruiseScanChannel> Channels;
