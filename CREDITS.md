@@ -1,6 +1,6 @@
 # Credits
 
-SimCruise is built on the work of many people and organisations. This file gives credit to each maker whose AI model, data, 3D model, texture, font, library or tool we use, with its licence and a link. We use a work only when its licence lets a free, open-source game use it, and we obey the terms of each licence.
+OSDS is built on the work of many people and organisations. This file gives credit to each maker whose AI model, data, 3D model, texture, font, library or tool we use, with its licence and a link. We use a work only when its licence lets a free, open-source game use it, and we obey the terms of each licence.
 
 The game code is under the [MIT License](LICENSE). Everything below keeps its own licence. The full licence texts are in [`licenses/`](licenses/). Place-by-place sources (single buildings, surveys, photographs used for one place) are in [Credits.txt](Credits.txt) and [`licenses/Road Atlas.txt`](licenses/Road%20Atlas.txt). How each data layer reaches the game is in [docs/data-sources.md](docs/data-sources.md).
 
@@ -16,6 +16,7 @@ Licences were checked at each maker's own page on 14 November 2026.
 - [Textures, sky and trees](#textures-sky-and-trees)
 - [Fonts](#fonts)
 - [Engine, libraries and tools](#engine-libraries-and-tools)
+- [Logo and brand](#logo-and-brand)
 - [Named in our research, not used now](#named-in-our-research-not-used-now)
 
 ## Credit shown in the game
@@ -81,7 +82,7 @@ An earlier scene model, DDRNet23-Slim trained on Cityscapes, was removed because
 
 | Data | Maker | Licence | Credit line |
 |---|---|---|---|
-| Weather, air quality, sea and waves | [Open-Meteo](https://open-meteo.com/) (with Copernicus CAMS for air quality) | Data [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); the free API is for non-commercial use, which SimCruise is | Weather data by Open-Meteo.com |
+| Weather, air quality, sea and waves | [Open-Meteo](https://open-meteo.com/) (with Copernicus CAMS for air quality) | Data [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); the free API is for non-commercial use, which OSDS is | Weather data by Open-Meteo.com |
 | Airport weather | NOAA Aviation Weather Center METAR; NWS observations through Iowa Environmental Mesonet; NOAA GOES | US public domain | NOAA |
 | Tides | NOAA CO-OPS water levels | US public domain | NOAA |
 | Aircraft | [adsb.lol](https://adsb.lol/) | [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/) | adsb.lol |
@@ -122,7 +123,7 @@ The car physics are calibrated against published road tests (Car and Driver, Mot
 
 | Font | Maker | Licence |
 |---|---|---|
-| [Overpass](https://github.com/RedHatOfficial/Overpass) (menus and HUD) | Delve Withrington and the Overpass Project Authors, for Red Hat | [SIL OFL 1.1](licenses/Overpass%20font%20(OFL-1.1).txt) |
+| [Overpass](https://github.com/RedHatOfficial/Overpass) (menus, HUD and the OSDS logo letters) | Delve Withrington and the Overpass Project Authors, for Red Hat | [SIL OFL 1.1](licenses/Overpass%20font%20(OFL-1.1).txt) |
 | Roboto (Unreal Engine's default font) | Christian Robertson, Google | Apache 2.0 |
 
 ## Engine, libraries and tools
@@ -143,6 +144,17 @@ The car physics are calibrated against published road tests (Car and Driver, Mot
 | pako, fflate, zstddec, lerc, float16, quick-lru, web-worker, xml-utils, parse-headers, protocol-buffers-schema, resolve-protobuf-schema | Their authors (see [`licenses/`](licenses/)) | MIT, Apache 2.0 (lerc: Esri; web-worker), CC0 (xml-utils) | Helper support code |
 
 Licence texts for all of these are in [`licenses/`](licenses/).
+
+## Logo and brand
+
+The OSDS logo, icon and brand kit ([`docs/brand/`](docs/brand/README.md)) are our own work, under the MIT License like the rest of the repository. We drew every mark ourselves; no logo from another project was traced or copied.
+
+| Work | Maker | Licence | Use |
+|---|---|---|---|
+| [logo-design Agent Skill](https://github.com/kaankiziltug/logo-design-skill) | kaankiziltug | MIT | The design method, test list and delivery list we followed to make the logo. We did not use or ship its reference logos (they belong to their owners). |
+| [Overpass](https://github.com/RedHatOfficial/Overpass) | Delve Withrington and the Overpass Project Authors, for Red Hat | [SIL OFL 1.1](licenses/Overpass%20font%20(OFL-1.1).txt) | The letters of the wordmark, turned into outlines. The OFL lets a logo use the font. |
+| [fontTools](https://github.com/fonttools/fonttools) | Just van Rossum and the fontTools authors | MIT | Turns the Overpass letters into SVG outlines (`authoring/brand/make_brand.py`, a build tool; not shipped) |
+| [Pillow](https://python-pillow.org/) | Jeffrey A. Clark and contributors | MIT-CMU (HPND) | Scales the icon images and writes the `.ico` file (build tool; not shipped) |
 
 ## Named in our research, not used now
 

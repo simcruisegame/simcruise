@@ -114,7 +114,7 @@ try {
 finally { Exit-EditorLock }
 Write-Host "Smoke test: $Smoke"
 
-$Zip = Get-ChildItem (Join-Path $Worktree 'Saved\Package') -Filter 'SimCruise-*-windows-x64.zip' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+$Zip = Get-ChildItem (Join-Path $Worktree 'Saved\Package') -Filter 'OSDS-*-windows-x64.zip' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if (-not $Zip) { Write-Host 'No zip was written.'; exit 1 }
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 $Name = $Zip.BaseName -replace '-windows-x64$', ''

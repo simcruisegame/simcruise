@@ -1,6 +1,6 @@
 # Technical overview
 
-SimCruise is two programs and a cache:
+OSDS is two programs and a cache:
 
 ```
 Unreal Engine 5.8 client (Source/SimCruise)     map helper (Bun, helper/*.mjs)             public data services

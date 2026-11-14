@@ -1,6 +1,6 @@
 # Cars
 
-Every car in SimCruise is a JSON file in [`data/cars/`](../data/cars/). Powertrain, suspension, tyres, brakes and aerodynamics read their numbers from it through `godot-final:game/CarSpec.gd`, so adding a car means writing data, not code. The physics is shared by all cars: `godot-final:game/Powertrain.gd` (contacts, tyres, engine or motor, gearbox, differentials) and `godot-final:game/CarSuspension.gd` (springs, anti-roll bars, dampers, limited-slip split).
+Every car in OSDS is a JSON file in [`data/cars/`](../data/cars/). Powertrain, suspension, tyres, brakes and aerodynamics read their numbers from it through `godot-final:game/CarSpec.gd`, so adding a car means writing data, not code. The physics is shared by all cars: `godot-final:game/Powertrain.gd` (contacts, tyres, engine or motor, gearbox, differentials) and `godot-final:game/CarSuspension.gd` (springs, anti-roll bars, dampers, limited-slip split).
 
 ## The garage
 

@@ -1,6 +1,6 @@
-# Contributing to SimCruise
+# Contributing to OSDS
 
-Thanks for looking. Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md). SimCruise is a small project with a large ambition, and the way it stays honest is by measuring. This page is the short version of how we work; the [README](README.md) explains what the game is and the [roadmap](docs/roadmap.md) explains what is wanted next.
+Thanks for looking. Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md). OSDS is a small project with a large ambition, and the way it stays honest is by measuring. This page is the short version of how we work; the [README](README.md) explains what the game is and the [roadmap](docs/roadmap.md) explains what is wanted next.
 
 ## Ground rules
 
@@ -20,7 +20,7 @@ Thanks for looking. Everyone taking part follows the [Code of Conduct](CODE_OF_C
 
 ## Running the tests
 
-Build the editor target and run every SimCruise test headless (about 8 minutes on the reference laptop). It can run while the editor is open: the test editor uses neither the GPU nor MCP port 8000.
+Build the editor target and run every OSDS test headless (about 8 minutes on the reference laptop). It can run while the editor is open: the test editor uses neither the GPU nor MCP port 8000.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\check.ps1
@@ -49,7 +49,7 @@ Visual changes come with captures (`-SimCruiseDriveCapture`, docs/unreal-buildin
 
 ## Versions and releases
 
-SimCruise uses [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`. A patch release fixes bugs; a minor release adds features, cars, places or data layers; a major release breaks saved preferences, the cache format or the helper's command line. The version lives in one place, `ProjectVersion` in `Config/DefaultGame.ini`, and the package, zip and installer names read it from there.
+OSDS uses [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`. A patch release fixes bugs; a minor release adds features, cars, places or data layers; a major release breaks saved preferences, the cache format or the helper's command line. The version lives in one place, `ProjectVersion` in `Config/DefaultGame.ini`, and the package, zip and installer names read it from there.
 
 `CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/): every change a player would notice gets a line in the top, unreleased section in the same pull request.
 

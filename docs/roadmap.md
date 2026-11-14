@@ -1,8 +1,8 @@
-# SimCruise roadmap: how we get to real
+# OSDS roadmap: how we get to real
 
 > **This roadmap is from the Godot era (1.0.8 to 1.1).** The current to-do list for the Unreal client is the shared to-do document: https://claude.ai/artifact/Pi7CeJ3QtRnyonT1tUvGTC . What has landed is in the [changelog](../CHANGELOG.md).
 
-This is the design-panel report written on 8 November 2026 against the 1.0.8 code, kept as the working roadmap for SimCruise 1.1 and beyond. The panel read the code (file and line references are to the 1.0.8 code), drove the current build and compared it with photographs and published test numbers. The problems it set out to fix: roads bumpy enough to launch the car, a Miata that did not feel real (a half-second keyboard tap at 45 mph rolled it after leaving the road), a picture that looked washed out and flat, and a world that needed more real-world context.
+This is the design-panel report written on 8 November 2026 against the 1.0.8 code, kept as the working roadmap for OSDS 1.1 and beyond. The panel read the code (file and line references are to the 1.0.8 code), drove the current build and compared it with photographs and published test numbers. The problems it set out to fix: roads bumpy enough to launch the car, a Miata that did not feel real (a half-second keyboard tap at 45 mph rolled it after leaving the road), a picture that looked washed out and flat, and a world that needed more real-world context.
 
 Each item carries an estimate in brackets: `[days · impact 1-5 · data/licence]`. **today** marks work meant for the first day on the current build; **[unverified]** marks claims the panel did not confirm in-engine. Items the 1.1 streams have started are tracked in the [changelog](../CHANGELOG.md); the calibration that must not regress while doing any of this is the headless `checks/Track.gd` run described in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
@@ -39,7 +39,7 @@ What landed in 1.1 is in the [changelog](../CHANGELOG.md): road benches and brid
 
 ---
 
-## The panel report: SimCruise — how we get to real (8 November 2026)
+## The panel report: OSDS — how we get to real (8 November 2026)
 
 Brackets give [days·impact 1-5·data/licence]; **today** = one day on the current build; [unverified] = not yet run in-engine.
 

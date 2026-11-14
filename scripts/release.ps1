@@ -27,7 +27,7 @@ $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
 $Out = Join-Path $Root 'Saved\Package'
 $Version = ((Get-Content (Join-Path $Root 'Config\DefaultGame.ini')) -match '^ProjectVersion=' | Select-Object -First 1).Split('=')[1]
-$Zip = Join-Path $Out "SimCruise-$Version-windows-x64.zip"
+$Zip = Join-Path $Out "OSDS-$Version-windows-x64.zip"
 # The game itself, not the SimCruise.exe launcher stub: the stub's exit code is not always
 # the game's, and a Shipping game writes no log, so the self-test's exit code decides.
 $Exe = Join-Path $Out 'Windows\SimCruise\Binaries\Win64\SimCruise-Win64-Shipping.exe'
@@ -61,6 +61,6 @@ try {
 }
 finally { Exit-EditorLock }
 
-Get-ChildItem $Out -File -Filter "SimCruise-$Version*" | ForEach-Object { Write-Host ('{0}  {1:N1} MB' -f $_.Name, ($_.Length / 1MB)) }
+Get-ChildItem $Out -File -Filter "OSDS-$Version*" | ForEach-Object { Write-Host ('{0}  {1:N1} MB' -f $_.Name, ($_.Length / 1MB)) }
 Write-Host 'RELEASE PACKAGE OK'
 exit 0
