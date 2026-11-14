@@ -1,0 +1,74 @@
+<!doctype html>
+<!-- OSDS brand sheet, 1600 x 1000. Render:
+     python authoring/brand/render_brand.py html authoring/brand/brand-sheet.html docs/brand/png/osds-brand-sheet.png 1600 1000 -->
+<html><head><meta charset="utf-8"><style>
+@font-face{font-family:OX;src:url("../../data/fonts/overpass/Overpass-ExtraBold.ttf")}
+@font-face{font-family:OB;src:url("../../data/fonts/overpass/Overpass-Bold.ttf")}
+@font-face{font-family:OS;src:url("../../data/fonts/overpass/Overpass-SemiBold.ttf")}
+@font-face{font-family:OR;src:url("../../data/fonts/overpass/Overpass-Regular.ttf")}
+html,body{margin:0;width:1600px;height:1000px;background:#F4EFE4;color:#1B2128;font-family:OR}
+.wrap{display:grid;grid-template-columns:620px 1fr;grid-template-rows:560px 1fr;gap:24px;padding:32px;height:936px;box-sizing:content-box}
+.card{background:#fff;border-radius:18px;padding:28px;position:relative;overflow:hidden}
+.dark{background:#1B2128;color:#F4EFE4}
+h2{font:13px OB;letter-spacing:.14em;text-transform:uppercase;margin:0 0 18px;color:#5B6672}
+.dark h2{color:#9AA5B1}
+.hero{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:30px}
+.icons{display:flex;align-items:flex-end;gap:22px}
+.sw{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.s{border-radius:12px;height:92px;padding:12px 14px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;font:14px OS}
+.s b{font:17px OB}
+.type .big{font:76px/1 OX;letter-spacing:-.01em}
+.type .mid{font:30px OB;margin-top:6px}
+.type .sm{font:19px/1.45 OR;color:#5B6672;margin-top:12px;max-width:520px}
+.row{display:flex;gap:26px;align-items:center}
+.uses{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.tile{width:150px;height:150px;border-radius:16px;display:flex;align-items:center;justify-content:center}
+</style></head><body><div class="wrap">
+
+<div class="card dark hero" style="background:#2B333D">
+  <img src="../../docs/brand/svg/osds-lockup-full-color.svg" width="520">
+  <div class="icons">
+    <img src="../../docs/brand/svg/osds-icon.svg" width="128">
+    <img src="../../docs/brand/svg/osds-icon.svg" width="64">
+    <img src="../../docs/brand/svg/osds-icon-small.svg" width="32">
+    <img src="../../docs/brand/svg/osds-icon-small.svg" width="16">
+  </div>
+</div>
+
+<div class="card">
+  <h2>Colour</h2>
+  <div class="sw">
+    <div class="s" style="background:#1B2128;color:#F4EFE4"><b>Asphalt</b>#1B2128 · 27 33 40</div>
+    <div class="s" style="background:#F5B53F"><b>Lane Amber</b>#F5B53F · 245 181 63</div>
+    <div class="s" style="background:#F4EFE4;border:1px solid #ddd5c4"><b>Edge Line</b>#F4EFE4 · 244 239 228</div>
+    <div class="s" style="background:#1F7A57;color:#fff"><b>Verge</b>#1F7A57 · support, links</div>
+    <div class="s" style="background:#3A89D8;color:#fff"><b>Sky</b>#3A89D8 · support only</div>
+    <div class="s" style="background:#5B6672;color:#fff"><b>Kerb Grey</b>#5B6672 · text on light</div>
+  </div>
+  <div style="margin-top:22px" class="type">
+    <h2>Type: Overpass (SIL OFL 1.1)</h2>
+    <div class="big">OSDS</div>
+    <div class="mid">Open Source Driving Simulator</div>
+    <div class="sm">Overpass is a free font based on the US highway sign letters. ExtraBold for the name, Bold for heads, Regular for text.</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>On light, on dark, one colour</h2>
+  <div class="uses">
+    <div class="tile" style="background:#fff;border:1px solid #e3e6ea"><img src="../../docs/brand/svg/osds-symbol.svg" width="104"></div>
+    <div class="tile" style="background:#1B2128"><img src="../../docs/brand/svg/osds-symbol-color.svg" width="104"></div>
+    <div class="tile" style="background:#1F7A57"><img src="../../docs/brand/svg/osds-symbol-white.svg" width="104"></div>
+  </div>
+  <div style="margin-top:26px"><img src="../../docs/brand/svg/osds-lockup-horizontal.svg" height="64"></div>
+</div>
+
+<div class="card">
+  <h2>The idea</h2>
+  <div class="row">
+    <img src="../../docs/brand/svg/osds-symbol.svg" width="190">
+    <div style="font:22px/1.5 OS;max-width:560px">The "O" of <b>Open</b> is broken open by a real road that runs over the crest and out of view.<br><span style="color:#5B6672;font:18px/1.5 OR">Open source, open world: every road in the US is open to you. One circle, one road, one colour. It reads at 16 px.</span></div>
+  </div>
+</div>
+
+</div></body></html>

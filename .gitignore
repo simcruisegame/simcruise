@@ -47,3 +47,9 @@ desktop.ini
 *.code-workspace
 .vsconfig
 *.pdb
+# The game window and .exe icon (OSDS brand kit, docs/brand); Unreal reads it from Build/Windows.
+!/Build/
+/Build/*
+!/Build/Windows/
+/Build/Windows/*
+!/Build/Windows/Application.ico

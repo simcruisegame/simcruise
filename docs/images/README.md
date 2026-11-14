@@ -2,7 +2,7 @@
 
 | File | Shot |
 |---|---|
-| `simcruise-wordmark.png`, `simcruise-icon-1024.png` | Logo, made by `authoring/logo/make_logo.py`. |
+| `social-preview.png` | The GitHub and website preview (1280 x 640), made from `authoring/brand/social-preview.html`. The OSDS logo files are in [`docs/brand/`](../brand/README.md). The old SimCruise logo is in git history (`authoring/logo/make_logo.py` still draws it). |
 | `unreal-nb1999-front-34-left.jpg`, `unreal-mustang65-front-34-left.jpg`, `unreal-meridian-z-rear-34-left.jpg`, `unreal-nb1999-wheel.jpg`, `unreal-mustang65-steer-driver.jpg` | The Unreal client's car turntable (`SimCruiseTurntableGameMode`, scalability 4, Lumen), 11 November 2026, scaled to 1200 px; see [unreal-building.md](../unreal-building.md). Car models CC BY 4.0 by their Sketchfab authors (`Credits.txt`). |
 
 ## Regenerating the screenshots

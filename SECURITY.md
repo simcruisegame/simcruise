@@ -20,7 +20,7 @@ Include what you found, how to reproduce it, which version or commit you tested,
 
 ## What counts
 
-SimCruise downloads and parses data from public services and runs a helper executable, so these are especially in scope:
+OSDS downloads and parses data from public services and runs a helper executable, so these are especially in scope:
 
 - Malformed map, image, lidar or weather data that crashes the helper or the game, writes outside the cache folder, or runs code.
 - Anything that makes the game contact a host other than the data services listed in [docs/data-sources.md](docs/data-sources.md), or sends information about the player.

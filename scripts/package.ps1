@@ -17,7 +17,7 @@
   Do not resave the materials (Content\*\Materials must be current).
 
 .PARAMETER Zip
-  Also write Saved\Package\SimCruise-<ProjectVersion>-windows-x64.zip (no debug symbols).
+  Also write Saved\Package\OSDS-<ProjectVersion>-windows-x64.zip (no debug symbols).
 
 .PARAMETER NoBuild
   Skip the materials and BuildCookRun; only refresh the loose files, credits and zip.
@@ -109,7 +109,7 @@ Copy-Item (Join-Path $Root 'docs\controls.md') (Join-Path $Windows 'CONTROLS.md'
 robocopy (Join-Path $Root 'licenses') (Join-Path $Windows 'licenses') /MIR /NFL /NDL /NJH /NJS /NP | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "Copying licenses failed ($LASTEXITCODE)" }
 Copy-Item (Join-Path $Root 'Credits.txt') (Join-Path $Windows 'licenses\Credits.txt') -Force
-$Credits = @('SimCruise uses these 3D models under their licences (CC BY 4.0 unless stated):', '')
+$Credits = @('OSDS uses these 3D models under their licences (CC BY 4.0 unless stated):', '')
 $Seen = @{}
 foreach ($Car in $Profiles.cars.PSObject.Properties) {
     $Credit = $Car.Value.credit
@@ -121,7 +121,7 @@ Set-Content -Path (Join-Path $Windows 'CREDITS.txt') -Value $Credits -Encoding u
 
 if ($Zip) {
     $Version = ((Get-Content (Join-Path $Root 'Config\DefaultGame.ini')) -match '^ProjectVersion=' | Select-Object -First 1).Split('=')[1]
-    $Archive = Join-Path $Out "SimCruise-$Version-windows-x64.zip"
+    $Archive = Join-Path $Out "OSDS-$Version-windows-x64.zip"
     if (Test-Path $Archive) { Remove-Item $Archive -Force }
     Write-Host "Zipping $Archive"
     # Windows' own bsdtar (not a Git or MSYS tar earlier on the PATH) writes a zip far faster

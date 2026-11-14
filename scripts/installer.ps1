@@ -7,8 +7,8 @@
   package in Saved\Package\Windows, compiles packaging\windows\simcruise.iss with
   Inno Setup 6 (ISCC.exe; install it with
   `winget install --id JRSoftware.InnoSetup -e --scope user`) into
-  Saved\Package\SimCruise-<ProjectVersion>-windows-x64-setup.exe, and writes
-  Saved\Package\SimCruise-<ProjectVersion>-SHA256SUMS.txt for the installer and the zip.
+  Saved\Package\OSDS-<ProjectVersion>-windows-x64-setup.exe, and writes
+  Saved\Package\OSDS-<ProjectVersion>-SHA256SUMS.txt for the installer and the zip.
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts\installer.ps1
@@ -35,14 +35,14 @@ $Version = ((Get-Content (Join-Path $Root 'Config\DefaultGame.ini')) -match '^Pr
 # Windows file versions are numeric: 2.0.0-preview.1 -> 2.0.0.
 $Numeric = ($Version -split '-')[0]
 $Script = Join-Path $Root 'packaging\windows\simcruise.iss'
-Write-Host "Inno Setup: SimCruise $Version from $Source"
+Write-Host "Inno Setup: OSDS $Version from $Source"
 & $Iscc "/DAppVersion=$Version" "/DNumericVersion=$Numeric" "/DSourceDir=$Source" "/DOutputDir=$Out" /Qp $Script
 if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)" }
-$Setup = Join-Path $Out "SimCruise-$Version-windows-x64-setup.exe"
+$Setup = Join-Path $Out "OSDS-$Version-windows-x64-setup.exe"
 if (-not (Test-Path $Setup)) { throw "No installer at $Setup" }
 
-$Sums = Join-Path $Out "SimCruise-$Version-SHA256SUMS.txt"
-$Files = @($Setup, (Join-Path $Out "SimCruise-$Version-windows-x64.zip")) | Where-Object { Test-Path $_ }
+$Sums = Join-Path $Out "OSDS-$Version-SHA256SUMS.txt"
+$Files = @($Setup, (Join-Path $Out "OSDS-$Version-windows-x64.zip")) | Where-Object { Test-Path $_ }
 $Lines = foreach ($F in $Files) { '{0}  {1}' -f (Get-FileHash -Algorithm SHA256 $F).Hash.ToLower(), (Split-Path -Leaf $F) }
 Set-Content -Path $Sums -Value $Lines -Encoding ascii
 foreach ($F in $Files) { Write-Host ('{0}  {1:N0} MB' -f (Split-Path -Leaf $F), ((Get-Item $F).Length / 1MB)) }
