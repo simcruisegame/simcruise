@@ -1224,6 +1224,14 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 			for (int32 c = 0; c < 5; ++c) for (bool B : Capped[c]) bAny |= B;
 			if (bAny)
 			{
+				// Each column fades from its own snapped points (where it lies on the other road), so
+				// no column jumps between neighbouring stations: with one shift per station (the mean
+				// of the covered columns) a column went from its own height to the other road's in
+				// one 0.5 m step where the roads met at an angle (65 cm on 5th Street at MacArthur
+				// Causeway, Miami Beach; SimCruise.World.RoadSteps). A column never on the other
+				// road takes the station mean, as before.
+				TArray<double> Own[5];
+				for (int32 c = 0; c < 5; ++c) { Own[c].SetNum(N); for (int32 i = 0; i < N; ++i) Own[c][i] = Ribbon.St[i].Column(c); }
 				for (int32 i = 0; i < N; ++i)
 				{
 					FSimCruiseRibbonStation& St = Ribbon.St[i];
@@ -1239,8 +1247,18 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 					if (Ribbon.bStartOnBoundary) Protect = FMath::Min(Protect, Smooth01((St.S - Ribbon.St[0].S) / JoinProtectM));
 					if (Ribbon.bEndOnBoundary) Protect = FMath::Min(Protect, Smooth01((Ribbon.St.Last().S - St.S) / JoinProtectM));
 					const double Shift = Best * Weight * Protect;
-					for (int32 c = 0; c < 5; ++c) St.Column(c) += Shift;
-					St.Z += Shift;
+					for (int32 c = 0; c < 5; ++c)
+					{
+						double ColBest = 0.0, ColWeight = 0.0;
+						for (int32 j = 0; j < N; ++j)
+						{
+							if (!Snapped[c][j]) continue;
+							const double Wj = Smooth01(1.0 - FMath::Abs(St.S - Ribbon.St[j].S) / JoinFadeM);
+							if (Wj > ColWeight) { ColWeight = Wj; ColBest = Snap[c][j] - Own[c][j]; }
+						}
+						St.Column(c) += ColWeight > 0.0 ? ColBest * ColWeight * Protect : Shift;
+					}
+					St.Z += St.HC - Own[2][i]; // Z is the centre column's height
 					if (Protect >= 0.999)
 					{
 						// Inside the other carriageway this one is that surface.

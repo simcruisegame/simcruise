@@ -9,6 +9,9 @@
 #include "World/SimCruiseTileData.h"
 #include "World/SimCruiseStreetFurniture.h"
 #include "World/SimCruiseCellContext.h"
+#include "World/SimCruiseRoadCheck.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 #include "Knowledge/SimCruiseRoadsideData.h"
 #include "World/SimCruiseTileDetail.h"
 #include "World/SimCruiseWorldResources.h"
@@ -1282,6 +1285,13 @@ namespace SimCruiseTileBuilder
 		}
 
 		B.BuildMs = (FPlatformTime::Seconds() - Started) * 1000.0;
+		// -SimCruiseRoadCheck: the road-step check on every tile built (on this worker), logged.
+		static const bool bRoadCheck = FParse::Param(FCommandLine::Get(), TEXT("SimCruiseRoadCheck"));
+		if (bRoadCheck)
+		{
+			const TArray<FSimCruiseRoadStep> Steps = SimCruiseRoadCheck::FindSteps(B);
+			if (Steps.Num() > 0) UE_LOG(LogTemp, Display, TEXT("%s"), *SimCruiseRoadCheck::Describe(B, Steps, 4));
+		}
 		return Out;
 	}
 }

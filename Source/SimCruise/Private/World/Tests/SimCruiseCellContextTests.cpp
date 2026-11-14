@@ -297,3 +297,186 @@ bool FSimCruiseClimateTest::RunTest(const FString& Parameters)
 }
 
 #endif
+
+#if WITH_DEV_AUTOMATION_TESTS
+#include "World/SimCruiseRoadCheck.h"
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseRoadStepsTest, "SimCruise.World.RoadSteps.BundledTiles", SimCruiseCellContextTest::Flags)
+bool FSimCruiseRoadStepsTest::RunTest(const FString& Parameters)
+{
+	// Every bundled tile (Miami Beach, the Ocean Drive pre-flight's ground): along every road's
+	// centre line and wheel lines, no step over 2 cm in 0.5 m on the surface the wheels meet.
+	const double Side = FSimCruiseWorldFrame::ForPlace(USimCruiseWorldSubsystem::BundledLon, USimCruiseWorldSubsystem::BundledLat).TileSizeM;
+	int32 Tiles = 0, Total = 0, Over5 = 0, AtFixedJunction = 0;
+	double Worst = 0.0;
+	for (int32 X = 18178; X <= 18181; ++X)
+	for (int32 Y = 27905; Y <= 27910; ++Y)
+	{
+		FSimCruiseTileData Data;
+		FString Error;
+		if (!SimCruiseTileData::LoadFile(SimCruiseTileData::BundledTilePath(FIntPoint(X, Y)), Data, Error)) continue;
+		const TSharedRef<FSimCruiseTileBuild> Build = SimCruiseTileBuilder::Build(Data, Side);
+		const TArray<FSimCruiseRoadStep> Steps = SimCruiseRoadCheck::FindSteps(*Build);
+		++Tiles;
+		Total += Steps.Num();
+		for (const FSimCruiseRoadStep& St : Steps)
+		{
+			Over5 += St.JumpCm > 5.0;
+			// 5th Street into MacArthur Causeway (tile 18178_27909, about (430, 60) m): 65 cm before the
+			// per-column junction fade.
+			AtFixedJunction += X == 18178 && Y == 27909 && FVector2d::Distance(St.PositionM, FVector2d(430.0, 60.0)) < 12.0 && St.JumpCm > 5.0
+				&& Build->Roads.Ribbons[St.Ribbon].Name == TEXT("5th Street");
+		}
+		if (Steps.Num() > 0)
+		{
+			Worst = FMath::Max(Worst, Steps[0].JumpCm);
+			AddInfo(SimCruiseRoadCheck::Describe(*Build, Steps, 6));
+		}
+	}
+	AddInfo(FString::Printf(TEXT("%d tiles, %d steps over 2 cm (%d over 5 cm), worst %.1f cm"), Tiles, Total, Over5, Worst));
+	TestEqual(TEXT("all bundled tiles checked"), Tiles, 24);
+	TestEqual(TEXT("5th Street meets MacArthur Causeway without a step"), AtFixedJunction, 0);
+	// A ratchet until the rest are fixed (2026-11-14: 381 steps over 2 cm, worst 65 cm, before the
+	// per-column junction fade; the remaining ones are service-road joins and grade-separated
+	// overlaps with no bridge in the data). It may only go down.
+	constexpr int32 MaxOver5 = 140;
+	TestTrue(FString::Printf(TEXT("at most %d steps over 5 cm (was %d)"), MaxOver5, Over5), Over5 <= MaxOver5);
+	return true;
+}
+#endif
+
+#if WITH_DEV_AUTOMATION_TESTS
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseRoadStepProbe, "SimCruise.Debug.RoadStepProbe", SimCruiseCellContextTest::Flags)
+bool FSimCruiseRoadStepProbe::RunTest(const FString& Parameters)
+{
+	// Temporary probe: the surface along the worst flagged line, and which ribbons cover each point.
+	const double Side = FSimCruiseWorldFrame::ForPlace(USimCruiseWorldSubsystem::BundledLon, USimCruiseWorldSubsystem::BundledLat).TileSizeM;
+	FSimCruiseTileData Data;
+	FString Error;
+	SimCruiseTileData::LoadFile(SimCruiseTileData::BundledTilePath(FIntPoint(18178, 27909)), Data, Error);
+	const TSharedRef<FSimCruiseTileBuild> Build = SimCruiseTileBuilder::Build(Data, Side);
+	const TArray<FSimCruiseRoadStep> Steps = SimCruiseRoadCheck::FindSteps(*Build);
+	for (int32 n = 0; n < FMath::Min(3, Steps.Num()); ++n)
+	{
+		const FSimCruiseRoadStep& Worst = Steps[n];
+		const FSimCruiseRibbon& R = Build->Roads.Ribbons[Worst.Ribbon];
+		FString Text = FString::Printf(TEXT("Probe %s ribbon %d %s lane %+.1f around s %.1f (rank %d, %d stations)"), *R.Name, Worst.Ribbon, *R.Class, Worst.Lateral, Worst.S, R.Rank, R.St.Num());
+		for (double S = Worst.S - 1.0; S <= Worst.S + 1.0; S += 0.1)
+		{
+			int32 I = 0;
+			while (I + 2 < R.St.Num() && R.St[I + 1].S < S) ++I;
+			const double T = FMath::Clamp((S - R.St[I].S) / FMath::Max(R.St[I + 1].S - R.St[I].S, 1e-9), 0.0, 1.0);
+			const double HalfW = FMath::Lerp(R.St[I].HalfW, R.St[I + 1].HalfW, T);
+			const FVector2d P = FMath::Lerp(R.St[I].C, R.St[I + 1].C, T) + FMath::Lerp(R.St[I].R, R.St[I + 1].R, T).GetSafeNormal() * (Worst.Lateral * HalfW);
+			const double Own = FMath::Lerp(R.St[I].Height(Worst.Lateral * HalfW), R.St[I + 1].Height(Worst.Lateral * HalfW), T);
+			double Top = 0.0;
+			SimCruiseRoadCheck::TopSurface(*Build, P, Top);
+			Text += FString::Printf(TEXT("\n  s %.1f top %.3f own %.3f |"), S, Top, Own);
+			for (int32 o = 0; o < Build->Roads.Ribbons.Num(); ++o)
+			{
+				if (o == Worst.Ribbon) continue;
+				FSimCruiseRoadHit Hit;
+				const FSimCruiseRibbon& O = Build->Roads.Ribbons[o];
+				// Covered by another ribbon (its own carriageway only).
+				TArray<TPair<int32, int32>> Segs;
+				Build->Roads.GatherSegments(P, 30.0, Segs);
+				for (const TPair<int32, int32>& Sg : Segs)
+				{
+					if (Sg.Key != o) continue;
+					const FSimCruiseRoadHit H = Build->Roads.Project(o, Sg.Value, P);
+					if (FMath::Abs(H.Lateral) <= H.HalfW + 0.6 && FMath::Abs(H.Along) < 0.01)
+					{
+						Text += FString::Printf(TEXT(" r%d %s %s lat %.2f/%.2f h %.3f;"), o, *O.Class, *O.Name, H.Lateral, H.HalfW, H.Height);
+						break;
+					}
+				}
+			}
+		}
+		Text += FString::Printf(TEXT("\n  S0 %.1f S1 %.1f start-on-boundary %d end-on-boundary %d bridge0 %d"), R.St[0].S, R.St.Last().S, R.bStartOnBoundary, R.bEndOnBoundary, R.St[0].bBridge);
+		for (const FSimCruiseRibbonStation& St : R.St)
+		{
+			if (FMath::Abs(St.S - Worst.S) > 3.0) continue;
+			Text += FString::Printf(TEXT("\n  st s %.2f HL %.3f HQL %.3f HC %.3f HQR %.3f HR %.3f Z %.3f halfw %.2f bridge %d"), St.S, St.HL, St.HQL, St.HC, St.HQR, St.HR, St.Z, St.HalfW, St.bBridge);
+		}
+		AddInfo(Text);
+	}
+	return true;
+}
+#endif
+
+#if WITH_DEV_AUTOMATION_TESTS
+#include "World/SimCruiseTileManager.h"
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseHighwayLookAheadTest, "SimCruise.World.TileManager.HighwayLookAhead", SimCruiseCellContextTest::Flags)
+bool FSimCruiseHighwayLookAheadTest::RunTest(const FString& Parameters)
+{
+	// 130 km/h straight east across 432 m tiles (45 N), every tile taking 10 s to load: each tile
+	// must be resident at least 4 s before the car crosses into it (the streamer's look-ahead,
+	// speed x (load time + 4 s), as ASimCruiseWorldStreamer::TickStreaming sets it).
+	for (const double LoadS : { 6.0, 10.0 })
+	{
+		FSimCruiseTileManager M;
+		M.Reset();
+		const double TileM = 432.0, Speed = 130.0 / 3.6, Dt = 0.1;
+		const double AheadS = FMath::Max(5.0, LoadS + 4.0);
+		TMap<FIntPoint, double> ReadyAt;
+		TArray<TPair<double, FSimCruiseTileJobTicket>> Jobs;
+		double X = 0.5 * TileM, Worst = 1e9;
+		FIntPoint Last(0, 0);
+		// Warm up standing still, as a drive starts.
+		for (double T = 0.0; T < 120.0; T += Dt)
+		{
+			const bool bMoving = T >= 30.0;
+			if (bMoving) X += Speed * Dt;
+			const FVector2d Focus(X / TileM, 0.5), Ahead((X + (bMoving ? Speed : 0.0) * AheadS) / TileM, 0.5);
+			M.SetFocus(Focus, Ahead);
+			M.TakeEvictions();
+			for (const FSimCruiseTileJobTicket& Tk : M.TakeRequests(T)) Jobs.Add(TPair<double, FSimCruiseTileJobTicket>(T + LoadS, Tk));
+			for (int32 j = Jobs.Num() - 1; j >= 0; --j)
+			{
+				if (Jobs[j].Key > T) continue;
+				if (M.Complete(Jobs[j].Value, true, T)) ReadyAt.Add(Jobs[j].Value.Tile, T);
+				Jobs.RemoveAt(j);
+			}
+			const FIntPoint Here(FMath::FloorToInt(Focus.X), 0);
+			if (bMoving && Here != Last)
+			{
+				const double* Ready = ReadyAt.Find(Here);
+				const double Spare = Ready && M.IsResident(Here) ? T - *Ready : -1.0;
+				Worst = FMath::Min(Worst, Spare);
+			}
+			Last = Here;
+		}
+		AddInfo(FString::Printf(TEXT("load %.0f s: worst spare %.1f s before entering a tile"), LoadS, Worst));
+		TestTrue(FString::Printf(TEXT("every tile ready 4 s ahead at 130 km/h with %.0f s loads"), LoadS), Worst >= 4.0 - Dt);
+	}
+	return true;
+}
+#endif
+
+#if WITH_DEV_AUTOMATION_TESTS
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseFallbackGroundTest, "SimCruise.World.TileManager.FallbackGround", SimCruiseCellContextTest::Flags)
+bool FSimCruiseFallbackGroundTest::RunTest(const FString& Parameters)
+{
+	// A failed tile between built neighbours: its slab sits at the mean height of the edges they
+	// share with it; with no neighbour, at the default (the car's height).
+	FSimCruiseTileBuild East, North;
+	East.TerrainN = 2;
+	East.TerrainHeights = { 10.f, 50.f, 50.f,   12.f, 50.f, 50.f,   14.f, 50.f, 50.f }; // west column 10, 12, 14
+	North.TerrainN = 2;
+	North.TerrainHeights = { 90.f, 90.f, 90.f,   90.f, 90.f, 90.f,   20.f, 22.f, 24.f }; // south row 20, 22, 24
+	const FIntPoint Hole(100, 200);
+	auto Find = [&](const FIntPoint& T) -> const FSimCruiseTileBuild*
+	{
+		if (T == Hole + FIntPoint(1, 0)) return &East;
+		if (T == Hole + FIntPoint(0, -1)) return &North;
+		return nullptr;
+	};
+	int32 Neighbours = 0;
+	const double H = SimCruiseFallbackGround::HeightM(Hole, Find, -5.0, &Neighbours);
+	TestEqual(TEXT("two built neighbours"), Neighbours, 2);
+	TestEqual(TEXT("mean of the shared edges"), H, (10.0 + 12.0 + 14.0 + 20.0 + 22.0 + 24.0) / 6.0, 1e-6);
+	TestEqual(TEXT("no neighbour: the default"), SimCruiseFallbackGround::HeightM(FIntPoint(0, 0), [](const FIntPoint&) -> const FSimCruiseTileBuild* { return nullptr; }, -5.0), -5.0, 1e-9);
+	return true;
+}
+#endif

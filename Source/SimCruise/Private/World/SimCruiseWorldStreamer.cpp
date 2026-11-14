@@ -1,6 +1,10 @@
 // Copyright SimCruise contributors. All Rights Reserved.
 
 #include "World/SimCruiseWorldStreamer.h"
+#include "Components/BoxComponent.h"
+#include "Engine/CollisionProfile.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 
 #include "Live/SimCruiseNeuralDetail.h"
 #include "World/SimCruiseTraffic.h"
@@ -33,6 +37,20 @@ ASimCruiseWorldStreamer::ASimCruiseWorldStreamer()
 void ASimCruiseWorldStreamer::BeginPlay()
 {
 	Super::BeginPlay();
+	{
+		FString Fail;
+		if (FParse::Value(FCommandLine::Get(), TEXT("SimCruiseFailTiles="), Fail))
+		{
+			TArray<FString> Parts;
+			Fail.ParseIntoArray(Parts, TEXT(","));
+			for (const FString& P : Parts)
+			{
+				FString X, Y;
+				if (P.Split(TEXT("_"), &X, &Y)) ForcedFailures.Add(FIntPoint(FCString::Atoi(*X), FCString::Atoi(*Y)));
+			}
+			UE_LOG(LogSimCruiseWorld, Display, TEXT("Forced tile failures: %d (-SimCruiseFailTiles)"), ForcedFailures.Num());
+		}
+	}
 	Resources = NewObject<USimCruiseWorldResources>(this);
 	Resources->Initialise();
 	FSimCruiseAtlasConfig Config = FSimCruiseAtlasConfig::ResolveDefault();
@@ -71,6 +89,8 @@ void ASimCruiseWorldStreamer::StartAt(double LonDeg, double LatDeg, const FStrin
 		if (Pair.Value) Pair.Value->Destroy();
 	}
 	Tiles.Reset();
+	for (auto& Pair : FallbackGround) if (Pair.Value) Pair.Value->DestroyComponent();
+	FallbackGround.Reset();
 	if (Atlas.IsValid()) Atlas->CancelAll();
 	Frame = FSimCruiseWorldFrame::ForPlace(LonDeg, LatDeg);
 	Title = InTitle;
@@ -221,6 +241,15 @@ bool ASimCruiseWorldStreamer::FindRoadPoseFacing(const FString& RoadName, const 
 
 void ASimCruiseWorldStreamer::Launch(const FSimCruiseTileJobTicket& Ticket)
 {
+	LaunchedAt.Add(Ticket.Serial, FPlatformTime::Seconds());
+	if (ForcedFailures.Contains(Ticket.Tile) && Inbox.IsValid())
+	{
+		TSharedPtr<FResult, ESPMode::ThreadSafe> Result = MakeShared<FResult, ESPMode::ThreadSafe>();
+		Result->Ticket = Ticket;
+		Result->Error = TEXT("forced failure (-SimCruiseFailTiles)");
+		Inbox->Queue.Enqueue(Result);
+		return;
+	}
 	TSharedPtr<FInbox, ESPMode::ThreadSafe> Box = Inbox;
 	TSharedPtr<FSimCruiseAtlasClient, ESPMode::ThreadSafe> Client = bUseHelper ? Atlas : nullptr;
 	const double TileSizeM = Frame.TileSizeM;
@@ -350,6 +379,10 @@ void ASimCruiseWorldStreamer::Rebase(const FIntPoint& NewOrigin)
 		{
 			Pair.Value->SetActorLocation(Frame.TileOriginCm(Pair.Key), false, nullptr, ETeleportType::TeleportPhysics);
 		}
+	}
+	for (auto& Pair : FallbackGround)
+	{
+		if (Pair.Value) Pair.Value->SetWorldLocation(Pair.Value->GetComponentLocation() + Offset, false, nullptr, ETeleportType::TeleportPhysics);
 	}
 	FocusCm += Offset;
 	UE_LOG(LogSimCruiseWorld, Display, TEXT("Floating origin moved to tile %s (offset %.0f, %.0f m)"), *SimCruiseTileName(NewOrigin), Offset.X / 100.0, Offset.Y / 100.0);
@@ -498,7 +531,10 @@ void ASimCruiseWorldStreamer::TickStreaming(float DeltaSeconds)
 	}
 
 	const FVector2d FocusTile = Frame.WorldCmToTileCoord(FVector2d(Focus.X, Focus.Y));
-	const FVector2d Ahead = Frame.WorldCmToTileCoord(FVector2d(Focus.X + Velocity.X * 5.0, Focus.Y + Velocity.Y * 5.0));
+	// Where the car will be when a tile asked for now is ready, with 4 s to spare (at least 5 s,
+	// as before): at 130 km/h and 8 s a tile, 430 m ahead.
+	const double AheadS = FMath::Max(5.0, LoadSecondsMean + LookAheadMarginSeconds);
+	const FVector2d Ahead = Frame.WorldCmToTileCoord(FVector2d(Focus.X + Velocity.X * AheadS, Focus.Y + Velocity.Y * AheadS));
 	Manager.SetFocus(FocusTile, Ahead);
 
 	for (const FIntPoint& Tile : Manager.TakeEvictions())
@@ -532,6 +568,12 @@ void ASimCruiseWorldStreamer::TickStreaming(float DeltaSeconds)
 	while (!bBusy && Installed < 1 && NextResult(Result))
 	{
 		if (!Result.IsValid()) continue;
+		if (const double* Started = LaunchedAt.Find(Result->Ticket.Serial))
+		{
+			// A running mean of the load time (helper fetch, worker build), 0.5-60 s.
+			LoadSecondsMean = FMath::Clamp(0.8 * LoadSecondsMean + 0.2 * (FPlatformTime::Seconds() - *Started), 0.5, 60.0);
+			LaunchedAt.Remove(Result->Ticket.Serial);
+		}
 		if (Result->AerialPixels.Num() > 0 && !Resources->FindAerial(Result->AerialKey))
 		{
 			// The photograph gets a frame of its own (its upload); the tile installs next frame.
@@ -577,11 +619,58 @@ void ASimCruiseWorldStreamer::TickStreaming(float DeltaSeconds)
 		++Installed;
 	}
 
+	UpdateFallbackGround(Focus);
+
 	// Photographs no tile uses any more are released.
 	if (Installed > 0)
 	{
 		TSet<FString> Keep;
 		for (const auto& Pair : Tiles) if (Pair.Value && Pair.Value->GetBuild()) Keep.Add(Pair.Value->GetBuild()->AerialKey);
 		Resources->TrimAerials(Keep);
+	}
+}
+
+void ASimCruiseWorldStreamer::UpdateFallbackGround(const FVector& AtCm)
+{
+	// Every tile of the ring round the car with no collision yet (loading, or its load failed)
+	// gets a flat slab, so the car never falls through a hole; it goes when the tile's own
+	// collision is ready (SimCruiseFallbackGround). Collision only: nothing is drawn.
+	const FIntPoint Here = Frame.TileAtWorldCm(AtCm);
+	const int32 R = FMath::Max(1, RingRadius);
+	auto Ready = [this](const FIntPoint& T) -> const FSimCruiseTileBuild*
+	{
+		const ASimCruiseWorldTile* Tile = GetTile(T);
+		return Tile && Tile->IsCollisionReady() ? Tile->GetBuild() : nullptr;
+	};
+	TSet<FIntPoint> Need;
+	for (int32 dy = -R; dy <= R; ++dy)
+	for (int32 dx = -R; dx <= R; ++dx)
+	{
+		const FIntPoint T = Here + FIntPoint(dx, dy);
+		if (!Ready(T)) Need.Add(T);
+	}
+	for (auto It = FallbackGround.CreateIterator(); It; ++It)
+	{
+		if (Need.Contains(It.Key())) continue;
+		if (It.Value()) It.Value()->DestroyComponent();
+		It.RemoveCurrent();
+	}
+	const double HalfCm = Frame.TileSizeM * 50.0;
+	for (const FIntPoint& T : Need)
+	{
+		if (FallbackGround.Contains(T)) continue;
+		int32 Neighbours = 0;
+		// Without a built neighbour: half a metre under the car (it stands on the start tile's slab).
+		const double HeightM = SimCruiseFallbackGround::HeightM(T, Ready, AtCm.Z / 100.0 - 0.5, &Neighbours);
+		UBoxComponent* Slab = NewObject<UBoxComponent>(this);
+		Slab->SetMobility(EComponentMobility::Movable);
+		Slab->SetBoxExtent(FVector(HalfCm, HalfCm, 100.0));
+		Slab->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+		Slab->SetHiddenInGame(true);
+		Slab->RegisterComponent();
+		const FVector O = Frame.TileOriginCm(T);
+		Slab->SetWorldLocation(FVector(O.X + HalfCm, O.Y + HalfCm, HeightM * 100.0 - 100.0));
+		FallbackGround.Add(T, Slab);
+		UE_LOG(LogSimCruiseWorld, Display, TEXT("Fallback ground under tile %s at %.2f m (%d built neighbours)"), *SimCruiseTileName(T), HeightM, Neighbours);
 	}
 }
