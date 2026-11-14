@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
   The one full test of a release candidate: every place once, everything every team needs, in
   one run, off screen, at the game's top graphics preset and the screen's own resolution.
@@ -112,7 +112,7 @@ foreach ($C in $CaseDefs) {
     if ($C.Case -eq 'standstill') {
         # Detail at 0, 5, 15 and 60 s after the stop; the reference photo beside the last frame.
         $Steps = @('t000', 't005', 't015', 't060' | ForEach-Object { Join-Path $Dir "standstill\$_.png" } | Where-Object { Test-Path $_ })
-        if ($Steps.Count) { & python -I (Join-Path $PSScriptRoot 'detail-metrics.py') (Join-Path $Dir 'standstill\detail.json') @Steps | Out-Null }
+        if ($Steps.Count) { & python (Join-Path $PSScriptRoot 'detail-metrics.py') (Join-Path $Dir 'standstill\detail.json') @Steps | Out-Null }
         $Ref = @(Get-ChildItem (Join-Path $Root "data\reference\$($C.Road)") -Include *.jpg, *.png -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1)
         $Ff = Find-Ffmpeg
         if ($Ref.Count -and $Ff -and $Steps.Count) {

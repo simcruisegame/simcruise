@@ -99,6 +99,13 @@ void FSimCruiseReviewRecorder::Begin(const FString& InOutputDir)
 	OutputDir = InOutputDir;
 	IFileManager::Get().MakeDirectory(*FPaths::Combine(OutputDir, TEXT("review")), true);
 	NextTimedS = 0.f;
+	// The real preset picture: dynamic resolution off, so the 3D picture stays at the preset's screen
+	// percentage (Apply sets it) and the frame times are its honest cost. Console priority, so the
+	// preset (game-setting priority) cannot turn it back on. -SimCruisePlayerRes keeps the player's.
+	if (!FParse::Param(FCommandLine::Get(), TEXT("SimCruisePlayerRes")))
+	{
+		if (IConsoleVariable* DynRes = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DynamicRes.OperationMode"))) DynRes->Set(0, ECVF_SetByConsole);
+	}
 	UE_LOG(LogSimCruiseReview, Display, TEXT("Review: full-size frames, sidecars and close-up boxes -> %s/review"), *OutputDir);
 }
 
@@ -340,13 +347,14 @@ FString FSimCruiseReviewRecorder::SettingsJson(bool bLog)
 	const float MeanPct = ResFractionSamples ? float(100.0 * ResFractionSum / ResFractionSamples) : ScreenPct;
 	const bool bTopPreset = Preset == ESimCruiseGraphicsPreset::Ultra;
 	const bool bNative = Native.X > 0 && Size.X >= Native.X && Size.Y >= Native.Y;
-	const bool bPct = ScreenPct >= Top.ScreenPercentage - 0.01f;
+	// The percentage the engine really drew at (sampled each frame), not only the setting.
+	const bool bPct = ScreenPct >= Top.ScreenPercentage - 0.01f && MeanPct >= Top.ScreenPercentage - 0.5f;
 	const bool bValid = bTopPreset && bGroupsTop && bNative && bPct;
 	FString Why;
 	if (!bTopPreset) Why += TEXT("preset-below-ultra,");
 	if (!bGroupsTop) Why += TEXT("sg-below-top,");
 	if (!bNative) Why += TEXT("below-native-resolution,");
-	if (!bPct) Why += TEXT("screen-percentage-below-preset,");
+	if (!bPct) Why += FString::Printf(TEXT("screen-percentage-below-preset-%.0f-actual,"), MeanPct);
 	Why.RemoveFromEnd(TEXT(","));
 	if (bLog)
 	{

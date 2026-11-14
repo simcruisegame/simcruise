@@ -1,4 +1,4 @@
-﻿# The release test
+# The release test
 
 One full game test of a release candidate, for all the teams at once. The tools thread owns it.
 
@@ -51,7 +51,7 @@ The world lane makes the game side. The release test starts each case, applies t
 
 ## Graphics rule
 
-A launch is valid for sign-off only when the engine really had the top preset (Ultra), all `sg.*` levels at the top, the screen's own resolution, and a screen percentage not below the preset's (75 for Ultra). Else the run is **NOT VALID FOR SIGN-OFF**: the picture report has a P1 finding, the summary says so, and `scripts\review-check.ps1` and `scripts\playtest.ps1` refuse it.
+Review launches turn dynamic resolution off (console priority), so the 3D picture stays at the preset's screen percentage (75 for Ultra, from the preset) and the frame times are its honest cost; `-SimCruisePlayerRes` keeps the player's dynamic resolution. A launch is valid for sign-off only when the engine really had the top preset (Ultra), all `sg.*` levels at the top, the screen's own resolution, and a screen percentage, set and measured each frame, not below the preset's. A frame p95 over the budget at the fixed percentage is a FAIL for the picture and world teams, not a test fault. Else the run is **NOT VALID FOR SIGN-OFF**: the picture report has a P1 finding, the summary says so, and `scripts\review-check.ps1` and `scripts\playtest.ps1` refuse it.
 
 ## Output
 
@@ -83,6 +83,10 @@ Severity:
 | P0 | Stops the release: a crash, a hang, a drive that did not happen, a start at the wrong place. |
 | P1 | A player sees it at once: a spin, a run-off, slow frames, a wrong wheel or gauge, NOT VALID FOR SIGN-OFF. |
 | P2 | A player can see it: road steps, pop-in, stuck traffic, gauges off the true value. |
+
+## Off screen gives the same picture as a window
+
+Proof, 2026-11-14 (`Saved\Review\offscreen-proof`): two launches of Ocean Drive with the 2001 roadster, Ultra, 1920x1080, one off screen (`-RenderOffScreen`) and one windowed. The start frames at the same pose differ by a mean of 1.84 of 255, with 0.79 % of pixels changed by more than 25 (the level of TSR noise between two runs). Mean luma was 77.3 against 77.4 (the same exposure), and sharpness (Laplacian variance) 851 against 872 (the same anti-aliasing and motion blur). Frame p50 was 17.5 ms off screen and 18.5 ms windowed: the window costs about 1 ms to present. The two drives then diverged because traffic is random per launch (a car crossed in front of the windowed run at 12 s), so only the start frames are compared.
 
 ## The frame review
 
