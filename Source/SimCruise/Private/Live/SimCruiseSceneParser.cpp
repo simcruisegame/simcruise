@@ -108,8 +108,8 @@ bool FSimCruiseSceneParser::Initialize()
 	{
 		return false;
 	}
-	// The open model first: Detectron2 Panoptic FPN's semantic head on COCO (Apache-2.0, CC BY
-	// 4.0 labels), fetched by scripts/ai/fetch_open_models.py into Saved/AI (120 MB, not in git).
+	// The open model first: Detectron2 Panoptic FPN's semantic head on COCO (code Apache-2.0, weights CC BY-SA 3.0 as Detectron2's model zoo, COCO labels
+	// CC BY 4.0), fetched by scripts/ai/fetch_open_models.py into Saved/AI (120 MB, not in git).
 	// The Cityscapes model (non-commercial terms) only on request: -SimCruiseSceneParser=ddrnet.
 	FString Choice = TEXT("coco");
 	FParse::Value(FCommandLine::Get(), TEXT("SimCruiseSceneParser="), Choice);
