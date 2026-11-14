@@ -111,3 +111,25 @@ ran): 2.1-2.5 s per tile; Dragon pre-flight PASS with frame p95 17.3 ms (17.0 ms
 The student: from random init on the 572 labelled tiles it reached only 0.50 agreement with the teacher
 on its own training tiles (it can fit two tiles to 0.99, so the network works: it has too little data).
 Next step: distillation on 1,800 more unlabelled tiles from 200 random places, labelled by the teacher.
+
+## 7. Next (v2.0.4): restoration and generation on the CPU
+
+Budget v2 (agreed with the world thread, scan-map-spec.md H2): all AI up to 8 threads and 8 GB while
+driving, 12 threads while loading or paused, below-normal priority, back-off when frames slow down.
+
+**Restoration pass ("aerial_restore", RSTR pages, spec section I).** NAIP at 0.6 m through a x4
+restoration network gives exactly the RSTR page resolution, 0.15 m/px. Measured: Real-ESRGAN General
+x4v3 (BSD-3, already in `data/ai/`) takes 0.39 s per 128 x 128 input window on 2 threads and 0.30 s on 4
+(Python, ONNX Runtime CPU). One 38.4 m page needs a 64 x 64 input, so a tile's 64 pages are 16 windows:
+about 6 s on 2 threads or 2-3 s on 6 threads, in pass 1 (within 30 m of a road) first. Work items:
+NAIP 4-band fetch with its date (helper), de-light before restoration, class-conditioned restoration
+(roof, road, yard: the eye's classes choose a fine-tuned head), self-check at 0.6 m against the source.
+
+**Generation (GENR library, spec section K).** First the shared library: CC0 MatSynth materials plus
+regional sets made offline with the cleared SDXL pipeline; at runtime the eye's class masks and TINT
+pick and tint them per building and per ground class. Then a small generator of our own (MIT),
+trained on the CC0 rows of MatSynth, conditioned on class, region and the place's colours, seeded by
+place, 0.1-0.5 s per material on the CPU, once per library key.
+
+**Standstill ladder (spec J3).** When the car is slow or stopped, the free threads go to L1 (RSTR in
+view), L2 (GENR facades), L4 (unique 4 mm/px pages within 10 m). Each level is cached by surface id.
