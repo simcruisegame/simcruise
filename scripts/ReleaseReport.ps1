@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
   summary.md and one report per team for scripts\release-test.ps1 (dot-source this file).
 
@@ -119,7 +119,11 @@ function Write-ReleaseReports {
         # Graphics: what the launch really had.
         $Valid = $Set.ContainsKey('valid') -and $Set['valid'] -eq 'yes'
         if (-not $Valid) { $Invalid += $Rel; Add-Finding 'picture' 'P1' $R '-' "$Rel\game.log" "NOT VALID FOR SIGN-OFF: $(if ($Set.Count) { "preset $($Set['preset']), $($Set['resolution']), screen $($Set['screen_pct']) % (needs $($Set['needs']))" } else { 'no REVIEW SETTINGS line' })" }
-        if ($Set.Count) { $Numbers['picture'] += "| $Rel | graphics | preset $($Set['preset']), $($Set['resolution']), screen $($Set['screen_pct']) %, dynamic resolution $($Set['dynres']) | top preset at the screen's resolution | $(if ($Valid) { 'valid' } else { 'NOT VALID' }) |" }
+        # Dynamic resolution can hold the 3D picture far below the preset's percentage on this GPU.
+        if ($Set.ContainsKey('mean_actual_pct') -and [double]$Set['mean_actual_pct'] -lt [double]$Set['preset_pct'] - 5) {
+            Add-Finding 'picture' 'P1' $R 'whole drive' "$Rel\review\" "dynamic resolution held the 3D picture at a mean $($Set['mean_actual_pct']) % (min $($Set['actual_min']) %), below the preset's $($Set['preset_pct']) %: soft trees and mirrors"
+            $Numbers['picture'] += "| $Rel | mean actual screen percentage | $($Set['mean_actual_pct']) % (dynamic $($Set['min'])-$($Set['max']) %) | $($Set['preset_pct']) % | FAIL |"
+        }        if ($Set.Count) { $Numbers['picture'] += "| $Rel | graphics | preset $($Set['preset']), $($Set['resolution']), screen $($Set['screen_pct']) %, dynamic resolution $($Set['dynres']) | top preset at the screen's resolution | $(if ($Valid) { 'valid' } else { 'NOT VALID' }) |" }
 
         if ($Pre) {
             $Reasons = [string]$Pre.reasons
