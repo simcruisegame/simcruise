@@ -189,7 +189,10 @@ void FSimCruiseGraphics::Apply(ESimCruiseGraphicsPreset Preset)
 	// shrinks, down to 50 %, so frames come on time; the preset's screen percentage stays the top.
 	SetCVar(TEXT("r.DynamicRes.OperationMode"), TEXT("2"));
 	SetCVar(TEXT("r.DynamicRes.FrameTimeBudget"), TEXT("16.0"));
-	SetCVar(TEXT("r.DynamicRes.MinScreenPercentage"), TEXT("50"));
+	// The floor sits 15 % under the preset, not at 50 %: the release test found Ultra held at
+	// 50-53 % on Tail of the Dragon and Ocean Drive (smeared trees, a coarse mirror) although at a
+	// fixed 75 % the frame p95 was 16.9 and 20.1 ms (main 8456dea, 2026-11-14).
+	SetCVar(TEXT("r.DynamicRes.MinScreenPercentage"), FString::SanitizeFloat(FMath::Max(50.0f, S.ScreenPercentage * 0.85f)));
 	SetCVar(TEXT("r.DynamicRes.MaxScreenPercentage"), FString::SanitizeFloat(S.ScreenPercentage));
 	SetCVar(TEXT("r.Lumen.DiffuseIndirect.Allow"), S.bLumenGI ? TEXT("1") : TEXT("0"));
 	SetCVar(TEXT("r.Lumen.Reflections.Allow"), S.bLumenReflections ? TEXT("1") : TEXT("0"));
