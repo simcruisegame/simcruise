@@ -38,6 +38,18 @@ $script:ReviewItems = @(
     @{ Key = 'traffic';   Name = 'Traffic (stuck, through each other, wrong lane)' },
     @{ Key = 'audio';     Name = 'Audio errors in the log' }
 )
+# Extra items for a random place anywhere in the US (launch-review.ps1 -RandomUS).
+$script:RandomItems = @(
+    @{ Key = 'holes';     Name = 'Missing ground or holes' },
+    @{ Key = 'climate';   Name = 'Climate colours (no green desert, no neon fields, the season)' },
+    @{ Key = 'floating';  Name = 'Floating or sunk objects' },
+    @{ Key = 'trees';     Name = 'Trees and plants (shape, density, kind for the region)' },
+    @{ Key = 'buildings'; Name = 'Buildings (missing, empty, wrong for the region)' },
+    @{ Key = 'roads';     Name = 'Roads (missing, wrong shape or width, markings)' },
+    @{ Key = 'frames';    Name = 'Slow frames' },
+    @{ Key = 'load';      Name = 'Load: time to the first drivable frame, tile build hitches' },
+    @{ Key = 'start';     Name = 'Start at the asked place (no fall-back to Miami Beach)' }
+)
 
 function Get-ReviewCommit([string]$Root) {
     $Commit = (& git -C $Root rev-parse --short HEAD).Trim()
@@ -162,9 +174,25 @@ function Write-ReviewSheet {
         $GaugeBad = $R -match 'gauge|cluster-pixels|holds-other-parts|dash-move'
         $ColumnBad = $R -match 'off-its-column|hub-moves|rim-tilted|wrong-way|rim-at-full-lock'
         $Auto.cockpit = if ($GaugeBad) { 'FAIL' } else { 'PASS' }
-        $Note.cockpit = "cockpit test: gauges and dash move $($Ck.gauges_max_move_cm) cm / $($Ck.gauges_max_turn_deg) deg (limit $($Ck.limits.fixed_move_cm) cm / $($Ck.limits.fixed_turn_deg) deg, worst $($Ck.gauges_worst)); cluster pixels changed $($Ck.cluster_changed_percent) % with the wheel hidden (limit $($Ck.limits.cluster_changed_percent) %); wheel mesh vertices outside the rim $($Ck.outside_rim_percent) %. Frames cockpit\centre.png, full-left.png, full-right.png, *-nowheel.png, diff-full-left.png, diff-full-right.png"
+        $Note.cockpit = "cockpit test: gauges and dash move $($Ck.gauges_max_move_cm) cm / $($Ck.gauges_max_turn_deg) deg (limit $($Ck.limits.fixed_move_cm) cm / $($Ck.limits.fixed_turn_deg) deg, worst $($Ck.gauges_worst)); needles turned at rest $($Ck.needle_max_turn_at_rest_deg) deg ($($Ck.needle_worst)); cluster pixels changed $($Ck.cluster_changed_percent) % with the wheel hidden (limit $($Ck.limits.cluster_changed_percent) %); wheel mesh vertices outside the rim $($Ck.outside_rim_percent) %. Frames cockpit\centre.png, full-left.png, full-right.png, *-nowheel.png, diff-full-left.png, diff-full-right.png"
         $Auto.column = if ($ColumnBad) { 'FAIL' } else { 'PASS' }
         $Note.column = "cockpit test: off-axis turn $($Ck.wheel_off_axis_deg) deg (limit $($Ck.limits.wheel_off_axis_deg)), hub moves $($Ck.hub_move_cm) cm (limit $($Ck.limits.hub_move_cm)), rim tilt $($Ck.rim_tilt_deg) deg on the column (limit $($Ck.limits.rim_tilt_deg); -1: no vertices), full lock $($Ck.rim_full_lock_left_deg) / $($Ck.rim_full_lock_right_deg) deg against $($Ck.expected_full_lock_deg) deg, ratio $($Ck.ratio) (car data $($Ck.car_data_ratio)), lock to lock $($Ck.lock_to_lock_turns) turns"
+    }
+
+    # A random place: frame times, the load and the start decide their items.
+    if ($Kind -eq 'random' -and $Pre) {
+        $Auto.frames = if ([double]$Pre.frame_p95_ms -gt 50 -or [int]$Pre.hitches_over_100ms -gt 5) { 'FAIL' } else { 'PASS' }
+        $Note.frames = "frame p95 $($Pre.frame_p95_ms) ms, hitches over 100 ms $($Pre.hitches_over_100ms)"
+        $Auto.start = if ($Pre.fell_back) { 'FAIL' } else { 'PASS' }
+        $Note.start = "place " + $Pre.place + ", fell back " + $Pre.fell_back
+    }
+    if ($Kind -eq 'random' -and (Test-Path $Log)) {
+        $PlacedLine = Select-String -Path $Log -Pattern 'Car placed.*after ([\d.]+) s' | Select-Object -First 1
+        if ($PlacedLine) {
+            $LoadS = [double]$PlacedLine.Matches[0].Groups[1].Value
+            $Auto.load = if ($LoadS -gt 60) { 'FAIL' } else { 'PASS' }
+            $Note.load = "car placed $LoadS s after the start (limit 60 s)"
+        } else { $Auto.load = 'FAIL'; $Note.load = 'the car was never placed' }
     }
 
     # Audio: errors and warnings the audio code logged.
@@ -200,7 +228,8 @@ function Write-ReviewSheet {
     $Lines += @('## Verdicts', '',
         'Look at every frame in `review\` and the crops before you write a verdict. Each verdict is PASS, FAIL or N/A; give the frame for each FAIL. TODO means not reviewed yet.', '',
         '| Item | Verdict | Evidence (frames, numbers) |', '|---|---|---|')
-    foreach ($I in $script:ReviewItems) {
+    $Items = if ($Kind -eq 'random') { $script:ReviewItems + $script:RandomItems } else { $script:ReviewItems }
+    foreach ($I in $Items) {
         $V = if ($Auto.ContainsKey($I.Key)) { $Auto[$I.Key] } else { 'TODO' }
         $E = if ($Note.ContainsKey($I.Key)) { $Note[$I.Key] } else { '' }
         $Lines += "| $($I.Name) | $V | $($E -replace '\|', '/') |"

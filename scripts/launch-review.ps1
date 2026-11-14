@@ -43,7 +43,13 @@ param(
     [int]$LockTimeoutMinutes = 120,
     [string]$OutRoot = '',
     # Leave out the cockpit steer test that runs first with the car at rest.
-    [switch]$NoCockpit
+    [switch]$NoCockpit,
+    # Random US places: N launches, one place type each (desert, mountains, plains, forest, coast,
+    # suburb, small town, city), 45 s each, seeded (-Seed; 0 picks one and prints it).
+    [int]$RandomUS = 0,
+    [int]$Seed = 0,
+    # The review sheet's kind (random runs add their own items).
+    [string]$SheetKind = 'launch'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -54,6 +60,44 @@ $Project = Join-Path $Root 'SimCruise.uproject'
 $Editor = Join-Path $EngineDir 'Engine\Binaries\Win64\UnrealEditor.exe'
 if (-not (Test-Path $Editor)) { Write-Host "No Unreal Editor at $Editor (set -EngineDir or UE_ROOT)."; exit 2 }
 $Ffmpeg = Find-Ffmpeg
+
+if ($RandomUS -gt 0) {
+    # Random places: one launch each with this script, a real photo near each point where Commons
+    # has one, and a summary table random-us.md.
+    . (Join-Path $PSScriptRoot 'RandomPlaces.ps1')
+    if ($Seed -eq 0) { $Seed = Get-Random -Minimum 1 -Maximum 999999 }
+    $Places = Get-RandomUSPlaces -Count $RandomUS -Seed $Seed
+    if (-not $OutRoot) { $OutRoot = (Get-ReviewRoot $Root) + "-random-$Seed" }
+    New-Item -ItemType Directory -Force $OutRoot | Out-Null
+    Write-Host "Random US review: $RandomUS places, seed $Seed -> $OutRoot"
+    $Q = [string][char]96
+    $Table = @("# Random US review, seed $Seed", '', "Repeat it: ${Q}scripts\launch-review.ps1 -RandomUS $RandomUS -Seed $Seed${Q}. Commit $(Get-ReviewCommit $Root).", '',
+        '| # | Place type | Point (lat, lon) | Road | Car placed after (s) | Game result | Frame p95 (ms) | Photo | Run |', '|---|---|---|---|---|---|---|---|---|')
+    foreach ($Pl in $Places) {
+        $Name = "random-$($Pl.Index)-$($Pl.Type)"
+        Write-Host "  $Name at $($Pl.Lat), $($Pl.Lon)"
+        & powershell -ExecutionPolicy Bypass -File $PSCommandPath -Start "$($Pl.Lat),$($Pl.Lon)" -Car $Car -Seconds 45 -Graphics $Graphics -Utc $Utc -Name $Name `
+            -OutRoot $OutRoot -NoCockpit -SheetKind 'random' -TimeoutMinutes $TimeoutMinutes -LockTimeoutMinutes $LockTimeoutMinutes | Out-Null
+        $Dir = Join-Path $OutRoot $Name
+        $GameLog = Join-Path $Dir 'game.log'
+        $Placed = if (Test-Path $GameLog) { Select-String -Path $GameLog -Pattern 'Car placed (on (.+?) )?at .*? after ([\d.]+) s' | Select-Object -First 1 } else { $null }
+        $Road = if ($Placed -and $Placed.Matches[0].Groups[2].Value) { $Placed.Matches[0].Groups[2].Value } else { '-' }
+        $Load = if ($Placed) { $Placed.Matches[0].Groups[3].Value } else { '-' }
+        $PreFile = Join-Path $Dir 'preflight.json'
+        $Pre = if (Test-Path $PreFile) { Get-Content $PreFile -Raw | ConvertFrom-Json } else { $null }
+        $Photo = Save-CommonsPhoto -RunDir $Dir -Lat $Pl.Lat -Lon $Pl.Lon
+        if ($Photo -and (Test-Path (Join-Path $Dir 'review.md'))) { Add-Content -Encoding utf8 (Join-Path $Dir 'review.md') @('', '## Real photo', '', "photo.jpg: $Photo") }
+        $Result = if ($Pre) { $Pre.result + $(if ($Pre.reasons -ne 'ok') { " ($($Pre.reasons))" } else { '' }) } else { 'no result' }
+        $P95 = if ($Pre) { $Pre.frame_p95_ms } else { '-' }
+        $PhotoCell = if ($Photo) { 'photo.jpg' } else { 'none near' }
+        $Table += "| $($Pl.Index) | $($Pl.Type) | $($Pl.Lat), $($Pl.Lon) | $Road | $Load | $Result | $P95 | $PhotoCell | [$Name]($Name/review.md) |"
+        Write-Host "    road $Road, placed after $Load s, $Result"
+    }
+    $Table += @('', 'Look at each run''s review\ frames (and photo.jpg where there is one) and fill each review.md, then run scripts\review-check.ps1 on this folder.')
+    $Table | Set-Content -Encoding utf8 (Join-Path $OutRoot 'random-us.md')
+    Write-Host "Summary: $(Join-Path $OutRoot 'random-us.md') (seed $Seed)"
+    exit 0
+}
 
 $Places = @{
     'ocean-drive' = @('-SimCruiseBundledStart')
@@ -110,7 +154,7 @@ if ($Ffmpeg -and $FrameCount -gt 0) {
     if (Test-Path (Join-Path $RunDir 'video.mp4')) { Remove-Item -Recurse -Force $Frames }
 }
 $Crops = New-ReviewCrops -RunDir $RunDir -Ffmpeg $Ffmpeg
-Write-ReviewSheet -RunDir $RunDir -Kind 'launch' -Title $Name -Result $Result -Reasons $Reasons -Evidence $Evidence
+Write-ReviewSheet -RunDir $RunDir -Kind $SheetKind -Title $Name -Result $Result -Reasons $Reasons -Evidence $Evidence
 
 foreach ($L in (Select-String -Path $Log -Pattern 'VIEWCHECK (PASS|FAIL)|COCKPIT (PASS|FAIL)|PREFLIGHT (PASS|FAIL)|REVIEW (STEERING|GAUGES)' -ErrorAction SilentlyContinue)) { Write-Host "  $(($L.Line -replace '^\[.*?\]\[.*?\]\w+: Display: ', '').Substring(0, [Math]::Min(260, ($L.Line -replace '^\[.*?\]\[.*?\]\w+: Display: ', '').Length)))" }
 $Shots = @(Get-ChildItem (Join-Path $RunDir 'review') -Filter '*.png' -ErrorAction SilentlyContinue).Count

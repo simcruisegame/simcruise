@@ -77,6 +77,9 @@ private:
 		float Stick = 0.f;
 		double RimDeg = 0.0;
 		double WheelDeg = 0.0;
+		/** What the speedometer and tachometer show at this pose (NaN without such a dial). */
+		double SpeedShown = 0.0;
+		double RpmShown = 0.0;
 		TArray<FPartPose> Parts;
 		TArray<FColor> Pixels;
 		TArray<FColor> PixelsNoWheel;

@@ -1,4 +1,4 @@
-﻿// Copyright SimCruise contributors. All Rights Reserved.
+// Copyright SimCruise contributors. All Rights Reserved.
 
 #include "Gameplay/SimCruiseCockpitTest.h"
 
@@ -223,6 +223,8 @@ void ASimCruiseCockpitTest::Record(ASimCruisePlayerController& Player, FPose& Po
 	if (!Model) return;
 	Pose.RimDeg = FMath::RadiansToDegrees(Model->GetSteeringWheelAngleRad());
 	Pose.WheelDeg = FMath::RadiansToDegrees(0.5 * (Model->GetDrawnSteerRad(0) + Model->GetDrawnSteerRad(1)));
+	Pose.SpeedShown = FMath::IsFinite(Model->GetDialValue(TEXT("speed_mph"))) ? Model->GetDialValue(TEXT("speed_mph")) : Model->GetDialValue(TEXT("speed_kmh"));
+	Pose.RpmShown = Model->GetDialValue(TEXT("rpm"));
 	TArray<USceneComponent*> ModelParts;
 	Model->GetChildrenComponents(true, ModelParts);
 	FBox2D Cluster(ForceInit);
@@ -338,8 +340,9 @@ void ASimCruiseCockpitTest::Judge()
 		Reasons.Add(TEXT("no-poses"));
 	}
 	const FPose* Centre = Poses.Num() ? &Poses[0] : nullptr;
-	double MaxFixedMove = 0.0, MaxFixedTurn = 0.0, MaxWheelOffAxis = 0.0, MaxHubMove = 0.0;
-	FString WorstFixed;
+	double MaxFixedMove = 0.0, MaxFixedTurn = 0.0, MaxWheelOffAxis = 0.0, MaxHubMove = 0.0, MaxNeedleTurn = 0.0;
+	FString WorstFixed, WorstNeedle;
+	constexpr double MaxNeedleTurnAtRest = 0.5;
 	TSet<FString> Hanging;
 	for (const FPose& Pose : Poses)
 	{
@@ -363,9 +366,21 @@ void ASimCruiseCockpitTest::Judge()
 			if (Move > MaxFixedMove || Turn > MaxFixedTurn) WorstFixed = FString::Printf(TEXT("%s at %s"), *Part.Name, *Pose.Name);
 			MaxFixedMove = FMath::Max(MaxFixedMove, Move);
 			MaxFixedTurn = FMath::Max(MaxFixedTurn, Turn);
+			// A needle turns only with what it shows: with the car at rest the speed and rpm hardly change.
+			if (Part.Name.Contains(TEXT("_needle")))
+			{
+				auto Same = [](double A, double B) { return !FMath::IsFinite(A) || !FMath::IsFinite(B) || FMath::Abs(A - B) <= FMath::Max(1.0, 0.02 * FMath::Abs(B)); };
+				const double NeedleTurn = FMath::RadiansToDegrees(Rel.GetAngle());
+				if (NeedleTurn > MaxNeedleTurnAtRest && Same(Pose.SpeedShown, Centre->SpeedShown) && Same(Pose.RpmShown, Centre->RpmShown))
+				{
+					MaxNeedleTurn = FMath::Max(MaxNeedleTurn, NeedleTurn);
+					WorstNeedle = FString::Printf(TEXT("%s-%.1fdeg-at-%s"), *Part.Name, NeedleTurn, *Pose.Name);
+				}
+			}
 		}
 	}
 	for (const FString& H : Hanging) Reasons.Add(FString::Printf(TEXT("gauge-%s-hangs-on-the-steering-wheel"), *H));
+	if (!WorstNeedle.IsEmpty()) Reasons.Add(FString::Printf(TEXT("gauge-needles-turn-with-the-steering(%s)"), *WorstNeedle));
 	if (MaxFixedMove > MaxFixedMoveCm || MaxFixedTurn > MaxFixedTurnDeg)
 	{
 		Reasons.Add(FString::Printf(TEXT("gauges-or-dash-move-with-the-steering-%.2fcm-%.2fdeg(%s)"), MaxFixedMove, MaxFixedTurn, *WorstFixed.Replace(TEXT(" "), TEXT("-"))));
@@ -479,11 +494,11 @@ void ASimCruiseCockpitTest::Judge()
 	}
 	const FString Json = FString::Printf(TEXT("{\n  \"result\": \"%s\", \"car\": \"%s\", \"reasons\": \"%s\",\n")
 		TEXT("  \"rim_full_lock_left_deg\": %.2f, \"rim_full_lock_right_deg\": %.2f, \"expected_full_lock_deg\": %.2f, \"ratio\": %.3f, \"car_data_ratio\": %.3f, \"lock_to_lock_turns\": %.3f,\n")
-		TEXT("  \"gauges_max_move_cm\": %.4f, \"gauges_max_turn_deg\": %.3f, \"gauges_worst\": \"%s\", \"wheel_off_axis_deg\": %.3f, \"hub_move_cm\": %.4f, \"rim_tilt_deg\": %.2f, \"outside_rim_percent\": %.2f,\n")
+		TEXT("  \"gauges_max_move_cm\": %.4f, \"gauges_max_turn_deg\": %.3f, \"gauges_worst\": \"%s\", \"needle_max_turn_at_rest_deg\": %.2f, \"needle_worst\": \"%s\", \"wheel_off_axis_deg\": %.3f, \"hub_move_cm\": %.4f, \"rim_tilt_deg\": %.2f, \"outside_rim_percent\": %.2f,\n")
 		TEXT("  \"cluster_changed_percent\": %.3f,\n  \"limits\": {\"fixed_move_cm\": %.2f, \"fixed_turn_deg\": %.2f, \"wheel_off_axis_deg\": %.2f, \"hub_move_cm\": %.2f, \"rim_tilt_deg\": %.1f, \"lock_error\": %.2f, \"cluster_changed_percent\": %.1f},\n")
 		TEXT("  \"poses\": [%s]\n}\n"),
 		bPass ? TEXT("PASS") : TEXT("FAIL"), *CarId, *ReasonText, LockLeft, LockRight, ExpectedLock, MeasuredRatio, Ratio, LockToLockTurns,
-		MaxFixedMove, MaxFixedTurn, *WorstFixed, MaxWheelOffAxis, MaxHubMove, RimTiltDeg, ForeignShare, MaxChanged,
+		MaxFixedMove, MaxFixedTurn, *WorstFixed, MaxNeedleTurn, *WorstNeedle, MaxWheelOffAxis, MaxHubMove, RimTiltDeg, ForeignShare, MaxChanged,
 		MaxFixedMoveCm, MaxFixedTurnDeg, MaxWheelOffAxisDeg, MaxHubMoveCm, MaxRimTiltDeg, MaxLockError, MaxClusterChangedPercent, *PoseJson);
 	FFileHelper::SaveStringToFile(Json, *FPaths::Combine(OutputDir, TEXT("cockpit.json")), FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 }

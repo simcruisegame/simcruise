@@ -273,6 +273,40 @@ powershell -ExecutionPolicy Bypass -File scripts\review-check.ps1 Saved\Review\<
 
 It exits 0 only when every item has a verdict and none is FAIL. `scripts\preflight.ps1` makes the same evidence and a `review.md` for each of its runs, in `Saved\Review\<stamp>-<commit>-preflight\`. When its game checks pass, the index row says UNREVIEWED. `review-check.ps1` on that folder adds the PASS (or FAIL) row, and `scripts\playtest.ps1` builds only for a commit with a reviewed PASS. `scripts\viewcheck.ps1` and `scripts\drive-robot.ps1` also keep their evidence and a `review.md` under `Saved\Review\`.
 
+#### Cockpit steer test
+
+`launch-review.ps1` first runs the cockpit steer test (`-SimCruiseCockpitTest`; `-NoCockpit` leaves it out). For one car or all of them on their own:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\cockpit-review.ps1 -Cars nb2001_aaron,mustang65,meridian_z
+```
+
+(no `-Cars`: every car in `data\cars`). With the car at rest in the driver's seat (Ocean Drive, offline, Ultra, traffic off), the stick goes to the centre, half lock and full lock both ways, and each pose is held for 2 s. At each pose the game reads, in the car's own frame, the transforms of the steering wheel, the dial faces, the needles and the body. It also takes two frames: as the driver sees it, and with the steering wheel hidden. It FAILs when:
+
+- the dial faces or the body move more than 0.05 cm or turn more than 0.1 deg;
+- a needle turns about another axis than its own, or turns more than 0.5 deg while the speed and rpm it shows do not change (the gauges turn with the steering);
+- a gauge hangs on the wheel, or more than 2 % of the wheel mesh's vertices lie outside its rim;
+- the wheel turns about another axis than its column (0.5 deg), its hub (the mesh's centre) moves more than 1 mm, or its rim is tilted more than 2 deg on the column (fitted from the mesh);
+- the rim angle at full lock differs from the car data's (road-wheel lock x steering ratio) by more than 5 %, or the wheel turns the other way from the road wheels;
+- more than 1 % of the cluster's pixels change by more than 25 of 255 between the centre and full lock, with the wheel hidden.
+
+It writes `cockpit\<pose>.png`, `cockpit\<pose>-nowheel.png`, `cockpit\diff-full-left.png` and `diff-full-right.png` (the cluster's change, bright where it changed), `cockpit\cockpit.json` and one line `COCKPIT PASS|FAIL car=.. lock=.. ratio=.. lock_to_lock=.. ... reasons=..`. The review sheet's items "Cockpit: gauges fixed while steering" and "Steering wheel turns about its column" take their verdicts from it. Look at the frames before you call a fix done.
+
+#### Random places
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\launch-review.ps1 -RandomUS 8 -Seed 4242
+```
+
+The game builds any place in the US as you drive, so the review must look at ordinary places too. `-RandomUS N` makes N launches, one per place type (desert, mountains, plains and farms, forest, coast, suburb, small town, dense city), each a 45 s drive with the Miata at Ultra from the driver's seat. The places come from `data\test-places.json` when it is there, else from three areas per type in `scripts\RandomPlaces.ps1`, where a point is picked and the game puts the car on the nearest road. The seed (printed, and in the folder's name) repeats the same places. Each run's sheet adds: missing ground or holes, climate colours, floating or sunk objects, trees and plants, buildings, roads, slow frames, load (the car placed more than 60 s after the start fails), and a start that fell back to Miami Beach. `random-us.md` gives a table with the place type, the point, the road the car stood on, the load time, the game's result, the frame p95 and a link to each sheet.
+
+Real photographs next to the game's frames, where the licence allows:
+
+- Wikimedia Commons (used): the geosearch API (`list=geosearch`, file namespace, 2 km round the point) and `prop=imageinfo` for the licence and the author; only Creative Commons and public-domain files are kept, as `photo.jpg` with `photo.txt` (title, author, licence, link, distance). Terms: the Wikimedia API etiquette (one request at a time, a User-Agent that names the client, thumbnails rather than originals); each photo's own licence applies.
+- Mapillary (CC BY-SA 4.0): it needs a free API token. None is set on this PC, so it is not used.
+- USGS / NAIP aerial images (public domain): only as a fall-back, not used yet.
+- Google Street View: never (its terms forbid it).
+
 ### View check
 
 The view check looks at what the player sees and tells if the world is there. `-SimCruiseViewCheck` (or `-SimCruiseViewCheck=<seconds>`, default 6) waits until the car is placed, the tiles round it are built and the shaders are compiled, then waits the given seconds. Then it:
