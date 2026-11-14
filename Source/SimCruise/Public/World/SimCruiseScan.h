@@ -7,6 +7,8 @@
 struct FSimCruiseTileData;
 struct FSimCruiseTileBuild;
 struct FSimCruiseTileContext;
+struct FSimCruiseScanChannel;
+struct FSimCruiseClassTint;
 
 /**
  * The tile scan (docs/research/scan-engine.md): everything the game knows about one zoom-16
@@ -122,6 +124,19 @@ namespace SimCruiseScan
 
 	/** The scan from the disk cache by (tile, version, rules version, data hash), else baked and saved. */
 	SIMCRUISE_API TSharedRef<const FSimCruiseTileScan, ESPMode::ThreadSafe> ForBuild(const FSimCruiseTileData& Data, const FSimCruiseTileBuild& Build, bool* bOutCacheHit = nullptr);
+
+	/**
+	 * Fuses an eye's channels (Public/Scan/SimCruiseScanEye.h: 528 x 528, the scan's own grid)
+	 * into a rules scan. Map geometry (carriageways, curbs, shoulders, sidewalks, roofs, mapped
+	 * water) always wins. Elsewhere the eye replaces the rule's ground class where its probability
+	 * x the class's held-out IoU x the channel's confidence beats the rule's confidence; built and
+	 * bare ground below 0.5 probability are ignored (IoU 0.33 and 0.27). Tints fill TINT where their
+	 * confidence beats none. Returns the cells changed; META records the eye.
+	 */
+	SIMCRUISE_API int32 FuseEye(FSimCruiseTileScan& Scan, FName EyeName, const TArray<FSimCruiseScanChannel>& Channels, const TArray<FSimCruiseClassTint>& Tints);
+
+	/** The scan class an eye channel or tint names ("surface_logits_grass_short" -> GrassShort), Unknown when none. */
+	SIMCRUISE_API uint8 ClassOfChannel(FName Channel);
 
 	/** -SimCruiseScanView: the class map as a PNG in Saved/Scan/view/<x>_<y>.png (and the path). */
 	SIMCRUISE_API bool WriteClassView(const FSimCruiseTileScan& Scan, FString* OutPath = nullptr);

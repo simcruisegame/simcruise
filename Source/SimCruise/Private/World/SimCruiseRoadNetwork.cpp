@@ -1263,11 +1263,12 @@ void FSimCruiseRoadNetwork::Build(const FSimCruiseTileData& Tile, double InTileS
 					const double Shift = Best * Weight * Protect;
 					for (int32 c = 0; c < 5; ++c)
 					{
-						// The column eases from the station shift into its own offset over the first
-						// quarter of its fade, so the moment its own snapped point comes into reach
-						// (weight near 0) it does not jump (2026-11-14 review).
-						const double K = Smooth01(ColWeight[c] * 4.0);
-						St.Column(c) += K * ColBest[c] * Protect + (1.0 - K) * Shift;
+						// A column with a snapped point in reach fades from it alone; one without takes
+						// the station shift. Blending the two (by the column's weight, or eased) made
+						// more and larger steps on the 24 Miami tiles (SimCruise.World.RoadSteps: 236-257
+						// steps over 2 cm and up to 50 cm, against 260 and 33 cm), because the station
+						// shift belongs to whichever column was covered, often across the road.
+						St.Column(c) += ColWeight[c] > 0.0 ? ColBest[c] * ColWeight[c] * Protect : Shift;
 					}
 					St.Z += St.HC - Own[2][i]; // Z is the centre column's height
 					if (Protect >= 0.999)

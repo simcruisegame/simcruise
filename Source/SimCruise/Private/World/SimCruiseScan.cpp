@@ -2,6 +2,9 @@
 
 #include "World/SimCruiseScan.h"
 
+#include "Live/SimCruiseAerialEye.h"
+#include "Scan/SimCruiseScanEye.h"
+
 #include "HAL/FileManager.h"
 #include "HAL/PlatformTime.h"
 #include "IImageWrapper.h"
@@ -361,7 +364,10 @@ namespace SimCruiseScan
 	TSharedRef<const FSimCruiseTileScan, ESPMode::ThreadSafe> ForBuild(const FSimCruiseTileData& Data, const FSimCruiseTileBuild& Build, bool* bOutCacheHit)
 	{
 		const FString Path = CachePath(Data.Id);
-		const uint32 Hash = Build.Context.IsValid() ? Build.Context->DataHash : GetTypeHash(Data.Id);
+		// The key includes the eye when one is on (its name and version): its arrival is new data.
+		FSimCruiseAerialEye& Eye = FSimCruiseAerialEye::Get();
+		uint32 Hash = Build.Context.IsValid() ? Build.Context->DataHash : GetTypeHash(Data.Id);
+		if (Eye.IsReady()) Hash = HashCombine(Hash, HashCombine(GetTypeHash(Eye.Name()), static_cast<uint32>(Eye.Version())));
 		TArray<uint8> Bytes;
 		if (FFileHelper::LoadFileToArray(Bytes, *Path, FILEREAD_Silent))
 		{
@@ -375,11 +381,120 @@ namespace SimCruiseScan
 		}
 		TSharedRef<FSimCruiseTileScan, ESPMode::ThreadSafe> Made = MakeShared<FSimCruiseTileScan, ESPMode::ThreadSafe>();
 		BakeRules(Data, Build, *Made);
+		// The eye, when it is on and has read this tile already (-SimCruiseScanEye=<name>). A rules
+		// scan made while the eye is still reading the tile is not saved: the next build fuses it.
+		bool bSave = !Eye.IsReady();
+		if (Eye.IsReady())
+		{
+			TArray<FSimCruiseScanChannel> Channels;
+			TArray<FSimCruiseClassTint> Tints;
+			if (Eye.Lookup(Data.Id, Channels, &Tints)) { FuseEye(*Made, Eye.Name(), Channels, Tints); bSave = true; }
+		}
+		Made->DataHash = Hash;
 		const TArray<uint8> Out = Made->Serialize();
-		FFileHelper::SaveArrayToFile(Out, *Path);
+		if (bSave) FFileHelper::SaveArrayToFile(Out, *Path);
 		UE_LOG(LogSimCruiseScan, Display, TEXT("Scan %s: rules bake %.1f ms, %.2f MB on disk"), *SimCruiseTileName(Data.Id), Made->BuildSeconds * 1000.0, Out.Num() / 1048576.0);
 		if (bOutCacheHit) *bOutCacheHit = false;
 		return Made;
+	}
+
+	uint8 ClassOfChannel(FName Channel)
+	{
+		FString C = Channel.ToString();
+		C.RemoveFromStart(TEXT("surface_logits_"));
+		if (C == TEXT("canopy_prob") || C == TEXT("tree")) return static_cast<uint8>(EClass::ForestBroadleaf);
+		if (C == TEXT("water_prob") || C == TEXT("water")) return static_cast<uint8>(EClass::Water);
+		if (C == TEXT("road_prob") || C == TEXT("road")) return static_cast<uint8>(EClass::Asphalt);
+		if (C == TEXT("building_prob") || C == TEXT("roof")) return static_cast<uint8>(EClass::Roof);
+		if (C == TEXT("built") || C == TEXT("built_ground")) return static_cast<uint8>(EClass::Concrete);
+		for (uint8 k = 1; k < static_cast<uint8>(EClass::Count); ++k) if (C == Names[k]) return k;
+		return 0;
+	}
+
+	int32 FuseEye(FSimCruiseTileScan& Scan, FName EyeName, const TArray<FSimCruiseScanChannel>& Channels, const TArray<FSimCruiseClassTint>& Tints)
+	{
+		const int32 N = Stored * Stored;
+		if (Scan.Clas.Num() != N) return 0;
+		// Held-out IoU per class on 8 random US places (the AI thread, 2026-11-14): how far to trust it.
+		auto Iou = [](uint8 C)
+		{
+			switch (static_cast<EClass>(C))
+			{
+			case EClass::GrassShort: case EClass::GrassTall: case EClass::DryGrass: return 0.82f;
+			case EClass::Crop: return 0.80f;
+			case EClass::ForestBroadleaf: case EClass::ForestConifer: case EClass::Shrub: return 0.72f;
+			case EClass::Water: return 0.65f;
+			case EClass::Concrete: return 0.33f; // built ground
+			case EClass::BareSoil: case EClass::DirtTrack: return 0.27f;
+			case EClass::Wetland: case EClass::SnowIce: return 0.5f;
+			default: return 0.0f; // roads and roofs: map geometry only
+			}
+		};
+		auto IsMapGeometry = [](uint8 C)
+		{
+			switch (static_cast<EClass>(C))
+			{
+			case EClass::Asphalt: case EClass::Concrete: case EClass::Kerb: case EClass::ShoulderGravel: case EClass::Roof:
+			case EClass::Water: case EClass::Paving: case EClass::DirtTrack: case EClass::Rail: case EClass::RoadMarking: return true;
+			default: return false;
+			}
+		};
+		struct FUse { const FSimCruiseScanChannel* Ch; uint8 Class; float Iou; };
+		TArray<FUse> Use;
+		for (const FSimCruiseScanChannel& Ch : Channels)
+		{
+			if (Ch.Size != Stored || Ch.Data.Num() != N) continue;
+			const uint8 C = ClassOfChannel(Ch.Name);
+			const float W = Iou(C);
+			if (C == 0 || W <= 0.0f || C == static_cast<uint8>(EClass::Water)) continue; // water stays the map's
+			Use.Add({ &Ch, C, W });
+		}
+		int32 Changed = 0;
+		for (int32 k = 0; k < N; ++k)
+		{
+			FColor& Cell = Scan.Clas[k];
+			if (IsMapGeometry(Cell.R)) continue;
+			float Best = Cell.A / 255.0f;
+			uint8 BestClass = 0;
+			for (const FUse& U : Use)
+			{
+				const float P = U.Ch->Data[k] / 255.0f;
+				const bool bWeak = U.Class == static_cast<uint8>(EClass::Concrete) || U.Class == static_cast<uint8>(EClass::BareSoil) || U.Class == static_cast<uint8>(EClass::DirtTrack);
+				if (bWeak && P < 0.5f) continue;
+				const float Score = P * U.Iou * FMath::Clamp(U.Ch->Confidence, 0.0f, 1.0f);
+				if (Score > Best) { Best = Score; BestClass = U.Class; }
+			}
+			if (BestClass == 0 || BestClass == Cell.R) continue;
+			// A forest floor of the climate the rules chose (conifer stays conifer).
+			if (BestClass == static_cast<uint8>(EClass::ForestBroadleaf) && Cell.R == static_cast<uint8>(EClass::ForestConifer)) continue;
+			Cell = FColor(BestClass, Cell.R, 200, static_cast<uint8>(FMath::Clamp(Best * 255.0f, 0.0f, 255.0f)));
+			const FColor S = ClassAlbedo(BestClass).ToFColor(true);
+			Scan.Albd[k] = FColor(S.R, S.G, S.B, Scan.Albd[k].A);
+			++Changed;
+		}
+		// The place's own colours (TINT): the photo's mean over the class's sure cells, relative to
+		// the class's albedo, as a multiplier (128 = x1.0, held to x0.5-x2).
+		int32 Tinted = 0;
+		for (const FSimCruiseClassTint& T : Tints)
+		{
+			const uint8 C = ClassOfChannel(T.Channel);
+			if (C == 0 || T.Confidence <= 0.0f) continue;
+			const FLinearColor Seen = FLinearColor::FromSRGBColor(T.Mean), Base = ClassAlbedo(C);
+			auto M = [](float S, float B) { return static_cast<uint8>(FMath::Clamp(FMath::RoundToInt(128.0f * FMath::Clamp(S / FMath::Max(B, 1e-3f), 0.5f, 2.0f)), 64, 255)); };
+			FTint& Out = Scan.Tint[C];
+			const uint8 Conf = static_cast<uint8>(FMath::Clamp(T.Confidence * 255.0f, 0.0f, 255.0f));
+			if (Conf <= Out.Confidence) continue;
+			Out.R = M(Seen.R, Base.R); Out.G = M(Seen.G, Base.G); Out.B = M(Seen.B, Base.B);
+			Out.Confidence = Conf;
+			Out.Samples = static_cast<uint16>(FMath::Clamp(T.Share * Cells * Cells, 0.0f, 65535.0f));
+			++Tinted;
+		}
+		if (Changed > 0 || Tinted > 0)
+		{
+			Scan.Meta.RemoveFromEnd(TEXT("}"));
+			Scan.Meta += FString::Printf(TEXT(",\"eye\":{\"name\":\"%s\",\"cells_changed\":%d,\"tints\":%d}}"), *EyeName.ToString(), Changed, Tinted);
+		}
+		return Changed;
 	}
 
 	bool WriteClassView(const FSimCruiseTileScan& Scan, FString* OutPath)

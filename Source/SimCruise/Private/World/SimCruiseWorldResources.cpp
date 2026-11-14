@@ -236,7 +236,8 @@ float sand = mask.g * (1.0 - veg);
 float water = mask.a;
 float paved = mask.b * (1.0 - water);
 float bare = saturate(1.0 - veg - sand - paved);
-float3 classColor = float3(0.15, 0.14, 0.11) * bare + float3(0.052, 0.088, 0.026) * veg + float3(0.50, 0.45, 0.35) * sand + float3(0.27, 0.26, 0.24) * paved;
+// The place's own soil, grass and sand colours (the scan's TINT, x1 without it).
+float3 classColor = float3(0.15, 0.14, 0.11) * TintSoil.rgb * bare + float3(0.052, 0.088, 0.026) * TintGrass.rgb * veg + float3(0.50, 0.45, 0.35) * TintSand.rgb * sand + float3(0.27, 0.26, 0.24) * paved;
 // The photograph is taken from above: white roofs, sand and glare. Ground seen from the
 // street is darker (grass ~0.1, concrete ~0.3, sand ~0.35 albedo), so highlights compress.
 float3 shot = photo * AerialGain;
@@ -850,6 +851,9 @@ return col;
 			AddInput(Custom, TEXT("TileSizeCm"), ScalarParam(Material, TEXT("TileSizeCm"), 55000.f));
 			AddInput(Custom, TEXT("Cell"), VectorParam(Material, TEXT("Cell"), FLinearColor(0, 0, 0, 0)));
 			AddInput(Custom, TEXT("AerialGain"), ScalarParam(Material, TEXT("AerialGain"), 1.f));
+			AddInput(Custom, TEXT("TintGrass"), VectorParam(Material, TEXT("TintGrass"), FLinearColor(1, 1, 1, 1)));
+			AddInput(Custom, TEXT("TintSoil"), VectorParam(Material, TEXT("TintSoil"), FLinearColor(1, 1, 1, 1)));
+			AddInput(Custom, TEXT("TintSand"), VectorParam(Material, TEXT("TintSand"), FLinearColor(1, 1, 1, 1)));
 			AddInput(Custom, TEXT("SnowCover"), ScalarParam(Material, TEXT("SnowCover"), 0.f));
 			AddInput(Custom, TEXT("Mask"), TextureParam(Material, TEXT("Mask"), DefaultTexture));
 			AddInput(Custom, TEXT("Aerial"), TextureParam(Material, TEXT("Aerial"), DefaultTexture));
