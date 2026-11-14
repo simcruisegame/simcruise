@@ -531,9 +531,10 @@ void ASimCruiseWorldStreamer::TickStreaming(float DeltaSeconds)
 	}
 
 	const FVector2d FocusTile = Frame.WorldCmToTileCoord(FVector2d(Focus.X, Focus.Y));
-	// Where the car will be when a tile asked for now is ready, with 4 s to spare (at least 5 s,
-	// as before): at 130 km/h and 8 s a tile, 430 m ahead.
-	const double AheadS = FMath::Max(5.0, LoadSecondsMean + LookAheadMarginSeconds);
+	// Where the car will be when a tile asked for now is ready with 4 s to spare, after waiting
+	// for one load slot (2 x load + 4 s; at least 5 s, as before). The tile manager caps it at
+	// one tile past the ring.
+	const double AheadS = FMath::Max(5.0, 2.0 * LoadSecondsMean + LookAheadMarginSeconds);
 	const FVector2d Ahead = Frame.WorldCmToTileCoord(FVector2d(Focus.X + Velocity.X * AheadS, Focus.Y + Velocity.Y * AheadS));
 	Manager.SetFocus(FocusTile, Ahead);
 

@@ -97,7 +97,7 @@ public:
 	int32 TilesFailed = 0;
 	/** Seconds a tile takes from request to result (a running mean; the look-ahead reads it). */
 	double LoadSecondsMean = 6.0;
-	/** How far ahead the streamer asks for tiles: speed x (LoadSecondsMean + LookAheadMarginSeconds). */
+	/** How far ahead the streamer asks for tiles: speed x (2 x LoadSecondsMean + LookAheadMarginSeconds). */
 	static constexpr double LookAheadMarginSeconds = 4.0;
 
 	UPROPERTY(Transient)

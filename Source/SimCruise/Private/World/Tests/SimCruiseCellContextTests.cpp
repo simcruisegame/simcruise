@@ -410,25 +410,29 @@ bool FSimCruiseRoadStepProbe::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseHighwayLookAheadTest, "SimCruise.World.TileManager.HighwayLookAhead", SimCruiseCellContextTest::Flags)
 bool FSimCruiseHighwayLookAheadTest::RunTest(const FString& Parameters)
 {
-	// 130 km/h straight east across 432 m tiles (45 N), every tile taking 10 s to load: each tile
-	// must be resident at least 4 s before the car crosses into it (the streamer's look-ahead,
-	// speed x (load time + 4 s), as ASimCruiseWorldStreamer::TickStreaming sets it).
-	for (const double LoadS : { 6.0, 10.0 })
+	// 130 km/h across 432 m tiles (45 N) on four headings with two load slots, tiles taking 4,
+	// 6 and 8 s to load: each tile must be resident at least 4 s before the car crosses into it
+	// (the streamer's look-ahead, speed x (2 x load + 4 s), as ASimCruiseWorldStreamer sets it).
+	const double TileM = 432.0, Speed = 130.0 / 3.6, Dt = 0.1;
+	const FVector2d Headings[] = { FVector2d(1.0, 0.0), FVector2d(0.7071, 0.7071), FVector2d(0.9397, 0.342), FVector2d(0.5, -0.866) };
+	for (const double LoadS : { 4.0, 6.0, 8.0 })
+	for (const FVector2d& Heading : Headings)
 	{
 		FSimCruiseTileManager M;
+		M.MaxInFlight = 2;
 		M.Reset();
-		const double TileM = 432.0, Speed = 130.0 / 3.6, Dt = 0.1;
-		const double AheadS = FMath::Max(5.0, LoadS + 4.0);
+		const double AheadS = FMath::Max(5.0, 2.0 * LoadS + 4.0);
 		TMap<FIntPoint, double> ReadyAt;
 		TArray<TPair<double, FSimCruiseTileJobTicket>> Jobs;
-		double X = 0.5 * TileM, Worst = 1e9;
-		FIntPoint Last(0, 0);
-		// Warm up standing still, as a drive starts.
-		for (double T = 0.0; T < 120.0; T += Dt)
+		FVector2d Pos(0.37 * TileM, 0.61 * TileM);
+		double Worst = 1e9;
+		FIntPoint Last(MAX_int32, MAX_int32);
+		for (double T = 0.0; T < 200.0; T += Dt)
 		{
-			const bool bMoving = T >= 30.0;
-			if (bMoving) X += Speed * Dt;
-			const FVector2d Focus(X / TileM, 0.5), Ahead((X + (bMoving ? Speed : 0.0) * AheadS) / TileM, 0.5);
+			const bool bMoving = T >= 30.0; // a drive starts standing still
+			if (bMoving) Pos += Heading * Speed * Dt;
+			const FVector2d Focus = Pos / TileM;
+			const FVector2d Ahead = (Pos + Heading * (bMoving ? Speed * AheadS : 0.0)) / TileM;
 			M.SetFocus(Focus, Ahead);
 			M.TakeEvictions();
 			for (const FSimCruiseTileJobTicket& Tk : M.TakeRequests(T)) Jobs.Add(TPair<double, FSimCruiseTileJobTicket>(T + LoadS, Tk));
@@ -438,17 +442,16 @@ bool FSimCruiseHighwayLookAheadTest::RunTest(const FString& Parameters)
 				if (M.Complete(Jobs[j].Value, true, T)) ReadyAt.Add(Jobs[j].Value.Tile, T);
 				Jobs.RemoveAt(j);
 			}
-			const FIntPoint Here(FMath::FloorToInt(Focus.X), 0);
+			const FIntPoint Here(FMath::FloorToInt(Focus.X), FMath::FloorToInt(Focus.Y));
 			if (bMoving && Here != Last)
 			{
 				const double* Ready = ReadyAt.Find(Here);
-				const double Spare = Ready && M.IsResident(Here) ? T - *Ready : -1.0;
-				Worst = FMath::Min(Worst, Spare);
+				Worst = FMath::Min(Worst, Ready && M.IsResident(Here) ? T - *Ready : -1.0);
 			}
 			Last = Here;
 		}
-		AddInfo(FString::Printf(TEXT("load %.0f s: worst spare %.1f s before entering a tile"), LoadS, Worst));
-		TestTrue(FString::Printf(TEXT("every tile ready 4 s ahead at 130 km/h with %.0f s loads"), LoadS), Worst >= 4.0 - Dt);
+		AddInfo(FString::Printf(TEXT("load %.0f s, heading (%.2f, %.2f): worst %.1f s ready before the car"), LoadS, Heading.X, Heading.Y, Worst));
+		TestTrue(FString::Printf(TEXT("ready 4 s ahead at 130 km/h, %.0f s loads, heading (%.2f, %.2f)"), LoadS, Heading.X, Heading.Y), Worst >= 4.0 - 2.0 * Dt);
 	}
 	return true;
 }

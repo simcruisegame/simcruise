@@ -11,7 +11,8 @@
  *  - the ring of tiles around the car's tile is wanted, nearest first, with a
  *    look-ahead toward where the car will be in a few seconds; the tiles on the
  *    line to that point are wanted too, out to one tile past the ring (the
- *    streamer sets the point at speed x (load time + 4 s));
+ *    streamer sets the point at speed x (2 x load time + 4 s)); route tiles
+ *    go first and always keep one load slot while the car moves;
  *  - tiles beyond the ring plus one tile of hysteresis are retired;
  *  - each job carries the generation of the place it was started for; a new
  *    place (search, Surprise me, a jump) bumps the generation, and a result
