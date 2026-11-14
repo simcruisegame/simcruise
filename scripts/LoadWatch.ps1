@@ -5,7 +5,7 @@
 .DESCRIPTION
   Frame times are honest only in a quiet window: load from other lanes added about 2 ms to the
   p95. Start-LoadWatch samples every -EverySeconds, into load.csv: the other Unreal and SimCruise
-  processes (any whose command line does not name this run's folder) and the GPU use of all
+  processes and builds (UnrealBuildTool, cl, link, shader compilers; any whose command line does not name this run's folder) and the GPU use of all
   processes other than this run's game (Windows "GPU Engine" counters, 3D engines). Stop-LoadWatch
   ends it and returns @{ Quiet; Samples; OtherProcesses; MaxOtherGpu; MeanOtherGpu }. A run is
   NOT QUIET when another Unreal or SimCruise process ran or other GPU use averaged over 5 %.
@@ -13,7 +13,7 @@
 
 function Get-LoadSample([string]$RunDir) {
     $Procs = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
-        $_.Name -match '^(UnrealEditor|SimCruise|UnrealEditor-Cmd)' -and -not ($_.CommandLine -and $_.CommandLine.Contains($RunDir)) })
+        $_.Name -match '^(UnrealEditor|SimCruise|UnrealEditor-Cmd|UnrealBuildTool|cl|link|ShaderCompileWorker)\.exe$|^(UnrealEditor|SimCruise)' -or ($_.Name -eq 'dotnet.exe' -and $_.CommandLine -match 'UnrealBuildTool') -and -not ($_.CommandLine -and $_.CommandLine.Contains($RunDir)) })
     $Ours = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -and $_.CommandLine.Contains($RunDir) } | ForEach-Object { $_.ProcessId })
     $Gpu = 0.0
     try {
@@ -26,19 +26,21 @@ function Get-LoadSample([string]$RunDir) {
         Time = (Get-Date).ToUniversalTime().ToString('HH:mm:ss')
         OtherProcesses = (($Procs | ForEach-Object { "$($_.Name)#$($_.ProcessId)" }) -join ' ')
         OtherGpu = [Math]::Round($Gpu, 1)
+        # Who holds the GPU test lock (Global\SimCruiseGpuTest; EditorLock.ps1 writes the holder).
+        GpuHolder = $($F = Join-Path $env:LOCALAPPDATA 'SimCruise\gpu-test-lock.txt'; if (Test-Path $F) { ((Get-Content $F -Raw -ErrorAction SilentlyContinue) -replace '[\r\n,]+', ' ').Trim() } else { '' })
     }
 }
 
 function Start-LoadWatch([string]$RunDir, [int]$EverySeconds = 30) {
     $Csv = Join-Path $RunDir 'load.csv'
-    'time,other_processes,other_gpu_percent' | Set-Content -Encoding utf8 $Csv
+    'time,other_processes,other_gpu_percent,gpu_lock_holder' | Set-Content -Encoding utf8 $Csv
     $Lib = $PSCommandPath
     return Start-Job -ScriptBlock {
         param($Lib, $RunDir, $Csv, $Every)
         . $Lib
         while ($true) {
             $S = Get-LoadSample $RunDir
-            "$($S.Time),`"$($S.OtherProcesses)`",$($S.OtherGpu)" | Add-Content -Encoding utf8 $Csv
+            "$($S.Time),`"$($S.OtherProcesses)`",$($S.OtherGpu),`"$($S.GpuHolder)`"" | Add-Content -Encoding utf8 $Csv
             Start-Sleep -Seconds $Every
         }
     } -ArgumentList $Lib, $RunDir, $Csv, $EverySeconds

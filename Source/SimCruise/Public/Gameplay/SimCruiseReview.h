@@ -61,6 +61,15 @@ public:
 	FString SettingsJson(bool bLog);
 
 private:
+	/** A watched run (-SimCruiseReview): the viewer's input is blocked (Esc passes) and logged, focus changes are logged. */
+	void StartGuard();
+	void StopGuard();
+	TSharedPtr<class IInputProcessor> Guard;
+	FDelegateHandle FocusHandle;
+	/** The frame pacing each second of the drive (REVIEW PACE lines). */
+	int32 PaceFrames = 0;
+	float PaceMaxMs = 0.f;
+	float NextPaceS = 1.f;
 	void SampleResolution();
 	double ResFractionSum = 0.0;
 	int32 ResFractionSamples = 0;
