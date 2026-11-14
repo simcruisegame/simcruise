@@ -171,6 +171,13 @@ int32 FSimCruiseAtlasClient::NumRunning() const
 	return Running.Num();
 }
 
+void FSimCruiseAtlasClient::SetMaxConcurrent(int32 MaxConcurrent)
+{
+	FScopeLock Guard(&Lock);
+	Config.MaxConcurrent = FMath::Clamp(MaxConcurrent, 1, 8);
+	StartNextLocked();
+}
+
 int32 FSimCruiseAtlasClient::NumQueued() const
 {
 	FScopeLock Guard(&Lock);

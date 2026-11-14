@@ -85,6 +85,22 @@ namespace SimCruiseCarAssets
 
 	SIMCRUISE_API void ClearCache();
 
+	/** Whether the car is built already (Get returns it at once). */
+	SIMCRUISE_API bool IsBuilt(const FString& CarId);
+
+	/**
+	 * The size of the car model's geometry on disk (the glTF buffers beside its scene file),
+	 * known before it is built; 0 when the car or its model is unknown. Building takes about a
+	 * second per 2-3 MB on the game thread (the Miatas' 38 MB: 11-30 s).
+	 */
+	SIMCRUISE_API int64 ModelBytes(const FString& CarId);
+
+	/**
+	 * Models heavier than this are never built for a background car (parked, traffic): only once
+	 * something else (the player's choice) has built them. A stand-in parks or drives instead.
+	 */
+	constexpr int64 BackgroundModelMaxBytes = 20 * 1024 * 1024;
+
 	/** Build a transient static mesh from rig sections (one material slot per section). */
 	SIMCRUISE_API UStaticMesh* BuildStaticMesh(const FString& Name, const TArray<const FSimCruiseRigSection*>& Sections, bool bNanite, bool bFullPrecisionUVs = false);
 

@@ -116,6 +116,8 @@ public:
 	void CancelAll();
 
 	int32 NumRunning() const;
+	/** Change how many helper processes may run at once (1-8); queued jobs start at once if there is room. */
+	void SetMaxConcurrent(int32 MaxConcurrent);
 	int32 NumQueued() const;
 
 	/** Run one helper process synchronously on the calling thread (worker threads and tests only). */

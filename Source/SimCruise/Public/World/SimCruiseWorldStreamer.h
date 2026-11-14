@@ -14,6 +14,7 @@ class USpotLightComponent;
 class FSimCruiseAtlasClient;
 class USimCruiseWorldResources;
 struct FSimCruiseTileBuild;
+struct FSimCruiseStartPose;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FSimCruiseWorldRebased, const FVector& /*OffsetCm*/);
 
@@ -65,9 +66,23 @@ public:
 	 * bearing honoured on two-way roads, one-way direction respected").
 	 */
 	bool FindRoadPoseFacing(const FString& RoadName, const FVector& NearWorldCm, double SearchRadiusM, double PreferredYawDeg, FVector& OutLocationCm, FRotator& OutRotation) const;
+	/** Start places by SimCruiseStartPick's rules on the built tiles, best first. */
+	TArray<FSimCruiseStartPose> FindStartCandidates(const FString& RoadName, const FVector& NearWorldCm, double SearchRadiusM, double PreferredYawDeg) const;
 
 	/** Tiles of this drive (since StartAt) that failed to load or build: no network, no helper, a bad document. */
 	int32 NumTilesFailed() const { return TilesFailed; }
+
+	/** Tiles being fetched or built now. */
+	int32 NumTilesInFlight() const { return Manager.NumInFlight(); }
+
+	/**
+	 * Before the car is placed nothing else needs the CPU: up to StartConcurrentBuilds tiles
+	 * fetch and build at once (the start tile and its corner neighbours; edge neighbours still
+	 * never build together), so a stall on the game thread then (the car's model) does not
+	 * hold the tiles back. Off: MaxConcurrentBuilds again.
+	 */
+	void SetStartBoost(bool bOn);
+	static constexpr int32 StartConcurrentBuilds = 5;
 
 	FSimCruiseWorldRebased OnRebased;
 
