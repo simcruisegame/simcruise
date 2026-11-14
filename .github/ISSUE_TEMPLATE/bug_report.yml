@@ -52,5 +52,5 @@ body:
     id: log
     attributes:
       label: Log
-      description: The last 50 lines of the newest file in `~/Library/Application Support/Godot/app_userdata/SimCruise/logs/`.
+      description: The last 50 lines of `%LOCALAPPDATA%\SimCruise\Saved\Logs\SimCruise.log`.
       render: text
