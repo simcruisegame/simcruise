@@ -190,7 +190,70 @@ struct ASimCruiseRegionalTerrain::FJob
 	int32 PhotoW = 0, PhotoH = 0, MiddleW = 0, MiddleH = 0, SnowW = 0, SnowH = 0;
 	FString SnowDate;
 	double MaxErrorM = 0.0;
+	int32 Outliers = 0;
 };
+
+int32 ASimCruiseRegionalTerrain::RejectHeightOutliers(TArray<FVector>& PositionsCm)
+{
+	const int32 N = PositionsCm.Num();
+	if (N < 16) return 0;
+	constexpr double CellCm = 60000.0; // the 600 m neighbourhood
+	auto Key = [](double X, double Y) { return FIntPoint(FMath::FloorToInt(X / CellCm), FMath::FloorToInt(Y / CellCm)); };
+	TMultiMap<FIntPoint, int32> Grid;
+	for (int32 i = 0; i < N; ++i) Grid.Add(Key(PositionsCm[i].X, PositionsCm[i].Y), i);
+	int32 Changed = 0;
+	TArray<double> Z;
+	TArray<int32> Near;
+	for (int32 Pass = 0; Pass < 3; ++Pass)
+	{
+		TArray<double> NewZ;
+		NewZ.SetNumUninitialized(N);
+		for (int32 i = 0; i < N; ++i) NewZ[i] = PositionsCm[i].Z;
+		int32 ChangedThisPass = 0;
+		for (int32 i = 0; i < N; ++i)
+		{
+			const FVector& P = PositionsCm[i];
+			const FIntPoint C = Key(P.X, P.Y);
+			// The vertices within 600 m; where the simplified mesh is coarse (far away, flat), within
+			// 1.2 or 2.4 km, so there are at least 12 to judge by.
+			Z.Reset();
+			for (int32 Reach = 1; Reach <= 4 && Z.Num() < 12; Reach *= 2)
+			{
+				Z.Reset();
+				const double R2 = FMath::Square(CellCm * Reach);
+				for (int32 Dy = -Reach; Dy <= Reach; ++Dy)
+				for (int32 Dx = -Reach; Dx <= Reach; ++Dx)
+				{
+					Near.Reset();
+					Grid.MultiFind(C + FIntPoint(Dx, Dy), Near);
+					for (const int32 k : Near)
+					{
+						if (k != i && FVector2D::DistSquared(FVector2D(P), FVector2D(PositionsCm[k])) <= R2) Z.Add(PositionsCm[k].Z);
+					}
+				}
+			}
+			if (Z.Num() < 6) continue;
+			Z.Sort();
+			const double Median = Z[Z.Num() / 2];
+			const double Iqr = Z[(3 * Z.Num()) / 4] - Z[Z.Num() / 4];
+			const double Limit = FMath::Max(10000.0, 4.0 * Iqr); // cm
+			// An outlier stands alone: under 15 % of its neighbourhood lies within 100 m of its
+			// height (a plateau's corner or a cliff's top has its own ground round it; a corrupt
+			// pixel's ripple has at most its own row).
+			int32 Support = 0;
+			for (const double Other : Z) Support += FMath::Abs(Other - P.Z) <= 10000.0 ? 1 : 0;
+			if (FMath::Abs(P.Z - Median) > Limit && Support < 0.15 * Z.Num())
+			{
+				NewZ[i] = Median;
+				++ChangedThisPass;
+			}
+		}
+		for (int32 i = 0; i < N; ++i) PositionsCm[i].Z = NewZ[i];
+		Changed += ChangedThisPass;
+		if (ChangedThisPass == 0) break;
+	}
+	return Changed;
+}
 
 FString ASimCruiseRegionalTerrain::MaterialPath()
 {
@@ -327,6 +390,7 @@ void ASimCruiseRegionalTerrain::StartJob(const FIntPoint& Region)
 			J.bDone = true;
 			return;
 		}
+		J.Outliers = RejectHeightOutliers(J.Positions);
 		// Smooth normals from the faces round each vertex.
 		J.Normals.Init(FVector::ZeroVector, J.Positions.Num());
 		for (int32 i = 0; i + 2 < J.Indices.Num(); i += 3)

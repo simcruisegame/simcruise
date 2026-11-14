@@ -118,8 +118,18 @@ private:
 	/** Point the world at a place (restarting it when asked) and wait for its tiles; keeps any start chain. */
 	void BeginTravel(const FSimCruisePlace& Place, bool bRestartWorld);
 
+	/**
+	 * A ground trace at a start pose: down onto the road surface at the pose's height (within
+	 * 25 cm at the middle, the car's ends on the same surface): no bank, building or hole there.
+	 */
+	bool GroundTraceOnRoad(const FVector& PoseCm, const FRotator& Heading, FString& OutWhy) const;
+
 	bool bWorldDrive = false;
 	bool bCarPlaced = false;
+	/** The player's car model was built while the start tiles loaded (once per place). */
+	bool bStartCarBuilt = false;
+	/** Traffic and parked-car models built so far while the start tiles load. */
+	int32 PrebuiltModels = 0;
 	FVector StartCm = FVector::ZeroVector;
 	FString StartRoadName;
 	FString CarId;

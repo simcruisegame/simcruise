@@ -1800,26 +1800,33 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 				double RimMedian = -1.0;
 				for (int32 Pass = 0; Pass < 3; ++Pass)
 				{
-				if (Pass > 0)
+				// Every pass: the rim's outer edge, the farthest steering-wheel point from the column in
+				// each of 64 sectors near the rim's plane. The outer edge of a rim is a clean circle
+				// whatever its materials (the NB's leather ring and its black inner ring are not
+				// concentric enough to fit either one alone), and no spoke or pad reaches it.
 				{
-					TArray<double> Radii;
-					for (const FVector& P : RimPoints)
+					const FVector EdgeU = (FVector(0, 1, 0) - N * (N | FVector(0, 1, 0))).GetSafeNormal();
+					const FVector EdgeV = N ^ EdgeU;
+					FVector Edge[64];
+					double EdgeR[64];
+					for (int32 K = 0; K < 64; ++K) EdgeR[K] = -1.0;
+					for (const FJob& Job : Context.Jobs)
 					{
-						const FVector D = P - Centre;
-						Radii.Add((D - N * (D | N)).Size());
+						const TArray<uint32>& List = Job.Dest[DestSteering];
+						for (const uint32 VI : List)
+						{
+							const FVector D = Job.Pos[VI] - Centre;
+							const double Axial = D | N;
+							if (FMath::Abs(Axial) > 0.06) continue;
+							const FVector Flat = D - N * Axial;
+							const double Radial = Flat.Size();
+							if (Radial < 0.7 * R || Radial > 1.25 * R) continue;
+							const int32 K = int32(FMath::FloorToDouble((FMath::Atan2(Flat | EdgeV, Flat | EdgeU) + UE_DOUBLE_PI) / UE_DOUBLE_TWO_PI * 64.0)) & 63;
+							if (Radial > EdgeR[K]) { EdgeR[K] = Radial; Edge[K] = Job.Pos[VI]; }
+						}
 					}
-					Radii.Sort();
-					const double Median = Radii.Num() ? Radii[Radii.Num() / 2] : R;
-					if (RimMedian < 0.0) RimMedian = Median;
-					RimPoints.RemoveAll([&](const FVector& P)
-					{
-						const FVector D = P - Centre;
-						const double Axial = D | N;
-						// The rim's tube about the first pass's median radius (fixed, so the band does not
-						// shrink pass by pass): the spokes' roots inside it are few against the ring.
-						const double Radial = (D - N * Axial).Size();
-						return FMath::Abs(Axial) > 0.015 || FMath::Abs(Radial - RimMedian) > 0.015;
-					});
+					RimPoints.Reset();
+					for (int32 K = 0; K < 64; ++K) if (EdgeR[K] > 0.0) RimPoints.Add(Edge[K]);
 				}
 				if (RimPoints.Num() >= 24)
 				{

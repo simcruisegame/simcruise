@@ -74,34 +74,27 @@ namespace SimCruisePresentationTests
 		double Syy = 0, Szz = 0, Syz = 0, Sxy = 0, Sxz = 0, Sx = 0;
 		int32 InstrumentTris = 0;
 		TArray<FVector3f> Annulus;
-		// The rim: the section whose annulus points ring the column (most sectors, then most points).
-		int32 BestSectors = -1, BestPoints = -1;
+		// The rim's outer edge: the farthest point from the column in each of 64 sectors near the
+		// rim's plane, whatever its material (the rig fits the same edge; the release test's fit of
+		// the outer points agrees with it).
+		FVector3f Edge[64];
+		double EdgeR[64];
+		for (int32 K = 0; K < 64; ++K) EdgeR[K] = -1.0;
 		for (const FSimCruiseRigSection& Section : R.SteeringWheel.Sections)
 		{
 			if (Section.Role == ESimCruiseCarMaterialRole::Gauge || Section.Role == ESimCruiseCarMaterialRole::Glass)
 			{
 				InstrumentTris += Section.NumTriangles();
 			}
-			TArray<FVector3f> Mine;
-			uint32 Mask = 0;
 			for (const FVector3f& P : Section.Positions)
 			{
 				const double Radial = FMath::Sqrt(double(P.Y) * P.Y + double(P.Z) * P.Z);
-				if (Radial >= 0.8 * RimCm && Radial <= 1.15 * RimCm && FMath::Abs(P.X) < 6.0)
-				{
-					Mine.Add(P);
-					Mask |= 1u << (int32(FMath::FloorToDouble((FMath::Atan2(double(P.Z), double(P.Y)) + UE_DOUBLE_PI) / UE_DOUBLE_TWO_PI * 16.0)) & 15);
-				}
-			}
-			const int32 Sec = FMath::CountBits(Mask);
-			const bool bRings = Sec >= 14, bBestRings = BestSectors >= 14;
-			if ((bRings && !bBestRings) || (bRings == bBestRings && (bRings ? Mine.Num() > BestPoints : (Sec > BestSectors || (Sec == BestSectors && Mine.Num() > BestPoints)))))
-			{
-				BestSectors = Sec;
-				BestPoints = Mine.Num();
-				Annulus = MoveTemp(Mine);
+				if (Radial < 0.7 * RimCm || Radial > 1.25 * RimCm || FMath::Abs(P.X) > 6.0) continue;
+				const int32 K = int32(FMath::FloorToDouble((FMath::Atan2(double(P.Z), double(P.Y)) + UE_DOUBLE_PI) / UE_DOUBLE_TWO_PI * 64.0)) & 63;
+				if (Radial > EdgeR[K]) { EdgeR[K] = Radial; Edge[K] = P; }
 			}
 		}
+		for (int32 K = 0; K < 64; ++K) if (EdgeR[K] > 0.0) Annulus.Add(Edge[K]);
 		// The rim's tube: within 2 cm of the median radius and 1.5 cm of the median depth.
 		TArray<double> Radii, Depths;
 		for (const FVector3f& P : Annulus) { Radii.Add(FMath::Sqrt(double(P.Y) * P.Y + double(P.Z) * P.Z)); Depths.Add(P.X); }
@@ -109,7 +102,7 @@ namespace SimCruisePresentationTests
 		const double MedianR = Radii.Num() ? Radii[Radii.Num() / 2] : RimCm, MedianX = Depths.Num() ? Depths[Depths.Num() / 2] : 0.0;
 		for (const FVector3f& P : Annulus)
 		{
-			{ const double Rp = FMath::Sqrt(double(P.Y) * P.Y + double(P.Z) * P.Z); if (FMath::Abs(Rp - MedianR) > 1.5 || FMath::Abs(P.X - MedianX) > 1.5) continue; }
+			// (Every outer-edge point: a tube filter about the median depth would drop half a tilted ring.)
 			SumY += P.Y; SumZ += P.Z; Count += 1;
 			Syy += double(P.Y) * P.Y; Szz += double(P.Z) * P.Z; Syz += double(P.Y) * P.Z; Sxy += double(P.X) * P.Y; Sxz += double(P.X) * P.Z; Sx += P.X;
 		}
@@ -127,7 +120,7 @@ namespace SimCruisePresentationTests
 		const double Mu = SumY / Count, Mv = SumZ / Count;
 		for (const FVector3f& P : Annulus)
 		{
-			{ const double Rp = FMath::Sqrt(double(P.Y) * P.Y + double(P.Z) * P.Z); if (FMath::Abs(Rp - MedianR) > 1.5 || FMath::Abs(P.X - MedianX) > 1.5) continue; }
+			// (Every outer-edge point: a tube filter about the median depth would drop half a tilted ring.)
 			Sectors |= 1u << (int32(FMath::FloorToDouble((FMath::Atan2(double(P.Z), double(P.Y)) + UE_DOUBLE_PI) / UE_DOUBLE_TWO_PI * 16.0)) & 15);
 			const double X = P.Y - Mu, Y = P.Z - Mv;
 			Suu += X * X; Svv += Y * Y; Suv += X * Y; Suuu += X * X * X; Svvv += Y * Y * Y; Suvv += X * Y * Y; Svuu += Y * X * X;
@@ -167,8 +160,7 @@ namespace SimCruisePresentationTests
 		const double TiltDeg = FMath::RadiansToDegrees(FMath::Atan(FMath::Sqrt(A * A + B * B)));
 		Test.AddInfo(FString::Printf(TEXT("WHEELAXIS %s: rim centre %.2f cm off the axis, rim tilted %.2f deg on the column (%d points)"), *CarId, OffAxisCm, TiltDeg, int32(Count)));
 		Test.TestTrue(FString::Printf(TEXT("%s: the hub does not orbit (rim centre %.2f cm off the axis, at most 0.5)"), *CarId, OffAxisCm), OffAxisCm <= 0.5);
-		// 3 deg: the Miata's rim is a leather tube over a moulded core, and two fits of it (the rig's and this one) differ by up to 2 deg.
-		Test.TestTrue(FString::Printf(TEXT("%s: the rim is square to the column (%.2f deg, at most 3)"), *CarId, TiltDeg), TiltDeg <= 3.0);
+		Test.TestTrue(FString::Printf(TEXT("%s: the rim is square to the column (%.2f deg, at most 2)"), *CarId, TiltDeg), TiltDeg <= 2.0);
 	}
 
 	/** Checks every car must pass: dimensions, wheel placement, frame and pivots. */

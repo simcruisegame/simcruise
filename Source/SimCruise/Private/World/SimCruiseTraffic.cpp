@@ -250,6 +250,7 @@ bool ASimCruiseTraffic::ChooseAt(ASimCruiseTrafficCar& Car, double DecisionS, bo
 	if (!End.bValid) return false;
 	struct FOption { FIntPoint Tile; int32 Ribbon; int32 Dir; double S; double TurnDeg; double Weight; };
 	TArray<FOption> Options;
+	TArray<FOption> UTurns;
 	// At a junction along the ribbon, straight on is the likeliest way.
 	if (!bAtEnd) Options.Add({ Car.Tile, Car.Ribbon, Car.Dir, DecisionS, 0.0, 3.0 });
 	// What meets this end: the same street carrying on (a tile seam) or a crossing road.
@@ -308,12 +309,25 @@ bool ASimCruiseTraffic::ChooseAt(ASimCruiseTrafficCar& Car, double DecisionS, bo
 					if (Left < 15.0) continue;
 					const FVector2d Heading = Tn * static_cast<double>(Dir);
 					const double Turn = SignedAngleDeg(End.Heading, Heading);
-					if (FMath::Abs(Turn) > 135.0) continue; // no U-turns
+					if (FMath::Abs(Turn) > 135.0)
+					{
+						// No U-turns, unless the road goes nowhere else (a dead end: turn round at its end).
+						UTurns.Add({ TileId, Hit.Key, Dir, EntryS, Turn, 1.0 });
+						continue;
+					}
 					Options.Add({ TileId, Hit.Key, Dir, EntryS, Turn, FMath::Abs(Turn) < 30.0 ? 3.0 : 1.0 });
 				}
 			}
 		}
 	}
+	// A dead end (Fish Pier Road at Stonington, Maine): the only way on is back the way it came.
+	if (Options.IsEmpty() && bAtEnd)
+	{
+		// Back along this same road (it has no other way on), where it is two-way.
+		const int32 Back = -Car.Dir;
+		UTurns.Add({ Car.Tile, Car.Ribbon, Back, DecisionS, 180.0, 1.0 });
+	}
+	if (Options.IsEmpty()) Options = MoveTemp(UTurns);
 	if (Options.IsEmpty()) return false;
 	// US practice at a junction without signals: the minor approach stops (a stop sign);
 	// between equal minor streets every approach does (an all-way stop); the priority road
@@ -885,10 +899,10 @@ void ASimCruiseTraffic::Tick(float DeltaSeconds)
 			UpdateVoice(*Car, FVector::Dist(Car->GetActorLocation(), CameraCm) / 100.0, bSound);
 		}
 		// A queue behind a car or the player that stands for good (you parked in the lane) would
-		// grow without end: a car stuck in it for 25 s turns off out of sight, as drivers find
+		// grow without end: a car stuck in it for 18 s turns off out of sight, as drivers find
 		// another way. Only when nothing can see it go.
 		bool bGivesUp = false;
-		if (Car && Car->Ribbon != INDEX_NONE && Car->StandS > 25.0 && (Car->Why == 1 || Car->Why == 2) &&
+		if (Car && Car->Ribbon != INDEX_NONE && Car->StandS > 18.0 && (Car->Why == 1 || Car->Why == 2) &&
 			CVarTrafficGridlockRules.GetValueOnGameThread() != 0)
 		{
 			const FVector ToCar = Car->GetActorLocation() - CameraCm;
