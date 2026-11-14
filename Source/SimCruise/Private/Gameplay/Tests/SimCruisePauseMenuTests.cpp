@@ -48,7 +48,9 @@ bool FSimCruisePauseMenuPadTest::RunTest(const FString& Parameters)
 	Press(*Menu, EKeys::Gamepad_DPad_Up);
 	Press(*Menu, EKeys::Gamepad_DPad_Up);
 	Press(*Menu, EKeys::Gamepad_DPad_Up);
-	TestEqual(TEXT("up from the top wraps to the last row"), Menu->GetSelectedRow(), ESimCruiseMenuRow::Atlas);
+	TestTrue(TEXT("up from the first row goes onto the tab row"), Menu->IsOnTabs() && Menu->GetTabCursor() == 0);
+	Press(*Menu, EKeys::Gamepad_DPad_Down);
+	TestTrue(TEXT("down from the tab row: the first row"), !Menu->IsOnTabs() && Menu->GetSelectedRow() == ESimCruiseMenuRow::Continue);
 	Press(*Menu, EKeys::Gamepad_DPad_Right);
 	TestEqual(TEXT("right on an action row does nothing"), Actions.Num(), 1);
 	Press(*Menu, EKeys::Gamepad_FaceButton_Left);
@@ -76,13 +78,12 @@ bool FSimCruisePauseMenuPadTest::RunTest(const FString& Parameters)
 	Press(*Menu, EKeys::Gamepad_LeftShoulder);
 	TestEqual(TEXT("LB from Drive wraps to Settings"), Menu->GetPage(), 3);
 	TestEqual(TEXT("the page change is reported (Seat & view unpauses the world)"), PagesSeen.Contains(2), true);
-	TestEqual(TEXT("each page keeps its row"), (Menu->SetPage(1), Menu->GetSelectedRow()), ESimCruiseMenuRow::Transmission);
+	TestEqual(TEXT("every page opens on its first row"), (Menu->SetPage(1), Menu->GetSelectedRow()), ESimCruiseMenuRow::Car);
 
 	// The keyboard does the same.
 	Press(*Menu, EKeys::Q);
 	TestEqual(TEXT("Q: previous page"), Menu->GetPage(), 0);
-	TestEqual(TEXT("the Drive page kept its row"), Menu->GetSelectedRow(), ESimCruiseMenuRow::Atlas);
-	Press(*Menu, EKeys::Down);
+	TestEqual(TEXT("the Drive page opens on its first row"), Menu->GetSelectedRow(), ESimCruiseMenuRow::Continue);
 	Press(*Menu, EKeys::Down);
 	Press(*Menu, EKeys::Enter);
 	TestEqual(TEXT("Enter chooses Where to?"), Actions.Last().Key, ESimCruiseMenuRow::WhereTo);

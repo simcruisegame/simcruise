@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Gameplay/SimCruisePlaces.h"
+#include "Gameplay/SimCruiseUiTheme.h"
 #include "UObject/StrongObjectPtr.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
@@ -75,9 +76,28 @@ public:
 
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual bool SupportsKeyboardFocus() const override { return true; }
+	virtual FReply OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual FReply OnAnalogValueChanged(const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent) override;
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
+	/** The pad keyboard under the search box (A on the box opens it). */
+	void OpenPadKeyboard();
+	void ClosePadKeyboard();
+	bool IsPadKeyboardOpen() const { return bKeys; }
+	/** Type into the search box as the pad keyboard does. */
+	void TypeKey(const FString& Key);
+	FString GetQuery() const;
+	/** The pad keyboard's keys, row by row, and the screen's other controls (tests). */
+	const TArray<TArray<TSharedPtr<SWidget>>>& GetKeyRows() const { return KeyRows; }
+	TSharedPtr<SWidget> GetField() const;
+	const TArray<TSharedPtr<SWidget>>& GetChoiceButtons() const { return ChoiceButtons; }
+	const TArray<TSharedPtr<SWidget>>& GetToolButtons() const { return ToolButtons; }
+
 private:
+	void MoveKey(int32 DX, int32 DY);
+	void MoveFocus(int32 DX, int32 DY);
+	TArray<TArray<TSharedPtr<SWidget>>> PadLayout() const;
+	TSharedRef<SWidget> BuildPadKeys();
 	void ShowResults(const TArray<FSimCruisePlace>& Places, const FString& Note);
 	void Choose(const FSimCruisePlace& Place);
 	void DoSurprise();
@@ -89,6 +109,13 @@ private:
 	TSharedPtr<SVerticalBox> Choices;
 	TSharedPtr<STextBlock> Status;
 	TArray<TSharedPtr<SWidget>> ChoiceButtons;
+	/** Search, Surprise me, Back to drive. */
+	TArray<TSharedPtr<SWidget>> ToolButtons;
+	TSharedPtr<SWidget> KeysPanel;
+	TArray<TArray<TSharedPtr<SWidget>>> KeyRows;
+	bool bKeys = false;
+	bool bPadUsed = false;
+	SimCruiseTheme::FStickRepeat Stick;
 
 	/** The newest search; older answers are dropped (Drive.gd query_serial). */
 	struct FPending;
@@ -129,7 +156,10 @@ public:
 
 	/** Map tiles drawn and still to fetch (checks). */
 	int32 NumMapImages() const;
+	/** The top panel's buttons, row by row (tests). */
+	const TArray<TArray<TSharedPtr<SWidget>>>& GetPadRows() const { return PadRows; }
 
+	virtual FReply OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply OnAnalogValueChanged(const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent) override;
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
@@ -170,8 +200,12 @@ private:
 	FSimCruiseOnSetting OnSetting;
 	FSimpleDelegate OnClose;
 	TArray<TSharedPtr<STextBlock>> SettingLabels;
-	/** The setting the pad's D-pad Left/Right has picked (A changes it), -1 when none. */
-	int32 SettingCursor = -1;
+	/** Every button on the top panel, row by row, as the pad walks them (D-pad), so each one is
+	 *  reachable without a mouse. The pad is on the map while none of them has the focus. */
+	TArray<TArray<TSharedPtr<SWidget>>> PadRows;
+	/** Move the pad's focus between the buttons: Dir X along (across rows), Dir Y between rows. */
+	void MovePad(int32 DX, int32 DY);
+	bool IsOnButtons() const;
 
 	FSimCruiseAtlasView View;
 	int32 Level = 4;

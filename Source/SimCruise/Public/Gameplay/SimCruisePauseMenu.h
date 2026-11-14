@@ -12,9 +12,13 @@ class SWidgetSwitcher;
 /**
  * The pause menu (Menu or Tab; docs/ui/ui-spec.md, mockups 1, 3, 4): four
  * pages, Drive, Your car, Seat & view and Settings, changed with LB and RB
- * (Q and E). Up and down choose a row, A (Enter) chooses it, left and right
- * change a value, B (Esc) goes back to the drive. The rows only ask: the
- * player controller does each action (ASimCruisePlayerController::MenuAction).
+ * (Q and E) from anywhere in the menu. Up and down choose a row, A (Enter)
+ * chooses it, left and right change a value, B (Esc) or Menu goes back to the
+ * drive. Up from the first row goes onto the tab row: left and right move along
+ * it, A or Down opens that page. Every page change lands on the page's first
+ * row. The rows only ask: the player controller does each action
+ * (ASimCruisePlayerController::MenuAction). The pad's place is Slate's focus:
+ * the selected row or tab has it, so a mouse resting on the menu cannot move it.
  */
 enum class ESimCruiseMenuRow : uint8
 {
@@ -70,12 +74,14 @@ DECLARE_DELEGATE_OneParam(FSimCruiseOnMenuPage, int32);
 class SIMCRUISE_API SSimCruisePauseMenu : public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS(SSimCruisePauseMenu) : _Page(0) {}
+	SLATE_BEGIN_ARGS(SSimCruisePauseMenu) : _Page(0), _Row(0) {}
 		SLATE_EVENT(FSimCruiseGetMenuState, GetState)
 		SLATE_EVENT(FSimCruiseOnMenuAction, OnAction)
 		SLATE_EVENT(FSimCruiseOnMenuPage, OnPage)
 		SLATE_EVENT(FSimpleDelegate, OnClose)
 		SLATE_ARGUMENT(int32, Page)
+		/** The row the page opens on (coming back from a screen this menu opened). */
+		SLATE_ARGUMENT(int32, Row)
 	SLATE_END_ARGS()
 
 	enum class EKind : uint8 { Action, Value, Slider, Segmented };
@@ -97,6 +103,9 @@ public:
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply OnAnalogValueChanged(const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent) override;
 	virtual bool SupportsKeyboardFocus() const override { return true; }
+	virtual FReply OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent) override;
+	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual FNavigationReply OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent) override;
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
 	/** Pad navigation as the keys do it (tests and scripts). */
@@ -104,8 +113,19 @@ public:
 	int32 GetPage() const { return Page; }
 	int32 GetSelected() const { return Selected[Page]; }
 	ESimCruiseMenuRow GetSelectedRow() const { return Rows(Page)[Selected[Page]].Row; }
+	/** Open a page on its first row (LB, RB, a tab). */
 	void SetPage(int32 InPage);
 	const FSimCruiseMenuState& GetStateNow() const { return State; }
+	/** Is the pad on the tab row (and on which tab)? */
+	bool IsOnTabs() const { return bTabs; }
+	/** Has the tab bar the pad's focus (SimCruise.UI.PadNavigation asks this)? */
+	bool IsTabBarFocused() const { return bTabs; }
+	int32 GetTabCursor() const { return TabCursor; }
+	/** The widgets that take the pad's focus (tests). */
+	TSharedPtr<SWidget> GetTabWidget(int32 InPage) const { return InPage >= 0 && InPage < NumPages ? TabWidgets[InPage] : nullptr; }
+	TSharedPtr<SWidget> GetRowWidget(int32 InPage, int32 Index) const { return InPage >= 0 && InPage < NumPages && RowWidgets[InPage].IsValidIndex(Index) ? RowWidgets[InPage][Index] : nullptr; }
+	/** The widget the pad is on now. */
+	TSharedPtr<SWidget> GetFocusTarget() const;
 
 private:
 	TSharedRef<SWidget> BuildPage(int32 InPage);
@@ -115,6 +135,8 @@ private:
 	TSharedRef<SWidget> BuildHints();
 	FSimCruiseMenuValue ValueOf(ESimCruiseMenuRow Row) const;
 	void Choose(int32 Dir);
+	/** Move Slate's focus to the selected row or tab (again next frame if it is not on screen yet). */
+	void SyncFocus();
 
 	FSimCruiseGetMenuState GetState;
 	FSimCruiseOnMenuAction OnAction;
@@ -124,7 +146,13 @@ private:
 	int32 Page = 0;
 	int32 Selected[NumPages] = { 0, 0, 0, 0 };
 	TSharedPtr<SWidgetSwitcher> Pages;
-	double StickHeldUntil = 0.0;
+	TArray<TSharedPtr<SWidget>> RowWidgets[NumPages];
+	TSharedPtr<SWidget> TabWidgets[NumPages];
+	bool bTabs = false;
+	int32 TabCursor = 0;
+	bool bFocusDirty = true;
+	bool bSyncing = false;
+	SimCruiseTheme::FStickRepeat Stick;
 };
 
 /** A short list screen in the same look: famous roads, or what to do with a found place. */
@@ -152,14 +180,26 @@ public:
 
 	void Construct(const FArguments& InArgs);
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual FReply OnAnalogValueChanged(const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent) override;
+	virtual FReply OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent) override;
+	virtual FNavigationReply OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent) override;
 	virtual bool SupportsKeyboardFocus() const override { return true; }
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	void Navigate(SimCruiseTheme::ENav Nav);
 	int32 GetSelected() const { return Selected; }
+	int32 NumItems() const { return Items.Num(); }
+	TSharedPtr<SWidget> GetRowWidget(int32 Index) const { return RowWidgets.IsValidIndex(Index) ? RowWidgets[Index] : nullptr; }
 
 private:
+	void SyncFocus();
+
 	TArray<FItem> Items;
+	TArray<TSharedPtr<SWidget>> RowWidgets;
 	int32 Selected = 0;
 	bool bPad = true;
+	bool bFocusDirty = true;
+	bool bSyncing = false;
+	SimCruiseTheme::FStickRepeat Stick;
 	FOnChoose OnChoose;
 	FSimpleDelegate OnBack;
 };

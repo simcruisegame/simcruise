@@ -159,6 +159,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Exposure")
 	float DaylightOpenStops = 3.0f;
 
+	/**
+	 * The daylight limit while the player sits in the driver's seat. Inside an open cabin under
+	 * trees the meter saw the shaded cabin and forest and opened 3 EV, so the sunlit black dash
+	 * and wheel came out light grey-tan; the eye keeps them black (lightness constancy).
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Exposure")
+	float DriverDaylightOpenStops = 1.5f;
+
+	/** The player's camera is in the driver's seat (set by the driven car every frame). */
+	void SetDriverView(bool bInSeat) { if (bInSeat != bDriverView) { bDriverView = bInSeat; ApplyExposure(); } }
+
 	/** Darkest part of the picture the exposure meter ignores (percent of pixels). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Exposure")
 	float ExposureLowPercent = 10.0f;
@@ -239,6 +250,7 @@ private:
 	double SkyGlowNits = 0.0;
 	void ApplyClouds();
 	void ApplyExposure();
+	bool bDriverView = false;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> CloudMaterial;

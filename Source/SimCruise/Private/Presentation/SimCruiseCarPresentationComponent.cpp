@@ -1,6 +1,8 @@
 // Copyright SimCruise contributors. All Rights Reserved.
 
 #include "Presentation/SimCruiseCarPresentationComponent.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 #include "Environment/SimCruiseEnvironment.h"
 #include "Environment/SimCruiseEnvironmentSubsystem.h"
 #include "Presentation/SimCruiseCarClock.h"
@@ -307,6 +309,15 @@ bool USimCruiseCarPresentationComponent::InitializeForCar(const FString& InCarId
 	{
 		SteeringRest = Built->SteeringWheel.PartToVehicle;
 		SteeringWheelMesh = AddPart(this, Built->SteeringWheel, SteeringRest);
+		if (SteeringWheelMesh)
+		{
+			// The turning wheel's own shadow drew black jagged tears on its spokes (where the spokes meet
+			// the horn pad) in every turned frame, also with its shadow pages redrawn each frame; with the
+			// wheel casting no shadow they are gone. Under the cowl the dash's own shadow covers it anyway.
+			// -SimCruiseWheelShadow keeps it on to look at the fault.
+			SteeringWheelMesh->ShadowCacheInvalidationBehavior = EShadowCacheInvalidationBehavior::Always;
+			SteeringWheelMesh->SetCastShadow(FParse::Param(FCommandLine::Get(), TEXT("SimCruiseWheelShadow")));
+		}
 	}
 	// The instruments: a live face over each of the model's dials (their needles are part of the
 	// dash mesh and cannot turn), drawn into a render target the face's material shows and lights.
@@ -422,7 +433,10 @@ void USimCruiseCarPresentationComponent::UpdateDials(float DeltaTime)
 		const int32 Spec = Built->Dials[D].Spec;
 		if (!Built->Profile.Dials.IsValidIndex(Spec)) continue;
 		const FSimCruiseDialSpec& Dial = Built->Profile.Dials[Spec];
-		DialShown[D] += (DialTarget(Dial.Quantity, LastState) - DialShown[D]) * Follow;
+		// A tachometer's needle is light and fast (it follows a gear change within about a tenth of a
+		// second); the others keep the slower needle lag.
+		const double DialFollow = Dial.Quantity == TEXT("rpm") ? 1.0 - FMath::Exp(-FMath::Max(DeltaTime, 0.f) / 0.04) : Follow;
+		DialShown[D] += (DialTarget(Dial.Quantity, LastState) - DialShown[D]) * DialFollow;
 		if (UStaticMeshComponent* Needle = Needles[D])
 		{
 			if (Dial.IsLinear())
@@ -830,9 +844,10 @@ void USimCruiseCarPresentationComponent::SetMirrorsLive(bool bLive, USceneCompon
 		return;
 	}
 	// Wide enough for the three glasses (the door mirrors look outward, the passenger's is
-	// convex); 768 x 320 puts about 7.7 texels in each degree.
+	// convex); 1152 x 480 puts about 11.5 texels in each degree (768 x 320 read as a blocky,
+	// blurred picture in the rear-view glass at 1080p: release review 2026-11-14).
 	constexpr float FovDeg = 100.f;
-	constexpr int32 SizeX = 768, SizeY = 320;
+	constexpr int32 SizeX = 1152, SizeY = 480;
 	if (!MirrorTarget)
 	{
 		MirrorTarget = NewObject<UTextureRenderTarget2D>(this);
@@ -867,10 +882,11 @@ void USimCruiseCarPresentationComponent::SetMirrorsLive(bool bLive, USceneCompon
 	// (0.75 ms: with Lumen off only distance-field AO and far shadows use it; virtual shadow
 	// maps cover the mirror's view), distance-field AO and shadows,
 	// the volumetric clouds with their shadow map (0.9 ms; the mirror's sky is the
-	// atmosphere alone); motion blur, bloom, volumetric fog and anti-aliasing. (Set as
+	// atmosphere alone); motion blur, bloom and volumetric fog. Anti-aliasing stays on: without it
+	// the glass showed stair-stepped edges. (Set as
 	// show-flag settings: registering the capture rebuilds its flags from them.)
 	TArray<FEngineShowFlagsSetting> Flags;
-	for (const TCHAR* Name : {TEXT("MotionBlur"), TEXT("Bloom"), TEXT("VolumetricFog"), TEXT("AntiAliasing"), TEXT("DistanceFieldAO"),
+	for (const TCHAR* Name : {TEXT("MotionBlur"), TEXT("Bloom"), TEXT("VolumetricFog"), TEXT("DistanceFieldAO"),
 		TEXT("RayTracedDistanceFieldShadows"), TEXT("Cloud"), TEXT("AmbientOcclusion"), TEXT("ContactShadows")})
 	{
 		FEngineShowFlagsSetting Flag;

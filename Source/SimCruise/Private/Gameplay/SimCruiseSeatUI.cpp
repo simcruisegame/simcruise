@@ -167,7 +167,7 @@ FReply SSimCruiseSeatMenu::OnKeyDown(const FGeometry& MyGeometry, const FKeyEven
 	}
 	if (Key == EKeys::Gamepad_FaceButton_Top || Key == EKeys::Delete) { Working = FSimCruiseSeat(); Show(); return FReply::Handled(); }
 	if (Key == EKeys::Gamepad_FaceButton_Bottom || Key == EKeys::Enter) { Close(true); return FReply::Handled(); }
-	if (Key == EKeys::Gamepad_FaceButton_Right || Key == EKeys::Escape) { Close(false); return FReply::Handled(); }
+	if (Key == EKeys::Gamepad_FaceButton_Right || Key == EKeys::Gamepad_Special_Right || Key == EKeys::Escape) { Close(false); return FReply::Handled(); }
 	return FReply::Unhandled();
 }
 

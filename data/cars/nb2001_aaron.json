@@ -50,6 +50,7 @@
  "wheel_inertia": 1.05,
  "rolling_resistance": 0.012,
  "parking_rack_deg": 36.6,
+ "steering_turns_lock_to_lock": 2.6,
  "road_reference_deg": 35.5,
  "ackermann_blend": 0.49,
  "assist_lateral_g": 0.95,
@@ -278,7 +279,6 @@
   "turning_circle_m": 9.2,
   "curb_mass_kg": 1083,
   "steering_ratio": 15.0,
-  "steering_turns_lock_to_lock": 2.6,
   "handling": "Light, quick steering (2.6 turns lock to lock with power assist) and mild tuck-in on lifting in a corner; reviewers call it balanced and forgiving.",
   "sources": "Turning circle 9.2 m (30.2 ft): cars-data.com NB 1.8 specification. Curb 2,387 lb: the car file's NB2 LS listing. Steering 15:1, 2.6 turns: GoAuto 2001 MX-5 review. Handling: Cars.com 1999 review, Grassroots Motorsports owners."
  }
