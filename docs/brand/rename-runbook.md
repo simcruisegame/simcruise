@@ -1,6 +1,6 @@
 # Runbook: rename the GitHub repository to `osds`
 
-Approved by Aaron in the project thread on 14 November 2026. Do it only when the coordinator says (after v2.0.3 is out), on the PC, with `gh` signed in as an admin of `simcruisegame`. It takes about 10 minutes.
+Approved by the project owner in the project thread on 14 November 2026. Do it only when the coordinator says (after v2.0.3 is out), on the PC, with `gh` signed in as an admin of `simcruisegame`. It takes about 10 minutes.
 
 What changes: `github.com/simcruisegame/simcruise` becomes `github.com/simcruisegame/osds`, and the website moves from `simcruisegame.github.io/simcruise/` to `simcruisegame.github.io/osds/`. The organisation name stays.
 
@@ -53,4 +53,4 @@ Merge `brand/osds-links` (README badges and links, website canonical, Open Graph
 - `https://github.com/simcruisegame/simcruise` opens `simcruisegame/osds`.
 - `https://simcruisegame.github.io/simcruise/` goes to `https://simcruisegame.github.io/osds/`, and the new site shows the OSDS logo.
 - The README badges show the release and the downloads.
-- Aaron (off-site): submit `https://simcruisegame.github.io/osds/sitemap.xml` again in Google Search Console and Bing Webmaster Tools, and upload `docs/images/social-preview.png` again under Settings > General > Social preview.
+- The project owner (off-site): submit `https://simcruisegame.github.io/osds/sitemap.xml` again in Google Search Console and Bing Webmaster Tools, and upload `docs/images/social-preview.png` again under Settings > General > Social preview.
