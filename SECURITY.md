@@ -14,7 +14,7 @@ Security fixes go into the latest release and the `main` branch. Older releases 
 
 **Please do not open a public issue for security problems.**
 
-Report privately through GitHub: go to the repository's [Security tab](https://github.com/simcruisegame/simcruise/security) and choose **Report a vulnerability**, or open <https://github.com/simcruisegame/simcruise/security/advisories/new> directly. Only the maintainers can see the report.
+Report privately through GitHub: go to the repository's [Security tab](https://github.com/simcruisegame/osds/security) and choose **Report a vulnerability**, or open <https://github.com/simcruisegame/osds/security/advisories/new> directly. Only the maintainers can see the report.
 
 Include what you found, how to reproduce it, which version or commit you tested, and what an attacker could do with it. We aim to acknowledge reports within a week and to agree a disclosure date with you once a fix is ready. We credit reporters in the advisory unless you ask us not to.
 

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Moved: OSDS, the Open Source Driving Simulator</title>
+<meta name="robots" content="noindex">
+<script>
+// Old SimCruise links (/simcruise/...) go to the same path under /osds/.
+var p = location.pathname;
+if (p.indexOf("/simcruise/") === 0) {
+  location.replace("/osds/" + p.slice("/simcruise/".length) + location.search + location.hash);
+}
+</script>
+</head>
+<body>
+<p>Page not found. OSDS (formerly SimCruise) is at <a href="https://simcruisegame.github.io/osds/">simcruisegame.github.io/osds</a>.</p>
+</body>
+</html>

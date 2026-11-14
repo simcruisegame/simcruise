@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: Report a security vulnerability
-    url: https://github.com/simcruisegame/simcruise/security/advisories/new
+    url: https://github.com/simcruisegame/osds/security/advisories/new
     about: Please report security problems privately, not as a public issue.
   - name: Map data is wrong (a road, building or name)
     url: https://www.openstreetmap.org/fixthemap

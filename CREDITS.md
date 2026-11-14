@@ -164,4 +164,4 @@ These are named in our research notes, but no code in the game or its tools uses
 - USDA Forest Service TreeMap.
 - ambientCG materials (CC0).
 
-Did we miss you, or credit your work wrongly? Please [open an issue](https://github.com/simcruisegame/simcruise/issues) and we will fix it.
+Did we miss you, or credit your work wrongly? Please [open an issue](https://github.com/simcruisegame/osds/issues) and we will fix it.
