@@ -48,3 +48,11 @@ Skills are Claude Code skills on this account (call them with the Skill tool, or
 - The 8 detail-kit textures on main were made with SDXL. The world thread replaces them with CC0 scans.
 - Real-ESRGAN is in `SimCruiseNeuralDetail`. The live-data thread removes it.
 - Fab and Megascans assets stay out of the public repo (see `/mnt/project-files/research/free-unreal-tools.md`).
+
+## PC audit (2026-11-14 03:10Z)
+
+- `D:\simcruise` is checked out on branch `unreal/client`, which does not have `.claude/agents`. A Claude session that starts there cannot see the 18 experts. Start sessions in a lane worktree on main (`D:\sc\lane-*`), or bring `.claude/agents` into that checkout.
+- `unreal-mcp` (`http://127.0.0.1:8000/mcp`, in `D:\simcruise\.mcp.json`) works only while the editor runs with its plugin (start the editor with `scripts\editor.ps1`).
+- The Blender MCP (`uvx blender-mcp`) connects and drops; retry it. Tools: scene info, run Blender code, look, search and import assets.
+- desktop-commander fails to connect on the PC.
+- On the PC these skills are visible: Unreal (unreal-mcp, unreal-skill, create-toolset), engineering (architecture, code-review, debug, testing-strategy, tech-debt), supermatt (diagnosing-bugs, tdd, qa, prototype, research), zizi-skills (debugging-and-error-recovery, planning, orchestration, research-methods, source-driven-development), built-in code-review, security-review, simplify. No project skills folder (`.claude/skills`) exists yet.

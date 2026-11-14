@@ -9,7 +9,10 @@
  * Pure bookkeeping (no engine objects), so it is testable and the streamer
  * actor stays thin. Ported from godot-final:game/Drive.gd stream():
  *  - the ring of tiles around the car's tile is wanted, nearest first, with a
- *    look-ahead toward where the car will be in a few seconds;
+ *    look-ahead toward where the car will be in a few seconds; the tiles on the
+ *    line to that point are wanted too, out to one tile past the ring (the
+ *    streamer sets the point at speed x (2 x load time + 4 s)); route tiles
+ *    go first and always keep one load slot while the car moves;
  *  - tiles beyond the ring plus one tile of hysteresis are retired;
  *  - each job carries the generation of the place it was started for; a new
  *    place (search, Surprise me, a jump) bumps the generation, and a result
@@ -23,6 +26,20 @@ struct FSimCruiseTileJobTicket
 	uint32 Generation = 0;
 	uint64 Serial = 0;
 };
+
+struct FSimCruiseTileBuild;
+
+/**
+ * Fallback ground: a tile in range whose load failed (or is still loading) must not leave
+ * a hole the car falls through. The streamer lays a flat collision slab over it at this
+ * height (m, the frame's datum): the mean terrain height along the edges it shares with
+ * built neighbours (their fine grid), else DefaultM (the car's own height). The real
+ * tile replaces it when its collision is ready.
+ */
+namespace SimCruiseFallbackGround
+{
+	SIMCRUISE_API double HeightM(const FIntPoint& Tile, TFunctionRef<const FSimCruiseTileBuild*(const FIntPoint&)> Find, double DefaultM, int32* OutNeighbours = nullptr);
+}
 
 class SIMCRUISE_API FSimCruiseTileManager
 {

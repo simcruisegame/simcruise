@@ -144,6 +144,9 @@ struct SIMCRUISE_API FSimCruiseTileBuild
 	TUniquePtr<FStaticMeshRenderData> RenderData;
 	TArray<int32> RenderSlots;
 
+	/** The context record of every ~32 m of road (SimCruiseCellContext), baked before the detail. */
+	TSharedPtr<const struct FSimCruiseTileContext, ESPMode::ThreadSafe> Context;
+
 	/** Palms to instance on this tile. */
 	TArray<FSimCruisePalmInstance> PalmInstances;
 

@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
   The pre-flight check: the robot drives every hero road with every hero car, records a
   video of each drive and fails the build on what a player would see.
@@ -23,12 +23,9 @@
     dragon       US 129 Tail of the Dragon at Deals Gap, TN
     nebraska     Princeton Road gravel, Lancaster County, NE
     big-sur      CA-1 Cabrillo Highway, Big Sur, south of Bixby Bridge
-    us-*         ordinary US places from data\test-places.json (city, suburb, farm, desert,
-                 mountain town, interstate, coast, Alaska, Hawaii); the start snaps to the nearest road
-    random       -RandomCount places drawn from data\test-places.json (seeded by -Seed; default
-                 today's date, so one day's runs repeat)
-    pool         a random road from data\start\start-pool.json (-SimCruiseRandomStart, seeded by -Seed)
-  The world must work at a random US place, not only on the hero roads (docs\team\ownership.md).
+    and, on request only, ten places across the US for the world-detail checks: mojave,
+    colorado-pass, kansas-plains, maine-forest, oregon-coast, atlanta-suburb, iowa-town,
+    chicago, minnesota-north, south-texas (the car starts on the nearest road).
   Cars: nb2001_aaron (Miata), mustang65 (Mustang), meridian_z (Corvette).
   The roads other than Ocean Drive need the map helper (tools\atlas.exe) and the network.
 
@@ -57,7 +54,9 @@ param(
     # How many places 'random' draws from data\test-places.json.
     [int]$RandomCount = 3,
     # More game arguments for every run, for A/B tests (for example "-DPCVars=simcruise.Reflex=1").
-    [string]$ExtraArgs = ''
+    [string]$ExtraArgs = '',
+    # The graphics preset of every run (ultra by default; high for the second fps number).
+    [ValidateSet('low', 'medium', 'high', 'ultra')][string]$Graphics = 'ultra'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -83,6 +82,18 @@ $Defs = @{
     'dragon'      = @('-SimCruiseStart=35.4792763,-83.9327265', '"-SimCruiseStartRoad=Calderwood Highway"')
     'nebraska'    = @('-SimCruiseStart=40.56724,-96.5909', '"-SimCruiseStartRoad=Princeton Road"')
     'big-sur'     = @('-SimCruiseStart=36.363197,-121.900041', '"-SimCruiseStartRoad=Cabrillo Highway"')
+    # Places across the US for the world-detail checks (docs/research/world-detail-v2-plan.md):
+    # not in the default list; the car starts on the nearest road.
+    'mojave'         = @('-SimCruiseStart=34.5583,-115.7442')   # National Trails Highway (Route 66), Amboy CA
+    'colorado-pass'  = @('-SimCruiseStart=39.1087,-106.5642')   # CO-82, Independence Pass
+    'kansas-plains'  = @('-SimCruiseStart=38.3634,-98.7648')    # near Great Bend KS
+    'maine-forest'   = @('-SimCruiseStart=45.3417,-69.9706')    # US-201, The Forks ME
+    'oregon-coast'   = @('-SimCruiseStart=45.8918,-123.9615')   # US-101, Cannon Beach OR
+    'atlanta-suburb' = @('-SimCruiseStart=33.9526,-84.5499')    # Marietta GA
+    'iowa-town'      = @('-SimCruiseStart=41.4080,-92.9163')    # Pella IA
+    'chicago'        = @('-SimCruiseStart=41.8847,-87.6245')    # Michigan Avenue, the Loop
+    'minnesota-north' = @('-SimCruiseStart=48.0519,-92.8310')   # US-53, Orr MN
+    'south-texas'    = @('-SimCruiseStart=26.4815,-97.7831')    # US-77, Raymondville TX
 }
 if ($Seed -lt 0) { $Seed = [int](Get-Date -Format 'yyyyMMdd') }
 # Ordinary US places: the world must work everywhere, not only on the hero roads.
@@ -135,7 +146,7 @@ foreach ($Road in $Roads) {
         $Out = Join-Path $RunDir $Name
         New-Item -ItemType Directory -Force $Out | Out-Null
         $Log = Join-Path $Out 'game.log'
-        $Args = @("`"$Project`"", '-game', '-SimCruiseWorld', '-SimCruiseNoLive', '-SimCruiseNoNeural', '-SimCruiseGraphics=ultra', "-SimCruiseUtc=$(if (-not $UtcGiven -and $PlaceUtc.ContainsKey($Road)) { $PlaceUtc[$Road] } else { $Utc })",
+        $Args = @("`"$Project`"", '-game', '-SimCruiseWorld', '-SimCruiseNoLive', '-SimCruiseNoNeural', "-SimCruiseGraphics=$Graphics", "-SimCruiseUtc=$(if (-not $UtcGiven -and $PlaceUtc.ContainsKey($Road)) { $PlaceUtc[$Road] } else { $Utc })",
             "-SimCruiseCar=$Car", '-SimCruiseViewCheck', '-SimCruisePreflight', '-SimCruiseReview', "-SimCruisePreflightRoad=$Road", "-SimCruisePreflightSeconds=$Seconds",
             "`"-SimCruisePreflightOut=$Out`"", '-NoLiveCoding', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + @(Get-TestWindowArgs $ShowWindow) + @(Get-NativeResolution) + $Defs[$Road] + @(if ($Keen) { '-SimCruisePreflightKeen' }) + @(if ($ForceSpin) { '-SimCruisePreflightForceSpin' })
         if ($ExtraArgs) { $Args += $ExtraArgs }

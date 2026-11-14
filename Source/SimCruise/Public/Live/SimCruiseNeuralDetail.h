@@ -21,6 +21,10 @@
  * scripts/ai/embed_onnx_external.py). Command line: -SimCruiseNoNeural turns it off,
  * -SimCruiseNeuralScale=2|4 sets the kept resolution (default 2: 2048 px photographs).
  * Console: SimCruise.Neural.Bench <image> times one photograph and logs the GPU cost.
+ *
+ * Licence: code and weights BSD 3-Clause (licenses/Real-ESRGAN-BSD-3-Clause.txt); the project's
+ * rule is the makers' licence for the weights. Without the model file, or with no NNE runtime,
+ * aerial photographs get a classic unsharp mask instead (UnsharpMask).
  */
 class SIMCRUISE_API FSimCruiseNeuralDetail
 {
@@ -63,6 +67,14 @@ public:
 	/** Box-filters an image down by an integer factor. */
 	static void Downsample(const TArray<FColor>& In, int32 Width, int32 Height, int32 Factor, TArray<FColor>& Out);
 
+	/**
+	 * The fallback when the model is not there or no NNE runtime loads: a classic luminance-only
+	 * unsharp mask (the photograph minus a Gaussian blur of SigmaPx, times Amount, added back,
+	 * leaving differences under Threshold alone as JPEG noise). Pure, any thread; about 15 ms for
+	 * a 1024 px photograph.
+	 */
+	static void UnsharpMask(TArray<FColor>& Pixels, int32 Width, int32 Height, float Amount, float SigmaPx = 1.0f, int32 Threshold = 3);
+
 	FString Describe() const;
 
 private:
@@ -77,6 +89,7 @@ private:
 
 	bool bTried = false;
 	bool bReady = false;
+	bool bSharpenFallback = false;
 	int32 OutputScale = 2;
 	FString RuntimeName;
 	FCriticalSection RunLock;

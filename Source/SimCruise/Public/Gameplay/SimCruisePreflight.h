@@ -245,6 +245,8 @@ private:
 	double PathM = 0.0;
 	TArray<FVector2f> Surface;
 	TArray<uint8> SurfaceIsRoad;
+	/** Where each surface sample was (lat, lon), so a step can be found again. */
+	TArray<FVector2d> SurfaceLatLon;
 	float OffRoadNow = 0.f;
 	double LastVz = 0.0;
 	bool bHasLastVz = false;
