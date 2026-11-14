@@ -1,6 +1,6 @@
-# The team loop: research, plan, build, test, retro (owner ask, 2026-11-14)
+# The team loop: the release train (owner asks, 2026-11-14)
 
-One loop for every team. Short and light. One **cycle** = one batch of related changes per team (about one day of work, or less). The producer runs the loop. Cycle files: `docs/team/cycles/cycle-<n>.md`.
+One loop for every team. Short and light. One **cycle** = one version; all teams build at the same time and test together once. The producer runs the loop. Version files: `docs/team/cycles/<version>.md`.
 
 ## How real studios do it (what we take)
 
@@ -10,17 +10,69 @@ One loop for every team. Short and light. One **cycle** = one batch of related c
 - **Retrospective after each cycle**: what went well, what went wrong, what we change, and each change has an owner (Derby and Larsen, *Agile Retrospectives*, 2006; Scrum Guide 2020, "Sprint Retrospective": https://scrumguides.org/scrum-guide.html).
 - **Definition of done**: one shared list that every item must meet (Scrum Guide 2020).
 
-## The steps
+## The release train (owner, 2026-11-14 03:19Z)
 
-| Step | Owner | Must produce before the next step starts |
+Owner: "all meeting and then going off in their corners and working on stuff, adding it, testing it and then next version ... the whole team is testing their stuff at once." So one cycle = one **version**, and all teams work at the same time.
+
+| Step | Owner | Output before the next step |
 |---|---|---|
-| 1. Research | The team's lead expert (AI and Innovation teams for new methods) | A short note: what exists (games, papers, data, licences), what we do better, and the risk. Sources cited, guesses marked (estimate). |
-| 2. Plan | Producer, with each team lead | The cycle file: a ranked list, max about 5 items per team, each with owner thread, done-when test, the random US places it must pass, and the skills, plugins and Unreal features to use (`docs/team/tools-and-skills.md`). |
-| 3. Build | The owner thread | Code on a branch; fast tests after each change (`scripts\check.ps1 -Tier fast`); small commits. |
-| 4. Test | QA and tools (qa-playtester, tools-engineer); the owner thread runs it | Once per batch: full game tests and a real-output review. `scripts\preflight.ps1 -Roads ocean-drive,dragon,nebraska,big-sur,random` (3 random US places, each at local noon), the 3 cars, highest settings; read every contact sheet and frame; compare with the last PASS. **One GPU test at a time on the PC** (the editor lock in `scripts\EditorLock.ps1`). Merge to main only after check.ps1 passes. |
-| 5. Review and retro | Producer, with all leads | `docs/team/cycles/cycle-<n>.md` "Retro": what landed (commits, frames), what failed and why, what the owner said, 1-3 changes to how we work, each with an owner. Then the expert review per playtest wave (owner's choice, 2026-11-13). |
+| 1. Meet | Producer with all team leads | The version file `docs/team/cycles/<version>.md`: **one clear objective per team**, its done-when test, its random US places, and the tools to use (`docs/team/tools-and-skills.md`). Research notes come in here. |
+| 2. Build | Each team in its own lane, all at the same time | Changes on the team's branch. **Only fast tests** on its own changes (`scripts\check.ps1 -Tier fast`). No full game test of single changes. |
+| 3. Join (cut-off) | Producer, tools engineer | All lanes merge into one release candidate on main. Cut-off rule below. |
+| 4. Test once | QA and tools runs it; every team reviews its own area in the same run | One full test of the whole candidate: Ultra, hero roads plus `-Roads random`, the 3 cars, frame review, cockpit lock-to-lock test, controller menu test. One GPU test at a time. A defect list with frames. |
+| 5. Fix | Owner teams | Only fixes for faults the test found; then **one** re-test. |
+| 6. Release, then retro | Release thread; producer | Tag, README, screenshots, tested installers (release rule). Retro in the version file: what landed, what failed, 1-3 changes with owners. Then step 1 of the next version. |
 
-The retro feeds the next plan: every retro change and every open defect goes to the top of the next cycle's plan before new features.
+**Cut-off: the ready check (owner, 2026-11-14 03:19Z).** The coordinator asks each team "are you ready to test?". A team is ready when its objective is merged and passes its fast tests; it sends the coordinator "READY TO TEST" with one line on what it merged. When every team says ready, the one shared test runs. After the test, everyone learns from it (retro). Then each team goes back to its lane: first it fixes what the test found broken, then it goes on to its next idea.
+
+The retro feeds the next meet: every retro change and every open defect goes to the top of the next version before new features.
+
+## Who manages the train (owner, 03:20-03:23Z)
+
+The **coordinator is the manager**: it sets the criteria below, runs the ready check, calls the shared test, sends each team its feedback, and decides when a tested state is worth a release.
+
+Order of one version: **meet → build in corners → ready check → test together → feedback to each team → corners again for fixes → meet for the next version.**
+
+## READY TO TEST (each team, before it says ready)
+
+1. Its objective for the version is merged to main.
+2. `scripts\check.ps1 -Tier fast` passes on main with its change.
+3. The team examined real frames of its own area against a real reference (photo, manual, real car) one time, not numbers only.
+4. No known crash and no known fault that breaks another team's area.
+5. The docs for the change are updated in the same merge: the feature or system doc, the changelog entry, and README or CREDITS.md if the change affects them.
+
+## RELEASE STANDARD (the one shared test; all must be true)
+
+1. Full test at Ultra passes on the hero roads and on random US places, with no crash and no stuck game.
+2. Frame review finds no fault that a player sees at once (cockpit parts, road steps, flicker, a grey or soft picture worse than the last release).
+3. Frame rate and input delay are not worse than the last release.
+4. The Xbox controller reaches every menu control.
+5. Each car completes its fast Dragon run with no spin.
+6. Each new data source and model has its licence recorded and its credit in CREDITS.md.
+7. README, CREDITS.md, changelog, current screenshots, team docs and tested installers are updated. The docs update is part of the release, not a later task.
+
+A fault against the release standard is fixed before release, or its change is removed from the candidate. Other findings go to the retro and the next version.
+
+**Release decision.** The coordinator decides when the tested state is worth a release. Then the release goes to main with the docs updated, and the coordinator tells the owner.
+
+## Finish before new
+
+A team does not start a new idea until its current objective meets the criteria (READY TO TEST, then the release standard). Faults from the shared test come first.
+
+## Innovation meeting
+
+Every second release, all teams meet with the innovation team, which brings new ideas. An accepted idea becomes an objective for a later version, never mid-version work.
+
+## Big questions (at each meet and each retro; each team answers in one or two lines)
+
+1. Why does this work matter to a driver in the seat?
+2. Does it work anywhere in the US, and what happens where the data is missing?
+3. Is there a simpler or bolder way to get the same result?
+4. What would a player see that our numbers do not show?
+5. What detail did we assume and not check against the real thing (real car, real photo, real manual)?
+6. Does it fit the whole game, or does it only make one piece better?
+
+Keep the repo and docs current as the work goes, not only at release.
 
 ## Definition of done (every item)
 
@@ -32,6 +84,6 @@ The retro feeds the next plan: every retro change and every open defect goes to 
 
 ## Test rule (owner, 2026-11-14)
 
-- After each change: fast tests only.
-- Once per batch: full game tests and the frame review.
+- During build: fast tests only, on your own changes.
+- Once per version: one full game test of the joined candidate and the frame review, all teams together.
 - One GPU test at a time.
