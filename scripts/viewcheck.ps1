@@ -40,8 +40,8 @@ param(
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'EditorLock.ps1')
 . (Join-Path $PSScriptRoot 'ReviewLib.ps1')
-$ReviewRoot = Get-ReviewRoot $Root
 $Root = Split-Path -Parent $PSScriptRoot
+$ReviewRoot = Get-ReviewRoot $Root
 $Project = Join-Path $Root 'SimCruise.uproject'
 $Editor = Join-Path $EngineDir 'Engine\Binaries\Win64\UnrealEditor.exe'
 if (-not (Test-Path $Editor)) { Write-Host "No Unreal Editor at $Editor (set -EngineDir or UE_ROOT)."; exit 2 }
