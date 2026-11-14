@@ -1,16 +1,30 @@
 <p align="center">
-  <img src="docs/images/simcruise-wordmark.png" alt="SimCruise" width="384">
+  <img src="docs/images/simcruise-wordmark.png" alt="SimCruise, a free open-source driving simulator" width="384">
 </p>
 
 <p align="center">
-  <b>A free, open-source driving simulator for real places.</b><br>
-  Type any US address and drive there, on roads built live from public map, elevation and aerial data.
+  <b>A free, open-source driving simulator for real roads.</b><br>
+  Type any US address and drive there. The roads, terrain, buildings and trees are built live from OpenStreetMap, USGS elevation data and aerial photographs.<br>
+  Realistic car physics, traffic and a GPS. Keyboard, Xbox controller or USB wheel. Made in Unreal Engine 5, for Windows.
 </p>
 
 <p align="center">
-  <a href="https://github.com/simcruisegame/simcruise/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/simcruisegame/simcruise?include_prereleases&sort=semver"></a>
+  <a href="https://github.com/simcruisegame/simcruise/releases/latest"><b>Download for Windows (free)</b></a>
+  · <a href="#screenshots">Screenshots</a>
+  · <a href="#famous-roads-to-drive">Famous roads</a>
+  · <a href="docs/controls.md">Controls</a>
+  · <a href="#questions">Questions</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/simcruisegame/simcruise/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/simcruisegame/simcruise?include_prereleases&sort=semver"></a>
+  <a href="https://github.com/simcruisegame/simcruise/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/simcruisegame/simcruise/total"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/code-MIT-blue"></a>
   <a href="https://www.unrealengine.com/"><img alt="Made with Unreal Engine 5.8" src="https://img.shields.io/badge/Unreal_Engine-5.8-0e1128?logo=unrealengine&logoColor=white"></a>
+</p>
+
+<p align="center">
+  <img src="docs/images/release-2.0.2/06-miata-tail-of-the-dragon-chase.jpg" alt="SimCruise driving simulator: a 2001 Mazda Miata on US 129, the Tail of the Dragon, in the forest of the Great Smoky Mountains, built from real map and elevation data" width="900">
 </p>
 
 ---
@@ -34,6 +48,19 @@ No account, no API keys, no subscription, no telemetry. The game talks directly 
 **New in 2.0.2:** a GPS that drives you on the real roads (turn sign, chevrons on the road, a round map, a route planner and famous roads), a new pause menu and speed display, your seat and the car's setup one press away, hood and far chase views, looking around with the right stick, and traffic Normal, Light or Off. What to try first, in plain words: [docs/release/v2.0.2-what-you-should-notice.md](docs/release/v2.0.2-what-you-should-notice.md). Everything, with the known issues: [CHANGELOG.md](CHANGELOG.md).
 
 Tested on a laptop with an RTX 2070 Super Max-Q: 78 fps on Ocean Drive and 112 fps on a rural road from the driver's seat at 1080p on the Medium preset (the default for that GPU; measured for 2.0.1), capped at 60 fps in play, and about 50 ms from the stick to the picture. The release gates are in [docs/release/v2.0.2-report.md](docs/release/v2.0.2-report.md), [v2.0.1-report.md](docs/release/v2.0.1-report.md) and [v2.0.0-report.md](docs/release/v2.0.0-report.md).
+
+## Famous roads to drive
+
+Open the pause menu (Tab, or Menu on the pad) and choose **Famous roads**. The GPS takes you from the start to the end of the road:
+
+| Road | What it is | Length |
+|---|---|---|
+| **Tail of the Dragon, US 129** (North Carolina and Tennessee) | 318 curves in 11 miles, from Deals Gap to the Tabcat Creek bridge | 10.8 mi |
+| **Big Sur, California 1** (Pacific Coast Highway) | Cliffs over the Pacific, from Bixby Creek Bridge to Big Sur | 13.2 mi |
+| **Monument Valley, US 163** (Utah) | The straight road to the buttes, from Forrest Gump Point | 6.2 mi |
+| **Ocean Drive, Miami Beach** (Florida) | Art Deco hotels and the beach, from Lummus Park to Collins Park | 1.3 mi |
+
+These are only a start. Press / to search for any other US place (your own street, a mountain pass, a city you want to see) and drive the real roads there.
 
 ## Screenshots
 
@@ -186,6 +213,22 @@ It prints each failure with its first errors and `CHECKS PASSED` or `CHECKS FAIL
 | `data/` | Engine-neutral data the client reads: `cars/` (car physics JSON), `art/traffic/` (glTF car models and their manifest), `art/ground/` (detail photographs), `tiles/` (the bundled offline start and its aerial photographs), `observed/` (helper fixtures) |
 | `helper/` | The map helper (Bun): fetches and converts public data into tiles |
 | `docs/` | Architecture, building, cars, research, the migration ledger |
+
+## Questions
+
+**Is SimCruise free?** Yes. The game is free and open source (the code is under the MIT License). There is no account, no API key, no subscription, no ads and no telemetry.
+
+**What do I need to play?** 64-bit Windows 10 or 11, a DirectX 12 graphics card with 6 GB of video memory (for example an NVIDIA GTX 1660 or AMD RX 5600), 8 GB of memory, 3 GB of disk and an internet connection for the map data. The full list is in [docs/install.md](docs/install.md#system-requirements). There is no macOS or Linux build of the Unreal client yet.
+
+**Can I drive my own street?** Yes, if it is in the United States. Press / and type the address or the place name. The game builds the roads, terrain, buildings and trees there from public data. The detail depends on how well OpenStreetMap maps that place. Places outside the United States are not supported yet.
+
+**Is it a racing game?** No. SimCruise is a driving simulator: you drive real roads with realistic car physics, a GPS and traffic. It has no races or opponents.
+
+**Can I use a steering wheel?** Yes. A USB wheel with a Windows GameInput driver, an Xbox controller and the keyboard all work. See [docs/controls.md](docs/controls.md).
+
+**Which cars are there?** The 1999 and 2001 Mazda MX-5 Miata, the 1965 Ford Mustang 289, the Corvette Stingray (C8) and more. Each car is calibrated against published road-test numbers (0–60 mph, 70–0 mph braking and skidpad). See [docs/cars.md](docs/cars.md).
+
+**Can I build it or change it?** Yes. The full C++ source of this open-source Unreal Engine driving simulator is in this repository. Build it with Unreal Engine 5.8 as described in [Running it](#running-it), and read [CONTRIBUTING.md](CONTRIBUTING.md) before you send a pull request.
 
 ## Contributing
 
