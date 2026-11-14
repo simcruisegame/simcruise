@@ -84,6 +84,16 @@ namespace
 	}
 }
 
+TArray<FString> SimCruiseParkedCars::AllCarIds()
+{
+	TArray<FString> Ids;
+	for (int32 Pick = 0; Pick < 256; ++Pick)
+	{
+		Ids.AddUnique(CarFor(static_cast<uint8>(Pick)));
+	}
+	return Ids;
+}
+
 const TCHAR* SimCruiseParkedCars::CarFor(uint8 Pick)
 {
 	FString Id = ParkedCarFor(Pick);

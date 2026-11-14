@@ -27,6 +27,8 @@
 #include "Vehicle/SimCruiseVehicle.h"
 #include "Vehicle/SimCruiseVehicleMovementComponent.h"
 #include "Misc/App.h"
+#include "Presentation/SimCruiseCarAssets.h"
+#include "World/SimCruiseWorldTile.h"
 #include "World/SimCruiseBridges.h"
 #include "World/SimCruiseGuardRails.h"
 #include "World/SimCruiseRegionalTerrain.h"
@@ -538,7 +540,24 @@ bool ASimCruiseGameMode::TryPlacePendingPlayers()
 	if (bFirstPlacement)
 	{
 		Stream->SetFocus(StartCm, FVector::ZeroVector);
-		const bool bReady = Stream->AreTilesReadyAround(StartCm, 1);
+		// The traffic and parked-car models, built while the start tiles load (one a frame), so no
+		// car has to be cut and rigged on the game thread when it first appears: the 1999 Miata
+		// (1.2 million triangles) froze a packaged drive for 3.3 s at its start.
+		bool bModelsReady = true;
+		{
+			const TArray<FString> Models = SimCruiseParkedCars::AllCarIds();
+			if (PrebuiltModels < Models.Num())
+			{
+				const double ModelStart = FPlatformTime::Seconds();
+				FString ModelError;
+				SimCruiseCarAssets::Get(Models[PrebuiltModels], ModelError);
+				UE_LOG(LogSimCruiseDrive, Display, TEXT("Traffic model %s built before the drive in %.2f s%s"), *Models[PrebuiltModels],
+					FPlatformTime::Seconds() - ModelStart, ModelError.IsEmpty() ? TEXT("") : *(TEXT(": ") + ModelError));
+				++PrebuiltModels;
+				bModelsReady = PrebuiltModels >= Models.Num();
+			}
+		}
+		const bool bReady = Stream->AreTilesReadyAround(StartCm, 1) && bModelsReady;
 		const double Waited = FPlatformTime::Seconds() - WaitStartedSeconds;
 		const bool bTimedOut = Waited > StartTimeoutSeconds;
 		// Tiles that cannot load (offline, no helper, nothing there): the next place, else the

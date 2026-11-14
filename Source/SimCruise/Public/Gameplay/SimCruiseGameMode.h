@@ -120,6 +120,8 @@ private:
 
 	bool bWorldDrive = false;
 	bool bCarPlaced = false;
+	/** Traffic and parked-car models built so far while the start tiles load. */
+	int32 PrebuiltModels = 0;
 	FVector StartCm = FVector::ZeroVector;
 	FString StartRoadName;
 	FString CarId;

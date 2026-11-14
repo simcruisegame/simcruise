@@ -4,6 +4,8 @@ Notable changes to SimCruise, newest first. The format follows [Keep a Changelog
 
 ## Unreleased
 
+- Fix: no freeze when the first traffic car appears. Every model a traffic or parked car can be (eight: the 1999 Miata, '65 Mustang, Corvette, Model 3, Grand Cherokee, F-150 Raptor, Odyssey, CR-V) is now built while the start tiles load, one a frame, and the car is placed once they are all built; the 1999 Miata's 1.2-million-triangle model, cut and rigged on the game thread when its car first appeared, froze a packaged drive for 3.3 s at the Dragon's start. Each build is logged (`Traffic model ... built before the drive in ... s`).
+
 - Fix: no more black tears on the Miata's spokes when the wheel is turned. They were the turning wheel's own shadow (gone with its shadow off, still there with its shadow pages redrawn every frame), so the cockpit wheel casts no shadow; under the cowl the dash's shadow covers that area anyway (`-SimCruiseWheelShadow` turns it back on). The wheel's slab also reaches as deep as its spokes (8.5 cm). Pre-flight: a traffic car waiting behind the player, or standing since before the drive began, is no longer counted as stuck (both cars the release test flagged at the Dragon were queued behind the player's car at the start).
 
 - **Fix: a black dash stays black under trees** — from the driver's seat the camera may open at most 1.5 EV in daylight (`DriverDaylightOpenStops`; outside views and captures keep 3 EV). Metering the shaded cabin and forest opened 3 EV, so the sunlit near-black Miata dash and wheel came out light grey-tan (owner's screenshot). The Tail of the Dragon realism score is unchanged (45.6).
