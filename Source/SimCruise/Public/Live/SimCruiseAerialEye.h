@@ -79,6 +79,11 @@ public:
 
 	FString Describe() const;
 
+	/** Game thread, once a frame: the last frame's time, for the worker's back-off. */
+	static void NoteFrameSeconds(float Seconds);
+	/** Any thread: the last frame took more than 1.1 x the 60 fps budget. */
+	static bool IsGameSlow();
+
 	/** The output classes in order: the channel each one writes. */
 	static const TArray<FName>& ChannelNames();
 
