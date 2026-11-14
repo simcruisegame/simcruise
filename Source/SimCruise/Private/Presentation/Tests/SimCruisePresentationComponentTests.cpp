@@ -68,6 +68,12 @@ bool FSimCruisePresentationComponentBuildTest::RunTest(const FString& Parameters
 		TestTrue(FString::Printf(TEXT("at least 11 mesh parts (%d)"), Meshes.Num()), Meshes.Num() >= 11);
 		TestTrue(TEXT("steering wheel present"), Car->HasSteeringWheel());
 		TestNearlyEqual(TEXT("steering ratio from the profile"), Car->GetSteeringRatio(), 15.7, 1e-9);
+		// Tune car's ratio turns the cockpit wheel; the real car's stays the stock one.
+		Car->SetTunedSteeringRatio(12.0);
+		TestNearlyEqual(TEXT("the cockpit wheel turns at the tuned ratio"), Car->GetWheelSteeringRatio(), 12.0, 1e-9);
+		TestNearlyEqual(TEXT("the stock ratio is kept"), Car->GetSteeringRatio(), 15.7, 1e-9);
+		Car->SetTunedSteeringRatio(0.0);
+		TestNearlyEqual(TEXT("untuned: the real ratio"), Car->GetWheelSteeringRatio(), 15.7, 1e-9);
 
 		FSimCruiseCarVisualState State;
 		State.Wheels[0].SteerAngleRad = 0.1f;

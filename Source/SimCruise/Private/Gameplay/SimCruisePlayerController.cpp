@@ -1,6 +1,7 @@
 // Copyright SimCruise contributors. All Rights Reserved.
 
 #include "Gameplay/SimCruisePlayerController.h"
+#include "Vehicle/SimCruiseSteeringGeometry.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -366,18 +367,22 @@ void ASimCruisePlayerController::UpdateWheel(FSimCruiseRawControls& Raw, float D
 		bWheelSeen = true;
 		ShowMessage(FString::Printf(TEXT("Steering wheel: %s"), *WheelDevice.GetName()), 5.f);
 	}
-	// The rim angle through the car's real steering ratio (the cockpit wheel's), 1:1.
+	// The rim angle through the car's steering ratio (the cockpit wheel's, tuned or real), 1:1.
 	double Ratio = 15.0;
 	if (const APawn* Car = GetPawn())
 	{
 		if (const USimCruiseCarPresentationComponent* Model = Car->FindComponentByClass<USimCruiseCarPresentationComponent>())
 		{
-			Ratio = FMath::Max(Model->GetSteeringRatio(), 1.0);
+			Ratio = FMath::Max(Model->GetWheelSteeringRatio(), 1.0);
 		}
 	}
 	const double RimRad = FMath::DegreesToRadians(Wheel.Wheel * Wheel.HalfRotationDeg);
 	Raw.bWheel = true;
-	Raw.WheelRackRad = RimRad / Ratio;
+	// Through the column as the cockpit rim turns: the ratio on centre, quickening toward lock.
+	const FSimCruiseVehicleSetup& WheelSetup = GetCachedVehicleSetup();
+	Raw.WheelRackRad = WheelSetup.SteeringRatio > 0.0
+		? SimCruiseSteering::RackRadForHandWheel(RimRad, WheelSetup.SteeringRatio, WheelSetup.ParkingRackAngleRad, WheelSetup.SteeringLockTurns)
+		: RimRad / Ratio;
 	Raw.WheelThrottle = Wheel.Throttle;
 	Raw.WheelBrake = Wheel.Brake;
 	Raw.bWheelClutch = Wheel.bHasClutch;

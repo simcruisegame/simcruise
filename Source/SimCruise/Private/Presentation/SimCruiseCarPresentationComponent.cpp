@@ -667,7 +667,23 @@ void USimCruiseCarPresentationComponent::ApplyVisualState(const FSimCruiseCarVis
 			Spinners[W]->SetRelativeRotation(SpinRotation(Wheel.SpinAngleRad));
 		}
 	}
-	SteeringWheelAngle = SteeringWheelAngleFor(State.Wheels[0].SteerAngleRad, State.Wheels[1].SteerAngleRad, SteeringRatio);
+	const double WheelTarget = State.bHasSteeringWheel ? State.SteeringWheelRad
+		: SteeringWheelAngleFor(State.Wheels[0].SteerAngleRad, State.Wheels[1].SteerAngleRad, GetWheelSteeringRatio());
+	// The rim on screen never turns faster than hands can (963 deg/s, NHTSA's fastest sustained
+	// test-driver input): a reset, a replay settling or a frame hitch would otherwise spin it in
+	// one frame and smear a doubled rim across the dash.
+	const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+	// (No clock between two states, as in a test or the first frame: straight to the angle.)
+	if (SteeringWheelTime < 0.0 || Now <= SteeringWheelTime)
+	{
+		SteeringWheelAngle = WheelTarget;
+	}
+	else
+	{
+		const double Step = FMath::DegreesToRadians(963.0) * FMath::Clamp(Now - SteeringWheelTime, 0.0, 0.1);
+		SteeringWheelAngle += FMath::Clamp(WheelTarget - SteeringWheelAngle, -Step, Step);
+	}
+	SteeringWheelTime = Now;
 	if (SteeringWheelMesh)
 	{
 		// Local X runs along the column away from the driver, Y to his right,

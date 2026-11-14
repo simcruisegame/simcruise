@@ -1,6 +1,7 @@
 // Copyright SimCruise contributors. All Rights Reserved.
 
 #include "Vehicle/SimCruiseVehicle.h"
+#include "Vehicle/SimCruiseSteeringGeometry.h"
 
 #include "Components/BoxComponent.h"
 #include "Components/SpotLightComponent.h"
@@ -69,6 +70,10 @@ void ASimCruiseVehicle::SetCarDefinition(const FSimCruiseCarDefinition& Car)
 	bHasDefinition = true;
 	RealCar = Car;
 	bTuned = false;
+	if (CarModel)
+	{
+		CarModel->SetTunedSteeringRatio(0.0);
+	}
 	Tuning = GetStockTuning();
 }
 
@@ -99,6 +104,11 @@ bool ASimCruiseVehicle::ApplyTuning(const FSimCruiseTuning& InTuning, bool bSave
 	ApplyBodyShape(Tuned);
 	VehicleMovement->SetCarDefinition(Tuned);
 	bTuned = true;
+	// The cockpit wheel turns at the tuned ratio: the same road-wheel angle takes less rim with a quicker rack.
+	if (CarModel)
+	{
+		CarModel->SetTunedSteeringRatio(Tuning.SteeringRatio);
+	}
 	const bool bSaved = !bSave || Tuning.Save(RealCar.Id);
 	UE_LOG(LogTemp, Display, TEXT("SimCruise tuning %s: springs %.0f/%.0f lb/in, damping %.0f %%, ride %+.0f mm, bars %.0f/%.0f %%, torque %.0f %%, final drive %.2f, steering %.1f:1, roll %.2f deg/g"),
 		*RealCar.Id, Tuning.FrontSpringLbIn, Tuning.RearSpringLbIn, Tuning.DampingPct, Tuning.RideHeightMm, Tuning.FrontBarPct, Tuning.RearBarPct,
@@ -318,6 +328,8 @@ FSimCruiseVehicleSetup ASimCruiseVehicle::GetVehicleSetup() const
 		Setup.SteeringQuickness = Setup.SteeringRatio / Tuning.SteeringRatio;
 		Setup.SteeringRatio = Tuning.SteeringRatio;
 	}
+	// The rim's lock-to-lock turns scale with the ratio, as a quicker rack's would.
+	Setup.SteeringLockTurns = Car.SteeringLockTurns / FMath::Max(Setup.SteeringQuickness, 0.1);
 	// The car file's eye is relative to the Godot origin; this pawn's origin is the body centre above it.
 	Setup.DriverEyeLocalCm = SimCruiseGodotToLocalCm(Car.DriverEyeM) - FVector(0.0, 0.0, SimCruiseUnits::ToUnrealLength(Car.CollisionShapeCenterYM));
 	Setup.IdleRpm = Car.IdleSpeedRpm;
@@ -640,5 +652,15 @@ bool ASimCruiseVehicle::GetCarVisualState(FSimCruiseCarVisualState& OutState) co
 	}
 	ToVisualState(VehicleMovement->GetCarDefinition(), Telemetry, OutState);
 	OutState.bLamps = AreLampsWanted();
+	// The rim follows the rack through the column: the car's ratio on centre (or the tuned one),
+	// quickening toward lock to the car's lock-to-lock turns.
+	const FSimCruiseVehicleSetup Setup = GetVehicleSetup();
+	if (Setup.SteeringRatio > 0.0)
+	{
+		// The rack is positive to the right; the model's steer to the left.
+		OutState.SteeringWheelRad = static_cast<float>(-SimCruiseSteering::HandWheelRad(FMath::DegreesToRadians(Telemetry.SteeringAngleDeg),
+			Setup.SteeringRatio, Setup.ParkingRackAngleRad, Setup.SteeringLockTurns));
+		OutState.bHasSteeringWheel = true;
+	}
 	return true;
 }

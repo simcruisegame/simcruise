@@ -195,6 +195,7 @@
  "card": {
   "turning_circle_m": 11.6,
   "steering_ratio": 21.7,
+  "steering_turns_lock_to_lock": 3.73,
   "handling": "Car Life (1965): understeer minimal and handling near neutral; too much throttle brings oversteer. Slow manual steering, 3.73 turns lock to lock.",
   "sources": "Turning circle 11.6 m (38.1 ft): autoevolution and auto-data.net 1965 Mustang 289 listings. Steering 21.7:1 manual, 3.73 turns: Car Life 1965 (car file). Handling: Car Life 1965 Mustang road test reprint (tunnelram.net)."
  }
