@@ -146,7 +146,7 @@ function Add-CaseResults($Cases, $Findings, $Numbers, $Frames, $Ran) {
 }
 
 function Write-ReleaseReports {
-    param([string]$RunDir, [object[]]$Rows, [string]$Commit, [int]$Seed, [string]$PadResult, [string]$PadDir, [object[]]$Cases = @(), $Load = $null, [int]$Minutes)
+    param([string]$RunDir, [object[]]$Rows, [string]$Commit, [int]$Seed, [string]$PadResult, [string]$PadDir, [object[]]$Cases = @(), $Load = $null, [object[]]$ExtraFindings = @(), [int]$Minutes)
     $Findings = @{}; foreach ($T in $script:Teams.Keys) { $Findings[$T] = @() }
     $Numbers = @{}; foreach ($T in $script:Teams.Keys) { $Numbers[$T] = @() }
     $Frames = @{}; foreach ($T in $script:Teams.Keys) { $Frames[$T] = @() }
@@ -259,6 +259,8 @@ function Write-ReleaseReports {
         $Verdict = if (-not $Pre -or $Crash -or $Hung) { 'FAIL' } elseif ($Pre.result -eq 'PASS' -and (-not $Ck -or $Ck.result -eq 'PASS') -and $Valid) { 'PASS' } else { 'FAIL' }
         $Table += "| $($R.Plan.Name) | $($R.Plan.Car) | $Verdict$(if (-not $Valid) { ' (NOT VALID FOR SIGN-OFF)' }) | $(if ($Pre) { $Pre.reasons } else { 'no result' }) | $(if ($Ck) { $Ck.result } else { '-' }) | $(if ($View) { $View.Matches[0].Groups[1].Value } else { '-' }) | $(if ($Pre) { $Pre.frame_p95_ms } else { '-' }) | $($R.Minutes) | $(if ($Visible) { 'windowed (visible)' } else { 'off screen' })$(if ($Disturb.Count) { ', DISTURBED' }) | [review]($Rel/review.md) |"
     }
+    # Findings a step of the run made itself (the package text check): {Team; Sev; Place; Car; Time; Evidence; What}.
+    foreach ($X in $ExtraFindings) { $Findings[$X.Team] += [pscustomobject]@{ Sev = $X.Sev; Place = $X.Place; Car = $X.Car; Time = $X.Time; Evidence = $X.Evidence; What = $X.What }; $Ran[$X.Team] = $true }
     Add-CaseResults -Cases $Cases -Findings $Findings -Numbers $Numbers -Frames $Frames -Ran $Ran
     # UI: the controller menu test.
     if ($PadResult -ne 'NOT RUN') {

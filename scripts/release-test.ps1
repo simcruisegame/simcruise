@@ -58,7 +58,9 @@ param(
     [string]$CookedExe = '',
     # Editor runs: one short untimed launch per place first, so the shader cache is warm before the
     # timed drive (a fresh worktree compiles shaders during its first drive). -NoWarm skips it.
-    [switch]$NoWarm
+    [switch]$NoWarm,
+    # Words that must not show to the player (the owner asked that their name is not in the game).
+    [string[]]$ForbiddenNames = @('Aaron')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -201,10 +203,24 @@ if ((Test-Path $Pad) -and $MaxPlaces -eq 0 -and -not $OnlyCases.Count -and (-not
     $PadResult = if ($LASTEXITCODE -eq 0) { 'PASS' } else { 'FAIL' }
 }
 
-$Load = Stop-LoadWatch $LoadJob $RunDir
+# The cooked package's own text files: the owner's name must not be in a user-visible string (a
+# name, title, label or description); ids and file names are listed, allowed for now.
+$Extra = @()
+if ($Cooked) {
+    $PackageRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $CookedExe)))
+    $Hits = @(Get-ChildItem $PackageRoot -Recurse -File -Include *.json, *.txt, *.ini, *.csv, *.md, *.html, *.xml -ErrorAction SilentlyContinue |
+        Select-String -Pattern ($ForbiddenNames -join '|') -AllMatches -ErrorAction SilentlyContinue)
+    $Lines = @("# Owner name in the cooked package ($PackageRoot)", '', "Words: $($ForbiddenNames -join ', '). $($Hits.Count) lines.", '', '| Kind | File | Line | Text |', '|---|---|---|---|')
+    foreach ($H in $Hits) {
+        $Visible = $H.Line -match '"(name|display_name|title|label|description|nickname)"\s*:'
+        $Lines += "| $(if ($Visible) { 'VISIBLE' } else { 'id or path' }) | $($H.Path.Substring($PackageRoot.Length)) | $($H.LineNumber) | $(($H.Line.Trim() -replace '\|', '/').Substring(0, [Math]::Min(120, $H.Line.Trim().Length))) |"
+        if ($Visible) { $Extra += [pscustomobject]@{ Team = 'ui'; Sev = 'P1'; Place = 'package'; Car = '-'; Time = '-'; Evidence = 'package-names.md'; What = "the owner's name in a visible string: $($H.Path.Substring($PackageRoot.Length)):$($H.LineNumber)" } }
+    }
+    $Lines | Set-Content -Encoding utf8 (Join-Path $RunDir 'package-names.md')
+}$Load = Stop-LoadWatch $LoadJob $RunDir
 Stop-ViewerWatch $ViewerJob
 Write-Host "Load: $(if ($Load.Quiet) { 'quiet' } else { "NOT QUIET: $($Load.OtherProcesses), other GPU mean $($Load.MeanOtherGpu) % (max $($Load.MaxOtherGpu) %)" })"
-Write-ReleaseReports -RunDir $RunDir -Rows $Rows -Commit $Commit -Seed $Seed -PadResult $PadResult -PadDir $PadDir -Cases $Cases -Load $Load -Minutes ([int]((Get-Date) - $Started).TotalMinutes)
+Write-ReleaseReports -RunDir $RunDir -Rows $Rows -Commit $Commit -Seed $Seed -PadResult $PadResult -PadDir $PadDir -Cases $Cases -Load $Load -ExtraFindings $Extra -Minutes ([int]((Get-Date) - $Started).TotalMinutes)
 }
 finally { Clear-GpuBusy }
 Write-Host "Summary: $(Join-Path $RunDir 'summary.md')"

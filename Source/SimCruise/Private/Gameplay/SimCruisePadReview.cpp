@@ -5,12 +5,16 @@
 #include <type_traits>
 #include <utility>
 
+#include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
 #include "Engine/World.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Gameplay/SimCruiseAtlasUI.h"
 #include "Gameplay/SimCruiseGameMode.h"
 #include "Gameplay/SimCruisePauseMenu.h"
 #include "Gameplay/SimCruisePlayerController.h"
+#include "Widgets/SWindow.h"
+#include "Widgets/Text/STextBlock.h"
 #include "HAL/FileManager.h"
 #include "HAL/PlatformTime.h"
 #include "Misc/CommandLine.h"
@@ -92,6 +96,48 @@ void ASimCruisePadReview::LogFocus(const FString& Step)
 		Focus.IsValid() ? *Focus->GetTypeAsString() : TEXT("none"), Focus.IsValid() ? *Focus->GetTag().ToString() : TEXT("-"), *Where);
 }
 
+/** Every visible text block under a widget (the screen as the player reads it). */
+static void CollectTexts(const TSharedRef<SWidget>& Widget, TArray<FString>& Out, int32 Depth = 0)
+{
+	if (Depth > 256 || !Widget->GetVisibility().IsVisible()) return;
+	if (Widget->GetType() == FName(TEXT("STextBlock")))
+	{
+		const FString Text = StaticCastSharedRef<STextBlock>(Widget)->GetText().ToString();
+		if (!Text.IsEmpty()) Out.Add(Text);
+	}
+	FChildren* Children = Widget->GetChildren();
+	for (int32 I = 0; Children && I < Children->Num(); ++I) CollectTexts(Children->GetChildAt(I), Out, Depth + 1);
+}
+
+void ASimCruisePadReview::ScanTexts(const FString& Screen, const FString& MustShow)
+{
+	TArray<FString> Texts;
+	TSharedPtr<SWindow> Window = GEngine && GEngine->GameViewport ? GEngine->GameViewport->GetWindow() : nullptr;
+	if (Window.IsValid()) CollectTexts(Window.ToSharedRef(), Texts);
+	// The owner's name must not show (-SimCruisePadForbid=a,b: the script gives the words).
+	TArray<FString> Forbid;
+	FString ForbidText;
+	if (FParse::Value(FCommandLine::Get(), TEXT("SimCruisePadForbid="), ForbidText, false)) ForbidText.ParseIntoArray(Forbid, TEXT(","));
+	int32 Hits = 0;
+	for (const FString& T : Texts)
+	{
+		for (const FString& W : Forbid)
+		{
+			if (!W.IsEmpty() && T.Contains(W, ESearchCase::IgnoreCase))
+			{
+				++Hits;
+				UE_LOG(LogSimCruisePadReview, Display, TEXT("PADNAME FOUND screen=\"%s\" text=\"%s\""), *Screen, *T.Replace(TEXT("\""), TEXT("'")).Left(120));
+			}
+		}
+	}
+	UE_LOG(LogSimCruisePadReview, Display, TEXT("PADTEXT screen=\"%s\" texts=%d forbidden=%d"), *Screen, Texts.Num(), Hits);
+	if (Forbid.Num()) Reach(Screen, TEXT("no owner name in the visible text"), Hits == 0, FString::Printf(TEXT("%d visible texts read, %d with a forbidden word"), Texts.Num(), Hits));
+	if (!MustShow.IsEmpty())
+	{
+		const bool bShown = Texts.ContainsByPredicate([&MustShow](const FString& T) { return T.Contains(MustShow, ESearchCase::IgnoreCase); });
+		Reach(Screen, FString::Printf(TEXT("shows '%s'"), *MustShow), bShown, bShown ? TEXT("in the visible text") : TEXT("not in the visible text"));
+	}
+}
 void ASimCruisePadReview::Reach(const FString& Screen, const FString& Control, bool bReached, const FString& How)
 {
 	if (!bReached) ++Unreachable;
@@ -102,6 +148,7 @@ void ASimCruisePadReview::Plan()
 {
 	auto Add = [this](const FString& Name, TFunction<void()> Do, float Wait = 0.25f) { Steps.Add({ Name, MoveTemp(Do), Wait }); };
 	// Pause menu: every tab with RB, every row with the D-pad, the tab bar with D-pad Up, B.
+	Add(TEXT("scan HUD"), [this]() { ScanTexts(TEXT("HUD and place cards"), TEXT("")); }, 0.f);
 	Add(TEXT("open pause menu"), [this]() { if (ASimCruisePlayerController* PC = Player()) PC->OpenPauseMenu(0); LogFocus(TEXT("opened")); }, 1.5f);
 	for (int32 P = 0; P < SSimCruisePauseMenu::NumPages; ++P)
 	{
@@ -116,6 +163,12 @@ void ASimCruisePadReview::Plan()
 			}, 0.f);
 		}
 		Add(TEXT("shot"), [this, P]() { Shot(FString::Printf(TEXT("pad-pause-%d"), P)); }, 0.6f);
+		Add(TEXT("scan texts"), [this, P]()
+		{
+			FString CarName;
+			if (P == 1) FParse::Value(FCommandLine::Get(), TEXT("SimCruisePadCarName="), CarName, false);
+			ScanTexts(FString::Printf(TEXT("Pause menu / %s"), *SSimCruisePauseMenu::PageName(P)), CarName.Replace(TEXT("_"), TEXT(" ")));
+		}, 0.f);
 		TSharedRef<TSet<int32>> Seen = MakeShared<TSet<int32>>();
 		Add(TEXT("row start"), [this, Seen]() { if (TSharedPtr<SSimCruisePauseMenu> M = Player() ? Player()->GetPauseMenu() : nullptr) Seen->Add(M->GetSelected()); }, 0.f);
 		const int32 N = SSimCruisePauseMenu::Rows(P).Num();
@@ -166,6 +219,7 @@ void ASimCruisePadReview::Plan()
 	Add(TEXT("D-pad Down"), [this]() { Press(EKeys::Gamepad_DPad_Down); });
 	Add(TEXT("D-pad Down"), [this]() { Press(EKeys::Gamepad_DPad_Down); }, 0.6f);
 	Add(TEXT("shot"), [this]() { Shot(TEXT("pad-whereto-1")); }, 0.6f);
+	Add(TEXT("scan texts"), [this]() { ScanTexts(TEXT("Where to?"), TEXT("")); }, 0.f);
 	// The left stick (Slate's spatial navigation on this screen: its order may differ from the D-pad's; a warning only).
 	Add(TEXT("stick"), [this]() { Stick(EKeys::Gamepad_LeftY, -1.f); }, 0.3f);
 	Add(TEXT("stick release"), [this]() { Stick(EKeys::Gamepad_LeftY, 0.f); }, 0.6f);
@@ -191,6 +245,7 @@ void ASimCruisePadReview::Plan()
 	Add(TEXT("D-pad Right"), [this]() { Press(EKeys::Gamepad_DPad_Right); });
 	Add(TEXT("D-pad Right"), [this]() { Press(EKeys::Gamepad_DPad_Right); }, 0.8f);
 	Add(TEXT("shot"), [this]() { Shot(TEXT("pad-atlas-1")); }, 0.6f);
+	Add(TEXT("scan texts"), [this]() { ScanTexts(TEXT("Road atlas"), TEXT("")); }, 0.f);
 	// The left stick (Slate's spatial navigation on this screen: its order may differ from the D-pad's; a warning only).
 	Add(TEXT("stick"), [this]() { Stick(EKeys::Gamepad_LeftY, -1.f); }, 0.3f);
 	Add(TEXT("stick release"), [this]() { Stick(EKeys::Gamepad_LeftY, 0.f); }, 0.6f);

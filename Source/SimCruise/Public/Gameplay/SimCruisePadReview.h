@@ -39,6 +39,8 @@ private:
 	void Shot(const FString& Name);
 	void LogFocus(const FString& Step);
 	void Reach(const FString& Screen, const FString& Control, bool bReached, const FString& How);
+	/** The visible text of the game window: no forbidden word (-SimCruisePadForbid=), and MustShow when given. */
+	void ScanTexts(const FString& Screen, const FString& MustShow);
 	class ASimCruisePlayerController* Player() const;
 
 	FString Dir;

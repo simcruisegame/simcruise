@@ -26,7 +26,11 @@ param(
     [switch]$NoGame,
     [string]$EngineDir = $(if ($env:UE_ROOT) { $env:UE_ROOT } else { 'C:\Program Files\Epic Games\UE_5.8' }),
     [int]$TimeoutMinutes = 8,
-    [int]$LockTimeoutMinutes = 120
+    [int]$LockTimeoutMinutes = 120,
+    # Words that must not show in any visible text (the owner asked that their name is not in the game).
+    [string[]]$ForbiddenNames = @('Aaron'),
+    # The car's display name the 'Your car' page must show for the default car.
+    [string]$CarName = '2001 Miata'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -68,7 +72,7 @@ if (-not $NoGame) {
     $Editor = Join-Path $EngineDir 'Engine\Binaries\Win64\UnrealEditor.exe'
     $Project = Join-Path $Root 'SimCruise.uproject'
     $GameArgs = @("`"$Project`"", '-game', '-SimCruiseWorld', '-SimCruiseBundledStart', '-SimCruiseNoLive', '-SimCruiseNoNeural', '-SimCruiseGraphics=ultra',
-        '-SimCruiseUtc=2026-11-12T17:00:00Z', "`"-SimCruisePadReview=$GameDir`"", '-DPCVars=simcruise.Traffic.Cars=0', '-NoLiveCoding', '-nosplash', '-unattended',
+        '-SimCruiseUtc=2026-11-12T17:00:00Z', "`"-SimCruisePadReview=$GameDir`"", "-SimCruisePadForbid=$(($ForbiddenNames | ForEach-Object { $_ -split ',' }) -join ',')", "-SimCruisePadCarName=$($CarName -replace ' ', '_')", '-DPCVars=simcruise.Traffic.Cars=0', '-NoLiveCoding', '-nosplash', '-unattended',
         '-log', "`"-abslog=$Log`"") + @(Get-TestWindowArgs $ShowWindow) + @(Get-NativeResolution)
     $env:UE_SKIP_UBT_SDK_SETUP = '1'
     if (Enter-EditorLock -GpuTest -TimeoutMinutes $LockTimeoutMinutes -Why "pad review on $Root") {
@@ -108,6 +112,8 @@ if (-not $Rows.Count) { $Md += 'No PADNAV lines: the tests did not run (see chec
 $Md += @('| Part | State | Screen | Control | How |', '|---|---|---|---|---|')
 foreach ($R in ($Rows | Sort-Object @{ Expression = { $_.State -eq 'REACHED' } }, Part, Screen)) { $Md += "| $($R.Part) | $($R.State) | $($R.Screen) | $($R.Control) | $($R.How) |" }
 if ($Warnings.Count) { $Md += @('', '## Warnings (not failures)', '') + @($Warnings | ForEach-Object { "- $_" }) }
+$NameHits = if ($GameRan) { @(Select-String -Path (Join-Path $GameDir 'game.log') -Pattern 'PADNAME FOUND screen="([^"]*)" text="([^"]*)"' | ForEach-Object { "- $($_.Matches[0].Groups[1].Value): '$($_.Matches[0].Groups[2].Value)'" } | Select-Object -Unique) } else { @() }
+if ($NameHits.Count) { $Md += @('', '## Visible text with a forbidden word (FAIL)', '') + $NameHits }
 $Md += @('', 'Frames: game\pad-*.png (each screen), game\diff-*.png. The pad focus after every press: PADWALK lines in game\game.log.')
 $Md | Set-Content -Encoding utf8 (Join-Path $OutDir 'report.md')
 Write-Host "PAD REVIEW $Result controls=$($Rows.Count) unreachable=$($Bad.Count) -> $(Join-Path $OutDir 'report.md')"
