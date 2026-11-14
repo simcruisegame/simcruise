@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
   Launch the game for a test and keep what it really showed, for a review before anyone says "it works".
 
@@ -53,7 +53,11 @@ param(
     # The review sheet's kind (random runs add their own items).
     [string]$SheetKind = 'launch',
     # A test case in the same launch: 'standstill' (-SimCruiseStandstillTest) or 'speed' (-SimCruiseSpeedTest).
-    [ValidateSet('', 'standstill', 'speed')][string]$Case = ''
+    # 'fallback': forced tile failures ahead of the start (-SimCruiseFailTiles). 'eye' and 'eyeoff': a live drive
+    # (no -SimCruiseNoLive) with the satlas_landcover scan eye on, or off.
+    [ValidateSet('', 'standstill', 'speed', 'fallback', 'eye', 'eyeoff')][string]$Case = '',
+    # Tiles for -Case fallback (x_y, comma separated): the two north of Ocean Drive's start tile.
+    [string]$FailTiles = '18180_27907,18181_27907'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -123,9 +127,9 @@ New-Item -ItemType Directory -Force $RunDir | Out-Null
 $Log = Join-Path $RunDir 'game.log'
 # A game run needs no platform SDK check: skip the start-up call to Unreal Build Tool.
 $env:UE_SKIP_UBT_SDK_SETUP = '1'
-$GameArgs = @("`"$Project`"", '-game', '-SimCruiseWorld', '-SimCruiseNoLive', '-SimCruiseNoNeural', "-SimCruiseGraphics=$Graphics", "-SimCruiseUtc=$Utc",
+$GameArgs = @("`"$Project`"", '-game', '-SimCruiseWorld') + @(if ($Case -notin 'eye', 'eyeoff') { '-SimCruiseNoLive' }) + @('-SimCruiseNoNeural', "-SimCruiseGraphics=$Graphics", "-SimCruiseUtc=$Utc",
     "-SimCruiseCar=$Car", '-SimCruiseViewCheck', '-SimCruisePreflight', '-SimCruiseReview', "-SimCruisePreflightRoad=$Name", "-SimCruisePreflightSeconds=$Seconds",
-    "`"-SimCruisePreflightOut=$RunDir`"", '-NoLiveCoding', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + @(Get-TestWindowArgs $ShowWindow) + @(Get-NativeResolution) + $PlaceArgs + $ExtraArgs + @(switch ($Case) { 'standstill' { '-SimCruiseStandstillTest' } 'speed' { '-SimCruiseSpeedTest' } }) + @(if (-not $NoCockpit) { '-SimCruiseCockpitTest' })
+    "`"-SimCruisePreflightOut=$RunDir`"", '-NoLiveCoding', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + @(Get-TestWindowArgs $ShowWindow) + @(Get-NativeResolution) + $PlaceArgs + $ExtraArgs + @(switch ($Case) { 'fallback' { "-SimCruiseFailTiles=$FailTiles" } 'eye' { '-SimCruiseScanEye=satlas_landcover' } 'standstill' { '-SimCruiseStandstillTest' } 'speed' { '-SimCruiseSpeedTest' } }) + @(if (-not $NoCockpit) { '-SimCruiseCockpitTest' })
 $CommandLine = "`"$Editor`" " + ($GameArgs -join ' ')
 
 if (-not (Enter-EditorLock -GpuTest -TimeoutMinutes $LockTimeoutMinutes -Why "launch review $Name on $Root")) { exit 1 }
