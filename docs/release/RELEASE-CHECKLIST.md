@@ -59,3 +59,9 @@ Copy this list into the release's report (`docs/release/v<version>-report.md`) a
 - [ ] `docs/images/social-preview.png` (1280 x 640) still shows the game as it is; if you change it, ask Aaron to upload it again in Settings > General > Social preview.
 - [ ] `CREDITS.md`: each new model, data source, car, texture, font or library has its maker, licence and link.
 - [ ] After the push, open the website and check that the page, the images and the download link work. Check GitHub search: `gh search repos "driving simulator" --limit 50 --json fullName` and write the rank in the release report.
+
+## 8. Clean up (hygiene)
+
+- [ ] Each lane runs `powershell -ExecutionPolicy Bypass -File scripts\clean-lane.ps1` on its own checkout, reads the list, then runs it again with `-Apply` (add `-Package` when its package outputs are old). See "Hygiene" in `docs/team/dev-loop.md`.
+- [ ] Idle lanes: `-Package -Build -Apply`, or remove the worktree after its commits are on origin.
+- [ ] Write the free space on D: in the release report.

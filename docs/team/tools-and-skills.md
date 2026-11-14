@@ -32,7 +32,7 @@ Skills are Claude Code skills on this account (call them with the Skill tool, or
 | AI (local models) | `zizi-skills:source-driven-development` (model cards and licences), `security-review` (model files and downloads); agents `research-scientist`, `applied-mathematician`, `performance-engineer` | ONNX Runtime CPU (NNERuntimeORT plugin, enabled), Python lab for experiments | **NNE** (Neural Network Engine) with the ORT CPU backend; never on the game thread |
 | Innovation (research) | `anthropic-skills:deep-research`, `supermatt:prototype`, `zizi-skills:idea-refine`, `zizi-skills:research-methods`; agents `applied-mathematician`, `research-scientist`, `magician` | Python lab, Blender MCP | PCG, RVT, Nanite foliage (prototypes) |
 | Audio | `source-driven-development` (recordings, papers); agent `sound-designer` | ffmpeg `ebur128` (loudness) | **MetaSounds** as the host for our C++ synths (custom nodes); Submixes and Sound Classes |
-| QA and tools | `supermatt:qa`, `engineering:testing-strategy`, `engineering:deploy-checklist`, `zizi-skills:monitoring`; agents `qa-playtester`, `tools-engineer` | check.ps1, preflight.ps1 (with `-Roads random`), framecheck.ps1, replay-compare.ps1, watchdog.ps1 | **Gauntlet** for packaged-build tests (study); Automation (in use); Insights for frame review |
+| QA and tools | `supermatt:qa`, `engineering:testing-strategy`, `engineering:deploy-checklist`, `zizi-skills:monitoring`; agents `qa-playtester`, `tools-engineer` | check.ps1, preflight.ps1 (with `-Roads random`), framecheck.ps1, replay-compare.ps1, watchdog.ps1, clean-lane.ps1 | **Gauntlet** for packaged-build tests (study); Automation (in use); Insights for frame review |
 
 ## Gaps found in the audit (2026-11-14)
 
