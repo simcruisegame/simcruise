@@ -1,13 +1,13 @@
 # 20-minute soak, Shipping 2.0.1
 2026-11-12 18:53:51 SOAK start: 20.0 minutes, travel 1
-2026-11-12 18:54:21 SOAK   30 s: driving, 19 km/h, 51 fps avg, worst frame 400 ms, 2495 MB used, 0 recoveries, 0 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_aaron
-2026-11-12 18:54:51 SOAK   60 s: driving, 41 km/h, 60 fps avg, worst frame 48 ms, 2509 MB used, 2 recoveries, 1 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_aaron
-2026-11-12 18:55:21 SOAK   90 s: driving, -0 km/h, 60 fps avg, worst frame 21 ms, 2489 MB used, 3 recoveries, 1 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_aaron
-2026-11-12 18:55:51 SOAK  120 s: driving, 0 km/h, 60 fps avg, worst frame 20 ms, 2494 MB used, 5 recoveries, 2 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_aaron
-2026-11-12 18:56:21 SOAK  150 s: driving, 42 km/h, 60 fps avg, worst frame 19 ms, 2493 MB used, 7 recoveries, 3 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_aaron
-2026-11-12 18:56:51 SOAK  180 s: driving, 41 km/h, 60 fps avg, worst frame 20 ms, 2706 MB used, 7 recoveries, 3 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_aaron
-2026-11-12 18:57:21 SOAK  210 s: driving, 2 km/h, 60 fps avg, worst frame 19 ms, 2699 MB used, 8 recoveries, 4 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_aaron
-2026-11-12 18:57:51 SOAK  240 s: driving, 2 km/h, 60 fps avg, worst frame 19 ms, 2703 MB used, 10 recoveries, 5 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_aaron
+2026-11-12 18:54:21 SOAK   30 s: driving, 19 km/h, 51 fps avg, worst frame 400 ms, 2495 MB used, 0 recoveries, 0 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_lowered
+2026-11-12 18:54:51 SOAK   60 s: driving, 41 km/h, 60 fps avg, worst frame 48 ms, 2509 MB used, 2 recoveries, 1 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_lowered
+2026-11-12 18:55:21 SOAK   90 s: driving, -0 km/h, 60 fps avg, worst frame 21 ms, 2489 MB used, 3 recoveries, 1 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_lowered
+2026-11-12 18:55:51 SOAK  120 s: driving, 0 km/h, 60 fps avg, worst frame 20 ms, 2494 MB used, 5 recoveries, 2 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_lowered
+2026-11-12 18:56:21 SOAK  150 s: driving, 42 km/h, 60 fps avg, worst frame 19 ms, 2493 MB used, 7 recoveries, 3 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_lowered
+2026-11-12 18:56:51 SOAK  180 s: driving, 41 km/h, 60 fps avg, worst frame 20 ms, 2706 MB used, 7 recoveries, 3 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_lowered
+2026-11-12 18:57:21 SOAK  210 s: driving, 2 km/h, 60 fps avg, worst frame 19 ms, 2699 MB used, 8 recoveries, 4 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_lowered
+2026-11-12 18:57:51 SOAK  240 s: driving, 2 km/h, 60 fps avg, worst frame 19 ms, 2703 MB used, 10 recoveries, 5 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car nb2001_lowered
 2026-11-12 18:57:58 SOAK car -> odyssey18 at 248 s
 2026-11-12 18:58:21 SOAK  270 s: driving, 43 km/h, 60 fps avg, worst frame 20 ms, 2633 MB used, 10 recoveries, 5 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car odyssey18
 2026-11-12 18:58:51 SOAK  300 s: driving, 0 km/h, 60 fps avg, worst frame 22 ms, 2638 MB used, 12 recoveries, 6 camera changes, place Central Avenue (Route 66) · Nob Hill, Albuquerque, NM, car odyssey18
@@ -50,11 +50,11 @@
 
 # Network fully off: HTTP_PROXY/HTTPS_PROXY/ALL_PROXY to a closed local port (the helper refuses to connect: checked directly, ECONNREFUSED), -SimCruiseLiveOffline, -SimCruiseNoPlaceFetch. The game started on a cached road and drove; exit 0.
 2026-11-12 19:13:58 SOAK start: 4.0 minutes, travel 0
-2026-11-12 19:14:28 SOAK   30 s: driving, 41 km/h, 53 fps avg, worst frame 400 ms, 2114 MB used, 1 recoveries, 0 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_aaron
-2026-11-12 19:14:58 SOAK   60 s: driving, 0 km/h, 59 fps avg, worst frame 400 ms, 2179 MB used, 3 recoveries, 1 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_aaron
-2026-11-12 19:15:28 SOAK   90 s: driving, 0 km/h, 60 fps avg, worst frame 21 ms, 2180 MB used, 5 recoveries, 1 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_aaron
-2026-11-12 19:15:58 SOAK  120 s: driving, 0 km/h, 60 fps avg, worst frame 19 ms, 2184 MB used, 8 recoveries, 2 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_aaron
-2026-11-12 19:16:28 SOAK  150 s: driving, -0 km/h, 60 fps avg, worst frame 20 ms, 2181 MB used, 10 recoveries, 3 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_aaron
-2026-11-12 19:16:58 SOAK  180 s: driving, 38 km/h, 60 fps avg, worst frame 18 ms, 2189 MB used, 12 recoveries, 3 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_aaron
-2026-11-12 19:17:28 SOAK  210 s: driving, -0 km/h, 60 fps avg, worst frame 21 ms, 2181 MB used, 14 recoveries, 4 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_aaron
+2026-11-12 19:14:28 SOAK   30 s: driving, 41 km/h, 53 fps avg, worst frame 400 ms, 2114 MB used, 1 recoveries, 0 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_lowered
+2026-11-12 19:14:58 SOAK   60 s: driving, 0 km/h, 59 fps avg, worst frame 400 ms, 2179 MB used, 3 recoveries, 1 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_lowered
+2026-11-12 19:15:28 SOAK   90 s: driving, 0 km/h, 60 fps avg, worst frame 21 ms, 2180 MB used, 5 recoveries, 1 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_lowered
+2026-11-12 19:15:58 SOAK  120 s: driving, 0 km/h, 60 fps avg, worst frame 19 ms, 2184 MB used, 8 recoveries, 2 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_lowered
+2026-11-12 19:16:28 SOAK  150 s: driving, -0 km/h, 60 fps avg, worst frame 20 ms, 2181 MB used, 10 recoveries, 3 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_lowered
+2026-11-12 19:16:58 SOAK  180 s: driving, 38 km/h, 60 fps avg, worst frame 18 ms, 2189 MB used, 12 recoveries, 3 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_lowered
+2026-11-12 19:17:28 SOAK  210 s: driving, -0 km/h, 60 fps avg, worst frame 21 ms, 2181 MB used, 14 recoveries, 4 camera changes, place Great River Road (WI-35) · Alma, WI, car nb2001_lowered
 2026-11-12 19:17:58 SOAK DONE: 4.0 minutes, drove 1, 16 recoveries, 5 camera changes, 0 car changes, 0 travels, 0 non-finite states, peak 2477 MB used

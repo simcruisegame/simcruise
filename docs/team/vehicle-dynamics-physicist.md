@@ -105,7 +105,7 @@ Thresholds:
 - Bench bands: 0-60 ± 0.15 s, 70-0 ± 5 ft, skidpad ± 0.02 g (`VehicleBenchTests.cpp:16-18`).
 - Spin: sideslip past 8° in a lift-off case is a fail.
 
-## 6a. Worked numbers for the player car (nb2001_aaron)
+## 6a. Worked numbers for the player car (nb2001_lowered)
 
 Use these as quick sanity values. They come from the car file and the formulas above.
 
@@ -175,7 +175,7 @@ Licence notes: ISO and SAE documents are paid. Quote test names and metrics only
 - There are only three surface kinds (`Private/World/SimCruiseWorldTile.cpp:96-141`, from Wong table 1.3): asphalt and concrete 1.0 dry, 0.70 wet; gravel 0.7 dry, 0.63 wet; terrain (verge, lawn, soil) 0.8 dry, 0.65 wet. Buildings, props and bridge actors get the asphalt default. Snow, ice, sand and mud do not exist.
 - Gravel flag: the helper passes only `p.surface==='unpaved'|'paved'` (`helper/atlas.mjs:130`). Then `bUnpaved` (`SimCruiseRoadNetwork.cpp:497`) sets vertex colour R=1 (`SimCruiseTileBuilder.cpp:747`), and the tile reads R>0.5 as gravel (`SimCruiseWorldTile.cpp:225-234`). A road with no surface tag becomes asphalt.
 - Wetness: `FSimCruiseWeather::StepRoadWetness` fills with a 180 s time constant in live rain and dries with 900 s. It uses `bRaining` only (`SimCruiseWeather.cpp:91-96`). The pawn copies it to the physics state every tick (`SimCruiseVehicle.cpp:445`).
-- Tyre: all three cars use `"tyre_model": "tmeasy"` (nb2001_aaron.json:44, meridian_z.json:63, mustang65.json:61). `GetTmeasyCurves` clamps the load at 2.5 × Fz,N. The surface factor G multiplies the peak force, the slide force, the peak slip and the slide slip. It does not change the initial stiffness (`SimCruiseTireModel.cpp:105-120`).
+- Tyre: all three cars use `"tyre_model": "tmeasy"` (nb2001_lowered.json:44, meridian_z.json:63, mustang65.json:61). `GetTmeasyCurves` clamps the load at 2.5 × Fz,N. The surface factor G multiplies the peak force, the slide force, the peak slip and the slide slip. It does not change the initial stiffness (`SimCruiseTireModel.cpp:105-120`).
 - Slip floors: Fx law 1.5 m/s (`SimCruiseTireModel.cpp:235`), ABS slip 5 m/s (`:232`), slip angle 1.8 m/s (`:39`). Relaxation is 0.35 m (NB) × load^exp, faded to 0 between 0.8 and 3.5 m/s, and integrated exactly (`:43-59`). A locked wheel's force is `Ke·(−V)` (`:261`).
 - Load transfer: anti-roll bars (`SimCruiseVehicleSim.cpp:584-591`) and roll-centre geometric transfer from the last substep's side forces (`:597-611`). Camber thrust uses the inclination minus the road lean (`:662, 673`).
 - Road geometry under the tyre: `helper/road-grade.mjs` fits a bench (Gaussian, `SIGMA=16` m, `:75`) only for classes motorway…minor (`:16`) that are not loose (`:114`). Superelevation is AASHTO-style and at most 6 %. The crown is a constant 2 % (`Public/World/SimCruiseRoadNetwork.h:156`) and does not come from data. Unpaved, `service` and `track` roads lie on the terrain grid (about 2.2 m, `SimCruiseTileBuilder.cpp:18`).
@@ -199,7 +199,7 @@ Licence notes: ISO and SAE documents are paid. Quote test names and metrics only
 
 **My first three actions.**
 1. Surface and grade benches in `Private/Tests/VehicleBenches.cpp` and `VehicleBenchTests.cpp`: 70-0, skidpad and ISO 7975 brake-in-turn at grip 0.7 (wet, gravel) and on split μ, plus a 60 s hold on a 20 % grade. Done when the tests run green for all 3 cars, the low-μ stop scales about as 1/μ, there is no spin, and grade drift is < 0.05 m in 60 s.
-2. Snow and ice to grip: map `bSnowing`, temperature and wetness to a surface state in `SimCruiseVehicleMovementComponent.cpp:334-339`, with Wong's or another sourced μ. Make `-SimCruiseLiveWet` (and a snow override) also reach the tyres. Done when a unit test passes and `scripts\preflight.ps1 -Roads us-anchorage-ak,us-rawlins-wy -Cars nb2001_aaron,meridian_z,mustang65` with forced snow logs a surface grip of about 0.25 and the car stays on the road.
+2. Snow and ice to grip: map `bSnowing`, temperature and wetness to a surface state in `SimCruiseVehicleMovementComponent.cpp:334-339`, with Wong's or another sourced μ. Make `-SimCruiseLiveWet` (and a snow override) also reach the tyres. Done when a unit test passes and `scripts\preflight.ps1 -Roads us-anchorage-ak,us-rawlins-wy -Cars nb2001_lowered,meridian_z,mustang65` with forced snow logs a surface grip of about 0.25 and the car stays on the road.
 3. Unpaved inference with gis-data-scientist, in `helper/atlas.mjs:130` and `road-grade.mjs:114`: `track` and untagged low-class rural roads get a prior from the place graph (region, road class). The helper logs the unpaved share per tile. Done when `scripts\preflight.ps1 -Roads us-casselton-nd,us-delta-ut,random` shows telemetry surface grip 0.7 on section roads, gravel in the contact sheets, and no jolt reasons on those roads.
 
 **Docs that are wrong or old.**

@@ -21,7 +21,7 @@ texture. Each claim has a measured test.
 |---|---|---|---|---|---|---|
 | 1 | Same car at every frame rate | Physics time budget, controls time-stamped and interpolated on the physics thread, camera maths on physics time, measured 28 W preset per machine, frame cap and pacing | M | Bench with uneven frame times passes for all 3 cars; 2 runs per preset meet budget; frame-time std dev < 1 ms | Async physics edge cases in UE 5.8 | Miata physics thread + performance-engineer |
 | 2 | Brakes and drivetrain like the real car | Brake system model (proportioning valve / EBD, ABS per car, pad heat), stick/slip clutch, engine braking with pumping loss, correct diff per year | M | Non-ABS Miata locks fronts first; 70-0 within ±5 ft of tests; coast-down within 10 % of owner log | Few public numbers for the C8 and Mustang | automotive-engineer + physicist |
-| 3 | Garage Day: measure the owner's own Miata | Corner weights, alignment, bump gap, steering lock, 60-0, coast-downs, diff type, engine sound recording | S team / M owner | Estimates in `nb2001_aaron.json` replaced by measured values with dates | Owner time; equipment (borrow, do not buy) | automotive-engineer + owner |
+| 3 | Garage Day: measure the owner's own Miata | Corner weights, alignment, bump gap, steering lock, 60-0, coast-downs, diff type, engine sound recording | S team / M owner | Estimates in `nb2001_lowered.json` replaced by measured values with dates | Owner time; equipment (borrow, do not buy) | automotive-engineer + owner |
 | 4 | Feel the road | Wheel mass and tyre spring, ISO 8608 road texture anchored to world position (fills existing roughness inputs), AASHTO banking, grade and vertical curves continuous across tile seams, hilly test fixture | M-L | 10-15 Hz wheel hop on bump bench; profile spectrum matches road class; no roll/pitch event at seams; no ground above the road edge at any seam; edge relative gradient ≤ 0.65 % | Higher physics cost on 28 W | physicist + gis-data-scientist |
 | 5 | Handling test suite with real targets | ISO 4138, 7401, 7975, 3888-1 with a band per car; nightly driving regression (3 cars at 60 and 15 fps, physics-time check, diff vs last release); 2-hour soak | S-M | Suite runs nightly in `check.ps1`; release diff report | Bands need real data | qa-playtester + physicist |
 | 6 | Camera feel and honest speed | Smoothed chase camera, swept collision, shake from suspension, lens chosen by measurement for the 15.6 in screen, speed-judgement test with speedometer hidden | M | < 5 % speed error with speedometer hidden; 5 of 6 drivers prefer it blind | Personal taste differs | cinematographer + magician |
@@ -33,7 +33,7 @@ texture. Each claim has a measured test.
 ## How this plan fits the player-first roadmap
 
 On 12 November a second plan arrived: `docs/plan/player-first-roadmap.md`
-(from Aaron's v2.0.0 playtest: view, too bright, traffic, not real). It
+(from the project owner's v2.0.0 playtest: view, too bright, traffic, not real). It
 leads. This team plan gives it tests and expert checks:
 
 | Roadmap section | Team themes that feed it | Team role |
@@ -46,7 +46,7 @@ leads. This team plan gives it tests and expert checks:
 | 5.5 A reason to drive | — | ux, qa |
 
 Themes the roadmap pauses (3 Garage Day, 5 ISO suites beyond guards, 8 sound
-match, HDR10 output) wait for Aaron. Existing benches stay as guards.
+match, HDR10 output) wait for the project owner. Existing benches stay as guards.
 
 ## Out of scope for this phase (proposal)
 

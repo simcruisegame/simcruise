@@ -1,6 +1,6 @@
 # Real-time context for fine details (team answer, 13 November 2026)
 
-Owner question (Aaron): "How do we context engineer in real time better to
+Owner question (the project owner): "How do we context engineer in real time better to
 create the fine details?" Team round: gis-data-scientist, magician,
 lighting-director, performance-engineer, game-developer. Code reading only;
 nobody ran the game. Costs marked (estimate) are not measured.

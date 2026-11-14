@@ -3,14 +3,14 @@
 # Result: exit code 0 after 1208 s (clean exit), 0 non-finite states, no crash.
 
 2026-11-12 11:58:59 SOAK start: 20.0 minutes, travel 1
-2026-11-12 11:59:29 SOAK   30 s: waiting, 0 km/h, 51 fps avg, worst frame 400 ms, 2181 MB used, 0 recoveries, 0 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_aaron
-2026-11-12 11:59:59 SOAK   60 s: driving, -6 km/h, 59 fps avg, worst frame 400 ms, 2434 MB used, 1 recoveries, 1 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_aaron
-2026-11-12 12:00:29 SOAK   90 s: driving, 2 km/h, 60 fps avg, worst frame 48 ms, 2620 MB used, 3 recoveries, 1 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_aaron
-2026-11-12 12:00:59 SOAK  120 s: driving, -0 km/h, 60 fps avg, worst frame 18 ms, 2586 MB used, 5 recoveries, 2 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_aaron
-2026-11-12 12:01:29 SOAK  150 s: driving, 22 km/h, 60 fps avg, worst frame 20 ms, 2582 MB used, 8 recoveries, 3 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_aaron
-2026-11-12 12:01:59 SOAK  180 s: driving, 27 km/h, 60 fps avg, worst frame 19 ms, 2565 MB used, 10 recoveries, 3 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_aaron
-2026-11-12 12:02:29 SOAK  210 s: driving, -0 km/h, 60 fps avg, worst frame 20 ms, 2545 MB used, 12 recoveries, 4 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_aaron
-2026-11-12 12:02:59 SOAK  240 s: driving, 40 km/h, 60 fps avg, worst frame 20 ms, 2546 MB used, 14 recoveries, 5 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_aaron
+2026-11-12 11:59:29 SOAK   30 s: waiting, 0 km/h, 51 fps avg, worst frame 400 ms, 2181 MB used, 0 recoveries, 0 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_lowered
+2026-11-12 11:59:59 SOAK   60 s: driving, -6 km/h, 59 fps avg, worst frame 400 ms, 2434 MB used, 1 recoveries, 1 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_lowered
+2026-11-12 12:00:29 SOAK   90 s: driving, 2 km/h, 60 fps avg, worst frame 48 ms, 2620 MB used, 3 recoveries, 1 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_lowered
+2026-11-12 12:00:59 SOAK  120 s: driving, -0 km/h, 60 fps avg, worst frame 18 ms, 2586 MB used, 5 recoveries, 2 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_lowered
+2026-11-12 12:01:29 SOAK  150 s: driving, 22 km/h, 60 fps avg, worst frame 20 ms, 2582 MB used, 8 recoveries, 3 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_lowered
+2026-11-12 12:01:59 SOAK  180 s: driving, 27 km/h, 60 fps avg, worst frame 19 ms, 2565 MB used, 10 recoveries, 3 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_lowered
+2026-11-12 12:02:29 SOAK  210 s: driving, -0 km/h, 60 fps avg, worst frame 20 ms, 2545 MB used, 12 recoveries, 4 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_lowered
+2026-11-12 12:02:59 SOAK  240 s: driving, 40 km/h, 60 fps avg, worst frame 20 ms, 2546 MB used, 14 recoveries, 5 camera changes, place Broadway · Lower Broadway, Nashville, TN, car nb2001_lowered
 2026-11-12 12:03:11 SOAK car -> odyssey18 at 252 s
 2026-11-12 12:03:29 SOAK  270 s: driving, -0 km/h, 60 fps avg, worst frame 20 ms, 2544 MB used, 16 recoveries, 5 camera changes, place Broadway · Lower Broadway, Nashville, TN, car odyssey18
 2026-11-12 12:03:59 SOAK  300 s: driving, 8 km/h, 60 fps avg, worst frame 20 ms, 2549 MB used, 18 recoveries, 6 camera changes, place Broadway · Lower Broadway, Nashville, TN, car odyssey18

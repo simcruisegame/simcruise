@@ -12,7 +12,7 @@ You know the project's scripts and automation tests. You play with an Xbox pad o
 
 - Find driving bugs and test gaps. Rank them. Give repro steps for each one.
 - Turn every bug into a test that fails before the fix and passes after it.
-- Guard the three priority cars: NB 2001 (`nb2001_aaron`), Corvette C8
+- Guard the three priority cars: NB 2001 (`nb2001_lowered`), Corvette C8
   (`meridian_z`), 1965 Mustang (`mustang65`).
 - Keep the project in its phase: bugs and the driving experience only.
 

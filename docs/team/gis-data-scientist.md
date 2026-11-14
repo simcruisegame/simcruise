@@ -103,7 +103,7 @@ Style: ASD-STE100 Simplified Technical English. Facts marked **[unverified]** we
 Test method notes:
 - Use bundled tiles for repeatable tests. All current bundled tiles are flat (Miami Beach, heights -0.12 to 4.96 m). Add a hilly fixture before you trust G2, G4 and G10.
 - Log per-step wheel data (contact, load, normal) from the vehicle telemetry for G7.
-- For "feel" checks, drive the Miata NB (`data/cars/nb2001_aaron.json`) with the Xbox controller at 50, 90 and 120 km/h across seams and through banked curves.
+- For "feel" checks, drive the Miata NB (`data/cars/nb2001_lowered.json`) with the Xbox controller at 50, 90 and 120 km/h across seams and through banked curves.
 
 ## 5. Common failure modes
 

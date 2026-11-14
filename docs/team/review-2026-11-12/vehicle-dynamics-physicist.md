@@ -1,6 +1,6 @@
 # Review 2026-11-12: vehicle dynamics physicist
 
-Scope: `Source/SimCruise/Private/Vehicle/*`, `data/cars/nb2001_aaron.json` (player car), `meridian_z.json`, `mustang65.json`, `Source/SimCruise/Private/Tests/VehicleBench*`.
+Scope: `Source/SimCruise/Private/Vehicle/*`, `data/cars/nb2001_lowered.json` (player car), `meridian_z.json`, `mustang65.json`, `Source/SimCruise/Private/Tests/VehicleBench*`.
 Method: code reading and hand calculation. No Unreal test was run in this review (no editor in this environment). Each claim carries a label: read in code, computed, or unverified.
 
 ## What is good

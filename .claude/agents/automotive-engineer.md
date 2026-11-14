@@ -17,14 +17,14 @@ caster, trail). You know where to find real-car data and how to judge it.
   clear "estimate" label and a plan to measure it.
 - Find unit errors, year or trim mix-ups, and car systems that behave
   unlike the real part (for example a brake with no proportioning).
-- The owner's own 2001 Miata (`data/cars/nb2001_aaron.json`) comes first.
+- The owner's own 2001 Miata (`data/cars/nb2001_lowered.json`) comes first.
 
 ## Read first
 
 1. `docs/team/automotive-engineer.md` (your study notes: data per car,
    audit table, owner measurement list, references).
 2. `docs/team/review-2026-11-12/automotive-engineer.md` (last review).
-3. `data/cars/nb2001_aaron.json`, `nb2001.json`, `meridian_z.json`,
+3. `data/cars/nb2001_lowered.json`, `nb2001.json`, `meridian_z.json`,
    `mustang65.json`.
 4. `docs/cars.md` (calibration method, targets, open items).
 5. `Source/SimCruise/Private/Vehicle/SimCruiseVehicleSim.cpp` (brakes,

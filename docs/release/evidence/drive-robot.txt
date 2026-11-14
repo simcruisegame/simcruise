@@ -12,7 +12,7 @@
   turnin50_full           47 km/h  rear slip   6.0 deg  yaw   46.0 deg/s  ok
   brake_turn70            66 km/h  rear slip  11.4 deg  yaw   12.5 deg/s  ok
   lanechange80            76 km/h  rear slip   2.3 deg  yaw   16.2 deg/s  ok
-Drive robot: nb2001_aaron
+Drive robot: nb2001_lowered
   launch_turn             22 km/h  rear slip  47.0 deg  yaw  165.1 deg/s  spun (expected)
   launch_turn_trig70      17 km/h  rear slip   0.0 deg  yaw   74.6 deg/s  ok
   junction20_trig70       27 km/h  rear slip   2.6 deg  yaw   64.9 deg/s  ok

@@ -28,7 +28,7 @@ Numbers for the three cars that matter:
 
 | Car | Idle | f_fire at idle | Fuel cut (data) | f_fire at fuel cut |
 |---|---|---|---|---|
-| Miata NB 1.8 inline four (nb2001_aaron.json) | 850 rpm | 28.3 Hz | 7250 rpm | 241.7 Hz |
+| Miata NB 1.8 inline four (nb2001_lowered.json) | 850 rpm | 28.3 Hz | 7250 rpm | 241.7 Hz |
 | Corvette C8 LT2 cross-plane V8 (meridian_z.json) | 700 rpm | 46.7 Hz | 6600 rpm | 440 Hz |
 | Mustang 1965 289 cross-plane V8 (mustang65.json) | 600 rpm | 40 Hz | 5000 rpm | 333 Hz |
 
@@ -217,7 +217,7 @@ Licence notes: EBU documents are free to download. Epic docs are reference only.
    - Note: `-SimCruiseLiveWet=` changes only the materials, not physics wetness (`SimCruiseLiveWorldSubsystem.cpp:510` and `SimCruiseVehicle.cpp:445`). The proof must therefore be offline.
 2. Measure the surface at random places.
    - Change: log a surface histogram per drive (the share of wheel contact on asphalt, gravel and terrain) in `ASimCruisePreflight`.
-   - Run: `scripts\preflight.ps1 -Roads us-casselton-nd,us-delta-ut,random -Cars nb2001_aaron,mustang65,meridian_z -Seconds 60`.
+   - Run: `scripts\preflight.ps1 -Roads us-casselton-nd,us-delta-ut,random -Cars nb2001_lowered,mustang65,meridian_z -Seconds 60`.
    - Done when: each `preflight.json` reports the gravel share. I compare that share with OSM `surface` tag coverage on the same roads. That gives the size of the untagged-gravel problem before anyone designs a fallback rule.
 3. Prove that each car has its own voice, and measure the mix.
    - Change: an offline render test `SimCruise.Audio.CarVoices`. It renders each of the 3 cars at idle, 3000 rpm at full load, 3000 rpm on overrun, and the limiter.

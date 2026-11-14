@@ -39,4 +39,4 @@ The world is already general in its base: Web Mercator tiles at any lat/lon, OSM
 
 ## Next step
 
-Each owner thread takes its rows. The first random-place pre-flight wave (`scripts\preflight.ps1 -Roads ocean-drive,dragon,nebraska,big-sur,random -Cars nb2001_aaron,meridian_z,mustang65`) confirms or rejects the estimates, and every sheet is read before any row is called fixed.
+Each owner thread takes its rows. The first random-place pre-flight wave (`scripts\preflight.ps1 -Roads ocean-drive,dragon,nebraska,big-sur,random -Cars nb2001_lowered,meridian_z,mustang65`) confirms or rejects the estimates, and every sheet is read before any row is called fixed.

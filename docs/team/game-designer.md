@@ -30,7 +30,7 @@
 - "Surprise me" (`SurpriseMe`, GameMode.cpp:376) draws from the same 36 pool roads, not a random US point.
 - Famous roads (SimCruiseFamousRoads.cpp:33): 4 roads with a start, end and length (Ocean Drive, Dragon, Big Sur, Monument Valley).
 - GPS: helper/route.mjs A* over OpenFreeMap z14 tiles; free-flow speeds by class (line 16), no `track` class; a leg is refused above 144 tiles (`MAX_TILES`, line 352). Off route at more than 30 m for 3 s; arrived within 25 m (SimCruiseRoute.h:112-115).
-- Defaults: car `nb2001_aaron` (Config/DefaultGame.ini:11) or the last car driven; start time 10:00 local solar time (Environment/SimCruiseEnvironment.cpp:204).
+- Defaults: car `nb2001_lowered` (Config/DefaultGame.ini:11) or the last car driven; start time 10:00 local solar time (Environment/SimCruiseEnvironment.cpp:204).
 
 **Does it work at a random US place?**
 - General: the "chosen" start, the atlas pin, Photon search and the 900 m snap work at any lat/lon. The us-* test places use this path. (estimate)

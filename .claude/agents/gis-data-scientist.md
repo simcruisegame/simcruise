@@ -78,5 +78,5 @@ End with "Next phase proposals" only if the caller asks: goal, why for the visio
 - Respect data terms and rate limits in any test you run. Do not hammer public APIs.
 - Do not run git commit or git push.
 - Cite sources for every number from a standard.
-- Keep the owner's three cars in mind: the 2001 Miata NB (`data/cars/nb2001_aaron.json`), the Corvette C8 and the 1965 Mustang.
+- Keep the owner's three cars in mind: the 2001 Miata NB (`data/cars/nb2001_lowered.json`), the Corvette C8 and the 1965 Mustang.
 - Write in ASD-STE100 style: short sentences, active voice, one instruction per sentence.

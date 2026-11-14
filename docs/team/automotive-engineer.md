@@ -1,6 +1,6 @@
 # Automotive engineer: study notes
 
-Role: check that the three hero cars carry real-car data and real-car systems. Cars: Mazda MX-5 Miata NB 2001 (player car, `data/cars/nb2001_aaron.json`, stock reference `nb2001.json`), Chevrolet Corvette C8 Z51 (`meridian_z.json`), 1965 Ford Mustang 289 (`mustang65.json`).
+Role: check that the three hero cars carry real-car data and real-car systems. Cars: Mazda MX-5 Miata NB 2001 (player car, `data/cars/nb2001_lowered.json`, stock reference `nb2001.json`), Chevrolet Corvette C8 Z51 (`meridian_z.json`), 1965 Ford Mustang 289 (`mustang65.json`).
 Style: ASD-STE100 Simplified Technical English. "Unverified" marks a fact that this study could not confirm from a primary source.
 
 ## 1. Rules for car data
@@ -76,7 +76,7 @@ Typical NB geometry (all unverified, measure on the owner's car): caster about 4
 
 ## 6. How to judge SimCruise
 
-Files: `data/cars/nb2001_aaron.json`, `nb2001.json`, `meridian_z.json`, `mustang65.json`; `Source/SimCruise/Private/Vehicle/SimCruiseVehicleSim.cpp` (brakes 812-833, engine 708-790, clutch 725-750), `SimCruisePowertrainModel.cpp` (diff), `SimCruiseSuspensionModel.cpp` (springs, bars, dampers), `CarDefinitionLoader.cpp` (field names and units), `docs/cars.md`.
+Files: `data/cars/nb2001_lowered.json`, `nb2001.json`, `meridian_z.json`, `mustang65.json`; `Source/SimCruise/Private/Vehicle/SimCruiseVehicleSim.cpp` (brakes 812-833, engine 708-790, clutch 725-750), `SimCruisePowertrainModel.cpp` (diff), `SimCruiseSuspensionModel.cpp` (springs, bars, dampers), `CarDefinitionLoader.cpp` (field names and units), `docs/cars.md`.
 
 Checks:
 1. Power check: torque at the power peak × ω equals the rated power within 2 %.
@@ -89,7 +89,7 @@ Checks:
 8. Tyre radius from the size string: R = rim/2 + width × aspect.
 9. Every estimate is labelled in `sources`.
 
-## 6a. Data audit of the player car (nb2001_aaron.json), 2026-11-12
+## 6a. Data audit of the player car (nb2001_lowered.json), 2026-11-12
 
 | Field | File | Real or source | Status |
 |---|---|---|---|
@@ -160,7 +160,7 @@ Licence notes: magazine figures are facts and may be cited. Do not copy text or 
 - Diff (`SimCruisePowertrainModel.cpp:12-34`): Torsen-style transfer limit = |T/2|·(TBR−1)/(TBR+1), with separate drive and coast biases. NB is 2.0 drive and 1.5 coast (the 2001 Torsen II is about 2.5, miata.net, secondary). The C8 eLSD is a fixed 3.0 stand-in. The Mustang is open (1.0).
 - Tuning (`SimCruiseTuning.cpp:44-54`): `TorquePct` can go from 50 to 150 % and the clutch capacity rises with it. Steering ratio can go from 0.6 to 1.4 × stock.
 - Steering: the physics uses `parking_rack_deg` (NB 36.6, C8 34, Mustang 33). The cockpit wheel uses `steering_ratio` from `Content/Vehicles/CarPresentation.json` (`SimCruiseCarPresentationComponent.cpp:670`). Turns lock to lock = 2·lock·ratio/360: NB 3.05 against 2.6 (GoAuto), C8 2.97 against 2.5, Mustang 3.98 against 3.73 (Car Life).
-- `VehicleCardTests.cpp:50-101` checks the turning circle (±4 %), the mass, the front share and the presentation ratio only. It does not check turns lock to lock. It runs `nb2001`, `mustang65` and `meridian_z`, not the player car `nb2001_aaron`.
+- `VehicleCardTests.cpp:50-101` checks the turning circle (±4 %), the mass, the front share and the presentation ratio only. It does not check turns lock to lock. It runs `nb2001`, `mustang65` and `meridian_z`, not the player car `nb2001_lowered`.
 - Air (`SimCruiseVehicle.cpp:446-456`): ISA pressure at `ElevationM` + actor Z, the live temperature (`SimCruiseLiveData.cpp:384`) and the live wind. This density goes only to aero drag (`SimCruiseVehicleSim.cpp:965`). The engine torque has no density term.
 - Grip under the tyre: `SimCruiseWorldTile.cpp:96-121` gives dry 1.0 and wet loss 0.3, and gravel or earth from the tile surface map (Wong table 1.3). There is no snow or ice and no tyre temperature.
 - Fuel and coolant are fixed values: `SimCruiseCarPresentationComponent.cpp:374-376` shows coolant 0.5 and fuel 0.72. No fuel, cooling or brake-temperature model exists.
@@ -177,18 +177,18 @@ Licence notes: magazine figures are facts and may be cited. Do not copy text or 
 2. P1: C8 and Mustang engine braking is far too low (defaults `CarDefinition.h:173-177`). It matters on every US mountain descent. Add friction and pumping fields to `meridian_z.json` and `mustang65.json` from FMEP for the displacement, labelled as estimates.
 3. P1: Mustang power is the 1965 SAE gross rating used as net. `mustang65.json` `torque_curve` is about 15-20 % strong (estimate) on grades and at top speed. Label it, find a net or dyno source, and do not rescale it to hit the 0-60.
 4. P1: there is no brake temperature or fade model (`SimCruiseVehicleSim.cpp` brake path). This matters on long grades for the drum-braked Mustang. Next phase, with the owner's consent.
-5. P2: steering lock and ratio conflict. NB at 15:1 and 2.6 turns needs a 31.2° lock. That lock gives a 10.2 m circle with the test formula (hand calculation), against 9.2 m. Both numbers cannot hold with a fixed ratio. Resolve on Garage Day. `nb2001_aaron.json` `parking_rack_deg`, `VehicleCardTests.cpp`.
+5. P2: steering lock and ratio conflict. NB at 15:1 and 2.6 turns needs a 31.2° lock. That lock gives a 10.2 m circle with the test formula (hand calculation), against 9.2 m. Both numbers cannot hold with a fixed ratio. Resolve on Garage Day. `nb2001_lowered.json` `parking_rack_deg`, `VehicleCardTests.cpp`.
 6. P2: the C8 has one tyre size (305/30R20) on both axles, and the real Z51 front is 245/35ZR19. There is no snow or ice grip class (`SimCruiseWorldTile.cpp:96`). No fuel or cooling model exists (gauges are fixed).
 
 **My first three actions.**
-1. Altitude and temperature power factor: write a proposal for `SimCruiseVehicleSim.cpp:755` and `SimCruiseVehicle.cpp:453`. Use SAE J1349 for naturally aspirated cars. Add a new car field for turbo cars. Done when a bench at a 2070 m density gives 0.80-0.82 × full-throttle torque on `nb2001_aaron`, the sea-level CarTrack bench is unchanged, and `scripts\preflight.ps1 -Roads us-rawlins-wy,us-delta-ut -Cars nb2001_aaron,mustang65` logs density and power factor in the report.
+1. Altitude and temperature power factor: write a proposal for `SimCruiseVehicleSim.cpp:755` and `SimCruiseVehicle.cpp:453`. Use SAE J1349 for naturally aspirated cars. Add a new car field for turbo cars. Done when a bench at a 2070 m density gives 0.80-0.82 × full-throttle torque on `nb2001_lowered`, the sea-level CarTrack bench is unchanged, and `scripts\preflight.ps1 -Roads us-rawlins-wy,us-delta-ut -Cars nb2001_lowered,mustang65` logs density and power factor in the report.
 2. V8 engine braking: write friction and pumping estimates with sources (Heywood ch. 13; Chen-Flynn) for `meridian_z.json` and `mustang65.json`. Done when the 3rd-gear coast-down torque at 3000 rpm is within the FMEP estimate band, LiftOff and CarTrack stay in band, and `scripts\preflight.ps1 -Roads random -Cars meridian_z,mustang65` on 3 random places (including us-welch-wv) shows no runaway descents in `report.md`.
-3. Turns-lock-to-lock card check: add a `turns_lock_to_lock` card field and a check in `VehicleCardTests.cpp`, and add `nb2001_aaron` to the card tests. Done when the test reports turns and circle for all three cars against GoAuto, Chevrolet and Car Life, and the NB conflict is listed as an open item for the Garage Day measurement.
+3. Turns-lock-to-lock card check: add a `turns_lock_to_lock` card field and a check in `VehicleCardTests.cpp`, and add `nb2001_lowered` to the card tests. Done when the test reports turns and circle for all three cars against GoAuto, Chevrolet and Car Life, and the NB conflict is listed as an open item for the Garage Day measurement.
 
 **Docs that are wrong or old.**
-- `docs/cars.md:3,94,139` says the physics reads through `godot-final:game/CarSpec.gd`, `Powertrain.gd` and `CarSuspension.gd`. The current loader is `CarDefinitionLoader.cpp`. `cars.md:145` says only the Corvette has ABS, but `nb2001_aaron.json` has `abs_enabled` true.
+- `docs/cars.md:3,94,139` says the physics reads through `godot-final:game/CarSpec.gd`, `Powertrain.gd` and `CarSuspension.gd`. The current loader is `CarDefinitionLoader.cpp`. `cars.md:145` says only the Corvette has ABS, but `nb2001_lowered.json` has `abs_enabled` true.
 - `docs/team/automotive-engineer.md` §6a is old. It lists brakes 1150/650, no proportioning, friction 10 + 0.002·rpm and ABS false. The file now has 1600/700, knee 0.30, slope 0.5, friction 12 + 0.005·rpm with pumping, and ABS true.
 - `docs/team/research/steering-ratio.md:25` says 36.6° gives about 8.1 m. The card-test geometry (`VehicleCardTests.cpp:50-56`) gives about 8.98 m by hand calculation (estimate), which is inside the 4 % band against 9.2 m.
 - `docs/team/ownership.md:55` points to `docs/team/test-places.md`. The test places are in `data/test-places.json`.
 
-Key files: /home/claude/simcruise/Source/SimCruise/Private/Vehicle/SimCruiseVehicleSim.cpp, /home/claude/simcruise/Source/SimCruise/Private/Vehicle/SimCruiseVehicle.cpp, /home/claude/simcruise/Source/SimCruise/Public/Vehicle/CarDefinition.h, /home/claude/simcruise/data/cars/mustang65.json, /home/claude/simcruise/data/cars/meridian_z.json, /home/claude/simcruise/data/cars/nb2001_aaron.json, /home/claude/simcruise/Source/SimCruise/Private/Tests/VehicleCardTests.cpp. Nothing was run. All numbers marked (estimate) are hand calculations.
+Key files: /home/claude/simcruise/Source/SimCruise/Private/Vehicle/SimCruiseVehicleSim.cpp, /home/claude/simcruise/Source/SimCruise/Private/Vehicle/SimCruiseVehicle.cpp, /home/claude/simcruise/Source/SimCruise/Public/Vehicle/CarDefinition.h, /home/claude/simcruise/data/cars/mustang65.json, /home/claude/simcruise/data/cars/meridian_z.json, /home/claude/simcruise/data/cars/nb2001_lowered.json, /home/claude/simcruise/Source/SimCruise/Private/Tests/VehicleCardTests.cpp. Nothing was run. All numbers marked (estimate) are hand calculations.

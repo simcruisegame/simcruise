@@ -40,7 +40,7 @@ Use this format. It follows the incident report of ISO/IEC/IEEE 29119-3
 2. Build: commit hash, Development or Shipping, editor or packaged.
 3. Hardware: GPU, frame rate (from F3), power (battery or mains).
 4. Input: Xbox pad, keyboard or wheel.
-5. Car id (for example `nb2001_aaron`).
+5. Car id (for example `nb2001_lowered`).
 6. Place and time of day.
 7. Steps: numbered. Start from a fresh launch.
 8. Expected result. Actual result.
@@ -63,10 +63,10 @@ A bug without repro steps is not done. Try three times before you file "can't re
 
 ### 4.2 Regression (each release)
 1. `scripts/check.ps1` passes.
-2. `scripts/drive-robot.ps1 -Cars nb2001_aaron,meridian_z,mustang65 -LowFps` passes.
+2. `scripts/drive-robot.ps1 -Cars nb2001_lowered,meridian_z,mustang65 -LowFps` passes.
 3. Compare `history.csv` with the last release. A peak slip change of more than
    2 deg or a yaw-rate change of more than 10 % needs a reason.
-4. Play test with the three priority cars: NB 2001 (Aaron's), Corvette C8
+4. Play test with the three priority cars: NB 2001 (lowered), Corvette C8
    (`meridian_z`), 1965 Mustang (`mustang65`).
 
 ### 4.3 Soak (2 hours, before release)
@@ -159,7 +159,7 @@ Licences: all sources are read for reference only. Do not copy text from the pay
 - `Judge` (`SimCruisePreflight.cpp:76-99`; limits in `SimCruisePreflight.h:78-100`) fails on any of these: distance < 200 m, off the road > 1 s, start > 3 km from the asked point (`:964-971`), tile pop-in ≥ 1 within 150 m, car pop-in > 2, flash frames > 2, road step > 5 cm, gap < 1.5 m, body jolt > 8 m/s² at a tile border, traffic stuck > 20 s, rear slip > 15° or sliding backwards > 0.3 s, more than 2 m past the edge for > 0.5 s, frame p95 > 50 ms or > 5 hitches over 100 ms.
 - `SimCruiseViewCheck.cpp:117-145` fails when world rays are < 70 %, no road is within 300 m, there is no building in view (only checked if ≥ 30 buildings are mapped, `SimCruiseViewCheck.h:61`), or the image edges are < 2.
 - `check.ps1:139` runs the automation tests (`fast` skips the Slow tag). It fails on `Ensure`, `Fatal` or `LogSimCruise*: Error:` (`:182`). Then it runs `viewcheck.ps1` on ocean-drive, collins-ave and test-pad only (`viewcheck.ps1:48-50`). All three are in Miami.
-- `drive-robot.ps1:23` runs 4 cars by default (nb2001, nb2001_aaron, mustang65, meridian_z) on the drive-test pad at the bundled start (`:52`). `-LowFps` adds a 15 fps cap (`:46`).
+- `drive-robot.ps1:23` runs 4 cars by default (nb2001, nb2001_lowered, mustang65, meridian_z) on the drive-test pad at the bundled start (`:52`). `-LowFps` adds a 15 fps cap (`:46`).
 - The soak cycles the car every 240 s and travels every 360 s, through 9 fixed presets (`SimCruiseSoak.cpp:127-143`, `SimCruisePlaces.cpp:49-59`).
 - The input tape replays with a fixed time step from the tape's recorded frame time (`SimCruiseInputTape.cpp:814-818`).
 - `playtest.ps1:54-55` builds a play-test only if the last index row for the commit is PASS. It does not check which roads that run used.
@@ -180,7 +180,7 @@ Licences: all sources are read for reference only. Do not copy text from the pay
 5. P2: The 60 s at class speed is too short for random rural places to cross seams. The soak and the view check use only fixed presets and Miami (`SimCruiseSoak.cpp:136`, `viewcheck.ps1:48-50`).
 
 **My first three actions.**
-1. Run `scripts\preflight.ps1 -Roads random,us-welch-wv,us-anchorage-ak,us-hilo-hi -Cars nb2001_aaron,meridian_z,mustang65 -Seconds 120`. Done when: I have opened every `*-sheet.png` and `report.md`. Each defect has a ranked entry with repro steps, the frame and the run folder. Each false FAIL from the fixed UTC has its own entry.
+1. Run `scripts\preflight.ps1 -Roads random,us-welch-wv,us-anchorage-ak,us-hilo-hi -Cars nb2001_lowered,meridian_z,mustang65 -Seconds 120`. Done when: I have opened every `*-sheet.png` and `report.md`. Each defect has a ranked entry with repro steps, the frame and the run folder. Each false FAIL from the fixed UTC has its own entry.
 2. Propose a change to `scripts\preflight.ps1` (needs the caller's approval): if the caller gives no `-Utc`, use local solar noon from the place's longitude (12:00 UTC − lon/15 h). Done when: us-anchorage-ak shows a daylight reference EV100 in `preflight.json`, and `-Roads dragon -ForceSpin` still prints `FORCED-SPIN TEST PASSED`.
 3. Propose a change to the `scripts\playtest.ps1` gate: the index row must hold all 4 hero roads and ≥ 3 `us-*` keys, with all 3 priority cars. Done when: a fake index row with only ocean-drive is refused, and a full row is accepted.
 

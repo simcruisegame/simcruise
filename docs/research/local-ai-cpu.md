@@ -11,7 +11,7 @@ Measured on BarlowFamilyPC (laptop): Intel Core i9-10885H, 8 cores / 16 threads,
 
 | What | Value | How |
 |---|---|---|
-| Game CPU while it drives the Tail of the Dragon (Ultra, 1280x720, traffic on) | median 2.9, mean 3.3 hardware threads busy, p90 4.5, peak 10.8 (tile builds) | `Process.TotalProcessorTime` of the game, once a second, during `scripts\preflight.ps1 -Roads dragon -Cars nb2001_aaron` (pre-flight PASS, frame p95 17.0 ms, 0 hitches) |
+| Game CPU while it drives the Tail of the Dragon (Ultra, 1280x720, traffic on) | median 2.9, mean 3.3 hardware threads busy, p90 4.5, peak 10.8 (tile builds) | `Process.TotalProcessorTime` of the game, once a second, during `scripts\preflight.ps1 -Roads dragon -Cars nb2001_lowered` (pre-flight PASS, frame p95 17.0 ms, 0 hitches) |
 | Idle while driving | about 11-12 of 16 threads | 16 minus the game's use |
 | Game RAM | 5.0 GB working set at the end of a 60 s drive | same log |
 | Free RAM for AI | about 20 GB on this PC (32 GB minus game, OS and editor) | Windows counters |
@@ -23,7 +23,7 @@ still leave 9-10 threads idle.
 
 ## 2. Licence rule
 
-Aaron's rule (14 November 2026): if a model's makers do not say we cannot use it, we can; what it
+The project owner's rule (14 November 2026): if a model's makers do not say we cannot use it, we can; what it
 was trained on is the makers' responsibility. The gate is the publisher's licence for the weights,
 for a free open-source game that redistributes them. We still obey every licence term (attribution,
 share-alike, use limits). Weights marked non-commercial or research-only stay out. We record the

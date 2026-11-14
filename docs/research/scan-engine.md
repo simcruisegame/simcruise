@@ -1,6 +1,6 @@
 # The scan engine: contract v1 (14 November 2026)
 
-Owner: Aaron ("do what Flight Simulator does"; "make that awesome"). Branch
+Owner: the project owner ("do what Flight Simulator does"; "make that awesome"). Branch
 `world-detail-v2`. Plan: [world-detail-v2-plan.md](world-detail-v2-plan.md).
 C++ types: `Source/SimCruise/Public/World/SimCruiseScan*.h`. Python prototypes
 in `lab/scan/` write the same file.
@@ -184,7 +184,7 @@ corridor texture in a runtime virtual texture.
 - Every model goes in `docs/data-sources.md` with its weights licence and
   training-data origin.
 
-## H. Budget while the game drives (Aaron, 14 November 2026)
+## H. Budget while the game drives (the project owner, 14 November 2026)
 
 - Scan plus eyes: up to about 10 of the 16 hardware threads and about 16 GB of RAM,
   at below-normal thread priority.

@@ -81,6 +81,6 @@ After the list, give the numbers you computed and label each claim as
 - No speculation without a label. If you did not run a test, say so.
 - Do not tune grip or torque to hit one bench number. Find the missing
   physics first.
-- Keep the owner's car (`nb2001_aaron`) first, then the Corvette C8 and the
+- Keep the owner's car (`nb2001_lowered`) first, then the Corvette C8 and the
   1965 Mustang.
 - Write in short, active sentences (ASD-STE100 style).

@@ -1,6 +1,6 @@
 # New ways to add world detail (13 November 2026)
 
-Aaron asked for new and original methods to add detail to the world efficiently: textures, meshing, depth from grid or street imagery, and other new ideas. This note lists 15 methods, ranks them by the realism they add for each millisecond of GPU time on the 28 W laptop GPU, and reports two prototypes that we built and measured.
+The project owner asked for new and original methods to add detail to the world efficiently: textures, meshing, depth from grid or street imagery, and other new ideas. This note lists 15 methods, ranks them by the realism they add for each millisecond of GPU time on the 28 W laptop GPU, and reports two prototypes that we built and measured.
 
 Read with: [detail-engine.md](detail-engine.md) (the Godot-era texture plan), [real-world-detail.md](real-world-detail.md), [domain-ideas.md](domain-ideas.md), [../team/research/lighting-tech.md](../team/research/lighting-tech.md) and the player-first roadmap ([../plan/player-first-roadmap.md](../plan/player-first-roadmap.md)).
 
@@ -114,7 +114,7 @@ The cheapest large gains are the middle sizes, the depth on near grass and the n
 
 ## The grass field: real texture at every size, from almost nothing
 
-This is the "new tech" Aaron asked for. It needs no stored textures beyond the 640 px CC0 grass photograph we already have, no new draw calls and no AI on the frame.
+This is the "new tech" the project owner asked for. It needs no stored textures beyond the 640 px CC0 grass photograph we already have, no new draw calls and no AI on the frame.
 
 1. **Micro (under 0.5 m): no-repeat photograph.** Hex tiling (Mikkelsen, JCGT 2022): three lookups of the same photograph, each rotated and offset by a hash of its hex cell, blended with the contrast restored. No two metres of lawn are the same.
 2. **Meso (0.3-10 m): the size that was missing.** Hashed value noise makes clumps (0.3-1 m, brighter and darker), patches of yellower and bluer grass (2-8 m), clover spots and dry patches. The dry share comes from the season and the graph (`state:dormant_tan`, `state:cured_straw`); for now `-SimCruiseGrassDry=0..1`. It only multiplies around 1, so the mean colour that the photograph and the colour grade set does not move.
@@ -130,9 +130,9 @@ All three are arithmetic in the existing ground shader: about 3 texture fetches 
 
 **In the game.** Ground material parameters `GrassField` (on; `-SimCruiseNoGrassField` turns it off) and `GrassDry`. The materials are rebuilt with `-run=SimCruiseBuildWorldMaterials`.
 
-## The knowledge graph chooses the surfaces (Aaron, 13 November)
+## The knowledge graph chooses the surfaces (the project owner, 13 November)
 
-Aaron asked: can the AI use a knowledge graph to make building textures, roads, grass and so on? Yes. The place knowledge graph ([../place-graph.md](../place-graph.md)) already chooses each building's recipe, details, colours and wear from facts. The plan extends the same graph from buildings to every surface.
+The project owner asked: can the AI use a knowledge graph to make building textures, roads, grass and so on? Yes. The place knowledge graph ([../place-graph.md](../place-graph.md)) already chooses each building's recipe, details, colours and wear from facts. The plan extends the same graph from buildings to every surface.
 
 **How it works.**
 

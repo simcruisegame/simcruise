@@ -233,7 +233,7 @@ Role: ux-accessibility. This is a desk study of code and docs. Nothing was run. 
 **My first three actions.**
 1. Make the stick range use surface grip (`SimCruiseDriverShaping.cpp`, `AvailableSteeringRad` and `ThumbstickCommand`). Done when:
    - A new test, `SimCruise.Gameplay.Steering.GripAwareRange`, passes. At 30 m/s with SurfaceGrip 0.7, half stick asks no more than 0.7 × dry steady-state g. Dry results do not change.
-   - `scripts\preflight.ps1 -Roads us-casselton-nd,us-seattle-wa,random -Cars nb2001_aaron -Seconds 60` shows no "past edge" or spin reason.
+   - `scripts\preflight.ps1 -Roads us-casselton-nd,us-seattle-wa,random -Cars nb2001_lowered -Seconds 60` shows no "past edge" or spin reason.
 2. Cap the pad rate in hand-wheel °/s (`SimCruiseDriverShaping.cpp:166-167`). Done when:
    - A test shows that a full-stick step from rest takes 1.0 s or more to reach 90 % of lock, and no pad case exceeds 720°/s at the hand wheel at any HandSpeed setting.
    - `scripts\preflight.ps1 -Roads us-bronx-ny,us-ankeny-ia -Seconds 60` shows no new jolts.

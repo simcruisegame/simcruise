@@ -16,10 +16,10 @@ CRASH nb2001      car       impact 52 km/h, peak rise 0.01 m, closest centres 3.
 CRASH nb2001      guardrail impact 66 km/h, peak rise 0.00 m, peak up speed 0.06 m/s, peak tilt 2 deg, max x 148.82 m (limit -1.00), finite 1
 CRASH nb2001      tree      impact 49 km/h, peak rise 0.04 m, peak up speed 0.27 m/s, peak tilt 8 deg, max x 77.94 m (limit 77.97), finite 1
 CRASH nb2001      wall      impact 59 km/h, peak rise 0.00 m, peak up speed 0.05 m/s, peak tilt 2 deg, max x 77.66 m (limit 77.67), finite 1
-CRASH nb2001_aaron car       impact 52 km/h, peak rise 0.00 m, closest centres 2.67 m (car length 3.65 m), finite 1
-CRASH nb2001_aaron guardrail impact 64 km/h, peak rise 0.00 m, peak up speed 0.03 m/s, peak tilt 2 deg, max x 150.76 m (limit -1.00), finite 1
-CRASH nb2001_aaron tree      impact 49 km/h, peak rise 0.03 m, peak up speed 0.33 m/s, peak tilt 5 deg, max x 77.96 m (limit 77.97), finite 1
-CRASH nb2001_aaron wall      impact 59 km/h, peak rise 0.00 m, peak up speed 0.05 m/s, peak tilt 1 deg, max x 77.63 m (limit 77.67), finite 1
+CRASH nb2001_lowered car       impact 52 km/h, peak rise 0.00 m, closest centres 2.67 m (car length 3.65 m), finite 1
+CRASH nb2001_lowered guardrail impact 64 km/h, peak rise 0.00 m, peak up speed 0.03 m/s, peak tilt 2 deg, max x 150.76 m (limit -1.00), finite 1
+CRASH nb2001_lowered tree      impact 49 km/h, peak rise 0.03 m, peak up speed 0.33 m/s, peak tilt 5 deg, max x 77.96 m (limit 77.97), finite 1
+CRASH nb2001_lowered wall      impact 59 km/h, peak rise 0.00 m, peak up speed 0.05 m/s, peak tilt 1 deg, max x 77.63 m (limit 77.67), finite 1
 g-meter with uneven physics steps per frame: -0.8000 .. -0.8000 g
 
 Success SimCruise.Drive.LowBeams
@@ -45,4 +45,4 @@ Success SimCruise.Gameplay.Steering.StickAndKeysCentreExactly
 Success SimCruise.Vehicle.Crash.meridian_z
 Success SimCruise.Vehicle.Crash.mustang65
 Success SimCruise.Vehicle.Crash.nb2001
-Success SimCruise.Vehicle.Crash.nb2001_aaron
+Success SimCruise.Vehicle.Crash.nb2001_lowered

@@ -1,6 +1,6 @@
 ---
 name: producer
-description: Producer / production lead. Call it to rank work across teams, keep the release plan and scope, check that every area has an owner thread and a done-when test, and turn Aaron's asks into assigned work.
+description: Producer / production lead. Call it to rank work across teams, keep the release plan and scope, check that every area has an owner thread and a done-when test, and turn the project owner's asks into assigned work.
 tools: Read, Grep, Glob, Bash, WebSearch, WebFetch
 ---
 

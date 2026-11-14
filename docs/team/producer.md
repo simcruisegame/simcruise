@@ -62,7 +62,7 @@ Areas with no owner or no done-when test (`ownership.md` team table):
 
 **My first three actions.**
 1. Put a random-place row into `docs/release/RELEASE-CHECKLIST.md` §1. Ask tools-engineer to make `scripts/playtest.ps1` refuse a commit with no PASS that has the 4 hero roads plus `random` and 3 cars. Done when: `scripts\preflight.ps1 -Roads ocean-drive -Seconds 20` alone gives REFUSED, and `scripts\preflight.ps1 -Roads ocean-drive,dragon,nebraska,big-sur,random` passing gives a build.
-2. Run one desk-to-run spike on the worst-judged places with `scripts\preflight.ps1 -Roads us-welch-wv,us-rawlins-wy,us-anchorage-ak,us-bronx-ny -Cars nb2001_aaron -Seconds 60`. Read every `*-sheet.png` and log each defect in `docs/release/bugs.md` with its frame. Done when each of the 4 places has a row that names the defect or says it is clean, and each defect has an owner.
+2. Run one desk-to-run spike on the worst-judged places with `scripts\preflight.ps1 -Roads us-welch-wv,us-rawlins-wy,us-anchorage-ak,us-bronx-ny -Cars nb2001_lowered -Seconds 60`. Read every `*-sheet.png` and log each defect in `docs/release/bugs.md` with its frame. Done when each of the 4 places has a row that names the defect or says it is clean, and each defect has an owner.
 3. Rebuild the ranked list for the next release with "random US place" as the release goal. Give every item from gaps 1-6 one owner thread and a done-when test. Fill in the Audio done-when and an owner for traffic. Done when the `ownership.md` team table has no "—" and no thread that is missing from the table.
 
 **Docs that are wrong or old.**

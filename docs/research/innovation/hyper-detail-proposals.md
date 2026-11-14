@@ -1,6 +1,6 @@
 # Hyper detail at road level: ranked proposals (14 November 2026)
 
-Innovation team, for Aaron: "how can we create hyper detail", "is this first in the world? what would be best, can you do both?" and "doing it over everything is a visual trick but may allow us to efficiently do it better with even more detail?"
+Innovation team, for the project owner: "how can we create hyper detail", "is this first in the world? what would be best, can you do both?" and "doing it over everything is a visual trick but may allow us to efficiently do it better with even more detail?"
 
 Read with: [flight-simulator-study.md](flight-simulator-study.md), [technique-survey.md](technique-survey.md), the scan engine contract `world-detail/scan-map-spec.md` (v1), `world-detail/world-detail-methods.md`, `team/docs/research/realtime-context.md`.
 
@@ -20,19 +20,19 @@ Costs marked (estimate) are not measured. Each proposal has a first experiment t
 
 1. **The road's real cross-section.** Build every road from US design standards and national road statistics: lane, edge line, paved or gravel shoulder, edge drop, rumble strip, foreslope, ditch, backslope, mow line, guard rail where the rules require one. Fit it to lidar where lidar exists. The tyres feel what the eye sees. Fixes "no road shoulder".
 2. **Ground from the soil and the rock.** Bare ground takes its colour from the US soil survey (Munsell colour of the top soil layer), and cut faces take their rock type from the USGS geologic map; lidar slope decides where bare soil or rock shows. Fixes the "smooth lime-green bank".
-3. **Process-true corridor texture (our bold idea).** A unique, never-repeating detail texture for the 60 m corridor ahead of the car. Each texel comes from a cheap simulation of the process that made it (water flow, tyre-thrown gravel, cracks by pavement age and frost, leaf fall), cached in a runtime virtual texture and dropped behind the car. This is Aaron's "trick over everything", done so that it gives more detail for less GPU time.
+3. **Process-true corridor texture (our bold idea).** A unique, never-repeating detail texture for the 60 m corridor ahead of the car. Each texel comes from a cheap simulation of the process that made it (water flow, tyre-thrown gravel, cracks by pavement age and frost, leaf fall), cached in a runtime virtual texture and dropped behind the car. This is the project owner's "trick over everything", done so that it gives more detail for less GPU time.
 4. **Trees grown to their own lidar.** Each tree near the road gets its real height, crown base and crown shape from the lidar points, and a species from the US forest data; a growth algorithm fills that envelope with branches. Fixes "painted-blob trees".
 5. **Facades from the structure inventory.** The US Army Corps of Engineers' National Structure Inventory gives, per building, the construction type (masonry, wood, steel, manufactured), stories, foundation type and height; the Census gives the era. The facade grammar builds the right porch steps, siding or brick, and window rows.
 
 **Is it first in the world?** Not as a whole idea. Flight Simulator and Blackshark (cloud), Outerra (procedural planet that you can drive) and military simulators (whole-Earth terrain from open data) did large parts. What we found no shipping product doing: building the world **on the player's own PC as they drive**, from **open US national inventories** about the **vertical world and the first 30 m beside the road**, with **clean-licence models only**, a **self-check of each tile against the aerial photograph and against road-level photograph statistics**, and **one record that feeds the picture, the tyres and the sound**. We cannot prove that nobody did it; we can say that we searched and found no one.
 
-**Can we do both (3D detail and an AI repaint of each frame)?** Yes, but not a full AI repaint. The best published real-time version (REGEN, 2025) needs 33 ms per frame at 960 x 512 on an RTX 4090; our laptop GPU is several times slower, and the training data (Cityscapes) is non-commercial. Our recommendation: (a) real detail in the world, as above; (b) the cheap middle way: an AI-fitted "photo look" per place (a colour and tone table, computed one time offline from licensed photographs), applied as a normal post-process at about 0.05 ms; (c) later, an optional NVIDIA DLSS 5 switch for players with RTX 50 cards (it does not run on Aaron's laptop). AI teaches the cheap trick offline; it does not paint every frame.
+**Can we do both (3D detail and an AI repaint of each frame)?** Yes, but not a full AI repaint. The best published real-time version (REGEN, 2025) needs 33 ms per frame at 960 x 512 on an RTX 4090; our laptop GPU is several times slower, and the training data (Cityscapes) is non-commercial. Our recommendation: (a) real detail in the world, as above; (b) the cheap middle way: an AI-fitted "photo look" per place (a colour and tone table, computed one time offline from licensed photographs), applied as a normal post-process at about 0.05 ms; (c) later, an optional NVIDIA DLSS 5 switch for players with RTX 50 cards (it does not run on the project owner's laptop). AI teaches the cheap trick offline; it does not paint every frame.
 
 ---
 
-## 2. Real 3D where it counts, shading tricks where they are cheap (Aaron's idea)
+## 2. Real 3D where it counts, shading tricks where they are cheap (the project owner's idea)
 
-Aaron is right: detail that is a trick of shading can give more detail per millisecond than geometry. The eye is the judge, so the question for each trick is: **where does the driver's eye catch it?** From research and our own frames, the eye catches a fake in four places:
+The project owner is right: detail that is a trick of shading can give more detail per millisecond than geometry. The eye is the judge, so the question for each trick is: **where does the driver's eye catch it?** From research and our own frames, the eye catches a fake in four places:
 
 1. **Silhouettes** (the outline of a rock, a kerb edge, a post, a crown against the sky). A shading trick has no outline. Silhouettes must be geometry.
 2. **Grazing angles.** At 1.2 m the road and ground ahead are seen at 2-10 degrees. Parallax and relief mapping break up at grazing angles (steps, swimming, flat outlines) unless they take many samples. So parallax is weak on the ground ahead, but it is good on **vertical surfaces that face the driver**: banks, cut faces, walls, facades, where the view is near the surface normal.
@@ -76,7 +76,7 @@ The contract (`scan-map-spec.md`) is a strong base: one file per tile, a CPU eye
 | # | Gap in v1 | Why it matters at 1.2 m | Concrete addition (SCAN_VERSION 2) |
 |---|---|---|---|
 | G1 | 1 m base cell everywhere | The shoulder edge, kerb, rumble strip and ditch lip are 0.1-0.5 m features; at 5 m, one pixel is 4 mm | New chunk `CORR`: a 0.25 m raster in a band of ±20 m around each road centre line, in road (station, offset) coordinates, so it follows curves without waste. Channels: R = ground offset (mm), G = surface sub-class, B = process mask id, A = confidence. About 12 bytes per metre of road per side (zstd). |
-| G2 | No road cross-section | "No road shoulder" in Aaron's screenshot; tyres feel nothing at the edge | Extend `ROAD` records with a cross-section profile: lane width, edge line, shoulder type (paved, gravel, turf, none, curb-and-gutter), shoulder width, edge drop (cm), rumble strip type and offset, foreslope ratio, ditch depth and width, backslope, mow line, barrier type and offset, each field with a source flag (map, lidar, HPMS prior, rule). Proposal 1. |
+| G2 | No road cross-section | "No road shoulder" in the project owner's screenshot; tyres feel nothing at the edge | Extend `ROAD` records with a cross-section profile: lane width, edge line, shoulder type (paved, gravel, turf, none, curb-and-gutter), shoulder width, edge drop (cm), rumble strip type and offset, foreslope ratio, ditch depth and width, backslope, mow line, barrier type and offset, each field with a source flag (map, lidar, HPMS prior, rule). Proposal 1. |
 | G3 | Surface classes have no soil or rock identity | "dirt" and "rock" have one colour everywhere; the bank is lime green | New chunk `GEOL`: per cell u8 rock family (from the geologic map), u8 rock fragment %, RGB8 soil albedo (dry) from the soil survey, u8 bedding dip class. Split class 6 "bare soil" and 7 "rock" by this chunk, not by new enums. Proposal 2. |
 | G4 | No water and process layer | Dirt, moss, gravel washout, puddles and leaf drifts follow water and gravity | New chunk `PROC`: flow accumulation (log), wetness index, sky-view factor (for occlusion, method 8 in world-detail-methods.md), downslope direction (2 bits), "tyre throw" zone, litter density. Proposal 3. |
 | G5 | `INST` is 32 bytes: a tree is only height and crown size | A tree is read by its outline: crown base, crown shape, lean | New chunk `TREE` (48 bytes): position, species group, height, crown base height, crown radius in 8 directions (u8 each), crown density (lidar return ratio), lean (2 x i8), archetype id, seed. `INST` stays for small things. Proposal 4. |
@@ -112,7 +112,7 @@ Budget check: `CORR`, `GEOL`, `PROC`, `TREE` add about 1-3 MB per tile before zs
 **Recommendation.**
 
 1. **Now: the middle way, "AI teaches the trick".** Offline, fit a per-place "photo look": a 33³ colour and tone table (3D LUT) plus 4-6 camera parameters (local contrast, black level, saturation by hue, sensor noise) for each cluster of (Köppen class x land cover x season x sun height x sky state). The fit matches render statistics to statistics of licensed photographs of that kind of place (colour distribution transfer; Reinhard et al. 2001, Pitié et al. 2007; no neural weights needed, or a small model trained only on CC0 and CC BY photographs). Store about 200 tables (about 30 MB, estimate); blend between them as the car moves. Cost about 0.05 ms. **Guard:** the table must not correct albedo; materials and soil colours are fixed first (proposal 2), and the table is limited to camera-like changes, so it cannot hide a wrong world. Owner: the picture thread, with this team's data.
-2. **Later, optional: a DLSS 5 switch** for players with RTX 50 cards, off by default, after a licence check and a stability test at 130 km/h. It does not run on Aaron's laptop.
+2. **Later, optional: a DLSS 5 switch** for players with RTX 50 cards, off by default, after a licence check and a stability test at 130 km/h. It does not run on the project owner's laptop.
 3. **Not now: our own frame-repaint network.** Revisit when a model with clean training data runs under 4 ms on the laptop.
 
 ---
@@ -144,7 +144,7 @@ Budget check: `CORR`, `GEOL`, `PROC`, `TREE` add about 1-3 MB per tile before zs
 
 Score = realism gain (1-5, our estimate of what a driver sees) x share of US road length that gets the full gain / cost (S = 1, M = 2, L = 3, plus 1 for each 0.5 ms of GPU). A higher score comes first.
 
-| Rank | Proposal | Gain | Coverage | Cost | GPU ms (estimate) | Score | Fixes in Aaron's screenshot |
+| Rank | Proposal | Gain | Coverage | Cost | GPU ms (estimate) | Score | Fixes in the project owner's screenshot |
 |---|---|---|---|---|---|---|---|
 | 1 | The road's real cross-section | 5 | 1.0 | M | 0.1-0.2 | 2.5 | no road shoulder |
 | 2 | Ground from the soil and the rock | 4 | 0.95 | S-M | 0 | 2.5 | lime-green bank, no rock |
@@ -210,7 +210,7 @@ Proposals 8, 10 and 12 score high because they are cheap, but they are known met
 
 ### Proposal 3. Process-true corridor texture (our bold original idea)
 
-**Idea.** Aaron's "trick over everything", made better: **a unique texture for the corridor ahead of the car, in which every texel comes from the process that made it, so nothing repeats and nothing is without a cause.**
+**Idea.** The project owner's "trick over everything", made better: **a unique texture for the corridor ahead of the car, in which every texel comes from the process that made it, so nothing repeats and nothing is without a cause.**
 
 How it works:
 
@@ -255,7 +255,7 @@ How it works:
 
 **First experiment.** A 400 m square at the Dragon start (lidar already measured, 4.4 points/m²): segment, grow, render from the driver's seat; A/B against the current blobs; ask three viewers which is real; measure GPU.
 
-**Owner.** World thread (trees first, as Aaron said); this proposal improves the plan it already has.
+**Owner.** World thread (trees first, as the project owner said); this proposal improves the plan it already has.
 
 ---
 
@@ -293,7 +293,7 @@ Not new, but it is the cheapest fix for the soft picture. Targets by band: about
 
 ### Proposal 9. Our own clean-data material model
 
-The detail kit today uses SDXL, whose training data (LAION) fails Aaron's rule. Train a small material generator (albedo, normal, height, roughness at 512-1024 px) only on CC0 data: the CC0 part of MatSynth (about 4,000 materials from ambientCG, Poly Haven, CGBookCase, ShareTextures, TextureCan) [V], plus our own photographs (Aaron's car, garage, local roads, taken by the team). Add Infinigen (BSD-3, maths only) for rock and plant meshes. Training runs offline on the PC over hours to days; run time cost is 0. Weights and data are ours, so the licence is clean by construction. If Public Diffusion (public domain and CC0 data) is released with open weights, test it as a second source.
+The detail kit today uses SDXL, whose training data (LAION) fails the project owner's rule. Train a small material generator (albedo, normal, height, roughness at 512-1024 px) only on CC0 data: the CC0 part of MatSynth (about 4,000 materials from ambientCG, Poly Haven, CGBookCase, ShareTextures, TextureCan) [V], plus our own photographs (the lowered car, garage, local roads, taken by the team). Add Infinigen (BSD-3, maths only) for rock and plant meshes. Training runs offline on the PC over hours to days; run time cost is 0. Weights and data are ours, so the licence is clean by construction. If Public Diffusion (public domain and CC0 data) is released with open weights, test it as a second source.
 
 ### Proposal 10. Per-place photo look (LUT)
 
@@ -313,7 +313,7 @@ Real verges are managed: a mown strip beside the shoulder (about one mower width
 
 | Item | Problem | Action |
 |---|---|---|
-| SDXL in the detail kit | Training data LAION (web-scraped) | Replace with proposal 9; until then do not ship new SDXL outputs [check with Aaron's rule] |
+| SDXL in the detail kit | Training data LAION (web-scraped) | Replace with proposal 9; until then do not ship new SDXL outputs [check with the project owner's rule] |
 | Real-ESRGAN for aerial super-resolution | DIV2K training data, research use | Stop; use classic sharpening or proposal 9 |
 | SAM 2 (plan-v2 lists it) | SA-1B images, research licence | Do not use as an eye |
 | Moondream2, Florence-2 | Training data not fully published | Do not ship until documented |

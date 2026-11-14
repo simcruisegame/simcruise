@@ -1,11 +1,11 @@
 # SimCruise: player-first roadmap
 
-Date: 12 November 2026. Status: **agreed 13 November 2026** (Aaron: "up to
+Date: 12 November 2026. Status: **agreed 13 November 2026** (the project owner: "up to
 you"; order as written). This plan does not stop the v2.0.1 release.
 
 ## 1. Why this plan
 
-Aaron played v2.0.0 and said: *the field of view was off, it was too bright,
+The project owner played v2.0.0 and said: *the field of view was off, it was too bright,
 the traffic was bad, and it did not look real.*
 
 Every one of those four points is about what a player sees in the first five
@@ -35,9 +35,9 @@ I looked at the v2.0.0 screenshots as a player. What I see:
   not choose a great road, there is no start or end, and nothing remembers the
   drive.
 
-### Bug list from Aaron's v2.0.0 playtest (12 November 2026)
+### Bug list from the project owner's v2.0.0 playtest (12 November 2026)
 
-Aaron's own words, then the known bugs that match them. P0 = a player
+The project owner's own words, then the known bugs that match them. P0 = a player
 notices in the first five minutes.
 
 | # | Sev | What the player sees | Known cause or lead | Owner |
@@ -50,7 +50,7 @@ notices in the first five minutes.
 | B6 | P0 | "Did not look real" | Empty roadside, neon-green fields in November (R7), flat white gravel, tree LOD rings overlap near the car | world-look + roadside owners (5.2, 5.4) |
 | B7 | P1 | "A lot of bugs" | Known open: ground through the road at tile seams on short ribbons; chase camera jumps in front of palms; Mustang launch spin; C8 0-60; Model 3 spin; HUD text too small; tiles appear in view without a fade | see the expert joint review; triage into the next playtest build |
 
-Aaron's process note: *put more changes in before you test the game.* See
+The project owner's process note: *put more changes in before you test the game.* See
 section 6, "Playtest builds".
 
 ## 2. If I played SimCruise, what would I want?
@@ -83,7 +83,7 @@ give.)
 **What makes a session fun:**
 
 - The car responds the way you expect. The benches pass, but after v2.0.0
-  Aaron said it still does not drive like the real car, so the feel on the
+  the project owner said it still does not drive like the real car, so the feel on the
   pad is first work again (section 5.0).
 - The view and the picture make you believe you are there (sections 5.1, 5.2).
 - The road is alive: traffic to pass, follow and avoid (section 5.3).
@@ -142,12 +142,12 @@ Numbers and tests stay, but as guards, not as the goal.
 **Hero roads (every item is judged on these first):**
 
 - **City:** Ocean Drive, Miami Beach (the bundled start).
-- **Twisty:** a mountain road (US 129 "Tail of the Dragon", or a road Aaron
+- **Twisty:** a mountain road (US 129 "Tail of the Dragon", or a road the project owner
   chooses).
 - **Rural:** a two-lane country road with farms (the Nebraska gravel road, or a
   paved road near it).
-- **Coast:** CA-1 through Big Sur, California (Aaron left the fourth road to
-  us; a famous coast drive with cliffs, fog and sea). Aaron can swap in a road
+- **Coast:** CA-1 through Big Sur, California (the project owner left the fourth road to
+  us; a famous coast drive with cliffs, fog and sea). The project owner can swap in a road
   he drives in real life at any time.
 
 ### 5.0 Drive like the real car, and let me adjust it — FIRST (driving thread, already started)
@@ -160,7 +160,7 @@ Numbers and tests stay, but as guards, not as the goal.
 - Blind A/B in the game (see idea I3): two setups on the same corner, the
   player picks which one is more like the real car.
 
-**Done when:** Aaron opens the setup menu without help, changes the steering
+**Done when:** the project owner opens the setup menu without help, changes the steering
 ratio and the springs, feels the change on the next corner, and says the
 Miata drives like his car.
 **Owner:** "Make the driving and traffic feel real". **Size:** M.
@@ -180,7 +180,7 @@ The biggest complaint, and the fastest fix.
 - First start: a 10-second "choose your view" screen with three views to try
   on the road.
 
-**Done when:** Aaron drives the Miata on the hero roads and says the cockpit
+**Done when:** the project owner drives the Miata on the hero roads and says the cockpit
 "feels like my seat" without opening a menu, or sets it once in under 30
 seconds and never again. At 100 km/h the speed feels right.
 **Owner:** the driving thread now owns the in-car view with 5.0 (the cars
@@ -203,8 +203,8 @@ Stop fixing brightness one material at a time. Fix the camera.
   same sun angle. This is the main test.
 
 **Done when:** for each hero road, a game frame and a real photo sit side by
-side, and Aaron says the brightness and colour match. No sky clips to white in
-day frames. The realism score goes up, but Aaron's eye is the gate.
+side, and the project owner says the brightness and colour match. No sky clips to white in
+day frames. The realism score goes up, but the project owner's eye is the gate.
 **Owner:** "Make buildings look like the real places" becomes the "world look"
 owner, with the lighting director and the cinematographer. Night exposure stays
 with the cars thread. **Size:** M.
@@ -224,7 +224,7 @@ with the cars thread. **Size:** M.
 
 **Done when:** on Ocean Drive at 17:00 you always have cars ahead, behind and
 coming the other way; in a 30-minute drive across the hero roads no car pops
-in or out in view and no junction locks. Aaron says "traffic feels real".
+in or out in view and no junction locks. The project owner says "traffic feels real".
 **Owner:** "Make the driving and traffic feel real" (the physics work is
 mostly done, so traffic becomes its main job), with the magician and
 performance-engineer experts. **Size:** M to L.
@@ -258,7 +258,7 @@ rules, and the world-look owner for the art. **Size:** M to L.
   mode shots, and a ghost of your best run for next time.
 - Photo mode: free camera, pause, the same grade as the game.
 
-**Done when:** from start-up, Aaron is on a famous road in three presses and
+**Done when:** from start-up, the project owner is on a famous road in three presses and
 under one minute of loading, drives it to the end, and wants to try it again
 at night or in another car.
 **Owner:** "Restore go-anywhere and old Godot features" (reopen; it owns the
@@ -278,32 +278,32 @@ atlas and search). **Size:** M.
 |---|---|---|---|
 | 0 | now | Finish v2.0.1 as planned (do not stop it) | v2.0.1 |
 | A | now (driving thread) and after v2.0.1 freeze | 5.0 drive and adjust, 5.1 view, 5.2 picture (parallel) | v2.1 "It looks and drives right" |
-| B | when A is in Aaron's hands | 5.3 traffic, 5.4 roadside (parallel) | v2.2 "It feels alive" |
+| B | when A is in the project owner's hands | 5.3 traffic, 5.4 roadside (parallel) | v2.2 "It feels alive" |
 | C | with B, or after | 5.5 reason to drive | v2.3 "Your road, right now" |
 
 Each wave ends with a **five-minute player test**: a 60-second video on each
 hero road, put next to real photos or licensed dashcam video of the same
-place, plus Aaron's own drive. The "Add screenshot checks to play tests"
+place, plus the project owner's own drive. The "Add screenshot checks to play tests"
 thread builds this capture as one script, and the release gate adds it.
 
-### Playtest builds: big, tested batches (Aaron's rule)
+### Playtest builds: big, tested batches (the project owner's rule)
 
-Aaron asked for more changes before each test. From now on:
+The project owner asked for more changes before each test. From now on:
 
-1. **No small builds for Aaron.** A playtest build goes to Aaron only at the
+1. **No small builds for the project owner.** A playtest build goes to the project owner only at the
    end of a wave, with a large batch: every item of the wave, and every P0 and
    P1 bug from the last playtest fixed or listed as still open.
-2. **We play it first.** Before Aaron gets it, the build passes a
+2. **We play it first.** Before the project owner gets it, the build passes a
    "pre-flight": the drive robot drives every hero road with each of the 3
    cars, records a 60-second video per road, and a check looks for white sky,
    empty roads, cars or tiles that pop in view, ground through the road, and
    stuck traffic (see idea I6). A Claude reviewer watches the videos and
    writes the list of what a player would still notice. Any P0 stops the build.
 3. **Each build comes with a one-page "What you should notice" list**, with
-   before/after pictures for each of Aaron's notes, so that Aaron can check
+   before/after pictures for each of the project owner's notes, so that the project owner can check
    each point in a 15-minute drive.
 4. Engineers still merge small changes to main all day (the check stays);
-   only the build that Aaron plays is batched.
+   only the build that the project owner plays is batched.
 
 ## 7. Original ideas, backed by game design research
 
@@ -315,7 +315,7 @@ SimCruise can do.
   an optimiser on the CPU tunes exposure, tone curve and colour grade until the
   histograms and colours match. The "directed picture" of big games, but
   directed by the real place. (Method: art direction against references.)
-- **I2. Your seat from one phone photo.** Aaron sits in his Miata and takes one
+- **I2. Your seat from one phone photo.** The owner sits in their own Miata and takes one
   photo from eye height. The game finds the dash, wheel and A-pillar in the
   photo and solves the eye point and field of view from them. The in-game view
   then matches his real view. (Method: sim-racing FOV setting, made automatic.)
@@ -371,7 +371,7 @@ SimCruise can do.
 
 ## 8. What to stop or pause
 
-Pause until wave B is done (unless Aaron moves something back in):
+Pause until wave B is done (unless the project owner moves something back in):
 
 - **New live feeds** (more data sources, aircraft details, tides). Keep what
   works. The live-data thread helps 5.2 (weather sets the look) and 5.3 (time
@@ -390,12 +390,12 @@ Pause until wave B is done (unless Aaron moves something back in):
 - **Hourly expert meetings that review every commit.** Change them to one
   review per wave that judges the five-minute player test videos and says what
   a player would notice next.
-- **More cars.** Only the Miata, the Mustang and the Corvette, as Aaron said.
+- **More cars.** Only the Miata, the Mustang and the Corvette, as the project owner said.
 
 Keep: the v2.0.1 release, the check and release gates, the "no money, legal
 APIs only" rules, and the push from the PC.
 
-## 9. Decisions for Aaron
+## 9. Decisions for the project owner
 
 1. Is the core fantasy right: *"It is my car, on my road, right now"*?
 2. Is the order right: view and picture first, then traffic and roadside,

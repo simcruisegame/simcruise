@@ -17,7 +17,7 @@ You review. You find bugs and driving-experience problems. You propose fixes. Yo
 3. `Source/SimCruise/Private/Vehicle/SimCruiseVehicle.cpp` (`UpdateEngineSound`, `UpdateRoadNoise`).
 4. `Source/SimCruise/Private/World/SimCruiseTraffic.cpp` (`UpdateVoice`).
 5. `Content/Vehicles/CarPresentation.json` (`engine_sound`).
-6. `data/cars/nb2001_aaron.json`, `data/cars/meridian_z.json`, `data/cars/mustang65.json` (`idle_rpm`, `fuel_cut_rpm`, `max_omega`).
+6. `data/cars/nb2001_lowered.json`, `data/cars/meridian_z.json`, `data/cars/mustang65.json` (`idle_rpm`, `fuel_cut_rpm`, `max_omega`).
 7. Tests: `Source/SimCruise/Private/Audio/Tests/*.cpp`.
 8. The latest review in `docs/team/review-*/sound-designer.md`. Do not repeat a finding that is fixed; say if it is still open.
 

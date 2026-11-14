@@ -53,7 +53,7 @@ Sources: https://userpages.cs.umbc.edu/olano/class/493-24-2/roles.md.html · htt
 
 1. `scripts\watchdog.ps1` (stop stale runs with `-Stop` only after checking the list).
 2. `scripts\check.ps1 -Tier fast` (view check on; never `-NoViewCheck`).
-3. `scripts\preflight.ps1 -Roads ocean-drive,dragon,nebraska,big-sur,random -Cars nb2001_aaron,meridian_z,mustang65 -Seconds 60` (hero roads plus 3 random US places): video, 4x3 contact sheet, `preflight.json`, `report.md` per road and car in `Saved\Preflight\<time>\`.
+3. `scripts\preflight.ps1 -Roads ocean-drive,dragon,nebraska,big-sur,random -Cars nb2001_lowered,meridian_z,mustang65 -Seconds 60` (hero roads plus 3 random US places): video, 4x3 contact sheet, `preflight.json`, `report.md` per road and car in `Saved\Preflight\<time>\`.
 4. Driving change: `scripts\replay-compare.ps1 -Tape <tape> -CarB <car>`. Frame-time change: `scripts\framecheck.ps1`. Look change: `scripts\realism.ps1`.
 5. Read the logs: PREFLIGHT reasons (spin, past edge, jolts, pop-ins, flash), any `Error:`, `Ensure` or `Fatal`, `Saved\Crashes`.
 6. **Open the images with the Read tool**: every `*-sheet.png` and `Saved\ViewCheck\latest\*.png`, and the same files from the last PASS run. List each defect with its image. "Tests pass" is not enough.

@@ -1,6 +1,6 @@
 # How Microsoft Flight Simulator builds the Earth (study, 14 November 2026)
 
-Innovation team, for Aaron's question "how is Microsoft Flight Sim working and how can we create hyper detail". This note says what is public about Microsoft Flight Simulator 2020 and 2024 (MSFS), what we infer, and what SimCruise must copy, change or do better. The next two notes are the survey of game techniques ([technique-survey.md](technique-survey.md)) and the ranked proposals ([hyper-detail-proposals.md](hyper-detail-proposals.md)).
+Innovation team, for the project owner's question "how is Microsoft Flight Sim working and how can we create hyper detail". This note says what is public about Microsoft Flight Simulator 2020 and 2024 (MSFS), what we infer, and what SimCruise must copy, change or do better. The next two notes are the survey of game techniques ([technique-survey.md](technique-survey.md)) and the ranked proposals ([hyper-detail-proposals.md](hyper-detail-proposals.md)).
 
 Source marks: **[V]** = we read the source today. **[S]** = we saw only the headline or a search summary. **[I]** = our inference, not a public fact.
 

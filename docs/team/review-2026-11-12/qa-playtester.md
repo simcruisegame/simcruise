@@ -19,9 +19,9 @@ No item was reproduced on the target PC in this review. Each item says
 - Verify: the new check fails on today's config and passes after the config fix.
 
 ### 2. P1: The drive robot does not drive the Corvette or the Mustang
-- Evidence: `scripts/drive-robot.ps1:23` defaults to `nb2001`, `nb2001_aaron`.
+- Evidence: `scripts/drive-robot.ps1:23` defaults to `nb2001`, `nb2001_lowered`.
   The C8 (`meridian_z`) and 1965 Mustang (`mustang65`) are two of the three cars that matter.
-- Fix: default `-Cars` to `nb2001_aaron, meridian_z, mustang65`. Set per-car
+- Fix: default `-Cars` to `nb2001_lowered, meridian_z, mustang65`. Set per-car
   "stable manoeuvre" lists (a 1965 Mustang on bias-era geometry may slide sooner;
   ask the vehicle-dynamics expert for its limits).
 - Verify: `history.csv` has rows for all three cars after one default run.
@@ -41,11 +41,11 @@ No item was reproduced on the target PC in this review. Each item says
 - Evidence: `SimCruiseGameMode.cpp:401-409` cycles `GetAvailableCarIds()`
   (`SimCruiseGameInstance.cpp:34-40`): every file in `data/cars` in alphabetical
   order (CR-V, F-150, Grand Cherokee, C8, Model 3, Mustang, NB 1999, NB 2001,
-  Aaron's NB, Odyssey). From Aaron's NB to the C8 takes five presses through
+  the lowered NB, Odyssey). From the lowered NB to the C8 takes five presses through
   vans and SUVs. Each press is saved as the remembered car (`:409`).
-- Fix: a priority list (Aaron's NB, C8, Mustang) first, or only those three in
+- Fix: a priority list (the lowered NB, C8, Mustang) first, or only those three in
   this phase. This is a curation change, not a new feature.
-- Verify: from Aaron's NB, RB in the atlas reaches the C8 in one press and the Mustang in two.
+- Verify: from the lowered NB, RB in the atlas reaches the C8 in one press and the Mustang in two.
 
 ### 5. P2: Pad disconnect is not handled
 - Evidence: no handler for controller connection changes in `Private/Gameplay`

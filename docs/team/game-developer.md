@@ -254,7 +254,7 @@ their code. Gaffer on Games and Microsoft Learn are read for reference only.
 1. Missing-ground guard.
    - What: if the tile under the car, or the next tile on its path, is not `IsCollisionReady`, hold the car at its last road pose and show the loading line. Log `GROUND-MISSING`.
    - Where: `Gameplay/SimCruiseGameMode.cpp`, with a test flag `-SimCruiseHelperFailAfter=<s>`.
-   - Done when: `scripts\preflight.ps1 -Roads us-welch-wv,us-hilo-hi -Cars nb2001_aaron -Seconds 120`, with the flag at 30 s, never puts the car more than 2 m below the road. Also, `SimCruise.World.MissingTile` fails before the fix.
+   - Done when: `scripts\preflight.ps1 -Roads us-welch-wv,us-hilo-hi -Cars nb2001_lowered -Seconds 120`, with the flag at 30 s, never puts the car more than 2 m below the road. Also, `SimCruise.World.MissingTile` fails before the fix.
 2. Cancel stale tile jobs and measure lead time.
    - What: keep the atlas job for each ticket. Cancel it when its tile leaves the ring. Log the lead time (distance to the tile edge ÷ speed) when each tile becomes ready.
    - Where: `World/SimCruiseWorldStreamer.cpp` and `World/SimCruiseTileManager.cpp`.

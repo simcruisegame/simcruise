@@ -96,9 +96,9 @@ evidence. "Hypothesis" marks a claim that a test must still prove.
 ### 8. P2: The fallback car is hard-coded to `nb1999`
 - Evidence: `SimCruiseGameMode.cpp:576-577` loads `nb1999` when the chosen car
   fails. `Public/Gameplay/SimCruiseGameMode.h:91` also defaults `StartCarId` to
-  `nb1999`; only `Config/DefaultGame.ini:11` sets `nb2001_aaron`.
-- Fix: fall back to `StartCarId`; set the C++ default to `nb2001_aaron`.
-- Verify: `-SimCruiseCar=nosuchcar` starts in Aaron's NB.
+  `nb1999`; only `Config/DefaultGame.ini:11` sets `nb2001_lowered`.
+- Fix: fall back to `StartCarId`; set the C++ default to `nb2001_lowered`.
+- Verify: `-SimCruiseCar=nosuchcar` starts in the lowered NB.
 
 ### 9. P2: The vehicle mutex is held across four ray casts
 - Evidence: `SimCruiseVehicleMovementComponent.cpp:162` locks for the whole step,

@@ -1,6 +1,6 @@
 # World detail v2: plan (14 November 2026)
 
-Owner: Aaron. Approved by the coordinator. Branch: `world-detail-v2`.
+Owner: the project owner. Approved by the coordinator. Branch: `world-detail-v2`.
 Background: [realtime-context.md](../team/research/realtime-context.md),
 [world-detail-methods.md](world-detail-methods.md).
 

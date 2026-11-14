@@ -45,7 +45,7 @@
 6. P2 | No captures from the packaged build at a random place | `package.ps1`, `release.ps1` | Add a packaged preflight mode.
 
 **My first three actions.**
-1. Per-place solar UTC plus `-At lat,lon` in `scripts\preflight.ps1`. Done when `scripts\preflight.ps1 -Roads us-anchorage-ak,us-hilo-hi -Cars nb2001_aaron -Seconds 20` gives daylight contact sheets (I read them with Read) and `-At 47.10,-101.20` runs one place.
+1. Per-place solar UTC plus `-At lat,lon` in `scripts\preflight.ps1`. Done when `scripts\preflight.ps1 -Roads us-anchorage-ak,us-hilo-hi -Cars nb2001_lowered -Seconds 20` gives daylight contact sheets (I read them with Read) and `-At 47.10,-101.20` runs one place.
 2. Pinned cache and a warm-up in `scripts\preflight.ps1`. Done when `-Roads random -Seed 20261114 -MapCache Saved\MapCache\pin` runs twice, the second run has helper requests = 0, and both runs give the same `place=` and matching sheets.
 3. Pool fallback detection in `SimCruisePreflight.cpp`, and the seed in `report.md` and the index. Done when `-Roads pool` with the network off FAILs with `start-fell-back-to-bundled-place`, and the report shows the seed.
 

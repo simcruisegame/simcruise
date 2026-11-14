@@ -95,6 +95,6 @@ The D: drive is 100 GB and every lane fills it with test runs, packages and buil
 - At the end of each release, each lane runs `scripts\clean-lane.ps1` on its own checkout: first without `-Apply` (it only reports), then with `-Apply`. It keeps the newest 3 runs of each run folder (Preflight, Review, ReleaseTest, ViewCheck, view-check pictures, Profiling, Crashes) and removes logs older than 7 days.
 - Add `-Package` when your package outputs (Saved\Package, StagedBuilds, Cooked, Shaders) are not the release you test now.
 - A lane that is idle for a day: `-Package -Build` (it also removes Intermediate, Binaries and DerivedDataCache), or remove the worktree when all its commits are on origin. Push a backup branch for uncommitted files first.
-- Never clean another lane that is in use, and never clean D:\simcruise (Aaron plays from it). The script stops when an editor, game, build or test of the checkout runs.
+- Never clean another lane that is in use, and never clean D:\simcruise (the project owner plays from it). The script stops when an editor, game, build or test of the checkout runs.
 - Keep the evidence that the current release test uses until the release is out. Put files that must stay in `docs/release/evidence-<version>/`, not only in Saved.
 - Temporary files (logs, patches, scratch scripts) go in your session scratchpad or in your lane's Saved folder, not loose in D:\sc.

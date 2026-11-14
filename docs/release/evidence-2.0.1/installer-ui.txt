@@ -6,8 +6,8 @@ start menu: SimCruise controls.lnk, SimCruise.lnk, Uninstall SimCruise.lnk
 uninstall entry: SimCruise 2.0.1
 shortcut target: %LOCALAPPDATA%\Programs\SimCruise\SimCruise.exe
 installed game run: exit 0
-2026-11-12 19:20:40 SOAK  121 s: driving, 41 km/h, 60 fps avg, worst frame 19 ms, 2639 MB used, 3 recoveries, 2 camera changes, place Ward Parkway · Kansas City, MO, car nb2001_aaron
-2026-11-12 19:21:10 SOAK  151 s: driving, 1 km/h, 60 fps avg, worst frame 20 ms, 2649 MB used, 5 recoveries, 3 camera changes, place Ward Parkway · Kansas City, MO, car nb2001_aaron
+2026-11-12 19:20:40 SOAK  121 s: driving, 41 km/h, 60 fps avg, worst frame 19 ms, 2639 MB used, 3 recoveries, 2 camera changes, place Ward Parkway · Kansas City, MO, car nb2001_lowered
+2026-11-12 19:21:10 SOAK  151 s: driving, 1 km/h, 60 fps avg, worst frame 20 ms, 2649 MB used, 5 recoveries, 3 camera changes, place Ward Parkway · Kansas City, MO, car nb2001_lowered
 2026-11-12 19:21:39 SOAK DONE: 3.0 minutes, drove 1, 7 recoveries, 3 camera changes, 0 car changes, 0 travels, 0 non-finite states, peak 2714 MB used
 uninstall exit 0; program folder left: False; start menu left: False
 uninstall entry after: removed

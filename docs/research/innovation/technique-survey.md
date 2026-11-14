@@ -42,7 +42,7 @@ Source marks: **[V]** read today. **[S]** headline or search summary seen today.
 | Tree crown detection | DeepForest (Weecology; MIT code; trained on NEON data, which NEON publishes openly) [S] | Already planned as an eye; check the weights' training data record |
 | SpeedTree | paid | Skip |
 
-**What we have:** two tree meshes plus palms, blob look, flicker fixed, Meta CHM positions. Aaron: "trees first". **Gap:** the shape of each tree; understory; forest edge.
+**What we have:** two tree meshes plus palms, blob look, flicker fixed, Meta CHM positions. The project owner: "trees first". **Gap:** the shape of each tree; understory; forest edge.
 
 ## 4. Buildings and facades
 
@@ -77,7 +77,7 @@ Source marks: **[V]** read today. **[S]** headline or search summary seen today.
 | Clean-data image models | CommonCanvas (Creative Commons images) [S] (https://huggingface.co/papers/2310.16825); Public Diffusion (Spawning; public domain and CC0 only; open weights planned for 2025, check status) [V] | Candidates to replace SDXL for the detail kit |
 | Realism cues | Rademacher 2001; Fan et al. 2018; 1/f spectrum (world-detail-methods.md) | Measure the spectrum in the road-level self-check |
 
-**Legal flag (Aaron's rule: licence of weights AND training data).** The current plan lists SDXL (trained on LAION web images, whose copyright status is disputed) and Real-ESRGAN (DIV2K training set, research use). SAM and SAM 2 weights are Apache-2.0, but their SA-1B images have a research licence. These do not pass the rule as written. Proposal 9 removes the need.
+**Legal flag (the project owner's rule: licence of weights AND training data).** The current plan lists SDXL (trained on LAION web images, whose copyright status is disputed) and Real-ESRGAN (DIV2K training set, research use). SAM and SAM 2 weights are Apache-2.0, but their SA-1B images have a research licence. These do not pass the rule as written. Proposal 9 removes the need.
 
 ## 7. Lighting
 
@@ -101,9 +101,9 @@ Covered in `team/docs/research/lighting-tech.md` (Lumen with tile distance field
 
 | Method | Who | Take |
 |---|---|---|
-| Manufacturer CAD and photo reference, months per car | Polyphony, Turn 10 [K] | We have Blender MCP and Aaron's own NB; measure the real car (domain-ideas idea 3, "Garage Day") |
+| Manufacturer CAD and photo reference, months per car | Polyphony, Turn 10 [K] | We have Blender MCP and the owner's own NB; measure the real car (domain-ideas idea 3, "Garage Day") |
 | Rigged parts checked against service data | all sims [K] | Current cockpit bugs (wheel axis, gauges) are owned by the driving thread |
-| Interior light from the world | GT7, Forza [K] | Cabin light flips (Aaron's review) belong to the picture thread |
+| Interior light from the world | GT7, Forza [K] | Cabin light flips (the project owner's review) belong to the picture thread |
 
 Nothing here changes the proposals; the cockpit needs correct rigs before detail.
 
