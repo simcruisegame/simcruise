@@ -149,3 +149,28 @@ function Stop-ProcessTree {
     param([int]$ProcessId)
     & taskkill.exe /T /F /PID $ProcessId 2>&1 | Out-Null
 }
+
+<#
+  C:\aiwork\GPU-BUSY: one line that tells the other lanes this lane uses the GPU, and until when
+  (holder=lane-view, start=<UTC>, end_estimate=<UTC>, purpose=<text>). Set it before a GPU slot
+  (a build or a game launch) and clear it in a finally block. scripts\gpu-wait.ps1 waits on it.
+#>
+$script:GpuBusyFile = 'C:\aiwork\GPU-BUSY'
+function Set-GpuBusy([string]$Purpose, [double]$Minutes, [string]$Holder = 'lane-view') {
+    try {
+        New-Item -ItemType Directory -Force (Split-Path $script:GpuBusyFile) | Out-Null
+        $Now = (Get-Date).ToUniversalTime()
+        "holder=$Holder, start=$($Now.ToString('yyyy-MM-ddTHH:mm:ssZ')), end_estimate=$($Now.AddMinutes($Minutes).ToString('yyyy-MM-ddTHH:mm:ssZ')), purpose=$($Purpose -replace '[\r\n,]+', ' ')" |
+            Set-Content -Encoding ascii $script:GpuBusyFile
+    } catch { Write-Host "Could not write $($script:GpuBusyFile): $_" }
+}
+function Clear-GpuBusy([string]$Holder = 'lane-view') {
+    # Only our own line: another lane may hold it now.
+    if ((Test-Path $script:GpuBusyFile) -and (Get-Content $script:GpuBusyFile -Raw) -match "holder=$Holder,") { Remove-Item $script:GpuBusyFile -Force -ErrorAction SilentlyContinue }
+}
+function Read-GpuBusy {
+    if (-not (Test-Path $script:GpuBusyFile)) { return $null }
+    $T = Get-Content $script:GpuBusyFile -Raw
+    $End = if ($T -match 'end_estimate=(\S+?),') { [datetime]::Parse($Matches[1], [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::AdjustToUniversal) } else { $null }
+    return [pscustomobject]@{ Text = $T.Trim(); End = $End; Stale = ($End -and (Get-Date).ToUniversalTime() -gt $End.AddMinutes(30)) }
+}

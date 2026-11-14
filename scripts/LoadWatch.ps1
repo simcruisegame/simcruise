@@ -11,6 +11,15 @@
   NOT QUIET when another Unreal or SimCruise process ran or other GPU use averaged over 5 %.
 #>
 
+<# The lane a process belongs to, from its command line or exe path (D:\sc\lane-x, D:\simcruise, ...). #>
+function Get-ProcessLane($Proc) {
+    $Text = "$($Proc.CommandLine) $($Proc.ExecutablePath)"
+    if ($Text -match '[A-Za-z]:\\sc\\([\w.-]+)') { return $Matches[1] }
+    if ($Text -match '[A-Za-z]:[\\/](simcruise[\w.-]*)[\\/]') { return $Matches[1] }
+    if ($Text -match '-Project="?([^" ]+)\\[^\\]+\.uproject') { return Split-Path -Leaf $Matches[1] }
+    return 'unknown'
+}
+
 function Get-LoadSample([string]$RunDir) {
     $Procs = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
         $_.Name -match '^(UnrealEditor|SimCruise|UnrealEditor-Cmd|UnrealBuildTool|cl|link|ShaderCompileWorker)\.exe$|^(UnrealEditor|SimCruise)' -or ($_.Name -eq 'dotnet.exe' -and $_.CommandLine -match 'UnrealBuildTool') -and -not ($_.CommandLine -and $_.CommandLine.Contains($RunDir)) })
@@ -24,7 +33,7 @@ function Get-LoadSample([string]$RunDir) {
     } catch { $Gpu = -1 }
     return [pscustomobject]@{
         Time = (Get-Date).ToUniversalTime().ToString('HH:mm:ss')
-        OtherProcesses = (($Procs | ForEach-Object { "$($_.Name)#$($_.ProcessId)" }) -join ' ')
+        OtherProcesses = (($Procs | ForEach-Object { "$($_.Name)#$($_.ProcessId)@$(Get-ProcessLane $_)" }) -join ' ')
         OtherGpu = [Math]::Round($Gpu, 1)
         # Who holds the GPU test lock (Global\SimCruiseGpuTest; EditorLock.ps1 writes the holder).
         GpuHolder = $($F = Join-Path $env:LOCALAPPDATA 'SimCruise\gpu-test-lock.txt'; if (Test-Path $F) { ((Get-Content $F -Raw -ErrorAction SilentlyContinue) -replace '[\r\n,]+', ' ').Trim() } else { '' })
@@ -53,5 +62,14 @@ function Stop-LoadWatch($Job, [string]$RunDir) {
     $Gpus = @($Rows | Where-Object { [double]$_.other_gpu_percent -ge 0 } | ForEach-Object { [double]$_.other_gpu_percent })
     $Mean = if ($Gpus.Count) { [Math]::Round(($Gpus | Measure-Object -Average).Average, 1) } else { -1 }
     $Max = if ($Gpus.Count) { ($Gpus | Measure-Object -Maximum).Maximum } else { -1 }
-    return [pscustomobject]@{ Quiet = ($Others.Count -eq 0 -and $Mean -le 5); Samples = $Rows.Count; OtherProcesses = ($Others -join ', '); MaxOtherGpu = $Max; MeanOtherGpu = $Mean }
+    # Each other lane with its first and last sample time (UTC): "lane1 15:11-15:25".
+    $LaneTimes = @{}
+    foreach ($R in ($Rows | Where-Object { $_.other_processes })) {
+        foreach ($P in ($R.other_processes -split ' ')) {
+            $Lane = if ($P -match '@(.+)$') { $Matches[1] } else { 'unknown' }
+            if (-not $LaneTimes.ContainsKey($Lane)) { $LaneTimes[$Lane] = @($R.time, $R.time) } else { $LaneTimes[$Lane][1] = $R.time }
+        }
+    }
+    $Lanes = ($LaneTimes.Keys | Sort-Object | ForEach-Object { "$_ $($LaneTimes[$_][0].Substring(0,5))-$($LaneTimes[$_][1].Substring(0,5))Z" }) -join ', '
+    return [pscustomobject]@{ Quiet = ($Others.Count -eq 0 -and $Mean -le 5); Samples = $Rows.Count; OtherProcesses = ($Others -join ', '); MaxOtherGpu = $Max; MeanOtherGpu = $Mean; Lanes = $Lanes }
 }
