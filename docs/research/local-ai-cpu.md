@@ -146,6 +146,14 @@ about 6 s on 2 threads or 2-3 s on 6 threads, in pass 1 (within 30 m of a road) 
 NAIP 4-band fetch with its date (helper), de-light before restoration, class-conditioned restoration
 (roof, road, yard: the eye's classes choose a fine-tuned head), self-check at 0.6 m against the source.
 
+First measured prototype (`lab/scan/restore_pages.py`, Ankeny, Iowa, 14 November 2026): NAIP
+NAIP_plus RGB at 1024 px over the z16 tile (0.45 m/px there), 64 pages within 30 m of a road, 0.20 s
+per page and 13 s per tile on 4 threads (Python, ONNX Runtime CPU), 0 pages rejected by the 0.6 m
+self-check. Picture: edges become crisp, but surfaces turn "painted" (flat plastic look), parked cars
+stay baked into the pavement, and window seams show. Before it can ship: remove cars and shadows
+before restoration (the eye needs a car class, or the map's parking rows), blend windows with a
+feather, and judge it under the class detail kit at driver height, not top-down.
+
 **Generation (GENR library, spec section K).** First the shared library: CC0 MatSynth materials plus
 regional sets made offline with the cleared SDXL pipeline; at runtime the eye's class masks and TINT
 pick and tint them per building and per ground class. Then a small generator of our own (MIT),
