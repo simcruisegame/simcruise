@@ -451,8 +451,33 @@ void ASimCruiseCockpitTest::Judge()
 	// Both + to the left: the rim turns the way the road wheels do.
 	if ((LockLeft * WheelLeft < 0.0) || (LockRight * WheelRight < 0.0)) Reasons.Add(TEXT("the-wheel-turns-the-wrong-way"));
 
-	// Image: the cluster with the wheel hidden, centre against full lock.
+	// Image: the cluster with the wheel hidden, centre against full lock. The anti-aliasing changes a
+	// few edge pixels from frame to frame anyway: the noise is the change between two centre poses,
+	// and full lock may change no more than that plus MaxClusterChangedPercent.
 	double MaxChanged = -1.0;
+	double Noise = 0.0;
+	auto ChangedShare = [](const FPose& A, const FPose& B, const FIntRect& R)
+	{
+		int32 Changed = 0, Total = 0;
+		for (int32 Y = R.Min.Y; Y < R.Max.Y; ++Y)
+		{
+			for (int32 X = R.Min.X; X < R.Max.X; ++X)
+			{
+				const FColor& Ca = A.PixelsNoWheel[Y * A.Width + X];
+				const FColor& Cb = B.PixelsNoWheel[Y * B.Width + X];
+				Changed += FMath::Max3(FMath::Abs(Ca.R - Cb.R), FMath::Abs(Ca.G - Cb.G), FMath::Abs(Ca.B - Cb.B)) > 25 ? 1 : 0;
+				++Total;
+			}
+		}
+		return Total ? 100.0 * Changed / Total : 0.0;
+	};
+	for (const FPose& P : Poses)
+	{
+		if (Centre && P.Name.StartsWith(TEXT("centre-")) && P.PixelsNoWheel.Num() == Centre->PixelsNoWheel.Num() && !P.PixelsNoWheel.IsEmpty() && Centre->Cluster.Area() > 0)
+		{
+			Noise = FMath::Max(Noise, ChangedShare(*Centre, P, Centre->Cluster));
+		}
+	}
 	for (const FPose& P : Poses)
 	{
 		if (!Centre || (P.Name != TEXT("full-left") && P.Name != TEXT("full-right"))) continue;
@@ -478,14 +503,14 @@ void ASimCruiseCockpitTest::Judge()
 		const double Share = Total ? 100.0 * Changed / Total : 0.0;
 		MaxChanged = FMath::Max(MaxChanged, Share);
 		SavePng(TEXT("diff-") + P.Name, P.Width, P.Height, Diff);
-		if (Share > MaxClusterChangedPercent) Reasons.Add(FString::Printf(TEXT("cluster-pixels-change-%.1f%%-at-%s"), Share, *P.Name));
+		if (Share > Noise + MaxClusterChangedPercent) Reasons.Add(FString::Printf(TEXT("cluster-pixels-change-%.1f%%-at-%s-noise-%.1f%%"), Share, *P.Name, Noise));
 	}
 
 	const bool bPass = Reasons.IsEmpty();
 	const FString ReasonText = bPass ? FString(TEXT("ok")) : FString::Join(Reasons, TEXT(","));
-	UE_LOG(LogSimCruiseCockpit, Display, TEXT("COCKPIT %s car=%s lock=%.0f/%.0fdeg (car data %.0f) ratio=%.2f (car data %.2f) lock_to_lock=%.2f gauges_move=%.3fcm/%.2fdeg wheel_off_axis=%.2fdeg hub_move=%.3fcm rim_tilt=%.1fdeg outside_rim=%.1f%% cluster_changed=%.2f%% reasons=%s"),
+	UE_LOG(LogSimCruiseCockpit, Display, TEXT("COCKPIT %s car=%s lock=%.0f/%.0fdeg (car data %.0f) ratio=%.2f (car data %.2f) lock_to_lock=%.2f gauges_move=%.3fcm/%.2fdeg wheel_off_axis=%.2fdeg hub_move=%.3fcm rim_tilt=%.1fdeg outside_rim=%.1f%% cluster_changed=%.2f%% (noise %.2f%%) reasons=%s"),
 		bPass ? TEXT("PASS") : TEXT("FAIL"), *CarId, LockLeft, LockRight, ExpectedLock, MeasuredRatio, Ratio, LockToLockTurns, MaxFixedMove, MaxFixedTurn,
-		MaxWheelOffAxis, MaxHubMove, RimTiltDeg, ForeignShare, MaxChanged, *ReasonText);
+		MaxWheelOffAxis, MaxHubMove, RimTiltDeg, ForeignShare, MaxChanged, Noise, *ReasonText);
 	FString PoseJson;
 	for (const FPose& P : Poses)
 	{
@@ -495,10 +520,10 @@ void ASimCruiseCockpitTest::Judge()
 	const FString Json = FString::Printf(TEXT("{\n  \"result\": \"%s\", \"car\": \"%s\", \"reasons\": \"%s\",\n")
 		TEXT("  \"rim_full_lock_left_deg\": %.2f, \"rim_full_lock_right_deg\": %.2f, \"expected_full_lock_deg\": %.2f, \"ratio\": %.3f, \"car_data_ratio\": %.3f, \"lock_to_lock_turns\": %.3f,\n")
 		TEXT("  \"gauges_max_move_cm\": %.4f, \"gauges_max_turn_deg\": %.3f, \"gauges_worst\": \"%s\", \"needle_max_turn_at_rest_deg\": %.2f, \"needle_worst\": \"%s\", \"wheel_off_axis_deg\": %.3f, \"hub_move_cm\": %.4f, \"rim_tilt_deg\": %.2f, \"outside_rim_percent\": %.2f,\n")
-		TEXT("  \"cluster_changed_percent\": %.3f,\n  \"limits\": {\"fixed_move_cm\": %.2f, \"fixed_turn_deg\": %.2f, \"wheel_off_axis_deg\": %.2f, \"hub_move_cm\": %.2f, \"rim_tilt_deg\": %.1f, \"lock_error\": %.2f, \"cluster_changed_percent\": %.1f},\n")
+		TEXT("  \"cluster_changed_percent\": %.3f, \"cluster_noise_percent\": %.3f,\n  \"limits\": {\"fixed_move_cm\": %.2f, \"fixed_turn_deg\": %.2f, \"wheel_off_axis_deg\": %.2f, \"hub_move_cm\": %.2f, \"rim_tilt_deg\": %.1f, \"lock_error\": %.2f, \"cluster_changed_percent\": %.1f},\n")
 		TEXT("  \"poses\": [%s]\n}\n"),
 		bPass ? TEXT("PASS") : TEXT("FAIL"), *CarId, *ReasonText, LockLeft, LockRight, ExpectedLock, MeasuredRatio, Ratio, LockToLockTurns,
-		MaxFixedMove, MaxFixedTurn, *WorstFixed, MaxNeedleTurn, *WorstNeedle, MaxWheelOffAxis, MaxHubMove, RimTiltDeg, ForeignShare, MaxChanged,
+		MaxFixedMove, MaxFixedTurn, *WorstFixed, MaxNeedleTurn, *WorstNeedle, MaxWheelOffAxis, MaxHubMove, RimTiltDeg, ForeignShare, MaxChanged, Noise,
 		MaxFixedMoveCm, MaxFixedTurnDeg, MaxWheelOffAxisDeg, MaxHubMoveCm, MaxRimTiltDeg, MaxLockError, MaxClusterChangedPercent, *PoseJson);
 	FFileHelper::SaveStringToFile(Json, *FPaths::Combine(OutputDir, TEXT("cockpit.json")), FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 }

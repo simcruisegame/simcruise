@@ -31,6 +31,8 @@
   powershell -ExecutionPolicy Bypass -File scripts\preflight.ps1 -Roads ocean-drive -Cars nb2001_aaron -Seconds 20
 #>
 param(
+    # Show the game's window (default: off screen, -RenderOffScreen, nothing on the desktop).
+    [switch]$ShowWindow,
     [string[]]$Roads = @('ocean-drive', 'dragon', 'nebraska', 'big-sur'),
     [string[]]$Cars = @('nb2001_aaron', 'mustang65', 'meridian_z'),
     [int]$Seconds = 60,
@@ -95,9 +97,9 @@ foreach ($Road in $Roads) {
         $Log = Join-Path $Out 'game.log'
         $Args = @("`"$Project`"", '-game', '-SimCruiseWorld', '-SimCruiseNoLive', '-SimCruiseNoNeural', '-SimCruiseGraphics=ultra', "-SimCruiseUtc=$Utc",
             "-SimCruiseCar=$Car", '-SimCruiseViewCheck', '-SimCruisePreflight', '-SimCruiseReview', "-SimCruisePreflightRoad=$Road", "-SimCruisePreflightSeconds=$Seconds",
-            "`"-SimCruisePreflightOut=$Out`"", '-NoLiveCoding', '-windowed', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + $Defs[$Road] + @(if ($Keen) { '-SimCruisePreflightKeen' }) + @(if ($ForceSpin) { '-SimCruisePreflightForceSpin' })
+            "`"-SimCruisePreflightOut=$Out`"", '-NoLiveCoding', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + @(Get-TestWindowArgs $ShowWindow) + $Defs[$Road] + @(if ($Keen) { '-SimCruisePreflightKeen' }) + @(if ($ForceSpin) { '-SimCruisePreflightForceSpin' })
         if ($ExtraArgs) { $Args += $ExtraArgs }
-        if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "pre-flight $Name on $Root")) { exit 1 }
+        if (-not (Enter-EditorLock -GpuTest -TimeoutMinutes $LockTimeoutMinutes -Why "pre-flight $Name on $Root")) { exit 1 }
         $TimedOut = $false
         $Started = Get-Date
         $ExitCode = -1

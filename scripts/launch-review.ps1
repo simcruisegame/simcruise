@@ -29,6 +29,8 @@
   powershell -ExecutionPolicy Bypass -File scripts\launch-review.ps1 -Road dragon -Car mustang65 -Name dragon-steering
 #>
 param(
+    # Show the game's window (default: off screen, -RenderOffScreen, nothing on the desktop).
+    [switch]$ShowWindow,
     [string]$Road = 'ocean-drive',
     [string]$Start = '',
     [string]$StartRoad = '',
@@ -77,7 +79,7 @@ if ($RandomUS -gt 0) {
         $Name = "random-$($Pl.Index)-$($Pl.Type)"
         Write-Host "  $Name at $($Pl.Lat), $($Pl.Lon)"
         & powershell -ExecutionPolicy Bypass -File $PSCommandPath -Start "$($Pl.Lat),$($Pl.Lon)" -Car $Car -Seconds 45 -Graphics $Graphics -Utc $Utc -Name $Name `
-            -OutRoot $OutRoot -NoCockpit -SheetKind 'random' -TimeoutMinutes $TimeoutMinutes -LockTimeoutMinutes $LockTimeoutMinutes | Out-Null
+            -OutRoot $OutRoot -NoCockpit -SheetKind 'random' -ShowWindow:$ShowWindow -TimeoutMinutes $TimeoutMinutes -LockTimeoutMinutes $LockTimeoutMinutes | Out-Null
         $Dir = Join-Path $OutRoot $Name
         $GameLog = Join-Path $Dir 'game.log'
         $Placed = if (Test-Path $GameLog) { Select-String -Path $GameLog -Pattern 'Car placed (on (.+?) )?at .*? after ([\d.]+) s' | Select-Object -First 1 } else { $null }
@@ -121,10 +123,10 @@ $Log = Join-Path $RunDir 'game.log'
 $env:UE_SKIP_UBT_SDK_SETUP = '1'
 $GameArgs = @("`"$Project`"", '-game', '-SimCruiseWorld', '-SimCruiseNoLive', '-SimCruiseNoNeural', "-SimCruiseGraphics=$Graphics", "-SimCruiseUtc=$Utc",
     "-SimCruiseCar=$Car", '-SimCruiseViewCheck', '-SimCruisePreflight', '-SimCruiseReview', "-SimCruisePreflightRoad=$Name", "-SimCruisePreflightSeconds=$Seconds",
-    "`"-SimCruisePreflightOut=$RunDir`"", '-NoLiveCoding', '-windowed', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + $PlaceArgs + $ExtraArgs + @(if (-not $NoCockpit) { '-SimCruiseCockpitTest' })
+    "`"-SimCruisePreflightOut=$RunDir`"", '-NoLiveCoding', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + @(Get-TestWindowArgs $ShowWindow) + $PlaceArgs + $ExtraArgs + @(if (-not $NoCockpit) { '-SimCruiseCockpitTest' })
 $CommandLine = "`"$Editor`" " + ($GameArgs -join ' ')
 
-if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "launch review $Name on $Root")) { exit 1 }
+if (-not (Enter-EditorLock -GpuTest -TimeoutMinutes $LockTimeoutMinutes -Why "launch review $Name on $Root")) { exit 1 }
 $Started = Get-Date
 $TimedOut = $false
 $ExitCode = -1

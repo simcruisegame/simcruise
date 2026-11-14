@@ -25,6 +25,8 @@
   powershell -ExecutionPolicy Bypass -File scripts\cockpit-review.ps1 -Cars nb2001_aaron,mustang65,meridian_z
 #>
 param(
+    # Show the game's window (default: off screen, -RenderOffScreen, nothing on the desktop).
+    [switch]$ShowWindow,
     [string[]]$Cars = @(),
     [string]$Graphics = 'ultra',
     [string]$EngineDir = $(if ($env:UE_ROOT) { $env:UE_ROOT } else { 'C:\Program Files\Epic Games\UE_5.8' }),
@@ -52,8 +54,8 @@ foreach ($Car in $Cars) {
     $Log = Join-Path $RunDir 'game.log'
     $GameArgs = @("`"$Project`"", '-game', '-SimCruiseWorld', '-SimCruiseBundledStart', '-SimCruiseNoLive', '-SimCruiseNoNeural', "-SimCruiseGraphics=$Graphics",
         '-SimCruiseUtc=2026-11-12T17:00:00Z', "-SimCruiseCar=$Car", '-SimCruiseCockpitTest', "`"-SimCruiseCockpitOut=$(Join-Path $RunDir 'cockpit')`"",
-        '-DPCVars=simcruise.Traffic.Cars=0', '-NoLiveCoding', '-windowed', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"")
-    if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "cockpit test $Car on $Root")) { exit 1 }
+        '-DPCVars=simcruise.Traffic.Cars=0', '-NoLiveCoding', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + @(Get-TestWindowArgs $ShowWindow)
+    if (-not (Enter-EditorLock -GpuTest -TimeoutMinutes $LockTimeoutMinutes -Why "cockpit test $Car on $Root")) { exit 1 }
     $Started = Get-Date; $TimedOut = $false; $ExitCode = -1
     try {
         $P = Start-Process -FilePath $Editor -ArgumentList ($GameArgs -join ' ') -PassThru

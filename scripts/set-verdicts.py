@@ -1,4 +1,4 @@
-"""Write verdicts into a review.md (scripts/ReviewLib.ps1 sheets).
+﻿"""Write verdicts into a review.md (scripts/ReviewLib.ps1 sheets).
 
 Usage: python -I scripts/set-verdicts.py <review.md> <verdicts.json> <reviewer>
 
@@ -13,7 +13,7 @@ sheet, verdicts_path, reviewer = sys.argv[1], sys.argv[2], sys.argv[3]
 text = open(sheet, encoding='utf-8-sig').read()
 nl = '\r\n' if '\r\n' in text else '\n'
 lines = text.split(nl)
-verdicts = json.load(open(verdicts_path, encoding='utf-8'))
+verdicts = json.load(open(verdicts_path, encoding='utf-8-sig'))
 used = set()
 for i, line in enumerate(lines):
     if not line.startswith('| ') or line.startswith('| Item ') or line.startswith('|---'):

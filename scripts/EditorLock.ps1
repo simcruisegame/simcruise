@@ -15,14 +15,53 @@
 
 $script:EditorLockName = 'Global\SimCruiseEditor'
 $script:EditorLock = $null
+# Every script that starts a game for a picture or driving test also takes the GPU test lock
+# (-GpuTest), before the editor lock: one GPU test at a time across all lanes, and the tests
+# queue in the order they asked.
+$script:GpuTestLockName = 'Global\SimCruiseGpuTest'
+$script:GpuTestLock = $null
+
+<#
+  The arguments that keep a test game off the desktop: -RenderOffScreen (no window, no swap chain,
+  no focus taken, Slate and the renderer still draw; the game's own 60 fps cap still paces it).
+  -ShowWindow in the calling script gives the window back.
+#>
+function Get-TestWindowArgs([bool]$ShowWindow) {
+    if ($ShowWindow) { return @('-windowed') }
+    return @('-RenderOffScreen')
+}
 
 function Enter-EditorLock {
-    param([int]$TimeoutMinutes = 60, [string]$Why = 'editor run')
+    param([int]$TimeoutMinutes = 60, [string]$Why = 'editor run', [switch]$GpuTest)
+    if ($GpuTest) {
+        $script:GpuTestLock = New-Object System.Threading.Mutex($false, $script:GpuTestLockName)
+        # Who holds the lock, for the people waiting (the mutex itself does not say).
+        $Holder = Join-Path $env:LOCALAPPDATA 'SimCruise\gpu-test-lock.txt'
+        $Start = Get-Date
+        $Taken = $false
+        while (-not $Taken) {
+            try { $Taken = $script:GpuTestLock.WaitOne([TimeSpan]::FromSeconds(30)) }
+            catch [System.Threading.AbandonedMutexException] { $Taken = $true }
+            if ($Taken) { break }
+            $Waited = [int]((Get-Date) - $Start).TotalMinutes
+            $Who = if (Test-Path $Holder) { (Get-Content $Holder -Raw).Trim() } else { 'unknown' }
+            Write-Host "Waiting for the GPU test lock ($Why): $Waited min so far; held by $Who"
+            if ($Waited -ge $TimeoutMinutes) {
+                Write-Host "Another GPU test held the lock for $TimeoutMinutes min. Gave up."
+                $script:GpuTestLock.Dispose(); $script:GpuTestLock = $null
+                return $false
+            }
+        }
+        New-Item -ItemType Directory -Force (Split-Path $Holder) | Out-Null
+        "$Why, since $((Get-Date).ToString('HH:mm:ss')), pid $PID" | Set-Content -Encoding utf8 $Holder
+        Write-Host "GPU test lock taken after $([int]((Get-Date) - $Start).TotalSeconds) s."
+    }
     $script:EditorLock = New-Object System.Threading.Mutex($false, $script:EditorLockName)
     Write-Host "Waiting for the editor lock ($Why)..."
     try {
         if (-not $script:EditorLock.WaitOne([TimeSpan]::FromMinutes($TimeoutMinutes))) {
             Write-Host "Another SimCruise editor run held the lock for $TimeoutMinutes min. Gave up."
+            Exit-EditorLock
             return $false
         }
     }
@@ -38,6 +77,11 @@ function Exit-EditorLock {
         try { $script:EditorLock.ReleaseMutex() } catch { }
         $script:EditorLock.Dispose()
         $script:EditorLock = $null
+    }
+    if ($script:GpuTestLock) {
+        try { $script:GpuTestLock.ReleaseMutex() } catch { }
+        $script:GpuTestLock.Dispose()
+        $script:GpuTestLock = $null
     }
 }
 

@@ -20,6 +20,8 @@
   powershell -ExecutionPolicy Bypass -File scripts\drive-robot.ps1 -Cars nb2001 -LowFps
 #>
 param(
+    # Show the game's window (default: off screen, -RenderOffScreen, nothing on the desktop).
+    [switch]$ShowWindow,
     [string[]]$Cars = @('nb2001', 'nb2001_aaron', 'mustang65', 'meridian_z'),
     # Cap the frame rate at 15 fps as well, to catch frame-rate dependence.
     [switch]$LowFps
@@ -50,7 +52,7 @@ foreach ($Car in $Cars) {
         $Log = Join-Path $Out "robot-$Tag.log"
         $Csv = (Join-Path $Out "robot-$Tag.csv") -replace '\\', '/'
         $Args = @('-game', '-SimCruiseWorld', '-SimCruiseBundledStart', "-SimCruiseCar=$Car", '-NoLiveCoding', '-SimCruiseNoLive', '-SimCruiseNoNeural',
-            '-SimCruiseDriveTest', '-SimCruiseDriveTestPad', "-SimCruiseDriveTestOut=$Csv", '-windowed', '-ResX=1280', '-ResY=720', '-log', "-abslog=$Log")
+            '-SimCruiseDriveTest', '-SimCruiseDriveTestPad', "-SimCruiseDriveTestOut=$Csv", $(if ($ShowWindow) { '-windowed' } else { '-RenderOffScreen' }), '-ResX=1280', '-ResY=720', '-log', "-abslog=$Log")
         if ($Run.Cap -gt 0) { $Args += "-SimCruiseDriveTestMaxFps=$($Run.Cap)" }
         Write-Host "Drive robot: $Tag"
         if (Test-Path $Log) { Remove-Item $Log -Force }

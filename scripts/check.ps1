@@ -21,9 +21,11 @@
   nor the GPU and do not wait for the one-editor lock that play tests and MCP sessions hold.
 
 .PARAMETER Tier
-  full (the default; run it before a merge) runs every test that matches -Filter. fast skips
-  the slow tests, the ones tagged [Slow] in Config\Tests\Tags.ini, and ends in about 1.5 min.
-  A test that is not in that list runs in both tiers.
+  full (the default; run it before a merge) runs every test that matches -Filter, then the
+  view check (a game, off screen). fast skips the slow tests, the ones tagged [Slow] in
+  Config\Tests\Tags.ini, and the view check: it starts no game and ends in about 1.5 min.
+  A test that is not in that list runs in both tiers. Run fast after each change, full once
+  per batch of changes before a merge.
 
 .PARAMETER NoBuild
   Skip the build (the editor binaries must be current). Without it the build is still
@@ -193,7 +195,8 @@ if ($Results.Count -eq 0) { Write-Host "No test results in $Log (no test matched
 Write-CheckTime $(if ($Failures.Count -gt 0 -or @($Logged).Count -gt 0) { 'failed' } else { 'passed' })
 Write-Host ("{0} passed, {1} failed, {2} logged errors in {3} s (log: {4})" -f $Passed, $Failures.Count, @($Logged).Count, $Seconds, $Log)
 if ($Failures.Count -gt 0 -or @($Logged).Count -gt 0) { Write-Host 'CHECKS FAILED'; exit 1 }
-if (-not $NoViewCheck) {
+# The fast tier starts no game: the view check (a GPU game) runs in the full tier only.
+if (-not $NoViewCheck -and $Tier -ne 'fast') {
     & powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'viewcheck.ps1') -EngineDir $EngineDir -LockTimeoutMinutes $LockTimeoutMinutes | Out-Host
     if ($LASTEXITCODE -ne 0) { Write-Host 'CHECKS FAILED (view check)'; exit 1 }
 }

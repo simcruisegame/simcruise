@@ -249,6 +249,38 @@ A game run from the editor binaries (any development build; not Shipping, not au
 
 A file with an error is not put on: the screen says "Reload failed: <file>: <reason>" and the car drives on as it was. Test: `SimCruise.Drive.HotReload` (fast tier) saves a calibration overlay next to a bench car and checks the new mass on the car, its movement model and its Chaos body.
 
+### How to test
+
+When to test:
+
+- **After each change:** the fast tier, `powershell -ExecutionPolicy Bypass -File scripts\check.ps1 -Tier fast` (about 1.5 min, no game, no GPU).
+- **Once per batch of related changes, before the merge to main:** the full check `scripts\check.ps1`, the pre-flight `scripts\preflight.ps1`, and `scripts\launch-review.ps1` for the places the batch touches (with `scripts\cockpit-review.ps1` when the cockpit changed). Look at the frames, write the verdicts in each `review.md`, and run `scripts\review-check.ps1` on the folders.
+- **One GPU test at a time on the PC:** the scripts queue on the GPU test lock and print who holds it and how long they have waited.
+
+Two kinds of test, two ways to run them:
+
+- **Logic and data** (rules, physics benches, file formats, the review rules): no game, no picture. `scripts\check.ps1` runs the `SimCruise.*` automation tests in a headless editor (`-nullrhi`), in one of a few headless slots, next to other work.
+- **Picture and driving** (what the player sees and feels): the real game, **off screen** (`-RenderOffScreen`: no window, no focus taken, the renderer, TSR, Lumen, auto exposure and motion blur still run, and the game's own 60 fps cap still paces it), **one at a time on the PC**. Every script that starts a game takes the GPU test lock `Global\SimCruiseGpuTest` and then the editor lock `Global\SimCruiseEditor` (`scripts\EditorLock.ps1`, `Enter-EditorLock -GpuTest`). A test waits in the queue (up to `-LockTimeoutMinutes`). Add `-ShowWindow` to see the game.
+
+| Command | What it runs |
+|---|---|
+| `scripts\check.ps1` | build, automation tests, then the view check (off screen) |
+| `scripts\launch-review.ps1 [-Road ..] [-RandomUS N -Seed S]` | the robot's drive with full evidence and a review sheet (off screen) |
+| `scripts\cockpit-review.ps1 [-Cars ..]` | the cockpit steer test (off screen) |
+| `scripts\preflight.ps1` | the 12 hero runs (off screen), UNREVIEWED until `scripts\review-check.ps1` |
+| `scripts\viewcheck.ps1`, `scripts\drive-robot.ps1`, `scripts\replay-compare.ps1` | off screen; `-ShowWindow` to see |
+| `scripts\editor.ps1 -game ...` | a game you watch (a window); it takes the GPU test lock too |
+
+Unreal's own test tools, and what we use them for:
+
+| Unreal tool | Used for now | Kept custom, and why |
+|---|---|---|
+| Automation Test Framework (`IMPLEMENT_SIMPLE_AUTOMATION_TEST`, `Automation RunTests`) | every `SimCruise.*` test in `check.ps1` | - |
+| `-nullrhi` | the headless automation tests | games need a picture: they run with `-RenderOffScreen` |
+| `-RenderOffScreen` | every picture and driving test game | - |
+| Functional tests and automation screenshot comparison (`FunctionalTesting`, `TakeAutomationScreenshot`, ground-truth frames, Session Frontend comparison) | not yet | the next step: approved reference frames for fixed poses (view check, cockpit poses per car, a fixed Dragon pose) with time, weather and traffic pinned. The cockpit test's own geometry and needle numbers stay: no Unreal tool measures them |
+| Gauntlet (`RunUAT RunUnreal`) | not used | it needs a C# test node per test and starts its games outside our PC-wide locks; our launchers already give the lock, the time limit, the crash folder and the evidence. To look at again for runs on other PCs |
+
 ### Before you say it works
 
 Numbers can pass while the picture is wrong. Before you say that a change works, launch the game, look at what it shows and write a verdict:
@@ -302,7 +334,7 @@ The game builds any place in the US as you drive, so the review must look at ord
 
 Real photographs next to the game's frames, where the licence allows:
 
-- Wikimedia Commons (used): the geosearch API (`list=geosearch`, file namespace, 2 km round the point) and `prop=imageinfo` for the licence and the author; only Creative Commons and public-domain files are kept, as `photo.jpg` with `photo.txt` (title, author, licence, link, distance). Terms: the Wikimedia API etiquette (one request at a time, a User-Agent that names the client, thumbnails rather than originals); each photo's own licence applies.
+- Wikimedia Commons (used): the geosearch API (`list=geosearch`, file namespace, up to 10 km round the point, the nearest first) and `prop=imageinfo` for the licence and the author; only Creative Commons and public-domain files are kept, as `photo.jpg` with `photo.txt` (title, author, licence, link, distance). Terms: the Wikimedia API etiquette (one request at a time, a User-Agent that names the client, thumbnails rather than originals); each photo's own licence applies.
 - Mapillary (CC BY-SA 4.0): it needs a free API token. None is set on this PC, so it is not used.
 - USGS / NAIP aerial images (public domain): only as a fall-back, not used yet.
 - Google Street View: never (its terms forbid it).

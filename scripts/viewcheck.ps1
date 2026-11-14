@@ -28,6 +28,8 @@
   powershell -ExecutionPolicy Bypass -File scripts\viewcheck.ps1 -Cases ocean-drive
 #>
 param(
+    # Show the game's window (default: off screen, -RenderOffScreen, nothing on the desktop).
+    [switch]$ShowWindow,
     [string[]]$Cases = @('ocean-drive', 'collins-ave', 'test-pad'),
     [string]$EngineDir = $(if ($env:UE_ROOT) { $env:UE_ROOT } else { 'C:\Program Files\Epic Games\UE_5.8' }),
     [int]$TimeoutMinutes = 15,
@@ -45,7 +47,7 @@ $Editor = Join-Path $EngineDir 'Engine\Binaries\Win64\UnrealEditor.exe'
 if (-not (Test-Path $Editor)) { Write-Host "No Unreal Editor at $Editor (set -EngineDir or UE_ROOT)."; exit 2 }
 
 $Common = @('-game', '-SimCruiseWorld', '-SimCruiseNoLive', '-SimCruiseNoNeural', '-SimCruiseGraphics=ultra',
-    '-SimCruiseViewCheck', '-SimCruiseViewCheckQuit', '-NoLiveCoding', '-windowed', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log')
+    '-SimCruiseViewCheck', '-SimCruiseViewCheckQuit', '-NoLiveCoding', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log') + @(Get-TestWindowArgs $ShowWindow)
 $Defs = @{
     'ocean-drive' = @{ Expect = 'PASS'; Args = @('-SimCruiseBundledStart') }
     'collins-ave' = @{ Expect = 'PASS'; Args = @('-SimCruiseStart=25.7850,-80.1318', '"-SimCruiseStartRoad=Collins Avenue"') }
@@ -66,7 +68,7 @@ $Failed = @()
 $Cases = @($Cases | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 # One lock for all the cases. Taken per case, each case queued again behind every other GPU run
 # (a three-case check waited about 30 min on a busy PC).
-if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "view check ($($Cases -join ', ')) on $Root")) { exit 1 }
+if (-not (Enter-EditorLock -GpuTest -TimeoutMinutes $LockTimeoutMinutes -Why "view check ($($Cases -join ', ')) on $Root")) { exit 1 }
 try {
 foreach ($Case in $Cases) {
     $Def = $Defs[$Case]

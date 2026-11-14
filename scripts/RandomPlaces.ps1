@@ -67,7 +67,7 @@ function Get-RandomUSPlaces([int]$Count, [int]$Seed, [string]$Root = (Split-Path
   photo.jpg with photo.txt. Commons API etiquette: one request at a time, a User-Agent that names
   the client, thumbnails rather than originals. Returns the attribution text or $null.
 #>
-function Save-CommonsPhoto([string]$RunDir, [double]$Lat, [double]$Lon, [int]$RadiusM = 2000) {
+function Save-CommonsPhoto([string]$RunDir, [double]$Lat, [double]$Lon, [int]$RadiusM = 10000) {
     $Ua = @{ 'User-Agent' = 'SimCruiseReview/1.0 (game test review; contact via the SimCruise project)' }
     try {
         $Geo = Invoke-RestMethod -Headers $Ua -TimeoutSec 20 -Uri ("https://commons.wikimedia.org/w/api.php?action=query&list=geosearch&gsnamespace=6&gslimit=10&format=json&gsradius={0}&gscoord={1}|{2}" -f $RadiusM, $Lat, $Lon)
