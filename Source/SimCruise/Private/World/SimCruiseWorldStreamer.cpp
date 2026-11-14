@@ -6,6 +6,7 @@
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 
+#include "Live/SimCruiseAerialEye.h"
 #include "Live/SimCruiseNeuralDetail.h"
 #include "World/SimCruiseTraffic.h"
 #include "Misc/App.h"
@@ -312,6 +313,13 @@ void ASimCruiseWorldStreamer::Launch(const FSimCruiseTileJobTicket& Ticket)
 			// The local AI detail engine (Live/SimCruiseNeuralDetail): its cached sharper photograph, or queued for it.
 			FSimCruiseNeuralDetail::Get().EnhanceAerial(Path, Result->AerialPixels, Result->AerialWidth, Result->AerialHeight);
 			USimCruiseWorldResources::BuildMipChain(Result->AerialPixels, Result->AerialWidth, Result->AerialHeight, true, Result->AerialMips);
+		}
+		// The scan engine's aerial eye reads this tile's part of the photograph on its own CPU thread.
+		if (!Data.AerialKey.IsEmpty() && FSimCruiseAerialEye::Get().IsReady())
+		{
+			FString EyePath = SimCruiseTileData::BundledAerialPath(Data.AerialKey);
+			if (EyePath.IsEmpty() && Client.IsValid()) EyePath = FPaths::Combine(Client->GetConfig().CacheDir, Data.AerialKey);
+			if (IFileManager::Get().FileExists(*EyePath)) FSimCruiseAerialEye::Get().Request(Data.Id, EyePath);
 		}
 		if (!Box->bClosed) Box->Queue.Enqueue(Result);
 	};

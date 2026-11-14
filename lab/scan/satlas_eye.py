@@ -62,13 +62,16 @@ def cmd_features(a):
     m = satlas()
     torch.set_num_threads(a.threads)
     os.makedirs(os.path.join(a.data, "feat"), exist_ok=True)
-    rows = samples(a.data)
+    rows = [{"file": os.path.basename(p)} for p in sorted(glob.glob(os.path.join(a.data, "samples", "*.npz")))]
     t0 = time.time()
     for i, r in enumerate(rows):
-        out = os.path.join(a.data, "feat", r["file"].replace(".npz", ".f16.npy"))
+        out = os.path.join(a.data, "feat", r["file"].replace(".npz", ".d.f16.npy" if a.degrade else ".f16.npy"))
         if os.path.exists(out):
             continue
         img = np.load(os.path.join(a.data, "samples", r["file"]))["image"]
+        if a.degrade:  # the game's own input: the zoom-14 photograph (2.4 m/px) resampled to 512
+            from PIL import Image
+            img = np.asarray(Image.fromarray(img).resize((256, 256), Image.BILINEAR).resize((512, 512), Image.BILINEAR))
         x = torch.from_numpy(img).permute(2, 0, 1)[None].float() / 255
         with torch.no_grad():
             f = m.fpn(m.backbone(x))[0][0].numpy().astype(np.float16)
@@ -77,14 +80,15 @@ def cmd_features(a):
             print(i, len(rows), round(time.time() - t0), "s", flush=True)
 
 
-def load_set(a, rows):
+def load_set(a, rows, kinds=(".f16.npy", ".d.f16.npy")):
     fs, ls = [], []
     for r in rows:
-        fp = os.path.join(a.data, "feat", r["file"].replace(".npz", ".f16.npy"))
-        if not os.path.exists(fp):
-            continue
-        fs.append(np.load(fp))
-        ls.append(np.load(os.path.join(a.data, "samples", r["file"]))["label"])
+        for kind in kinds:
+            fp = os.path.join(a.data, "feat", r["file"].replace(".npz", kind))
+            if not os.path.exists(fp):
+                continue
+            fs.append(np.load(fp))
+            ls.append(np.load(os.path.join(a.data, "samples", r["file"]))["label"])
     return np.stack(fs), np.stack(ls)
 
 
@@ -126,6 +130,7 @@ def cmd_train(a):
     print("label pixels", dict(zip(sd.CLASSES, n.astype(int).tolist())))
     head = Head()
     opt = torch.optim.AdamW(head.parameters(), lr=2e-3, weight_decay=1e-4)
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=a.epochs)
     lossf = nn.CrossEntropyLoss(weight=w, ignore_index=sd.IGNORE)
     lt = torch.from_numpy(ltr.astype(np.int64))
     best = None
@@ -144,6 +149,7 @@ def cmd_train(a):
             logits = F.interpolate(head(f), scale_factor=4, mode="bilinear", align_corners=False)
             loss = lossf(logits, lb)
             opt.zero_grad(); loss.backward(); opt.step(); tot += float(loss) * len(b)
+        sched.step()
         head.eval()
         with torch.no_grad():
             pred = np.concatenate([F.interpolate(head(torch.from_numpy(fte[i:i + 8].astype(np.float32))), scale_factor=4, mode="bilinear").argmax(1).numpy() for i in range(0, len(fte), 8)])
@@ -201,6 +207,7 @@ def main():
     ap.add_argument("--out", default="")
     ap.add_argument("--onnx", default="")
     ap.add_argument("--int8", action="store_true")
+    ap.add_argument("--degrade", action="store_true")
     a = ap.parse_args()
     {"features": cmd_features, "train": cmd_train, "export": cmd_export, "eval": cmd_eval}[a.cmd](a)
 

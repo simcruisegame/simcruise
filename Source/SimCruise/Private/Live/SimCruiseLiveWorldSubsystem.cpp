@@ -14,6 +14,7 @@
 #include "HttpModule.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Kismet/GameplayStatics.h"
+#include "Live/SimCruiseAerialEye.h"
 #include "Live/SimCruiseLiveSky.h"
 #include "Live/SimCruiseNeuralDetail.h"
 #include "Live/SimCruiseSceneParser.h"
@@ -140,6 +141,8 @@ void USimCruiseLiveWorldSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	if (InWorld.IsGameWorld() && !GIsAutomationTesting)
 	{
 		FSimCruiseNeuralDetail::Get().Initialize();
+		// The scan engine's aerial eye (CPU, its own low-priority thread; off without its model file).
+		FSimCruiseAerialEye::Get().Initialize();
 		// A sharper photograph from the background worker replaces the one the tiles draw now.
 		TWeakObjectPtr<UWorld> WeakWorld(&InWorld);
 		FSimCruiseNeuralDetail::Get().OnEnhanced = [WeakWorld](const FString& Key, TArray<TArray<FColor>>& Mips, int32 Width, int32 Height)

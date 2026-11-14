@@ -178,7 +178,12 @@ def chm(x, y, root):
     """Meta/WRI canopy height v2, metres, 512 x 512 for this z16 tile (zeros where there is none)."""
     key = "".join(str(((x >> 6 >> b) & 1) + 2 * ((y >> 6 >> b) & 1)) for b in range(9, -1, -1))
     url = f"https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/{key}.tif"
-    hdr = get(url, os.path.join(root, "chm", f"h-{key}.bin"), rng=(0, 65535))
+    try:
+        hdr = get(url, os.path.join(root, "chm", f"h-{key}.bin"), rng=(0, 65535), tries=2)
+    except RuntimeError as e:
+        if "404" in str(e):  # no canopy file for this area (sea, or outside the map)
+            return np.zeros((PX, PX), np.float32)
+        raise
     ifd = struct.unpack_from("<I", hdr, 4)[0]
     n = struct.unpack_from("<H", hdr, ifd)[0]
     tags = {}
@@ -241,7 +246,26 @@ def _dilate(m, r):
     return np.asarray(Image.fromarray(m * 255).filter(ImageFilter.MaxFilter(2 * r + 1))) > 0
 
 
-def labels(x, y, root):
+def photo_refine(lab, img):
+    """WorldCover's 10 m "built-up" covers whole town blocks, lawns and trees included, and its 10 m
+    grass and crop cells spill over pavement. The photo's own colour decides inside those cells:
+    green (excess green) is grass; grey with no green is built ground; the rest is unsure (ignored)."""
+    f = img.astype(np.float32) + 1.0
+    s = f.sum(-1)
+    r, g, b = f[..., 0] / s, f[..., 1] / s, f[..., 2] / s
+    exg = 2 * g - r - b
+    grey = (np.max(f, -1) - np.min(f, -1)) / np.max(f, -1) < 0.18
+    warm = (r - b) > 0.03
+    out = lab.copy()
+    built = lab == C["built_other"]
+    out[built & (exg > 0.04)] = C["grass"]
+    out[built & ~(exg > 0.04) & ~(grey & (exg < 0.02))] = IGNORE
+    soft = (lab == C["grass"]) | (lab == C["crop"]) | (lab == C["shrub"])
+    out[soft & grey & (exg < 0.0) & ~warm] = IGNORE
+    return out
+
+
+def labels(x, y, root, img=None):
     """The label image (uint8, class index or 255) and its parts."""
     lat = math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * (y + 0.5) / 2 ** Z))))
     mpp = 2 * ORIGIN / 2 ** Z / PX * math.cos(math.radians(lat))
@@ -251,6 +275,9 @@ def labels(x, y, root):
     lab = np.full((PX, PX), IGNORE, np.uint8)
     for code, c in WORLDCOVER.items():
         lab[wc == code] = c
+    if img is None:
+        img = aerial(x, y, root)
+    lab = photo_refine(lab, img)
     # WorldCover says tree but the 1 m canopy height says no tree: unsure, ignore.
     lab[(lab == C["tree"]) & (h < 1.5)] = IGNORE
     lab[osm["water"] > 0] = C["water"]
@@ -297,7 +324,18 @@ def main():
     ap.add_argument("--random", type=int, default=0)
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--ring", type=int, default=1)
+    ap.add_argument("--relabel", action="store_true", help="rebuild the labels of every cached sample (no network)")
     a = ap.parse_args()
+    if a.relabel:
+        import glob
+        for npz in sorted(glob.glob(os.path.join(a.out, "samples", "*.npz"))):
+            _, x, y = os.path.basename(npz)[:-4].split("-")
+            img = np.load(npz)["image"]
+            lab, _ = labels(int(x), int(y), a.out, img)
+            np.savez_compressed(npz, image=img, label=lab)
+            Image.fromarray(np.concatenate([img, colour(lab)], 1)).save(npz[:-4] + ".jpg", quality=80)
+        print("relabelled")
+        return
     index = []
     for key, lat, lon in places(a.places, a.random, a.seed):
         cx, cy = tile_of(lat, lon)
@@ -308,7 +346,7 @@ def main():
                 try:
                     if not os.path.exists(npz):
                         img = aerial(x, y, a.out)
-                        lab, parts = labels(x, y, a.out)
+                        lab, parts = labels(x, y, a.out, img)
                         if (parts["worldcover"] == 0).mean() > 0.5 or (parts["worldcover"] == 80).mean() > 0.9:
                             print("skip (sea or no data)", key, x, y)
                             continue
