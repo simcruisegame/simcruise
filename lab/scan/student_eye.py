@@ -21,6 +21,10 @@ import satlas_eye as se  # noqa: E402
 K = len(sd.CLASSES)
 
 
+def widths(m):
+    return tuple(int(round(w * m / 8)) * 8 for w in (24, 40, 80, 160, 256))
+
+
 def block(cin, cout, stride=1):
     """Depthwise-separable conv block (MobileNet style)."""
     return nn.Sequential(
@@ -69,6 +73,44 @@ def cmd_teach(a):
         np.save(out, p.numpy().astype(np.float16))
 
 
+def cmd_teach_unlabelled(a):
+    """Teacher probabilities for the unlabelled photos (scan_data.py --aerial-only), full and game resolution."""
+    import onnxruntime as ort
+    from PIL import Image
+    so = ort.SessionOptions(); so.intra_op_num_threads = a.threads
+    s = ort.InferenceSession(a.onnx, so, providers=["CPUExecutionProvider"])
+    os.makedirs(os.path.join(a.unlab, "teach"), exist_ok=True)
+    files = sorted(glob.glob(os.path.join(a.unlab, "aerial", "*.jpg")))
+    t0 = time.time()
+    for i, fp in enumerate(files):
+        name = os.path.basename(fp)[:-4]
+        img = np.asarray(Image.open(fp).convert("RGB"))
+        if img.shape != (512, 512, 3) or img.std() < 4:
+            continue
+        for kind, im in ((".f16.npy", img), (".d.f16.npy", np.asarray(Image.fromarray(img).resize((256, 256), Image.BILINEAR).resize((512, 512), Image.BILINEAR)))):
+            out = os.path.join(a.unlab, "teach", name + kind)
+            if os.path.exists(out):
+                continue
+            p = s.run(None, {"image": (im.astype(np.float32) / 255).transpose(2, 0, 1)[None]})[0][0]
+            p = p.reshape(K, 128, 4, 128, 4).mean((2, 4))
+            np.save(out, p.astype(np.float16))
+        if i % 50 == 0:
+            print(i, len(files), round(time.time() - t0), "s", flush=True)
+
+
+def load_unlabelled(a, limit):
+    from PIL import Image
+    imgs, teach = [], []
+    for tp in sorted(glob.glob(os.path.join(a.unlab, "teach", "*.npy")))[:limit]:
+        base = os.path.basename(tp)
+        name = base.split(".")[0]
+        img = np.asarray(Image.open(os.path.join(a.unlab, "aerial", name + ".jpg")).convert("RGB"))
+        if ".d." in base:
+            img = np.asarray(Image.fromarray(img).resize((256, 256), Image.BILINEAR).resize((512, 512), Image.BILINEAR))
+        imgs.append(img); teach.append(np.load(tp))
+    return imgs, teach
+
+
 def load(a, rows):
     imgs, labs, teach = [], [], []
     for r in rows:
@@ -91,9 +133,15 @@ def cmd_train(a):
     tr, te = se.split(a)
     xi, xl, xt = load(a, tr)
     vi, vl, _ = load(a, te)
+    if a.unlab:
+        ui, ut = load_unlabelled(a, a.unlab_limit)
+        if ui:
+            xi = np.concatenate([xi, np.stack(ui)]); xt = np.concatenate([xt, np.stack(ut)])
+            xl = np.concatenate([xl, np.full((len(ui), 512, 512), sd.IGNORE, np.uint8)])
+            del ui, ut
     print("train", len(xi), "held-out", len(vi), flush=True)
     w, _ = se.class_weights(xl)
-    net = Student()
+    net = Student(widths(a.width))
     print("params", sum(p.numel() for p in net.parameters()), flush=True)
     opt = torch.optim.AdamW(net.parameters(), lr=3e-3, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=3e-3, total_steps=a.steps, pct_start=0.1)
@@ -134,7 +182,7 @@ def cmd_train(a):
 
 
 def cmd_export(a):
-    net = Student(); net.load_state_dict(torch.load(os.path.join(a.data, "student.pt"))); net.eval()
+    net = Student(widths(a.width)); net.load_state_dict(torch.load(os.path.join(a.data, "student.pt"))); net.eval()
     torch.onnx.export(net, torch.rand(1, 3, 512, 512), a.out, input_names=["image"], output_names=["probs"], opset_version=17, dynamo=False)
     print(a.out, round(os.path.getsize(a.out) / 1e6, 2), "MB")
 
@@ -150,8 +198,12 @@ def main():
     ap.add_argument("--crop", type=int, default=256)
     ap.add_argument("--alpha", type=float, default=0.6)
     ap.add_argument("--out", default="")
+    ap.add_argument("--onnx", default="C:/aiwork/scan-eye-satlas.onnx")
+    ap.add_argument("--unlab", default="")
+    ap.add_argument("--unlab-limit", type=int, default=100000)
+    ap.add_argument("--width", type=float, default=1.0)
     a = ap.parse_args()
-    {"teach": cmd_teach, "train": cmd_train, "export": cmd_export}[a.cmd](a)
+    {"teach": cmd_teach, "teach-unlabelled": cmd_teach_unlabelled, "train": cmd_train, "export": cmd_export}[a.cmd](a)
 
 
 if __name__ == "__main__":

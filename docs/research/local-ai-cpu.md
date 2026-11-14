@@ -92,4 +92,22 @@ Results: section 6.
 
 ## 6. Results
 
-(filled in as measured)
+Satlas eye (teacher), held-out places (Gilbert AZ, Seattle WA, Jasper AR, Selma AL, Hilo HI, three
+random), 142 tiles (full and game resolution), against the open labels:
+
+| | Pixel accuracy | Paved road | Roof | Water | Tree | Grass | Crop | Bare | Built ground |
+|---|---|---|---|---|---|---|---|---|---|
+| Labels from WorldCover as they are | 0.75 | 0.43 | 0.55 | 0.67 | 0.70 | 0.74 | 0.73 | 0.31 | 0.38 |
+| Labels refined by the photo's greenness (shipped) | **0.81** | 0.45 | 0.53 | 0.65 | 0.72 | **0.82** | 0.80 | 0.27 | 0.33 |
+
+IoU per class. Unpaved road, shrub and wetland have too few labels to learn (IoU about 0). The first
+labels painted town lawns grey (WorldCover's 10 m "built-up" covers whole blocks); the refined labels
+fix that (pictures checked on the held-out places).
+
+CPU: 1.06 s per tile with 4 threads, 1.49 s with 2 (ONNX Runtime, Python). In the game
+(NNERuntimeORTCpu, project pool of 3 threads, below-normal priority, while 8 other training threads
+ran): 2.1-2.5 s per tile; Dragon pre-flight PASS with frame p95 17.3 ms (17.0 ms without the eye).
+
+The student: from random init on the 572 labelled tiles it reached only 0.50 agreement with the teacher
+on its own training tiles (it can fit two tiles to 0.99, so the network works: it has too little data).
+Next step: distillation on 1,800 more unlabelled tiles from 200 random places, labelled by the teacher.

@@ -325,7 +325,24 @@ def main():
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--ring", type=int, default=1)
     ap.add_argument("--relabel", action="store_true", help="rebuild the labels of every cached sample (no network)")
+    ap.add_argument("--aerial-only", action="store_true", help="fetch only aerial photos (for distillation)")
     a = ap.parse_args()
+    if a.aerial_only:
+        # Unlabelled photos for distillation: the student learns the teacher's answers on many more places.
+        n = 0
+        for key, lat, lon in places("none", a.random, a.seed):
+            cx, cy = tile_of(lat, lon)
+            for dy in range(-a.ring, a.ring + 1):
+                for dx in range(-a.ring, a.ring + 1):
+                    try:
+                        img = aerial(cx + dx, cy + dy, a.out)
+                        if img.std() < 4:  # blank or no-data
+                            continue
+                        n += 1
+                    except Exception as e:  # noqa: BLE001
+                        print("fail", key, e, flush=True)
+            print("place", key, n, flush=True)
+        return
     if a.relabel:
         import glob
         for npz in sorted(glob.glob(os.path.join(a.out, "samples", "*.npz"))):

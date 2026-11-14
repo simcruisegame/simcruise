@@ -1,8 +1,9 @@
-// Copyright SimCruise contributors. All Rights Reserved.
+﻿// Copyright SimCruise contributors. All Rights Reserved.
 
 #include "Live/SimCruiseAerialEye.h"
 
 #include "Async/Async.h"
+#include "Misc/App.h"
 #include "HAL/FileManager.h"
 #include "HAL/IConsoleManager.h"
 #include "HAL/PlatformTime.h"
@@ -408,6 +409,14 @@ void FSimCruiseAerialEye::RunWorker()
 					M.PhotoSize = W;
 				}
 			}
+			// Back off while the game is slow (frames over 1.1 x the 60 fps budget): wait up to 2 s for it
+			// to recover. The tile still has the scan rules meanwhile.
+			for (int32 Wait = 0; Wait < 8 && FApp::GetDeltaTime() > 1.1 / 60.0 && !bStop; ++Wait)
+			{
+				FPlatformProcess::Sleep(0.25f);
+				FScopeLock Guard(&Lock);
+				++BackOffs;
+			}
 			if (!M.PhotoPath.IsEmpty())
 			{
 				FSimCruiseScanInputs Inputs;
@@ -598,8 +607,8 @@ FString FSimCruiseAerialEye::Describe() const
 	TArray<double> Sorted = RunTimes;
 	Sorted.Sort();
 	const double P95 = Sorted.Num() ? Sorted[FMath::Min(Sorted.Num() - 1, FMath::FloorToInt32(0.95 * Sorted.Num()))] : 0.0;
-	return FString::Printf(TEXT("SCANEYE STATS eye=%s ready=%d runs=%d mean_ms=%.0f p95_ms=%.0f max_ms=%.0f cache_hits=%d failures=%d queued=%d"),
-		*EyeName.ToString(), bReady ? 1 : 0, Runs, Runs ? 1000.0 * TotalSeconds / Runs : 0.0, 1000.0 * P95, 1000.0 * MaxSeconds, CacheHits, Failures, Queue.Num());
+	return FString::Printf(TEXT("SCANEYE STATS eye=%s ready=%d runs=%d mean_ms=%.0f p95_ms=%.0f max_ms=%.0f cache_hits=%d failures=%d backoffs_250ms=%d queued=%d"),
+		*EyeName.ToString(), bReady ? 1 : 0, Runs, Runs ? 1000.0 * TotalSeconds / Runs : 0.0, 1000.0 * P95, 1000.0 * MaxSeconds, CacheHits, Failures, BackOffs, Queue.Num());
 }
 
 static FAutoConsoleCommand GSimCruiseEyeStats(TEXT("SimCruise.Eye.Stats"), TEXT("Logs the scan eye's run statistics."),

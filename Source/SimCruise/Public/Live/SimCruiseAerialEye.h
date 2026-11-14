@@ -117,7 +117,7 @@ private:
 	TSharedPtr<class FSimCruiseAerialEyeModel> Model;
 
 	// Statistics (under Lock).
-	int32 Runs = 0, CacheHits = 0, Failures = 0;
+	int32 Runs = 0, CacheHits = 0, Failures = 0, BackOffs = 0;
 	double TotalSeconds = 0.0, MaxSeconds = 0.0;
 	TArray<double> RunTimes;
 };
