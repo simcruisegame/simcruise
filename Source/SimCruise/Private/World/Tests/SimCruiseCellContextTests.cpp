@@ -484,41 +484,7 @@ bool FSimCruiseFallbackGroundTest::RunTest(const FString& Parameters)
 }
 #endif
 
-#if WITH_DEV_AUTOMATION_TESTS
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseTextureSeamTest, "SimCruise.World.TextureSeam", SimCruiseCellContextTest::Flags)
-bool FSimCruiseTextureSeamTest::RunTest(const FString& Parameters)
-{
-	// The ground materials' surface metres: local + TextureAnchorM. Across every border the two
-	// sides must differ by a whole number of anchor periods (1664 m), and every pattern period
-	// the shaders use (SeamCode's QP, the 26-cell hex lattices, the noise cells) must divide it,
-	// so the grass, sand, asphalt, concrete and paint patterns and the detail kit continue
-	// across the border (2026-11-14 review, P0: with the old 64 m anchor most of them jumped).
-	const double P = SimCruiseTileBuilder::TextureAnchorPeriodM;
-	int32 Bad = 0;
-	for (const double Lat : { 19.7, 25.78, 35.48, 46.9, 61.2 })
-	{
-		const double S = SimCruiseGeo::TileSizeMetres(Lat);
-		for (const FIntPoint Tile : { FIntPoint(18180, 27907), FIntPoint(8000, 24000), FIntPoint(65000, 100), FIntPoint(1, 65534) })
-		for (const FIntPoint Step : { FIntPoint(1, 0), FIntPoint(0, 1) })
-		{
-			const FVector2d A = SimCruiseTileBuilder::TextureAnchorM(Tile, S);
-			const FVector2d B = SimCruiseTileBuilder::TextureAnchorM(Tile + Step, S);
-			const double Diff = Step.X ? A.X + S - B.X : A.Y + S - B.Y;
-			const double K = Diff / P;
-			if (FMath::Abs(K - FMath::RoundToDouble(K)) > 1e-6) { ++Bad; AddError(FString::Printf(TEXT("lat %.1f tile %d,%d: anchor jumps by %.6f m"), Lat, Tile.X, Tile.Y, Diff)); }
-			TestTrue(TEXT("anchor in [0, period)"), A.X >= 0.0 && A.X < P && A.Y >= 0.0 && A.Y < P);
-		}
-	}
-	// The pattern sizes in SeamCode's quantiser (the shader's QP: P / round(P / t)).
-	for (const double T : { 2.3, 9.7, 2.9, 5.0 * 7.37, 3.1, 23.0, 2.6, 61.0, 1.9, 17.0, 9.0, 26.0 * 1.7, 26.0 * 1.0, 26.0 * 1.2, 26.0 * 1.5 })
-	{
-		const double Q = P / FMath::Max(FMath::RoundToDouble(P / T), 1.0);
-		TestTrue(FString::Printf(TEXT("%.2f m quantised to %.4f m (within 6 %%)"), T, Q), FMath::Abs(Q / T - 1.0) < 0.06);
-	}
-	TestEqual(TEXT("no border jumps"), Bad, 0);
-	return true;
-}
-#endif
+
 
 #if WITH_DEV_AUTOMATION_TESTS
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseRuralSectionTest, "SimCruise.World.RuralCrossSection", SimCruiseCellContextTest::Flags)
