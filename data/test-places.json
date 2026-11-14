@@ -1,0 +1,20 @@
+[
+{"key": "us-ankeny-ia", "lat": 41.7318, "lon": -93.6001, "kind": "suburb", "note": "Ankeny, Iowa: Midwest suburb, cul-de-sacs, big box stores"},
+{"key": "us-casselton-nd", "lat": 46.9005, "lon": -97.2112, "kind": "farm-grid", "note": "Cass County, North Dakota: flat section-line roads, gravel, shelter belts"},
+{"key": "us-detroit-mi", "lat": 42.3500, "lon": -83.0600, "kind": "city", "note": "Detroit, Woodward Avenue: wide city grid, mixed old and empty lots"},
+{"key": "us-gilbert-az", "lat": 33.3528, "lon": -111.7890, "kind": "desert-suburb", "note": "Gilbert, Arizona: desert subdivision, block walls, gravel yards"},
+{"key": "us-welch-wv", "lat": 37.4329, "lon": -81.5843, "kind": "mountain-town", "note": "Welch, West Virginia: narrow hollow, steep terrain, poor map detail"},
+{"key": "us-rawlins-wy", "lat": 41.7911, "lon": -107.2387, "kind": "interstate", "note": "I-80 near Rawlins, Wyoming: high desert interstate, snow fences"},
+{"key": "us-bronx-ny", "lat": 40.8370, "lon": -73.9220, "kind": "dense-city", "note": "Bronx, Grand Concourse: dense city, tall walls, heavy traffic data"},
+{"key": "us-edinburg-tx", "lat": 26.3017, "lon": -98.1633, "kind": "farm", "note": "Edinburg, Texas: Rio Grande Valley farm roads, citrus, palms"},
+{"key": "us-selma-al", "lat": 32.4074, "lon": -87.0211, "kind": "small-town", "note": "Selma, Alabama: Deep South small town, old brick, river bridge"},
+{"key": "us-seattle-wa", "lat": 47.6370, "lon": -122.3570, "kind": "steep-city", "note": "Seattle, Queen Anne: steep grades, wet climate, conifers"},
+{"key": "us-stonington-me", "lat": 44.1559, "lon": -68.6664, "kind": "coast-village", "note": "Stonington, Maine: rocky coast village, narrow lanes"},
+{"key": "us-delta-ut", "lat": 39.3522, "lon": -112.5772, "kind": "desert-rural", "note": "Delta, Utah: Great Basin farm town, long straight roads"},
+{"key": "us-hazard-ky", "lat": 37.2495, "lon": -83.1932, "kind": "mountain-town", "note": "Hazard, Kentucky: Appalachian valley town, cut slopes"},
+{"key": "us-jasper-ar", "lat": 36.0081, "lon": -93.1866, "kind": "forest-hills", "note": "Jasper, Arkansas: Ozark hills, hardwood forest, twisty two-lane"},
+{"key": "us-kerman-ca", "lat": 36.7236, "lon": -120.0599, "kind": "farm", "note": "Kerman, California: Central Valley orchards and canals"},
+{"key": "us-doraville-ga", "lat": 33.8920, "lon": -84.2560, "kind": "interchange", "note": "I-85/I-285 near Doraville, Georgia: big interchange, ramps on bridges"},
+{"key": "us-anchorage-ak", "lat": 61.2181, "lon": -149.9003, "kind": "north-city", "note": "Anchorage, Alaska: high latitude sun, spruce, mountains"},
+{"key": "us-hilo-hi", "lat": 19.7241, "lon": -155.0868, "kind": "tropical-town", "note": "Hilo, Hawaii: wet tropical town, lava rock, NAIP imagery"}
+]

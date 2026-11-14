@@ -8,6 +8,7 @@
 #include "HAL/IConsoleManager.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "Components/PointLightComponent.h"
 #include "Engine/Canvas.h"
 #include "Engine/Engine.h"
 #include "Engine/Font.h"
@@ -717,6 +718,7 @@ void USimCruiseCarPresentationComponent::TickComponent(float DeltaTime, ELevelTi
 		{
 			if (const ASimCruiseEnvironment* Environment = Subsystem->GetEnvironment())
 			{
+				UpdateCabinFill();
 				const int32 Minutes = SimCruiseCarClock::LocalMinutes(Environment->GetUtcTime(), Environment->LatitudeDeg, Environment->LongitudeDeg);
 				if (Minutes != ClockMinutes)
 				{
@@ -777,13 +779,51 @@ void USimCruiseCarPresentationComponent::TickComponent(float DeltaTime, ELevelTi
 	UpdateDials(DeltaTime);
 }
 
+void USimCruiseCarPresentationComponent::UpdateCabinFill()
+{
+	if (!CabinFill) return;
+	const USimCruiseEnvironmentSubsystem* Subsystem = USimCruiseEnvironmentSubsystem::Get(GetWorld());
+	const ASimCruiseEnvironment* Environment = Subsystem ? Subsystem->GetEnvironment() : nullptr;
+	if (!Environment) return;
+	// Incident light at the reference exposure: E = 2.5 * 2^EV100 lux (C = 250). About a fifth
+	// of it is sky; a quarter of that reaches the dash through the openings. At 50 cm a point of
+	// I candela gives I / 0.25 lux, so I = 0.25 * 0.25 * 0.2 * E.
+	const double E = 2.5 * FMath::Pow(2.0, static_cast<double>(Environment->GetReferenceEV100()));
+	CabinFill->SetIntensity(static_cast<float>(0.0125 * E));
+}
+
 void USimCruiseCarPresentationComponent::SetMirrorsLive(bool bLive, USceneComponent* Parent, const FVector& RelativeEyeCm)
 {
 	if (!bLive)
 	{
 		if (MirrorCapture) { MirrorCapture->DestroyComponent(); MirrorCapture = nullptr; }
+		if (CabinFill) { CabinFill->DestroyComponent(); CabinFill = nullptr; }
 		for (UMaterialInstanceDynamic* Mirror : MirrorMaterials) { Mirror->SetScalarParameterValue(TEXT("HasCapture"), 0.f); }
 		return;
+	}
+	if (!CabinFill && Parent)
+	{
+		// Sky light through the windscreen and the open top. Lumen's short-range occlusion treats
+		// the cabin as nearly closed: in shade the dash fell to 17 % of its sunlit brightness on Tail
+		// of the Dragon (a real open cabin in shade keeps about a third), so leaving a tree's shadow
+		// flipped it from black to bright in one frame. A soft, shadowless fill between the seats and
+		// the dash, no specular, not seen by Lumen, its strength set from the daylight level.
+		CabinFill = NewObject<UPointLightComponent>(GetOwner() ? static_cast<UObject*>(GetOwner()) : static_cast<UObject*>(this), TEXT("CabinFill"));
+		CabinFill->SetupAttachment(Parent);
+		CabinFill->SetRelativeLocation(FVector(RelativeEyeCm.X + 45.0, 0.0, RelativeEyeCm.Z - 30.0));
+		CabinFill->SetMobility(EComponentMobility::Movable);
+		CabinFill->SetCastShadows(false);
+		CabinFill->SetIntensityUnits(ELightUnits::Candelas);
+		CabinFill->SetAttenuationRadius(130.f);
+		CabinFill->SetSourceRadius(35.f);
+		CabinFill->SetSoftSourceRadius(35.f);
+		CabinFill->SetSpecularScale(0.f);
+		CabinFill->SetIndirectLightingIntensity(0.f);
+		CabinFill->SetVolumetricScatteringIntensity(0.f);
+		CabinFill->bAffectTranslucentLighting = false;
+		CabinFill->SetLightColor(FLinearColor(0.85f, 0.92f, 1.0f));
+		CabinFill->RegisterComponent();
+		UpdateCabinFill();
 	}
 	if (MirrorCapture || !Parent)
 	{

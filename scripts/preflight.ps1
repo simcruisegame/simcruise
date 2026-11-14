@@ -23,6 +23,12 @@
     dragon       US 129 Tail of the Dragon at Deals Gap, TN
     nebraska     Princeton Road gravel, Lancaster County, NE
     big-sur      CA-1 Cabrillo Highway, Big Sur, south of Bixby Bridge
+    us-*         ordinary US places from data\test-places.json (city, suburb, farm, desert,
+                 mountain town, interstate, coast, Alaska, Hawaii); the start snaps to the nearest road
+    random       -RandomCount places drawn from data\test-places.json (seeded by -Seed; default
+                 today's date, so one day's runs repeat)
+    pool         a random road from data\start\start-pool.json (-SimCruiseRandomStart, seeded by -Seed)
+  The world must work at a random US place, not only on the hero roads (docs\team\ownership.md).
   Cars: nb2001_aaron (Miata), mustang65 (Mustang), meridian_z (Corvette).
   The roads other than Ocean Drive need the map helper (tools\atlas.exe) and the network.
 
@@ -44,6 +50,10 @@ param(
     # The negative test: at speed the robot yanks the stick with the handbrake on. Every run must
     # FAIL with a spin; the script exits 0 when they do, and writes no row to the index.
     [switch]$ForceSpin,
+    # The seed for 'random' and 'pool' (default: today's date as yyyyMMdd).
+    [int]$Seed = -1,
+    # How many places 'random' draws from data\test-places.json.
+    [int]$RandomCount = 3,
     # More game arguments for every run, for A/B tests (for example "-DPCVars=simcruise.Reflex=1").
     [string]$ExtraArgs = ''
 )
@@ -71,6 +81,36 @@ $Defs = @{
     'nebraska'    = @('-SimCruiseStart=40.56724,-96.5909', '"-SimCruiseStartRoad=Princeton Road"')
     'big-sur'     = @('-SimCruiseStart=36.363197,-121.900041', '"-SimCruiseStartRoad=Cabrillo Highway"')
 }
+if ($Seed -lt 0) { $Seed = [int](Get-Date -Format 'yyyyMMdd') }
+# Ordinary US places: the world must work everywhere, not only on the hero roads.
+$PlacesFile = Join-Path $Root 'data\test-places.json'
+$TestPlaces = @()
+if (Test-Path $PlacesFile) { $TestPlaces = @((Get-Content $PlacesFile -Raw | ConvertFrom-Json)) }
+# Each test place drives at its own local solar noon on the -Utc date (12 h - lon/15), so Anchorage
+# and Hilo get daylight too; an explicit -Utc keeps one time for every run.
+$PlaceUtc = @{}
+$UtcGiven = $PSBoundParameters.ContainsKey('Utc')
+$Day = ([datetime]::Parse($Utc, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::AdjustToUniversal)).Date
+foreach ($P in $TestPlaces) {
+    $Defs[$P.key] = @("-SimCruiseStart=$($P.lat),$($P.lon)")
+    $PlaceUtc[$P.key] = $Day.AddHours(12.0 - [double]$P.lon / 15.0).ToString('yyyy-MM-ddTHH:mm:ssZ')
+}
+$Defs['pool'] = @('-SimCruiseRandomStart', "-SimCruiseStartSeed=$Seed")
+$Expanded = @()
+foreach ($Road in $Roads) {
+    if ($Road -eq 'random') {
+        if (-not $TestPlaces.Count) { Write-Host "No places in $PlacesFile"; exit 2 }
+        # A seeded System.Random partial shuffle: the same draw in Windows PowerShell 5.1 and PowerShell 7.
+        $Rng = [System.Random]::new($Seed)
+        $Keys = @($TestPlaces | ForEach-Object { $_.key })
+        $Take = [Math]::Max(1, [Math]::Min($RandomCount, $Keys.Count))
+        for ($i = 0; $i -lt $Take; $i++) { $j = $Rng.Next($i, $Keys.Count); $t = $Keys[$i]; $Keys[$i] = $Keys[$j]; $Keys[$j] = $t }
+        $Draw = @($TestPlaces | Where-Object { $Keys[0..($Take - 1)] -contains $_.key })
+        Write-Host "Random places (seed $Seed): $(($Draw | ForEach-Object { $_.key }) -join ', ')"
+        $Expanded += @($Draw | ForEach-Object { $_.key })
+    } else { $Expanded += $Road }
+}
+$Roads = $Expanded
 $CarNames = @{ 'nb2001_aaron' = 'Miata'; 'mustang65' = 'Mustang'; 'meridian_z' = 'Corvette' }
 
 # A game run needs no platform SDK check: skip the start-up call to Unreal Build Tool,
@@ -91,7 +131,7 @@ foreach ($Road in $Roads) {
         $Out = Join-Path $RunDir $Name
         New-Item -ItemType Directory -Force $Out | Out-Null
         $Log = Join-Path $Out 'game.log'
-        $Args = @("`"$Project`"", '-game', '-SimCruiseWorld', '-SimCruiseNoLive', '-SimCruiseNoNeural', '-SimCruiseGraphics=ultra', "-SimCruiseUtc=$Utc",
+        $Args = @("`"$Project`"", '-game', '-SimCruiseWorld', '-SimCruiseNoLive', '-SimCruiseNoNeural', '-SimCruiseGraphics=ultra', "-SimCruiseUtc=$(if (-not $UtcGiven -and $PlaceUtc.ContainsKey($Road)) { $PlaceUtc[$Road] } else { $Utc })",
             "-SimCruiseCar=$Car", '-SimCruiseViewCheck', '-SimCruisePreflight', "-SimCruisePreflightRoad=$Road", "-SimCruisePreflightSeconds=$Seconds",
             "`"-SimCruisePreflightOut=$Out`"", '-NoLiveCoding', '-windowed', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + $Defs[$Road] + @(if ($Keen) { '-SimCruisePreflightKeen' }) + @(if ($ForceSpin) { '-SimCruisePreflightForceSpin' })
         if ($ExtraArgs) { $Args += $ExtraArgs }
@@ -146,7 +186,7 @@ foreach ($Road in $Roads) {
 # The report.
 $Failed = @($Rows | Where-Object { $_.Result -ne 'PASS' })
 $Verdict = if ($Failed.Count) { 'FAIL' } else { 'PASS' }
-$Md = @("# Pre-flight $Stamp", '', "Commit ``$Commit``, $($Rows.Count) runs of $Seconds s, time $Utc. Result: **$Verdict** ($($Rows.Count - $Failed.Count) passed, $($Failed.Count) failed).", '',
+$Md = @("# Pre-flight $Stamp", '', "Commit ``$Commit``, $($Rows.Count) runs of $Seconds s, time $Utc (test places: their own solar noon), seed $Seed. Result: **$Verdict** ($($Rows.Count - $Failed.Count) passed, $($Failed.Count) failed).", '',
     '| Road | Car | Result | View | Distance (m) | Mean speed (m/s) | Off road (s) | Rear slip (deg) / backwards (s) | Past the edge (m / s) | Frame p95 (ms) / hitches | White sky (%) | Tile pop-in | Car pop-in | Flashes | Road steps (max cm) | Gaps | Jolts (at borders) | Stuck traffic | Video | Sheet | Reasons |',
     '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|')
 foreach ($R in $Rows) {

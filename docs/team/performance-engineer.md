@@ -152,3 +152,47 @@ Source of the 90 W values: `docs/unreal-architecture.md:775-782` and `:426-429`.
 - Epic forum, broadphase types and streaming performance: https://forums.unrealengine.com/t/broadphase-types-and-streaming-performance/2690235
 - Unreal Fest and GDC talks on Lumen, Nanite and VSM performance (Epic YouTube channel). [not fetched in this session]
 - Project files: `docs/unreal-architecture.md` ("Light, sky and rendering", "Frame time on the drive", "Tiles draw as static meshes"), `Config/DefaultScalability.ini`, `Config/DefaultEngine.ini`.
+
+## What I now know (onboarding, 2026-11-14)
+
+**How my area works today.**
+- Presets: `FSimCruiseGraphics::Spec` (`Source/SimCruise/Private/Environment/SimCruiseGraphics.cpp:66-95`) sets Low/Medium/High/Ultra to scalability levels 0-3. The TSR screen percentages are 50/58/67/75. Low has no Lumen. Medium has Lumen GI but no Lumen reflections.
+- Auto-pick (`SimCruiseGraphics.cpp:97-163`): the RTX 2070 tier is Ultra. The code steps down once for "max-q" as a laptop part and once more as a Max-Q part (`:137-145`). Thus the owner's GPU starts on **Medium**.
+- Dynamic resolution is on for every preset (`SimCruiseGraphics.cpp:190-193`): mode 2, a 16.0 ms budget, 50 % minimum, and the preset's percentage as the maximum.
+- Frame pacing (`Gameplay/SimCruiseLatencyProbe.cpp:54-59, 90-145`): the cap is 60 fps (`simcruise.FrameCap`) and VSync is 1. Reflex is 0 (off). `-SimCruiseDrivePerf` turns the cap and VSync off. The 2026-11-13 note (`:107-110`) records why GTSyncType and Reflex stay off: frame p95 went from 16.7 to 52 ms.
+- Cloud budgets: every level uses a 192-texel cloud shadow map with 12 steps (`Config/DefaultScalability.ini:13-41`). Ultra uses a 100 % TSR history (`:45-46`).
+- Sampler (`Environment/SimCruisePerfSampler.cpp:254-318`): it logs avg/p50/p95/p99 frame time, GPU avg/p95, and game and render averages. It logs no max frame and no count of frames over budget. `-SimCruiseDrivePerf` samples 10 s parked at the start (`docs/unreal-building.md:289`).
+- `scripts/framecheck.ps1` drives at a set speed (130 km/h by default) and logs `worst`, `over33`, `over50` and stall lines. It knows only 4 hero roads (`:42-47`), and it skips any other name with "Unknown road" (`:53`).
+- Streaming (`World/SimCruiseWorldStreamer.cpp:483-587`, `Public/World/SimCruiseWorldStreamer.h:78-84`): the ring is 3x3 (RingRadius 1). Up to 2 builds run at once, and edge neighbours never build at the same time (`SimCruiseTileManager.cpp:64-72`). The 5 s look-ahead only orders the ring; it never asks for a tile beyond it (`:44-58`). The origin rebases every 2000 m.
+- Install is staged: `Install` does the static mesh and InitResources in one go, with no budget (`World/SimCruiseWorldTile.cpp:178-197`). Then there is one step per collision layer, then one cook (`:244-290`). Further steps share a 6 ms per-frame budget, and each frame runs at least one step (`SimCruiseWorldStreamer.cpp:522-532`). A step cannot split. A step over 20 ms is logged (`SimCruiseWorldTile.cpp:518`).
+- Trees: `ASimCruiseTrees::Refresh` (`World/SimCruiseTrees.cpp:465-639`) runs on the game thread. It clears and rebuilds all 6 tree HISMs plus the palms and shrubs for every shown tile. Each tree goes into all 3 LOD rings. Each ring's tree is built synchronously (`BuildTreeIfOutdated(false, true)`, `:590-599`). A refresh runs on every new canopy tile and on every rebase (`:765-774`).
+- Buildings (`World/SimCruiseTileDetail.cpp:362-440`) are built on worker threads. Two loops grow as O(B²) or O(P·B): the unknown-height neighbour search (`:425-432`) and the POI-to-footprint match (`:387-404`). The Building and Props layers go into collision (`SimCruiseWorldTile.cpp:244-245`).
+- Parked cars: one stall every 6.7 m in each parking lane, 58 % taken (`SimCruiseTileBuilder.cpp:1026-1062`). There is no cap per tile. Each car is a full presentation actor with about 10 parts plus a box collider. They spawn 3 per frame across all tiles (`SimCruiseWorldStreamer.cpp:364-370`, `SimCruiseWorldTile.cpp:542-600`).
+- Traffic: a fixed 20 cars (`World/SimCruiseTraffic.cpp:25`). Spawns are 60-260 m away, with 2 tries per frame (`:943-947`). Cars are removed at 320 m (`:898`).
+
+**Does it work at a random US place?**
+- General: presets, dynamic resolution, the cap and VSync do not depend on the place. Tile size follows latitude (z16): about 575 m at Hilo, 463 m in the Bronx, 456 m at Rawlins, 293 m at Anchorage. The streamer handles all of these, but the ring then reaches less far in the north (estimate, from the Mercator formula).
+- Hard-wired: all frame-time numbers come from Ocean Drive, parked or in the lighting lab (`docs/unreal-architecture.md:779-787`). `framecheck.ps1` cannot run a `us-*` place. Nobody has measured a dense city, a forest or a high-speed interstate.
+- us-jasper-ar (Ozark forest): canopy.mjs packs crowns on a 128x128 grid with a gap of at least 1.4 cells (`helper/canopy.mjs:42`). That allows up to about 2 600 trees per tile, or about 65 000 trees and 195 000 instances over 25 resident tiles. All of them are rebuilt in one game-thread frame on each refresh (estimate). I expect a hitch well over 33 ms (estimate).
+- us-bronx-ny and us-detroit-mi: heavy footprints raise the build time on workers (O(B²)), the collision triangles in one layer step, and the parked-car actors. For the Bronx I estimate several hundred parked cars per tile (estimate, from a grid of about 80 m blocks). Ocean Drive had about 800 on four tiles.
+- us-rawlins-wy (I-80, 130 km/h = 36 m/s): the car crosses a 456 m tile in 12.6 s. In that time the helper must fetch, build and install the next row of 3 tiles, in at least 2 rounds. Canopy fetches, the aerial photo and a tree refresh for each arrival add to this. At us-anchorage-ak the window is 8.1 s (estimate). The world edge is only 456-912 m ahead.
+- Where map data is poor (us-welch-wv), the cost is low. The risk there is a helper timeout, not frame time.
+
+**Main gaps against "realistic everywhere".**
+1. P1: the tree refresh is a full synchronous rebuild. Its cost grows with forest density, and it runs on each canopy arrival and each rebase (`World/SimCruiseTrees.cpp:465-639, 765-774`).
+2. P1: streaming reach at highway speed is not proven. Ring 1, 2 builds in flight and the neighbour rule may not keep up at 130 km/h, mostly at high latitude (`World/SimCruiseTileManager.cpp:44-77`, `SimCruiseWorldStreamer.h:78-84`). (estimate)
+3. P1: install steps grow with density. The first step has no budget, and each collision layer (buildings, props) is one step that cannot split (`World/SimCruiseWorldTile.cpp:178-290`).
+4. P1: parked cars have no cap and each is a full actor. In dense cities, render-thread, Lumen card and rebase cost grow with street length (`SimCruiseTileBuilder.cpp:1026-1062`, `SimCruiseWorldTile.cpp:542-600`).
+5. P1 (open since review P-04): the vehicle still traces the world from the physics thread (`Vehicle/SimCruiseVehicleMovementComponent.cpp:326, 370`), while the game thread installs, removes and rebases tiles.
+6. P2: the measurement does not cover random places. `framecheck.ps1` knows only the hero roads, DrivePerf samples a parked car, and the sampler has no max and no hitch count (`scripts/framecheck.ps1:42-53`, `SimCruisePerfSampler.cpp:254-268`).
+
+**My first three actions.**
+1. Take a random-place baseline at 88 W. Run `scripts\preflight.ps1 -Roads us-rawlins-wy,us-jasper-ar,us-bronx-ny,random -Cars mustang65 -Seconds 120`. Collect frame p95, the stall lines, "an install step took" and "N trees and M shrubs" from each `game.log`. Done when a table of worst/over33 per place, with tree, building and parked-car counts, is in `docs/unreal-architecture.md` "Frame time on the drive".
+2. Add the `us-*` places and `random` to `scripts/framecheck.ps1`, read from `data/test-places.json` as `preflight.ps1:86-104` does. Add `-SimCruiseStartRoad` for us-rawlins-wy so that the robot drives I-80. Done when `scripts\framecheck.ps1 -Roads us-rawlins-wy,us-anchorage-ak,us-jasper-ar -Kmh 130 -Seconds 300 -Graphics medium` writes a report with `over33` for each place. The pass threshold is 0 frames over 33 ms.
+3. Time the tree refresh and the install steps in an Insights trace (`-trace=default,frame`, `trace.start`) on us-jasper-ar and us-bronx-ny. Then propose an incremental change: add and remove one tile's instances, or build the cluster tree on a worker with a double buffer, so the old trees stay drawn. Done when no game-thread frame from Refresh or Install is over 25 ms at us-jasper-ar.
+
+**Docs that are wrong or old.**
+- `docs/unreal-architecture.md:433` and the drive table (about `:785`) say the Max-Q starts on High. The code picks Medium (`SimCruiseGraphics.cpp:137-145`).
+- `docs/unreal-architecture.md:419-422` gives cloud shadow 256/16, 384/24 and 384/32. The ini uses 192/12 at every level (`Config/DefaultScalability.ini:13-41`).
+- `docs/unreal-architecture.md` "Tile lifetime" says that the game thread installs one tile per frame with its mesh sections, collision and materials. The code stages the install with a 6 ms budget (`SimCruiseWorldStreamer.cpp:522-532`).
+- `docs/team/performance-engineer.md` still says the target is 28 W with the 2.6 factor, and that there is "no cap today" (P3). The owner now runs 88 W. The code caps at 60 fps with VSync. `docs/team/ownership.md` rule 5 points to `docs/team/test-places.md`, which does not exist; the real list is `data/test-places.json`.

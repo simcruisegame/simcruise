@@ -254,6 +254,10 @@ private:
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> MirrorMaterials;
 	UPROPERTY(Transient)
 	TObjectPtr<USceneCaptureComponent2D> MirrorCapture;
+	/** Sky fill in the cabin (driver's view only): see SetMirrorsLive. */
+	UPROPERTY(Transient)
+	TObjectPtr<class UPointLightComponent> CabinFill;
+	void UpdateCabinFill();
 	UPROPERTY(Transient)
 	TObjectPtr<UTextureRenderTarget2D> MirrorTarget;
 	uint32 MirrorFrame = 0;
