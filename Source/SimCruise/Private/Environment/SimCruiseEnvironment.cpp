@@ -338,7 +338,7 @@ void ASimCruiseEnvironment::ApplyClouds()
 void ASimCruiseEnvironment::SetLookParameter(FName Name, float Value)
 {
 	if (Name == TEXT("AerosolScaleHeightKm") || Name == TEXT("AerosolAlbedo") || Name == TEXT("Saturation") || Name == TEXT("ExposureCompensation")
-		|| Name == TEXT("OpenStops") || Name == TEXT("DaylightOpenStops") || Name == TEXT("LowPercent") || Name == TEXT("CloseStops") || Name == TEXT("MultiScattering") || Name == TEXT("MieAnisotropy"))
+		|| Name == TEXT("OpenStops") || Name == TEXT("DaylightOpenStops") || Name == TEXT("LowPercent") || Name == TEXT("DriverDaylightOpenStops") || Name == TEXT("CloseStops") || Name == TEXT("MultiScattering") || Name == TEXT("MieAnisotropy"))
 	{
 		if (Name == TEXT("AerosolScaleHeightKm")) { AerosolScaleHeightKm = Value; }
 		if (Name == TEXT("AerosolAlbedo")) { AerosolSingleScatteringAlbedo = Value; }
@@ -346,6 +346,7 @@ void ASimCruiseEnvironment::SetLookParameter(FName Name, float Value)
 		if (Name == TEXT("OpenStops")) { ExposureOpenStops = Value; }
 		if (Name == TEXT("DaylightOpenStops")) { DaylightOpenStops = Value; }
 		if (Name == TEXT("LowPercent")) { ExposureLowPercent = Value; }
+		if (Name == TEXT("DriverDaylightOpenStops")) { DriverDaylightOpenStops = Value; }
 		if (Name == TEXT("CloseStops")) { ExposureCloseStops = Value; }
 		ApplyAtmosphere();
 		ApplyExposure();
@@ -440,7 +441,7 @@ void ASimCruiseEnvironment::ApplyExposure()
 	// Daylight may use its own limit (DaylightOpenStops, a look knob). 1.5 EV made the sunlit
 	// Miata dash black again under trees but dropped the Tail of the Dragon realism score 45.8 ->
 	// 37.3 (the reference photo is exposed for the forest), so both stay at 3 EV for now.
-	const float DayOpen = FMath::Lerp(ExposureOpenStops, FMath::Min(ExposureOpenStops, DaylightOpenStops), FMath::SmoothStep(8.f, 11.f, static_cast<float>(ReferenceEV100)));
+	const float DayOpen = FMath::Lerp(ExposureOpenStops, FMath::Min(ExposureOpenStops, bDriverView ? DriverDaylightOpenStops : DaylightOpenStops), FMath::SmoothStep(8.f, 11.f, static_cast<float>(ReferenceEV100)));
 	S.AutoExposureMinBrightness = Target - DayOpen;
 	S.bOverride_AutoExposureMaxBrightness = true;
 	S.AutoExposureMaxBrightness = Target + ExposureCloseStops;

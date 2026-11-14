@@ -473,6 +473,13 @@ void ASimCruiseVehicle::Tick(float DeltaSeconds)
 	const APlayerController* PC = Cast<APlayerController>(GetController());
 	const ASimCruisePlayerCameraManager* Camera = PC ? Cast<ASimCruisePlayerCameraManager>(PC->PlayerCameraManager) : nullptr;
 	const bool bInSeat = !Camera || Camera->GetShownView() == ESimCruiseView::Driver;
+	if (IsPlayerControlled())
+	{
+		if (const USimCruiseEnvironmentSubsystem* Environments = USimCruiseEnvironmentSubsystem::Get(GetWorld()))
+		{
+			if (ASimCruiseEnvironment* Environment = Environments->GetEnvironment()) Environment->SetDriverView(bInSeat && !IsHidden()); // hidden: a capture of the world alone
+		}
+	}
 	const bool bWantMirrors = IsPlayerControlled() && bInSeat && CVarMirrors.GetValueOnGameThread() != 0 && CarModel;
 	if (bWantMirrors != bMirrorsLive && CarModel)
 	{
