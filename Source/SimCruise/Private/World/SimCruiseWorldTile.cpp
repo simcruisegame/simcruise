@@ -97,8 +97,21 @@ TArray<FString> SimCruiseParkedCars::AllCarIds()
 
 const TCHAR* SimCruiseParkedCars::CarFor(uint8 Pick)
 {
-	FString Id = ParkedCarFor(Pick);
-	return UnfitCars.Contains(Id) ? TEXT("meridian_z") : ParkedCarFor(Pick);
+	const TCHAR* Id = ParkedCarFor(Pick);
+	if (UnfitCars.Contains(Id)) return TEXT("meridian_z");
+	// A background car never builds a heavy model on the game thread (the Miatas: 38 MB, a
+	// 30 s stall before the start or while driving, 2026-11-14); it takes the next light car of
+	// the shares instead, until the player's choice has built the heavy one.
+	if (!SimCruiseCarAssets::IsBuilt(Id) && SimCruiseCarAssets::ModelBytes(Id) > SimCruiseCarAssets::BackgroundModelMaxBytes)
+	{
+		for (int32 Step = 1; Step < 256; Step += 25)
+		{
+			const TCHAR* Other = ParkedCarFor(static_cast<uint8>(Pick + Step));
+			if (!UnfitCars.Contains(Other) && (SimCruiseCarAssets::IsBuilt(Other) || SimCruiseCarAssets::ModelBytes(Other) <= SimCruiseCarAssets::BackgroundModelMaxBytes)) return Other;
+		}
+		return TEXT("meridian_z");
+	}
+	return Id;
 }
 
 FLinearColor SimCruiseParkedCars::ColourFor(uint8 Byte)
@@ -570,8 +583,7 @@ int32 ASimCruiseWorldTile::PlaceParkedCars(int32 Budget)
 	while (Placed < Budget && !ParkedWaiting.IsEmpty() && World)
 	{
 		const FSimCruiseParkedCar Stall = ParkedWaiting.Pop(EAllowShrinking::No);
-		FString CarId = ParkedCarFor(Stall.Pick);
-		if (UnfitCars.Contains(CarId)) CarId = TEXT("meridian_z");
+		FString CarId = SimCruiseParkedCars::CarFor(Stall.Pick);
 		FString Error;
 		TSharedPtr<FSimCruiseBuiltCar> Built = SimCruiseCarAssets::Get(CarId, Error);
 		if (!Built.IsValid())

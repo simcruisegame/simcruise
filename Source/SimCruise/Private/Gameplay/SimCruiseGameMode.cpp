@@ -34,7 +34,9 @@
 #include "World/SimCruiseGuardRails.h"
 #include "World/SimCruiseRegionalTerrain.h"
 #include "World/SimCruiseSignals.h"
+#include "World/SimCruiseStartPick.h"
 #include "World/SimCruiseTrees.h"
+#include "Presentation/SimCruiseCarAssets.h"
 #include "World/SimCruiseWorldStreamer.h"
 #include "World/SimCruiseWorldSubsystem.h"
 
@@ -342,6 +344,7 @@ void ASimCruiseGameMode::BeginTravel(const FSimCruisePlace& Place, bool bRestart
 	Stream->SetFocus(StartCm, FVector::ZeroVector);
 	WaitStartedSeconds = FPlatformTime::Seconds();
 	LastMessageSeconds = -100.0;
+	bStartCarBuilt = false;
 
 	// The sun and sky follow the place (unless the command line placed the observer).
 	double CommandLineLat = 0.0;
@@ -548,10 +551,17 @@ bool ASimCruiseGameMode::TryPlacePendingPlayers()
 	if (bFirstPlacement)
 	{
 		Stream->SetFocus(StartCm, FVector::ZeroVector);
-		// The traffic and parked-car models, built while the start tiles load (one a frame), so no
-		// car has to be cut and rigged on the game thread when it first appears: the 1999 Miata
-		// (1.2 million triangles) froze a packaged drive for 3.3 s at its start.
+		// The start tiles first and together (the start tile and its corners at once); while they
+		// are fetched and built, the player's car model, then the traffic and parked-car models
+		// (one a frame): building a model holds the game thread (30 s for the Miatas' 38 MB on a
+		// busy PC), and after the tiles it added all of that to the start (Detroit and Doraville,
+		// 2026-11-14: placed after 98-100 s); the 1999 Miata also froze a packaged drive for 3.3 s
+		// when its first car appeared. Background cars never take an unbuilt heavy model
+		// (SimCruiseParkedCars::CarFor), so the list holds light models only.
+		Stream->SetStartBoost(true);
+		const bool bTilesUnderWay = Stream->NumTilesInFlight() >= 3 || FPlatformTime::Seconds() - WaitStartedSeconds > 4.0;
 		bool bModelsReady = true;
+		if (bStartCarBuilt)
 		{
 			const TArray<FString> Models = SimCruiseParkedCars::AllCarIds();
 			if (PrebuiltModels < Models.Num())
@@ -562,11 +572,23 @@ bool ASimCruiseGameMode::TryPlacePendingPlayers()
 				UE_LOG(LogSimCruiseDrive, Display, TEXT("Traffic model %s built before the drive in %.2f s%s"), *Models[PrebuiltModels],
 					FPlatformTime::Seconds() - ModelStart, ModelError.IsEmpty() ? TEXT("") : *(TEXT(": ") + ModelError));
 				++PrebuiltModels;
-				bModelsReady = PrebuiltModels >= Models.Num();
 			}
+			bModelsReady = PrebuiltModels >= Models.Num();
+		}
+		else
+		{
+			bModelsReady = false;
+		}
+		const double Waited = FPlatformTime::Seconds() - WaitStartedSeconds;
+		if (!bStartCarBuilt && (CarId.IsEmpty() || bTilesUnderWay))
+		{
+			bStartCarBuilt = true;
+			const double Before = FPlatformTime::Seconds();
+			FString Error;
+			if (!CarId.IsEmpty()) SimCruiseCarAssets::Get(CarId, Error);
+			UE_LOG(LogSimCruiseDrive, Display, TEXT("The car's model (%s) built while %d start tiles load: %.1f s"), *CarId, Stream->NumTilesInFlight(), FPlatformTime::Seconds() - Before);
 		}
 		const bool bReady = Stream->AreTilesReadyAround(StartCm, 1) && bModelsReady;
-		const double Waited = FPlatformTime::Seconds() - WaitStartedSeconds;
 		const bool bTimedOut = Waited > StartTimeoutSeconds;
 		// Tiles that cannot load (offline, no helper, nothing there): the next place, else the
 		// bundled one (Drive.gd start_next). The bundled place itself loads from disk. A failed
@@ -597,12 +619,34 @@ bool ASimCruiseGameMode::TryPlacePendingPlayers()
 	const double AnyRadiusM = CurrentPlace.bLoose ? 30.0 : StartSearchRadiusM;
 	FVector Ground = StartCm;
 	FRotator Heading = CurrentPlace.bHasBearing ? FRotator(0.0, PreferredYaw, 0.0) : FRotator::ZeroRotator;
-	const bool bNamed = !StartRoadName.IsEmpty() && Stream->FindRoadPoseFacing(StartRoadName, StartCm, NamedRadiusM, PreferredYaw, Ground, Heading);
+	// The start places by the general rules (SimCruiseStartPick: mid-block, inside its tile,
+	// straight, on the carriageway, a road going on ahead), best first; the first one a ground
+	// trace confirms (the road surface is there, at the road's height, nothing above it). Where
+	// none passes, the nearest-road rule as before.
+	auto PickStart = [&](const FString& Name, double RadiusM) -> bool
+	{
+		const TArray<FSimCruiseStartPose> Picks = Stream->FindStartCandidates(Name, StartCm, RadiusM, PreferredYaw);
+		for (const FSimCruiseStartPose& Pick : Picks)
+		{
+			FString Why;
+			if (!GroundTraceOnRoad(Pick.LocationCm, Pick.Rotation, Why))
+			{
+				UE_LOG(LogSimCruiseDrive, Display, TEXT("Start candidate at %s left out: %s"), *Pick.LocationCm.ToString(), *Why);
+				continue;
+			}
+			Ground = Pick.LocationCm;
+			Heading = Pick.Rotation;
+			UE_LOG(LogSimCruiseDrive, Display, TEXT("Start: %.0f m from the start point, %.0f m of road ahead"), Pick.DistanceM, Pick.AheadM);
+			return true;
+		}
+		return Stream->FindRoadPoseFacing(Name, StartCm, RadiusM, PreferredYaw, Ground, Heading);
+	};
+	const bool bNamed = !StartRoadName.IsEmpty() && PickStart(StartRoadName, NamedRadiusM);
 	if (!bNamed && !StartRoadName.IsEmpty())
 	{
 		UE_LOG(LogSimCruiseDrive, Warning, TEXT("No room to start on %s within %.0f m of the start; starting on the nearest road."), *StartRoadName, NamedRadiusM);
 	}
-	const bool bOnRoad = bNamed || Stream->FindRoadPoseFacing(FString(), StartCm, AnyRadiusM, PreferredYaw, Ground, Heading);
+	const bool bOnRoad = bNamed || PickStart(FString(), AnyRadiusM);
 	if (!bOnRoad)
 	{
 		if (bFirstPlacement && (!StartChain.IsEmpty() || bStartLaunch))
@@ -637,10 +681,38 @@ bool ASimCruiseGameMode::TryPlacePendingPlayers()
 	}
 	PendingPlayers.Reset();
 	bCarPlaced = true;
+	Stream->SetStartBoost(false);
 	StartChain.Reset();
 	bStartLaunch = false;
 	StartNote.Reset();
 
+	return true;
+}
+
+bool ASimCruiseGameMode::GroundTraceOnRoad(const FVector& PoseCm, const FRotator& Heading, FString& OutWhy) const
+{
+	const FVector Fwd = Heading.Vector().GetSafeNormal2D();
+	const FCollisionObjectQueryParams Objects(ECC_WorldStatic);
+	const FCollisionQueryParams Params(SCENE_QUERY_STAT(SimCruiseStartTrace), true);
+	// The middle within 25 cm of the road's height; the car's front and back (2 m out) on the
+	// same surface within 60 cm (a 15 % grade).
+	const struct { double AlongCm; double TolCm; } Points[3] = { { 0.0, 25.0 }, { 200.0, 60.0 }, { -200.0, 60.0 } };
+	for (const auto& P : Points)
+	{
+		const FVector At = PoseCm + Fwd * P.AlongCm;
+		FHitResult Hit;
+		if (!GetWorld()->LineTraceSingleByObjectType(Hit, At + FVector(0.0, 0.0, 500.0), At - FVector(0.0, 0.0, 500.0), Objects, Params))
+		{
+			OutWhy = FString::Printf(TEXT("no ground under %+.0f m"), P.AlongCm / 100.0);
+			return false;
+		}
+		const double Off = Hit.ImpactPoint.Z - PoseCm.Z;
+		if (FMath::Abs(Off) > P.TolCm)
+		{
+			OutWhy = FString::Printf(TEXT("the ground at %+.0f m is %+.2f m off the road's height"), P.AlongCm / 100.0, Off / 100.0);
+			return false;
+		}
+	}
 	return true;
 }
 

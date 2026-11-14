@@ -48,6 +48,21 @@ public:
 	/** Radius of the helper's landscape (RegionalTerrain.gd RADIUS_M). */
 	static constexpr double RadiusM = 45000.0;
 
+	/**
+	 * Heights no land has: a vertex whose height is further from the median of the vertices
+	 * within 600 m (more where the mesh is coarse) than max(100 m, 4 x their interquartile
+	 * range), with under 15 % of them within that limit of its own height (a plateau's corner
+	 * has its own ground round it), takes that median (up to three passes, so a ripple's
+	 * shoulders go too). Where the
+	 * neighbourhood is that flat, a vertex 100 m off it would stand on a 50 degree wall to its
+	 * 88 m neighbours. A corrupt elevation source pixel otherwise rings into a spike of hundreds
+	 * of metres in flat country or at sea
+	 * (Stonington, Maine: a 1438 m peak beside a -314 m pit on a coast at sea level). Real
+	 * mountains and cliffs keep their relief: their neighbourhood's spread raises the limit.
+	 * Positions in cm (x, y across, z up). Returns the number of vertices changed.
+	 */
+	static int32 RejectHeightOutliers(TArray<FVector>& PositionsCm);
+
 private:
 	struct FJob;
 	void StartJob(const FIntPoint& Region);

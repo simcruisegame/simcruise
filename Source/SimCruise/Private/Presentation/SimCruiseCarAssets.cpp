@@ -3,6 +3,7 @@
 #include "Presentation/SimCruiseCarAssets.h"
 
 #include "Engine/StaticMesh.h"
+#include "HAL/FileManager.h"
 #include "HAL/PlatformTime.h"
 #include "Materials/Material.h"
 #include "MeshDescription.h"
@@ -415,4 +416,36 @@ TSharedPtr<FSimCruiseBuiltCar> SimCruiseCarAssets::Get(const FString& CarId, FSt
 void SimCruiseCarAssets::ClearCache()
 {
 	SimCruiseCarAssetsPrivate::Cache.Reset();
+}
+
+bool SimCruiseCarAssets::IsBuilt(const FString& CarId)
+{
+	return SimCruiseCarAssetsPrivate::Cache.Contains(CarId);
+}
+
+int64 SimCruiseCarAssets::ModelBytes(const FString& CarId)
+{
+	static TMap<FString, int64> Known;
+	if (const int64* Found = Known.Find(CarId)) return *Found;
+	int64 Bytes = 0;
+	FSimCruiseCarPresentationProfile Profile;
+	FString Error;
+	if (SimCruisePresentationProfiles::Load(CarId, Profile, Error) && !Profile.ModelPath.IsEmpty())
+	{
+		const FString Model = FPaths::ConvertRelativePathToFull(FPaths::Combine(FPaths::ProjectDir(), Profile.ModelPath));
+		IFileManager& Files = IFileManager::Get();
+		if (FPaths::GetExtension(Model).Equals(TEXT("glb"), ESearchCase::IgnoreCase))
+		{
+			Bytes = FMath::Max<int64>(Files.FileSize(*Model), 0);
+		}
+		else
+		{
+			// A .gltf scene: its geometry lies in the .bin buffers beside it.
+			TArray<FString> Buffers;
+			Files.FindFilesRecursive(Buffers, *FPaths::GetPath(Model), TEXT("*.bin"), true, false);
+			for (const FString& Buffer : Buffers) Bytes += FMath::Max<int64>(Files.FileSize(*Buffer), 0);
+		}
+	}
+	Known.Add(CarId, Bytes);
+	return Bytes;
 }
