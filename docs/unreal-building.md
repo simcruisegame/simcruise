@@ -249,6 +249,30 @@ A game run from the editor binaries (any development build; not Shipping, not au
 
 A file with an error is not put on: the screen says "Reload failed: <file>: <reason>" and the car drives on as it was. Test: `SimCruise.Drive.HotReload` (fast tier) saves a calibration overlay next to a bench car and checks the new mass on the car, its movement model and its Chaos body.
 
+### Before you say it works
+
+Numbers can pass while the picture is wrong. Before you say that a change works, launch the game, look at what it shows and write a verdict:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\launch-review.ps1 -Road ocean-drive -Car nb2001_aaron
+```
+
+(`-Road dragon`, `nebraska` or `big-sur`, or `-Start lat,lon -StartRoad name`; `-Seconds`, `-Graphics` (default `ultra`, the game's top preset), `-Name`, `-ExtraArgs`.) The robot drives for 60 s from the driver's seat. The game quits itself; a hang is stopped after 20 min. Everything goes into one folder, `Saved\Review\<yyyyMMdd-HHmm>-<commit>\<name>\`:
+
+- `review\NNN-<t>s-<event>.png`: full-size frames at the start, every 5 s and at each event (a spin, a run-off, a hitch over 100 ms, a tile built, a pop-in, a jolt, a place card). Each has a `.json` sidecar: the true speed and engine speed next to what the needles show, the stick, the rack, the road wheels' drawn steer, the steering wheel's drawn angle, and the screen boxes of the close-ups.
+- `review\crops\`: close-ups of the steering wheel, the instrument cluster, the mirrors and the windscreen, twice the size.
+- `video.mp4` and `sheet.png` (10 frames a second and a contact sheet), `game.log`, `cmdline.txt`, `run.txt` (commit, exit code), `gpu.txt`, `preflight.json`, `review.json`, and `crash\` with the minidump and CrashContext when the game crashed. A crash or a hang still gives the folder, and the launch FAILs.
+- `review.json` and `review.md` give the steering wheel as it is drawn: rim degrees per road-wheel degree, lock-to-lock turns (each next to the car data's), and the fastest rim motion. They also give the gauge errors (needle against the true value, while the speed is steady).
+- `review.md`: the fault list (launch, place, glitches and flicker, pop-in, missing or floating objects, sky, road seams, gauges, steering wheel, car body and wheels, mirrors and windscreen, HUD, traffic, audio). The numbers fill the launch, gauge and audio verdicts.
+
+Then open the frames and the crops, and for each TODO item write PASS, FAIL or N/A with the frame names, and your name after "Reviewed by". Check the sheet:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\review-check.ps1 Saved\Review\<folder>
+```
+
+It exits 0 only when every item has a verdict and none is FAIL. `scripts\preflight.ps1` makes the same evidence and a `review.md` for each of its runs, in `Saved\Review\<stamp>-<commit>-preflight\`. When its game checks pass, the index row says UNREVIEWED. `review-check.ps1` on that folder adds the PASS (or FAIL) row, and `scripts\playtest.ps1` builds only for a commit with a reviewed PASS. `scripts\viewcheck.ps1` and `scripts\drive-robot.ps1` also keep their evidence and a `review.md` under `Saved\Review\`.
+
 ### View check
 
 The view check looks at what the player sees and tells if the world is there. `-SimCruiseViewCheck` (or `-SimCruiseViewCheck=<seconds>`, default 6) waits until the car is placed, the tiles round it are built and the shaders are compiled, then waits the given seconds. Then it:
@@ -282,7 +306,7 @@ In each game, `-SimCruisePreflight` (`ASimCruisePreflight`) waits for the start'
 
 Each FAIL reason is in the `PREFLIGHT` line, in `preflight.json`, in the report table (rear slip and backwards time, distance past the edge, frame p95 and hitches) and in the last column (`reasons`) of the index row. The negative test `scripts\preflight.ps1 -Roads dragon -Cars nb2001_aaron -ForceSpin` makes the robot pull full stick with the handbrake on for 2 s at speed (`-SimCruisePreflightForceSpin`). Every run must FAIL with a spin: the script then prints `FORCED-SPIN TEST PASSED`, exits 0 and writes no index row.
 
-The game writes `PREFLIGHT PASS|FAIL road=.. car=.. ... reasons=..` and `preflight.json`. The script encodes the frames to `<road>-<car>.mp4` with ffmpeg (free: `winget install Gyan.FFmpeg`) and makes a 4 x 3 contact sheet `<road>-<car>-sheet.png`. It writes `report.md` with a table and links, all in `Saved\Preflight\<date-time>\`, and adds a row to the PC-wide index `%LOCALAPPDATA%\SimCruise\preflight-index.csv`. Look at every contact sheet, and watch the videos of failed runs. Put real game bugs in `docs/release/bugs.md` with the run, the frame and a screenshot.
+The game writes `PREFLIGHT PASS|FAIL road=.. car=.. ... reasons=..` and `preflight.json`. The script encodes the frames to `<road>-<car>.mp4` with ffmpeg (free: `winget install Gyan.FFmpeg`) and makes a 4 x 3 contact sheet `<road>-<car>-sheet.png`. It writes `report.md` with a table and links, all in `Saved\Review\<date-time>-<commit>-preflight\`, and adds a row to the PC-wide index `%LOCALAPPDATA%\SimCruise\preflight-index.csv`. Look at every contact sheet, and watch the videos of failed runs. Put real game bugs in `docs/release/bugs.md` with the run, the frame and a screenshot.
 
 `scripts\playtest.ps1` refuses to make a play-test zip unless the index has a passed pre-flight for the same commit. `-SkipPreflight` builds anyway and prints a warning.
 

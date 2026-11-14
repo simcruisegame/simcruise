@@ -41,7 +41,9 @@ param(
     [string]$EngineDir = $(if ($env:UE_ROOT) { $env:UE_ROOT } else { 'C:\Program Files\Epic Games\UE_5.8' }),
     [int]$TimeoutMinutes = 20,
     [int]$LockTimeoutMinutes = 120,
-    [string]$OutRoot = ''
+    [string]$OutRoot = '',
+    # Leave out the cockpit steer test that runs first with the car at rest.
+    [switch]$NoCockpit
 )
 
 $ErrorActionPreference = 'Stop'
@@ -75,7 +77,7 @@ $Log = Join-Path $RunDir 'game.log'
 $env:UE_SKIP_UBT_SDK_SETUP = '1'
 $GameArgs = @("`"$Project`"", '-game', '-SimCruiseWorld', '-SimCruiseNoLive', '-SimCruiseNoNeural', "-SimCruiseGraphics=$Graphics", "-SimCruiseUtc=$Utc",
     "-SimCruiseCar=$Car", '-SimCruiseViewCheck', '-SimCruisePreflight', '-SimCruiseReview', "-SimCruisePreflightRoad=$Name", "-SimCruisePreflightSeconds=$Seconds",
-    "`"-SimCruisePreflightOut=$RunDir`"", '-NoLiveCoding', '-windowed', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + $PlaceArgs + $ExtraArgs
+    "`"-SimCruisePreflightOut=$RunDir`"", '-NoLiveCoding', '-windowed', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + $PlaceArgs + $ExtraArgs + @(if (-not $NoCockpit) { '-SimCruiseCockpitTest' })
 $CommandLine = "`"$Editor`" " + ($GameArgs -join ' ')
 
 if (-not (Enter-EditorLock -TimeoutMinutes $LockTimeoutMinutes -Why "launch review $Name on $Root")) { exit 1 }
@@ -110,7 +112,7 @@ if ($Ffmpeg -and $FrameCount -gt 0) {
 $Crops = New-ReviewCrops -RunDir $RunDir -Ffmpeg $Ffmpeg
 Write-ReviewSheet -RunDir $RunDir -Kind 'launch' -Title $Name -Result $Result -Reasons $Reasons -Evidence $Evidence
 
-foreach ($L in (Select-String -Path $Log -Pattern 'VIEWCHECK (PASS|FAIL)|PREFLIGHT (PASS|FAIL)|REVIEW (STEERING|GAUGES)' -ErrorAction SilentlyContinue)) { Write-Host "  $(($L.Line -replace '^\[.*?\]\[.*?\]\w+: Display: ', '').Substring(0, [Math]::Min(260, ($L.Line -replace '^\[.*?\]\[.*?\]\w+: Display: ', '').Length)))" }
+foreach ($L in (Select-String -Path $Log -Pattern 'VIEWCHECK (PASS|FAIL)|COCKPIT (PASS|FAIL)|PREFLIGHT (PASS|FAIL)|REVIEW (STEERING|GAUGES)' -ErrorAction SilentlyContinue)) { Write-Host "  $(($L.Line -replace '^\[.*?\]\[.*?\]\w+: Display: ', '').Substring(0, [Math]::Min(260, ($L.Line -replace '^\[.*?\]\[.*?\]\w+: Display: ', '').Length)))" }
 $Shots = @(Get-ChildItem (Join-Path $RunDir 'review') -Filter '*.png' -ErrorAction SilentlyContinue).Count
 Write-Host "Evidence: $Shots full-size frames, $Crops close-ups$(if ($Evidence.Crashed) { ', CRASH folder copied' })$(if ($Evidence.Hung) { ', HUNG and stopped' })"
 Write-Host "REVIEW PENDING: look at $RunDir\review\ and review\crops\, write a verdict for every TODO in $RunDir\review.md, then:"

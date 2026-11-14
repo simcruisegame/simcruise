@@ -30,6 +30,8 @@ $script:ReviewItems = @(
     @{ Key = 'road';      Name = 'Road seams, gaps, steps' },
     @{ Key = 'gauges';    Name = 'Gauges: needles against the true speed and engine speed' },
     @{ Key = 'steering';  Name = 'Steering wheel: direction, ratio, smooth motion' },
+    @{ Key = 'cockpit';   Name = 'Cockpit: gauges fixed while steering' },
+    @{ Key = 'column';    Name = 'Steering wheel turns about its column' },
     @{ Key = 'car';       Name = 'Car body and wheels (clipping, wheels not turning or rolling)' },
     @{ Key = 'mirrors';   Name = 'Mirrors and windscreen view' },
     @{ Key = 'hud';       Name = 'HUD (readouts, place card, overlaps)' },
@@ -150,6 +152,19 @@ function Write-ReviewSheet {
     if ($Review) {
         $St = $Review.steering
         $Note.steering = "MEASURED rim $($St.rim_deg_per_road_wheel_deg) deg per road-wheel deg (car data $($St.car_data_ratio)); lock to lock $($St.lock_to_lock_turns) turns (car data $($St.car_data_lock_to_lock_turns)); fastest rim $($St.max_rim_speed_dps) deg/s. Direction and smoothness: look at the wheel crops."
+    }
+
+    # The cockpit steer test (-SimCruiseCockpitTest): gauges fixed, the wheel on its column.
+    $CockpitJson = Join-Path $RunDir 'cockpit\cockpit.json'
+    if (Test-Path $CockpitJson) {
+        $Ck = Get-Content $CockpitJson -Raw | ConvertFrom-Json
+        $R = [string]$Ck.reasons
+        $GaugeBad = $R -match 'gauge|cluster-pixels|holds-other-parts|dash-move'
+        $ColumnBad = $R -match 'off-its-column|hub-moves|rim-tilted|wrong-way|rim-at-full-lock'
+        $Auto.cockpit = if ($GaugeBad) { 'FAIL' } else { 'PASS' }
+        $Note.cockpit = "cockpit test: gauges and dash move $($Ck.gauges_max_move_cm) cm / $($Ck.gauges_max_turn_deg) deg (limit $($Ck.limits.fixed_move_cm) cm / $($Ck.limits.fixed_turn_deg) deg, worst $($Ck.gauges_worst)); cluster pixels changed $($Ck.cluster_changed_percent) % with the wheel hidden (limit $($Ck.limits.cluster_changed_percent) %); wheel mesh vertices outside the rim $($Ck.outside_rim_percent) %. Frames cockpit\centre.png, full-left.png, full-right.png, *-nowheel.png, diff-full-left.png, diff-full-right.png"
+        $Auto.column = if ($ColumnBad) { 'FAIL' } else { 'PASS' }
+        $Note.column = "cockpit test: off-axis turn $($Ck.wheel_off_axis_deg) deg (limit $($Ck.limits.wheel_off_axis_deg)), hub moves $($Ck.hub_move_cm) cm (limit $($Ck.limits.hub_move_cm)), rim tilt $($Ck.rim_tilt_deg) deg on the column (limit $($Ck.limits.rim_tilt_deg); -1: no vertices), full lock $($Ck.rim_full_lock_left_deg) / $($Ck.rim_full_lock_right_deg) deg against $($Ck.expected_full_lock_deg) deg, ratio $($Ck.ratio) (car data $($Ck.car_data_ratio)), lock to lock $($Ck.lock_to_lock_turns) turns"
     }
 
     # Audio: errors and warnings the audio code logged.

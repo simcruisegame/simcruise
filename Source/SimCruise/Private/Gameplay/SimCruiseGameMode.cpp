@@ -16,6 +16,7 @@
 #include "Gameplay/SimCruisePlayerController.h"
 #include "Gameplay/SimCruisePreferences.h"
 #include "Gameplay/SimCruisePreflight.h"
+#include "Gameplay/SimCruiseCockpitTest.h"
 #include "Gameplay/SimCruiseVehicleControl.h"
 #include "Gameplay/SimCruiseViewCheck.h"
 #include "Misc/CommandLine.h"
@@ -278,6 +279,12 @@ void ASimCruiseGameMode::BeginWorldDrive()
 		FActorSpawnParameters Params;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		World->SpawnActor<ASimCruiseDriveTest>(ASimCruiseDriveTest::StaticClass(), FTransform::Identity, Params);
+	}
+	if (FParse::Param(Cmd, TEXT("SimCruiseCockpitTest")))
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		World->SpawnActor<ASimCruiseCockpitTest>(ASimCruiseCockpitTest::StaticClass(), FTransform::Identity, Params);
 	}
 	if (FParse::Param(Cmd, TEXT("SimCruisePreflight")))
 	{

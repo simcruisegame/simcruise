@@ -12,6 +12,7 @@
 #include "Gameplay/SimCruiseGameMode.h"
 #include "Gameplay/SimCruisePlayerController.h"
 #include "Gameplay/SimCruiseReview.h"
+#include "Gameplay/SimCruiseCockpitTest.h"
 #include "Gameplay/SimCruiseVehicleControl.h"
 #include "HAL/IConsoleManager.h"
 #include "Vehicle/SimCruiseVehicle.h"
@@ -390,6 +391,11 @@ void ASimCruisePreflight::Tick(float DeltaSeconds)
 		const bool bPlaced = Pawn && (!Mode || Mode->IsDriveReady());
 		bool bViewDone = true;
 		for (TActorIterator<ASimCruiseViewCheck> It(GetWorld()); It; ++It)
+		{
+			bViewDone &= It->IsFinished();
+		}
+		// The cockpit steer test first (the car at rest), then the drive.
+		for (TActorIterator<ASimCruiseCockpitTest> It(GetWorld()); It; ++It)
 		{
 			bViewDone &= It->IsFinished();
 		}
