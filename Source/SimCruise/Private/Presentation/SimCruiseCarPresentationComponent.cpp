@@ -830,9 +830,10 @@ void USimCruiseCarPresentationComponent::SetMirrorsLive(bool bLive, USceneCompon
 		return;
 	}
 	// Wide enough for the three glasses (the door mirrors look outward, the passenger's is
-	// convex); 768 x 320 puts about 7.7 texels in each degree.
+	// convex); 1152 x 480 puts about 11.5 texels in each degree (768 x 320 read as a blocky,
+	// blurred picture in the rear-view glass at 1080p: release review 2026-11-14).
 	constexpr float FovDeg = 100.f;
-	constexpr int32 SizeX = 768, SizeY = 320;
+	constexpr int32 SizeX = 1152, SizeY = 480;
 	if (!MirrorTarget)
 	{
 		MirrorTarget = NewObject<UTextureRenderTarget2D>(this);
@@ -867,10 +868,11 @@ void USimCruiseCarPresentationComponent::SetMirrorsLive(bool bLive, USceneCompon
 	// (0.75 ms: with Lumen off only distance-field AO and far shadows use it; virtual shadow
 	// maps cover the mirror's view), distance-field AO and shadows,
 	// the volumetric clouds with their shadow map (0.9 ms; the mirror's sky is the
-	// atmosphere alone); motion blur, bloom, volumetric fog and anti-aliasing. (Set as
+	// atmosphere alone); motion blur, bloom and volumetric fog. Anti-aliasing stays on: without it
+	// the glass showed stair-stepped edges. (Set as
 	// show-flag settings: registering the capture rebuilds its flags from them.)
 	TArray<FEngineShowFlagsSetting> Flags;
-	for (const TCHAR* Name : {TEXT("MotionBlur"), TEXT("Bloom"), TEXT("VolumetricFog"), TEXT("AntiAliasing"), TEXT("DistanceFieldAO"),
+	for (const TCHAR* Name : {TEXT("MotionBlur"), TEXT("Bloom"), TEXT("VolumetricFog"), TEXT("DistanceFieldAO"),
 		TEXT("RayTracedDistanceFieldShadows"), TEXT("Cloud"), TEXT("AmbientOcclusion"), TEXT("ContactShadows")})
 	{
 		FEngineShowFlagsSetting Flag;
