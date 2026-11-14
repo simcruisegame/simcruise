@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Evidence and a review sheet for every game a script launches (dot-source this file).
 
@@ -253,4 +253,16 @@ function Test-ReviewSheet([string]$Path) {
     }
     if ($Seen -lt $script:ReviewItems.Count) { $Todo += "only $Seen of $($script:ReviewItems.Count) items" }
     return @{ Complete = ($Todo.Count -eq 0); Todo = $Todo; Failed = $Failed }
+}
+
+<#
+  The screen's own resolution (the largest display that Windows reports), as '-ResX=W', '-ResY=H'.
+  Picture and driving tests run at this resolution: a smaller window is not what the player sees,
+  and its result is NOT VALID FOR SIGN-OFF. 1920x1080 when Windows reports nothing.
+#>
+function Get-NativeResolution {
+    $Best = @(Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue | Where-Object { $_.CurrentHorizontalResolution } |
+        Sort-Object { [int]$_.CurrentHorizontalResolution * [int]$_.CurrentVerticalResolution } -Descending)
+    if ($Best.Count) { $W = $Best[0].CurrentHorizontalResolution; $H = $Best[0].CurrentVerticalResolution; return @("-ResX=$W", "-ResY=$H", "-SimCruiseNativeRes=${W}x$H") }
+    return @('-ResX=1920', '-ResY=1080', '-SimCruiseNativeRes=1920x1080')
 }

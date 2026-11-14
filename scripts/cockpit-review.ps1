@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   The cockpit steer test for every car: the gauges stay where they are while the steering wheel
   turns, and the wheel turns about its column.
@@ -54,7 +54,7 @@ foreach ($Car in $Cars) {
     $Log = Join-Path $RunDir 'game.log'
     $GameArgs = @("`"$Project`"", '-game', '-SimCruiseWorld', '-SimCruiseBundledStart', '-SimCruiseNoLive', '-SimCruiseNoNeural', "-SimCruiseGraphics=$Graphics",
         '-SimCruiseUtc=2026-11-12T17:00:00Z', "-SimCruiseCar=$Car", '-SimCruiseCockpitTest', "`"-SimCruiseCockpitOut=$(Join-Path $RunDir 'cockpit')`"",
-        '-DPCVars=simcruise.Traffic.Cars=0', '-NoLiveCoding', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + @(Get-TestWindowArgs $ShowWindow)
+        '-DPCVars=simcruise.Traffic.Cars=0', '-NoLiveCoding', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + @(Get-TestWindowArgs $ShowWindow) + @(Get-NativeResolution)
     if (-not (Enter-EditorLock -GpuTest -TimeoutMinutes $LockTimeoutMinutes -Why "cockpit test $Car on $Root")) { exit 1 }
     $Started = Get-Date; $TimedOut = $false; $ExitCode = -1
     try {

@@ -5,6 +5,16 @@
 #include <limits>
 
 #include "Camera/PlayerCameraManager.h"
+#include "DynamicResolutionState.h"
+#include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
+#include "Environment/SimCruiseGraphics.h"
+#include "Framework/Application/SlateApplication.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
+#include "UnrealClient.h"
 #include "Engine/World.h"
 #include "Gameplay/SimCruisePlayerController.h"
 #include "HAL/FileManager.h"
@@ -107,6 +117,7 @@ void FSimCruiseReviewRecorder::Event(const FString& Name, float DriveSeconds)
 void FSimCruiseReviewRecorder::Tick(ASimCruisePlayerController& Player, float DriveSeconds, float DeltaSeconds, float Stick)
 {
 	if (!bOn) return;
+	SampleResolution();
 	StickNow = Stick;
 	if (DriveSeconds >= NextTimedS && PendingName.IsEmpty())
 	{
@@ -256,14 +267,94 @@ void FSimCruiseReviewRecorder::Finish(const FString& Verdict, const FString& Rea
 	const FString Json = FString::Printf(TEXT("{\n  \"car\": \"%s\", \"preflight\": \"%s\", \"preflight_reasons\": \"%s\",\n")
 		TEXT("  \"steering\": {\"rim_deg_per_road_wheel_deg\": %.2f, \"car_data_ratio\": %.2f, \"full_lock_road_wheel_deg\": %.1f, \"lock_to_lock_turns\": %.2f, \"car_data_lock_to_lock_turns\": %.2f, \"max_rim_deg\": %.1f, \"max_road_wheel_deg\": %.1f, \"max_rim_speed_dps\": %.0f, \"samples\": %d},\n")
 		TEXT("  \"gauges\": {\"samples\": %d, \"speed_unit\": \"%s\", \"speed_median_error\": %.2f, \"speed_p95_error\": %.2f, \"speed_wrong_samples\": %d, \"rpm_median_error\": %.0f, \"rpm_p95_error\": %.0f, \"rpm_wrong_samples\": %d},\n")
-		TEXT("  \"events\": [%s],\n  \"shots\": [%s]\n}\n"),
+		TEXT("  \"settings\": %s,\n  \"events\": [%s],\n  \"shots\": [%s]\n}\n"),
 		*CarId, *Verdict, *Reasons.ReplaceCharWithEscapedChar(),
 		Ratio, ProfileRatio, FullLockDeg, Turns, ProfileTurns, MaxRimDeg, MaxWheelDeg, MaxRimRateDps, RimWheel.Num(),
 		GaugeSamples, SpeedUnit.IsEmpty() ? TEXT("none") : *SpeedUnit, Median(SpeedErrors), Percentile(SpeedErrors, 0.95), SpeedWrongSamples,
-		Median(RpmErrors), Percentile(RpmErrors, 0.95), RpmWrongSamples, *EventList, *ShotList);
+		Median(RpmErrors), Percentile(RpmErrors, 0.95), RpmWrongSamples, *SettingsJson(true), *EventList, *ShotList);
 	FFileHelper::SaveStringToFile(Json, *FPaths::Combine(OutputDir, TEXT("review.json")), FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 	UE_LOG(LogSimCruiseReview, Display, TEXT("REVIEW STEERING car=%s rim_per_wheel=%.2f (car data %.2f) lock_to_lock=%.2f turns (car data %.2f) max_rim_speed=%.0f deg/s"),
 		*CarId, Ratio, ProfileRatio, Turns, ProfileTurns, MaxRimRateDps);
 	UE_LOG(LogSimCruiseReview, Display, TEXT("REVIEW GAUGES car=%s speed (%s) median_error=%.2f p95=%.2f wrong=%d of %d; rpm median_error=%.0f p95=%.0f wrong=%d"),
 		*CarId, *SpeedUnit, Median(SpeedErrors), Percentile(SpeedErrors, 0.95), SpeedWrongSamples, GaugeSamples, Median(RpmErrors), Percentile(RpmErrors, 0.95), RpmWrongSamples);
+}
+
+void FSimCruiseReviewRecorder::SampleResolution()
+{
+	if (!GEngine) return;
+	FDynamicResolutionStateInfos Infos;
+	GEngine->GetDynamicResolutionCurrentStateInfos(Infos);
+	float Fraction = Infos.Status == EDynamicResolutionStatus::Enabled ? Infos.ResolutionFractionApproximations[GDynamicPrimaryResolutionFraction] : -1.f;
+	if (Fraction <= 0.f)
+	{
+		const IConsoleVariable* Pct = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
+		Fraction = Pct ? Pct->GetFloat() / 100.f : 1.f;
+	}
+	ResFractionMin = ResFractionSamples ? FMath::Min(ResFractionMin, Fraction) : Fraction;
+	ResFractionMax = ResFractionSamples ? FMath::Max(ResFractionMax, Fraction) : Fraction;
+	ResFractionSum += Fraction;
+	++ResFractionSamples;
+}
+
+FString FSimCruiseReviewRecorder::SettingsJson(bool bLog)
+{
+	IConsoleManager& Cvars = IConsoleManager::Get();
+	auto Float = [&Cvars](const TCHAR* Name) { const IConsoleVariable* V = Cvars.FindConsoleVariable(Name); return V ? V->GetFloat() : -1.f; };
+	const ESimCruiseGraphicsPreset Preset = FSimCruiseGraphics::Current();
+	const FSimCruisePresetSpec Spec = FSimCruiseGraphics::Spec(Preset);
+	const FSimCruisePresetSpec Top = FSimCruiseGraphics::Spec(ESimCruiseGraphicsPreset::Ultra);
+	static const TCHAR* Groups[] = { TEXT("ViewDistance"), TEXT("AntiAliasing"), TEXT("Shadow"), TEXT("GlobalIllumination"), TEXT("Reflection"),
+		TEXT("PostProcess"), TEXT("Texture"), TEXT("Effects"), TEXT("Foliage"), TEXT("Shading"), TEXT("Landscape") };
+	FString SgJson, SgLog;
+	bool bGroupsTop = true;
+	for (const TCHAR* G : Groups)
+	{
+		const int32 Level = FMath::RoundToInt(Float(*FString::Printf(TEXT("sg.%sQuality"), G)));
+		bGroupsTop &= Level >= Top.ScalabilityLevel;
+		SgJson += FString::Printf(TEXT("%s\"%s\": %d"), SgJson.IsEmpty() ? TEXT("") : TEXT(", "), G, Level);
+		SgLog += FString::Printf(TEXT("%s%s:%d"), SgLog.IsEmpty() ? TEXT("") : TEXT(","), G, Level);
+	}
+	FIntPoint Size(0, 0);
+	if (GEngine && GEngine->GameViewport && GEngine->GameViewport->Viewport) Size = GEngine->GameViewport->Viewport->GetSizeXY();
+	// The screen's own resolution: from the script (an off-screen game has no display), else the primary display.
+	FIntPoint Native(0, 0);
+	FString NativeText;
+	if (FParse::Value(FCommandLine::Get(), TEXT("SimCruiseNativeRes="), NativeText))
+	{
+		FString W, H;
+		if (NativeText.Split(TEXT("x"), &W, &H)) Native = FIntPoint(FCString::Atoi(*W), FCString::Atoi(*H));
+	}
+	if (Native.X <= 0)
+	{
+		if (FSlateApplication::IsInitialized())
+		{
+			FDisplayMetrics Metrics;
+			FSlateApplication::Get().GetCachedDisplayMetrics(Metrics);
+			Native = FIntPoint(Metrics.PrimaryDisplayWidth, Metrics.PrimaryDisplayHeight);
+		}
+	}
+	const float ScreenPct = Float(TEXT("r.ScreenPercentage"));
+	const bool bDynRes = Float(TEXT("r.DynamicRes.OperationMode")) > 0.f;
+	const float DynMin = Float(TEXT("r.DynamicRes.MinScreenPercentage"));
+	const float DynMax = Float(TEXT("r.DynamicRes.MaxScreenPercentage"));
+	const float MeanPct = ResFractionSamples ? float(100.0 * ResFractionSum / ResFractionSamples) : ScreenPct;
+	const bool bTopPreset = Preset == ESimCruiseGraphicsPreset::Ultra;
+	const bool bNative = Native.X > 0 && Size.X >= Native.X && Size.Y >= Native.Y;
+	const bool bPct = ScreenPct >= Top.ScreenPercentage - 0.01f;
+	const bool bValid = bTopPreset && bGroupsTop && bNative && bPct;
+	FString Why;
+	if (!bTopPreset) Why += TEXT("preset-below-ultra,");
+	if (!bGroupsTop) Why += TEXT("sg-below-top,");
+	if (!bNative) Why += TEXT("below-native-resolution,");
+	if (!bPct) Why += TEXT("screen-percentage-below-preset,");
+	Why.RemoveFromEnd(TEXT(","));
+	if (bLog)
+	{
+		UE_LOG(LogSimCruiseReview, Display, TEXT("REVIEW SETTINGS preset=%s resolution=%dx%d native=%dx%d screen_pct=%.0f preset_pct=%.0f dynres=%s min=%.0f max=%.0f mean_actual_pct=%.1f actual_min=%.1f actual_max=%.1f sg=%s needs=ultra,%dx%d,%.0f valid=%s why=%s"),
+			*FSimCruiseGraphics::Name(Preset), Size.X, Size.Y, Native.X, Native.Y, ScreenPct, Spec.ScreenPercentage, bDynRes ? TEXT("on") : TEXT("off"), DynMin, DynMax,
+			MeanPct, ResFractionMin * 100.f, ResFractionMax * 100.f, *SgLog, Native.X, Native.Y, Top.ScreenPercentage, bValid ? TEXT("yes") : TEXT("no"), Why.IsEmpty() ? TEXT("-") : *Why);
+	}
+	return FString::Printf(TEXT("{\"preset\": \"%s\", \"resolution\": \"%dx%d\", \"native\": \"%dx%d\", \"screen_percentage\": %.1f, \"preset_screen_percentage\": %.1f, \"dynamic_resolution\": %s, \"dynamic_min_percentage\": %.1f, \"dynamic_max_percentage\": %.1f, \"mean_actual_percentage\": %.1f, \"sg\": {%s}, \"valid_for_sign_off\": %s, \"why\": \"%s\"}"),
+		*FSimCruiseGraphics::Name(Preset), Size.X, Size.Y, Native.X, Native.Y, ScreenPct, Spec.ScreenPercentage, bDynRes ? TEXT("true") : TEXT("false"), DynMin, DynMax, MeanPct,
+		*SgJson, bValid ? TEXT("true") : TEXT("false"), *Why);
 }

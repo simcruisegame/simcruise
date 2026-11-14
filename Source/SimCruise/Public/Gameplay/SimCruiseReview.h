@@ -51,7 +51,21 @@ public:
 	/** review.json: steering, gauges, events and shots. */
 	void Finish(const FString& Verdict, const FString& Reasons);
 
+	/**
+	 * The graphics the engine really has now, as one "REVIEW SETTINGS" log line and JSON: preset,
+	 * sg.* levels, output resolution, r.ScreenPercentage, dynamic resolution and the mean actual
+	 * screen percentage sampled during the drive. valid=yes only at the top preset, every sg.*
+	 * group at the preset's level or higher, the screen's own resolution (-SimCruiseNativeRes=WxH,
+	 * else the primary display) and a screen percentage not below the preset's.
+	 */
+	FString SettingsJson(bool bLog);
+
 private:
+	void SampleResolution();
+	double ResFractionSum = 0.0;
+	int32 ResFractionSamples = 0;
+	float ResFractionMin = 0.f;
+	float ResFractionMax = 0.f;
 	bool bOn = false;
 	FString OutputDir;
 	float NextTimedS = 0.f;

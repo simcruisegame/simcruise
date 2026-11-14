@@ -255,6 +255,9 @@ When to test:
 
 - **After each change:** the fast tier, `powershell -ExecutionPolicy Bypass -File scripts\check.ps1 -Tier fast` (about 1.5 min, no game, no GPU).
 - **Once per batch of related changes, before the merge to main:** the full check `scripts\check.ps1`, the pre-flight `scripts\preflight.ps1`, and `scripts\launch-review.ps1` for the places the batch touches (with `scripts\cockpit-review.ps1` when the cockpit changed). Look at the frames, write the verdicts in each `review.md`, and run `scripts\review-check.ps1` on the folders.
+- **Once per version (the release candidate):** one full test of the candidate commit for all teams, `scripts\release-test.ps1`: the hero roads and random US places, all three cars, the cockpit test, the controller menus, at Ultra and the screen's own resolution. The rule is fast tests per change and one full release test per version; see [the team loop](team/dev-loop.md) and [the release test](team/release-test.md).
+- **Controller menus:** `scripts\pad-review.ps1` (the automation test `SimCruise.UI.PadNavigation`, headless) walks every menu page with pad keys only and fails on any control the pad cannot reach. Its report is `report.md` in its folder.
+- **Picture and driving tests run at the top preset and the screen's own resolution** (1920x1080 on this PC; `Get-NativeResolution` in `scripts\ReviewLib.ps1`). A run below the top preset, below the screen's resolution, or below the preset's screen percentage is NOT VALID FOR SIGN-OFF.
 - **One GPU test at a time on the PC:** the scripts queue on the GPU test lock and print who holds it and how long they have waited.
 
 Two kinds of test, two ways to run them:

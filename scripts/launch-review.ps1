@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Launch the game for a test and keep what it really showed, for a review before anyone says "it works".
 
@@ -51,7 +51,9 @@ param(
     [int]$RandomUS = 0,
     [int]$Seed = 0,
     # The review sheet's kind (random runs add their own items).
-    [string]$SheetKind = 'launch'
+    [string]$SheetKind = 'launch',
+    # A test case in the same launch: 'standstill' (-SimCruiseStandstillTest) or 'speed' (-SimCruiseSpeedTest).
+    [ValidateSet('', 'standstill', 'speed')][string]$Case = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -123,7 +125,7 @@ $Log = Join-Path $RunDir 'game.log'
 $env:UE_SKIP_UBT_SDK_SETUP = '1'
 $GameArgs = @("`"$Project`"", '-game', '-SimCruiseWorld', '-SimCruiseNoLive', '-SimCruiseNoNeural', "-SimCruiseGraphics=$Graphics", "-SimCruiseUtc=$Utc",
     "-SimCruiseCar=$Car", '-SimCruiseViewCheck', '-SimCruisePreflight', '-SimCruiseReview', "-SimCruisePreflightRoad=$Name", "-SimCruisePreflightSeconds=$Seconds",
-    "`"-SimCruisePreflightOut=$RunDir`"", '-NoLiveCoding', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + @(Get-TestWindowArgs $ShowWindow) + $PlaceArgs + $ExtraArgs + @(if (-not $NoCockpit) { '-SimCruiseCockpitTest' })
+    "`"-SimCruisePreflightOut=$RunDir`"", '-NoLiveCoding', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + @(Get-TestWindowArgs $ShowWindow) + @(Get-NativeResolution) + $PlaceArgs + $ExtraArgs + @(switch ($Case) { 'standstill' { '-SimCruiseStandstillTest' } 'speed' { '-SimCruiseSpeedTest' } }) + @(if (-not $NoCockpit) { '-SimCruiseCockpitTest' })
 $CommandLine = "`"$Editor`" " + ($GameArgs -join ' ')
 
 if (-not (Enter-EditorLock -GpuTest -TimeoutMinutes $LockTimeoutMinutes -Why "launch review $Name on $Root")) { exit 1 }

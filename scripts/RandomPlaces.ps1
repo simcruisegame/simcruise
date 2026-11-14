@@ -9,6 +9,25 @@
   road name). The same seed gives the same points, so a failure repeats.
 #>
 
+<#
+  The seeded draw from data\test-places.json that scripts\preflight.ps1 -Roads random makes (a
+  System.Random partial shuffle of the keys, the same in Windows PowerShell 5.1 and PowerShell 7),
+  so a seed picks the same places in every script. Each place gets its own local solar noon on the
+  -Utc date (12 h - lon/15) as .Utc. Empty when the file is not there.
+#>
+function Get-TestPlaceDraw([string]$Root, [int]$Seed, [int]$Count, [string]$Utc = '2026-11-12T17:00:00Z') {
+    $File = Join-Path $Root 'data\test-places.json'
+    if (-not (Test-Path $File)) { return @() }
+    $Places = @((Get-Content $File -Raw | ConvertFrom-Json))
+    $Rng = [System.Random]::new($Seed)
+    $Keys = @($Places | ForEach-Object { $_.key })
+    $Take = [Math]::Max(1, [Math]::Min($Count, $Keys.Count))
+    for ($i = 0; $i -lt $Take; $i++) { $j = $Rng.Next($i, $Keys.Count); $t = $Keys[$i]; $Keys[$i] = $Keys[$j]; $Keys[$j] = $t }
+    $Day = ([datetime]::Parse($Utc, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::AdjustToUniversal)).Date
+    return @($Places | Where-Object { $Keys[0..($Take - 1)] -contains $_.key } | ForEach-Object {
+        $_ | Add-Member -NotePropertyName Utc -NotePropertyValue ($Day.AddHours(12.0 - [double]$_.lon / 15.0).ToString('yyyy-MM-ddTHH:mm:ssZ')) -PassThru -Force })
+}
+
 # Areas: south, north, west, east (degrees).
 $script:RandomUSAreas = [ordered]@{
     'desert'     = @(@(32.3, 33.8, -114.5, -111.0), @(35.5, 36.6, -116.0, -114.6), @(34.5, 35.3, -108.5, -106.5))
@@ -28,24 +47,11 @@ $script:RandomUSAreas = [ordered]@{
 #>
 function Get-RandomUSPlaces([int]$Count, [int]$Seed, [string]$Root = (Split-Path -Parent $PSScriptRoot)) {
     $Rng = New-Object System.Random($Seed)
-    $List = Join-Path $Root 'data\test-places.json'
-    if (Test-Path $List) {
-        $Raw = Get-Content $List -Raw | ConvertFrom-Json
-        $All = @(if ($Raw.places) { $Raw.places } else { $Raw })
-        $Known = @($All | Where-Object { ($_.lat -or $_.Lat) -and ($_.lon -or $_.Lon) })
-        if ($Known.Count) {
-            $ByType = $Known | Group-Object { if ($_.type) { $_.type } elseif ($_.kind) { $_.kind } else { 'other' } }
-            $Picks = @()
-            while ($Picks.Count -lt $Count) {
-                foreach ($G in ($ByType | Sort-Object { $Rng.Next() })) {
-                    if ($Picks.Count -ge $Count) { break }
-                    $P = $G.Group[$Rng.Next($G.Group.Count)]
-                    $Picks += [pscustomobject]@{ Index = $Picks.Count; Type = $G.Name; Lat = [double]$(if ($P.lat) { $P.lat } else { $P.Lat }); Lon = [double]$(if ($P.lon) { $P.lon } else { $P.Lon })
-                        Key = $P.key; Street = $(if ($P.street) { $P.street } else { '' }) }
-                }
-            }
-            return $Picks
-        }
+    # The team's place list first, with the same seeded draw as preflight.ps1 -Roads random.
+    $Draw = @(Get-TestPlaceDraw -Root $Root -Seed $Seed -Count $Count)
+    if ($Draw.Count) {
+        $I = 0
+        return @($Draw | ForEach-Object { [pscustomobject]@{ Index = $I++; Type = $_.kind; Lat = [double]$_.lat; Lon = [double]$_.lon; Key = $_.key; Street = ''; Utc = $_.Utc } })
     }
     $Types = @($script:RandomUSAreas.Keys)
     $Order = @()

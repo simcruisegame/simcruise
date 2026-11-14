@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   The pre-flight check: the robot drives every hero road with every hero car, records a
   video of each drive and fails the build on what a player would see.
@@ -137,7 +137,7 @@ foreach ($Road in $Roads) {
         $Log = Join-Path $Out 'game.log'
         $Args = @("`"$Project`"", '-game', '-SimCruiseWorld', '-SimCruiseNoLive', '-SimCruiseNoNeural', '-SimCruiseGraphics=ultra', "-SimCruiseUtc=$(if (-not $UtcGiven -and $PlaceUtc.ContainsKey($Road)) { $PlaceUtc[$Road] } else { $Utc })",
             "-SimCruiseCar=$Car", '-SimCruiseViewCheck', '-SimCruisePreflight', '-SimCruiseReview', "-SimCruisePreflightRoad=$Road", "-SimCruisePreflightSeconds=$Seconds",
-            "`"-SimCruisePreflightOut=$Out`"", '-NoLiveCoding', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + @(Get-TestWindowArgs $ShowWindow) + $Defs[$Road] + @(if ($Keen) { '-SimCruisePreflightKeen' }) + @(if ($ForceSpin) { '-SimCruisePreflightForceSpin' })
+            "`"-SimCruisePreflightOut=$Out`"", '-NoLiveCoding', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + @(Get-TestWindowArgs $ShowWindow) + @(Get-NativeResolution) + $Defs[$Road] + @(if ($Keen) { '-SimCruisePreflightKeen' }) + @(if ($ForceSpin) { '-SimCruisePreflightForceSpin' })
         if ($ExtraArgs) { $Args += $ExtraArgs }
         if (-not (Enter-EditorLock -GpuTest -TimeoutMinutes $LockTimeoutMinutes -Why "pre-flight $Name on $Root")) { exit 1 }
         $TimedOut = $false

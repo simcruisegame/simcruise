@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   The view check gate: starts the game at fixed places, lets ASimCruiseViewCheck look at
   the player's view, and fails when a view that must pass fails (or the other way round).
@@ -47,7 +47,7 @@ $Editor = Join-Path $EngineDir 'Engine\Binaries\Win64\UnrealEditor.exe'
 if (-not (Test-Path $Editor)) { Write-Host "No Unreal Editor at $Editor (set -EngineDir or UE_ROOT)."; exit 2 }
 
 $Common = @('-game', '-SimCruiseWorld', '-SimCruiseNoLive', '-SimCruiseNoNeural', '-SimCruiseGraphics=ultra',
-    '-SimCruiseViewCheck', '-SimCruiseViewCheckQuit', '-NoLiveCoding', '-ResX=1280', '-ResY=720', '-nosplash', '-unattended', '-log') + @(Get-TestWindowArgs $ShowWindow)
+    '-SimCruiseViewCheck', '-SimCruiseViewCheckQuit', '-NoLiveCoding', '-nosplash', '-unattended', '-log') + @(Get-TestWindowArgs $ShowWindow) + @(Get-NativeResolution)
 $Defs = @{
     'ocean-drive' = @{ Expect = 'PASS'; Args = @('-SimCruiseBundledStart') }
     'collins-ave' = @{ Expect = 'PASS'; Args = @('-SimCruiseStart=25.7850,-80.1318', '"-SimCruiseStartRoad=Collins Avenue"') }
