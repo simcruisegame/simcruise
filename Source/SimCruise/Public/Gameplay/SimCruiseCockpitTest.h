@@ -116,6 +116,8 @@ private:
 	int32 NoWheelFrames = 0;
 	/** The wheel's own shadow setting, put back after the picture without the wheel. */
 	bool bWheelCastShadow = false;
+	/** The real car's lock-to-lock turns (car data steering_turns_lock_to_lock), 0 when not given. */
+	double CarLockTurns = 0.0;
 	FDelegateHandle ShotHandle;
 	FString CarId;
 	double FullLockRoadWheelDeg = 0.0;

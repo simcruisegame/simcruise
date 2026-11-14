@@ -28,6 +28,8 @@
 #include "Vehicle/SimCruiseVehicle.h"
 #include "Vehicle/SimCruiseVehicleMovementComponent.h"
 #include "Misc/App.h"
+#include "Presentation/SimCruiseCarAssets.h"
+#include "World/SimCruiseWorldTile.h"
 #include "World/SimCruiseBridges.h"
 #include "World/SimCruiseGuardRails.h"
 #include "World/SimCruiseRegionalTerrain.h"
@@ -549,21 +551,44 @@ bool ASimCruiseGameMode::TryPlacePendingPlayers()
 	if (bFirstPlacement)
 	{
 		Stream->SetFocus(StartCm, FVector::ZeroVector);
-		// The start tiles first and together (the start tile and its corners at once), then the
-		// player's car model while they are fetched and built: building a big model holds the game
-		// thread (30 s for the Miatas on a busy PC), and after the tiles it added all of that to
-		// the start (Detroit and Doraville, 2026-11-14: placed after 98-100 s).
+		// The start tiles first and together (the start tile and its corners at once); while they
+		// are fetched and built, the player's car model, then the traffic and parked-car models
+		// (one a frame): building a model holds the game thread (30 s for the Miatas' 38 MB on a
+		// busy PC), and after the tiles it added all of that to the start (Detroit and Doraville,
+		// 2026-11-14: placed after 98-100 s); the 1999 Miata also froze a packaged drive for 3.3 s
+		// when its first car appeared. Background cars never take an unbuilt heavy model
+		// (SimCruiseParkedCars::CarFor), so the list holds light models only.
 		Stream->SetStartBoost(true);
+		const bool bTilesUnderWay = Stream->NumTilesInFlight() >= 3 || FPlatformTime::Seconds() - WaitStartedSeconds > 4.0;
+		bool bModelsReady = true;
+		if (bStartCarBuilt)
+		{
+			const TArray<FString> Models = SimCruiseParkedCars::AllCarIds();
+			if (PrebuiltModels < Models.Num())
+			{
+				const double ModelStart = FPlatformTime::Seconds();
+				FString ModelError;
+				SimCruiseCarAssets::Get(Models[PrebuiltModels], ModelError);
+				UE_LOG(LogSimCruiseDrive, Display, TEXT("Traffic model %s built before the drive in %.2f s%s"), *Models[PrebuiltModels],
+					FPlatformTime::Seconds() - ModelStart, ModelError.IsEmpty() ? TEXT("") : *(TEXT(": ") + ModelError));
+				++PrebuiltModels;
+			}
+			bModelsReady = PrebuiltModels >= Models.Num();
+		}
+		else
+		{
+			bModelsReady = false;
+		}
 		const double Waited = FPlatformTime::Seconds() - WaitStartedSeconds;
-		if (!bStartCarBuilt && !CarId.IsEmpty() && (Stream->NumTilesInFlight() >= 3 || Waited > 4.0))
+		if (!bStartCarBuilt && (CarId.IsEmpty() || bTilesUnderWay))
 		{
 			bStartCarBuilt = true;
 			const double Before = FPlatformTime::Seconds();
 			FString Error;
-			SimCruiseCarAssets::Get(CarId, Error);
+			if (!CarId.IsEmpty()) SimCruiseCarAssets::Get(CarId, Error);
 			UE_LOG(LogSimCruiseDrive, Display, TEXT("The car's model (%s) built while %d start tiles load: %.1f s"), *CarId, Stream->NumTilesInFlight(), FPlatformTime::Seconds() - Before);
 		}
-		const bool bReady = Stream->AreTilesReadyAround(StartCm, 1);
+		const bool bReady = Stream->AreTilesReadyAround(StartCm, 1) && bModelsReady;
 		const bool bTimedOut = Waited > StartTimeoutSeconds;
 		// Tiles that cannot load (offline, no helper, nothing there): the next place, else the
 		// bundled one (Drive.gd start_next). The bundled place itself loads from disk. A failed

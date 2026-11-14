@@ -41,14 +41,19 @@ void ASimCruiseWorldStreamer::BeginPlay()
 	Super::BeginPlay();
 	{
 		FString Fail;
-		if (FParse::Value(FCommandLine::Get(), TEXT("SimCruiseFailTiles="), Fail))
+		// The whole list up to the next space: Windows drops the quotes, and the default parse stops at the first comma.
+		if (FParse::Value(FCommandLine::Get(), TEXT("SimCruiseFailTiles="), Fail, false))
 		{
 			TArray<FString> Parts;
 			Fail.ParseIntoArray(Parts, TEXT(","));
 			for (const FString& P : Parts)
 			{
 				FString X, Y;
-				if (P.Split(TEXT("_"), &X, &Y)) ForcedFailures.Add(FIntPoint(FCString::Atoi(*X), FCString::Atoi(*Y)));
+				if (P.TrimQuotes().Split(TEXT("_"), &X, &Y))
+				{
+					ForcedFailures.Add(FIntPoint(FCString::Atoi(*X), FCString::Atoi(*Y)));
+					UE_LOG(LogSimCruiseWorld, Display, TEXT("Forced tile failure: %s_%s (-SimCruiseFailTiles)"), *X, *Y);
+				}
 			}
 			UE_LOG(LogSimCruiseWorld, Display, TEXT("Forced tile failures: %d (-SimCruiseFailTiles)"), ForcedFailures.Num());
 		}

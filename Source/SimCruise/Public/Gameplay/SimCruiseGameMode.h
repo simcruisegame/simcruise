@@ -128,6 +128,8 @@ private:
 	bool bCarPlaced = false;
 	/** The player's car model was built while the start tiles loaded (once per place). */
 	bool bStartCarBuilt = false;
+	/** Traffic and parked-car models built so far while the start tiles load. */
+	int32 PrebuiltModels = 0;
 	FVector StartCm = FVector::ZeroVector;
 	FString StartRoadName;
 	FString CarId;

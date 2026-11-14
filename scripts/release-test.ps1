@@ -46,7 +46,19 @@ param(
     # The scan eye's dev model (satlas_landcover), read in place; it is not in the repo.
     [string]$EyeModelDir = 'D:\sc\lane-detail\Saved\AI',
     # Run only these test cases (names from the case list), no places: a dry run of the hooks.
-    [string[]]$OnlyCases = @()
+    [string[]]$OnlyCases = @(),
+    # A re-test: only the places whose name contains one of these words (welch, stonington, ...).
+    [string[]]$Places = @(),
+    # A re-test: only these cases (case kinds or names: controller, fallback, eye, cooked-drive, ...).
+    # With -Places or -Cases and no -Cases, no case runs; with -Cases and no -Places, no place runs.
+    [string[]]$Cases = @(),
+    # Run the cooked package (scripts\package.ps1 -Configuration Development: shipped shaders and
+    # a log; the Shipping exe writes no log) in place of the editor, and the cooked-drive case.
+    [switch]$Cooked,
+    [string]$CookedExe = '',
+    # Editor runs: one short untimed launch per place first, so the shader cache is warm before the
+    # timed drive (a fresh worktree compiles shaders during its first drive). -NoWarm skips it.
+    [switch]$NoWarm
 )
 
 $ErrorActionPreference = 'Stop'
@@ -54,6 +66,7 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'RandomPlaces.ps1')
 . (Join-Path $PSScriptRoot 'ReleaseReport.ps1')
 . (Join-Path $PSScriptRoot 'LoadWatch.ps1')
+. (Join-Path $PSScriptRoot 'ViewerWatch.ps1')
 $Root = Split-Path -Parent $PSScriptRoot
 if ($Seed -lt 0) { $Seed = [int](Get-Date -Format 'yyyyMMdd') }
 $Commit = Get-ReviewCommit $Root
@@ -78,26 +91,52 @@ if ($MaxPlaces -gt 0) { $Plan = @($Plan | Select-Object -First $MaxPlaces) }
 # "powershell -File" hands "a,b" over as one string.
 $OnlyCases = @($OnlyCases | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 if ($OnlyCases.Count) { $Plan = @() }
+$Places = @($Places | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
+$Cases = @($Cases | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
+$Retest = ($Places.Count + $Cases.Count) -gt 0
+if ($Retest) { $Plan = @($Plan | Where-Object { $N = $_.Name; @($Places | Where-Object { $N -like "*$_*" }).Count }) }
+if (-not $CookedExe) { $CookedExe = Join-Path $Root 'Saved\Package\Windows\SimCruise\Binaries\Win64\SimCruise.exe' }
+if ($Cooked -and -not (Test-Path $CookedExe)) { Write-Host "No cooked game at ${CookedExe}: run scripts\package.ps1 -Configuration Development first."; exit 2 }
+$GameExeArgs = if ($Cooked) { @('-GameExe', $CookedExe) } else { @() }
+# A case runs when no selection was made, or when -Cases (or -OnlyCases) names its kind or its name.
+function Test-CaseSelected($C) {
+    if ($OnlyCases.Count) { return $OnlyCases -contains $C.Name }
+    if ($Retest) { return [bool](@($Selection | Where-Object { $_ -eq $C.Case -or $_ -eq $C.Name -or ($_ -eq 'eye' -and $C.Case -eq 'eyeoff') }).Count) }
+    return $true
+}
 # About 2 min to start and build the place, 1 min for the view and cockpit tests, the drive, and
 # 1 min to stop and make the video: a time to plan by, printed before the run.
 $Estimate = [int]($Plan.Count * (4.0 + $Seconds / 60.0) + 2 + $(if ($MaxPlaces -eq 0) { 3 * 4 + 1.5 + 3 + 3 } else { 0 }))
-Write-Host "Release test of $Commit, seed ${Seed}: $($Plan.Count) places, about $Estimate min -> $RunDir"
+Write-Host "Release test of $Commit, seed ${Seed}$(if ($Cooked) { ', COOKED package' })$(if ($Retest) { ", re-test: places $($Places -join ',') cases $($Cases -join ',')" }): $($Plan.Count) places, about $Estimate min -> $RunDir"
 foreach ($P in $Plan) { Write-Host "  $($P.Name) with $($P.Car)" }
 
 # A quiet window: other lanes' games and GPU work add to the frame times (about 2 ms p95).
 $Before = Get-LoadSample $RunDir
 if ($Before.OtherProcesses -or $Before.OtherGpu -gt 5) { Write-Host "WARNING: the PC is not quiet: $($Before.OtherProcesses) (other GPU use $($Before.OtherGpu) %). Frame times will be NOT QUIET." -ForegroundColor Yellow }
 $LoadJob = Start-LoadWatch $RunDir
+$ViewerJob = if ($ShowWindow) { Start-ViewerWatch $RunDir } else { $null }
 $Rows = @()
+# Warm the shader cache: a short untimed launch per place (editor runs only; a package has its shaders).
+if (-not $Cooked -and -not $NoWarm -and $Plan.Count) {
+    $WarmDir = Join-Path $RunDir 'warm'
+    foreach ($P in $Plan) {
+        $Args = @('-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PSScriptRoot 'launch-review.ps1'), '-Car', $P.Car, '-Seconds', 15, '-Utc', $P.Utc,
+            '-Name', $P.Name, '-OutRoot', $WarmDir, '-NoCockpit', '-TimeoutMinutes', $TimeoutMinutes, '-LockTimeoutMinutes', $LockTimeoutMinutes)
+        if ($P.Road) { $Args += @('-Road', $P.Road) } else { $Args += @('-Start', $P.Start) }
+        $W0 = Get-Date
+        & powershell @Args | Out-Null
+        Write-Host ("  warm-up {0}: {1} min" -f $P.Name, [Math]::Round(((Get-Date) - $W0).TotalMinutes, 1))
+    }
+}
 foreach ($P in $Plan) {
     $Args = @('-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PSScriptRoot 'launch-review.ps1'), '-Car', $P.Car, '-Seconds', $Seconds, '-Utc', $P.Utc,
-        '-Name', $P.Name, '-OutRoot', $RunDir, '-SheetKind', $P.Kind, '-TimeoutMinutes', $TimeoutMinutes, '-LockTimeoutMinutes', $LockTimeoutMinutes)
+        '-Name', $P.Name, '-OutRoot', $RunDir, '-SheetKind', $P.Kind, '-TimeoutMinutes', $TimeoutMinutes, '-LockTimeoutMinutes', $LockTimeoutMinutes) + $GameExeArgs
     if ($P.Road) { $Args += @('-Road', $P.Road) } else { $Args += @('-Start', $P.Start) }
     if ($ShowWindow) { $Args += '-ShowWindow' }
     $T0 = Get-Date
     & powershell @Args | Out-Null
     $Dir = Join-Path $RunDir $P.Name
-    $Rows += [pscustomobject]@{ Plan = $P; Dir = $Dir; Minutes = [Math]::Round(((Get-Date) - $T0).TotalMinutes, 1) }
+    $Rows += [pscustomobject]@{ Plan = $P; Dir = $Dir; Minutes = [Math]::Round(((Get-Date) - $T0).TotalMinutes, 1); FromUtc = $T0.ToUniversalTime(); ToUtc = (Get-Date).ToUniversalTime() }
     Write-Host ("  {0} done in {1} min" -f $P.Name, $Rows[-1].Minutes)
 }
 
@@ -112,8 +151,12 @@ $CaseDefs = @(
     [pscustomobject]@{ Case = 'speed'; Name = 'speed-dragon'; Road = 'dragon'; Flag = 'SimCruiseSpeedTest'; Seconds = 180 },
     [pscustomobject]@{ Case = 'fallback'; Name = 'fallback-ocean-drive'; Road = 'ocean-drive'; Flag = 'SimCruiseFailTiles='; Seconds = 60 },
     [pscustomobject]@{ Case = 'eyeoff'; Name = 'eye-off-ocean-drive'; Road = 'ocean-drive'; Flag = 'SimCruiseScanEye='; Seconds = 60 },
-    [pscustomobject]@{ Case = 'eye'; Name = 'eye-on-ocean-drive'; Road = 'ocean-drive'; Flag = 'SimCruiseScanEye='; Seconds = 60 }
+    [pscustomobject]@{ Case = 'eye'; Name = 'eye-on-ocean-drive'; Road = 'ocean-drive'; Flag = 'SimCruiseScanEye='; Seconds = 60 },
+    # The cooked package from the drive start: no frame or freeze over 0.5 s in the first 60 s, with an Insights trace.
+    [pscustomobject]@{ Case = 'cooked-drive'; Name = 'cooked-dragon'; Road = 'dragon'; Flag = 'SimCruisePreflight'; Seconds = 60 },
+    [pscustomobject]@{ Case = 'cooked-drive'; Name = 'cooked-ocean-drive'; Road = 'ocean-drive'; Flag = 'SimCruisePreflight'; Seconds = 60 }
 )
+$Selection = $Cases
 $Cases = @()
 $EyeModel = Join-Path $Root 'Saved\AI\scan-eye-satlas.onnx'
 if (-not (Test-Path $EyeModel) -and (Test-Path (Join-Path $EyeModelDir 'scan-eye-satlas.onnx')) -and -not (Test-Path (Join-Path $Root 'Saved\AI'))) {
@@ -121,12 +164,14 @@ if (-not (Test-Path $EyeModel) -and (Test-Path (Join-Path $EyeModelDir 'scan-eye
 }
 foreach ($C in $CaseDefs) {
     $Dir = Join-Path $RunDir $C.Name
-    if ($OnlyCases.Count -and $OnlyCases -notcontains $C.Name) { $Cases += [pscustomobject]@{ Def = $C; Dir = $Dir; Ran = $false; Reason = 'not selected (-OnlyCases)' }; continue }
-    if ($MaxPlaces -gt 0 -and -not $OnlyCases.Count) { $Cases += [pscustomobject]@{ Def = $C; Dir = $Dir; Ran = $false; Reason = 'dry run (-MaxPlaces)' }; continue }
+    if (-not (Test-CaseSelected $C)) { $Cases += [pscustomobject]@{ Def = $C; Dir = $Dir; Ran = $false; Reason = 'not selected' }; continue }
+    if ($C.Case -eq 'cooked-drive' -and -not $Cooked) { $Cases += [pscustomobject]@{ Def = $C; Dir = $Dir; Ran = $false; Reason = 'needs -Cooked (the packaged build)' }; continue }
+    if ($MaxPlaces -gt 0 -and -not $OnlyCases.Count -and -not $Retest) { $Cases += [pscustomobject]@{ Def = $C; Dir = $Dir; Ran = $false; Reason = 'dry run (-MaxPlaces)' }; continue }
     if ($C.Case -in 'eye', 'eyeoff' -and -not (Test-Path $EyeModel)) { $Cases += [pscustomobject]@{ Def = $C; Dir = $Dir; Ran = $false; Reason = "no scan eye model at $EyeModel (-EyeModelDir)" }; continue }
     if (-not (Test-GameFlag $C.Flag)) { $Cases += [pscustomobject]@{ Def = $C; Dir = $Dir; Ran = $false; Reason = "the game flag -$($C.Flag) is not in this build" }; continue }
     $Args = @('-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PSScriptRoot 'launch-review.ps1'), '-Car', $Cars[0], '-Seconds', $C.Seconds, '-Utc', $Utc, '-Road', $C.Road,
-        '-Name', $C.Name, '-OutRoot', $RunDir, '-NoCockpit', '-Case', $C.Case, '-TimeoutMinutes', $TimeoutMinutes, '-LockTimeoutMinutes', $LockTimeoutMinutes)
+        '-Name', $C.Name, '-OutRoot', $RunDir, '-NoCockpit', '-TimeoutMinutes', $TimeoutMinutes, '-LockTimeoutMinutes', $LockTimeoutMinutes) + $GameExeArgs
+    if ($C.Case -eq 'cooked-drive') { $Args += '-Trace' } else { $Args += @('-Case', $C.Case) }
     if ($ShowWindow) { $Args += '-ShowWindow' }
     $T0 = Get-Date
     & powershell @Args | Out-Null
@@ -148,12 +193,13 @@ foreach ($C in $CaseDefs) {
 $Pad = Join-Path $PSScriptRoot 'pad-review.ps1'
 $PadResult = 'NOT RUN'
 $PadDir = Join-Path $RunDir 'pad-review'
-if ((Test-Path $Pad) -and $MaxPlaces -eq 0 -and -not $OnlyCases.Count) {
+if ((Test-Path $Pad) -and $MaxPlaces -eq 0 -and -not $OnlyCases.Count -and (-not $Retest -or $Selection -contains 'controller')) {
     & powershell -ExecutionPolicy Bypass -File $Pad -OutDir $PadDir $(if ($ShowWindow) { '-ShowWindow' }) | Out-Null
     $PadResult = if ($LASTEXITCODE -eq 0) { 'PASS' } else { 'FAIL' }
 }
 
 $Load = Stop-LoadWatch $LoadJob $RunDir
+Stop-ViewerWatch $ViewerJob
 Write-Host "Load: $(if ($Load.Quiet) { 'quiet' } else { "NOT QUIET: $($Load.OtherProcesses), other GPU mean $($Load.MeanOtherGpu) % (max $($Load.MaxOtherGpu) %)" })"
 Write-ReleaseReports -RunDir $RunDir -Rows $Rows -Commit $Commit -Seed $Seed -PadResult $PadResult -PadDir $PadDir -Cases $Cases -Load $Load -Minutes ([int]((Get-Date) - $Started).TotalMinutes)
 Write-Host "Summary: $(Join-Path $RunDir 'summary.md')"

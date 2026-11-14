@@ -27,7 +27,10 @@ $script:GpuTestLock = $null
   -ShowWindow in the calling script gives the window back.
 #>
 function Get-TestWindowArgs([bool]$ShowWindow) {
-    if ($ShowWindow) { return @('-windowed') }
+    # A visible run: -FULLSCREEN is a borderless window at the screen's size in Unreal 5 (r.FullScreenMode 1,
+    # windowed fullscreen, the default; -SimCruiseBorderless also sets it in builds that have it),
+    # so a focus change cannot minimise it or change the display mode.
+    if ($ShowWindow) { return @('-FULLSCREEN', '-SimCruiseBorderless') }
     return @('-RenderOffScreen')
 }
 
@@ -82,6 +85,9 @@ function Exit-EditorLock {
         try { $script:GpuTestLock.ReleaseMutex() } catch { }
         $script:GpuTestLock.Dispose()
         $script:GpuTestLock = $null
+        # Free: the holder file names nobody (load.csv logs the holder).
+        $Holder = Join-Path $env:LOCALAPPDATA 'SimCruise\gpu-test-lock.txt'
+        try { Set-Content -Encoding utf8 $Holder '' } catch { }
     }
 }
 

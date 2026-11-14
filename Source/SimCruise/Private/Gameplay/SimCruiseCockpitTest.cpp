@@ -229,6 +229,7 @@ void ASimCruiseCockpitTest::Tick(float DeltaSeconds)
 				CarId = Car->GetRealCar().Id;
 				FullLockRoadWheelDeg = FMath::RadiansToDegrees(Car->GetVehicleSetup().ParkingRackAngleRad);
 				Ratio = GetModel(Player)->GetSteeringRatio();
+				CarLockTurns = Car->GetRealCar().SteeringLockTurns;
 			}
 			Next(EStage::Settle);
 		}
@@ -524,7 +525,9 @@ void ASimCruiseCockpitTest::Judge()
 		if (P.Name == TEXT("full-left")) { LockLeft = P.RimDeg; WheelLeft = P.WheelDeg; }
 		if (P.Name == TEXT("full-right")) { LockRight = P.RimDeg; WheelRight = P.WheelDeg; }
 	}
-	const double ExpectedLock = FullLockRoadWheelDeg * Ratio;
+	// The car's real lock-to-lock turns when its data has them: the column quickens toward lock, so the
+	// on-centre ratio times the road wheels' lock is not the rim's angle at full lock.
+	const double ExpectedLock = CarLockTurns > 0.5 ? CarLockTurns * 180.0 : FullLockRoadWheelDeg * Ratio;
 	const double MeasuredRatio = FMath::Abs(WheelLeft) > 1.0 ? FMath::Abs(LockLeft / WheelLeft) : 0.0;
 	const double LockToLockTurns = (FMath::Abs(LockLeft) + FMath::Abs(LockRight)) / 360.0;
 	if (ExpectedLock > 1.0 && (FMath::Abs(FMath::Abs(LockLeft) - ExpectedLock) > MaxLockError * ExpectedLock || FMath::Abs(FMath::Abs(LockRight) - ExpectedLock) > MaxLockError * ExpectedLock))

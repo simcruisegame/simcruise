@@ -26,6 +26,8 @@ class USimCruiseWorldResources;
 namespace SimCruiseParkedCars
 {
 	SIMCRUISE_API const TCHAR* CarFor(uint8 Pick);
+	/** Every model a parked or traffic car can be (to build them all before the drive). */
+	SIMCRUISE_API TArray<FString> AllCarIds();
 	SIMCRUISE_API FLinearColor ColourFor(uint8 Byte);
 }
 
