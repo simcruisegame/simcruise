@@ -184,6 +184,13 @@ bool FSimCruiseDaylightIlluminanceTest::RunTest(const FString&)
 	TestEqual(TEXT("daylight display EV"), FSimCruiseDaylightModel::DisplayEV100(14.4), 14.4);
 	TestTrue(TEXT("night is shown about 6 EV darker than day"), FMath::Abs((FSimCruiseDaylightModel::DisplayEV100(MoonNight) - MoonNight) - 6.0) < 0.5);
 	TestTrue(TEXT("display EV is continuous at the knee"), FMath::Abs(FSimCruiseDaylightModel::DisplayEV100(9.999) - 10.0) < 0.01);
+	// A road lit by the low beams (0.5 cd/m2, reference EV100 2) is shown at 2.5-3: middle grey
+	// near 0.7-1 cd/m2, the road as the adapted eye sees it, not 3-6 EV too dark.
+	const double LampLit = FSimCruiseDaylightModel::DisplayEV100(2.0);
+	AddInfo(FString::Printf(TEXT("DISPLAY lamp-lit road shown at EV100 %.2f"), LampLit));
+	TestTrue(TEXT("lamp-lit road shown at display EV100 2.5-3"), LampLit >= 2.5 && LampLit <= 3.0);
+	TestTrue(TEXT("display EV rises with the scene's light"), FSimCruiseDaylightModel::DisplayEV100(-6.0) < FSimCruiseDaylightModel::DisplayEV100(-4.0)
+		&& FSimCruiseDaylightModel::DisplayEV100(-4.0) < FSimCruiseDaylightModel::DisplayEV100(2.0) && FSimCruiseDaylightModel::DisplayEV100(2.0) < FSimCruiseDaylightModel::DisplayEV100(6.0));
 	return true;
 }
 

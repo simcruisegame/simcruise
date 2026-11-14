@@ -47,8 +47,9 @@ struct SIMCRUISE_API FSimCruiseDaylightModel
 	/**
 	 * The EV the camera is steered to for a reference EV. In daylight they are equal. Below
 	 * EV 10 (sun under about 4 degrees) the eye no longer fully adapts and night looks dark,
-	 * so the camera compensates only part of the loss: slope 0.55 below the knee. A full-moon
-	 * night (reference about -4) is then shown about 6 EV darker than day, not as daylight.
+	 * so the camera compensates only part of the loss. A road lit by the car's low beams
+	 * (reference about 2) is shown 0.75 EV darker; a full-moon night (reference about -4)
+	 * about 6 EV darker than day, not as daylight.
 	 */
 	static double DisplayEV100(double ReferenceEV100);
 

@@ -110,9 +110,29 @@ double FSimCruiseDaylightModel::ReferenceEV100(double SunElevationDeg, double Cl
 
 double FSimCruiseDaylightModel::DisplayEV100(double ReferenceEV100)
 {
+	// Below the knee the camera lifts the exposure toward the darker scene by less than the
+	// light lost (night looks dark). The lift is small for a road lit by the car's own low
+	// beams (reference EV100 about 2, 0.5 cd/m2: shown at about 2.75, so the road reads as the
+	// adapted eye sees it), and grows to 6.3 EV at moonlight (reference -4) and below, where
+	// scotopic vision takes over and the night should look dark.
 	constexpr double Knee = 10.0;
-	constexpr double NightSlope = 0.55;
-	return ReferenceEV100 >= Knee ? ReferenceEV100 : Knee + (ReferenceEV100 - Knee) * NightSlope;
+	constexpr double LampLitEV = 2.0, LampLitLift = 0.75;
+	constexpr double MoonEV = -4.0;
+	constexpr double DeepNightLiftPerEV = 0.45; // below the moon: the original slope 0.55
+	if (ReferenceEV100 >= Knee) return ReferenceEV100;
+	double Lift;
+	if (ReferenceEV100 >= LampLitEV)
+	{
+		Lift = LampLitLift * (Knee - ReferenceEV100) / (Knee - LampLitEV);
+	}
+	else
+	{
+		const double MoonLift = DeepNightLiftPerEV * (Knee - MoonEV);
+		Lift = ReferenceEV100 >= MoonEV
+			? FMath::Lerp(LampLitLift, MoonLift, (LampLitEV - ReferenceEV100) / (LampLitEV - MoonEV))
+			: DeepNightLiftPerEV * (Knee - ReferenceEV100);
+	}
+	return ReferenceEV100 + Lift;
 }
 
 double FSimCruiseDaylightModel::MoonIlluminanceLux(double PhaseAngleDeg, double MoonDistanceKm)

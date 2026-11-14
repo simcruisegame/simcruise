@@ -104,6 +104,12 @@ void ASimCruisePlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float 
 			: SimCruiseLens::ScreenHeightCm(CVarScreenInches.GetValueOnGameThread(), Aspect);
 		const double Vertical = SimCruiseLens::VerticalFovDeg(Lens, HeightCm, CVarViewDistanceCm.GetValueOnGameThread());
 		OutVT.POV.FOV = static_cast<float>(SimCruiseLens::HorizontalFromVerticalDeg(Vertical, Aspect));
+		if (Lens != LoggedLens || FMath::Abs(OutVT.POV.FOV - LoggedFov) > 0.5f)
+		{
+			LoggedLens = Lens;
+			LoggedFov = OutVT.POV.FOV;
+			UE_LOG(LogTemp, Display, TEXT("Driver view: %s, %.1f deg across, %.1f deg tall"), SimCruiseLens::Label(Lens), OutVT.POV.FOV, Vertical);
+		}
 		bSnap = false;
 		return;
 	}
