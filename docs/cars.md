@@ -105,7 +105,7 @@ The 1965 Mustang and the Corvette Stingray (C8, the physics formerly shipped as 
 
 ## Your own model for a car (private)
 
-You can give any car an exterior you own, for example a model you bought, without it entering the repository. Put a binary glTF named after the car's id in the game's user folder:
+This was a feature of the Godot 1.x client (git tag `godot-final`); the Unreal client does not read a private model yet. In the Godot client you could give any car an exterior you own, for example a model you bought, without it entering the repository. You put a binary glTF named after the car's id in the game's user folder:
 
 - Windows: `%APPDATA%\Godot\app_userdata\SimCruise\cars\nb1999.glb`
 - macOS: `~/Library/Application Support/Godot/app_userdata/SimCruise/cars/nb1999.glb`
@@ -129,8 +129,8 @@ Only CC0 and CC BY models are accepted. Models with a car maker in the title are
 1. Copy the closest file in `data/cars/` and change `id` (the file name), `name`, `make` and `body`.
 2. Fill in what is published, with a source for each in `sources`. Prefer manufacturer specification sheets and instrumented magazine tests.
 3. Set the targets (`target_0_60_s`, `target_70_0_ft`, `target_skidpad_g`) from one instrumented test.
-4. Run `godot --headless --path game --fixed-fps 60 --script res://checks/CarTrack.gd -- --car=<id>` and adjust only the estimated fields until the car is inside its bands. `CARTRACK_TRACE=1` prints the launch every quarter second.
-5. Run `sh scripts/check.sh`; the other cars and `Track.gd` must not move.
+4. Run `powershell -ExecutionPolicy Bypass -File scripts\check.ps1 -Filter SimCruise.Vehicle.CarTrack.<id>` and adjust only the estimated fields until the car is inside its bands (see [unreal-building.md](unreal-building.md)).
+5. Run `scripts\check.ps1`; the other cars must not move.
 
 Use made-up names for real cars, and no manufacturer logos or badges.
 
