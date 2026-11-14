@@ -45,6 +45,8 @@ The team charter and the map of teams, leads, owner threads and current work are
 | `technical-artist` | Materials, shaders, PBR values, car and cockpit rigs (wheel, gauges), LODs, texture budgets. |
 | `environment-artist` | Roadside, ground, vegetation and buildings against real photos and road standards. |
 | `tools-engineer` | check, pre-flight, view check, replay, packaging, installers; tests that fail when they should. |
+| `research-scientist` | Remote sensing, computer vision and earth science: reading aerial photos, lidar and land data correctly; legal CPU models; error estimates and experiments. |
+| `applied-mathematician` | Sampling, filtering and LOD; stable non-repeating procedural detail; inverse problems and the self-check against the aerial photo; statistics; scan-map encoding. |
 
 ## How to call the team
 

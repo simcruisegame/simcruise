@@ -31,6 +31,8 @@ Sources: https://userpages.cs.umbc.edu/olano/class/493-24-2/roles.md.html · htt
 | World | gis-data-scientist | environment-artist (new), magician | Real-world data to roads, ground, roadside, buildings; no pop-in | Make the picture look like a photo (world look and the detail layer) |
 | Audio | sound-designer | — | Engine, tyre, wind, road sound; mix and loudness | Make the driving and traffic feel real (until an audio thread starts) |
 | QA and tools | qa-playtester | tools-engineer (new) | Tests, pre-flight, launch and look, replays, builds, installers | Review real game output on every test |
+| AI (local models) | research-scientist (new) | applied-mathematician (new), performance-engineer | Legal local AI models on the CPU (not the GPU): find, licence-check, measure speed and error; the eyes of the scan engine | Use local AI without the GPU |
+| Innovation (research) | applied-mathematician (new) | research-scientist (new), magician, environment-artist | Study how the best games and sims add detail (Flight Simulator and others); invent new, original hyper-detail methods; prove them with experiments | Research and invent hyper-detail methods |
 
 ## Current work by team (high level)
 
@@ -44,6 +46,8 @@ Sources: https://userpages.cs.umbc.edu/olano/class/493-24-2/roles.md.html · htt
 | World | Hill grass on main; AI detail layer on `detail-layer-wip` | Open again (owner 2026-11-14): more detail on buildings, terrain and trees; one detail layer over everything; legal AI models only; more local data so each area feels familiar | Frame next to a real photo of the same place: owner says it looks like there; GPU cost logged |
 | Audio | Limiter per car | Sound matched to recordings (later) | — |
 | QA and tools | Pre-flight with video and contact sheets; replay steps on the physics thread | Launch and look gaps (poses, night pass, reference diff); tests fail on spin and slow frames | A broken change turns the run red; every thread reads its captures |
+| AI (local models) | Satlas (Allen Institute, NAIP models, ODC-BY weights) found as a CPU candidate | Measure CPU models for each scan channel (trees, land cover, buildings, road edge) | Each model has a licence, a CPU time per tile and an error measured at random US places |
+| Innovation (research) | Team started 2026-11-14 | Methods that beat what exists, for the scan engine (scan map, self-check against the aerial photo, stable non-repeating detail) | Each method has an experiment with a metric and a pass line, and a before/after frame |
 
 ## Launch and look (every thread, before "it works")
 
@@ -61,5 +65,7 @@ Gaps (tools-engineer): fixed pose list per car and road for chase and cockpit (M
 Real ratios are right in the car files (Miata 15:1, C8 15.7:1 variable, Mustang 21.7:1), but the pad turns the wheel up to about 1500°/s at low speed (faster than NHTSA's 1000°/s test robot) and the lock gives 7-19 % too many turns. Fixes and sources: `docs/team/research/steering-ratio.md`. Owner: car team, "Make the driving and traffic feel real".
 
 ## Updates
+
+- 2026-11-14 01:45: owner added a research scientist and an applied mathematician (18 experts); two new teams: AI ("Use local AI without the GPU") and Innovation ("Research and invent hyper-detail methods"). The scan engine (an AI scan on the CPU ahead of the car that writes one detail map per place, which the engine draws) is the main world item; contract v1 in `docs/research/scan-engine.md`.
 
 - 2026-11-14 00:42: world work open again (detail on buildings, terrain, trees; one layer over everything; legal AI; local data); Dragon spins solved; car team on the cockpit; GPU at 88 W, delay 53/56/103 ms (Medium/High/Ultra), Reflex off.
