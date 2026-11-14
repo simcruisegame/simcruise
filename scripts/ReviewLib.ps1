@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
   Evidence and a review sheet for every game a script launches (dot-source this file).
 
@@ -79,7 +79,7 @@ function Save-ReviewEvidence {
     param([string]$RunDir, [string]$Root, [string]$Log, [string]$CommandLine, [datetime]$Started, [bool]$TimedOut, [int]$ExitCode = 0)
     New-Item -ItemType Directory -Force $RunDir | Out-Null
     $CommandLine | Set-Content -Encoding utf8 (Join-Path $RunDir 'cmdline.txt')
-    @("commit $(Get-ReviewCommit $Root)", "branch $((& git -C $Root branch --show-current).Trim())", "root $Root", "started $($Started.ToString('s'))", "exit $ExitCode", "timed_out $TimedOut") |
+    @("commit $(Get-ReviewCommit $Root)", "branch $("$(& git -C $Root branch --show-current)".Trim())", "root $Root", "started $($Started.ToString('s'))", "exit $ExitCode", "timed_out $TimedOut") |
         Set-Content -Encoding utf8 (Join-Path $RunDir 'run.txt')
     $Gpu = @()
     foreach ($V in (Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue)) { $Gpu += "$($V.Name), driver $($V.DriverVersion)" }

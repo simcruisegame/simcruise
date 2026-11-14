@@ -57,7 +57,11 @@ param(
     # (no -SimCruiseNoLive) with the satlas_landcover scan eye on, or off.
     [ValidateSet('', 'standstill', 'speed', 'fallback', 'eye', 'eyeoff')][string]$Case = '',
     # Tiles for -Case fallback (x_y, comma separated): the two north of Ocean Drive's start tile.
-    [string]$FailTiles = '18180_27907,18181_27907'
+    [string]$FailTiles = '18180_27907,18181_27907',
+    # A cooked package's game exe (scripts\package.ps1 output) in place of the editor: shipped shaders.
+    [string]$GameExe = '',
+    # An Unreal Insights trace of the whole run (cpu, frame, bookmark) as trace.utrace in the run's folder.
+    [switch]$Trace
 )
 
 $ErrorActionPreference = 'Stop'
@@ -66,6 +70,7 @@ $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
 $Project = Join-Path $Root 'SimCruise.uproject'
 $Editor = Join-Path $EngineDir 'Engine\Binaries\Win64\UnrealEditor.exe'
+if ($GameExe) { if (-not (Test-Path $GameExe)) { Write-Host "No cooked game at $GameExe (scripts\package.ps1)."; exit 2 }; $Editor = $GameExe }
 if (-not (Test-Path $Editor)) { Write-Host "No Unreal Editor at $Editor (set -EngineDir or UE_ROOT)."; exit 2 }
 $Ffmpeg = Find-Ffmpeg
 
@@ -127,9 +132,9 @@ New-Item -ItemType Directory -Force $RunDir | Out-Null
 $Log = Join-Path $RunDir 'game.log'
 # A game run needs no platform SDK check: skip the start-up call to Unreal Build Tool.
 $env:UE_SKIP_UBT_SDK_SETUP = '1'
-$GameArgs = @("`"$Project`"", '-game', '-SimCruiseWorld') + @(if ($Case -notin 'eye', 'eyeoff') { '-SimCruiseNoLive' }) + @('-SimCruiseNoNeural', "-SimCruiseGraphics=$Graphics", "-SimCruiseUtc=$Utc",
+$GameArgs = @(if ($GameExe) { '-SimCruiseWorld' } else { "`"$Project`"", '-game', '-SimCruiseWorld' }) + @(if ($Case -notin 'eye', 'eyeoff') { '-SimCruiseNoLive' }) + @('-SimCruiseNoNeural', "-SimCruiseGraphics=$Graphics", "-SimCruiseUtc=$Utc",
     "-SimCruiseCar=$Car", '-SimCruiseViewCheck', '-SimCruisePreflight', '-SimCruiseReview', "-SimCruisePreflightRoad=$Name", "-SimCruisePreflightSeconds=$Seconds",
-    "`"-SimCruisePreflightOut=$RunDir`"", '-NoLiveCoding', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + @(Get-TestWindowArgs $ShowWindow) + @(Get-NativeResolution) + $PlaceArgs + $ExtraArgs + @(switch ($Case) { 'fallback' { "-SimCruiseFailTiles=$FailTiles" } 'eye' { '-SimCruiseScanEye=satlas_landcover' } 'standstill' { '-SimCruiseStandstillTest' } 'speed' { '-SimCruiseSpeedTest' } }) + @(if (-not $NoCockpit) { '-SimCruiseCockpitTest' })
+    "`"-SimCruisePreflightOut=$RunDir`"", '-NoLiveCoding', '-nosplash', '-unattended', '-log', "`"-abslog=$Log`"") + @(Get-TestWindowArgs $ShowWindow) + @(Get-NativeResolution) + $PlaceArgs + $ExtraArgs + @(switch ($Case) { 'fallback' { "-SimCruiseFailTiles=$FailTiles" } 'eye' { '-SimCruiseScanEye=satlas_landcover' } 'standstill' { '-SimCruiseStandstillTest' } 'speed' { '-SimCruiseSpeedTest' } }) + @(if (-not $NoCockpit) { '-SimCruiseCockpitTest' }) + @(if ($Trace) { '-trace=cpu,frame,bookmark,log', "`"-tracefile=$(Join-Path $RunDir 'trace.utrace')`"" })
 $CommandLine = "`"$Editor`" " + ($GameArgs -join ' ')
 
 if (-not (Enter-EditorLock -GpuTest -TimeoutMinutes $LockTimeoutMinutes -Why "launch review $Name on $Root")) { exit 1 }

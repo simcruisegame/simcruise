@@ -8,6 +8,26 @@ One full game test of a release candidate, for all the teams at once. The tools 
 - At the cut-off, all lanes merge into one candidate (a commit or tag such as `rc-v2.0.3`, or `docs/team/cycles/rc.txt`). Then `scripts\release-test.ps1` tests that commit once. Do not start it on a commit that is not the candidate.
 - One GPU test at a time on the PC: the script takes the `Global\SimCruiseGpuTest` lock for each launch (`scripts\EditorLock.ps1 -GpuTest`). Other GPU tests wait. The lock holder is in `%LOCALAPPDATA%\SimCruise\gpu-test-lock.txt`.
 
+## A re-test
+
+After fixes, test only what failed:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\release-test.ps1 -Places welch,stonington,detroit,doraville -Cases controller
+```
+
+`-Places` keeps the places whose name contains one of the words. `-Cases` keeps the named cases (a kind such as `controller`, `fallback`, `eye` or `cooked-drive`, or a full case name). With only `-Cases`, no place runs.
+
+## Shaders: the editor build and the cooked package
+
+An editor build compiles shaders the first time a place needs them, and a fresh worktree has an empty cache: Big Sur froze 33 s on "Preparing Shaders" in the 53b290c run. Editor runs therefore first make one short untimed launch per place (15 s, folder `warm\`); `-NoWarm` skips it. A freeze over 1 s in an editor run is a P3 TEST ENV finding when its frame shows "Preparing Shaders", not a game fault.
+
+`-Cooked` runs the cooked package in place of the editor (`scripts\package.ps1 -Configuration Development`: shipped shaders and a log; the Shipping exe writes no log; `-CookedExe` gives another path). There a "Preparing Shaders" or a freeze over 1 s is a P1. The `cooked-drive` case drives the Dragon and Ocean Drive on the package for 60 s with an Unreal Insights trace (`trace.utrace`): no frame or freeze over 0.5 s, with the longest frame and its drive time in the driving, picture and release reports.
+
+## The GPU
+
+The release test owns the GPU while it runs: other lanes ask before they launch a game. Every game launch takes `Global\SimCruiseGpuTest` (`scripts\EditorLock.ps1`); the holder is in `%LOCALAPPDATA%\SimCruise\gpu-test-lock.txt` (empty when free) and in each `load.csv` row (`gpu_lock_holder`). `load.csv` also counts other lanes' builds (UnrealBuildTool, cl, link, shader workers) as load.
+
 ## A quiet window
 
 Run the release test only in a quiet window: no build, test or game from another lane. Load from other lanes added about 2 ms to the frame p95. The script samples the PC every 30 s into `load.csv` (`scripts\LoadWatch.ps1`): the other Unreal and SimCruise processes and the GPU use of other processes. When another Unreal or SimCruise process ran, or other GPU use averaged over 5 %, the summary says **NOT QUIET** and the frame-time rows in the picture and ai reports are marked NOT QUIET: they are not valid for sign-off.
@@ -91,6 +111,12 @@ Severity:
 | P0 | Stops the release: a crash, a hang, a drive that did not happen, a start at the wrong place. |
 | P1 | A player sees it at once: a spin, a run-off, slow frames, a wrong wheel or gauge, NOT VALID FOR SIGN-OFF. |
 | P2 | A player can see it: road steps, pop-in, stuck traffic, gauges off the true value. |
+
+## A visible run
+
+`-ShowWindow` runs each game in a borderless window at the screen's size (`-FULLSCREEN`, Unreal 5's windowed fullscreen), so the owner can watch. `scripts\ViewerWatch.ps1` logs the foreground window and the PC's last input every 250 ms into `viewer.csv`. A place where the game lost the foreground is **DISTURBED**: its frame times do not count (its frames, video and judge do), and it is run again off screen for the frame times only (`rerun off screen`; a window costs about 1 ms of p95 against off screen).
+
+Known fact (2026-11-14, `scripts\focus-check.ps1`, repeated on a quiet PC at 13:30Z): with the focus on another window, frame p95 rose from 23.2 to 29.2 ms (+6.0 ms) on Ocean Drive at Ultra 75 %; no frame over 50 ms, no hitch. (The first check, 17.3 to 24.6 ms, +7.3 ms, ran while other lanes built and tested.) Frame p95 with the same settings varies between runs on this PC (16.7 to 23 ms), so compare runs only side by side. The process priority stays normal, as for a player. Input rows in `viewer.csv` are information only: on this PC something simulates input about every 50 s with nobody there.
 
 ## Off screen gives the same picture as a window
 

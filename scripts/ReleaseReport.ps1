@@ -10,6 +10,8 @@
   run-off, slow frames, gauges or wheel wrong, an empty view), P2 a player may notice it.
 #>
 
+. (Join-Path $PSScriptRoot 'ViewerWatch.ps1')
+
 $script:Teams = [ordered]@{
     driving = 'Driving (physics, the robot judge, steering ratio)'
     cockpit = 'Cockpit (steering wheel, gauges)'
@@ -40,18 +42,37 @@ function Read-RunSettings([string]$Log) {
 function Add-CaseResults($Cases, $Findings, $Numbers, $Frames, $Ran) {
     foreach ($C in $Cases) {
         $Name = $C.Def.Name
-        $Teams = switch ($C.Def.Case) { 'standstill' { @('world', 'picture') } 'fallback' { @('world') } 'eye' { @('world', 'ai') } 'eyeoff' { @('ai') } default { @('world', 'ai', 'picture') } }
+        $Teams = switch ($C.Def.Case) { 'standstill' { @('world', 'picture') } 'fallback' { @('world') } 'cooked-drive' { @('driving', 'picture', 'release') } 'eye' { @('world', 'ai') } 'eyeoff' { @('ai') } default { @('world', 'ai', 'picture') } }
         $Car = 'nb2001_aaron'
         $Add = { param($Team, $Sev, $Time, $Ev, $What) $Findings[$Team] += [pscustomobject]@{ Sev = $Sev; Place = $Name; Car = $Car; Time = $Time; Evidence = $Ev; What = $What } }
         if (-not $C.Ran) { foreach ($T in $Teams) { $Numbers[$T] += "| $Name | test case | NOT RUN: $($C.Reason) | - | NOT RUN |" }; continue }
         foreach ($T in $Teams) { $Ran[$T] = $true }
+        if ($C.Def.Case -eq 'cooked-drive') {
+            $Log = Join-Path $C.Dir 'game.log'
+            $Pre = Read-Json (Join-Path $C.Dir 'preflight.json')
+            $Rev = Read-Json (Join-Path $C.Dir 'review.json')
+            $Worst = if (Test-Path $Log) { Select-String -Path $Log -Pattern 'PREFLIGHT FRAMES .*worst=(\d+)ms' | Select-Object -Last 1 } else { $null }
+            $WorstMs = if ($Worst) { [int]$Worst.Matches[0].Groups[1].Value } else { -1 }
+            $Hitches = @(if ($Rev) { $Rev.events | Where-Object { $_ -match '^([\d.]+) s hitch-(\d+)-ms' } | ForEach-Object { [pscustomobject]@{ T = [double]$Matches[1]; Ms = [int]$Matches[2] } } })
+            $Longest = $Hitches | Sort-Object Ms -Descending | Select-Object -First 1
+            $Trace = Join-Path $C.Dir 'trace.utrace'
+            $What = "longest frame $(if ($Longest) { "$($Longest.Ms) ms at drive second $($Longest.T)" } else { "$WorstMs ms (time not logged)" })"
+            foreach ($T in 'driving', 'picture', 'release') { $Numbers[$T] += "| $Name | cooked package: longest frame in the first 60 s | $What | 500 ms | $(if ([Math]::Max($WorstMs, $(if ($Longest) { $Longest.Ms } else { 0 })) -gt 500) { 'FAIL' } else { 'ok' }) |" }
+            if (-not $Pre) { & $Add 'release' 'P0' '-' "$Name\game.log" 'the cooked package did not drive (no result)' }
+            elseif ([Math]::Max($WorstMs, $(if ($Longest) { $Longest.Ms } else { 0 })) -gt 500) {
+                & $Add 'driving' 'P1' $(if ($Longest) { "$($Longest.T) s" } else { '-' }) "$Name\$(if (Test-Path $Trace) { 'trace.utrace' } else { 'game.log' })" "a $(if ($Longest) { $Longest.Ms } else { $WorstMs }) ms freeze in the cooked package (limit 500 ms); trace: $(if (Test-Path $Trace) { 'trace.utrace (Unreal Insights)' } else { 'none' })"
+            }
+            $Shaders = if (Test-Path $Log) { @(Select-String -Path $Log -Pattern 'Preparing Shaders').Count } else { 0 }
+            if ($Shaders) { & $Add 'release' 'P1' '-' "$Name\game.log" "the cooked package showed 'Preparing Shaders' ($Shaders log lines)" }
+            continue
+        }
         if ($C.Def.Case -eq 'fallback') {
             $Log = Join-Path $C.Dir 'game.log'
             $Pre = Read-Json (Join-Path $C.Dir 'preflight.json')
             $Forced = if (Test-Path $Log) { Select-String -Path $Log -Pattern 'Forced tile failures: (\d+)' | Select-Object -First 1 } else { $null }
             $Failed = if (Test-Path $Log) { @(Select-String -Path $Log -Pattern 'forced failure \(-SimCruiseFailTiles\)|Tile \S+ failed').Count } else { 0 }
             $Ground = if (Test-Path $Log) { @(Select-String -Path $Log -Pattern 'Fallback ground under tile').Count } else { 0 }
-            $Numbers['world'] += "| $Name | forced tile failures / failed tiles in the log / fallback ground laid | $(if ($Forced) { $Forced.Matches[0].Groups[1].Value } else { 0 }) / $Failed / $Ground | 2 / >0 / >0 | $(if ($Forced -and $Ground -gt 0) { 'ok' } else { 'FAIL' }) |"
+            $Numbers['world'] += "| $Name | forced tile failures / failed tiles in the log / fallback ground laid | $(if ($Forced) { $Forced.Matches[0].Groups[1].Value } else { 0 }) / $Failed / $Ground | 2 / >0 / >0 | $(if ($Forced -and [int]$Forced.Matches[0].Groups[1].Value -ge 2 -and $Ground -gt 0) { 'ok' } else { 'FAIL' }) |"
             if (-not $Forced) { & $Add 'world' 'P1' '-' "$Name\game.log" 'the forced tile failure did not take effect (no "Forced tile failures" line)' }
             elseif ($Ground -eq 0) { & $Add 'world' 'P1' '-' "$Name\game.log" 'no fallback ground was laid under the failed tiles' }
             if (-not $Pre) { & $Add 'world' 'P1' '-' "$Name\game.log" 'no drive result with failed tiles' }
@@ -143,10 +164,29 @@ function Write-ReleaseReports {
         $Rev = Read-Json (Join-Path $D 'review.json')
         $Ck = Read-Json (Join-Path $D 'cockpit\cockpit.json')
         $Set = Read-RunSettings $Log
+        $Disturb = if (Test-Path $Log) { @(Select-String -Path $Log -Pattern 'REVIEW (FOCUS|USERINPUT) t=([\d.]+) (\S+)') } else { @() }
+        $GameDisturbCount = $Disturb.Count
+        # Seen from outside the game (viewer.csv), for builds that do not log it themselves.
+        $Outside = if ($R.FromUtc -and (Test-Path (Join-Path $RunDir 'viewer.csv'))) { @(Get-ViewerEvents $RunDir $R.FromUtc.AddSeconds(20) $R.ToUtc) } else { @() }
+        if ($Outside.Count -and -not $Disturb.Count) { $Numbers['picture'] += "| $Rel | DISTURBED (viewer.csv): $($Outside.Count) events, first $($Outside[0].event) $($Outside[0].detail) at $($Outside[0].utc) | - | none | DISTURBED |" }
+        if ($Outside.Count) { $Disturb = @($Disturb) + @($Outside) }
+        # Other lanes' Unreal processes while this place ran (load.csv): its frame times do not count either.
+        $LoadRows = if ($R.FromUtc -and (Test-Path (Join-Path $RunDir 'load.csv'))) { @(Import-Csv (Join-Path $RunDir 'load.csv') | Where-Object { $_.other_processes -and ([timespan]$_.time) -ge $R.FromUtc.AddSeconds(20).TimeOfDay -and ([timespan]$_.time) -le $R.ToUtc.TimeOfDay }) } else { @() }
+        if ($LoadRows.Count) {
+            $Numbers['picture'] += "| $Rel | DISTURBED (other lane load): $($LoadRows.Count) samples with $((@($LoadRows | ForEach-Object { $_.other_processes -split ' ' } | Select-Object -Unique)) -join ', ') | - | none | DISTURBED |"
+            $Disturb = @($Disturb) + @($LoadRows)
+        }
+        $R | Add-Member -NotePropertyName Disturbed -NotePropertyValue ($Disturb.Count -gt 0) -Force
+        $Visible = (Test-Path (Join-Path $D 'cmdline.txt')) -and ((Get-Content (Join-Path $D 'cmdline.txt') -Raw) -match '-windowed|-FULLSCREEN')
+        if ($GameDisturbCount) { $Numbers['picture'] += "| $Rel | DISTURBED: $GameDisturbCount focus changes or viewer inputs logged by the game | - | none | DISTURBED |" }
         $View = if (Test-Path $Log) { Select-String -Path $Log -Pattern 'VIEWCHECK (PASS|FAIL) .*?reason=(\S+)' | Select-Object -Last 1 } else { $null }
         $Placed = if (Test-Path $Log) { Select-String -Path $Log -Pattern 'Car placed.*after ([\d.]+) s' | Select-Object -First 1 } else { $null }
         $Engine = if (Test-Path $Log) { @(Select-String -Path $Log -Pattern 'Ensure condition failed|Fatal error|LogSimCruise\w*: Error:') } else { @() }
         $Crash = Test-Path (Join-Path $D 'crash')
+        $CookedRun = (Test-Path (Join-Path $D 'cmdline.txt')) -and -not ((Get-Content (Join-Path $D 'cmdline.txt') -Raw) -match 'UnrealEditor')
+        $ShaderLines = if (Test-Path $Log) { @(Select-String -Path $Log -Pattern 'Preparing Shaders').Count } else { 0 }
+        $RevEv = Read-Json (Join-Path $D 'review.json')
+        $BigFreeze = @(if ($RevEv) { $RevEv.events | Where-Object { $_ -match 'hitch-(\d+)-ms' -and [int]$Matches[1] -gt 1000 } })
         $RunTxt = if (Test-Path (Join-Path $D 'run.txt')) { Get-Content (Join-Path $D 'run.txt') -Raw } else { '' }
         $Hung = $RunTxt -match 'timed_out True'
         foreach ($T in @('driving', 'picture', 'world', 'release')) { $Ran[$T] = $true }
@@ -158,6 +198,13 @@ function Write-ReleaseReports {
         if (-not $Pre) { Add-Finding 'release' 'P0' $R '-' "$Rel\game.log" 'no result: the drive did not happen' }
         if ($Engine.Count) { Add-Finding 'release' 'P1' $R '-' "$Rel\game.log" "$($Engine.Count) engine errors, first: $(($Engine[0].Line -replace '^\[.*?\]\[.*?\]', '').Trim())" }
 
+        if ($ShaderLines -or $BigFreeze.Count) {
+            if ($CookedRun) { Add-Finding 'release' 'P1' $R '-' "$Rel\game.log" "cooked package: $(if ($ShaderLines) { "'Preparing Shaders' ($ShaderLines log lines)" }) $(if ($BigFreeze.Count) { "freeze over 1 s: $($BigFreeze -join '; ')" })" }
+            else {
+                $FreezeShot = @(Get-ChildItem (Join-Path $D 'review') -Filter '*hitch*.png' -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -First 1)
+                Add-Finding 'picture' 'P3' $R $(if ($BigFreeze.Count) { ($BigFreeze[0] -split ' s ')[0] + ' s' } else { '-' }) $(if ($FreezeShot.Count) { "$Rel\review\$($FreezeShot[0].Name)" } else { "$Rel\game.log" }) "TEST ENV if the frame shows 'Preparing Shaders': the editor build compiles shaders during a drive ($($BigFreeze -join '; ')); the cooked run judges it"
+            }
+        }
         # Graphics: what the launch really had.
         $Valid = $Set.ContainsKey('valid') -and $Set['valid'] -eq 'yes'
         if (-not $Valid) { $Invalid += $Rel; Add-Finding 'picture' 'P1' $R '-' "$Rel\game.log" "NOT VALID FOR SIGN-OFF: $(if ($Set.Count) { "preset $($Set['preset']), $($Set['resolution']), screen $($Set['screen_pct']) % (needs $($Set['needs']))" } else { 'no REVIEW SETTINGS line' })" }
@@ -177,7 +224,7 @@ function Write-ReleaseReports {
             # Picture: frame times and the sky.
             if ($Reasons -match 'slow-frames-[^,]*|hitches-[^,]*') { Add-Finding 'picture' 'P1' $R '-' "$Rel\game.log" $Matches[0] }
             if ($Reasons -match 'white-sky-[^,]*|flash-frames-[^,]*') { Add-Finding 'picture' 'P2' $R '-' "$Rel\video.mp4" $Matches[0] }
-            $Numbers['picture'] += "| $Rel | frame p95 / hitches | $($Pre.frame_p95_ms) ms / $($Pre.hitches_over_100ms) | 50 ms / 5 | $(if ([double]$Pre.frame_p95_ms -gt 50 -or [int]$Pre.hitches_over_100ms -gt 5) { 'FAIL' } else { 'ok' }) |"
+            $Numbers['picture'] += "| $Rel | frame p95 / hitches (display: $(if ($Visible) { 'windowed (visible), about +1 ms against off screen' } else { 'off screen' })) | $($Pre.frame_p95_ms) ms / $($Pre.hitches_over_100ms) | 50 ms / 5 | $(if ([double]$Pre.frame_p95_ms -gt 50 -or [int]$Pre.hitches_over_100ms -gt 5) { 'FAIL' } else { 'ok' })$(if ($Disturb.Count) { ', DISTURBED' }) |"
             # World: the road, pop-in, the start.
             if ($Reasons -match 'road-steps-[^,]*|road-gaps-[^,]*|jolts-at-tile-borders-[^,]*') { Add-Finding 'world' 'P2' $R '-' "$Rel\review\" $Matches[0] }
             if ($Reasons -match 'tile-pop-in-[^,]*|car-pop-in-[^,]*') { Add-Finding 'world' 'P2' $R '-' "$Rel\review\" $Matches[0] }
@@ -187,9 +234,9 @@ function Write-ReleaseReports {
         }
         if ($View -and $View.Matches[0].Groups[1].Value -eq 'FAIL') { Add-Finding 'world' 'P1' $R '-' "$Rel\game.log" "view check: $($View.Matches[0].Groups[2].Value)" }
         if ($Placed) {
-            $Load = [double]$Placed.Matches[0].Groups[1].Value
-            $Numbers['world'] += "| $Rel | car placed after | $Load s | 60 s | $(if ($Load -gt 60) { 'FAIL' } else { 'ok' }) |"
-            if ($Load -gt 60) { Add-Finding 'world' 'P2' $R '0 s' "$Rel\game.log" "the car was placed $Load s after the start" }
+            $PlacedS = [double]$Placed.Matches[0].Groups[1].Value
+            $Numbers['world'] += "| $Rel | car placed after | $PlacedS s | 60 s | $(if ($PlacedS -gt 60) { 'FAIL' } else { 'ok' }) |"
+            if ($PlacedS -gt 60) { Add-Finding 'world' 'P2' $R '0 s' "$Rel\game.log" "the car was placed $PlacedS s after the start" }
         }
         # Steering as the driver sees it (the drive), and the cockpit test at rest.
         if ($Rev) {
@@ -210,7 +257,7 @@ function Write-ReleaseReports {
         if (Test-Path (Join-Path $D 'sheet.png')) { $Frames['picture'] += "$Rel\sheet.png" }
 
         $Verdict = if (-not $Pre -or $Crash -or $Hung) { 'FAIL' } elseif ($Pre.result -eq 'PASS' -and (-not $Ck -or $Ck.result -eq 'PASS') -and $Valid) { 'PASS' } else { 'FAIL' }
-        $Table += "| $($R.Plan.Name) | $($R.Plan.Car) | $Verdict$(if (-not $Valid) { ' (NOT VALID FOR SIGN-OFF)' }) | $(if ($Pre) { $Pre.reasons } else { 'no result' }) | $(if ($Ck) { $Ck.result } else { '-' }) | $(if ($View) { $View.Matches[0].Groups[1].Value } else { '-' }) | $(if ($Pre) { $Pre.frame_p95_ms } else { '-' }) | $($R.Minutes) | [review]($Rel/review.md) |"
+        $Table += "| $($R.Plan.Name) | $($R.Plan.Car) | $Verdict$(if (-not $Valid) { ' (NOT VALID FOR SIGN-OFF)' }) | $(if ($Pre) { $Pre.reasons } else { 'no result' }) | $(if ($Ck) { $Ck.result } else { '-' }) | $(if ($View) { $View.Matches[0].Groups[1].Value } else { '-' }) | $(if ($Pre) { $Pre.frame_p95_ms } else { '-' }) | $($R.Minutes) | $(if ($Visible) { 'windowed (visible)' } else { 'off screen' })$(if ($Disturb.Count) { ', DISTURBED' }) | [review]($Rel/review.md) |"
     }
     Add-CaseResults -Cases $Cases -Findings $Findings -Numbers $Numbers -Frames $Frames -Ran $Ran
     # UI: the controller menu test.
@@ -241,7 +288,7 @@ function Write-ReleaseReports {
     }
     if ($Invalid.Count) { $Overall = 'FAIL' }
     $Sum = @("# Release test $(Split-Path -Leaf $RunDir)", '', "Commit $Commit, seed $Seed, $($Rows.Count) places, $Minutes min. Verdict: **$Overall**$(if ($Invalid.Count) { " (NOT VALID FOR SIGN-OFF: $($Invalid -join ', '))" }).", '',
-        '| Place | Car | Verdict | Drive judge | Cockpit | View | Frame p95 (ms) | Minutes | Review |', '|---|---|---|---|---|---|---|---|---|') + $Table
+        '| Place | Car | Verdict | Drive judge | Cockpit | View | Frame p95 (ms) | Minutes | Display | Review |', '|---|---|---|---|---|---|---|---|---|---|') + $Table
     $Sum += @('', "Load on the PC (load.csv): $(if (-not $Load) { 'not recorded' } elseif ($Load.Quiet) { "quiet ($($Load.Samples) samples, other GPU mean $($Load.MeanOtherGpu) %)" } else { "**NOT QUIET**: $($Load.OtherProcesses), other GPU mean $($Load.MeanOtherGpu) % (max $($Load.MaxOtherGpu) %). The frame times are not valid for sign-off." })")
     $Sum += @('', '## Teams', '')
     foreach ($T in $script:Teams.Keys) {

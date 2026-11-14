@@ -10,6 +10,8 @@
 #include "Engine/GameViewportClient.h"
 #include "Environment/SimCruiseGraphics.h"
 #include "Framework/Application/SlateApplication.h"
+#include "Framework/Application/IInputProcessor.h"
+#include "GameFramework/GameUserSettings.h"
 #include "GenericPlatform/GenericApplication.h"
 #include "HAL/IConsoleManager.h"
 #include "Misc/CommandLine.h"
@@ -27,6 +29,85 @@
 #include "Vehicle/SimCruiseVehicleMovementComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSimCruiseReview, Log, All);
+namespace
+{
+	/**
+	 * A watched test run: the viewer's mouse, keyboard and pad do not reach the game (the robot's
+	 * input goes to the player controller directly, not through Slate). Esc passes. Each blocked
+	 * event is logged with the time ("REVIEW USERINPUT"), mouse moves and sticks at most once a second.
+	 */
+	class FSimCruiseReviewInputGuard : public IInputProcessor
+	{
+	public:
+		virtual void Tick(const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor) override {}
+		virtual bool HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent) override
+		{
+			Note(*InKeyEvent.GetKey().ToString(), true);
+			return InKeyEvent.GetKey() != EKeys::Escape;
+		}
+		virtual bool HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent) override { return InKeyEvent.GetKey() != EKeys::Escape; }
+		virtual bool HandleAnalogInputEvent(FSlateApplication& SlateApp, const FAnalogInputEvent& InAnalogInputEvent) override
+		{
+			if (FMath::Abs(InAnalogInputEvent.GetAnalogValue()) > 0.25f) Note(*InAnalogInputEvent.GetKey().ToString(), false);
+			return true;
+		}
+		virtual bool HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) override
+		{
+			if (!MouseEvent.GetCursorDelta().IsNearlyZero()) Note(TEXT("mouse-move"), false);
+			return true;
+		}
+		virtual bool HandleMouseButtonDownEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) override { Note(*MouseEvent.GetEffectingButton().ToString(), true); return true; }
+		virtual bool HandleMouseButtonUpEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) override { return true; }
+		virtual bool HandleMouseButtonDoubleClickEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) override { return true; }
+		virtual bool HandleMouseWheelOrGestureEvent(FSlateApplication& SlateApp, const FPointerEvent& InWheelEvent, const FPointerEvent* InGestureEvent) override { Note(TEXT("mouse-wheel"), false); return true; }
+		virtual const TCHAR* GetDebugName() const override { return TEXT("SimCruiseReviewInputGuard"); }
+
+	private:
+		void Note(const TCHAR* What, bool bEveryTime)
+		{
+			const double Now = FPlatformTime::Seconds();
+			if (!bEveryTime && Now - LastNoteS < 1.0) return;
+			LastNoteS = Now;
+			UE_LOG(LogSimCruiseReview, Display, TEXT("REVIEW USERINPUT t=%.1f %s (blocked%s)"), Now - GStartTime, What, FCString::Strcmp(What, TEXT("Escape")) == 0 ? TEXT(", passed") : TEXT(""));
+		}
+		double LastNoteS = 0.0;
+	};
+}
+
+void FSimCruiseReviewRecorder::StartGuard()
+{
+	if (!FSlateApplication::IsInitialized() || Guard.IsValid()) return;
+	Guard = MakeShared<FSimCruiseReviewInputGuard>();
+	FSlateApplication::Get().RegisterInputPreProcessor(Guard, 0);
+	FocusHandle = FSlateApplication::Get().OnApplicationActivationStateChanged().AddLambda([](const bool bActive)
+	{
+		UE_LOG(LogSimCruiseReview, Display, TEXT("REVIEW FOCUS t=%.1f %s"), FPlatformTime::Seconds() - GStartTime, bActive ? TEXT("gained") : TEXT("lost"));
+	});
+	// A visible run in a borderless window at the screen's own size: a focus change cannot minimise it or change the mode.
+	if (FParse::Param(FCommandLine::Get(), TEXT("SimCruiseBorderless")) && GEngine && GEngine->GameUserSettings)
+	{
+		FDisplayMetrics Metrics;
+		FSlateApplication::Get().GetCachedDisplayMetrics(Metrics);
+		UGameUserSettings* Settings = GEngine->GameUserSettings;
+		Settings->SetFullscreenMode(EWindowMode::WindowedFullscreen);
+		if (Metrics.PrimaryDisplayWidth > 0) Settings->SetScreenResolution(FIntPoint(Metrics.PrimaryDisplayWidth, Metrics.PrimaryDisplayHeight));
+		Settings->ApplyResolutionSettings(false);
+		UE_LOG(LogSimCruiseReview, Display, TEXT("REVIEW DISPLAY borderless %dx%d"), Metrics.PrimaryDisplayWidth, Metrics.PrimaryDisplayHeight);
+	}
+	// The game keeps its pace when it is not the foreground window.
+	if (IConsoleVariable* Idle = IConsoleManager::Get().FindConsoleVariable(TEXT("t.IdleWhenNotForeground"))) Idle->Set(0, ECVF_SetByConsole);
+	UE_LOG(LogSimCruiseReview, Display, TEXT("Review: the viewer's input is blocked and logged (Esc passes); focus changes are logged"));
+}
+
+void FSimCruiseReviewRecorder::StopGuard()
+{
+	if (!FSlateApplication::IsInitialized()) return;
+	if (Guard.IsValid()) FSlateApplication::Get().UnregisterInputPreProcessor(Guard);
+	Guard.Reset();
+	if (FocusHandle.IsValid()) FSlateApplication::Get().OnApplicationActivationStateChanged().Remove(FocusHandle);
+	FocusHandle.Reset();
+}
+
 
 namespace
 {
@@ -106,6 +187,7 @@ void FSimCruiseReviewRecorder::Begin(const FString& InOutputDir)
 	{
 		if (IConsoleVariable* DynRes = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DynamicRes.OperationMode"))) DynRes->Set(0, ECVF_SetByConsole);
 	}
+	StartGuard();
 	UE_LOG(LogSimCruiseReview, Display, TEXT("Review: full-size frames, sidecars and close-up boxes -> %s/review"), *OutputDir);
 }
 
@@ -125,6 +207,16 @@ void FSimCruiseReviewRecorder::Tick(ASimCruisePlayerController& Player, float Dr
 {
 	if (!bOn) return;
 	SampleResolution();
+	// The frame pacing each second: a focus change or other load shows here.
+	++PaceFrames;
+	PaceMaxMs = FMath::Max(PaceMaxMs, DeltaSeconds * 1000.f);
+	if (DriveSeconds >= NextPaceS)
+	{
+		UE_LOG(LogSimCruiseReview, Display, TEXT("REVIEW PACE t=%.0f frames=%d max_ms=%.1f"), DriveSeconds, PaceFrames, PaceMaxMs);
+		PaceFrames = 0;
+		PaceMaxMs = 0.f;
+		NextPaceS = DriveSeconds + 1.f;
+	}
 	StickNow = Stick;
 	if (DriveSeconds >= NextTimedS && PendingName.IsEmpty())
 	{
@@ -264,6 +356,7 @@ void FSimCruiseReviewRecorder::OnFrame(int32 Width, int32 Height, const TArray<F
 void FSimCruiseReviewRecorder::Finish(const FString& Verdict, const FString& Reasons)
 {
 	if (!bOn) return;
+	StopGuard();
 	using namespace SimCruiseReviewRules;
 	const double Ratio = SteeringRatio(RimWheel);
 	const double Turns = LockToLockTurns(FullLockDeg, Ratio);
