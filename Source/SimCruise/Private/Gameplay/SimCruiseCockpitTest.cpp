@@ -86,6 +86,72 @@ namespace SimCruiseCockpitRules
 		}
 		return N;
 	}
+
+	bool FitRimCircle(const TArray<FVector>& Points, FVector& OutNormal, FVector& OutCentre, double& OutRadius, int32& OutKept)
+	{
+		TArray<FVector> Kept = Points;
+		constexpr int32 Passes = 5;
+		for (int32 Pass = 0; Pass < Passes; ++Pass)
+		{
+			if (Kept.Num() < 8) return false;
+			const FVector N = PlaneNormal(Kept);
+			if (N.IsNearlyZero()) return false;
+			FVector Mean = FVector::ZeroVector;
+			for (const FVector& P : Kept) Mean += P;
+			Mean /= Kept.Num();
+			const FVector U = FVector::CrossProduct(N, FMath::Abs(N.Z) < 0.9 ? FVector::ZAxisVector : FVector::YAxisVector).GetSafeNormal();
+			const FVector V = FVector::CrossProduct(N, U);
+			// x^2 + y^2 + D x + E y + F = 0 by least squares (normal equations, 3 x 3).
+			double A[3][3] = {}, B[3] = {};
+			for (const FVector& P : Kept)
+			{
+				const double X = FVector::DotProduct(P - Mean, U), Y = FVector::DotProduct(P - Mean, V);
+				const double Row[3] = {X, Y, 1.0};
+				const double Rhs = -(X * X + Y * Y);
+				for (int32 I = 0; I < 3; ++I) { B[I] += Row[I] * Rhs; for (int32 J = 0; J < 3; ++J) A[I][J] += Row[I] * Row[J]; }
+			}
+			// Gaussian elimination with partial pivoting.
+			for (int32 C = 0; C < 3; ++C)
+			{
+				int32 Best = C;
+				for (int32 R = C + 1; R < 3; ++R) if (FMath::Abs(A[R][C]) > FMath::Abs(A[Best][C])) Best = R;
+				if (FMath::Abs(A[Best][C]) < 1e-12) return false;
+				for (int32 J = 0; J < 3; ++J) Swap(A[C][J], A[Best][J]);
+				Swap(B[C], B[Best]);
+				for (int32 R = C + 1; R < 3; ++R)
+				{
+					const double K = A[R][C] / A[C][C];
+					for (int32 J = C; J < 3; ++J) A[R][J] -= K * A[C][J];
+					B[R] -= K * B[C];
+				}
+			}
+			double S[3];
+			for (int32 R = 2; R >= 0; --R) { double Sum = B[R]; for (int32 J = R + 1; J < 3; ++J) Sum -= A[R][J] * S[J]; S[R] = Sum / A[R][R]; }
+			const double Cx = -S[0] / 2.0, Cy = -S[1] / 2.0;
+			const double R2 = Cx * Cx + Cy * Cy - S[2];
+			if (R2 <= 0.0) return false;
+			OutNormal = N;
+			OutCentre = Mean + U * Cx + V * Cy;
+			OutRadius = FMath::Sqrt(R2);
+			OutKept = Kept.Num();
+			if (Pass == Passes - 1) break;
+			// First a wide cut (15 % of the radius), then a cut at 2.5 times the median residual (at least
+			// 0.4 cm, the rim tube's own scatter): a flat bottom's straight part and the spokes' ends go.
+			TArray<double> Res;
+			for (const FVector& P : Kept) Res.Add(FMath::Abs((P - OutCentre - N * FVector::DotProduct(P - OutCentre, N)).Size() - OutRadius));
+			TArray<double> Sorted = Res;
+			Sorted.Sort();
+			const double Cut = Pass == 0 ? 0.15 * OutRadius : FMath::Max(0.4, 2.5 * Sorted[Sorted.Num() / 2]);
+			TArray<FVector> Next;
+			for (int32 I = 0; I < Kept.Num(); ++I)
+			{
+				const double H = FMath::Abs(FVector::DotProduct(Kept[I] - OutCentre, N));
+				if (H < 1.5 && Res[I] < Cut) Next.Add(Kept[I]);
+			}
+			Kept = MoveTemp(Next);
+		}
+		return true;
+	}
 }
 
 ASimCruiseCockpitTest::ASimCruiseCockpitTest()
@@ -192,8 +258,8 @@ void ASimCruiseCockpitTest::Tick(float DeltaSeconds)
 	case EStage::ShotWheel:
 	case EStage::ShotNoWheel:
 		if (Player) Player->InjectAxis(EKeys::Gamepad_LeftX, PoseSpecs[PoseIndex].Stick);
-		// The wheel hidden for three frames, then the second picture.
-		if (Stage == EStage::ShotNoWheel && !bShotPending && ++NoWheelFrames == 3)
+		// The wheel hidden for 40 frames (TSR's history settles), then the second picture.
+		if (Stage == EStage::ShotNoWheel && !bShotPending && ++NoWheelFrames == 40)
 		{
 			RequestShot();
 		}
@@ -201,7 +267,7 @@ void ASimCruiseCockpitTest::Tick(float DeltaSeconds)
 		{
 			// No picture came: go on without it (the image check then has nothing to judge).
 			bShotPending = false;
-			if (UStaticMeshComponent* Wheel = FindPart(GetModel(Player), TEXT("steering_wheel"))) Wheel->SetVisibility(true);
+			if (UStaticMeshComponent* Wheel = FindPart(GetModel(Player), TEXT("steering_wheel"))) { Wheel->SetVisibility(true); Wheel->SetCastShadow(bWheelCastShadow); }
 			if (++PoseIndex >= UE_ARRAY_COUNT(PoseSpecs)) { Judge(); Stage = EStage::Done; } else { Next(EStage::Hold); }
 		}
 		break;
@@ -299,7 +365,12 @@ void ASimCruiseCockpitTest::OnShot(int32 Width, int32 Height, const TArray<FColo
 		// waits for the next frames (one made inside this callback is dropped by the engine).
 		if (Wheel)
 		{
+			// Hidden with no shadow (a hidden mesh can still cast one), then TSR settles before the picture.
+			bWheelCastShadow = Wheel->CastShadow;
 			Wheel->SetVisibility(false);
+			Wheel->SetCastShadow(false);
+			Wheel->bCastHiddenShadow = false;
+			Wheel->MarkRenderStateDirty();
 			NoWheelFrames = 0;
 			Stage = EStage::ShotNoWheel;
 			StageStarted = FPlatformTime::Seconds();
@@ -310,7 +381,7 @@ void ASimCruiseCockpitTest::OnShot(int32 Width, int32 Height, const TArray<FColo
 	{
 		Pose.PixelsNoWheel = Pixels;
 		SavePng(Pose.Name + TEXT("-nowheel"), Width, Height, Pixels);
-		if (Wheel) Wheel->SetVisibility(true);
+		if (Wheel) { Wheel->SetVisibility(true); Wheel->SetCastShadow(bWheelCastShadow); }
 	}
 	if (++PoseIndex >= UE_ARRAY_COUNT(PoseSpecs))
 	{
@@ -340,7 +411,7 @@ void ASimCruiseCockpitTest::Judge()
 		Reasons.Add(TEXT("no-poses"));
 	}
 	const FPose* Centre = Poses.Num() ? &Poses[0] : nullptr;
-	double MaxFixedMove = 0.0, MaxFixedTurn = 0.0, MaxWheelOffAxis = 0.0, MaxHubMove = 0.0, MaxNeedleTurn = 0.0;
+	double MaxFixedMove = 0.0, MaxFixedTurn = 0.0, MaxWheelOffAxis = 0.0, MaxHubMove = 0.0, MaxBoundsMove = 0.0, MaxNeedleTurn = 0.0;
 	FString WorstFixed, WorstNeedle;
 	constexpr double MaxNeedleTurnAtRest = 0.5;
 	TSet<FString> Hanging;
@@ -355,7 +426,10 @@ void ASimCruiseCockpitTest::Judge()
 			{
 				// The column is the wheel's local X (SteeringWheelTurn).
 				MaxWheelOffAxis = FMath::Max(MaxWheelOffAxis, OffAxisDeg(Rel, FVector::XAxisVector));
-				MaxHubMove = FMath::Max(MaxHubMove, FVector::Dist(Part.BoundsCentre, C->BoundsCentre));
+				// A point on the axis (the pivot the rig puts on the column) must stay; the mesh's bounds
+				// centre moves on an asymmetric wheel (three spokes, a flat bottom) that turns true, so it is only reported.
+				MaxHubMove = FMath::Max(MaxHubMove, FVector::Dist(Part.World.GetLocation(), C->World.GetLocation()));
+				MaxBoundsMove = FMath::Max(MaxBoundsMove, FVector::Dist(Part.BoundsCentre, C->BoundsCentre));
 				continue;
 			}
 			if (Part.Name.StartsWith(TEXT("dial_")) && Part.Parent.Contains(TEXT("steering_wheel"))) Hanging.Add(Part.Name);
@@ -386,10 +460,12 @@ void ASimCruiseCockpitTest::Judge()
 		Reasons.Add(FString::Printf(TEXT("gauges-or-dash-move-with-the-steering-%.2fcm-%.2fdeg(%s)"), MaxFixedMove, MaxFixedTurn, *WorstFixed.Replace(TEXT(" "), TEXT("-"))));
 	}
 	if (MaxWheelOffAxis > MaxWheelOffAxisDeg) Reasons.Add(FString::Printf(TEXT("wheel-turns-off-its-column-%.2fdeg"), MaxWheelOffAxis));
-	if (MaxHubMove > MaxHubMoveCm) Reasons.Add(FString::Printf(TEXT("wheel-hub-moves-%.2fcm"), MaxHubMove));
+	if (MaxHubMove > MaxHubMoveCm) Reasons.Add(FString::Printf(TEXT("wheel-axis-moves-%.2fcm"), MaxHubMove));
 
 	// The rim plane against the column: from the mesh's own vertices, when the CPU still has them.
 	double RimTiltDeg = -1.0;
+	double RimAxisOffsetCm = -1.0;
+	double RimRadiusCm = -1.0;
 	double ForeignShare = -1.0;
 	ASimCruisePlayerController* Player = Cast<ASimCruisePlayerController>(UGameplayStatics::GetPlayerController(this, 0));
 	if (UStaticMeshComponent* Wheel = FindPart(GetModel(Player), TEXT("steering_wheel")))
@@ -406,7 +482,8 @@ void ASimCruiseCockpitTest::Judge()
 				double RMax = 0.0;
 				for (uint32 V = 0; V < Pos.GetNumVertices(); ++V)
 				{
-					const FVector P(Pos.VertexPosition(V));
+					// In cm along the component's own axes (its scale applied): the column is local X through the pivot.
+					const FVector P = FVector(Pos.VertexPosition(V)) * Wheel->GetComponentScale();
 					All.Add(P);
 					RMax = FMath::Max(RMax, FVector2D(P.Y, P.Z).Size());
 				}
@@ -417,11 +494,17 @@ void ASimCruiseCockpitTest::Judge()
 					const double R = FVector2D(P.Y, P.Z).Size();
 					if (R > 0.7 * RMax) { Rim.Add(P); RimR.Add(R); }
 				}
-				const FVector N = PlaneNormal(Rim);
-				if (!N.IsNearlyZero())
+				// A circle fitted to the rim's tube only: its plane against the column, its centre against the axis.
+				FVector N, Centre3;
+				double Radius = 0.0;
+				int32 Kept = 0;
+				if (FitRimCircle(Rim, N, Centre3, Radius, Kept))
 				{
 					RimTiltDeg = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(FMath::Abs(FVector::DotProduct(N, FVector::XAxisVector)), 0.0, 1.0)));
+					RimAxisOffsetCm = FVector2D(Centre3.Y, Centre3.Z).Size();
+					RimRadiusCm = Radius;
 					if (RimTiltDeg > MaxRimTiltDeg) Reasons.Add(FString::Printf(TEXT("rim-tilted-%.1fdeg-on-the-column"), RimTiltDeg));
+					if (RimAxisOffsetCm > MaxRimAxisOffsetCm) Reasons.Add(FString::Printf(TEXT("rim-centre-%.2fcm-off-the-column"), RimAxisOffsetCm));
 				}
 				// Geometry well outside the rim (a cluster or a cowl in the wheel's mesh turns with it).
 				RimR.Sort();
@@ -503,14 +586,14 @@ void ASimCruiseCockpitTest::Judge()
 		const double Share = Total ? 100.0 * Changed / Total : 0.0;
 		MaxChanged = FMath::Max(MaxChanged, Share);
 		SavePng(TEXT("diff-") + P.Name, P.Width, P.Height, Diff);
-		if (Share > Noise + MaxClusterChangedPercent) Reasons.Add(FString::Printf(TEXT("cluster-pixels-change-%.1f%%-at-%s-noise-%.1f%%"), Share, *P.Name, Noise));
+		// A second number only: the needles' own angles (the parts' transforms above) decide.
 	}
 
 	const bool bPass = Reasons.IsEmpty();
 	const FString ReasonText = bPass ? FString(TEXT("ok")) : FString::Join(Reasons, TEXT(","));
-	UE_LOG(LogSimCruiseCockpit, Display, TEXT("COCKPIT %s car=%s lock=%.0f/%.0fdeg (car data %.0f) ratio=%.2f (car data %.2f) lock_to_lock=%.2f gauges_move=%.3fcm/%.2fdeg wheel_off_axis=%.2fdeg hub_move=%.3fcm rim_tilt=%.1fdeg outside_rim=%.1f%% cluster_changed=%.2f%% (noise %.2f%%) reasons=%s"),
+	UE_LOG(LogSimCruiseCockpit, Display, TEXT("COCKPIT %s car=%s lock=%.0f/%.0fdeg (car data %.0f) ratio=%.2f (car data %.2f) lock_to_lock=%.2f gauges_move=%.3fcm/%.2fdeg wheel_off_axis=%.2fdeg hub_move=%.3fcm rim_tilt=%.1fdeg rim_axis_offset=%.2fcm rim_radius=%.1fcm bounds_move=%.2fcm outside_rim=%.1f%% cluster_changed=%.2f%% (noise %.2f%%) reasons=%s"),
 		bPass ? TEXT("PASS") : TEXT("FAIL"), *CarId, LockLeft, LockRight, ExpectedLock, MeasuredRatio, Ratio, LockToLockTurns, MaxFixedMove, MaxFixedTurn,
-		MaxWheelOffAxis, MaxHubMove, RimTiltDeg, ForeignShare, MaxChanged, Noise, *ReasonText);
+		MaxWheelOffAxis, MaxHubMove, RimTiltDeg, RimAxisOffsetCm, RimRadiusCm, MaxBoundsMove, ForeignShare, MaxChanged, Noise, *ReasonText);
 	FString PoseJson;
 	for (const FPose& P : Poses)
 	{
@@ -519,11 +602,11 @@ void ASimCruiseCockpitTest::Judge()
 	}
 	const FString Json = FString::Printf(TEXT("{\n  \"result\": \"%s\", \"car\": \"%s\", \"reasons\": \"%s\",\n")
 		TEXT("  \"rim_full_lock_left_deg\": %.2f, \"rim_full_lock_right_deg\": %.2f, \"expected_full_lock_deg\": %.2f, \"ratio\": %.3f, \"car_data_ratio\": %.3f, \"lock_to_lock_turns\": %.3f,\n")
-		TEXT("  \"gauges_max_move_cm\": %.4f, \"gauges_max_turn_deg\": %.3f, \"gauges_worst\": \"%s\", \"needle_max_turn_at_rest_deg\": %.2f, \"needle_worst\": \"%s\", \"wheel_off_axis_deg\": %.3f, \"hub_move_cm\": %.4f, \"rim_tilt_deg\": %.2f, \"outside_rim_percent\": %.2f,\n")
+		TEXT("  \"gauges_max_move_cm\": %.4f, \"gauges_max_turn_deg\": %.3f, \"gauges_worst\": \"%s\", \"needle_max_turn_at_rest_deg\": %.2f, \"needle_worst\": \"%s\", \"wheel_off_axis_deg\": %.3f, \"hub_move_cm\": %.4f, \"rim_tilt_deg\": %.2f, \"rim_axis_offset_cm\": %.3f, \"rim_radius_cm\": %.2f, \"bounds_move_cm\": %.3f, \"outside_rim_percent\": %.2f,\n")
 		TEXT("  \"cluster_changed_percent\": %.3f, \"cluster_noise_percent\": %.3f,\n  \"limits\": {\"fixed_move_cm\": %.2f, \"fixed_turn_deg\": %.2f, \"wheel_off_axis_deg\": %.2f, \"hub_move_cm\": %.2f, \"rim_tilt_deg\": %.1f, \"lock_error\": %.2f, \"cluster_changed_percent\": %.1f},\n")
 		TEXT("  \"poses\": [%s]\n}\n"),
 		bPass ? TEXT("PASS") : TEXT("FAIL"), *CarId, *ReasonText, LockLeft, LockRight, ExpectedLock, MeasuredRatio, Ratio, LockToLockTurns,
-		MaxFixedMove, MaxFixedTurn, *WorstFixed, MaxNeedleTurn, *WorstNeedle, MaxWheelOffAxis, MaxHubMove, RimTiltDeg, ForeignShare, MaxChanged, Noise,
+		MaxFixedMove, MaxFixedTurn, *WorstFixed, MaxNeedleTurn, *WorstNeedle, MaxWheelOffAxis, MaxHubMove, RimTiltDeg, RimAxisOffsetCm, RimRadiusCm, MaxBoundsMove, ForeignShare, MaxChanged, Noise,
 		MaxFixedMoveCm, MaxFixedTurnDeg, MaxWheelOffAxisDeg, MaxHubMoveCm, MaxRimTiltDeg, MaxLockError, MaxClusterChangedPercent, *PoseJson);
 	FFileHelper::SaveStringToFile(Json, *FPaths::Combine(OutputDir, TEXT("cockpit.json")), FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 }

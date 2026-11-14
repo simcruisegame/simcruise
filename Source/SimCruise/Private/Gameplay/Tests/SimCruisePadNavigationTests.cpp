@@ -36,22 +36,36 @@ namespace SimCruisePadNavTest
 		else return false;
 	}
 
+	/** The widget the game gives the pad's focus (the menu's GetFocusTarget() once it has one, else the menu). */
+	template <typename T, typename = void> struct THasFocusTarget : std::false_type {};
+	template <typename T> struct THasFocusTarget<T, std::void_t<decltype(std::declval<const T&>().GetFocusTarget())>> : std::true_type {};
+	template <typename T> TSharedRef<SWidget> FocusTargetOf(const TSharedRef<T>& Widget)
+	{
+		if constexpr (THasFocusTarget<T>::value) { TSharedPtr<SWidget> F = Widget->GetFocusTarget(); if (F.IsValid()) return F.ToSharedRef(); }
+		return Widget;
+	}
+
 	/** Sends pad keys as the game gets them: through Slate to the focused widget, or to the widget itself. */
 	struct FPad
 	{
 		TSharedPtr<SWidget> Target;
 		TSharedPtr<SWindow> Window;
 		bool bThroughSlate = false;
+		/** Presses after which the pad's focus was no longer in the screen (Slate navigation took it away). */
+		int32 FocusLost = 0;
 
-		void Open(const TSharedRef<SWidget>& Widget)
+		void Open(const TSharedRef<SWidget>& Widget) { Open(Widget, Widget); }
+		/** Focus as the game does: SetUserFocus(user 0) on the widget the game focuses. */
+		void Open(const TSharedRef<SWidget>& Widget, const TSharedRef<SWidget>& Focus)
 		{
 			Target = Widget;
 			if (!FSlateApplication::IsInitialized()) return;
 			FSlateApplication& App = FSlateApplication::Get();
 			Window = SNew(SWindow).ClientSize(FVector2D(1920, 1080)).IsInitiallyMaximized(false)[Widget];
 			App.AddWindow(Window.ToSharedRef(), false);
-			App.SetAllUserFocus(Widget, EFocusCause::SetDirectly);
-			bThroughSlate = Widget->HasAnyUserFocus().IsSet();
+			Window->SlatePrepass(1.f);
+			App.SetUserFocus(0, Focus, EFocusCause::SetDirectly);
+			bThroughSlate = Widget->HasUserFocus(0).IsSet() || Widget->HasFocusedDescendants();
 		}
 		void Close()
 		{
@@ -65,6 +79,7 @@ namespace SimCruisePadNavTest
 			{
 				const bool bHandled = FSlateApplication::Get().ProcessKeyDownEvent(Down);
 				FSlateApplication::Get().ProcessKeyUpEvent(FKeyEvent(Key, FModifierKeysState(), 0, false, 0, 0));
+				if (!(Target->HasUserFocus(0).IsSet() || Target->HasFocusedDescendants())) ++FocusLost;
 				return bHandled;
 			}
 			return Target->OnKeyDown(FGeometry(), Down).IsEventHandled();
@@ -89,7 +104,7 @@ bool FSimCruisePadNavigationTest::RunTest(const FString& Parameters)
 		.OnAction_Lambda([&Actions](ESimCruiseMenuRow Row, int32 Dir) { Actions.Add({ Row, Dir }); })
 		.OnClose_Lambda([&Closed]() { ++Closed; });
 	FPad Pad;
-	Pad.Open(Menu);
+	Pad.Open(Menu, FocusTargetOf(Menu));
 	AddInfo(FString::Printf(TEXT("Keys go %s"), Pad.bThroughSlate ? TEXT("through FSlateApplication to the focused menu") : TEXT("straight to the menu (no window can hold the focus here)")));
 	int32 Unreachable = 0;
 	// A control that is not built yet (the tab bar focus, until the menu has IsTabBarFocused) is a
@@ -138,6 +153,7 @@ bool FSimCruisePadNavigationTest::RunTest(const FString& Parameters)
 		Log(Screen, TEXT("back (B)"), Closed > ClosedBefore, TEXT("B"));
 	}
 
+	Log(TEXT("Pause menu"), TEXT("pad focus stays in the menu"), Pad.FocusLost == 0, FString::Printf(TEXT("focus left the menu after %d presses"), Pad.FocusLost));
 	// The left stick moves along the rows as the D-pad does.
 	Menu->SetPage(0);
 	for (int32 I = 0; I <= SSimCruisePauseMenu::Rows(0).Num() && Menu->GetSelected() != 0; ++I) Pad.Press(EKeys::Gamepad_DPad_Down);
