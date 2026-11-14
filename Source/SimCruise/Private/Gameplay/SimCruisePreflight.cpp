@@ -366,6 +366,32 @@ bool ASimCruisePreflight::Walk(FCursor& C, double DistanceCm) const
 				if (Dot > BestDot) { BestDot = Dot; Next.Line = L; Next.Seg = Q.Num() - 2; Next.T = 1.0; Next.Dir = -1; }
 			}
 		}
+		// A ramp or a side road ends on another road's side, not at its end (a merge, a T-junction):
+		// go on along the road it meets, the way it heads, where that turns no more than about 50 deg.
+		// The robot had taken a ramp merge at Doraville, Georgia, for a dead end and braked from
+		// 28 m/s to a stand on the motorway.
+		if (!Next.IsValid())
+		{
+			double BestSide = 0.64;
+			for (int32 L = 0; L < Lines.Num(); ++L)
+			{
+				if (L == C.Line) continue;
+				const TArray<FVector2d>& Q = Lines[L].P;
+				for (int32 J = 0; J + 1 < Q.Num(); ++J)
+				{
+					const FVector2d A = Q[J], B = Q[J + 1];
+					const double Len2 = FMath::Max((B - A).SizeSquared(), 1.0);
+					const double Tt = FMath::Clamp(FVector2d::DotProduct(End - A, B - A) / Len2, 0.0, 1.0);
+					if (FVector2d::Distance(End, FMath::Lerp(A, B, Tt)) > 600.0) continue;
+					const FVector2d Along = (B - A).GetSafeNormal();
+					for (const int32 Dir : { 1, -1 })
+					{
+						const double Dot = FVector2d::DotProduct(Along * static_cast<double>(Dir), Heading);
+						if (Dot > BestSide) { BestSide = Dot; Next.Line = L; Next.Seg = J; Next.T = Tt; Next.Dir = Dir; }
+					}
+				}
+			}
+		}
 		if (!Next.IsValid())
 		{
 			return false;
@@ -630,9 +656,15 @@ void ASimCruisePreflight::DriveTick(ASimCruisePlayerController* Player, float De
 		const FVector From = CarCm + FVector(Forward.X, Forward.Y, 0.0) * 250.0 + FVector(0.0, 0.0, 60.0);
 		const double Range = FMath::Max(2000.0, 300.0 * Speed);
 		FHitResult Hit;
+		// Only a car in the robot's own path stops it (within 1.8 m of its line ahead): the line
+		// toward the steering target can cross parked cars beside a merge or a bend.
 		if (GetWorld()->LineTraceSingleByChannel(Hit, From, From + Dir * Range, ECC_Visibility, Params) && IsCarActor(Hit.GetActor()))
 		{
-			TargetMps = FMath::Min(TargetMps, FMath::Max(0.0, (Hit.Distance / 100.0 - 6.0) / 1.8));
+			const FVector2d ToHit = FVector2d(Hit.GetActor()->GetActorLocation().X - CarCm.X, Hit.GetActor()->GetActorLocation().Y - CarCm.Y) / 100.0;
+			if (FMath::Abs(Forward.X * ToHit.Y - Forward.Y * ToHit.X) < 1.8)
+			{
+				TargetMps = FMath::Min(TargetMps, FMath::Max(0.0, (Hit.Distance / 100.0 - 6.0) / 1.8));
+			}
 		}
 	}
 	const double Error = TargetMps - Speed;
