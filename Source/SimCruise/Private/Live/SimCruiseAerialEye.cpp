@@ -3,6 +3,7 @@
 #include "Live/SimCruiseAerialEye.h"
 
 #include "Async/Async.h"
+#include <atomic>
 #include "Misc/App.h"
 #include "HAL/FileManager.h"
 #include "HAL/IConsoleManager.h"
@@ -76,6 +77,18 @@ namespace SimCruiseAerialEyeLocal
 		const float Fx = static_cast<float>(X - X0), Fy = static_cast<float>(Y - Y0);
 		return FMath::Lerp(FMath::Lerp(P[Y0 * N + X0], P[Y0 * N + X1], Fx), FMath::Lerp(P[Y1 * N + X0], P[Y1 * N + X1], Fx), Fy);
 	}
+}
+
+static std::atomic<float> GSimCruiseEyeFrameSeconds{0.f};
+
+void FSimCruiseAerialEye::NoteFrameSeconds(float Seconds)
+{
+	GSimCruiseEyeFrameSeconds.store(Seconds, std::memory_order_relaxed);
+}
+
+bool FSimCruiseAerialEye::IsGameSlow()
+{
+	return GSimCruiseEyeFrameSeconds.load(std::memory_order_relaxed) > 1.1f / 60.f;
 }
 
 FSimCruiseAerialEye& FSimCruiseAerialEye::Get()
@@ -191,6 +204,8 @@ bool FSimCruiseAerialEye::Initialize()
 	Model = M;
 	bReady = true;
 	FCoreDelegates::OnPreExit.AddLambda([]() { Get().bStop = true; });
+	// The game thread hands its frame time to the worker (FApp's time may only be read on the game thread).
+	FCoreDelegates::OnEndFrame.AddLambda([]() { NoteFrameSeconds(static_cast<float>(FApp::GetDeltaTime())); });
 	UE_LOG(LogSimCruiseAerialEye, Display, TEXT("Scan eye ready: %s v%d, %s (%d classes) on NNERuntimeORTCpu"), *EyeName.ToString(), EyeVersion, *ModelPath, M->NumClasses);
 	return true;
 }
@@ -411,7 +426,7 @@ void FSimCruiseAerialEye::RunWorker()
 			}
 			// Back off while the game is slow (frames over 1.1 x the 60 fps budget): wait up to 2 s for it
 			// to recover. The tile still has the scan rules meanwhile.
-			for (int32 Wait = 0; Wait < 8 && FApp::GetDeltaTime() > 1.1 / 60.0 && !bStop; ++Wait)
+			for (int32 Wait = 0; Wait < 8 && IsGameSlow() && !bStop; ++Wait)
 			{
 				FPlatformProcess::Sleep(0.25f);
 				FScopeLock Guard(&Lock);
