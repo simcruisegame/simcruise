@@ -21,6 +21,10 @@ start next-phase work before the owner agrees.
 Reviews of the current game are input to that plan. Current driving bugs
 that the team finds go to the release thread through the coordinator.
 
+## Charter and ownership
+
+The team charter and the map of teams, leads, owner threads and current work are in `docs/team/ownership.md`. Read it first.
+
 ## The members
 
 | Role (subagent name) | Call it when you need |
@@ -36,6 +40,11 @@ that the team finds go to the release thread through the coordinator.
 | `ux-accessibility` | Gamepad steering curves, dead zones, haptics, HUD, menus, comfort and accessibility guidelines. |
 | `gis-data-scientist` | Real-world data: OSM, elevation, projections, road geometry, licences and rate limits. |
 | `performance-engineer` | Frame time and hitches on the 28 W GPU, scalability, streaming, game-thread cost. |
+| `producer` | One ranked list, scope, owner threads, releases. |
+| `game-designer` | The reason to drive, first five minutes, realistic defaults, menus and HUD from the player's view. |
+| `technical-artist` | Materials, shaders, PBR values, car and cockpit rigs (wheel, gauges), LODs, texture budgets. |
+| `environment-artist` | Roadside, ground, vegetation and buildings against real photos and road standards. |
+| `tools-engineer` | check, pre-flight, view check, replay, packaging, installers; tests that fail when they should. |
 
 ## How to call the team
 
@@ -67,9 +76,9 @@ question, then write one joint ranked list. The first review is in
 `docs/team/review-2026-11-12/` and the joint list is
 `docs/team/review-2026-11-12/joint-findings.md`.
 
-## Hourly meeting
+## Review per playtest wave
 
-The team meets once an hour. At each meeting:
+Since 2026-11-13 (owner's choice) the team reviews once per playtest wave, from the pre-flight videos and contact sheets, not every hour. The old hourly steps below still describe a review:
 
 1. Read what changed on `origin/main` since the last meeting
    (`git log <last>..origin/main`).
