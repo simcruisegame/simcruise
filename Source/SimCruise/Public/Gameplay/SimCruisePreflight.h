@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Gameplay/SimCruiseReview.h"
 #include "SimCruisePreflight.generated.h"
 
 class APlayerController;
@@ -232,6 +233,8 @@ private:
 
 	// Measurements.
 	FSimCruisePreflightStats Stats;
+	/** -SimCruiseReview: frames, sidecars and close-ups for a person to look at. */
+	FSimCruiseReviewRecorder Review;
 	double SpeedSum = 0.0;
 	int32 SpeedSamples = 0;
 	FVector LastCarCm = FVector::ZeroVector;

@@ -37,6 +37,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'EditorLock.ps1')
+. (Join-Path $PSScriptRoot 'ReviewLib.ps1')
+$ReviewRoot = Get-ReviewRoot $Root
 $Root = Split-Path -Parent $PSScriptRoot
 $Project = Join-Path $Root 'SimCruise.uproject'
 $Editor = Join-Path $EngineDir 'Engine\Binaries\Win64\UnrealEditor.exe'
@@ -74,12 +76,23 @@ foreach ($Case in $Cases) {
     $Log = Join-Path $RunDir "$Case.log"
     $ArgLine = (@("`"$Project`"") + $Common + $Def.Args + @("`"-abslog=$Log`"")) -join ' '
     Write-Host "View check: $Case (must $($Def.Expect))"
+    $Started = Get-Date
+    $TimedOut = $false
     $P = Start-Process -FilePath $Editor -ArgumentList $ArgLine -PassThru
     if (-not $P.WaitForExit($TimeoutMinutes * 60 * 1000)) {
         Stop-ProcessTree -ProcessId $P.Id
+        $TimedOut = $true
         Write-Host "  TIMED OUT after $TimeoutMinutes min (log: $Log)"
     }
     $Line = if (Test-Path $Log) { Select-String -Path $Log -Pattern 'VIEWCHECK (PASS|FAIL) .*' | Select-Object -Last 1 } else { $null }
+    # Evidence for a review (scripts\ReviewLib.ps1): the log, command line, GPU, a crash's dump and the screenshot.
+    $ReviewDir = Join-Path $ReviewRoot "viewcheck-$Case"
+    $Evidence = Save-ReviewEvidence -RunDir $ReviewDir -Root $Root -Log $Log -CommandLine ("`"$Editor`" " + $ArgLine) -Started $Started -TimedOut $TimedOut
+    if ($Line -and $Line.Matches[0].Value -match 'shot=(.+?\.png)' -and (Test-Path $Matches[1])) {
+        New-Item -ItemType Directory -Force (Join-Path $ReviewDir 'review') | Out-Null
+        Copy-Item $Matches[1] (Join-Path $ReviewDir 'review\000-view.png')
+    }
+    Write-ReviewSheet -RunDir $ReviewDir -Kind 'viewcheck' -Title "view check $Case (must $($Def.Expect))" -Result $(if ($Line) { $Line.Matches[0].Groups[1].Value } else { '' }) -Reasons '' -Evidence $Evidence
     if (-not $Line) { Write-Host "  no VIEWCHECK line in $Log"; $Failed += "$Case (no VIEWCHECK line)"; continue }
     $Text = $Line.Matches[0].Value
     $Result = $Line.Matches[0].Groups[1].Value

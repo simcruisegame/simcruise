@@ -57,7 +57,9 @@ if ($Preflight -and $Preflight.result -eq 'PASS') {
 } elseif ($SkipPreflight) {
     Write-Host "WARNING: no passed pre-flight of $Commit (-SkipPreflight). Do not give this build to the owner." -ForegroundColor Yellow
 } else {
-    $Why = if ($Preflight) { "the last pre-flight of $Commit failed: $($Preflight.report)" } else { "no pre-flight of $Commit in $Index" }
+    $Why = if (-not $Preflight) { "no pre-flight of $Commit in $Index" }
+        elseif ($Preflight.result -eq 'UNREVIEWED') { "the pre-flight of $Commit passed its checks but nobody reviewed its frames: fill every review.md and run scripts\review-check.ps1 on $(Split-Path -Parent $Preflight.report)" }
+        else { "the last pre-flight of $Commit failed: $($Preflight.report)" }
     Write-Host "REFUSED: $Why. Run scripts\preflight.ps1 on $Commit first (or -SkipPreflight for a build that does not go to the owner)."
     exit 1
 }

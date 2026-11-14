@@ -11,6 +11,7 @@
 #include "GameFramework/Pawn.h"
 #include "Gameplay/SimCruiseGameMode.h"
 #include "Gameplay/SimCruisePlayerController.h"
+#include "Gameplay/SimCruiseReview.h"
 #include "Gameplay/SimCruiseVehicleControl.h"
 #include "HAL/IConsoleManager.h"
 #include "Vehicle/SimCruiseVehicle.h"
@@ -202,6 +203,18 @@ void ASimCruisePreflight::BeginPlay()
 	}
 	OutputDir = FPaths::ConvertRelativePathToFull(OutputDir);
 	IFileManager::Get().MakeDirectory(*FPaths::Combine(OutputDir, TEXT("frames")), true);
+	// -SimCruiseReview: full-size frames, sidecars and close-ups for a person to look at (scripts\launch-review.ps1).
+	if (FParse::Param(FCommandLine::Get(), TEXT("SimCruiseReview")))
+	{
+		if (FParse::Param(FCommandLine::Get(), TEXT("SimCruisePreflightNoFrames")))
+		{
+			UE_LOG(LogSimCruisePreflight, Warning, TEXT("Pre-flight: -SimCruiseReview needs the frames; no review evidence with -SimCruisePreflightNoFrames"));
+		}
+		else
+		{
+			Review.Begin(OutputDir);
+		}
+	}
 	FString Start;
 	if (FParse::Value(Cmd, TEXT("SimCruiseStart="), Start, /*bShouldStopOnSeparator=*/ false))
 	{
@@ -474,7 +487,12 @@ void ASimCruisePreflight::Tick(float DeltaSeconds)
 			{
 				UE_LOG(LogSimCruisePreflight, Display, TEXT("Pre-flight: stall %.0f ms at %.0f m (%.0f km/h)"), Ms, PathM, Player->GetTelemetry().BodyVelocityMps.X * 3.6);
 			}
+			if (Ms > 100.f && Stats.DriveSeconds > SimCruisePreflightRules::FrameWarmupS && CaptureSkip == 0)
+			{
+				Review.Event(FString::Printf(TEXT("hitch %.0f ms"), Ms), Stats.DriveSeconds);
+			}
 		}
+		Review.Tick(*Player, Stats.DriveSeconds, DeltaSeconds, Stick);
 		FrameClock += DeltaSeconds;
 		if (!bNoFrames && FrameClock >= FrameIntervalS && !bFramePending)
 		{
@@ -679,6 +697,7 @@ void ASimCruisePreflight::MeasureTick(ASimCruisePlayerController* Player, float 
 			if (RearSlipDeg > Stats.PeakRearSlipDeg && RearSlipDeg > SimCruisePreflightRules::MaxRearSlipDeg)
 			{
 				UE_LOG(LogSimCruisePreflight, Display, TEXT("Pre-flight: rear slip %.0f deg at %.0f m (frame %d)"), RearSlipDeg, PathM, FrameIndex);
+				Review.Event(TEXT("spin"), Stats.DriveSeconds);
 			}
 			Stats.PeakRearSlipDeg = FMath::Max(Stats.PeakRearSlipDeg, static_cast<float>(RearSlipDeg));
 		}
@@ -701,6 +720,7 @@ void ASimCruisePreflight::MeasureTick(ASimCruisePlayerController* Player, float 
 		if (bOff && OffRibbonNow == 0.f)
 		{
 			UE_LOG(LogSimCruisePreflight, Display, TEXT("Pre-flight: %.1f m past the road edge at %.0f m (frame %d)"), PastEdgeM, PathM, FrameIndex);
+			Review.Event(TEXT("run-off"), Stats.DriveSeconds);
 		}
 		OffRibbonNow = bOff ? OffRibbonNow + DeltaSeconds : 0.f;
 		Stats.OffRibbonSeconds = FMath::Max(Stats.OffRibbonSeconds, OffRibbonNow);
@@ -764,6 +784,7 @@ void ASimCruisePreflight::MeasureTick(ASimCruisePlayerController* Player, float 
 			const bool bBorder = Frame.TileAtWorldCm(CarCm + Forward * 800.0) != Frame.TileAtWorldCm(CarCm - Forward * 800.0);
 			Stats.BorderJolts += bBorder ? 1 : 0;
 			UE_LOG(LogSimCruisePreflight, Display, TEXT("Pre-flight jolt %.1f m/s^2 at %.0f m%s (frame %d)"), Az, PathM, bBorder ? TEXT(" at a tile border") : TEXT(""), FrameIndex);
+			Review.Event(TEXT("jolt"), Stats.DriveSeconds);
 		}
 	}
 	JoltCooldown -= DeltaSeconds;
@@ -790,6 +811,7 @@ void ASimCruisePreflight::MeasureTick(ASimCruisePlayerController* Player, float 
 			const ASimCruiseWorldTile* Tile = Stream->GetTile(Id);
 			if (!Tile || !Tile->GetBuild() || KnownTiles.Contains(Id)) continue;
 			KnownTiles.Add(Id);
+			Review.Event(FString::Printf(TEXT("tile built %d_%d"), Id.X, Id.Y), Stats.DriveSeconds);
 			const FVector A = Frame.TileOriginCm(Id);
 			const FVector B = Frame.TileOriginCm(Id + FIntPoint(1, 1));
 			const FBox2D Box(FVector2D(FMath::Min(A.X, B.X), FMath::Min(A.Y, B.Y)), FVector2D(FMath::Max(A.X, B.X), FMath::Max(A.Y, B.Y)));
@@ -797,6 +819,7 @@ void ASimCruisePreflight::MeasureTick(ASimCruisePlayerController* Player, float 
 			if (Dist < RangeCm)
 			{
 				++Stats.TilePopIns;
+				Review.Event(TEXT("tile pop-in"), Stats.DriveSeconds);
 				UE_LOG(LogSimCruisePreflight, Display, TEXT("Pre-flight pop-in: tile %d_%d built %.0f m from the camera (frame %d)"), Id.X, Id.Y, Dist / 100.0, FrameIndex);
 			}
 		}
@@ -826,6 +849,7 @@ void ASimCruisePreflight::MeasureTick(ASimCruisePlayerController* Player, float 
 		FHitResult Block;
 		if (GetWorld()->LineTraceSingleByChannel(Block, Eye, Eye + To * 0.95, ECC_Visibility, Sight) && !IsCarActor(Block.GetActor())) continue;
 		++Stats.CarPopIns;
+		Review.Event(TEXT("car pop-in"), Stats.DriveSeconds);
 		UE_LOG(LogSimCruisePreflight, Display, TEXT("Pre-flight pop-in: car %s appeared %.0f m in front of the camera (frame %d)"), *Car->GetName(), Dist / 100.0, FrameIndex);
 	}
 }
@@ -855,6 +879,13 @@ void ASimCruisePreflight::RequestFrame(APlayerController* Player)
 	bFramePending = true;
 	// The read-back and the JPEG slow the next frames: the frame-time rules do not judge them.
 	CaptureSkip = FMath::Max(CaptureSkip, 2);
+	if (Review.WantsShot())
+	{
+		if (ASimCruisePlayerController* SimPlayer = Cast<ASimCruisePlayerController>(Player))
+		{
+			Review.PrepareShot(*SimPlayer, Stats.DriveSeconds);
+		}
+	}
 	FScreenshotRequest::RequestScreenshot(FPaths::Combine(OutputDir, TEXT("frames"), TEXT("request.png")), true, false);
 }
 
@@ -872,6 +903,7 @@ void ASimCruisePreflight::OnFrame(int32 Width, int32 Height, const TArray<FColor
 	{
 		FFileHelper::SaveArrayToFile(Jpeg, *FPaths::Combine(OutputDir, TEXT("frames"), FString::Printf(TEXT("%05d.jpg"), FrameIndex)));
 	}
+	Review.OnFrame(Width, Height, Pixels);
 	++FrameIndex;
 	Stats.Frames = FrameIndex;
 
@@ -1001,6 +1033,7 @@ void ASimCruisePreflight::Finish()
 	MeasureFrames(TimedFrameMs, Stats);
 	const FString Reasons = Judge(Stats);
 	const bool bPass = Reasons.IsEmpty();
+	Review.Finish(bPass ? TEXT("PASS") : TEXT("FAIL"), Reasons);
 	UE_LOG(LogSimCruisePreflight, Display,
 		TEXT("PREFLIGHT %s road=%s car=%s place=\"%s\" distance=%.0fm mean=%.1fm/s offroad=%.1fs rear_slip=%.1fdeg backwards=%.1fs past_edge=%.1fm/%.1fs frame_p95=%.1fms hitches=%d sky_white=%.0f%% tile_popin=%d car_popin=%d flashes=%d steps=%d max_step=%.1fcm gaps=%d jolts=%d border_jolts=%d stuck=%d frames=%d reasons=%s"),
 		bPass ? TEXT("PASS") : TEXT("FAIL"), *RoadName, *CarId, *Place, Stats.DistanceM, Stats.MeanSpeedMps, Stats.OffRoadSeconds,
