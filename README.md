@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/simcruisegame/simcruise/releases/latest"><b>Download for Windows (free)</b></a>
+  · <a href="https://simcruisegame.github.io/simcruise/">Website</a>
   · <a href="#screenshots">Screenshots</a>
   · <a href="#famous-roads-to-drive">Famous roads</a>
   · <a href="docs/controls.md">Controls</a>
