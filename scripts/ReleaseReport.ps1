@@ -40,11 +40,53 @@ function Read-RunSettings([string]$Log) {
 function Add-CaseResults($Cases, $Findings, $Numbers, $Frames, $Ran) {
     foreach ($C in $Cases) {
         $Name = $C.Def.Name
-        $Teams = if ($C.Def.Case -eq 'standstill') { @('world', 'picture') } else { @('world', 'ai', 'picture') }
+        $Teams = switch ($C.Def.Case) { 'standstill' { @('world', 'picture') } 'fallback' { @('world') } 'eye' { @('world', 'ai') } 'eyeoff' { @('ai') } default { @('world', 'ai', 'picture') } }
         $Car = 'nb2001_aaron'
         $Add = { param($Team, $Sev, $Time, $Ev, $What) $Findings[$Team] += [pscustomobject]@{ Sev = $Sev; Place = $Name; Car = $Car; Time = $Time; Evidence = $Ev; What = $What } }
         if (-not $C.Ran) { foreach ($T in $Teams) { $Numbers[$T] += "| $Name | test case | NOT RUN: $($C.Reason) | - | NOT RUN |" }; continue }
         foreach ($T in $Teams) { $Ran[$T] = $true }
+        if ($C.Def.Case -eq 'fallback') {
+            $Log = Join-Path $C.Dir 'game.log'
+            $Pre = Read-Json (Join-Path $C.Dir 'preflight.json')
+            $Forced = if (Test-Path $Log) { Select-String -Path $Log -Pattern 'Forced tile failures: (\d+)' | Select-Object -First 1 } else { $null }
+            $Failed = if (Test-Path $Log) { @(Select-String -Path $Log -Pattern 'forced failure \(-SimCruiseFailTiles\)|Tile \S+ failed').Count } else { 0 }
+            $Ground = if (Test-Path $Log) { @(Select-String -Path $Log -Pattern 'Fallback ground under tile').Count } else { 0 }
+            $Numbers['world'] += "| $Name | forced tile failures / failed tiles in the log / fallback ground laid | $(if ($Forced) { $Forced.Matches[0].Groups[1].Value } else { 0 }) / $Failed / $Ground | 2 / >0 / >0 | $(if ($Forced -and $Ground -gt 0) { 'ok' } else { 'FAIL' }) |"
+            if (-not $Forced) { & $Add 'world' 'P1' '-' "$Name\game.log" 'the forced tile failure did not take effect (no "Forced tile failures" line)' }
+            elseif ($Ground -eq 0) { & $Add 'world' 'P1' '-' "$Name\game.log" 'no fallback ground was laid under the failed tiles' }
+            if (-not $Pre) { & $Add 'world' 'P1' '-' "$Name\game.log" 'no drive result with failed tiles' }
+            elseif ($Pre.result -ne 'PASS') { & $Add 'world' 'P1' '-' "$Name\review\" "the drive over failed tiles failed: $($Pre.reasons)" }
+            if ($Pre -and ([int]$Pre.road_gaps -gt 0 -or $Pre.fell_back)) { & $Add 'world' 'P1' '-' "$Name\review\" "holes or a fall-back start with failed tiles: road gaps $($Pre.road_gaps)" }
+            foreach ($S in @(Get-ChildItem (Join-Path $C.Dir 'review') -Filter '*.png' -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -Last 4)) { $Frames['world'] += "$Name\review\$($S.Name) (failed tiles ahead: look for holes and voids)" }
+            continue
+        }
+        if ($C.Def.Case -eq 'eyeoff') { continue }
+        if ($C.Def.Case -eq 'eye') {
+            $Log = Join-Path $C.Dir 'game.log'
+            $On = Read-Json (Join-Path $C.Dir 'preflight.json')
+            $OffCase = @($Cases | Where-Object { $_.Def.Case -eq 'eyeoff' -and $_.Ran }) | Select-Object -First 1
+            $Off = if ($OffCase) { Read-Json (Join-Path $OffCase.Dir 'preflight.json') } else { $null }
+            $Ready = if (Test-Path $Log) { Select-String -Path $Log -Pattern 'Scan eye ready: (\S+)' | Select-Object -First 1 } else { $null }
+            $Tiles = if (Test-Path $Log) { @(Select-String -Path $Log -Pattern 'SCANEYE eye=\S+ tile=(\S+) ms=([\d.]+)') } else { @() }
+            $MeanMs = if ($Tiles.Count) { [Math]::Round(($Tiles | ForEach-Object { [double]$_.Matches[0].Groups[2].Value } | Measure-Object -Average).Average, 0) } else { 0 }
+            foreach ($T in 'world', 'ai') { $Numbers[$T] += "| $Name | scan eye ready / tiles read / mean ms per tile | $(if ($Ready) { $Ready.Matches[0].Groups[1].Value } else { 'no' }) / $($Tiles.Count) / $MeanMs | yes / >0 / - | $(if ($Ready -and $Tiles.Count) { 'ok' } else { 'FAIL' }) |" }
+            if (-not $Ready) { & $Add 'ai' 'P1' '-' "$Name\game.log" 'the scan eye did not start (no "Scan eye ready" line)' }
+            elseif (-not $Tiles.Count) { & $Add 'ai' 'P1' '-' "$Name\game.log" 'the scan eye read no tiles (no SCANEYE lines)' }
+            if ($On -and $Off) {
+                $Dp = [double]$On.frame_p95_ms - [double]$Off.frame_p95_ms
+                $Dh = [int]$On.hitches_over_100ms - [int]$Off.hitches_over_100ms
+                $Numbers['ai'] += "| $Name | frame p95 eye on - off / extra hitches | $('{0:N2}' -f $Dp) ms ($($On.frame_p95_ms) vs $($Off.frame_p95_ms)) / $Dh | 0.5 ms / 0 | $(if ($Dp -gt 0.5 -or $Dh -gt 0) { 'FAIL' } else { 'ok' }) |"
+                if ($Dp -gt 0.5) { & $Add 'ai' 'P1' 'whole drive' "$Name\game.log" "the scan eye adds $('{0:N2}' -f $Dp) ms to the frame p95 (limit 0.5 ms)" }
+                if ($Dh -gt 0) { & $Add 'ai' 'P2' 'whole drive' "$Name\game.log" "the scan eye adds $Dh hitches over 100 ms" }
+            } else { $Numbers['ai'] += "| $Name | frame p95 eye on - off | no $(if (-not $On) { 'eye-on' } else { 'eye-off' }) result | 0.5 ms | FAIL |"; & $Add 'ai' 'P1' '-' "$Name\" 'no eye-on or eye-off drive result to compare' }
+            # No ensure, assert or crash with the eye on.
+            $Bad = if (Test-Path $Log) { @(Select-String -Path $Log -Pattern 'Ensure condition failed|ensure\(|Assertion failed|Fatal error|Unhandled Exception') } else { @() }
+            $Crash = Test-Path (Join-Path $C.Dir 'crash')
+            $Numbers['ai'] += "| $Name | ensures, asserts, crashes with the eye on | $($Bad.Count)$(if ($Crash) { ' + crash' }) | 0 | $(if ($Bad.Count -or $Crash) { 'FAIL' } else { 'ok' }) |"
+            if ($Bad.Count -or $Crash) { & $Add 'ai' 'P0' '-' "$Name\game.log" "$($Bad.Count) ensure/assert lines$(if ($Crash) { ' and a crash' }) with the eye on, first: $(if ($Bad.Count) { ($Bad[0].Line -replace '^\[.*?\]\[.*?\]', '').Trim() } else { 'crash' })" }
+            foreach ($S in @(Get-ChildItem (Join-Path $C.Dir 'review') -Filter '*timed*.png' -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -First 3)) { $Frames['world'] += "$Name\review\$($S.Name) (the eye's detail layer)"; $Frames['ai'] += "$Name\review\$($S.Name)" }
+            continue
+        }
         if ($C.Def.Case -eq 'standstill') {
             $D = Read-Json (Join-Path $C.Dir 'standstill\detail.json')
             if (-not $D) { & $Add 'world' 'P1' '-' "$Name\game.log" 'no standstill frames (t000..t060)'; continue }
@@ -83,7 +125,7 @@ function Add-CaseResults($Cases, $Findings, $Numbers, $Frames, $Ran) {
 }
 
 function Write-ReleaseReports {
-    param([string]$RunDir, [object[]]$Rows, [string]$Commit, [int]$Seed, [string]$PadResult, [string]$PadDir, [object[]]$Cases = @(), [int]$Minutes)
+    param([string]$RunDir, [object[]]$Rows, [string]$Commit, [int]$Seed, [string]$PadResult, [string]$PadDir, [object[]]$Cases = @(), $Load = $null, [int]$Minutes)
     $Findings = @{}; foreach ($T in $script:Teams.Keys) { $Findings[$T] = @() }
     $Numbers = @{}; foreach ($T in $script:Teams.Keys) { $Numbers[$T] = @() }
     $Frames = @{}; foreach ($T in $script:Teams.Keys) { $Frames[$T] = @() }
@@ -157,7 +199,7 @@ function Write-ReleaseReports {
             if ([int]$G.speed_wrong_samples + [int]$G.rpm_wrong_samples -gt 0.05 * 2 * [Math]::Max(1, [int]$G.samples)) { Add-Finding 'cockpit' 'P2' $R '-' "$Rel\review\crops\" "gauges off the true value: speed wrong in $($G.speed_wrong_samples), rpm in $($G.rpm_wrong_samples) of $($G.samples) steady samples" }
         }
         if ($Ck) {
-            $Numbers['cockpit'] += "| $Rel ($($R.Plan.Car)) | hub move / rim tilt / needles turned at rest / cluster change | $($Ck.hub_move_cm) cm / $($Ck.rim_tilt_deg) deg / $($Ck.needle_max_turn_at_rest_deg) deg / $($Ck.cluster_changed_percent) % (noise $($Ck.cluster_noise_percent) %) | 0.1 cm / 2 deg / 0.5 deg / noise + 1 % | $($Ck.result) |"
+            $Numbers['cockpit'] += "| $Rel ($($R.Plan.Car)) | axis move / rim centre off axis / rim tilt / needles turned at rest / cluster change | $($Ck.hub_move_cm) cm / $($Ck.rim_axis_offset_cm) cm / $($Ck.rim_tilt_deg) deg / $($Ck.needle_max_turn_at_rest_deg) deg / $($Ck.cluster_changed_percent) % (noise $($Ck.cluster_noise_percent) %) | 0.1 cm / 0.5 cm / 2 deg / 0.5 deg / info | $($Ck.result) |"
             $Numbers['cockpit'] += "| $Rel ($($R.Plan.Car)) | rim at full lock, lock to lock | $($Ck.rim_full_lock_left_deg) / $($Ck.rim_full_lock_right_deg) deg, $($Ck.lock_to_lock_turns) turns | $($Ck.expected_full_lock_deg) deg (car data) | info |"
             if ($Ck.result -ne 'PASS') { Add-Finding 'cockpit' 'P1' $R 'at rest' "$Rel\cockpit\" $Ck.reasons }
             $Frames['cockpit'] += "$Rel\cockpit\full-left.png, full-left-nowheel.png, diff-full-left.png"
@@ -178,6 +220,8 @@ function Write-ReleaseReports {
         $Frames['ui'] += 'pad-review\*.png'
     }
 
+    $NotQuiet = $Load -and -not $Load.Quiet
+    if ($NotQuiet) { foreach ($T in 'picture', 'ai') { $Numbers[$T] = @($Numbers[$T] | ForEach-Object { if ($_ -match 'frame|p95') { $_ -replace '\| (ok|FAIL|info) \|$', '| $1, NOT QUIET |' } else { $_ } }) } }
     $Overall = 'PASS'
     foreach ($T in $script:Teams.Keys) {
         $F = @($Findings[$T] | Sort-Object Sev)
@@ -198,6 +242,7 @@ function Write-ReleaseReports {
     if ($Invalid.Count) { $Overall = 'FAIL' }
     $Sum = @("# Release test $(Split-Path -Leaf $RunDir)", '', "Commit $Commit, seed $Seed, $($Rows.Count) places, $Minutes min. Verdict: **$Overall**$(if ($Invalid.Count) { " (NOT VALID FOR SIGN-OFF: $($Invalid -join ', '))" }).", '',
         '| Place | Car | Verdict | Drive judge | Cockpit | View | Frame p95 (ms) | Minutes | Review |', '|---|---|---|---|---|---|---|---|---|') + $Table
+    $Sum += @('', "Load on the PC (load.csv): $(if (-not $Load) { 'not recorded' } elseif ($Load.Quiet) { "quiet ($($Load.Samples) samples, other GPU mean $($Load.MeanOtherGpu) %)" } else { "**NOT QUIET**: $($Load.OtherProcesses), other GPU mean $($Load.MeanOtherGpu) % (max $($Load.MaxOtherGpu) %). The frame times are not valid for sign-off." })")
     $Sum += @('', '## Teams', '')
     foreach ($T in $script:Teams.Keys) {
         $C = @($Findings[$T]).Count

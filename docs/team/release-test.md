@@ -8,11 +8,16 @@ One full game test of a release candidate, for all the teams at once. The tools 
 - At the cut-off, all lanes merge into one candidate (a commit or tag such as `rc-v2.0.3`, or `docs/team/cycles/rc.txt`). Then `scripts\release-test.ps1` tests that commit once. Do not start it on a commit that is not the candidate.
 - One GPU test at a time on the PC: the script takes the `Global\SimCruiseGpuTest` lock for each launch (`scripts\EditorLock.ps1 -GpuTest`). Other GPU tests wait. The lock holder is in `%LOCALAPPDATA%\SimCruise\gpu-test-lock.txt`.
 
+## A quiet window
+
+Run the release test only in a quiet window: no build, test or game from another lane. Load from other lanes added about 2 ms to the frame p95. The script samples the PC every 30 s into `load.csv` (`scripts\LoadWatch.ps1`): the other Unreal and SimCruise processes and the GPU use of other processes. When another Unreal or SimCruise process ran, or other GPU use averaged over 5 %, the summary says **NOT QUIET** and the frame-time rows in the picture and ai reports are marked NOT QUIET: they are not valid for sign-off.
+
 ## Run it
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\release-test.ps1
 powershell -ExecutionPolicy Bypass -File scripts\release-test.ps1 -MaxPlaces 2   # a dry run of the script
+powershell -ExecutionPolicy Bypass -File scripts\release-test.ps1 -OnlyCases fallback-ocean-drive,eye-off-ocean-drive,eye-on-ocean-drive   # only these cases
 ```
 
 | Argument | Effect |
@@ -65,6 +70,9 @@ Review launches turn dynamic resolution off (console priority), so the 3D pictur
 | `teams\picture.md` | Frame times, hitches, white sky, the real graphics settings. |
 | `teams\world.md` | Road steps and gaps, pop-in, stuck traffic, the start place, the load time, the view check. |
 | `teams\ai.md` | The detail engine's AI workers: frame cost with AI on against off, detail lead at speed. |
+| Fallback ground | Ocean Drive, `-SimCruiseFailTiles=18180_27907,18181_27907` (the two tiles north of the start fail; `launch-review.ps1 -Case fallback`) | the log: `Forced tile failures`, `Fallback ground under tile` | The failure takes effect, fallback ground is laid, the drive judge passes, no road gaps; the last frames listed for the review (no hole or void). | world |
+| Eye fusion | Ocean Drive, a live drive with `-SimCruiseScanEye=satlas_landcover` (`-Case eye`) and the same drive with the eye off (`-Case eyeoff`). The dev model is read in place from `-EyeModelDir` (default `D:\sc\lane-detail\Saved\AI`) through a junction at `Saved\AI`; it is never copied into the repo. | the log: `Scan eye ready`, one `SCANEYE` line per tile read | The eye starts and reads tiles; frame p95 with the eye on is not more than 0.5 ms above eye off; no extra hitches; frames listed for the detail layer. | world, ai |
+| No ensure with the eye on | the eye-on log | | No `Ensure condition failed`, `ensure(`, assert, fatal error or crash: any hit is a P0 for ai. | ai |
 | `teams\ui.md` | The controller menu test. |
 | `teams\release.md` | Crashes, hangs, engine errors, a drive that did not happen. |
 | `<place>\` | One launch: `review\` frames and JSON, `cockpit\`, `video.mp4`, `sheet.png`, `game.log`, `crash\`, `review.md`. |
