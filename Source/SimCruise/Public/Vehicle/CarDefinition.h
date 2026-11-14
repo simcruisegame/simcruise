@@ -140,6 +140,8 @@ struct FSimCruiseCarDefinition
 
 	// Steering geometry and driver assists.
 	double ParkingRackAngleDeg = 36.6;
+	/** Hand-wheel turns lock to lock (0: unknown, the ratio is taken as constant); see SimCruiseSteeringGeometry.h. */
+	double SteeringLockTurns = 0.0;
 	double RoadReferenceSteerAngleDeg = 35.5;
 	double AckermannBlendFraction = 0.49;
 	double SteeringAssistLateralG = 0.95;

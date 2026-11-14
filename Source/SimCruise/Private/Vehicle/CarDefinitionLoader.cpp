@@ -621,6 +621,7 @@ bool FSimCruiseCarDefinitionLoader::ParseJson(const FString& JsonText, const FSt
 	SIMCRUISE_READ_NUMBER("wheel_inertia", WheelRotationalInertiaKgM2);
 	SIMCRUISE_READ_NUMBER("rolling_resistance", RollingResistanceCoefficient);
 	SIMCRUISE_READ_NUMBER("parking_rack_deg", ParkingRackAngleDeg);
+	SIMCRUISE_READ_NUMBER("steering_turns_lock_to_lock", SteeringLockTurns);
 	SIMCRUISE_READ_NUMBER("road_reference_deg", RoadReferenceSteerAngleDeg);
 	SIMCRUISE_READ_NUMBER("ackermann_blend", AckermannBlendFraction);
 	SIMCRUISE_READ_NUMBER("assist_lateral_g", SteeringAssistLateralG);

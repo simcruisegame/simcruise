@@ -201,8 +201,9 @@
   "curb_mass_kg": 1603,
   "front_share": 0.394,
   "steering_ratio": 15.7,
+  "steering_turns_lock_to_lock": 2.5,
   "handling": "Mid-engine balance: 1.03 g on the skidpad (Car and Driver, Z51); a variable-ratio electric rack; stable on lift-off with stability control.",
-  "sources": "Turning circle 38.1 ft: Edmunds 2020 Corvette Stingray specifications. Curb 3,535 lb: Edmunds. Weight split 39.4/60.6: Corvette Story 2020 specifications. Steering 15.7:1: Chevrolet 2020 specifications. Skidpad: Car and Driver long-term Z51."
+  "sources": "Turning circle 38.1 ft: Edmunds 2020 Corvette Stingray specifications. Curb 3,535 lb: Edmunds. Weight split 39.4/60.6: Corvette Story 2020 specifications. Steering 15.7:1 on centre, a Bosch/ZF variable-ratio rack (Chevrolet 2020 Corvette preliminary specifications); about 2.5 turns lock to lock (NZ road test, autocar.co.nz / autotrader.co.nz C8 reviews), so the rack quickens toward lock. Skidpad: Car and Driver long-term Z51."
  },
  "target_0_60_rollout": true
 }

@@ -7,6 +7,7 @@
 #include "Engine/World.h"
 #include "Gameplay/SimCruiseCameraModels.h"
 #include "Gameplay/SimCruiseDriverShaping.h"
+#include "Vehicle/SimCruiseSteeringGeometry.h"
 #include "Gameplay/SimCruiseHaptics.h"
 #include "Gameplay/SimCruiseHUD.h"
 #include "Gameplay/SimCruiseInputConfig.h"
@@ -249,6 +250,56 @@ bool FSimCruiseCountersteerTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("reverse"), SimCruiseShaping::FrontAxleSlipAngleRad(Setup, -10.0, -3.0, 0.0), 0.0);
 	// A yaw rate alone moves the front axle sideways: r * a.
 	TestNearlyEqual(TEXT("yaw contributes"), SimCruiseShaping::FrontAxleSlipAngleRad(Setup, 20.0, 0.0, 1.0), FMath::Atan2(Setup.CenterOfMassToFrontAxleM, 20.0), 1e-12);
+	return true;
+}
+
+/**
+ * The rim turns as a hand turns a real one. The column gives the quoted ratio on centre and the
+ * quoted lock-to-lock turns at the lock; the stick may not spin the rim faster than about 450 deg/s
+ * parking or 300 at speed.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruiseHandRateTest, "SimCruise.Gameplay.Steering.HandRate", Flags)
+bool FSimCruiseHandRateTest::RunTest(const FString& Parameters)
+{
+	struct FCar { const TCHAR* Name; double Ratio; double LockDeg; double Turns; };
+	for (const FCar& Car : { FCar{ TEXT("NB Miata"), 15.0, 36.6, 2.6 }, FCar{ TEXT("1965 Mustang"), 21.7, 33.0, 3.73 }, FCar{ TEXT("C8"), 15.7, 34.0, 2.5 } })
+	{
+		const double Lock = FMath::DegreesToRadians(Car.LockDeg);
+		TestNearlyEqual(FString(Car.Name) + TEXT(": the rim at lock is half the lock-to-lock turns"),
+			FMath::RadiansToDegrees(SimCruiseSteering::HandWheelRad(Lock, Car.Ratio, Lock, Car.Turns)), Car.Turns * 180.0, 0.5);
+		TestNearlyEqual(FString(Car.Name) + TEXT(": the quoted ratio on centre"), SimCruiseSteering::LocalRatio(0.0, Car.Ratio, Lock, Car.Turns), Car.Ratio, 1e-9);
+		const double Rim = SimCruiseSteering::HandWheelRad(0.3, Car.Ratio, Lock, Car.Turns);
+		TestNearlyEqual(FString(Car.Name) + TEXT(": a USB rim maps back to the same rack"), SimCruiseSteering::RackRadForHandWheel(Rim, Car.Ratio, Lock, Car.Turns), 0.3, 1e-6);
+
+		FSimCruiseVehicleSetup Setup = Roadster();
+		Setup.SteeringRatio = Car.Ratio;
+		Setup.ParkingRackAngleRad = Lock;
+		Setup.SteeringLockTurns = Car.Turns;
+		for (const double Speed : { 1.0, 30.0 })
+		{
+			FSimCruiseDriverShaper Shaper;
+			FSimCruiseRawControls Raw;
+			Raw.PadSteer = 1.0;
+			const FSimCruiseDriveTelemetry Telemetry = Moving(Speed);
+			// Step by step: the largest rim step a 120 Hz frame takes, as deg/s.
+			double Previous = 0.0, Fastest = 0.0;
+			FSimCruiseDriverCommand Command;
+			for (int32 Step = 0; Step < 360; ++Step)
+			{
+				Command = Shaper.Update(Setup, Telemetry, Raw, 1.0 / 120.0);
+				const double RimDeg = FMath::RadiansToDegrees(SimCruiseSteering::HandWheelRad(Command.RackAngleRad, Car.Ratio, Lock, Car.Turns));
+				Fastest = FMath::Max(Fastest, FMath::Abs(RimDeg - Previous) * 120.0);
+				Previous = RimDeg;
+			}
+			const double Allowed = Speed < 5.0 ? 450.0 : 300.0;
+			AddInfo(FString::Printf(TEXT("HANDRATE %s at %.0f m/s: rim at most %.0f deg/s, ends at %.0f deg"), Car.Name, Speed, Fastest, Previous));
+			TestTrue(FString::Printf(TEXT("%s at %.0f m/s: the rim no faster than %.0f deg/s (%.0f)"), Car.Name, Speed, Allowed, Fastest), Fastest <= Allowed + 1.0);
+			if (Speed < 5.0)
+			{
+				TestNearlyEqual(FString(Car.Name) + TEXT(": parking, the stick reaches full lock"), Previous, Car.Turns * 180.0, 1.0);
+			}
+		}
+	}
 	return true;
 }
 
