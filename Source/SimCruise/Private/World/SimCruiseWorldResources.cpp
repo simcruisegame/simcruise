@@ -377,10 +377,19 @@ baseColor *= lerp(1.0, dl, 0.55 * veg + 0.25 * sand + 0.4 * (bare + paved)) * hu
 		float gz = dot(Texture2DSample(Grain, GrainSampler, m / Tg).rgb, W) / gm0;
 		float grain = gx * an.x + gy * an.y + gz * an.z;
 		float strata = 0.82 + 0.18 * sc.Hash(float2(floor(z / 0.35), 0.0), 9.0, 0.0);
-		float3 soil = lerp(float3(0.16, 0.115, 0.075), float3(0.29, 0.21, 0.14), GrassDry);
-		float3 rock = float3(0.21, 0.20, 0.18) * strata;
-		float3 face = lerp(soil, rock, rocky) * lerp(1.0, grain, 0.6);
-		baseColor = lerp(baseColor, face, steep * (1.0 - water));
+		// Exposed soil is dark where it rains (humus, iron) and pale only in dry climates.
+		float3 soil = lerp(float3(0.095, 0.072, 0.050), float3(0.26, 0.19, 0.13), GrassDry * GrassDry);
+		float3 rock = float3(0.20, 0.19, 0.17) * strata;
+		// Large-scale mottling (6 m and 1.5 m, periods that divide the anchor): a bank is never one tone.
+		FGF fm;
+		float nm1, nm2;
+		float2 pm1 = fm.At(m, 1.0 / 6.0, 1664.0, nm1), pm2 = fm.At(m, 1.0 / 1.5, 1664.0, nm2);
+		float mot = fm.F(pm1, 61.0, nm1) * 0.65 + fm.F(pm2, 67.0, nm2) * 0.35;
+		float3 face = lerp(soil, rock, rocky) * lerp(1.0, grain, 0.9) * lerp(0.72, 1.25, mot);
+		// A vegetated slope stays partly plants until it is steep enough to be rock: grass and
+		// weeds hold on in patches (the mottling), bare soil shows between them.
+		float bareShare = lerp(saturate(1.0 - 0.75 * veg + (mot - 0.5) * 1.2), 1.0, rocky);
+		baseColor = lerp(baseColor, face, steep * bareShare * (1.0 - water));
 	}
 }
 // Albedo limits (docs/team/research/realtime-context.md, item 4): lawns and meadows keep a

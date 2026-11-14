@@ -41,8 +41,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogSimCruiseTrees, Log, All);
 namespace
 {
 	/** Where a tree changes detail level (cm from the camera), and the cross-fade band either side. */
-	constexpr float LodSwitchCm[2] = { 4500.f, 13000.f };
-	constexpr float LodBandCm[2] = { 500.f, 1000.f };
+	constexpr float LodSwitchCm[2] = { 3300.f, 9200.f };
+	constexpr float LodBandCm[2] = { 400.f, 800.f };
 }
 
 namespace
@@ -514,16 +514,16 @@ bool ASimCruiseTrees::BuildMeshes()
 			Ring->SetMobility(EComponentMobility::Movable);
 			Ring->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			Ring->SetupAttachment(RootComponent);
-			// The crowns' detail by distance: the full tree to 45 m, the cluster crown to 130 m, the
-			// low crown to 600 m (Grove.gd switched at 33 and 92 m). SetCullDistances is where a ring
+			// The crowns' detail by distance: the full tree to 33 m, the cluster crown to 92 m, the low
+			// crown to 600 m (Grove.gd's distances; 45 and 130 m were tried and cost frame time). SetCullDistances is where a ring
 			// fades out and ends; its near limit is InstanceMinDrawDistance. Without one every ring
 			// drew from the camera out, so near the car all three crowns stood on top of each other
 			// (three times the triangles, and the blobby low crown over the detailed one). Each ring
 			// now starts half a band before its switch and ends half a band after the next, where
 			// the materials cross-fade the two levels.
-			// The ranges reach a crown's size (8 m) past the bands: a ring culls by its tree's
+			// The ranges reach half a crown (4 m) past the bands: a ring culls by its tree's
 			// distance, the materials fade by each pixel's, and a crown spans both.
-			constexpr float CrownMarginCm = 800.f;
+			constexpr float CrownMarginCm = 400.f;
 			const int32 Near = Level == 0 ? 0 : FMath::RoundToInt(FMath::Max(0.f, LodSwitchCm[Level - 1] - LodBandCm[Level - 1] - CrownMarginCm));
 			const int32 Far = Level == 2 ? 60000 : FMath::RoundToInt(LodSwitchCm[Level] + LodBandCm[Level] + CrownMarginCm);
 			Ring->InstanceMinDrawDistance = Near;
