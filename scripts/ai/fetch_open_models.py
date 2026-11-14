@@ -1,7 +1,8 @@
 """Fetch the open-licence AI models the development tools use, into Saved/AI.
 
 The scene parser's open model is the semantic head of Detectron2's Panoptic FPN
-(R50, COCO panoptic; Apache-2.0 code and weights, COCO annotations CC BY 4.0),
+(R50, COCO panoptic; Apache-2.0 code, CC BY-SA 3.0 weights per Detectron2's
+MODEL_ZOO.md, COCO annotations CC BY 4.0),
 exported to ONNX by Qualcomm AI Hub. Only its first part (backbone, FPN,
 proposals and the 54-class semantic logits) is kept: 120 MB, so it is fetched,
 not committed.
