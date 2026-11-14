@@ -3,6 +3,7 @@
 #include "Gameplay/SimCruiseSeatUI.h"
 
 #include "Gameplay/SimCruiseAtlasUI.h"
+#include "Gameplay/SimCruiseUiTheme.h"
 #include "HAL/PlatformTime.h"
 #include "InputCoreTypes.h"
 #include "Styling/CoreStyle.h"
@@ -67,7 +68,9 @@ void SSimCruiseSeatMenu::Construct(const FArguments& InArgs)
 					.Font(FCoreStyle::GetDefaultFontStyle("Regular", 18))
 					.ColorAndOpacity(Paper())
 					.AutoWrapText(true)
-					.Text(LOCTEXT("Help", "Up/Down choose   Left/Right change (the view moves as you go)\nX reset this row   Y reset all   A save for this car   B cancel"))
+					.Text(SimCruiseTheme::PadOrKeys(
+						TEXT("D-pad Up/Down choose   Left/Right change (the view moves as you go)\nX reset this row   Y reset all   A save for this car   B or Menu cancel"),
+						TEXT("Up/Down choose   Left/Right change (the view moves as you go)\nBackspace reset this row   Delete reset all   Enter save for this car   Esc cancel")))
 				]
 			]
 		]

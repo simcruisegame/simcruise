@@ -42,6 +42,7 @@ The engine sound is on at the start.
 - **Road atlas.** D-pad left or right moves from the map onto the buttons at the top (zoom, Recenter, Drive here, Back to drive, Find a place, Surprise me, the car, the gearbox and every setting). Then the D-pad moves between the buttons, A presses one, and B goes back to the map. On the map, B goes back.
 - **Tune car and Seat & view.** Up and down choose a row, left and right change it, A saves, B (or Menu) cancels.
 - The left stick works like the D-pad in the menus: one push is one step, and holding it repeats. A mouse resting on the menu does not move your place; moving the mouse does.
+- The button hints at the bottom of every screen follow what you used last: press any pad button and they show the pad's buttons (A, B, LB RB); press a key or move the mouse and they show the keyboard's keys.
 
 **Speed in mph or km/h.** Open the pause menu, go to the Settings page and choose *Speed units*: mph or km/h. The HUD shows your speed in those units, and the GPS shows distances in miles and feet, or in kilometres and metres. The choice is saved; mph is the default. The HUD's speed is the car's real speed along the road, rounded to a whole number (0 when you stand still, never below 0). Next to the rev bar the HUD shows the engine's speed in rpm, to the nearest 50; with the engine running at a stop it shows the idle speed (about 850 rpm in the Miata). Developers: `simcruise.Hud.Units 1` sets km/h, `0` mph.
 

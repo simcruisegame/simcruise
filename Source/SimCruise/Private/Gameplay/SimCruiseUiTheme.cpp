@@ -5,7 +5,9 @@
 #include "Brushes/SlateRoundedBoxBrush.h"
 #include "Fonts/CompositeFont.h"
 #include "Fonts/FontMeasure.h"
+#include "Framework/Application/IInputProcessor.h"
 #include "Framework/Application/SlateApplication.h"
+#include "Misc/CoreDelegates.h"
 #include "HAL/FileManager.h"
 #include "Misc/Paths.h"
 #include "Rendering/DrawElements.h"
@@ -321,6 +323,64 @@ namespace SimCruiseTheme
 		return ENav::None;
 	}
 
+	namespace
+	{
+		bool GPadInUse = false;
+
+		/** Sees every key, stick and mouse event before Slate routes it; takes none. */
+		class FPadWatcher : public IInputProcessor
+		{
+		public:
+			virtual void Tick(const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor) override {}
+			virtual bool HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent) override
+			{
+				GPadInUse = InKeyEvent.GetKey().IsGamepadKey();
+				return false;
+			}
+			virtual bool HandleAnalogInputEvent(FSlateApplication& SlateApp, const FAnalogInputEvent& InAnalogInputEvent) override
+			{
+				if (InAnalogInputEvent.GetKey().IsGamepadKey() && FMath::Abs(InAnalogInputEvent.GetAnalogValue()) > 0.5f) GPadInUse = true;
+				return false;
+			}
+			virtual bool HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) override
+			{
+				if (IsRealMouseMove(MouseEvent)) GPadInUse = false;
+				return false;
+			}
+			virtual bool HandleMouseButtonDownEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) override
+			{
+				GPadInUse = false;
+				return false;
+			}
+			virtual const TCHAR* GetDebugName() const override { return TEXT("SimCruisePadWatcher"); }
+		};
+
+		TSharedPtr<FPadWatcher> GPadWatcher;
+	}
+
+	bool IsPadInUse() { return GPadInUse; }
+	void SetPadInUse(bool bPad) { GPadInUse = bPad; }
+
+	void EnsurePadWatcher()
+	{
+		if (GPadWatcher.IsValid() || !FSlateApplication::IsInitialized()) return;
+		GPadWatcher = MakeShared<FPadWatcher>();
+		FSlateApplication::Get().RegisterInputPreProcessor(GPadWatcher);
+		// Off before the module's code goes away at exit.
+		FCoreDelegates::OnPreExit.AddLambda([]()
+		{
+			if (GPadWatcher.IsValid() && FSlateApplication::IsInitialized()) FSlateApplication::Get().UnregisterInputPreProcessor(GPadWatcher);
+			GPadWatcher.Reset();
+		});
+	}
+
+	TAttribute<FText> PadOrKeys(const FString& Pad, const FString& Keys)
+	{
+		EnsurePadWatcher();
+		const FText PadText = FText::FromString(Pad), KeyText = FText::FromString(Keys);
+		return TAttribute<FText>::CreateLambda([PadText, KeyText]() { return IsPadInUse() ? PadText : KeyText; });
+	}
+
 	bool IsLeftStick(const FKey& Axis)
 	{
 		return Axis == EKeys::Gamepad_LeftX || Axis == EKeys::Gamepad_LeftY;
@@ -415,8 +475,11 @@ namespace SimCruiseTheme
 			];
 	}
 
-	TSharedRef<SWidget> Hints(const TArray<FHint>& InHints, const TAttribute<bool>& bPad)
+	TSharedRef<SWidget> Hints(const TArray<FHint>& InHints, const TAttribute<bool>& /*bPadOfScreen*/)
 	{
+		// Every screen follows the last device used (one flag for all), not its own guess.
+		EnsurePadWatcher();
+		const TAttribute<bool> bPad = TAttribute<bool>::CreateStatic(&IsPadInUse);
 		TSharedRef<SHorizontalBox> Row = SNew(SHorizontalBox);
 		for (const FHint& Hint : InHints)
 		{

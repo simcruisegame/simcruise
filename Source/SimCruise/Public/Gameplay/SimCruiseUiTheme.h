@@ -78,6 +78,19 @@ namespace SimCruiseTheme
 	/** Is this event the left stick (menus take all of it, so Slate's own stick navigation never moves focus too)? */
 	SIMCRUISE_API bool IsLeftStick(const FKey& Axis);
 
+	/**
+	 * Is the pad the device in use now? One flag for every screen's button hints: any pad button
+	 * or a stick pushed past half makes it true; any keyboard key, a mouse button or a real mouse
+	 * move makes it false. A watcher on all of Slate's input sets it (EnsurePadWatcher), so keys
+	 * injected through FSlateApplication count too.
+	 */
+	SIMCRUISE_API bool IsPadInUse();
+	SIMCRUISE_API void SetPadInUse(bool bPad);
+	/** Start the watcher (once; every screen's hints call it). */
+	SIMCRUISE_API void EnsurePadWatcher();
+	/** The pad's text or the keyboard's, whichever the player uses now. */
+	SIMCRUISE_API TAttribute<FText> PadOrKeys(const FString& Pad, const FString& Keys);
+
 	/** Give the pad and keyboard focus to a widget (every Slate user, so any pad slot reaches it).
 	 *  True when it has it now; false when it is not on screen yet (try again next frame). */
 	SIMCRUISE_API bool FocusPad(const TSharedPtr<SWidget>& Widget);

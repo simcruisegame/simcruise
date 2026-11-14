@@ -447,4 +447,40 @@ bool FSimCruisePadReachAllTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSimCruisePadHintsTest, "SimCruise.UI.PadHints", SimCruisePadReachTest::Flags)
+bool FSimCruisePadHintsTest::RunTest(const FString& Parameters)
+{
+	// The button hints follow the last device used, on every screen: a pad key sent through
+	// FSlateApplication shows the pad's buttons, a keyboard key the keyboard's keys.
+	if (!FSlateApplication::IsInitialized())
+	{
+		AddWarning(TEXT("No Slate application: the hints test needs one"));
+		return true;
+	}
+	TSharedRef<SSimCruisePauseMenu> Menu = SNew(SSimCruisePauseMenu)
+		.GetState_Lambda([]() { FSimCruiseMenuState S; S.bPad = false; return S; });
+	FSlateApplication& App = FSlateApplication::Get();
+	auto Tap = [&App](const FKey& Key)
+	{
+		const FKeyEvent Event(Key, FModifierKeysState(), 0, false, 0, 0);
+		App.ProcessKeyDownEvent(Event);
+		App.ProcessKeyUpEvent(Event);
+	};
+	// Keys nothing in the editor is bound to.
+	Tap(EKeys::ScrollLock);
+	TestFalse(TEXT("after a keyboard key the pause menu shows the keyboard's keys"), Menu->ShowsPadHints());
+	Tap(EKeys::Gamepad_LeftThumbstick);
+	TestTrue(TEXT("after one pad button the pause menu shows the pad's buttons"), Menu->ShowsPadHints());
+	App.ProcessAnalogInputEvent(FAnalogInputEvent(EKeys::Gamepad_LeftY, FModifierKeysState(), 0, false, 0, 0, 0.2f));
+	Tap(EKeys::ScrollLock);
+	TestFalse(TEXT("a keyboard key switches back"), Menu->ShowsPadHints());
+	App.ProcessAnalogInputEvent(FAnalogInputEvent(EKeys::Gamepad_LeftY, FModifierKeysState(), 0, false, 0, 0, 0.2f));
+	TestFalse(TEXT("a stick resting near the middle does not switch"), Menu->ShowsPadHints());
+	App.ProcessAnalogInputEvent(FAnalogInputEvent(EKeys::Gamepad_LeftY, FModifierKeysState(), 0, false, 0, 0, 0.9f));
+	TestTrue(TEXT("a stick pushed switches to the pad"), Menu->ShowsPadHints());
+	App.ProcessAnalogInputEvent(FAnalogInputEvent(EKeys::Gamepad_LeftY, FModifierKeysState(), 0, false, 0, 0, 0.f));
+	Tap(EKeys::ScrollLock);
+	return true;
+}
+
 #endif
