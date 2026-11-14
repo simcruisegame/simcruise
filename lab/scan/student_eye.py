@@ -142,9 +142,13 @@ def cmd_train(a):
     print("train", len(xi), "held-out", len(vi), flush=True)
     w, _ = se.class_weights(xl)
     net = Student(widths(a.width))
+    if a.resume:
+        net.load_state_dict(torch.load(os.path.join(a.data, "student.pt")))
     print("params", sum(p.numel() for p in net.parameters()), flush=True)
-    opt = torch.optim.AdamW(net.parameters(), lr=3e-3, weight_decay=1e-4)
-    sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=3e-3, total_steps=a.steps, pct_start=0.1)
+    opt = torch.optim.AdamW(net.parameters(), lr=a.lr, weight_decay=1e-4)
+    sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=a.lr, total_steps=a.steps, pct_start=0.1)
+    # Rare classes (water, roads, roofs, bare) weigh more in the teacher loss too.
+    kd_w = (w / w.mean()).view(1, -1, 1, 1)
     ce = nn.CrossEntropyLoss(weight=w, ignore_index=sd.IGNORE)
     best = (-1, None, None)
     C = a.crop
@@ -164,8 +168,9 @@ def cmd_train(a):
         aug = lambda u: torch.rot90(u.flip(-1) if fl else u, r, (-2, -1))
         x, y, t = aug(x), aug(y), aug(t)
         lg = net.logits(x)
-        loss_t = F.kl_div(F.log_softmax(lg, 1), t, reduction="batchmean") / (lg.shape[-1] * lg.shape[-2])
-        loss_l = ce(F.interpolate(lg, scale_factor=4, mode="bilinear", align_corners=False), y)
+        loss_t = (kd_w * t * (torch.log(t.clamp_min(1e-6)) - F.log_softmax(lg, 1))).sum() / (lg.shape[0] * lg.shape[-1] * lg.shape[-2])
+        # A batch of only unlabelled photos has no label pixels: cross-entropy would be NaN.
+        loss_l = ce(F.interpolate(lg, scale_factor=4, mode="bilinear", align_corners=False), y) if (y != sd.IGNORE).any() else lg.sum() * 0
         loss = a.alpha * loss_t + (1 - a.alpha) * loss_l
         opt.zero_grad(); loss.backward(); opt.step(); sched.step()
         if step % 100 == 0 or step == a.steps - 1:
@@ -202,6 +207,8 @@ def main():
     ap.add_argument("--unlab", default="")
     ap.add_argument("--unlab-limit", type=int, default=100000)
     ap.add_argument("--width", type=float, default=1.0)
+    ap.add_argument("--resume", action="store_true")
+    ap.add_argument("--lr", type=float, default=3e-3)
     a = ap.parse_args()
     {"teach": cmd_teach, "teach-unlabelled": cmd_teach_unlabelled, "train": cmd_train, "export": cmd_export}[a.cmd](a)
 
