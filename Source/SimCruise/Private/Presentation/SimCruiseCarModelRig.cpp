@@ -1664,7 +1664,7 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 				// The wheel itself turns, but pieces of it welded to something outside its disc (a
 				// spoke's trim touching the column shroud: the NB's leather and black trim) were left
 				// behind and sat still on the spokes as the wheel turned over them. Take the triangles of
-				// those parts that lie in the wheel's own slab (6.5 cm toward the dash to 9 cm toward the
+				// those parts that lie in the wheel's own slab (8.5 cm toward the dash, as deep as the spokes reach, so nothing still pokes through them as they turn to 9 cm toward the
 				// driver, out to the rim), except the column behind the hub; never instruments or glass.
 				int32 Tidied = 0;
 				TSet<uint64> Taken;
@@ -1685,7 +1685,7 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 							const FVector D = V - Centre;
 							const double Axial = D | N;
 							const double Radial = (D - N * Axial).Size();
-							bIn = InDisc(V, -0.065, 0.09, R * 1.08) && !(Radial < 0.25 * R && Axial < -0.03);
+							bIn = InDisc(V, -0.085, 0.09, R * 1.08) && !(Radial < 0.25 * R && Axial < -0.03);
 						}
 						if (bIn)
 						{
@@ -1728,7 +1728,7 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 					const TArray<uint32>& List = Job.Dest[DestBody];
 					for (int32 K = 0; K + 2 < List.Num(); K += 3)
 					{
-						if (InDisc(Job.Pos[List[K]], -0.05, 0.09, R * 1.08) && InDisc(Job.Pos[List[K + 1]], -0.05, 0.09, R * 1.08) && InDisc(Job.Pos[List[K + 2]], -0.05, 0.09, R * 1.08))
+						if (InDisc(Job.Pos[List[K]], -0.1, 0.09, R * 1.08) && InDisc(Job.Pos[List[K + 1]], -0.1, 0.09, R * 1.08) && InDisc(Job.Pos[List[K + 2]], -0.1, 0.09, R * 1.08))
 						{
 							const FVector D = Job.Pos[List[K]] - Centre;
 							const double Axial = D | N;

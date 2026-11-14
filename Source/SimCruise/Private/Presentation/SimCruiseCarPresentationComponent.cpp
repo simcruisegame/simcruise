@@ -1,6 +1,8 @@
 // Copyright SimCruise contributors. All Rights Reserved.
 
 #include "Presentation/SimCruiseCarPresentationComponent.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 #include "Environment/SimCruiseEnvironment.h"
 #include "Environment/SimCruiseEnvironmentSubsystem.h"
 #include "Presentation/SimCruiseCarClock.h"
@@ -307,6 +309,15 @@ bool USimCruiseCarPresentationComponent::InitializeForCar(const FString& InCarId
 	{
 		SteeringRest = Built->SteeringWheel.PartToVehicle;
 		SteeringWheelMesh = AddPart(this, Built->SteeringWheel, SteeringRest);
+		if (SteeringWheelMesh)
+		{
+			// The turning wheel's own shadow drew black jagged tears on its spokes (where the spokes meet
+			// the horn pad) in every turned frame, also with its shadow pages redrawn each frame; with the
+			// wheel casting no shadow they are gone. Under the cowl the dash's own shadow covers it anyway.
+			// -SimCruiseWheelShadow keeps it on to look at the fault.
+			SteeringWheelMesh->ShadowCacheInvalidationBehavior = EShadowCacheInvalidationBehavior::Always;
+			SteeringWheelMesh->SetCastShadow(FParse::Param(FCommandLine::Get(), TEXT("SimCruiseWheelShadow")));
+		}
 	}
 	// The instruments: a live face over each of the model's dials (their needles are part of the
 	// dash mesh and cannot turn), drawn into a render target the face's material shows and lights.

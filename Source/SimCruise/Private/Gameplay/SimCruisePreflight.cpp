@@ -857,7 +857,10 @@ void ASimCruisePreflight::MeasureTick(ASimCruisePlayerController* Player, float 
 		AActor* Car = *It;
 		ASimCruiseTrafficCar* Traffic = Cast<ASimCruiseTrafficCar>(Car);
 		if (!Traffic && !Car->IsA<ASimCruiseCarPresentationActor>()) continue;
-		if (Traffic && Traffic->StandS > 20.0 && Traffic->StopState != 2 && Traffic->Why != 3 && !StuckCars.Contains(Car))
+		// Not stuck: a car waiting behind the player (reason 2), or one that has stood since before
+		// the drive began (queued behind the player's car while the tiles built and the car settled).
+		if (Traffic && Traffic->StandS > 20.0 && Traffic->StopState != 2 && Traffic->Why != 3 && Traffic->Why != 2 &&
+			Traffic->StandS < Stats.DriveSeconds && !StuckCars.Contains(Car))
 		{
 			StuckCars.Add(Car);
 			UE_LOG(LogSimCruisePreflight, Display, TEXT("Pre-flight: traffic car %s stuck %.0f s (reason %d) %.0f m away (frame %d)"), *Car->GetName(), Traffic->StandS, Traffic->Why, FVector::Dist(Car->GetActorLocation(), CarCm) / 100.0, FrameIndex);
