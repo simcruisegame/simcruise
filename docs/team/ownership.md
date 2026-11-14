@@ -10,7 +10,8 @@ Every role works to these rules:
 2. **Be innovative and original, and also research what exists and improve on it.** Study how the best games and the real world do it first; then do it better, in our own way. Never copy another game's content.
 3. **Be efficient, detailed and thorough.** Small tested steps; no guess left unmarked; no "works" without proof.
 4. **Launch and look.** Before you say a change works, run the game, capture it and look at the images yourself (procedure below).
-5. Standing rules: no money; legal APIs and licences only; do not break other threads' work; push from the owner's PC; editor and tests only through the scripts.
+5. **It must work at a random US place, not only on the hero roads.** The world generates as the player drives anywhere in the US (owner, 2026-11-14). Judge every change by "does this work at a random place": a city grid, a suburb, a farm road, a desert highway, a mountain pass, a coast, a place with poor map data. Every test plan includes random US places from `data/test-places.json` (`scripts\preflight.ps1 -Roads random`), and every fix is a general system (open data, the place graph, local AI), never a hand fix for one road. Hero roads are test cases only.
+6. Standing rules: no money; legal APIs and licences only; do not break other threads' work; push from the owner's PC; editor and tests only through the scripts.
 
 ## How real studios split the work
 
@@ -48,7 +49,7 @@ Sources: https://userpages.cs.umbc.edu/olano/class/493-24-2/roles.md.html · htt
 
 1. `scripts\watchdog.ps1` (stop stale runs with `-Stop` only after checking the list).
 2. `scripts\check.ps1 -Tier fast` (view check on; never `-NoViewCheck`).
-3. `scripts\preflight.ps1 -Cars nb2001_aaron,meridian_z,mustang65 -Seconds 60`: video, 4x3 contact sheet, `preflight.json`, `report.md` per road and car in `Saved\Preflight\<time>\`.
+3. `scripts\preflight.ps1 -Roads ocean-drive,dragon,nebraska,big-sur,random -Cars nb2001_aaron,meridian_z,mustang65 -Seconds 60` (hero roads plus 3 random US places): video, 4x3 contact sheet, `preflight.json`, `report.md` per road and car in `Saved\Preflight\<time>\`.
 4. Driving change: `scripts\replay-compare.ps1 -Tape <tape> -CarB <car>`. Frame-time change: `scripts\framecheck.ps1`. Look change: `scripts\realism.ps1`.
 5. Read the logs: PREFLIGHT reasons (spin, past edge, jolts, pop-ins, flash), any `Error:`, `Ensure` or `Fatal`, `Saved\Crashes`.
 6. **Open the images with the Read tool**: every `*-sheet.png` and `Saved\ViewCheck\latest\*.png`, and the same files from the last PASS run. List each defect with its image. "Tests pass" is not enough.
