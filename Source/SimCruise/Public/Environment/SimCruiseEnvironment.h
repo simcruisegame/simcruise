@@ -165,7 +165,7 @@ public:
 	 * and wheel came out light grey-tan; the eye keeps them black (lightness constancy).
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Exposure")
-	float DriverDaylightOpenStops = 1.5f;
+	float DriverDaylightOpenStops = 1.0f;
 
 	/** The player's camera is in the driver's seat (set by the driven car every frame). */
 	void SetDriverView(bool bInSeat) { if (bInSeat != bDriverView) { bDriverView = bInSeat; ApplyExposure(); } }

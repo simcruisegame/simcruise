@@ -786,8 +786,10 @@ UMaterialInstanceDynamic* SimCruiseCarMaterials::MakeInstance(UObject* Outer, ES
 		bUseAuthorTextures = false;
 		break;
 	case R::InteriorPlastic:
+		// Grained dash plastic is near-matte (roughness about 0.85): at 0.66 the sky's reflection
+		// turned the near-black dash light grey in the sun (Aaron's Miata screenshot, 2026-11-14).
 		Base = ToAlbedo(AuthorBase, 0.025f, 0.12f);
-		Surface = FLinearColor(0.f, 0.66f, 0.f, 0.05f);
+		Surface = FLinearColor(0.f, 0.85f, 0.f, 0.05f);
 		Detail.R = KindInteriorPlastic;
 		break;
 	case R::Cloth:
@@ -797,7 +799,7 @@ UMaterialInstanceDynamic* SimCruiseCarMaterials::MakeInstance(UObject* Outer, ES
 		break;
 	case R::Leather:
 		Base = BaseFile.IsEmpty() ? ToAlbedo(AuthorBase, 0.03f, 0.5f) : FLinearColor::White;
-		Surface = FLinearColor(0.f, 0.5f, 0.f, 0.05f);
+		Surface = FLinearColor(0.f, 0.72f, 0.f, 0.05f); // worn wheel and seat leather: satin, not glossy
 		Detail.R = KindLeather;
 		break;
 	case R::Carpet:
