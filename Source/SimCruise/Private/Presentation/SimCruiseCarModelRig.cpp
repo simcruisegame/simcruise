@@ -1660,6 +1660,45 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 					}
 				}
 			}
+			{
+				// The wheel itself turns, but pieces of it welded to something outside its disc (a
+				// spoke's trim touching the column shroud: the NB's leather and black trim) were left
+				// behind and sat still on the spokes as the wheel turned over them. Take the triangles of
+				// those parts that lie in the wheel's own slab (6.5 cm toward the dash to 9 cm toward the
+				// driver, out to the rim), except the column behind the hub; never instruments or glass.
+				int32 Tidied = 0;
+				TSet<uint64> Taken;
+				for (const FTriRef& Tri : Turning) Taken.Add((uint64(uint32(Tri.Job)) << 32) | uint32(Tri.Offset));
+				for (const FComponent* Part : Joined)
+				{
+					for (const FTriRef& Tri : Part->Tris)
+					{
+						if (Taken.Contains((uint64(uint32(Tri.Job)) << 32) | uint32(Tri.Offset))) continue;
+						const FJob& Job = Context.Jobs[Tri.Job];
+						const ESimCruiseCarMaterialRole TidyRole = Profile.RoleFor(Job.MaterialName, Job.Label);
+						if (TidyRole == ESimCruiseCarMaterialRole::Gauge || TidyRole == ESimCruiseCarMaterialRole::Glass) continue;
+						const TArray<uint32>& List = Job.Dest[DestBody];
+						bool bIn = true;
+						for (int32 M = 0; M < 3 && bIn; ++M)
+						{
+							const FVector& V = Job.Pos[List[Tri.Offset + M]];
+							const FVector D = V - Centre;
+							const double Axial = D | N;
+							const double Radial = (D - N * Axial).Size();
+							bIn = InDisc(V, -0.065, 0.09, R * 1.08) && !(Radial < 0.25 * R && Axial < -0.03);
+						}
+						if (bIn)
+						{
+							Turning.Add(Tri);
+							++Tidied;
+						}
+					}
+				}
+				if (Tidied > 0)
+				{
+					Context.Note(FString::Printf(TEXT("steering wheel: %d triangles of the wheel's slab taken from parts welded to the column"), Tidied));
+				}
+			}
 			if (CutTriangles > 0)
 			{
 				Context.Note(FString::Printf(TEXT("steering wheel: %d triangles cut from parts joined to the column"), CutTriangles));
@@ -1679,6 +1718,29 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 				Context.Note(FString::Printf(TEXT("steering wheel turning parts by material:%s; deepest %.3f m toward the dash"), *Summary, Deepest));
 			}
 			MoveTris(Context, Turning, DestBody, DestSteering);
+			// What stays behind inside the wheel's own disc (a few centimetres either side of the rim's
+			// plane): pieces left there sit still while the wheel turns over them.
+			{
+				TMap<FString, FVector> Left;
+				for (int32 J = 0; J < Context.Jobs.Num(); ++J)
+				{
+					const FJob& Job = Context.Jobs[J];
+					const TArray<uint32>& List = Job.Dest[DestBody];
+					for (int32 K = 0; K + 2 < List.Num(); K += 3)
+					{
+						if (InDisc(Job.Pos[List[K]], -0.05, 0.09, R * 1.08) && InDisc(Job.Pos[List[K + 1]], -0.05, 0.09, R * 1.08) && InDisc(Job.Pos[List[K + 2]], -0.05, 0.09, R * 1.08))
+						{
+							const FVector D = Job.Pos[List[K]] - Centre;
+							const double Axial = D | N;
+							FVector& Still = Left.FindOrAdd(Job.MaterialName);
+							Still.X += 1; Still.Y = FMath::Max(Still.Y, (D - N * Axial).Size()); Still.Z = FMath::Min(Still.Z, Axial);
+						}
+					}
+				}
+				FString LeftSummary;
+				for (const TPair<FString, FVector>& Pair : Left) LeftSummary += FString::Printf(TEXT(" %s %d (r to %.3f, ax to %.3f)"), *Pair.Key, int32(Pair.Value.X), Pair.Value.Y, Pair.Value.Z);
+				Context.Note(FString::Printf(TEXT("steering wheel disc, left still:%s"), *LeftSummary));
+			}
 			int32 Moved = 0;
 			for (const FJob& Job : Context.Jobs) Moved += Job.Dest[DestSteering].Num() / 3;
 			// The pivot and the axis from the rim itself: the found (or profile) ring can sit a few
@@ -1720,7 +1782,9 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 					for (const TPair<FString, uint32>& Pair : RimSectorsBy)
 					{
 						const int32 Sec = FMath::CountBits(Pair.Value), Pts = int32(RimBy.FindRef(Pair.Key).X);
-						if (Sec > BestSectors || (Sec == BestSectors && Pts > BestPoints)) { Best = Pair.Key; BestSectors = Sec; BestPoints = Pts; }
+						// Among materials that ring the column (14 of 16 sectors or more), the one with the most points.
+						const bool bRings = Sec >= 14, bBestRings = BestSectors >= 14;
+						if ((bRings && !bBestRings) || (bRings == bBestRings && (bRings ? Pts > BestPoints : (Sec > BestSectors || (Sec == BestSectors && Pts > BestPoints))))) { Best = Pair.Key; BestSectors = Sec; BestPoints = Pts; }
 					}
 					if (BestSectors >= 12)
 					{
@@ -1733,6 +1797,7 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 				// Three passes: after each fit keep only the points on the rim's tube (within 1.5 cm of
 				// its plane and 2 cm of its median radius), so a hood, a stalk or a spoke's root that
 				// reaches into the annulus does not pull the axis.
+				double RimMedian = -1.0;
 				for (int32 Pass = 0; Pass < 3; ++Pass)
 				{
 				if (Pass > 0)
@@ -1745,11 +1810,15 @@ bool SimCruiseCarModelRig::Build(const FSimCruiseGltfModel& Model, const FSimCru
 					}
 					Radii.Sort();
 					const double Median = Radii.Num() ? Radii[Radii.Num() / 2] : R;
+					if (RimMedian < 0.0) RimMedian = Median;
 					RimPoints.RemoveAll([&](const FVector& P)
 					{
 						const FVector D = P - Centre;
 						const double Axial = D | N;
-						return FMath::Abs(Axial) > 0.015 || FMath::Abs((D - N * Axial).Size() - Median) > 0.02;
+						// The rim's tube about the first pass's median radius (fixed, so the band does not
+						// shrink pass by pass): the spokes' roots inside it are few against the ring.
+						const double Radial = (D - N * Axial).Size();
+						return FMath::Abs(Axial) > 0.015 || FMath::Abs(Radial - RimMedian) > 0.015;
 					});
 				}
 				if (RimPoints.Num() >= 24)

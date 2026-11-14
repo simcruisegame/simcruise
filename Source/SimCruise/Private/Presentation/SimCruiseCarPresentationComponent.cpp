@@ -422,7 +422,10 @@ void USimCruiseCarPresentationComponent::UpdateDials(float DeltaTime)
 		const int32 Spec = Built->Dials[D].Spec;
 		if (!Built->Profile.Dials.IsValidIndex(Spec)) continue;
 		const FSimCruiseDialSpec& Dial = Built->Profile.Dials[Spec];
-		DialShown[D] += (DialTarget(Dial.Quantity, LastState) - DialShown[D]) * Follow;
+		// A tachometer's needle is light and fast (it follows a gear change within about a tenth of a
+		// second); the others keep the slower needle lag.
+		const double DialFollow = Dial.Quantity == TEXT("rpm") ? 1.0 - FMath::Exp(-FMath::Max(DeltaTime, 0.f) / 0.04) : Follow;
+		DialShown[D] += (DialTarget(Dial.Quantity, LastState) - DialShown[D]) * DialFollow;
 		if (UStaticMeshComponent* Needle = Needles[D])
 		{
 			if (Dial.IsLinear())

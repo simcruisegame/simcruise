@@ -638,6 +638,20 @@ void ASimCruisePreflight::DriveTick(ASimCruisePlayerController* Player, float De
 		UE_LOG(LogSimCruisePreflight, Display, TEXT("ROBOT t %.2f v %.1f target %.1f stick %+.2f thr %.2f brk %.2f yaw %+.1f deg/s lat %.2f g slip %.1f deg gear %d rpm %.0f"),
 			GetWorld()->GetTimeSeconds(), Speed, TargetMps, Stick, Throttle, Brake, FMath::RadiansToDegrees(YawRate), LateralG, SlipDeg, T.Gear, T.EngineSpeedRpm);
 	}
+	// Stopping for a car ahead or one crossing: the last metre on the parking brake (B), as a driver
+	// holds the car at a junction. The brake trigger held at a standstill selects reverse in the
+	// automatic, and the robot reversed away from a car crossing in front of it at Ocean Drive.
+	const bool bHold = TargetMps < 0.5 && Speed < 1.5;
+	if (bHold)
+	{
+		Brake = 0.f;
+		Throttle = 0.f;
+	}
+	if (bHold != bHoldingParkingBrake)
+	{
+		bHoldingParkingBrake = bHold;
+		Player->InjectKey(EKeys::Gamepad_FaceButton_Right, bHold);
+	}
 	Player->InjectAxis(EKeys::Gamepad_RightTriggerAxis, Throttle);
 	Player->InjectAxis(EKeys::Gamepad_LeftTriggerAxis, Brake);
 	Player->InjectAxis(EKeys::Gamepad_LeftX, Stick);
