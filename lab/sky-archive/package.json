@@ -1,6 +1,0 @@
-{
-  "private": true,
-  "dependencies": {
-    "h5wasm": "0.10.3"
-  }
-}

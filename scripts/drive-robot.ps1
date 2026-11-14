@@ -20,6 +20,8 @@
   powershell -ExecutionPolicy Bypass -File scripts\drive-robot.ps1 -Cars nb2001 -LowFps
 #>
 param(
+    # Show the game's window (default: off screen, -RenderOffScreen, nothing on the desktop).
+    [switch]$ShowWindow,
     [string[]]$Cars = @('nb2001', 'nb2001_aaron', 'mustang65', 'meridian_z'),
     # Cap the frame rate at 15 fps as well, to catch frame-rate dependence.
     [switch]$LowFps
@@ -50,12 +52,19 @@ foreach ($Car in $Cars) {
         $Log = Join-Path $Out "robot-$Tag.log"
         $Csv = (Join-Path $Out "robot-$Tag.csv") -replace '\\', '/'
         $Args = @('-game', '-SimCruiseWorld', '-SimCruiseBundledStart', "-SimCruiseCar=$Car", '-NoLiveCoding', '-SimCruiseNoLive', '-SimCruiseNoNeural',
-            '-SimCruiseDriveTest', '-SimCruiseDriveTestPad', "-SimCruiseDriveTestOut=$Csv", '-windowed', '-ResX=1280', '-ResY=720', '-log', "-abslog=$Log")
+            '-SimCruiseDriveTest', '-SimCruiseDriveTestPad', "-SimCruiseDriveTestOut=$Csv", $(if ($ShowWindow) { '-windowed' } else { '-RenderOffScreen' }), '-ResX=1280', '-ResY=720', '-log', "-abslog=$Log")
         if ($Run.Cap -gt 0) { $Args += "-SimCruiseDriveTestMaxFps=$($Run.Cap)" }
         Write-Host "Drive robot: $Tag"
         if (Test-Path $Log) { Remove-Item $Log -Force }
         # A hung or crashed run is stopped after 15 min (editor.ps1 adds -unattended to -game runs).
+        $Started = Get-Date
         & powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'editor.ps1') -TimeoutMinutes 15 @Args | Out-Null
+        $RunExit = $LASTEXITCODE
+        # Evidence for a review (scripts\ReviewLib.ps1): the log, command line, GPU and a crash's dump.
+        . (Join-Path $PSScriptRoot 'ReviewLib.ps1')
+        $Evidence = Save-ReviewEvidence -RunDir (Join-Path (Get-ReviewRoot $Root) "robot-$Tag") -Root $Root -Log $Log -CommandLine ("editor.ps1 " + ($Args -join ' ')) -Started $Started -TimedOut ($RunExit -eq 4) -ExitCode $RunExit
+        Write-ReviewSheet -RunDir (Join-Path (Get-ReviewRoot $Root) "robot-$Tag") -Kind 'robot' -Title "drive robot $Tag" -Result $(if (Test-Path $Log) { 'DONE' } else { '' }) -Reasons '' -Evidence $Evidence
+        $LASTEXITCODE = $RunExit
         if ($LASTEXITCODE -eq 4) { Write-Host "  $Tag timed out after 15 min and was stopped"; $Failed += "$Tag (timed out)"; continue }
         $Lines = Select-String -Path $Log -Pattern 'DRIVETEST ([a-z0-9_]+): peak (\d+) km/h, peak rear-axle slip ([\d.]+) deg, peak yaw rate ([\d.]+) deg/s' -AllMatches
         if (-not $Lines) { Write-Host "  no DRIVETEST lines in $Log"; $Failed += "$Tag (no result)"; continue }

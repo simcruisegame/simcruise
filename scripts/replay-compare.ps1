@@ -37,6 +37,8 @@
   powershell -ExecutionPolicy Bypass -File scripts\replay-compare.ps1 -Tape lap.csv -RootB D:\sc\lane2 -Pad
 #>
 param(
+    # Show the game's window (default: off screen, -RenderOffScreen, nothing on the desktop).
+    [switch]$ShowWindow,
     [Parameter(Mandatory = $true)][string]$Tape,
     [string]$RootA = '',
     [string]$RootB = '',
@@ -72,7 +74,7 @@ function Invoke-Replay([string]$Name, [string]$Root, [string]$Car) {
     $Log = Join-Path $Out "$Name.log"
     $Csv = (Join-Path $Out "$Name.csv") -replace '\\', '/'
     $Args = @('-game', '-SimCruiseWorld') + $Start + @('-SimCruiseNoLive', '-SimCruiseNoNeural', '-SimCruiseRealCar',
-        "-SimCruiseReplayInput=$($Tape -replace '\\', '/')", "-SimCruiseReplayOut=$Csv", '-windowed', '-ResX=1280', '-ResY=720', '-log', "-abslog=$Log")
+        "-SimCruiseReplayInput=$($Tape -replace '\\', '/')", "-SimCruiseReplayOut=$Csv", $(if ($ShowWindow) { '-windowed' } else { '-RenderOffScreen' }), '-ResX=1280', '-ResY=720', '-log', "-abslog=$Log")
     if ($Car) { $Args += "-SimCruiseReplayCar=$Car"; $Args += "-SimCruiseCar=$Car" }
     if ($Pad) { $Args += '-SimCruiseReplayPad' }
     # The replay turns traffic off itself; -Traffic keeps it (-SimCruiseReplayTraffic).
